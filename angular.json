@@ -33,9 +33,7 @@
               "node_modules/bootstrap/scss/bootstrap.scss",
               "src/styles.scss"
             ],
-            "scripts": [
-              "src/scrollanimation.js"
-            ]
+            "scripts": []
           },
           "configurations": {
             "production": {
@@ -99,9 +97,7 @@
               "node_modules/bootstrap/scss/bootstrap.scss",
               "src/styles.scss"
             ],
-            "scripts": [
-              "src/scrollanimation.js"
-            ]
+            "scripts": []
           }
         }
       }
