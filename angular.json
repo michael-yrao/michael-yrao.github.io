@@ -3,9 +3,13 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "progressiveOverflow-Web": {
+    "progressiveOverflow": {
       "projectType": "application",
-      "schematics": {},
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
@@ -13,21 +17,25 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/progressive-overflow-web",
+            "outputPath": "dist/progressive-overflow",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": [
               "zone.js"
             ],
             "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
             "assets": [
               "src/favicon.ico",
               "src/assets"
             ],
             "styles": [
-              "src/styles.css"
+              "node_modules/bootstrap/scss/bootstrap.scss",
+              "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [
+              "src/scrollanimation.js"
+            ]
           },
           "configurations": {
             "production": {
@@ -60,10 +68,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "progressiveOverflow-Web:build:production"
+              "browserTarget": "progressiveOverflow:build:production"
             },
             "development": {
-              "browserTarget": "progressiveOverflow-Web:build:development"
+              "browserTarget": "progressiveOverflow:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -71,7 +79,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "progressiveOverflow-Web:build"
+            "browserTarget": "progressiveOverflow:build"
           }
         },
         "test": {
@@ -82,20 +90,24 @@
               "zone.js/testing"
             ],
             "tsConfig": "tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
             "assets": [
               "src/favicon.ico",
               "src/assets"
             ],
             "styles": [
-              "src/styles.css"
+              "node_modules/bootstrap/scss/bootstrap.scss",
+              "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [
+              "src/scrollanimation.js"
+            ]
           }
         }
       }
     }
   },
   "cli": {
-    "analytics": "f68a00e7-9aa0-4f9a-9ec1-b1181b141e44"
+    "analytics": "14961cd6-9388-48df-a5da-824459de968d"
   }
 }
