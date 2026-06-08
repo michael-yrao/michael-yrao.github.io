@@ -1,0 +1,25 @@
+<div class="llv">
+  <!-- NULL on the left if any pointer points to null -->
+  <div class="llv__null-left" *ngIf="nullPointers().length > 0">
+    <div class="llv__pointer-labels">
+      <span *ngFor="let lbl of nullPointers()" class="llv__ptr-label">{{ lbl }}</span>
+    </div>
+    <div class="llv__null-node">null</div>
+  </div>
+
+  <!-- Nodes -->
+  <ng-container *ngFor="let node of state.nodes; trackBy: trackById">
+    <div class="llv__node-wrap">
+      <div class="llv__pointer-labels" [style.visibility]="hasPointers(node.id) ? 'visible' : 'hidden'">
+        <span *ngFor="let lbl of nodePointers(node.id)" class="llv__ptr-label">{{ lbl }}</span>
+      </div>
+      <div class="llv__node" [ngClass]="'llv__node--' + node.state">
+        <span class="llv__node-val">{{ node.value }}</span>
+      </div>
+    </div>
+
+    <!-- Arrow to next or null terminator -->
+    <div class="llv__arrow" *ngIf="node.nextId">→</div>
+    <div class="llv__null-terminator" *ngIf="!node.nextId">→ <span class="llv__null">null</span></div>
+  </ng-container>
+</div>

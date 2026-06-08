@@ -1,0 +1,21 @@
+<div class="gv">
+  <div class="gv__grid">
+    <div *ngFor="let row of state.grid; let r = index" class="gv__row">
+      <div
+        *ngFor="let cell of row; let c = index"
+        class="gv__cell"
+        [ngClass]="'gv__cell--' + cell.state"
+        [title]="cell.state + ' (' + r + ',' + c + ')'"
+      >
+        {{ cellLabel(cell.state) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="gv__counters" *ngIf="state.counters?.length">
+    <div *ngFor="let counter of state.counters" class="gv__counter">
+      <span class="gv__counter-label">{{ counter.label }}</span>
+      <span class="gv__counter-value">{{ counter.value }}</span>
+    </div>
+  </div>
+</div>

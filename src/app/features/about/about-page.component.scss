@@ -1,0 +1,190 @@
+.page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--space-2xl) var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+// ── Hero ──────────────────────────────────────────────────────────
+.hero {
+  text-align: center;
+  padding: var(--space-2xl) 0 var(--space-xl);
+
+  &__eyebrow {
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-bottom: var(--space-sm);
+    font-weight: 500;
+    font-family: var(--font-mono);
+  }
+
+  &__name {
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--color-text);
+    margin: 0 0 var(--space-lg);
+    line-height: 1.1;
+  }
+
+  &__bio {
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: var(--color-text-muted);
+    max-width: 620px;
+    margin: 0 auto var(--space-md);
+  }
+
+  &__contact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    font-size: 0.88rem;
+    color: var(--color-text-muted);
+
+    a {
+      color: var(--color-accent);
+      &:hover { text-decoration: underline; }
+    }
+
+    .divider { opacity: 0.4; }
+  }
+}
+
+// ── Card ──────────────────────────────────────────────────────────
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+}
+
+.section-title {
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin: 0 0 var(--space-lg);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+}
+
+// ── Skills ────────────────────────────────────────────────────────
+.skills {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.skill-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.skill-tier {
+  font-size: 0.73rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  min-width: 76px;
+  padding-top: 0.3rem;
+  flex-shrink: 0;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.tag {
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  border: 1px solid var(--color-border);
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+
+  &--dim { opacity: 0.55; }
+}
+
+// ── Timeline ──────────────────────────────────────────────────────
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+.job {
+  & + & {
+    padding-top: var(--space-2xl);
+    border-top: 1px solid var(--color-border);
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+  }
+
+  &__role {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  &__company {
+    font-size: 0.9rem;
+    color: var(--color-accent);
+    margin-top: var(--space-xs);
+  }
+
+  &__period {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    font-family: var(--font-mono);
+  }
+}
+
+// ── Subprojects ────────────────────────────────────────────────────
+.subproject {
+  margin-top: var(--space-md);
+
+  &__name {
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    opacity: 0.6;
+    margin-bottom: var(--space-xs);
+    font-weight: 600;
+  }
+}
+
+// ── Bullets ────────────────────────────────────────────────────────
+.bullets {
+  margin: var(--space-xs) 0 0;
+  padding-left: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+
+  li {
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+  }
+}

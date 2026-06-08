@@ -1,0 +1,10 @@
+<div class="code-viewer">
+  <div class="code-viewer__header">
+    <span class="code-viewer__lang">python</span>
+  </div>
+  <pre class="code-viewer__pre"><code #codeEl class="hljs language-python"><div
+    *ngFor="let line of lines"
+    class="code-line"
+    [class.code-line--active]="isActive(line.lineNum)"
+  ><span class="code-line__num">{{ line.lineNum }}</span><span class="code-line__content" [innerHTML]="line.html"></span></div></code></pre>
+</div>

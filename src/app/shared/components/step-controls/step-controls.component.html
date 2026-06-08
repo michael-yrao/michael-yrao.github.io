@@ -1,0 +1,28 @@
+<div class="controls">
+  <div class="controls__nav">
+    <button class="btn-ctrl" (click)="goToStart()" [disabled]="atStart" title="Go to start">|◀</button>
+    <button class="btn-ctrl" (click)="stepBack()"  [disabled]="atStart" title="Step back">◀</button>
+    <button class="btn-ctrl btn-ctrl--play" (click)="togglePlay()" [title]="isPlaying ? 'Pause' : 'Play'">
+      {{ isPlaying ? '⏸' : '▶' }}
+    </button>
+    <button class="btn-ctrl" (click)="stepForward()" [disabled]="atEnd" title="Step forward">▶</button>
+    <button class="btn-ctrl" (click)="goToEnd()"    [disabled]="atEnd" title="Go to end">▶|</button>
+    <button class="btn-ctrl btn-ctrl--reset" (click)="onReset()" title="Reset">↺</button>
+  </div>
+
+  <div class="controls__meta">
+    <span class="controls__counter">Step {{ currentStep + 1 }} / {{ totalSteps }}</span>
+    <label class="controls__speed">
+      <span>Speed</span>
+      <input
+        type="range"
+        min="200"
+        max="2000"
+        step="100"
+        [value]="speed"
+        (input)="onSpeedChange($event)"
+      />
+      <span>{{ speed }}ms</span>
+    </label>
+  </div>
+</div>

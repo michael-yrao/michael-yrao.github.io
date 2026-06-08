@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Progressive Overflow</title>
+    <script>
+      // GitHub Pages doesn't support HTML5 pushState routing.
+      // When GitHub serves a 404 for a route like /about, this page
+      // intercepts it and redirects to index.html with the path encoded
+      // as a query param so Angular can restore it.
+      var l = window.location;
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        '/?/' +
+        l.pathname.slice(1).replace(/&/g, '~and~') +
+        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      );
+    </script>
+  </head>
+  <body></body>
+</html>

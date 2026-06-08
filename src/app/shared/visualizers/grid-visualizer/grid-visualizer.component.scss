@@ -1,0 +1,93 @@
+.gv {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+
+  &__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__row {
+    display: flex;
+    gap: 4px;
+  }
+
+  &__cell {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 700;
+    border: 2px solid transparent;
+    transition: background var(--transition-base), color var(--transition-base), border-color var(--transition-base);
+
+    &--land {
+      background: #1e3a5f;
+      border-color: #2563eb;
+      color: #93c5fd;
+    }
+
+    &--water, &--empty {
+      background: var(--color-bg);
+      border-color: var(--color-border);
+      color: var(--color-text-muted);
+    }
+
+    &--visited {
+      background: rgba(74, 222, 128, 0.15);
+      border-color: var(--color-found);
+      color: var(--color-found);
+    }
+
+    &--queued {
+      background: rgba(251, 146, 60, 0.2);
+      border-color: var(--color-medium);
+      color: var(--color-medium);
+    }
+
+    &--rotten {
+      background: rgba(248, 113, 113, 0.2);
+      border-color: var(--color-hard);
+      color: var(--color-hard);
+    }
+
+    &--fresh {
+      background: rgba(74, 222, 128, 0.15);
+      border-color: var(--color-easy);
+      color: var(--color-easy);
+    }
+  }
+
+  &__counters {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  &__counter {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 6px 16px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+  }
+
+  &__counter-label { color: var(--color-text-muted); }
+  &__counter-value { color: var(--color-accent); font-weight: 700; font-size: 1rem; }
+}

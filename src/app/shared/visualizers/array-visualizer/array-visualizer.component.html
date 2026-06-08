@@ -1,0 +1,58 @@
+<div class="av">
+
+  <!-- Array cells -->
+  <div class="av__array">
+    <div
+      *ngFor="let cell of state.cells; let i = index"
+      class="av__cell-wrap"
+    >
+      <div class="av__pointer" [class.av__pointer--visible]="hasPointer(i)">
+        {{ pointerAt(i) }}
+      </div>
+      <div
+        class="av__cell"
+        [ngClass]="'av__cell--' + cell.state"
+      >
+        {{ cell.value }}
+      </div>
+      <div class="av__index">{{ i }}</div>
+    </div>
+  </div>
+
+  <!-- Hash map display -->
+  <div class="av__hashmap" *ngIf="state.hashmap !== undefined">
+    <div class="av__label">map</div>
+    <div class="av__hashmap-entries">
+      <div
+        *ngFor="let entry of hashmapEntries()"
+        class="av__hashmap-entry"
+      >
+        <span class="av__hashmap-key">{{ entry[0] }}</span>
+        <span class="av__hashmap-arrow">→</span>
+        <span class="av__hashmap-val">{{ entry[1] }}</span>
+      </div>
+      <div class="av__hashmap-empty" *ngIf="hashmapEntries().length === 0">empty</div>
+    </div>
+  </div>
+
+  <!-- Stack display -->
+  <div class="av__stack" *ngIf="state.stackItems !== undefined">
+    <div class="av__label">stack</div>
+    <div class="av__stack-items">
+      <div
+        *ngFor="let item of state.stackItems | slice: 0 : 10"
+        class="av__stack-item"
+      >{{ item }}</div>
+      <div class="av__stack-empty" *ngIf="state.stackItems.length === 0">empty</div>
+    </div>
+  </div>
+
+  <!-- Counters -->
+  <div class="av__counters" *ngIf="state.counters?.length">
+    <div *ngFor="let c of state.counters" class="av__counter">
+      <span class="av__counter-label">{{ c.label }}</span>
+      <span class="av__counter-value">{{ c.value }}</span>
+    </div>
+  </div>
+
+</div>

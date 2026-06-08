@@ -1,0 +1,56 @@
+<div class="list-page">
+  <div class="list-page__header">
+    <div>
+      <div class="breadcrumb">
+        <a routerLink="/">Home</a>
+        <span>›</span>
+        <span>{{ categoryLabel }}</span>
+      </div>
+      <h1 class="list-page__title">{{ categoryLabel }}</h1>
+    </div>
+    <span class="list-page__count">{{ filtered.length }} of {{ allProblems.length }}</span>
+  </div>
+
+  <div class="filters">
+    <button
+      *ngFor="let d of difficulties"
+      class="filter-btn"
+      [class.filter-btn--active]="filterDifficulty === d"
+      (click)="setDifficulty(d)"
+    >{{ d }}</button>
+
+    <button
+      class="filter-btn filter-btn--viz"
+      [class.filter-btn--active]="filterVisualized"
+      (click)="filterVisualized = !filterVisualized"
+    >⬡ Visualized only</button>
+  </div>
+
+  <div class="problem-list">
+    <div
+      *ngFor="let p of filtered"
+      class="problem-row"
+      [routerLink]="['/algorithms', p.category, p.id]"
+    >
+      <span class="problem-row__num">#{{ p.lcNumber }}</span>
+      <span class="problem-row__title">{{ p.title }}</span>
+      <span class="problem-row__tags">
+        <span *ngFor="let tag of p.tags.slice(0, 2)" class="tag">{{ tag }}</span>
+      </span>
+      <span
+        class="difficulty-badge problem-row__diff"
+        [ngClass]="'badge-' + p.difficulty.toLowerCase()"
+      >{{ p.difficulty }}</span>
+      <span class="problem-row__viz" *ngIf="hasSteps(p)" title="Visualization available">⬡</span>
+      <span class="problem-row__viz problem-row__viz--empty" *ngIf="!hasSteps(p)"></span>
+      <a
+        class="problem-row__lc"
+        href="https://leetcode.com/problems/{{ p.id }}/"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="View on LeetCode"
+        (click)="$event.stopPropagation()"
+      >↗</a>
+    </div>
+  </div>
+</div>

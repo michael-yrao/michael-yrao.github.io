@@ -1,0 +1,105 @@
+.llv {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  padding: var(--space-xl);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  overflow-x: auto;
+
+  &__node-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__pointer-labels {
+    display: flex;
+    gap: 4px;
+    min-height: 1.4em;
+  }
+
+  &__ptr-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    white-space: nowrap;
+  }
+
+  &__node {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text);
+    transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base);
+
+    &--curr {
+      background: rgba(6, 182, 212, 0.2);
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    &--prev {
+      background: rgba(251, 146, 60, 0.15);
+      border-color: var(--color-medium);
+      color: var(--color-medium);
+    }
+
+    &--next-node {
+      background: rgba(167, 139, 250, 0.15);
+      border-color: #a78bfa;
+      color: #a78bfa;
+    }
+
+    &--done {
+      background: rgba(74, 222, 128, 0.12);
+      border-color: var(--color-easy);
+      color: var(--color-easy);
+    }
+  }
+
+  &__null-node, &__null {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: #475569;
+    font-style: italic;
+  }
+
+  &__null-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding-bottom: 2px;
+  }
+
+  &__arrow {
+    font-size: 1.2rem;
+    color: var(--color-text-muted);
+    align-self: center;
+    margin-bottom: 8px;
+  }
+
+  &__null-terminator {
+    font-size: 1.1rem;
+    color: var(--color-text-muted);
+    align-self: center;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+  }
+}

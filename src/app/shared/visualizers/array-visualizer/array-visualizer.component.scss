@@ -1,0 +1,186 @@
+.av {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+
+  &__array {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  &__cell-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__pointer {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    height: 1.2em;
+    white-space: nowrap;
+    visibility: hidden;
+
+    &--visible { visibility: visible; }
+  }
+
+  &__cell {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 600;
+    background: var(--color-bg);
+    color: var(--color-text);
+    transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base);
+
+    &--active {
+      background: rgba(6, 182, 212, 0.2);
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    &--visited {
+      background: var(--color-bg-raised);
+      border-color: var(--color-border);
+      color: var(--color-text-muted);
+    }
+
+    &--found {
+      background: rgba(74, 222, 128, 0.2);
+      border-color: var(--color-found);
+      color: var(--color-found);
+    }
+
+    &--eliminated {
+      background: var(--color-bg);
+      border-color: #1e293b;
+      color: #334155;
+      text-decoration: line-through;
+    }
+
+    &--window {
+      background: rgba(6, 182, 212, 0.1);
+      border-color: rgba(6, 182, 212, 0.4);
+    }
+
+    &--min-ptr {
+      background: rgba(251, 146, 60, 0.15);
+      border-color: var(--color-medium);
+      color: var(--color-medium);
+    }
+  }
+
+  &__index {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: #475569;
+    user-select: none;
+  }
+
+  // ── Hash map ──────────────────────────────────────────────────────
+  &__hashmap {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  &__hashmap-entries {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  &__hashmap-entry {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  &__hashmap-key   { color: var(--color-accent); }
+  &__hashmap-arrow { color: var(--color-text-muted); }
+  &__hashmap-val   { color: var(--color-text); }
+  &__hashmap-empty { color: var(--color-text-muted); font-style: italic; font-size: 0.85rem; }
+
+  // ── Stack ─────────────────────────────────────────────────────────
+  &__stack {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+
+  &__stack-items {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 4px;
+  }
+
+  &__stack-item {
+    padding: 4px 16px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    text-align: center;
+    min-width: 40px;
+  }
+
+  &__stack-empty { color: var(--color-text-muted); font-style: italic; font-size: 0.85rem; }
+
+  // ── Label ─────────────────────────────────────────────────────────
+  &__label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    padding-top: 4px;
+    white-space: nowrap;
+  }
+
+  // ── Counters ─────────────────────────────────────────────────────
+  &__counters {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  &__counter {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 4px 12px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  &__counter-label { color: var(--color-text-muted); }
+  &__counter-value { color: var(--color-accent); font-weight: 700; }
+}

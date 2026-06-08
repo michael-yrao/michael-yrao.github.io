@@ -1,10 +1,29 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
-const routes: Routes = [];
+const routes: Routes = [
+  {
+    path: '',
+    loadChildren: () => import('./features/home/home.module').then((m) => m.HomeModule),
+  },
+  {
+    path: 'about',
+    loadChildren: () =>
+      import('./features/about/about-page.module').then((m) => m.AboutPageModule),
+  },
+  {
+    path: 'algorithms',
+    loadChildren: () =>
+      import('./features/algorithms/algorithms.module').then((m) => m.AlgorithmsModule),
+  },
+  {
+    path: '**',
+    redirectTo: '',
+  },
+];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule]
+  imports: [RouterModule.forRoot(routes, { scrollPositionRestoration: 'top' })],
+  exports: [RouterModule],
 })
-export class AppRoutingModule { }
+export class AppRoutingModule {}

@@ -1,0 +1,28 @@
+<div class="home">
+  <header class="home__hero">
+    <p class="home__eyebrow">NeetCode 150 + 250 — Interactive</p>
+    <h1 class="home__title">Progressive<br>Overflow</h1>
+    <p class="home__sub">
+      Step through algorithms with a plain-English explanation of <em>why</em> each decision is made.
+      <strong>{{ totalVisualized }}</strong> interactive visualizations across <strong>{{ totalSolved }}</strong> solved problems.
+    </p>
+    <a routerLink="/algorithms" class="home__cta">Browse all problems →</a>
+  </header>
+
+  <section class="home__categories" aria-label="Algorithm categories">
+    <a
+      *ngFor="let card of cards"
+      class="cat-card"
+      [routerLink]="['/algorithms', card.id]"
+    >
+      <div class="cat-card__top">
+        <span class="cat-card__icon">{{ card.icon }}</span>
+        <span class="cat-card__viz-badge" *ngIf="card.visualized > 0">
+          {{ card.visualized }} viz
+        </span>
+      </div>
+      <h3 class="cat-card__name">{{ card.label }}</h3>
+      <p class="cat-card__count">{{ card.total }} problem{{ card.total !== 1 ? 's' : '' }}</p>
+    </a>
+  </section>
+</div>

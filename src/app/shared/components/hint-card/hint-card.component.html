@@ -1,0 +1,10 @@
+<div class="hint">
+  <button class="hint__toggle" (click)="toggle()">
+    <span class="hint__icon">{{ revealed ? '🔒' : '💡' }}</span>
+    {{ revealed ? 'Hide Hint' : 'Show Hint' }}
+    <span class="hint__chevron" [class.hint__chevron--open]="revealed">›</span>
+  </button>
+  <div class="hint__body" *ngIf="revealed" [@expand]>
+    <p>{{ hint }}</p>
+  </div>
+</div>
