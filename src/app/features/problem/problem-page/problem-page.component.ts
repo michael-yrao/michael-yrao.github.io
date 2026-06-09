@@ -1,5 +1,6 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import {
   AlgorithmMeta, Category, Step, SolutionVariant,
   ArrayState, GridState, LinkedListState, CATEGORY_LABELS,
@@ -28,6 +29,7 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild('descSentinel') private descSentinel!: ElementRef<HTMLElement>;
   private stickyObs?: IntersectionObserver;
+  private routeSub?: Subscription;
 
   get activeSolution(): SolutionVariant | null {
     return this.problem?.solutions[this.activeSolutionIndex] ?? null;
@@ -97,30 +99,33 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
     this.stickyObs?.disconnect();
     this.navCtx.clear();
   }
 
   ngOnInit(): void {
-    const map = this.route.snapshot.paramMap;
-    const parentMap = this.route.parent?.snapshot.paramMap;
-    const category = (map.get('category') ?? parentMap?.get('category')) as Category;
-    const id = map.get('id') ?? parentMap?.get('id') ?? '';
+    const params$ = this.route.parent?.paramMap ?? this.route.paramMap;
+    this.routeSub = params$.subscribe(map => {
+      const category = map.get('category') as Category;
+      const id = map.get('id') ?? '';
 
-    this.problem = findAlgorithm(category, id) ?? null;
-    if (!this.problem) {
-      this.router.navigate(['/algorithms', category ?? '']);
-      return;
-    }
+      this.problem = findAlgorithm(category, id) ?? null;
+      if (!this.problem) {
+        this.router.navigate(['/algorithms', category ?? '']);
+        return;
+      }
 
-    this.activeSolutionIndex = 0;
-    this.steps = this.problem.solutions[0]?.generateSteps() ?? [];
-    this.currentStepIndex = 0;
+      this.activeSolutionIndex = 0;
+      this.steps = this.problem.solutions[0]?.generateSteps() ?? [];
+      this.currentStepIndex = 0;
+      this.started = false;
 
-    const neighbors = getCategoryNeighbors(category, id);
-    this.prevProblem = neighbors.prev;
-    this.nextProblem = neighbors.next;
-    this.cdr.markForCheck();
+      const neighbors = getCategoryNeighbors(category, id);
+      this.prevProblem = neighbors.prev;
+      this.nextProblem = neighbors.next;
+      this.cdr.markForCheck();
+    });
   }
 
   togglePanel(panel: 'viz' | 'code'): void {
