@@ -135,7 +135,6 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.steps = this.problem!.solutions[index].generateSteps();
     this.currentStepIndex = 0;
     this.started = false;
-    this.showCode = false;
     this.cdr.markForCheck();
   }
 
