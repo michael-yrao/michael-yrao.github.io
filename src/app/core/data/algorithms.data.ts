@@ -1,12 +1,17 @@
 import { AlgorithmMeta, Category, ProblemExample } from '../models/algorithm.model';
 import { twoSumMeta } from '../../algorithms/arrays-hash/two-sum.steps';
 import { containsDuplicateMeta } from '../../algorithms/arrays-hash/contains-duplicate.steps';
+import { validAnagramMeta } from '../../algorithms/arrays-hash/valid-anagram.steps';
+import { productOfArrayExceptSelfMeta } from '../../algorithms/arrays-hash/product-of-array-except-self.steps';
 import { bestTimeBuySellMeta } from '../../algorithms/sliding-window/best-time-buy-sell-stock.steps';
 import { binarySearchMeta } from '../../algorithms/binary-search/binary-search.steps';
 import { validParenthesesMeta } from '../../algorithms/stack/valid-parentheses.steps';
 import { numberOfIslandsMeta } from '../../algorithms/graphs/number-of-islands.steps';
 import { reverseLinkedListMeta } from '../../algorithms/linked-list/reverse-linked-list.steps';
 import { rottingOrangesMeta } from '../../algorithms/graphs/rotting-oranges.steps';
+import { moveZerosMeta } from '../../algorithms/two-pointers/move-zeros.steps';
+import { validPalindromeMeta } from '../../algorithms/two-pointers/valid-palindrome.steps';
+import { maximumSubarrayMeta } from '../../algorithms/greedy/maximum-subarray.steps';
 
 const stub = (
   id: string,
@@ -39,14 +44,14 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   stub('plus-one', 66, 'Plus One', 'Easy', 'arrays-hash', ['Array', 'Math'], 'O(n)', 'O(1)'),
   stub('remove-element', 27, 'Remove Element', 'Easy', 'arrays-hash', ['Array', 'Two Pointers'], 'O(n)', 'O(1)'),
   containsDuplicateMeta,
-  stub('valid-anagram', 242, 'Valid Anagram', 'Easy', 'arrays-hash', ['Hash Map', 'String', 'Sorting'], 'O(n)', 'O(n)'),
+  validAnagramMeta,
   stub('concatenation-of-array', 1929, 'Concatenation of Array', 'Easy', 'arrays-hash', ['Array'], 'O(n)', 'O(n)'),
   stub('majority-element', 169, 'Majority Element', 'Easy', 'arrays-hash', ['Array', 'Hash Map', 'Boyer-Moore'], 'O(n)', 'O(1)'),
   stub('rotate-array', 189, 'Rotate Array', 'Medium', 'arrays-hash', ['Array', 'Math', 'Two Pointers'], 'O(n)', 'O(1)'),
   stub('longest-common-prefix', 14, 'Longest Common Prefix', 'Easy', 'arrays-hash', ['String', 'Trie'], 'O(m·n)', 'O(1)'),
   stub('majority-element-ii', 229, 'Majority Element II', 'Medium', 'arrays-hash', ['Array', 'Hash Map', 'Boyer-Moore'], 'O(n)', 'O(1)'),
   stub('best-time-buy-sell-stock-ii', 122, 'Best Time to Buy and Sell Stock II', 'Medium', 'arrays-hash', ['Array', 'Greedy'], 'O(n)', 'O(1)'),
-  stub('product-of-array-except-self', 238, 'Product of Array Except Self', 'Medium', 'arrays-hash', ['Array', 'Prefix Sum'], 'O(n)', 'O(1)'),
+  productOfArrayExceptSelfMeta,
   stub('top-k-frequent-elements', 347, 'Top K Frequent Elements', 'Medium', 'arrays-hash', ['Array', 'Hash Map', 'Bucket Sort', 'Heap'], 'O(n)', 'O(n)'),
   stub('group-anagrams', 49, 'Group Anagrams', 'Medium', 'arrays-hash', ['Hash Map', 'String', 'Sorting'], 'O(n·k log k)', 'O(n)'),
   stub('sort-colors', 75, 'Sort Colors', 'Medium', 'arrays-hash', ['Array', 'Two Pointers', 'Dutch Flag'], 'O(n)', 'O(1)'),
@@ -57,9 +62,9 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
 
   // ── Two Pointers ──────────────────────────────────────────────────────────
   stub('merge-strings-alternatively', 1768, 'Merge Strings Alternately', 'Easy', 'two-pointers', ['Two Pointers', 'String'], 'O(n)', 'O(n)'),
-  stub('move-zeros', 283, 'Move Zeroes', 'Easy', 'two-pointers', ['Array', 'Two Pointers'], 'O(n)', 'O(1)'),
+  moveZerosMeta,
   stub('reverse-string', 344, 'Reverse String', 'Easy', 'two-pointers', ['Two Pointers', 'String'], 'O(n)', 'O(1)'),
-  stub('valid-palindrome', 125, 'Valid Palindrome', 'Easy', 'two-pointers', ['Two Pointers', 'String'], 'O(n)', 'O(1)'),
+  validPalindromeMeta,
   stub('remove-dup-from-sorted-array', 26, 'Remove Duplicates from Sorted Array', 'Easy', 'two-pointers', ['Array', 'Two Pointers'], 'O(n)', 'O(1)'),
   stub('merge-sorted-array', 88, 'Merge Sorted Array', 'Easy', 'two-pointers', ['Array', 'Two Pointers', 'Sorting'], 'O(m+n)', 'O(1)'),
   stub('two-sum-ii', 167, 'Two Sum II', 'Medium', 'two-pointers', ['Array', 'Two Pointers', 'Binary Search'], 'O(n)', 'O(1)'),
@@ -117,7 +122,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   validParenthesesMeta,
 
   // ── Greedy ────────────────────────────────────────────────────────────────
-  stub('maximum-subarray', 53, 'Maximum Subarray', 'Medium', 'greedy', ['Array', "Kadane's Algorithm", 'Dynamic Programming'], 'O(n)', 'O(1)'),
+  maximumSubarrayMeta,
 
   // ── Dynamic Programming ───────────────────────────────────────────────────
   stub('valid-palindrome-iii', 1216, 'Valid Palindrome III', 'Hard', 'dynamic-programming', ['String', 'Dynamic Programming'], 'O(n²)', 'O(n²)'),
