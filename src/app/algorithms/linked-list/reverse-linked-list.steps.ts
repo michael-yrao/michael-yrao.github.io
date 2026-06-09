@@ -195,7 +195,113 @@ class Solution:
         return returnNode`;
 
 function generateRecursiveSteps(): Step[] {
-  return [];
+  const vals = [1, 2, 3, 4, 5];
+  const n = vals.length;
+  const steps: Step[] = [];
+
+  // Mutable nextIds array — updated at each unwind step to show pointer changes
+  const nextIds: (string | null)[] = vals.map((_, i) => i < n - 1 ? `n${i + 1}` : null);
+
+  const makeNodes = (
+    stateMap: Record<number, LinkedListNode['state']>
+  ): LinkedListNode[] =>
+    vals.map((v, i) => ({
+      id: `n${i}`,
+      value: v,
+      nextId: nextIds[i],
+      state: stateMap[i] ?? 'default' as const,
+    }));
+
+  // ── Intro ──────────────────────────────────────────────────────
+  steps.push({
+    explanation:
+      "Recursive approach: dive to the end of the list first, then reverse pointers on the way back. Two key lines: head.next.next = head (flip the arrow) and head.next = None (sever the forward link).",
+    highlightLine: 9,
+    state: {
+      type: 'linked-list',
+      nodes: makeNodes({}),
+      pointers: [{ nodeId: 'n0', label: 'head' }],
+    },
+    variables: [
+      { name: 'head', value: vals[0] },
+    ],
+  });
+
+  // ── Recursive descent ─────────────────────────────────────────
+  steps.push({
+    explanation: `Recursion dives right: reverseList(1) → reverseList(2) → … → reverseList(5). Node 5 has head.next == None — base case. Return node 5 as the new head. No work done on the way in, only on the way back.`,
+    highlightLine: 11,
+    state: {
+      type: 'linked-list',
+      nodes: makeNodes({ 0: 'active', 1: 'active', 2: 'active', 3: 'active', 4: 'curr' }),
+      pointers: [
+        { nodeId: `n${n - 1}`, label: 'head' },
+        { nodeId: `n${n - 1}`, label: 'returnNode' },
+      ],
+    },
+    variables: [
+      { name: 'head', value: vals[n - 1], highlight: true },
+      { name: 'head.next', value: 'None → base case!', highlight: true },
+      { name: 'returnNode', value: vals[n - 1] },
+    ],
+  });
+
+  // ── Unwind: reverse one pointer at each level ─────────────────
+  for (let headIdx = n - 2; headIdx >= 0; headIdx--) {
+    const oldHead = vals[headIdx];
+    const oldNext = vals[headIdx + 1];
+
+    // Apply the two reversal lines:
+    // head.next.next = head  →  nextIds[headIdx + 1] = `n${headIdx}`
+    // head.next = None       →  nextIds[headIdx] = null
+    nextIds[headIdx + 1] = `n${headIdx}`;
+    nextIds[headIdx] = null;
+
+    const stateMap: Record<number, LinkedListNode['state']> = {};
+    for (let i = 0; i < headIdx; i++) stateMap[i] = 'active';
+    stateMap[headIdx] = 'curr';
+    for (let i = headIdx + 1; i < n; i++) stateMap[i] = 'done';
+
+    steps.push({
+      explanation: `Returning with head=${oldHead}: ${oldNext}.next = ${oldHead} (arrow flipped). ${oldHead}.next = None (forward link severed). Reversed so far: ${vals.slice(headIdx).reverse().join('→')}.`,
+      highlightLine: headIdx === n - 2 ? 20 : 22,
+      state: {
+        type: 'linked-list',
+        nodes: makeNodes(stateMap),
+        pointers: [
+          { nodeId: `n${headIdx}`, label: 'head' },
+          { nodeId: `n${n - 1}`, label: 'returnNode' },
+        ],
+      },
+      variables: [
+        { name: 'head', value: oldHead, highlight: true },
+        { name: 'head.next.next', value: `→ ${oldHead}`, highlight: true },
+        { name: 'head.next', value: 'None', highlight: true },
+        { name: 'returnNode', value: vals[n - 1] },
+      ],
+    });
+  }
+
+  // ── Final ──────────────────────────────────────────────────────
+  steps.push({
+    explanation: `All pointers reversed. returnNode (${vals[n - 1]}) bubbles up through every stack frame as the new head. O(n) time, O(n) space for the call stack (one frame per node).`,
+    highlightLine: 24,
+    state: {
+      type: 'linked-list',
+      nodes: vals.map((v, i) => ({
+        id: `n${i}`,
+        value: v,
+        nextId: nextIds[i],
+        state: 'done' as const,
+      })).reverse(),
+      pointers: [{ nodeId: `n${n - 1}`, label: 'head' }],
+    },
+    variables: [
+      { name: 'returnNode', value: vals[n - 1], highlight: true },
+    ],
+  });
+
+  return steps;
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────

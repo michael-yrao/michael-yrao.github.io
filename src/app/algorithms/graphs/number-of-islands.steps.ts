@@ -227,7 +227,101 @@ class Solution:
         return result`;
 
 function generateDfsSteps(): Step[] {
-  return [];
+  const rawGrid = [
+    ['1', '1', '0', '0'],
+    ['1', '0', '0', '1'],
+    ['0', '0', '1', '1'],
+    ['0', '0', '0', '0'],
+  ];
+
+  const rows = rawGrid.length;
+  const cols = rawGrid[0].length;
+  const steps: Step[] = [];
+  const visited = new Set<string>();
+  let islandCount = 0;
+  const toKey = (r: number, c: number) => `${r},${c}`;
+
+  const makeGrid = (activeCell: [number, number] | null): GridState => ({
+    type: 'grid',
+    grid: rawGrid.map((row, r) =>
+      row.map((cell, c) => {
+        const key = toKey(r, c);
+        if (activeCell && activeCell[0] === r && activeCell[1] === c) {
+          return { state: 'queued' as const };
+        }
+        if (visited.has(key)) return { state: 'visited' as const };
+        return { state: cell === '1' ? 'land' as const : 'water' as const };
+      })
+    ),
+    counters: [{ label: 'islands', value: islandCount }],
+  });
+
+  steps.push({
+    explanation:
+      'DFS explores as deeply as possible before backtracking. No explicit queue — DFS uses the call stack itself. When we find unvisited land, we mark it and immediately recurse into every neighbor.',
+    highlightLine: 15,
+    state: makeGrid(null),
+    variables: [
+      { name: 'rows', value: rows },
+      { name: 'cols', value: cols },
+      { name: 'result', value: 0 },
+    ],
+  });
+
+  function dfs(r: number, c: number): void {
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+    if (rawGrid[r][c] === '0') return;
+    if (visited.has(toKey(r, c))) return;
+
+    visited.add(toKey(r, c));
+
+    steps.push({
+      explanation: `DFS at (${r},${c}): land and unvisited. Mark visited (now green). Recurse down → up → right → left — going as deep as possible before backtracking.`,
+      highlightLine: 30,
+      state: makeGrid([r, c]),
+      variables: [
+        { name: 'row', value: r, highlight: true },
+        { name: 'col', value: c, highlight: true },
+        { name: 'visited', value: visited.size },
+      ],
+    });
+
+    dfs(r + 1, c);
+    dfs(r - 1, c);
+    dfs(r, c + 1);
+    dfs(r, c - 1);
+  }
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (rawGrid[r][c] === '1' && !visited.has(toKey(r, c))) {
+        islandCount++;
+        steps.push({
+          explanation: `Outer loop found unvisited land at (${r},${c}). Starting DFS to mark all connected land as island #${islandCount}.`,
+          highlightLine: 41,
+          state: makeGrid([r, c]),
+          variables: [
+            { name: 'row', value: r, highlight: true },
+            { name: 'col', value: c, highlight: true },
+            { name: 'result', value: islandCount, highlight: true },
+          ],
+        });
+        dfs(r, c);
+      }
+    }
+  }
+
+  steps.push({
+    explanation: `DFS complete. Found ${islandCount} island(s). DFS and BFS both visit each cell once — O(m×n). DFS uses O(m×n) call-stack space in the worst case vs BFS's explicit queue.`,
+    highlightLine: 43,
+    state: makeGrid(null),
+    variables: [
+      { name: 'result', value: islandCount, highlight: true },
+      { name: 'visited', value: `${visited.size} cells` },
+    ],
+  });
+
+  return steps;
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────

@@ -129,6 +129,169 @@ const kadaneSolution: SolutionVariant = {
   generateSteps,
 };
 
+// ── Solution 2: Prefix Sum ────────────────────────────────────────────────────
+
+const PYTHON_CODE_PREFIX = `from typing import List
+import math
+
+
+class Solution:
+    def maxSubArrayPrefixSum(self, nums: List[int]) -> int:
+        prefixSum = []
+        for i in range(len(nums)):
+            if i == 0:
+                prefixSum.append(nums[i])
+            else:
+                prefixSum.append(nums[i] + prefixSum[i - 1])
+
+        minPrefixSum = 0
+        maxSum = -math.inf
+
+        for curSum in prefixSum:
+            maxSum = max(maxSum, curSum - minPrefixSum)
+            minPrefixSum = min(minPrefixSum, curSum)
+
+        return maxSum`;
+
+function generatePrefixSumSteps(): Step[] {
+  const nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4];
+  const n = nums.length;
+  const steps: Step[] = [];
+
+  // Pre-compute full array so every step can display all n cells
+  const prefixSum: number[] = [];
+  for (let i = 0; i < n; i++) {
+    prefixSum.push(i === 0 ? nums[i] : nums[i] + prefixSum[i - 1]);
+  }
+
+  // ── Intro ──────────────────────────────────────────────────────
+  steps.push({
+    explanation:
+      'Prefix sum approach: build prefixSum[i] = nums[0]+…+nums[i]. The best subarray ending at index i = prefixSum[i] − (min prefix seen before i). Track a running minimum to find this in one pass.',
+    highlightLine: 6,
+    state: {
+      type: 'array',
+      cells: nums.map(v => ({ value: v, state: 'default' as const })),
+      pointers: [],
+      counters: [
+        { label: 'minPrefixSum', value: 0 },
+        { label: 'maxSum', value: '-∞' },
+      ],
+    },
+    variables: [
+      { name: 'nums', value: `[${nums.join(', ')}]` },
+      { name: 'prefixSum', value: '[]' },
+    ],
+  });
+
+  // ── Phase 1: Build prefixSum ─────────────────────────────────
+  for (let i = 0; i < n; i++) {
+    const explanation = i === 0
+      ? `i=0: prefixSum[0] = nums[0] = ${prefixSum[0]}. Base case.`
+      : `i=${i}: prefixSum[${i}] = nums[${i}] + prefixSum[${i - 1}] = ${nums[i]} + ${prefixSum[i - 1]} = ${prefixSum[i]}.`;
+
+    steps.push({
+      explanation,
+      highlightLine: i === 0 ? 9 : 11,
+      state: {
+        type: 'array',
+        cells: prefixSum.map((v, j) => ({
+          value: v,
+          state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
+        })),
+        pointers: [{ index: i, label: 'i' }],
+        counters: [{ label: 'nums', value: `[${nums.join(', ')}]` }],
+      },
+      variables: [
+        { name: 'i', value: i, highlight: true },
+        { name: `prefixSum[${i}]`, value: prefixSum[i], highlight: true },
+      ],
+    });
+  }
+
+  // ── Transition to scan phase ──────────────────────────────────
+  let minPrefixSum = 0;
+  let maxSum = -Infinity;
+
+  steps.push({
+    explanation: `prefixSum = [${prefixSum.join(', ')}]. Now scan it: for each value, candidate subarray sum = curSum − minPrefixSum (minimum prefix so far, starting at 0 to allow subarrays starting at index 0).`,
+    highlightLine: 14,
+    state: {
+      type: 'array',
+      cells: prefixSum.map(v => ({ value: v, state: 'default' as const })),
+      pointers: [],
+      counters: [
+        { label: 'minPrefixSum', value: minPrefixSum },
+        { label: 'maxSum', value: '-∞' },
+      ],
+    },
+    variables: [
+      { name: 'minPrefixSum', value: 0 },
+      { name: 'maxSum', value: '-∞' },
+    ],
+  });
+
+  // ── Phase 2: Scan for maxSum ─────────────────────────────────
+  for (let i = 0; i < n; i++) {
+    const curSum = prefixSum[i];
+    const oldMin = minPrefixSum;
+    const candidate = curSum - oldMin;
+    const improved = candidate > maxSum;
+    if (improved) maxSum = candidate;
+    minPrefixSum = Math.min(minPrefixSum, curSum);
+    const minChanged = minPrefixSum < oldMin;
+
+    steps.push({
+      explanation: `curSum=${curSum}: candidate = ${curSum} − ${oldMin} = ${candidate}. ${improved ? `New maxSum = ${maxSum}!` : `maxSum stays ${maxSum}.`}${minChanged ? ` minPrefixSum → ${minPrefixSum}.` : ''}`,
+      highlightLine: 18,
+      state: {
+        type: 'array',
+        cells: prefixSum.map((v, j) => ({
+          value: v,
+          state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
+        })),
+        pointers: [{ index: i, label: 'i' }],
+        counters: [
+          { label: 'minPrefixSum', value: minPrefixSum },
+          { label: 'maxSum', value: maxSum },
+        ],
+      },
+      variables: [
+        { name: 'curSum', value: curSum, highlight: true },
+        { name: 'candidate', value: candidate, highlight: true },
+        { name: 'maxSum', value: maxSum, highlight: improved },
+        { name: 'minPrefixSum', value: minPrefixSum, highlight: minChanged },
+      ],
+    });
+  }
+
+  // ── Final ──────────────────────────────────────────────────────
+  steps.push({
+    explanation: `maxSum = ${maxSum}. Prefix sum uses O(n) space for the prefix array vs Kadane's O(1), but both are O(n) time. The prefix-sum pattern generalises to arbitrary subarray range queries.`,
+    highlightLine: 21,
+    state: {
+      type: 'array',
+      cells: prefixSum.map(v => ({ value: v, state: 'found' as const })),
+      pointers: [],
+      counters: [
+        { label: 'minPrefixSum', value: minPrefixSum },
+        { label: 'maxSum', value: maxSum },
+      ],
+    },
+    variables: [
+      { name: 'maxSum', value: maxSum, highlight: true },
+    ],
+  });
+
+  return steps;
+}
+
+const prefixSumSolution: SolutionVariant = {
+  label: 'Prefix Sum',
+  pythonCode: PYTHON_CODE_PREFIX,
+  generateSteps: generatePrefixSumSteps,
+};
+
 export const maximumSubarrayMeta: AlgorithmMeta = {
   id: 'maximum-subarray',
   lcNumber: 53,
@@ -160,5 +323,5 @@ export const maximumSubarrayMeta: AlgorithmMeta = {
     '-10⁴ ≤ nums[i] ≤ 10⁴',
   ],
   hint: 'If the current running sum ever goes negative, discard it and start fresh at the next element — a negative prefix can only hurt any subarray that extends it.',
-  solutions: [kadaneSolution],
+  solutions: [kadaneSolution, prefixSumSolution],
 };
