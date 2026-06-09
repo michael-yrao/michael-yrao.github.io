@@ -125,7 +125,37 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   maximumSubarrayMeta,
 
   // ── Dynamic Programming ───────────────────────────────────────────────────
-  stub('valid-palindrome-iii', 1216, 'Valid Palindrome III', 'Hard', 'dynamic-programming', ['String', 'Dynamic Programming'], 'O(n²)', 'O(n²)'),
+  {
+    id: 'valid-palindrome-iii',
+    lcNumber: 1216,
+    title: 'Valid Palindrome III',
+    difficulty: 'Hard',
+    category: 'dynamic-programming',
+    tags: ['String', 'Dynamic Programming'],
+    timeComplexity: 'O(n²)',
+    spaceComplexity: 'O(n²)',
+    description:
+      'Given a string s and an integer k, return true if s is a k-palindrome. A string is k-palindrome if it can be transformed into a palindrome by removing at most k characters from it.',
+    examples: [
+      {
+        input: 's = "abcdeca", k = 2',
+        output: 'true',
+        explanation: 'Remove \'b\' and \'e\' to get "acdca", which is a palindrome.',
+      },
+      {
+        input: 's = "abcdeca", k = 1',
+        output: 'false',
+        explanation: 'At least 2 deletions are needed; 1 is not enough.',
+      },
+    ] as ProblemExample[],
+    constraints: [
+      '1 ≤ s.length ≤ 1000',
+      's consists of lowercase English letters only.',
+      '1 ≤ k ≤ s.length',
+    ],
+    hint: 'The minimum deletions needed to make s a palindrome equals n minus the length of its longest palindromic subsequence (LPS). Compute LPS in O(n²) with DP, then check if n − LPS ≤ k.',
+    solutions: [{ label: '', pythonCode: '', generateSteps: () => [] }],
+  },
 ];
 
 export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
