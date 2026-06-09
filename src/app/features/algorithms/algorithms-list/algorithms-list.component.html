@@ -1,8 +1,41 @@
-<div class="list-page">
+<!-- ── Category picker (/algorithms) ─────────────────────────── -->
+<div class="list-page" *ngIf="!category">
   <div class="list-page__header">
     <div>
       <div class="breadcrumb">
         <a routerLink="/">Home</a>
+        <span>›</span>
+        <span>Algorithms</span>
+      </div>
+      <h1 class="list-page__title">Algorithms</h1>
+    </div>
+    <span class="list-page__count">{{ totalVisualized }} visualized · {{ totalProblems }} total</span>
+  </div>
+
+  <div class="cat-grid" aria-label="Algorithm categories">
+    <a
+      *ngFor="let card of categoryCards"
+      class="cat-card"
+      [routerLink]="['/algorithms', card.id]"
+    >
+      <div class="cat-card__top">
+        <span class="cat-card__icon">{{ card.icon }}</span>
+        <span class="cat-card__viz-badge" *ngIf="card.visualized > 0">{{ card.visualized }} viz</span>
+      </div>
+      <h3 class="cat-card__name">{{ card.label }}</h3>
+      <p class="cat-card__count">{{ card.total }} problem{{ card.total !== 1 ? 's' : '' }}</p>
+    </a>
+  </div>
+</div>
+
+<!-- ── Problem list (/algorithms/:category) ──────────────────── -->
+<div class="list-page" *ngIf="category">
+  <div class="list-page__header">
+    <div>
+      <div class="breadcrumb">
+        <a routerLink="/">Home</a>
+        <span>›</span>
+        <a routerLink="/algorithms">Algorithms</a>
         <span>›</span>
         <span>{{ categoryLabel }}</span>
       </div>

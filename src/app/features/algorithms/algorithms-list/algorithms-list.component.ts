@@ -2,7 +2,15 @@ import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRe
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ALGORITHMS_BY_CATEGORY, ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
-import { AlgorithmMeta, Category, CATEGORY_LABELS, Difficulty } from '../../../core/models/algorithm.model';
+import { AlgorithmMeta, Category, CATEGORY_LABELS, CATEGORY_ICONS, Difficulty } from '../../../core/models/algorithm.model';
+
+interface CategoryCard {
+  id: Category;
+  label: string;
+  icon: string;
+  total: number;
+  visualized: number;
+}
 
 @Component({
   selector: 'app-algorithms-list',
@@ -17,7 +25,21 @@ export class AlgorithmsListComponent implements OnInit, OnDestroy {
 
   allProblems: AlgorithmMeta[] = [];
   readonly difficulties: (Difficulty | 'All')[] = ['All', 'Easy', 'Medium', 'Hard'];
-  readonly CATEGORY_LABELS = CATEGORY_LABELS;
+
+  readonly categoryCards: CategoryCard[] = (Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => {
+    const problems = ALGORITHMS_BY_CATEGORY[cat] ?? [];
+    return {
+      id: cat,
+      label: CATEGORY_LABELS[cat],
+      icon: CATEGORY_ICONS[cat],
+      total: problems.length,
+      visualized: problems.filter((p) => p.solutions.some((s) => s.generateSteps().length > 0)).length,
+    };
+  });
+
+  readonly totalProblems = ALL_ALGORITHMS.length;
+  readonly totalVisualized = ALL_ALGORITHMS
+    .filter((p) => p.solutions.some((s) => s.generateSteps().length > 0)).length;
 
   private sub = new Subscription();
 
