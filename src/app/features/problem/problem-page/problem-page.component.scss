@@ -76,13 +76,22 @@
     border-bottom: 1px solid var(--color-border);
   }
 
-  // ── Top: full description (normal flow, no sticky) ───────────
+  // ── Top: description, sticks under the nav once scrolled ─────
   &__top {
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
     padding-bottom: var(--space-md);
     border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 56px;
+    z-index: 10;
+    background: var(--color-bg);
+    transition: box-shadow 200ms;
+
+    &.is-stuck {
+      box-shadow: 0 6px 24px -6px rgba(0, 0, 0, 0.45);
+    }
   }
 
 
@@ -276,12 +285,17 @@
 
 .prob-examples {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: var(--space-sm);
   margin-bottom: var(--space-md);
 }
 
 .prob-example {
+  flex: 0 0 auto;
+  min-width: 220px;
+  max-width: 400px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
