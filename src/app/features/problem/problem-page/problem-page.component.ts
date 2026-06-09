@@ -27,7 +27,6 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
   showCode = false;
 
   @ViewChild('descSentinel') private descSentinel!: ElementRef<HTMLElement>;
-  descriptionStuck = false;
   private stickyObs?: IntersectionObserver;
 
   get activeSolution(): SolutionVariant | null {
@@ -77,7 +76,6 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     this.stickyObs = new IntersectionObserver(
       ([entry]) => {
-        this.descriptionStuck = !entry.isIntersecting;
         if (this.problem) {
           if (entry.isIntersecting) {
             this.navCtx.clear();
@@ -137,6 +135,7 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.steps = this.problem!.solutions[index].generateSteps();
     this.currentStepIndex = 0;
     this.started = false;
+    this.showCode = false;
     this.cdr.markForCheck();
   }
 
