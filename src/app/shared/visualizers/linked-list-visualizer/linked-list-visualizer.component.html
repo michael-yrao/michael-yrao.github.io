@@ -23,3 +23,17 @@
     <div class="llv__null-terminator" *ngIf="!node.nextId">→ <span class="llv__null">null</span></div>
   </ng-container>
 </div>
+
+<!-- Result row -->
+<div class="llv llv--result" *ngIf="state.result && state.result.length > 0">
+  <span class="llv__result-label">Result:</span>
+  <ng-container *ngFor="let node of state.result; trackBy: trackById">
+    <div class="llv__node-wrap">
+      <div class="llv__node" [ngClass]="'llv__node--' + node.state">
+        <span class="llv__node-val">{{ node.value }}</span>
+      </div>
+    </div>
+    <div class="llv__arrow" *ngIf="node.nextId">→</div>
+    <div class="llv__null-terminator" *ngIf="!node.nextId">→ <span class="llv__null">null</span></div>
+  </ng-container>
+</div>

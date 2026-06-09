@@ -92,6 +92,22 @@
     margin-bottom: 8px;
   }
 
+  &--result {
+    margin-top: var(--space-sm);
+    border-top: 1px dashed var(--color-border);
+    padding-top: var(--space-md);
+  }
+
+  &__result-label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    align-self: center;
+    margin-right: var(--space-xs);
+    white-space: nowrap;
+  }
+
   &__null-terminator {
     font-size: 1.1rem;
     color: var(--color-text-muted);

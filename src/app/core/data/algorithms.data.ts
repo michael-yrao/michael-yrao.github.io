@@ -3,14 +3,19 @@ import { twoSumMeta } from '../../algorithms/arrays-hash/two-sum.steps';
 import { containsDuplicateMeta } from '../../algorithms/arrays-hash/contains-duplicate.steps';
 import { validAnagramMeta } from '../../algorithms/arrays-hash/valid-anagram.steps';
 import { productOfArrayExceptSelfMeta } from '../../algorithms/arrays-hash/product-of-array-except-self.steps';
+import { majorityElementMeta } from '../../algorithms/arrays-hash/majority-element.steps';
 import { bestTimeBuySellMeta } from '../../algorithms/sliding-window/best-time-buy-sell-stock.steps';
 import { binarySearchMeta } from '../../algorithms/binary-search/binary-search.steps';
 import { validParenthesesMeta } from '../../algorithms/stack/valid-parentheses.steps';
 import { numberOfIslandsMeta } from '../../algorithms/graphs/number-of-islands.steps';
 import { reverseLinkedListMeta } from '../../algorithms/linked-list/reverse-linked-list.steps';
+import { mergeTwoSortedListsMeta } from '../../algorithms/linked-list/merge-two-sorted-lists.steps';
 import { rottingOrangesMeta } from '../../algorithms/graphs/rotting-oranges.steps';
 import { moveZerosMeta } from '../../algorithms/two-pointers/move-zeros.steps';
 import { validPalindromeMeta } from '../../algorithms/two-pointers/valid-palindrome.steps';
+import { validPalindromeIIMeta } from '../../algorithms/two-pointers/valid-palindrome-ii.steps';
+import { trappingRainWaterMeta } from '../../algorithms/two-pointers/trapping-rain-water.steps';
+import { threeSumMeta } from '../../algorithms/two-pointers/three-sum.steps';
 import { maximumSubarrayMeta } from '../../algorithms/greedy/maximum-subarray.steps';
 
 const stub = (
@@ -46,7 +51,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   containsDuplicateMeta,
   validAnagramMeta,
   stub('concatenation-of-array', 1929, 'Concatenation of Array', 'Easy', 'arrays-hash', ['Array'], 'O(n)', 'O(n)'),
-  stub('majority-element', 169, 'Majority Element', 'Easy', 'arrays-hash', ['Array', 'Hash Map', 'Boyer-Moore'], 'O(n)', 'O(1)'),
+  majorityElementMeta,
   stub('rotate-array', 189, 'Rotate Array', 'Medium', 'arrays-hash', ['Array', 'Math', 'Two Pointers'], 'O(n)', 'O(1)'),
   stub('longest-common-prefix', 14, 'Longest Common Prefix', 'Easy', 'arrays-hash', ['String', 'Trie'], 'O(m·n)', 'O(1)'),
   stub('majority-element-ii', 229, 'Majority Element II', 'Medium', 'arrays-hash', ['Array', 'Hash Map', 'Boyer-Moore'], 'O(n)', 'O(1)'),
@@ -68,10 +73,10 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   stub('remove-dup-from-sorted-array', 26, 'Remove Duplicates from Sorted Array', 'Easy', 'two-pointers', ['Array', 'Two Pointers'], 'O(n)', 'O(1)'),
   stub('merge-sorted-array', 88, 'Merge Sorted Array', 'Easy', 'two-pointers', ['Array', 'Two Pointers', 'Sorting'], 'O(m+n)', 'O(1)'),
   stub('two-sum-ii', 167, 'Two Sum II', 'Medium', 'two-pointers', ['Array', 'Two Pointers', 'Binary Search'], 'O(n)', 'O(1)'),
-  stub('valid-palindrome-ii', 680, 'Valid Palindrome II', 'Easy', 'two-pointers', ['Two Pointers', 'String', 'Greedy'], 'O(n)', 'O(1)'),
+  validPalindromeIIMeta,
   stub('remove-dup-sorted-array-ii', 80, 'Remove Duplicates from Sorted Array II', 'Medium', 'two-pointers', ['Array', 'Two Pointers'], 'O(n)', 'O(1)'),
-  stub('three-sum', 15, '3Sum', 'Medium', 'two-pointers', ['Array', 'Two Pointers', 'Sorting'], 'O(n²)', 'O(n)'),
-  stub('trapping-rain-water', 42, 'Trapping Rain Water', 'Hard', 'two-pointers', ['Array', 'Two Pointers', 'Dynamic Programming'], 'O(n)', 'O(1)'),
+  threeSumMeta,
+  trappingRainWaterMeta,
   stub('four-sum', 18, '4Sum', 'Medium', 'two-pointers', ['Array', 'Two Pointers', 'Sorting'], 'O(n³)', 'O(n)'),
 
   // ── Sliding Window ────────────────────────────────────────────────────────
@@ -96,7 +101,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   // ── Linked List ───────────────────────────────────────────────────────────
   reverseLinkedListMeta,
   stub('linked-list-cycle', 141, 'Linked List Cycle', 'Easy', 'linked-list', ['Linked List', 'Two Pointers', "Floyd's"], 'O(n)', 'O(1)'),
-  stub('merge-two-sorted-lists', 21, 'Merge Two Sorted Lists', 'Easy', 'linked-list', ['Linked List', 'Recursion'], 'O(n+m)', 'O(1)'),
+  mergeTwoSortedListsMeta,
   stub('remove-nth-node-from-end', 19, 'Remove Nth Node From End of List', 'Medium', 'linked-list', ['Linked List', 'Two Pointers'], 'O(n)', 'O(1)'),
   stub('reorder-list', 143, 'Reorder List', 'Medium', 'linked-list', ['Linked List', 'Two Pointers', 'Stack'], 'O(n)', 'O(1)'),
 
