@@ -17,6 +17,11 @@ import { validPalindromeIIMeta } from '../../algorithms/two-pointers/valid-palin
 import { trappingRainWaterMeta } from '../../algorithms/two-pointers/trapping-rain-water.steps';
 import { threeSumMeta } from '../../algorithms/two-pointers/three-sum.steps';
 import { maximumSubarrayMeta } from '../../algorithms/greedy/maximum-subarray.steps';
+import { sortColorsMeta } from '../../algorithms/arrays-hash/sort-colors.steps';
+import { rotateArrayMeta } from '../../algorithms/arrays-hash/rotate-array.steps';
+import { topKFrequentElementsMeta } from '../../algorithms/arrays-hash/top-k-frequent-elements.steps';
+import { longestConsecutiveSequenceMeta } from '../../algorithms/arrays-hash/longest-consecutive-sequence.steps';
+import { containsDuplicateIIMeta } from '../../algorithms/sliding-window/contains-duplicate-ii.steps';
 
 const stub = (
   id: string,
@@ -52,17 +57,17 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   validAnagramMeta,
   stub('concatenation-of-array', 1929, 'Concatenation of Array', 'Easy', 'arrays-hash', ['Array'], 'O(n)', 'O(n)'),
   majorityElementMeta,
-  stub('rotate-array', 189, 'Rotate Array', 'Medium', 'arrays-hash', ['Array', 'Math', 'Two Pointers'], 'O(n)', 'O(1)'),
+  rotateArrayMeta,
   stub('longest-common-prefix', 14, 'Longest Common Prefix', 'Easy', 'arrays-hash', ['String', 'Trie'], 'O(m·n)', 'O(1)'),
   stub('majority-element-ii', 229, 'Majority Element II', 'Medium', 'arrays-hash', ['Array', 'Hash Map', 'Boyer-Moore'], 'O(n)', 'O(1)'),
   stub('best-time-buy-sell-stock-ii', 122, 'Best Time to Buy and Sell Stock II', 'Medium', 'arrays-hash', ['Array', 'Greedy'], 'O(n)', 'O(1)'),
   productOfArrayExceptSelfMeta,
-  stub('top-k-frequent-elements', 347, 'Top K Frequent Elements', 'Medium', 'arrays-hash', ['Array', 'Hash Map', 'Bucket Sort', 'Heap'], 'O(n)', 'O(n)'),
+  topKFrequentElementsMeta,
   stub('group-anagrams', 49, 'Group Anagrams', 'Medium', 'arrays-hash', ['Hash Map', 'String', 'Sorting'], 'O(n·k log k)', 'O(n)'),
-  stub('sort-colors', 75, 'Sort Colors', 'Medium', 'arrays-hash', ['Array', 'Two Pointers', 'Dutch Flag'], 'O(n)', 'O(1)'),
+  sortColorsMeta,
   stub('valid-sudoku', 36, 'Valid Sudoku', 'Medium', 'arrays-hash', ['Array', 'Hash Set', 'Matrix'], 'O(1)', 'O(1)'),
   stub('sort-an-array', 912, 'Sort an Array', 'Medium', 'arrays-hash', ['Array', 'Merge Sort', 'Heap Sort'], 'O(n log n)', 'O(n)'),
-  stub('longest-consecutive-sequence', 128, 'Longest Consecutive Sequence', 'Medium', 'arrays-hash', ['Array', 'Hash Set'], 'O(n)', 'O(n)'),
+  longestConsecutiveSequenceMeta,
   stub('container-with-most-water', 11, 'Container With Most Water', 'Medium', 'arrays-hash', ['Array', 'Two Pointers', 'Greedy'], 'O(n)', 'O(1)'),
 
   // ── Two Pointers ──────────────────────────────────────────────────────────
@@ -81,7 +86,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
 
   // ── Sliding Window ────────────────────────────────────────────────────────
   bestTimeBuySellMeta,
-  stub('contains-duplicate-ii', 219, 'Contains Duplicate II', 'Easy', 'sliding-window', ['Array', 'Hash Map', 'Sliding Window'], 'O(n)', 'O(k)'),
+  containsDuplicateIIMeta,
   stub('permutation-in-string', 567, 'Permutation in String', 'Medium', 'sliding-window', ['Hash Map', 'Sliding Window', 'Two Pointers'], 'O(n)', 'O(1)'),
   stub('longest-repeating-char-replacement', 424, 'Longest Repeating Character Replacement', 'Medium', 'sliding-window', ['Hash Map', 'Sliding Window'], 'O(n)', 'O(1)'),
   stub('minimum-window-substring', 76, 'Minimum Window Substring', 'Hard', 'sliding-window', ['Hash Map', 'Sliding Window', 'Two Pointers'], 'O(n)', 'O(k)'),
