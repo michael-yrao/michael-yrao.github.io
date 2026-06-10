@@ -12,6 +12,8 @@ interface CategoryCard {
   visualized: number;
 }
 
+type ViewMode = 'categories' | 'all';
+
 @Component({
   selector: 'app-algorithms-list',
   templateUrl: './algorithms-list.component.html',
@@ -22,9 +24,11 @@ export class AlgorithmsListComponent implements OnInit, OnDestroy {
   category: Category | null = null;
   filterDifficulty: Difficulty | 'All' = 'All';
   filterVisualized = false;
+  viewMode: ViewMode = 'categories';
 
   allProblems: AlgorithmMeta[] = [];
   readonly difficulties: (Difficulty | 'All')[] = ['All', 'Easy', 'Medium', 'Hard'];
+  readonly CATEGORY_LABELS = CATEGORY_LABELS;
 
   readonly categoryCards: CategoryCard[] = (Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => {
     const problems = ALGORITHMS_BY_CATEGORY[cat] ?? [];
@@ -72,6 +76,12 @@ export class AlgorithmsListComponent implements OnInit, OnDestroy {
 
   setDifficulty(d: Difficulty | 'All'): void {
     this.filterDifficulty = d;
+  }
+
+  setViewMode(mode: ViewMode): void {
+    this.viewMode = mode;
+    this.filterDifficulty = 'All';
+    this.filterVisualized = false;
   }
 
   hasSteps(p: AlgorithmMeta): boolean {
