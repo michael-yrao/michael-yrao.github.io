@@ -67,10 +67,11 @@
   display: grid;
   grid-template-columns: 480px 1fr;
   gap: var(--space-2xl);
-  align-items: start;
+  align-items: stretch;
 
   @media (max-width: 860px) {
     grid-template-columns: 1fr;
+    align-items: start;
   }
 }
 
@@ -79,8 +80,8 @@
 }
 
 .algo-column {
-  position: sticky;
-  top: var(--space-xl);
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
 
@@ -271,6 +272,9 @@
 // ── Algorithm Breakdown ───────────────────────────────────────────────────────
 
 .algo-breakdown {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
