@@ -24,7 +24,7 @@ export class AlgorithmsListComponent implements OnInit, OnDestroy {
   category: Category | null = null;
   filterDifficulty: Difficulty | 'All' = 'All';
   filterVisualized = false;
-  viewMode: ViewMode = 'categories';
+  viewMode: ViewMode = 'all';
 
   allProblems: AlgorithmMeta[] = [];
   readonly difficulties: (Difficulty | 'All')[] = ['All', 'Easy', 'Medium', 'Hard'];
