@@ -9,8 +9,32 @@
     <p class="games-page__eyebrow">Interactive Challenges</p>
     <h1 class="games-page__title">Games</h1>
     <p class="games-page__sub">
-      Test and sharpen your algorithm knowledge through interactive coding challenges.
+      Play your way to algorithmic intuition. Each game is wired directly to the algorithm it uses.
     </p>
-    <span class="games-page__badge">Coming soon</span>
   </header>
+
+  <div class="games-grid">
+    <a
+      *ngFor="let game of games"
+      class="game-card"
+      [class.game-card--available]="game.status === 'available'"
+      [class.game-card--soon]="game.status === 'coming-soon'"
+      [routerLink]="game.status === 'available' ? game.route : null"
+    >
+      <div class="game-card__header">
+        <h2 class="game-card__title">{{ game.title }}</h2>
+        <span class="game-card__badge" [class.game-card__badge--available]="game.status === 'available'">
+          {{ game.status === 'available' ? 'Play Now' : 'Coming Soon' }}
+        </span>
+      </div>
+
+      <p class="game-card__desc">{{ game.description }}</p>
+
+      <p class="game-card__algo-note">{{ game.algorithmNote }}</p>
+
+      <div class="game-card__algos">
+        <span class="algo-tag" *ngFor="let algo of game.algorithms">{{ algo }}</span>
+      </div>
+    </a>
+  </div>
 </div>

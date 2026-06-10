@@ -1,0 +1,142 @@
+<div class="flood-fill-page">
+  <div class="breadcrumb">
+    <a routerLink="/">Home</a>
+    <span>›</span>
+    <a routerLink="/games">Games</a>
+    <span>›</span>
+    <span>Flood Fill</span>
+  </div>
+
+  <header class="game-header">
+    <p class="game-header__eyebrow">Algorithm Game</p>
+    <h1 class="game-header__title">Flood Fill</h1>
+    <p class="game-header__sub">
+      Pick a color to flood the board outward from the top-left corner.
+      Conquer the whole board in <strong>{{ maxMoves }}</strong> moves or fewer.
+    </p>
+    <a routerLink="/algorithms" class="algo-link">
+      Uses BFS — see Number of Islands →
+    </a>
+  </header>
+
+  <div class="game-layout">
+    <div class="game-column">
+      <div class="game-arena">
+        <div class="game-stats">
+          <div class="stat">
+            <span class="stat__value" [class.stat__value--danger]="movesLeft <= 5">{{ movesLeft }}</span>
+            <span class="stat__label">moves left</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat__value">{{ conqueredPercent }}%</span>
+            <span class="stat__label">conquered</span>
+          </div>
+        </div>
+
+        <div class="game-grid-wrapper">
+          <div
+            class="game-grid"
+            [class.game-grid--won]="gameState === 'won'"
+            [class.game-grid--lost]="gameState === 'lost'"
+          >
+            <div
+              *ngFor="let cell of cells; trackBy: trackByIdx; let i = index"
+              class="cell"
+              [class.cell--wave]="waveCells.has(i)"
+              [style.background-color]="colors[cell]"
+            ></div>
+          </div>
+
+          <div class="game-overlay" *ngIf="gameState !== 'playing'">
+            <div class="game-overlay__content">
+              <div class="game-overlay__icon" [class.game-overlay__icon--win]="gameState === 'won'">
+                {{ gameState === 'won' ? '✓' : '✗' }}
+              </div>
+              <div class="game-overlay__title">
+                {{ gameState === 'won' ? 'Board Conquered!' : 'Game Over' }}
+              </div>
+              <div class="game-overlay__sub">
+                <ng-container *ngIf="gameState === 'won'">
+                  Finished in {{ maxMoves - movesLeft }} move{{ maxMoves - movesLeft === 1 ? '' : 's' }}
+                </ng-container>
+                <ng-container *ngIf="gameState === 'lost'">
+                  The board wasn't conquered in {{ maxMoves }} moves.
+                </ng-container>
+              </div>
+              <button class="btn-play-again" (click)="initGame()">Play Again</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="color-picker">
+          <button
+            *ngFor="let i of colorIndices"
+            class="color-btn"
+            [class.color-btn--active]="i === currentColor"
+            [style.background-color]="colors[i]"
+            [attr.aria-label]="'Pick color ' + (i + 1)"
+            [disabled]="gameState !== 'playing' || isAnimating"
+            (click)="pickColor(i)"
+          ></button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="algo-column">
+      <section class="algo-breakdown">
+        <h2 class="algo-breakdown__title">How the Algorithm Works</h2>
+
+        <div class="algo-breakdown__body">
+          <p class="algo-breakdown__intro">
+            This game is a direct playable implementation of
+            <strong>BFS (Breadth-First Search)</strong>. The wave ripple you see on
+            each move is the BFS frontier expanding one level at a time.
+          </p>
+
+          <div class="mapping-table">
+            <div class="mapping-row mapping-row--header">
+              <span>Game mechanic</span>
+              <span>BFS concept</span>
+            </div>
+            <div class="mapping-row">
+              <span>Conquered region</span>
+              <span>Visited set</span>
+            </div>
+            <div class="mapping-row">
+              <span>Color you pick</span>
+              <span>Target value to explore</span>
+            </div>
+            <div class="mapping-row">
+              <span>Wave ripple animation</span>
+              <span>BFS level (one dequeue round)</span>
+            </div>
+            <div class="mapping-row">
+              <span>Board edges</span>
+              <span>Out-of-bounds guard</span>
+            </div>
+            <div class="mapping-row">
+              <span>Full board conquered</span>
+              <span>All nodes visited</span>
+            </div>
+          </div>
+
+          <h3 class="algo-breakdown__step-title">What happens each move</h3>
+          <ol class="algo-steps">
+            <li>All conquered cells immediately repaint to your chosen color</li>
+            <li>The queue is seeded with unconquered neighbors that already match that color</li>
+            <li>Each dequeue round adds new matching neighbors — one wave in the animation</li>
+            <li>Process repeats until the queue is empty (no more cells can be absorbed)</li>
+            <li>Win condition: conquered set size equals the total cell count</li>
+          </ol>
+
+          <div class="algo-breakdown__links">
+            <span class="algo-breakdown__links-label">Practice the same algorithm</span>
+            <a routerLink="/algorithms" class="problem-link">LC 200 · Number of Islands</a>
+            <a routerLink="/algorithms" class="problem-link">LC 733 · Flood Fill</a>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
