@@ -17,15 +17,15 @@
     <button
       role="tab"
       class="view-toggle__btn"
-      [class.view-toggle__btn--active]="viewMode === 'categories'"
-      (click)="setViewMode('categories')"
-    >⊞ Browse by Category</button>
-    <button
-      role="tab"
-      class="view-toggle__btn"
       [class.view-toggle__btn--active]="viewMode === 'all'"
       (click)="setViewMode('all')"
     >≡ All Problems</button>
+    <button
+      role="tab"
+      class="view-toggle__btn"
+      [class.view-toggle__btn--active]="viewMode === 'categories'"
+      (click)="setViewMode('categories')"
+    >⊞ Browse by Category</button>
   </div>
 
   <!-- Category grid -->
