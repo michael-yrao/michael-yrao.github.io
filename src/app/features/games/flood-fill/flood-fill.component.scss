@@ -498,4 +498,15 @@
     background: rgba(6, 182, 212, 0.22);
     border-color: var(--color-accent);
   }
+
+  &--dim {
+    background: transparent;
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+
+    &:hover {
+      background: var(--color-bg-raised);
+      border-color: var(--color-text-muted);
+    }
+  }
 }
