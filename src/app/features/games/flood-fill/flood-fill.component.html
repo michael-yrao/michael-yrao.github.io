@@ -81,7 +81,7 @@
             [class.color-btn--active]="i === currentColor"
             [style.background-color]="colors[i]"
             [attr.aria-label]="'Pick color ' + (i + 1)"
-            [disabled]="gameState !== 'playing' || isAnimating"
+            [disabled]="gameState !== 'playing' || isAnimating || solverRunning"
             (click)="pickColor(i)"
           ></button>
         </div>
@@ -150,6 +150,21 @@
             <span class="formula__part">{{ moveBuffer }} buffer</span>
             <span class="formula__op">=</span>
             <span class="formula__result">{{ maxMoves }} moves</span>
+          </div>
+
+          <div class="solver-controls">
+            <button
+              *ngIf="!solverRunning"
+              class="btn-solver"
+              [disabled]="gameState !== 'playing' || isAnimating"
+              (click)="watchSolver()"
+            >
+              ▶ Watch it solve this board
+            </button>
+            <div *ngIf="solverRunning" class="solver-running">
+              <span class="solver-running__label">Greedy solver — move {{ solverMoveIdx }} / {{ greedyBest }}</span>
+              <button class="btn-solver-stop" (click)="stopSolver()">Stop</button>
+            </div>
           </div>
 
           <div class="algo-breakdown__links">

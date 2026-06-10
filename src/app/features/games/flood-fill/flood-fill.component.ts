@@ -3,6 +3,8 @@ import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@
 const GRID_SIZE = 12;
 const MOVE_BUFFER = 5;
 const WAVE_INTERVAL_MS = 40;
+const SOLVER_WAVE_INTERVAL_MS = 60;
+const SOLVER_MOVE_PAUSE_MS = 480;
 export const COLORS = ['#06b6d4', '#f97316', '#22c55e', '#a855f7', '#ec4899', '#eab308'];
 
 @Component({
@@ -21,14 +23,19 @@ export class FloodFillComponent implements OnInit {
   waveCells = new Set<number>();
   maxMoves = 0;
   greedyBest = 0;
+  greedySolution: number[] = [];
   movesLeft = 0;
   gameState: 'playing' | 'won' | 'lost' = 'playing';
   conqueredCount = 0;
+  solverRunning = false;
+  solverMoveIdx = 0;
 
   get isAnimating(): boolean { return this._animating; }
 
   private conqueredSet = new Set<number>();
   private _animating = false;
+  private initialCells: number[] = [];
+  private initialConqueredSet = new Set<number>();
 
   constructor(private cdr: ChangeDetectorRef) {}
 
@@ -53,19 +60,85 @@ export class FloodFillComponent implements OnInit {
     this.conqueredCount = this.conqueredSet.size;
     this.waveCells = new Set();
     this._animating = false;
+    this.solverRunning = false;
+    this.solverMoveIdx = 0;
 
-    this.greedyBest = this.computeGreedyMoves();
-    this.maxMoves = this.greedyBest + MOVE_BUFFER;
+    const { moves, solution } = this.computeGreedySolution();
+    this.greedyBest = moves;
+    this.greedySolution = solution;
+    this.maxMoves = moves + MOVE_BUFFER;
     this.movesLeft = this.maxMoves;
+
+    // snapshot initial state for solver playback
+    this.initialCells = [...this.cells];
+    this.initialConqueredSet = new Set(this.conqueredSet);
 
     this.cdr.markForCheck();
   }
 
   pickColor(colorIdx: number): void {
-    if (this._animating || this.gameState !== 'playing' || colorIdx === this.currentColor) return;
+    if (this._animating || this.solverRunning || this.gameState !== 'playing' || colorIdx === this.currentColor) return;
 
     this.movesLeft--;
+    this.applyColor(colorIdx);
+  }
 
+  watchSolver(): void {
+    if (this.solverRunning) return;
+
+    // restore board to initial state
+    this.cells = [...this.initialCells];
+    this.conqueredSet = new Set(this.initialConqueredSet);
+    this.conqueredCount = this.conqueredSet.size;
+    this.movesLeft = this.maxMoves;
+    this.gameState = 'playing';
+    this.waveCells = new Set();
+    this._animating = false;
+    this.solverRunning = true;
+    this.solverMoveIdx = 0;
+
+    this.cdr.markForCheck();
+    setTimeout(() => this.stepSolver(), 300);
+  }
+
+  stopSolver(): void {
+    this.solverRunning = false;
+
+    // restore board to initial state so player can take over
+    this.cells = [...this.initialCells];
+    this.conqueredSet = new Set(this.initialConqueredSet);
+    this.conqueredCount = this.conqueredSet.size;
+    this.movesLeft = this.maxMoves;
+    this.gameState = 'playing';
+    this.waveCells = new Set();
+    this._animating = false;
+    this.solverMoveIdx = 0;
+
+    this.cdr.markForCheck();
+  }
+
+  trackByIdx(index: number): number {
+    return index;
+  }
+
+  // ── Solver playback ──────────────────────────────────────────────────────────
+
+  private stepSolver(): void {
+    if (!this.solverRunning || this.solverMoveIdx >= this.greedySolution.length) {
+      this.solverRunning = false;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const color = this.greedySolution[this.solverMoveIdx];
+    this.solverMoveIdx++;
+    this.movesLeft--;
+    this.applyColor(color, true);
+  }
+
+  // ── Core move logic ──────────────────────────────────────────────────────────
+
+  private applyColor(colorIdx: number, isSolver = false): void {
     for (const idx of this.conqueredSet) {
       this.cells[idx] = colorIdx;
     }
@@ -74,23 +147,22 @@ export class FloodFillComponent implements OnInit {
 
     if (waves.length === 0) {
       this.finalizeTurn();
+      if (isSolver && this.solverRunning) {
+        setTimeout(() => this.stepSolver(), SOLVER_MOVE_PAUSE_MS);
+      }
     } else {
       this._animating = true;
-      this.animateWaves(waves, 0, colorIdx);
+      this.animateWaves(waves, 0, colorIdx, isSolver);
     }
     this.cdr.markForCheck();
   }
 
-  trackByIdx(index: number): number {
-    return index;
-  }
+  // ── Greedy solver (compute) ──────────────────────────────────────────────────
 
-  // ── Greedy solver ────────────────────────────────────────────────────────────
-
-  private computeGreedyMoves(): number {
+  private computeGreedySolution(): { moves: number; solution: number[] } {
     const cells = [...this.cells];
     const conquered = new Set<number>(this.conqueredSet);
-    let moves = 0;
+    const solution: number[] = [];
 
     while (conquered.size < GRID_SIZE * GRID_SIZE) {
       let bestColor = -1;
@@ -107,10 +179,10 @@ export class FloodFillComponent implements OnInit {
       if (bestColor === -1 || bestGain === 0) break;
 
       this.applyGreedyMove(cells, conquered, bestColor);
-      moves++;
+      solution.push(bestColor);
     }
 
-    return moves;
+    return { moves: solution.length, solution };
   }
 
   private colorGain(cells: number[], conquered: Set<number>, color: number): number {
@@ -219,16 +291,23 @@ export class FloodFillComponent implements OnInit {
     return waves;
   }
 
-  private animateWaves(waves: number[][], waveIdx: number, newColor: number): void {
+  private animateWaves(waves: number[][], waveIdx: number, newColor: number, isSolver: boolean): void {
     if (waveIdx >= waves.length) {
       this._animating = false;
       this.waveCells = new Set();
       this.finalizeTurn();
+
+      if (isSolver && this.solverRunning) {
+        setTimeout(() => this.stepSolver(), SOLVER_MOVE_PAUSE_MS);
+      }
+
       this.cdr.markForCheck();
       return;
     }
 
+    const interval = isSolver ? SOLVER_WAVE_INTERVAL_MS : WAVE_INTERVAL_MS;
     const wave = waves[waveIdx];
+
     for (const idx of wave) {
       this.conqueredSet.add(idx);
       this.cells[idx] = newColor;
@@ -241,14 +320,15 @@ export class FloodFillComponent implements OnInit {
     }
     this.cdr.markForCheck();
 
-    setTimeout(() => this.animateWaves(waves, waveIdx + 1, newColor), WAVE_INTERVAL_MS);
+    setTimeout(() => this.animateWaves(waves, waveIdx + 1, newColor, isSolver), interval);
   }
 
   private finalizeTurn(): void {
     this.conqueredCount = this.conqueredSet.size;
     if (this.conqueredCount === GRID_SIZE * GRID_SIZE) {
       this.gameState = 'won';
-    } else if (this.movesLeft === 0) {
+      this.solverRunning = false;
+    } else if (this.movesLeft === 0 && !this.solverRunning) {
       this.gameState = 'lost';
     }
     this.cdr.markForCheck();
