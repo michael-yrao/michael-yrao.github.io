@@ -12,7 +12,7 @@
     <h1 class="game-header__title">Flood Fill</h1>
     <p class="game-header__sub">
       Pick a color to flood the board outward from the top-left corner.
-      Conquer the whole board in <strong>{{ maxMoves }}</strong> moves or fewer.
+      Conquer the whole board in <strong>{{ maxMoves }}</strong> moves — par is <strong>{{ greedyBest }}</strong>.
     </p>
     <a routerLink="/algorithms" class="algo-link">
       Uses BFS — see Number of Islands →
@@ -24,8 +24,13 @@
       <div class="game-arena">
         <div class="game-stats">
           <div class="stat">
-            <span class="stat__value" [class.stat__value--danger]="movesLeft <= 5">{{ movesLeft }}</span>
+            <span class="stat__value" [class.stat__value--danger]="movesLeft <= moveBuffer">{{ movesLeft }}</span>
             <span class="stat__label">moves left</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat__value stat__value--par">{{ greedyBest }}</span>
+            <span class="stat__label">par</span>
           </div>
           <div class="stat-divider"></div>
           <div class="stat">
@@ -129,6 +134,23 @@
             <li>Process repeats until the queue is empty (no more cells can be absorbed)</li>
             <li>Win condition: conquered set size equals the total cell count</li>
           </ol>
+
+          <h3 class="algo-breakdown__step-title">How the move limit is set</h3>
+          <p class="algo-breakdown__intro">
+            Before you play, a <strong>greedy solver</strong> runs on the freshly generated board.
+            Each simulated turn it picks the color that absorbs the most cells — a fast, strong heuristic
+            (though not provably optimal, since optimal Flood It is NP-hard).
+            The solver's score becomes <strong>par</strong>. Your move limit is
+            <strong>par + {{ moveBuffer }}</strong>, giving you a small buffer to play
+            imperfectly and still win.
+          </p>
+          <div class="move-limit-formula">
+            <span class="formula__part">greedy solve</span>
+            <span class="formula__op">+</span>
+            <span class="formula__part">{{ moveBuffer }} buffer</span>
+            <span class="formula__op">=</span>
+            <span class="formula__result">{{ maxMoves }} moves</span>
+          </div>
 
           <div class="algo-breakdown__links">
             <span class="algo-breakdown__links-label">Practice the same algorithm</span>

@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 
 const GRID_SIZE = 12;
-const MAX_MOVES = 22;
+const MOVE_BUFFER = 5;
 const WAVE_INTERVAL_MS = 40;
 export const COLORS = ['#06b6d4', '#f97316', '#22c55e', '#a855f7', '#ec4899', '#eab308'];
 
@@ -13,13 +13,15 @@ export const COLORS = ['#06b6d4', '#f97316', '#22c55e', '#a855f7', '#ec4899', '#
 })
 export class FloodFillComponent implements OnInit {
   readonly gridSize = GRID_SIZE;
-  readonly maxMoves = MAX_MOVES;
+  readonly moveBuffer = MOVE_BUFFER;
   readonly colors = COLORS;
   readonly colorIndices = Array.from({ length: COLORS.length }, (_, i) => i);
 
   cells: number[] = [];
   waveCells = new Set<number>();
-  movesLeft = MAX_MOVES;
+  maxMoves = 0;
+  greedyBest = 0;
+  movesLeft = 0;
   gameState: 'playing' | 'won' | 'lost' = 'playing';
   conqueredCount = 0;
 
@@ -46,12 +48,16 @@ export class FloodFillComponent implements OnInit {
     this.cells = Array.from({ length: GRID_SIZE * GRID_SIZE }, () =>
       Math.floor(Math.random() * COLORS.length)
     );
-    this.movesLeft = MAX_MOVES;
     this.gameState = 'playing';
     this.conqueredSet = this.bfsRegion(0, this.cells[0]);
     this.conqueredCount = this.conqueredSet.size;
     this.waveCells = new Set();
     this._animating = false;
+
+    this.greedyBest = this.computeGreedyMoves();
+    this.maxMoves = this.greedyBest + MOVE_BUFFER;
+    this.movesLeft = this.maxMoves;
+
     this.cdr.markForCheck();
   }
 
@@ -78,6 +84,94 @@ export class FloodFillComponent implements OnInit {
   trackByIdx(index: number): number {
     return index;
   }
+
+  // ── Greedy solver ────────────────────────────────────────────────────────────
+
+  private computeGreedyMoves(): number {
+    const cells = [...this.cells];
+    const conquered = new Set<number>(this.conqueredSet);
+    let moves = 0;
+
+    while (conquered.size < GRID_SIZE * GRID_SIZE) {
+      let bestColor = -1;
+      let bestGain = 0;
+
+      for (let c = 0; c < COLORS.length; c++) {
+        const gain = this.colorGain(cells, conquered, c);
+        if (gain > bestGain) {
+          bestGain = gain;
+          bestColor = c;
+        }
+      }
+
+      if (bestColor === -1 || bestGain === 0) break;
+
+      this.applyGreedyMove(cells, conquered, bestColor);
+      moves++;
+    }
+
+    return moves;
+  }
+
+  private colorGain(cells: number[], conquered: Set<number>, color: number): number {
+    const visited = new Set<number>(conquered);
+    const queue: number[] = [];
+
+    for (const idx of conquered) {
+      for (const nIdx of this.neighbors(idx)) {
+        if (!visited.has(nIdx) && cells[nIdx] === color) {
+          queue.push(nIdx);
+          visited.add(nIdx);
+        }
+      }
+    }
+
+    let gained = queue.length;
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      for (const nIdx of this.neighbors(curr)) {
+        if (!visited.has(nIdx) && cells[nIdx] === color) {
+          queue.push(nIdx);
+          visited.add(nIdx);
+          gained++;
+        }
+      }
+    }
+
+    return gained;
+  }
+
+  private applyGreedyMove(cells: number[], conquered: Set<number>, color: number): void {
+    for (const idx of conquered) {
+      cells[idx] = color;
+    }
+
+    const visited = new Set<number>(conquered);
+    const queue: number[] = [];
+
+    for (const idx of conquered) {
+      for (const nIdx of this.neighbors(idx)) {
+        if (!visited.has(nIdx) && cells[nIdx] === color) {
+          queue.push(nIdx);
+          visited.add(nIdx);
+        }
+      }
+    }
+
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      conquered.add(curr);
+      cells[curr] = color;
+      for (const nIdx of this.neighbors(curr)) {
+        if (!visited.has(nIdx) && cells[nIdx] === color) {
+          queue.push(nIdx);
+          visited.add(nIdx);
+        }
+      }
+    }
+  }
+
+  // ── BFS helpers ──────────────────────────────────────────────────────────────
 
   private bfsRegion(startIdx: number, color: number): Set<number> {
     const visited = new Set<number>([startIdx]);
