@@ -27,6 +27,11 @@ import { removeDuplicatesSortedArrayIIMeta } from '../../algorithms/two-pointers
 import { mergeSortedArrayMeta } from '../../algorithms/two-pointers/merge-sorted-array.steps';
 import { longestCommonPrefixMeta } from '../../algorithms/arrays-hash/longest-common-prefix.steps';
 import { removeNthFromEndMeta } from '../../algorithms/linked-list/remove-nth-node-from-end.steps';
+import { twoSumIIMeta } from '../../algorithms/two-pointers/two-sum-ii.steps';
+import { containerWithMostWaterMeta } from '../../algorithms/arrays-hash/container-with-most-water.steps';
+import { groupAnagramsMeta } from '../../algorithms/arrays-hash/group-anagrams.steps';
+import { searchInRotatedSortedArrayMeta } from '../../algorithms/binary-search/search-in-rotated-sorted-array.steps';
+import { majorityElementIIMeta } from '../../algorithms/arrays-hash/majority-element-ii.steps';
 
 const stub = (
   id: string,
@@ -64,16 +69,16 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   majorityElementMeta,
   rotateArrayMeta,
   longestCommonPrefixMeta,
-  stub('majority-element-ii', 229, 'Majority Element II', 'Medium', 'arrays-hash', ['Array', 'Hash Map', 'Boyer-Moore'], 'O(n)', 'O(1)'),
+  majorityElementIIMeta,
   stub('best-time-buy-sell-stock-ii', 122, 'Best Time to Buy and Sell Stock II', 'Medium', 'arrays-hash', ['Array', 'Greedy'], 'O(n)', 'O(1)'),
   productOfArrayExceptSelfMeta,
   topKFrequentElementsMeta,
-  stub('group-anagrams', 49, 'Group Anagrams', 'Medium', 'arrays-hash', ['Hash Map', 'String', 'Sorting'], 'O(n·k log k)', 'O(n)'),
+  groupAnagramsMeta,
   sortColorsMeta,
   stub('valid-sudoku', 36, 'Valid Sudoku', 'Medium', 'arrays-hash', ['Array', 'Hash Set', 'Matrix'], 'O(1)', 'O(1)'),
   stub('sort-an-array', 912, 'Sort an Array', 'Medium', 'arrays-hash', ['Array', 'Merge Sort', 'Heap Sort'], 'O(n log n)', 'O(n)'),
   longestConsecutiveSequenceMeta,
-  stub('container-with-most-water', 11, 'Container With Most Water', 'Medium', 'arrays-hash', ['Array', 'Two Pointers', 'Greedy'], 'O(n)', 'O(1)'),
+  containerWithMostWaterMeta,
 
   // ── Two Pointers ──────────────────────────────────────────────────────────
   stub('merge-strings-alternatively', 1768, 'Merge Strings Alternately', 'Easy', 'two-pointers', ['Two Pointers', 'String'], 'O(n)', 'O(n)'),
@@ -82,7 +87,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   validPalindromeMeta,
   removeDuplicatesSortedArrayMeta,
   mergeSortedArrayMeta,
-  stub('two-sum-ii', 167, 'Two Sum II', 'Medium', 'two-pointers', ['Array', 'Two Pointers', 'Binary Search'], 'O(n)', 'O(1)'),
+  twoSumIIMeta,
   validPalindromeIIMeta,
   removeDuplicatesSortedArrayIIMeta,
   threeSumMeta,
@@ -100,7 +105,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   binarySearchMeta,
   stub('find-minimum-in-rotated-sorted-array', 153, 'Find Minimum in Rotated Sorted Array', 'Medium', 'binary-search', ['Array', 'Binary Search'], 'O(log n)', 'O(1)'),
   stub('search-a-2d-matrix', 74, 'Search a 2D Matrix', 'Medium', 'binary-search', ['Array', 'Binary Search', 'Matrix'], 'O(log(m·n))', 'O(1)'),
-  stub('search-in-rotated-sorted-array', 33, 'Search in Rotated Sorted Array', 'Medium', 'binary-search', ['Array', 'Binary Search'], 'O(log n)', 'O(1)'),
+  searchInRotatedSortedArrayMeta,
   stub('find-peak-element', 162, 'Find Peak Element', 'Medium', 'binary-search', ['Array', 'Binary Search'], 'O(log n)', 'O(1)'),
   stub('single-element-in-sorted-array', 540, 'Single Element in a Sorted Array', 'Medium', 'binary-search', ['Array', 'Binary Search'], 'O(log n)', 'O(1)'),
   stub('koko-eating-bananas', 875, 'Koko Eating Bananas', 'Medium', 'binary-search', ['Array', 'Binary Search'], 'O(n log m)', 'O(1)'),
