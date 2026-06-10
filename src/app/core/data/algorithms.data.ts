@@ -22,6 +22,11 @@ import { rotateArrayMeta } from '../../algorithms/arrays-hash/rotate-array.steps
 import { topKFrequentElementsMeta } from '../../algorithms/arrays-hash/top-k-frequent-elements.steps';
 import { longestConsecutiveSequenceMeta } from '../../algorithms/arrays-hash/longest-consecutive-sequence.steps';
 import { containsDuplicateIIMeta } from '../../algorithms/sliding-window/contains-duplicate-ii.steps';
+import { removeDuplicatesSortedArrayMeta } from '../../algorithms/two-pointers/remove-duplicates-sorted-array.steps';
+import { removeDuplicatesSortedArrayIIMeta } from '../../algorithms/two-pointers/remove-duplicates-sorted-array-ii.steps';
+import { mergeSortedArrayMeta } from '../../algorithms/two-pointers/merge-sorted-array.steps';
+import { longestCommonPrefixMeta } from '../../algorithms/arrays-hash/longest-common-prefix.steps';
+import { removeNthFromEndMeta } from '../../algorithms/linked-list/remove-nth-node-from-end.steps';
 
 const stub = (
   id: string,
@@ -58,7 +63,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   stub('concatenation-of-array', 1929, 'Concatenation of Array', 'Easy', 'arrays-hash', ['Array'], 'O(n)', 'O(n)'),
   majorityElementMeta,
   rotateArrayMeta,
-  stub('longest-common-prefix', 14, 'Longest Common Prefix', 'Easy', 'arrays-hash', ['String', 'Trie'], 'O(m·n)', 'O(1)'),
+  longestCommonPrefixMeta,
   stub('majority-element-ii', 229, 'Majority Element II', 'Medium', 'arrays-hash', ['Array', 'Hash Map', 'Boyer-Moore'], 'O(n)', 'O(1)'),
   stub('best-time-buy-sell-stock-ii', 122, 'Best Time to Buy and Sell Stock II', 'Medium', 'arrays-hash', ['Array', 'Greedy'], 'O(n)', 'O(1)'),
   productOfArrayExceptSelfMeta,
@@ -75,11 +80,11 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   moveZerosMeta,
   stub('reverse-string', 344, 'Reverse String', 'Easy', 'two-pointers', ['Two Pointers', 'String'], 'O(n)', 'O(1)'),
   validPalindromeMeta,
-  stub('remove-dup-from-sorted-array', 26, 'Remove Duplicates from Sorted Array', 'Easy', 'two-pointers', ['Array', 'Two Pointers'], 'O(n)', 'O(1)'),
-  stub('merge-sorted-array', 88, 'Merge Sorted Array', 'Easy', 'two-pointers', ['Array', 'Two Pointers', 'Sorting'], 'O(m+n)', 'O(1)'),
+  removeDuplicatesSortedArrayMeta,
+  mergeSortedArrayMeta,
   stub('two-sum-ii', 167, 'Two Sum II', 'Medium', 'two-pointers', ['Array', 'Two Pointers', 'Binary Search'], 'O(n)', 'O(1)'),
   validPalindromeIIMeta,
-  stub('remove-dup-sorted-array-ii', 80, 'Remove Duplicates from Sorted Array II', 'Medium', 'two-pointers', ['Array', 'Two Pointers'], 'O(n)', 'O(1)'),
+  removeDuplicatesSortedArrayIIMeta,
   threeSumMeta,
   trappingRainWaterMeta,
   stub('four-sum', 18, '4Sum', 'Medium', 'two-pointers', ['Array', 'Two Pointers', 'Sorting'], 'O(n³)', 'O(n)'),
@@ -107,7 +112,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   reverseLinkedListMeta,
   stub('linked-list-cycle', 141, 'Linked List Cycle', 'Easy', 'linked-list', ['Linked List', 'Two Pointers', "Floyd's"], 'O(n)', 'O(1)'),
   mergeTwoSortedListsMeta,
-  stub('remove-nth-node-from-end', 19, 'Remove Nth Node From End of List', 'Medium', 'linked-list', ['Linked List', 'Two Pointers'], 'O(n)', 'O(1)'),
+  removeNthFromEndMeta,
   stub('reorder-list', 143, 'Reorder List', 'Medium', 'linked-list', ['Linked List', 'Two Pointers', 'Stack'], 'O(n)', 'O(1)'),
 
   // ── Trees ─────────────────────────────────────────────────────────────────
