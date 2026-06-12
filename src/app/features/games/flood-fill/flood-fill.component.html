@@ -14,8 +14,8 @@
       Pick a color to flood the board outward from the top-left corner.
       Conquer the whole board in <strong>{{ maxMoves }}</strong> moves — par is <strong>{{ greedyBest }}</strong>.
     </p>
-    <a routerLink="/algorithms/graphs/number-of-islands" class="algo-link">
-      Uses BFS — see Number of Islands →
+    <a routerLink="/algorithms/trees/binary-tree-level-order-traversal" class="algo-link">
+      Uses BFS — each ripple is one level, see Level Order Traversal →
     </a>
   </header>
 
@@ -169,7 +169,16 @@
 
           <div class="algo-breakdown__links">
             <span class="algo-breakdown__links-label">Practice the same algorithm</span>
-            <a routerLink="/algorithms/graphs/number-of-islands" class="problem-link">LC 200 · Number of Islands</a>
+            <a
+              routerLink="/algorithms/trees/binary-tree-level-order-traversal"
+              class="problem-link"
+              title="The purest BFS problem — each queue round is exactly one level, like each ripple here"
+            >LC 102 · Binary Tree Level Order Traversal</a>
+            <a
+              routerLink="/algorithms/graphs/number-of-islands"
+              class="problem-link"
+              title="Same grid + 4-neighbor expansion as this game — solvable with BFS or DFS"
+            >LC 200 · Number of Islands</a>
             <a routerLink="/algorithms/graphs" class="problem-link problem-link--dim" title="Not yet visualized — links to Graphs category">LC 733 · Flood Fill</a>
           </div>
         </div>
