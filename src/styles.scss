@@ -4,6 +4,10 @@
 :root {
   // Colors
   --color-bg:          #0f172a;
+  --color-bg-rgb:      15, 23, 42;        // for translucent surfaces (nav, popovers)
+  --hover-tint:        rgba(255, 255, 255, 0.06);
+  --hover-tint-strong: rgba(255, 255, 255, 0.08);
+  --shadow-strong:     0 12px 40px -8px rgba(0, 0, 0, 0.7);
   --color-bg-card:     #1e293b;
   --color-bg-raised:   #293548;
   --color-border:      #334155;
@@ -48,6 +52,10 @@
   color-scheme: light;
 
   --color-bg:          #f1f5f9;
+  --color-bg-rgb:      241, 245, 249;
+  --hover-tint:        rgba(15, 23, 42, 0.05);
+  --hover-tint-strong: rgba(15, 23, 42, 0.09);
+  --shadow-strong:     0 12px 40px -8px rgba(15, 23, 42, 0.18);
   --color-bg-card:     #ffffff;
   --color-bg-raised:   #e2e8f0;
   --color-border:      #cbd5e1;
