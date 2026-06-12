@@ -50,14 +50,50 @@
 .games-section {
   margin-top: var(--space-2xl);
 
+  // Featured category: a single game renders as a full-width hero card
+  // instead of one orphaned cell in the grid.
   &--featured {
     .games-section__title { color: var(--color-accent); }
+
+    .games-grid { grid-template-columns: 1fr; }
 
     .game-card--available {
       border-color: rgba(6, 182, 212, 0.45);
 
       &:hover { border-color: var(--color-accent); }
     }
+
+    .game-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+      grid-template-areas:
+        'header note'
+        'desc   note'
+        'algos  note';
+      align-items: start;
+      column-gap: var(--space-2xl);
+      padding: var(--space-xl) var(--space-2xl);
+
+      @media (max-width: 720px) {
+        display: flex;
+        flex-direction: column;
+        padding: var(--space-xl);
+      }
+    }
+
+    .game-card__header { grid-area: header; }
+    .game-card__desc { grid-area: desc; }
+    .game-card__algos { grid-area: algos; margin-top: var(--space-sm); }
+
+    .game-card__algo-note {
+      grid-area: note;
+      flex: initial;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+    }
+
+    .game-card__title { font-size: 1.5rem; }
   }
 }
 
