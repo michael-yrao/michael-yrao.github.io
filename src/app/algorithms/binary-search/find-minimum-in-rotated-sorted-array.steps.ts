@@ -54,7 +54,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Initialize l=${l}, r=${r}. We use l < r (not l ≤ r) because we want to converge on the minimum without overshooting — when l === r, that index is the answer.`,
-    highlightLine: 9,
+    highlightLine: 8,
     state: {
       type: 'array',
       cells: snap(l, r, null, null),

@@ -55,7 +55,7 @@ function generateSetIterationSteps(): Step[] {
     if (inSet) {
       steps.push({
         explanation: `Index ${i}, value ${n}. Is ${n} in our set? YES! We've seen it before. Return true — duplicate found. The set caught this in O(1).`,
-        highlightLine: 12,
+        highlightLine: 9,
         state: {
           type: 'array',
           cells,
@@ -73,7 +73,7 @@ function generateSetIterationSteps(): Step[] {
 
     steps.push({
       explanation: `Index ${i}, value ${n}. Not in the set yet — no duplicate so far. Add ${n} to the set so we can detect it if it appears again.`,
-      highlightLine: 15,
+      highlightLine: 11,
       state: {
         type: 'array',
         cells,

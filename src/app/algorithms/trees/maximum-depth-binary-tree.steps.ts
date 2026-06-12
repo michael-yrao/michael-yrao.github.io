@@ -38,12 +38,12 @@ export function generateSteps() {
   return [
     {
       explanation: 'Start postorder DFS. We recurse as deep as possible first. Visiting node 9 (leaf, left child of 3).',
-      highlightLine: 16,
+      highlightLine: 22,
       state: { type: 'tree' as const, nodes: makeNodes({ n1: 'active' }) } as TreeState,
     },
     {
       explanation: 'Node 9 has no children. Both calls return 0. maxDepth(9) = 1 + max(0,0) = 1. Mark as visited.',
-      highlightLine: 20,
+      highlightLine: 18,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n1: 'visited' }),
@@ -53,7 +53,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Visit node 15 (left leaf of 20). No children — returns 1.',
-      highlightLine: 20,
+      highlightLine: 22,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n1: 'visited', n3: 'active' }),
@@ -62,7 +62,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Visit node 7 (right leaf of 20). No children — returns 1.',
-      highlightLine: 20,
+      highlightLine: 22,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n1: 'visited', n3: 'visited', n4: 'active' }),
@@ -71,7 +71,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Back at node 20. left=1, right=1. maxDepth(20) = 1 + max(1,1) = 2.',
-      highlightLine: 20,
+      highlightLine: 22,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n1: 'visited', n2: 'active', n3: 'visited', n4: 'visited' }),
@@ -81,7 +81,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Back at root (3). left=1 (from node 9), right=2 (from node 20). maxDepth(3) = 1 + max(1,2) = 3.',
-      highlightLine: 20,
+      highlightLine: 22,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'found', n1: 'found', n2: 'found', n3: 'found', n4: 'found' }),

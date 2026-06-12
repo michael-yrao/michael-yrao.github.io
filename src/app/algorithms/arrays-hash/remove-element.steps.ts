@@ -86,7 +86,7 @@ function generateSteps(): Step[] {
 
       steps.push({
         explanation: `Wrote ${cur} to position ${k - 1}. k is now ${k}. First ${k} element(s) in result: [${nums.slice(0, k).join(',')}].`,
-        highlightLine: 13,
+        highlightLine: 12,
         state: {
           type: 'array',
           cells: nums.map((v, idx) => ({
@@ -148,7 +148,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Done. k=${k} elements remain. Result (first ${k} elements): [${nums.slice(0, k).join(',')}]. The remaining cells are "don't care". Return k=${k}.`,
-    highlightLine: 15,
+    highlightLine: 14,
     state: {
       type: 'array',
       cells: nums.map((v, idx) => ({

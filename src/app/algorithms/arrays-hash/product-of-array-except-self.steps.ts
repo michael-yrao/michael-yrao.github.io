@@ -134,7 +134,7 @@ function generateSteps(): Step[] {
   // ── Final ──────────────────────────────────────────────────────
   steps.push({
     explanation: `Result: [${result.join(', ')}]. Each value is the product of every other element, computed in O(n) time with no division.`,
-    highlightLine: 19,
+    highlightLine: 26,
     state: {
       type: 'array',
       cells: result.map(v => ({ value: v, state: 'found' as const })),

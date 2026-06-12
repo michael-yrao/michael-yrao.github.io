@@ -68,7 +68,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Pop node 5. Bounds: (-inf, inf). 5 > -inf AND 5 < inf — valid. Push left(3) with (-inf,5) and right(6) with (5,inf).',
-      highlightLine: 30,
+      highlightLine: 31,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'active' }),
@@ -78,7 +78,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Pop node 6 (right of 5). Bounds: (5, inf). 6 > 5 AND 6 < inf — valid. Push right(7) with (6,inf).',
-      highlightLine: 30,
+      highlightLine: 31,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n2: 'active' }),
@@ -88,7 +88,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Pop node 7 (right of 6). Bounds: (6, inf). 7 > 6 AND 7 < inf — valid. No children.',
-      highlightLine: 30,
+      highlightLine: 31,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n2: 'visited', n5: 'active' }),
@@ -98,7 +98,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Pop node 3 (left of 5). Bounds: (-inf, 5). 3 > -inf AND 3 < 5 — valid. Push left(2) with (-inf,3) and right(4) with (3,5).',
-      highlightLine: 30,
+      highlightLine: 31,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n1: 'active', n2: 'visited', n5: 'visited' }),
@@ -108,7 +108,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Pop node 4 (right of 3). Bounds: (3, 5). 4 > 3 AND 4 < 5 — valid. No children.',
-      highlightLine: 30,
+      highlightLine: 31,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited', n4: 'active', n5: 'visited' }),
@@ -118,7 +118,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Pop node 2 (left of 3). Bounds: (-inf, 3). 2 > -inf AND 2 < 3 — valid. Stack empty. All nodes valid — return True!',
-      highlightLine: 36,
+      highlightLine: 39,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'found', n1: 'found', n2: 'found', n3: 'found', n4: 'found', n5: 'found' }),

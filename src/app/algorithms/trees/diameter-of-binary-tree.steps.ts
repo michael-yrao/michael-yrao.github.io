@@ -52,7 +52,7 @@ export function generateSteps() {
   return [
     {
       explanation: 'Start postorder DFS. maxDiameter=0. At each node we compute left+right depth and update maxDiameter.',
-      highlightLine: 17,
+      highlightLine: 18,
       state: {
         type: 'tree' as const,
         nodes: makeNodes(),
@@ -62,7 +62,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Visit node 4 (leaf, left child of 2). left=0, right=0. diameter=0+0=0. Returns depth=1.',
-      highlightLine: 26,
+      highlightLine: 28,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n3: 'active' }),
@@ -72,7 +72,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Visit node 5 (leaf, right child of 2). left=0, right=0. diameter=0+0=0. Returns depth=1.',
-      highlightLine: 26,
+      highlightLine: 28,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n3: 'visited', n4: 'active' }),
@@ -82,7 +82,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Back at node 2. left=1 (from 4), right=1 (from 5). diameter=1+1=2. maxDiameter = max(0,2) = 2. Returns depth=2.',
-      highlightLine: 27,
+      highlightLine: 28,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n1: 'active', n3: 'visited', n4: 'visited' }),
@@ -92,7 +92,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Visit node 3 (leaf, right child of 1). left=0, right=0. diameter=0. maxDiameter stays 2. Returns depth=1.',
-      highlightLine: 26,
+      highlightLine: 28,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n1: 'visited', n2: 'active', n3: 'visited', n4: 'visited' }),
@@ -102,7 +102,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Back at root (1). left=2 (from node 2), right=1 (from node 3). diameter=2+1=3. maxDiameter = max(2,3) = 3. Answer: 3.',
-      highlightLine: 27,
+      highlightLine: 28,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'found', n1: 'found', n2: 'found', n3: 'found', n4: 'found' }),

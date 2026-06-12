@@ -62,7 +62,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Initialize l=1, r=${maxPile}=max(piles). We use l < r (not l ≤ r) because we want to converge to the minimum feasible k without overshooting — when l === r, that value is the answer.`,
-    highlightLine: 14,
+    highlightLine: 13,
     state: {
       type: 'array',
       cells: piles.map(v => ({ value: v, state: 'default' as const })),

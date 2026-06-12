@@ -88,7 +88,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Phase 1 — Find Middle. slow and fast start at head. slow advances 1 step, fast advances 2 steps per iteration. When fast reaches the end, slow is at the middle.',
-    highlightLine: 17,
+    highlightLine: 18,
     state: {
       type: 'linked-list',
       nodes: makeLinear(vals, { 0: 'curr', }),
@@ -256,7 +256,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: ms.explanation,
-      highlightLine: 43,
+      highlightLine: 46,
       state: {
         type: 'linked-list',
         nodes: mergeOrder.map((v, i) => ({

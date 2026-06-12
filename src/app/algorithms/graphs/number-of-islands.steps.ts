@@ -87,7 +87,7 @@ function generateBfsSteps(): Step[] {
   steps.push({
     explanation:
       "We scan the grid cell by cell. When we find unvisited land ('1'), we BFS to mark all connected land as part of the same island — so we never count a cell twice.",
-    highlightLine: 41,
+    highlightLine: 38,
     state: makeGrid(new Map()),
     variables: [
       { name: 'rows', value: rows },
@@ -106,7 +106,7 @@ function generateBfsSteps(): Step[] {
 
         steps.push({
           explanation: `Found unvisited land at (${r},${c}). This starts island #${islandCount}. We launch BFS from here to find all land cells connected to this island.`,
-          highlightLine: 45,
+          highlightLine: 42,
           state: makeGrid(new Map([[toKey(r, c), 'queued']])),
           variables: [
             { name: 'r', value: r, highlight: true },
@@ -149,7 +149,7 @@ function generateBfsSteps(): Step[] {
             : `${queue.length} items`;
           steps.push({
             explanation: `BFS: processing (${cr},${cc}). Mark it visited. Enqueue unvisited land neighbors (shown in orange). BFS ensures we explore the whole island level by level.`,
-            highlightLine: 25,
+            highlightLine: 22,
             state: makeGrid(overrides),
             variables: [
               { name: 'r', value: cr, highlight: true },
@@ -166,7 +166,7 @@ function generateBfsSteps(): Step[] {
 
   steps.push({
     explanation: `Scan complete. We found ${islandCount} island(s). BFS guaranteed every connected land group was counted exactly once, regardless of island shape.`,
-    highlightLine: 47,
+    highlightLine: 46,
     state: makeGrid(new Map()),
     variables: [
       { name: 'islandCount', value: islandCount, highlight: true },
@@ -254,7 +254,7 @@ function generateDfsSteps(): Step[] {
   steps.push({
     explanation:
       'DFS explores as deeply as possible before backtracking. No explicit queue — DFS uses the call stack itself. When we find unvisited land, we mark it and immediately recurse into every neighbor.',
-    highlightLine: 15,
+    highlightLine: 13,
     state: makeGrid(null),
     variables: [
       { name: 'rows', value: rows },
@@ -272,7 +272,7 @@ function generateDfsSteps(): Step[] {
 
     steps.push({
       explanation: `DFS at (${r},${c}): land and unvisited. Mark visited (now green). Recurse down → up → right → left — going as deep as possible before backtracking.`,
-      highlightLine: 30,
+      highlightLine: 28,
       state: makeGrid([r, c]),
       variables: [
         { name: 'row', value: r, highlight: true },
@@ -293,7 +293,7 @@ function generateDfsSteps(): Step[] {
         islandCount++;
         steps.push({
           explanation: `Outer loop found unvisited land at (${r},${c}). Starting DFS to mark all connected land as island #${islandCount}.`,
-          highlightLine: 41,
+          highlightLine: 39,
           state: makeGrid([r, c]),
           variables: [
             { name: 'row', value: r, highlight: true },
@@ -308,7 +308,7 @@ function generateDfsSteps(): Step[] {
 
   steps.push({
     explanation: `DFS complete. Found ${islandCount} island(s). DFS and BFS both visit each cell once — O(m×n). DFS uses O(m×n) call-stack space in the worst case vs BFS's explicit queue.`,
-    highlightLine: 43,
+    highlightLine: 41,
     state: makeGrid(null),
     variables: [
       { name: 'result', value: islandCount, highlight: true },

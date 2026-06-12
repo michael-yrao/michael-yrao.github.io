@@ -99,7 +99,7 @@ function generateStepsBFS(): Step[] {
   // Step 0: Introduction
   steps.push({
     explanation: `Course Schedule II: find the order to take all 4 courses given prerequisites [[1,0],[2,0],[3,1],[3,2]]. Same Kahn's BFS as Course Schedule I, but now we record each dequeued course into courseList to build the result ordering. Cell values show each course's current in-degree.`,
-    highlightLine: 7,
+    highlightLine: 15,
     state: {
       type: 'array',
       cells: [0, 1, 2, 3].map(i => ({ value: deg[i] as string | number, state: 'default' as const })),
@@ -146,7 +146,7 @@ function generateStepsBFS(): Step[] {
   queue.push(0);
   steps.push({
     explanation: `Seed BFS queue: scan canTake for all indices with value 0. Only course 0 has in-degree 0. courseQueue = [0]. These are the courses with no prerequisites — our BFS entry points.`,
-    highlightLine: 32,
+    highlightLine: 33,
     state: {
       type: 'array',
       cells: makeCells(0, new Set(), new Set(), deg),
@@ -167,7 +167,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `BFS iteration 1: dequeue course 0. Append to courseList → courseList = [${courseList.join(', ')}]. Process neighbors [${adj[0].join(', ')}]: decrement their in-degrees since course 0 is now taken.`,
-    highlightLine: 39,
+    highlightLine: 42,
     state: {
       type: 'array',
       cells: makeCells(0, visited, found, deg),
@@ -190,7 +190,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `Decrement neighbors of course 0. canTake[1]: 1→0 (enqueue). canTake[2]: 1→0 (enqueue). Queue = [1, 2]. Both courses 1 and 2 are now available to take.`,
-    highlightLine: 43,
+    highlightLine: 45,
     state: {
       type: 'array',
       cells: makeCells(null, visited, found, deg),
@@ -217,7 +217,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `BFS iteration 2: dequeue course 1. Append to courseList → courseList = [${courseList.join(', ')}]. Process neighbors [${adj[1].join(', ')}]: decrement canTake[3].`,
-    highlightLine: 39,
+    highlightLine: 42,
     state: {
       type: 'array',
       cells: makeCells(1, visited, found, deg),
@@ -238,7 +238,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `canTake[3]: 2→1. Course 3 still needs course 2 — not yet takeable. Continue BFS.`,
-    highlightLine: 43,
+    highlightLine: 45,
     state: {
       type: 'array',
       cells: makeCells(null, visited, found, deg),
@@ -259,7 +259,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `BFS iteration 3: dequeue course 2. Append to courseList → courseList = [${courseList.join(', ')}]. Process neighbors [${adj[2].join(', ')}]: decrement canTake[3].`,
-    highlightLine: 39,
+    highlightLine: 42,
     state: {
       type: 'array',
       cells: makeCells(2, visited, found, deg),
@@ -281,7 +281,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `canTake[3]: 1→0 → enqueue course 3. Both prerequisites for course 3 (courses 1 and 2) are now satisfied. Queue = [3].`,
-    highlightLine: 46,
+    highlightLine: 48,
     state: {
       type: 'array',
       cells: makeCells(null, visited, found, deg),
@@ -302,7 +302,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `BFS iteration 4: dequeue course 3. Append to courseList → courseList = [${courseList.join(', ')}]. No neighbors. Queue empty — BFS complete.`,
-    highlightLine: 39,
+    highlightLine: 42,
     state: {
       type: 'array',
       cells: makeCells(3, visited, found, deg),
@@ -322,7 +322,7 @@ function generateStepsBFS(): Step[] {
   // Final step
   steps.push({
     explanation: `Result: len(courseList) = ${courseList.length} == numCourses (${numCourses}) → return [${courseList.join(', ')}]. This is a valid topological ordering. No cycle was detected. Another valid order would be [0,2,1,3]. If a cycle existed, courseList would be shorter than numCourses and we'd return []. O(V+E) time, O(V+E) space.`,
-    highlightLine: 51,
+    highlightLine: 53,
     state: {
       type: 'array',
       cells: [0, 1, 2, 3].map(i => ({

@@ -7,7 +7,7 @@
         [ngClass]="'gv__cell--' + cell.state"
         [title]="cell.state + ' (' + r + ',' + c + ')'"
       >
-        {{ cellLabel(cell.state) }}
+        {{ cell.label || cellLabel(cell.state) }}
       </div>
     </div>
   </div>

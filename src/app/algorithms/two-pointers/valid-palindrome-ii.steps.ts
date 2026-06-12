@@ -175,7 +175,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `s[${bl2}]='${chars[bl2]}' == s[${br}]='${chars[br]}' ✓ — advance inward again.`,
-      highlightLine: 6,
+      highlightLine: 18,
       state: {
         type: 'array',
         cells: chars.map((c, i) => ({

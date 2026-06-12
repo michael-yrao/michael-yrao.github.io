@@ -59,7 +59,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Input: "${s}". A stack is perfect here because brackets must be closed in LIFO order — the most recently opened bracket must be the next one closed. We map each opener to its expected closer.`,
-    highlightLine: 11,
+    highlightLine: 10,
     state: {
       type: 'array',
       cells: s.split('').map((c) => ({ value: c, state: 'default' })),
@@ -151,7 +151,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `All characters processed. Stack is ${stack.length === 0 ? 'empty — every opener was matched' : 'not empty — some openers were never closed'}. Return ${stack.length === 0}.`,
-    highlightLine: 26,
+    highlightLine: 23,
     state: {
       type: 'array',
       cells: s.split('').map((c) => ({ value: c, state: 'visited' })),

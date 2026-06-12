@@ -115,7 +115,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       `Build s1Freq: count each character of s1. s1Freq = {${Object.entries(s1FreqDisplay).map(([k, v]) => `'${k}':${v}`).join(', ')}}. This is our target frequency to match.`,
-    highlightLine: 29,
+    highlightLine: 30,
     state: {
       type: 'array',
       cells: s2.split('').map(ch => ({ value: ch, state: 'default' as const })),

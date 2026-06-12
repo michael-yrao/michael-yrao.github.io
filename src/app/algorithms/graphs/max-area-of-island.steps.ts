@@ -107,7 +107,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `DFS at (${r},${c}) = land, unvisited. Add to visited. Current island size so far: ${islandCells.size}.`,
-      highlightLine: 29,
+      highlightLine: 32,
       state: buildGrid(visited, islandCells, new Set()),
       variables: [
         { name: 'row', value: r, highlight: true },
@@ -134,7 +134,7 @@ function generateSteps(): Step[] {
 
         steps.push({
           explanation: `Outer scan found unvisited land at (${r},${c}). Starting DFS to measure this island.`,
-          highlightLine: 35,
+          highlightLine: 38,
           state: buildGrid(visited, new Set([key]), new Set()),
           variables: [
             { name: 'row', value: r, highlight: true },
@@ -153,7 +153,7 @@ function generateSteps(): Step[] {
 
         steps.push({
           explanation: `Island at (${r},${c}) has area ${area}. ${isNewMax ? `New maximum! maxArea updated to ${area}.` : `maxArea stays at ${maxArea}.`} Max island cells highlighted in orange.`,
-          highlightLine: 36,
+          highlightLine: 39,
           state: buildGrid(visited, new Set(), new Set(maxCells)),
           variables: [
             { name: 'area', value: area, highlight: true },
@@ -166,7 +166,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Scan complete. Maximum island area = ${maxArea}. The orange cells show the largest island. DFS visited each cell at most once → O(m×n) time and O(m×n) space for the visited set.`,
-    highlightLine: 39,
+    highlightLine: 41,
     state: buildGrid(visited, new Set(), maxCells),
     variables: [
       { name: 'maxArea', value: maxArea, highlight: true },

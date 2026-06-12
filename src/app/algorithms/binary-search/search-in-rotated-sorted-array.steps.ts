@@ -142,7 +142,7 @@ function generateSteps(): Step[] {
   const bsearch = (lo: number, hi: number, halfLabel: string): number => {
     steps.push({
       explanation: `Phase 2 — binary search ${halfLabel} [${lo}..${hi}] = [${nums.slice(lo, hi + 1).join(',')}] for target=${target}.`,
-      highlightLine: 12,
+      highlightLine: 13,
       state: {
         type: 'array',
         cells: snapPhase2(lo, hi, null, k),

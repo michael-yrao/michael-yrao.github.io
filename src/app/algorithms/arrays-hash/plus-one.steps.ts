@@ -24,7 +24,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Plus One on [1,2,9]: add 1 to the integer represented as an array of digits. Walk from the rightmost digit. If it\'s 9, set it to 0 (carry) and continue left. Otherwise add 1 and return. If all digits were 9, prepend a 1.',
-    highlightLine: 8,
+    highlightLine: 10,
     state: {
       type: 'array',
       cells: digits.map(v => ({ value: v, state: 'default' as const })),
@@ -110,7 +110,7 @@ function generateSteps(): Step[] {
   const result = [1, ...digits];
   steps.push({
     explanation: `All digits were 9 and set to 0. Prepend 1 → [${result.join(',')}].`,
-    highlightLine: 15,
+    highlightLine: 16,
     state: {
       type: 'array',
       cells: result.map(v => ({ value: v, state: 'found' as const })),

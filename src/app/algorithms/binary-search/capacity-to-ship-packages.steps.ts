@@ -66,7 +66,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       `Capacity to Ship Packages: weights=[${weights.join(',')}], days=${days}. Binary search on capacity in [max(weights)..sum(weights)] = [${maxW}..${sumW}]. max(weights)=${maxW} is the minimum possible (must fit the heaviest package). sum(weights)=${sumW} ships everything in 1 day. For each mid capacity, simulate greedy packing and count days needed.`,
-    highlightLine: 24,
+    highlightLine: 25,
     state: {
       type: 'array',
       cells: weights.map(v => ({ value: v, state: 'default' as const })),

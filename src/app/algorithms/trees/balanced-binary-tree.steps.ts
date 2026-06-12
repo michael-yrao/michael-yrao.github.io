@@ -53,7 +53,7 @@ export function generateSteps() {
   return [
     {
       explanation: 'Start postorder DFS. isBalanced=True. We check |leftDepth - rightDepth| > 1 at each node.',
-      highlightLine: 18,
+      highlightLine: 19,
       state: {
         type: 'tree' as const,
         nodes: makeNodes(),
@@ -63,7 +63,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Visit node 9 (leaf). left=0, right=0. |0-0|=0 ≤ 1. Balanced. Returns depth=1.',
-      highlightLine: 24,
+      highlightLine: 29,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n1: 'active' }),
@@ -73,7 +73,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Visit node 15 (leaf). left=0, right=0. |0-0|=0 ≤ 1. Balanced. Returns depth=1.',
-      highlightLine: 24,
+      highlightLine: 29,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n1: 'visited', n3: 'active' }),
@@ -82,7 +82,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Visit node 7 (leaf). left=0, right=0. |0-0|=0 ≤ 1. Balanced. Returns depth=1.',
-      highlightLine: 24,
+      highlightLine: 29,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n1: 'visited', n3: 'visited', n4: 'active' }),
@@ -91,7 +91,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Back at node 20. left=1 (from 15), right=1 (from 7). |1-1|=0 ≤ 1. Balanced. Returns depth=2.',
-      highlightLine: 26,
+      highlightLine: 29,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n1: 'visited', n2: 'active', n3: 'visited', n4: 'visited' }),
@@ -101,7 +101,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Back at root (3). left=1 (from 9), right=2 (from 20). |1-2|=1 ≤ 1. Balanced! isBalanced stays True. Answer: True.',
-      highlightLine: 31,
+      highlightLine: 36,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'found', n1: 'found', n2: 'found', n3: 'found', n4: 'found' }),

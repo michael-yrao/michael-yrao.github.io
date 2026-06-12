@@ -87,7 +87,7 @@ function generateStepsBFS(): Step[] {
   // Step 0: Introduction
   steps.push({
     explanation: `Course Schedule: can we finish all 4 courses given prerequisites [[1,0],[2,0],[3,1],[3,2]]? Strategy: Kahn's BFS topological sort. Build an in-degree array (number of unsatisfied prerequisites per course) and an adjacency map (prereq → list of dependent courses). Cell values show each course's current in-degree.`,
-    highlightLine: 7,
+    highlightLine: 11,
     state: {
       type: 'array',
       cells: [0, 1, 2, 3].map(i => ({ value: deg[i] as string | number, state: 'default' as const })),
@@ -133,7 +133,7 @@ function generateStepsBFS(): Step[] {
   queue.push(0);
   steps.push({
     explanation: `Seed BFS queue: scan prereqCounter and enqueue all courses with in-degree 0. Only course 0 qualifies. canTake = [0]. These are the courses with no prerequisites — our BFS starting points.`,
-    highlightLine: 22,
+    highlightLine: 23,
     state: {
       type: 'array',
       cells: makeCells(0, new Set(), new Set(), deg),
@@ -154,7 +154,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `BFS iteration 1: dequeue course 0. coursesTaken = ${coursesTaken}. Examine neighbors of course 0: [1, 2]. For each dependent course, decrement its prereqCounter since course 0 is now satisfied.`,
-    highlightLine: 28,
+    highlightLine: 29,
     state: {
       type: 'array',
       cells: makeCells(0, visited, found, deg),
@@ -178,7 +178,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `Decrement neighbors of course 0. prereqCounter[1]: 1→0 (enqueue course 1). prereqCounter[2]: 1→0 (enqueue course 2). Queue is now [1, 2]. Cell values updated to reflect new in-degrees.`,
-    highlightLine: 33,
+    highlightLine: 35,
     state: {
       type: 'array',
       cells: makeCells(null, visited, found, deg),
@@ -205,7 +205,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `BFS iteration 2: dequeue course 1. coursesTaken = ${coursesTaken}. Examine neighbors of course 1: [3]. Decrement prereqCounter[3]: 2→1. Course 3 still needs course 2 — not enqueued yet.`,
-    highlightLine: 28,
+    highlightLine: 29,
     state: {
       type: 'array',
       cells: makeCells(1, visited, found, deg),
@@ -226,7 +226,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `prereqCounter[3]: 2→1. Course 3 still has one unsatisfied prerequisite (course 2). It stays out of the queue. Continue dequeuing.`,
-    highlightLine: 33,
+    highlightLine: 35,
     state: {
       type: 'array',
       cells: makeCells(null, visited, found, deg),
@@ -247,7 +247,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `BFS iteration 3: dequeue course 2. coursesTaken = ${coursesTaken}. Examine neighbors of course 2: [3]. Decrement prereqCounter[3]: 1→0. Course 3 now has all prerequisites met — enqueue it.`,
-    highlightLine: 28,
+    highlightLine: 29,
     state: {
       type: 'array',
       cells: makeCells(2, visited, found, deg),
@@ -269,7 +269,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `prereqCounter[3]: 1→0 → enqueue course 3. Queue is now [3]. All of course 3's prerequisites (courses 1 and 2) have been taken.`,
-    highlightLine: 35,
+    highlightLine: 38,
     state: {
       type: 'array',
       cells: makeCells(null, visited, found, deg),
@@ -290,7 +290,7 @@ function generateStepsBFS(): Step[] {
 
   steps.push({
     explanation: `BFS iteration 4: dequeue course 3. coursesTaken = ${coursesTaken}. Course 3 has no neighbors. Queue is now empty. BFS complete — all 4 courses taken.`,
-    highlightLine: 28,
+    highlightLine: 29,
     state: {
       type: 'array',
       cells: makeCells(3, visited, found, deg),
@@ -310,7 +310,7 @@ function generateStepsBFS(): Step[] {
   // Final: result
   steps.push({
     explanation: `Result: coursesTaken (${coursesTaken}) >= numCourses (${numCourses}) → return true. Every course was processed in topological order — no cycle exists. If a cycle had existed, some nodes would stay stuck with in-degree > 0 forever, and coursesTaken would be < numCourses. O(V+E) time, O(V+E) space.`,
-    highlightLine: 38,
+    highlightLine: 40,
     state: {
       type: 'array',
       cells: [0, 1, 2, 3].map(i => ({

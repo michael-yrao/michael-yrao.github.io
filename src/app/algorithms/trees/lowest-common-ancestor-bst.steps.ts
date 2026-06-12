@@ -54,7 +54,7 @@ export function generateSteps() {
     },
     {
       explanation: 'At node 6: p.val=2 < 6 AND q.val=4 < 6. Both smaller — go left.',
-      highlightLine: 16,
+      highlightLine: 17,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'active', n1: 'highlighted', n4: 'highlighted' }),
@@ -63,7 +63,7 @@ export function generateSteps() {
     },
     {
       explanation: 'At node 2: p.val=2 is NOT < 2, so they are not both smaller. Check if both bigger: 2 > 2? No. We are in the else branch — currentNode IS the LCA!',
-      highlightLine: 22,
+      highlightLine: 20,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n1: 'active', n4: 'highlighted' }),
@@ -72,7 +72,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Node 2 is the LCA of p=2 and q=4. p=2 IS node 2 itself, and q=4 is in node 2\'s right subtree. They diverge here.',
-      highlightLine: 23,
+      highlightLine: 24,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n1: 'found', n3: 'highlighted', n4: 'highlighted' }),

@@ -129,7 +129,7 @@ function generateSteps(): Step[] {
   const resultVals = dummyVals.filter((_, i) => i !== idx + 1).slice(1);
   steps.push({
     explanation: `val=${dummyVals[idx + 1]} removed. Return dummy.next → [${resultVals.join('→')}]. O(n) time, O(1) space — two passes.`,
-    highlightLine: 14,
+    highlightLine: 30,
     state: {
       type: 'linked-list',
       nodes: resultVals.map((v, i) => ({

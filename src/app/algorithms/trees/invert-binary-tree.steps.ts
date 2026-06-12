@@ -56,7 +56,7 @@ export function generateSteps() {
   // Step 1: Introduction
   steps.push({
     explanation: 'Intro: postorder DFS — recurse left, recurse right, then swap. We visit leaves first and work back up.',
-    highlightLine: 9,
+    highlightLine: 10,
     state: {
       type: 'tree' as const,
       nodes: buildNodes({
@@ -74,7 +74,7 @@ export function generateSteps() {
   // Step 2: Reach node 1 (leaf, left-most)
   steps.push({
     explanation: 'Recurse all the way down left subtree. We reach node 1 (leaf). No children — return up.',
-    highlightLine: 12,
+    highlightLine: 18,
     state: {
       type: 'tree' as const,
       nodes: buildNodes({
@@ -92,7 +92,7 @@ export function generateSteps() {
   // Step 3: Reach node 3 (leaf, right child of node 2)
   steps.push({
     explanation: 'Recurse down right of node 2. We reach node 3 (leaf). No children — return up.',
-    highlightLine: 12,
+    highlightLine: 18,
     state: {
       type: 'tree' as const,
       nodes: buildNodes({
@@ -110,7 +110,7 @@ export function generateSteps() {
   // Step 4: Back at node 2, swap children (n3 and n4 swap positions)
   steps.push({
     explanation: "Back at node 2. Left=1, right=3. Swap children: node 2's left becomes 3, right becomes 1.",
-    highlightLine: 16,
+    highlightLine: 21,
     state: {
       type: 'tree' as const,
       nodes: [
@@ -128,7 +128,7 @@ export function generateSteps() {
   // Step 5: Reach node 6 (leaf, left child of node 7)
   steps.push({
     explanation: "Recurse down left of root's right child (node 7). Reach node 6 (leaf).",
-    highlightLine: 12,
+    highlightLine: 18,
     state: {
       type: 'tree' as const,
       nodes: [
@@ -146,7 +146,7 @@ export function generateSteps() {
   // Step 6: Reach node 9 (leaf, right child of node 7)
   steps.push({
     explanation: 'Recurse down right of node 7. Reach node 9 (leaf).',
-    highlightLine: 12,
+    highlightLine: 18,
     state: {
       type: 'tree' as const,
       nodes: [
@@ -164,7 +164,7 @@ export function generateSteps() {
   // Step 7: Back at node 7, swap children (n5 and n6 swap)
   steps.push({
     explanation: "Back at node 7. Swap children: node 7's left becomes 9, right becomes 6.",
-    highlightLine: 16,
+    highlightLine: 21,
     state: {
       type: 'tree' as const,
       nodes: [
@@ -182,7 +182,7 @@ export function generateSteps() {
   // Step 8: Back at root, swap children (n1 and n2 swap)
   steps.push({
     explanation: 'Back at root (4). Swap children: left becomes node 7, right becomes node 2. Tree fully inverted.',
-    highlightLine: 16,
+    highlightLine: 21,
     state: {
       type: 'tree' as const,
       nodes: [

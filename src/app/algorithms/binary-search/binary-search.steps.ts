@@ -111,7 +111,7 @@ function generateIterativeSteps(): Step[] {
     } else {
       steps.push({
         explanation: `nums[${mid}]=${nums[mid]} < target ${target}. Everything at index ≤ ${mid} is ≤ ${nums[mid]} — all too small. Move L to mid+1=${mid + 1}. Eliminated ${mid - l + 1} element(s).`,
-        highlightLine: 19,
+        highlightLine: 14,
         state: makeState(mid + 1, r, mid),
         variables: [
           { name: 'l', value: mid + 1, highlight: true },

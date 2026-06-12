@@ -49,7 +49,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'L points to our buy day, R to our sell day. We slide R rightward. The key insight: if we see a price lower than L, it\'s always better to buy there instead — so we move L to R.',
-    highlightLine: 11,
+    highlightLine: 12,
     state: makeState(l, r, maxProfit),
     variables: [
       { name: 'l', value: l },
@@ -97,7 +97,7 @@ function generateSteps(): Step[] {
     if (prices[r] < prices[l]) {
       steps.push({
         explanation: `prices[R]=${prices[r]} < prices[L]=${prices[l]}. This is a lower buy price. Move L here — buying later at a lower price can only improve future profit. R keeps advancing.`,
-        highlightLine: 20,
+        highlightLine: 16,
         state: {
           type: 'array',
           cells: prices.map((v, i) => ({
@@ -129,7 +129,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `R has passed the end. The best profit we found was ${maxProfit} (buy low, sell high).`,
-    highlightLine: 24,
+    highlightLine: 19,
     state: makeState(l, prices.length - 1, maxProfit),
     variables: [
       { name: 'maxProfit', value: maxProfit, highlight: true },

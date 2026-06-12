@@ -101,7 +101,7 @@ function generateSteps(): Step[] {
   if (lcp === shortest) {
     steps.push({
       explanation: `Reached end of shortest string "${shortest}" with no mismatch. Return lcp="${lcp}".`,
-      highlightLine: 9,
+      highlightLine: 16,
       state: {
         type: 'array',
         cells: shortest.split('').map(c => ({ value: c, state: 'found' as const })),

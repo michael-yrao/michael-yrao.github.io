@@ -67,7 +67,7 @@ export function generateSteps() {
   return [
     {
       explanation: 'BFS through root tree looking for node with value matching subRoot.val=4. Queue: [3].',
-      highlightLine: 29,
+      highlightLine: 31,
       state: {
         type: 'tree' as const,
         nodes: makeNodes(),
@@ -77,7 +77,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Dequeue node 3. val=3 ≠ 4. Add children to queue. Queue: [4, 5].',
-      highlightLine: 35,
+      highlightLine: 37,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited' }),
@@ -87,7 +87,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Dequeue node 4. val=4 == subRoot.val=4! Run isSameTree(node4, subRoot=[4,1,2]).',
-      highlightLine: 37,
+      highlightLine: 42,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n1: 'active' }),
@@ -97,7 +97,7 @@ export function generateSteps() {
     },
     {
       explanation: 'isSameTree: compare node 4 (val=4) with subRoot (val=4). Match! Recurse left: 1==1.',
-      highlightLine: 24,
+      highlightLine: 26,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n1: 'comparing', n3: 'active' }),
@@ -107,7 +107,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Recurse right: node 2 (val=2) == subRoot.right (val=2). Both leaves match. isSameTree returns True.',
-      highlightLine: 24,
+      highlightLine: 26,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n1: 'comparing', n3: 'found', n4: 'active' }),
@@ -117,7 +117,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Subtree [4,1,2] found at node 4! isSubtree returns True.',
-      highlightLine: 41,
+      highlightLine: 43,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n1: 'found', n2: 'default', n3: 'found', n4: 'found' }),

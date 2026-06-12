@@ -77,188 +77,156 @@ const HEIGHTS = [
 const ROWS = HEIGHTS.length;
 const COLS = HEIGHTS[0].length;
 
-// Precomputed sets (traced from the algorithm on the 4×4 grid above)
-const PACIFIC_SET = new Set<string>([
-  '0,0', '0,1', '0,2', '0,3',
-  '1,0', '1,1', '1,2', '1,3',
-  '2,0', '2,1', '2,2',
-  '3,0', '3,1',
-]);
-
-const ATLANTIC_SET = new Set<string>([
-  '0,3',
-  '1,3',
-  '2,2', '2,3',
-  '3,0', '3,1', '3,2', '3,3',
-]);
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const toKey = (r: number, c: number) => `${r},${c}`;
 
-type CellOverride = Map<string, GridCellState>;
-
-function makeGrid(overrides: CellOverride, counters?: { label: string; value: number | string }[]): GridState {
-  return {
-    type: 'grid',
-    grid: HEIGHTS.map((row, r) =>
-      row.map((_, c) => {
-        const key = toKey(r, c);
-        if (overrides.has(key)) return { state: overrides.get(key)!, label: String(HEIGHTS[r][c]) };
-        return { state: 'empty' as GridCellState, label: String(HEIGHTS[r][c]) };
-      })
-    ),
-    counters,
-  };
-}
-
 // ── Step generator ────────────────────────────────────────────────────────────
+//
+// This generator RUNS the exact algorithm from the Python source above:
+// same interleaved seeding (per row: Pacific left edge, then Atlantic right
+// edge; per col: Pacific top edge, then Atlantic bottom edge), same DFS
+// recursion order (down, up, right, left). Steps are emitted as it executes.
 
 function generateDfsSteps(): Step[] {
   const steps: Step[] = [];
+  const canReachPacific = new Set<string>();
+  const canReachAtlantic = new Set<string>();
 
-  // ── Step 1: Overview — show raw grid with heights ─────────────────────────
-  steps.push({
-    explanation:
-      'Pacific Ocean borders the top row and left column. Atlantic Ocean borders the bottom row and right column. We want cells whose water can flow (downhill or level) to BOTH oceans. The key insight: instead of DFS from every cell, start DFS from the ocean edges and work UPHILL — any cell we reach is guaranteed to drain back to that ocean.',
-    highlightLine: 13,
-    state: makeGrid(new Map(), [
-      { label: 'pacificCount', value: 0 },
-      { label: 'atlanticCount', value: 0 },
-      { label: 'bothCount', value: 0 },
-    ]),
-    variables: [
+  // Render the grid from the CURRENT contents of both sets.
+  // Green = Pacific, orange = Atlantic, gold = both, cyan = active DFS cell.
+  function render(activeKey?: string): GridState {
+    return {
+      type: 'grid',
+      grid: HEIGHTS.map((row, r) =>
+        row.map((h, c) => {
+          const key = toKey(r, c);
+          let state: GridCellState = 'empty';
+          const inP = canReachPacific.has(key);
+          const inA = canReachAtlantic.has(key);
+          if (inP && inA) state = 'land';
+          else if (inP) state = 'visited';
+          else if (inA) state = 'queued';
+          if (key === activeKey) state = 'active';
+          return { state, label: String(h) };
+        })
+      ),
+      counters: [
+        { label: 'canReachPacific', value: canReachPacific.size },
+        { label: 'canReachAtlantic', value: canReachAtlantic.size },
+      ],
+    };
+  }
+
+  function emit(
+    explanation: string,
+    highlightLine: number,
+    activeKey: string | undefined,
+    variables: { name: string; value: string | number; highlight?: boolean }[],
+  ): void {
+    steps.push({ explanation, highlightLine, state: render(activeKey), variables });
+  }
+
+  // Exact port of the Python dfs(): emits one step per cell added to the set.
+  function dfs(row: number, col: number, set: Set<string>, setName: string, previousHeight: number): void {
+    const key = toKey(row, col);
+    if (set.has(key) || row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
+    if (HEIGHTS[row][col] < previousHeight) return;
+
+    set.add(key);
+    emit(
+      `dfs(${row}, ${col}) — height ${HEIGHTS[row][col]} ≥ previousHeight ${previousHeight}, so water can flow back the way we came. Add (${row},${col}) to ${setName}, then recurse down, up, right, left.`,
+      32,
+      key,
+      [
+        { name: 'row, col', value: `${row}, ${col}` },
+        { name: 'previousHeight', value: previousHeight },
+        { name: `${setName}.size`, value: set.size, highlight: true },
+      ],
+    );
+
+    dfs(row + 1, col, set, setName, HEIGHTS[row][col]);
+    dfs(row - 1, col, set, setName, HEIGHTS[row][col]);
+    dfs(row, col + 1, set, setName, HEIGHTS[row][col]);
+    dfs(row, col - 1, set, setName, HEIGHTS[row][col]);
+  }
+
+  // Seed call wrapper: shows each top-level dfs() call from the two for-loops,
+  // including the ones that return immediately because the cell is already visited.
+  function seed(row: number, col: number, set: Set<string>, setName: string, ocean: string, line: number): void {
+    const key = toKey(row, col);
+    if (set.has(key)) {
+      emit(
+        `dfs(${row}, ${col}) for ${ocean}: (${row},${col}) is already in ${setName}, so the base case returns immediately.`,
+        24,
+        key,
+        [
+          { name: 'row, col', value: `${row}, ${col}` },
+          { name: `${setName}.size`, value: set.size },
+        ],
+      );
+      return;
+    }
+    emit(
+      `Seed ${ocean}: call dfs(${row}, ${col}, ${setName}, heights[${row}][${col}]=${HEIGHTS[row][col]}). This border cell touches the ${ocean}, so anything we can climb to from here drains into it.`,
+      line,
+      key,
+      [
+        { name: 'row, col', value: `${row}, ${col}` },
+        { name: 'phase', value: `${ocean} seed`, highlight: true },
+      ],
+    );
+    dfs(row, col, set, setName, HEIGHTS[row][col]);
+  }
+
+  // ── Intro ──────────────────────────────────────────────────────────────────
+  emit(
+    'Pacific Ocean borders the top row and left column; Atlantic borders the bottom row and right column. Instead of DFS from every cell, we DFS from the ocean edges and climb UPHILL — any cell we reach can drain back to that ocean. Two sets track reachability; we seed them by walking the borders, alternating one Pacific call and one Atlantic call per loop iteration.',
+    12,
+    undefined,
+    [
       { name: 'rows', value: ROWS },
       { name: 'cols', value: COLS },
     ],
-  });
+  );
 
-  // ── Step 2: Seed Pacific — left column ────────────────────────────────────
-  const pacificSeedOverrides: CellOverride = new Map();
-  for (let r = 0; r < ROWS; r++) pacificSeedOverrides.set(toKey(r, 0), 'queued');
-  for (let c = 0; c < COLS; c++) pacificSeedOverrides.set(toKey(0, c), 'queued');
-
-  steps.push({
-    explanation:
-      'Seed Pacific DFS: mark the entire left column and top row as reachable from Pacific (shown in orange). These are our starting points — we will expand uphill from each one.',
-    highlightLine: 44,
-    state: makeGrid(pacificSeedOverrides, [
-      { label: 'pacificCount', value: 7 },
-      { label: 'atlanticCount', value: 0 },
-      { label: 'bothCount', value: 0 },
-    ]),
-    variables: [
-      { name: 'phase', value: 'Pacific DFS', highlight: true },
-    ],
-  });
-
-  // ── Step 3: Pacific DFS expanding from left column ────────────────────────
-  // Row 2: (2,1)=4 reachable from (2,0)=2; (2,2)=5 from (2,1)
-  // Row 3: (3,1)=7 from (3,0)=6
-  // Row 1: (1,1)=2 from (0,1), (1,2)=3 from (0,2), (1,3)=4 from (0,3)
-  const pacificPhaseOverrides: CellOverride = new Map();
-  for (const key of PACIFIC_SET) pacificPhaseOverrides.set(key, 'visited');
-
-  steps.push({
-    explanation:
-      'Pacific DFS complete. From each seed cell we recursively visit neighbors with height >= current cell\'s height. Cells (2,1), (2,2), (3,1), (1,1), (1,2), (1,3) were reached by climbing uphill from the Pacific edges. Green = can reach Pacific.',
-    highlightLine: 38,
-    state: makeGrid(pacificPhaseOverrides, [
-      { label: 'pacificCount', value: PACIFIC_SET.size },
-      { label: 'atlanticCount', value: 0 },
-      { label: 'bothCount', value: 0 },
-    ]),
-    variables: [
-      { name: 'canReachPacific.size', value: PACIFIC_SET.size, highlight: true },
-    ],
-  });
-
-  // ── Step 4: Seed Atlantic — right column + bottom row ─────────────────────
-  const atlanticSeedOverrides: CellOverride = new Map();
-  for (const key of PACIFIC_SET) atlanticSeedOverrides.set(key, 'visited');
-  for (let r = 0; r < ROWS; r++) atlanticSeedOverrides.set(toKey(r, COLS - 1), 'queued');
-  for (let c = 0; c < COLS; c++) atlanticSeedOverrides.set(toKey(ROWS - 1, c), 'queued');
-
-  steps.push({
-    explanation:
-      'Now seed Atlantic DFS: mark the entire right column and bottom row (orange). These borders touch the Atlantic. We keep the Pacific results (green) visible so we can spot the intersection later.',
-    highlightLine: 47,
-    state: makeGrid(atlanticSeedOverrides, [
-      { label: 'pacificCount', value: PACIFIC_SET.size },
-      { label: 'atlanticCount', value: 7 },
-      { label: 'bothCount', value: 0 },
-    ]),
-    variables: [
-      { name: 'phase', value: 'Atlantic DFS', highlight: true },
-    ],
-  });
-
-  // ── Step 5: Atlantic DFS expansion ───────────────────────────────────────
-  // From (2,3)=3: (2,2)=5>=3 → add
-  // From (3,2)=1: (2,2)=5>=1 → add (already added)
-  // Atlantic expansion only adds (2,2) beyond the seeded edges
-  const atlanticExpansionOverrides: CellOverride = new Map();
-  for (const key of PACIFIC_SET) atlanticExpansionOverrides.set(key, 'visited');
-  // Atlantic-only cells (not in pacific set): (0,3),(1,3),(2,3),(3,3),(3,0),(3,1),(3,2) + (2,2) — (2,2) is in both
-  for (const key of ATLANTIC_SET) {
-    if (!PACIFIC_SET.has(key)) {
-      atlanticExpansionOverrides.set(key, 'queued');
-    }
-  }
-  // (2,2) is in both — mark it specially (queued since atlantic pass is active)
-  atlanticExpansionOverrides.set('2,2', 'queued');
-
-  steps.push({
-    explanation:
-      'Atlantic DFS expands uphill from the seeded edges. Cell (2,2) with height 5 is reachable from (2,3)=3 and (3,2)=1 — both lower — so it joins the Atlantic set. Orange = can reach Atlantic. The DFS base case stops when a neighbor\'s height is smaller than the previous cell\'s height.',
-    highlightLine: 38,
-    state: makeGrid(atlanticExpansionOverrides, [
-      { label: 'pacificCount', value: PACIFIC_SET.size },
-      { label: 'atlanticCount', value: ATLANTIC_SET.size },
-      { label: 'bothCount', value: 0 },
-    ]),
-    variables: [
-      { name: 'canReachAtlantic.size', value: ATLANTIC_SET.size, highlight: true },
-    ],
-  });
-
-  // ── Step 6: Intersection — final answer ──────────────────────────────────
-  const BOTH_SET = new Set<string>();
-  for (const key of PACIFIC_SET) {
-    if (ATLANTIC_SET.has(key)) BOTH_SET.add(key);
+  // ── for row in range(rows): one Pacific seed (left col), one Atlantic seed (right col) ──
+  for (let row = 0; row < ROWS; row++) {
+    seed(row, 0, canReachPacific, 'canReachPacific', 'Pacific', 44);
+    seed(row, COLS - 1, canReachAtlantic, 'canReachAtlantic', 'Atlantic', 46);
   }
 
-  const finalOverrides: CellOverride = new Map();
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const key = toKey(r, c);
-      const inP = PACIFIC_SET.has(key);
-      const inA = ATLANTIC_SET.has(key);
-      if (inP && inA) {
-        finalOverrides.set(key, 'land');   // "found" equivalent — use 'land' (highlighted yellow/gold in grid)
-      } else if (inP) {
-        finalOverrides.set(key, 'visited');  // pacific only — green
-      } else if (inA) {
-        finalOverrides.set(key, 'queued');   // atlantic only — orange
-      } else {
-        finalOverrides.set(key, 'water');    // neither
-      }
+  // ── for col in range(cols): one Pacific seed (top row), one Atlantic seed (bottom row) ──
+  for (let col = 0; col < COLS; col++) {
+    seed(0, col, canReachPacific, 'canReachPacific', 'Pacific', 50);
+    seed(ROWS - 1, col, canReachAtlantic, 'canReachAtlantic', 'Atlantic', 52);
+  }
+
+  // ── Final scan: collect cells present in both sets ─────────────────────────
+  const result: string[] = [];
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const key = toKey(row, col);
+      if (canReachAtlantic.has(key) && canReachPacific.has(key)) result.push(`[${row},${col}]`);
     }
   }
 
-  steps.push({
-    explanation:
-      `Intersection complete. We scan every cell and collect those in BOTH canReachPacific and canReachAtlantic. Answer: ${[...BOTH_SET].map(k => `(${k.replace(',', ', ')})`).join(', ')}. Green = Pacific only. Orange = Atlantic only. Yellow = both (answer). Blue = neither.`,
-    highlightLine: 55,
-    state: makeGrid(finalOverrides, [
-      { label: 'pacificCount', value: PACIFIC_SET.size },
-      { label: 'atlanticCount', value: ATLANTIC_SET.size },
-      { label: 'bothCount', value: BOTH_SET.size, },
-    ]),
-    variables: [
-      { name: 'result.length', value: BOTH_SET.size, highlight: true },
+  emit(
+    'Both for-loops are done. Now scan every cell row by row and collect those present in BOTH canReachPacific and canReachAtlantic. Green = Pacific only, orange = Atlantic only, gold = both.',
+    57,
+    undefined,
+    [
+      { name: 'canReachPacific.size', value: canReachPacific.size },
+      { name: 'canReachAtlantic.size', value: canReachAtlantic.size },
     ],
-  });
+  );
+
+  emit(
+    `Result: ${result.join(', ')} — the gold cells, which can drain to both oceans.`,
+    62,
+    undefined,
+    [{ name: 'result', value: result.join(' '), highlight: true }],
+  );
 
   return steps;
 }

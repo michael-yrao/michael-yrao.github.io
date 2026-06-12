@@ -95,7 +95,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Phase 1 — find the correct row. Binary search on row indices (0..2). We want the largest row whose first element ≤ target. Use the right-biased mid = (l+r+1)//2 to avoid infinite loop when l+1 == r.',
-    highlightLine: 11,
+    highlightLine: 12,
     state: {
       type: 'array',
       cells: flat.map(v => ({ value: v, state: 'default' as const })),
@@ -198,7 +198,7 @@ function generateSteps(): Step[] {
       foundFlatIdx = midFlatIdx;
       steps.push({
         explanation: `l=${lCol}, r=${rCol}, mid=${midCol}: matrix[${resultRow}][${midCol}]=${midVal} === target=${target}! Found at flat index ${midFlatIdx} (${flatLabel(midFlatIdx)}).`,
-        highlightLine: 26,
+        highlightLine: 35,
         state: {
           type: 'array',
           cells: snap(resultRow * cols + lCol, resultRow * cols + rCol, midFlatIdx, foundFlatIdx),

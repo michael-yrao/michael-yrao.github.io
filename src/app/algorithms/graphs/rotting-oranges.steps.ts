@@ -108,7 +108,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Initial grid: ${queue.length} rotten orange(s) (☠) and ${fresh} fresh orange(s) (◉). Pre-scan collects all rotten oranges into the BFS queue — multi-source BFS means rotting spreads from ALL of them simultaneously, not one at a time.`,
-    highlightLine: 26,
+    highlightLine: 25,
     state: toGridState(0, fresh),
     variables: [
       { name: 'minute', value: 0 },
@@ -126,7 +126,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `Minute ${minute + 1}: process all ${batchSize} currently-rotten orange(s) in the queue as a batch. One BFS level = one minute of time passing.`,
-      highlightLine: 35,
+      highlightLine: 37,
       state: toGridState(minute, fresh, queue.slice(0, batchSize)),
       variables: [
         { name: 'minute', value: minute + 1, highlight: true },
@@ -153,7 +153,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `After minute ${minute}: ${newlyRotten.length} new orange(s) rotted. ${fresh} fresh remain. Each fresh orange adjacent to a rotten one gets infected exactly once.`,
-      highlightLine: 50,
+      highlightLine: 53,
       state: toGridState(minute, fresh, queue, newlyRotten),
       variables: [
         { name: 'minute', value: minute, highlight: true },

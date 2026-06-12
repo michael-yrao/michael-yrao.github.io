@@ -83,7 +83,7 @@ function generateSteps(): Step[] {
       // 3rd distinct: show before decrement
       steps.push({
         explanation: `i=${i}, nums[i]=${n}: 3 distinct values in map — 3rd candidate triggers decrement of ALL counts. This simulates cancelling out one occurrence of each.`,
-        highlightLine: 9,
+        highlightLine: 20,
         state: {
           type: 'array',
           cells: nums.map((v, j) => ({

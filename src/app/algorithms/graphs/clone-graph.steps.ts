@@ -67,7 +67,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Clone a connected undirected graph with 4 nodes. Adjacency: 1↔{2,4}, 2↔{1,3}, 3↔{2,4}, 4↔{1,3}. Strategy: DFS from node 1, maintaining a map oldToNew. When we visit a node for the first time, create its clone and record it. When we re-encounter a node, return the cached clone to avoid infinite loops.`,
-    highlightLine: 14,
+    highlightLine: 17,
     state: {
       type: 'array',
       cells: nodeValues.map(v => ({ value: v, state: 'default' as const })),
@@ -89,7 +89,7 @@ function generateSteps(): Step[] {
     // Visit node val
     steps.push({
       explanation: `dfs(node ${val}): node ${val} not in oldToNew. Create clone of node ${val}. Map node${val} → clone${val} in oldToNew.`,
-      highlightLine: 22,
+      highlightLine: 26,
       state: {
         type: 'array',
         cells: snap(val, new Set(visited)),
@@ -110,7 +110,7 @@ function generateSteps(): Step[] {
     const neighbors = adjacency[val];
     steps.push({
       explanation: `node ${val} cloned and mapped. Now iterate over neighbors of node ${val}: [${neighbors.join(', ')}]. For each neighbor, call dfs(neighbor) and append result to clone${val}.neighbors.`,
-      highlightLine: 26,
+      highlightLine: 32,
       state: {
         type: 'array',
         cells: snap(val, new Set(visited)),
@@ -129,7 +129,7 @@ function generateSteps(): Step[] {
     if (cachedNeighbors.length > 0) {
       steps.push({
         explanation: `Processing neighbors of node ${val}: ${cachedNeighbors.map(nb => `node ${nb} already in oldToNew → return clone ${nb} (cached)`).join('; ')}. No re-clone needed — the map prevents infinite recursion on graph cycles.`,
-        highlightLine: 18,
+        highlightLine: 22,
         state: {
           type: 'array',
           cells: nodeValues.map(v => ({
@@ -157,7 +157,7 @@ function generateSteps(): Step[] {
   // Final step: all nodes cloned
   steps.push({
     explanation: `DFS complete. All 4 nodes cloned and all neighbor references wired. oldToNew = {${Object.entries(cloned).map(([k, v]) => `${k}→${v}`).join(', ')}}. Return clone 1 as the entry point of the cloned graph. O(V+E) time (visit each node and edge once), O(V) space for oldToNew.`,
-    highlightLine: 31,
+    highlightLine: 37,
     state: {
       type: 'array',
       cells: nodeValues.map(v => ({ value: v, state: 'found' as const })),

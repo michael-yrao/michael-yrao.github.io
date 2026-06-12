@@ -59,7 +59,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Find the single non-duplicate in [${nums.join(', ')}] in O(log n). All elements appear exactly twice except one. Key insight: in the left portion before the single element, pairs start at even indices (nums[0]=nums[1], nums[2]=nums[3]…). After the single element, pairs start at odd indices. Binary search on this parity property.`,
-    highlightLine: 12,
+    highlightLine: 13,
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),

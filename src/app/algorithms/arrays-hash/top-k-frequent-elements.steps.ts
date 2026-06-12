@@ -90,7 +90,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `Push (freq=${value}, val=${key}) onto heap. Heap size = ${heapEntries.length}.`,
-      highlightLine: 11,
+      highlightLine: 16,
       state: {
         type: 'array',
         cells: nums.map(v => ({
@@ -111,7 +111,7 @@ function generateSteps(): Step[] {
       const popped = heapEntries.shift()!;
       steps.push({
         explanation: `Heap size ${heapEntries.length + 1} > k=${k}. Pop minimum: (freq=${popped[0]}, val=${popped[1]}) — val=${popped[1]} is less frequent than our current top-k.`,
-        highlightLine: 13,
+        highlightLine: 18,
         state: {
           type: 'array',
           cells: nums.map(v => ({

@@ -93,7 +93,7 @@ function makeCells(
   }));
 }
 
-function generateStepsMemo(): Step[] {
+function generateStepsMemo(introLine = 11): Step[] {
   const steps: Step[] = [];
   const s = 'abcdeca';
   const k = 2;
@@ -105,7 +105,7 @@ function generateStepsMemo(): Step[] {
   // Step 0: Introduction
   steps.push({
     explanation: `Valid Palindrome III: is s = "${s}" a ${k}-palindrome? A string is a k-palindrome if it can become a palindrome by removing at most k characters. Strategy: two-pointer backtracking with memoization. Use left (l) and right (r) pointers; when s[l] == s[r] advance both. When they differ, branch — try skipping l or skipping r (costs one removal each). Memo caches (l, r, skipsRemaining) states.`,
-    highlightLine: 5,
+    highlightLine: introLine,
     state: {
       type: 'array',
       cells: chars.map(ch => ({ value: ch, state: 'default' as const })),
@@ -162,7 +162,7 @@ function generateStepsMemo(): Step[] {
   // Step 2: l=1, r=5 → 'b' != 'c' mismatch → branch
   steps.push({
     explanation: `backtrack(l=1, r=5, skips=2): s[1]='b' != s[5]='c' → mismatch. Must branch: try skipping left (backtrack(l=2, r=5, skips=1)) OR skipping right (backtrack(l=1, r=4, skips=1)). We explore skip-left first (short-circuit OR).`,
-    highlightLine: 28,
+    highlightLine: 27,
     state: {
       type: 'array',
       cells: chars.map((ch, i) => ({
@@ -196,7 +196,7 @@ function generateStepsMemo(): Step[] {
   skipped.add(1);
   steps.push({
     explanation: `Branch A: skip left — remove 'b' at index 1. backtrack(l=2, r=5, skips=1): s[2]='c' == s[5]='c' → match! Advance: l=3, r=4. Skips remaining: 1.`,
-    highlightLine: 29,
+    highlightLine: 22,
     state: {
       type: 'array',
       cells: chars.map((ch, i) => ({
@@ -234,7 +234,7 @@ function generateStepsMemo(): Step[] {
   // l=3, r=4 → 'd' != 'e' mismatch, skips=1
   steps.push({
     explanation: `backtrack(l=3, r=4, skips=1): s[3]='d' != s[4]='e' → mismatch again. Branch: skip left (backtrack(l=4, r=4, skips=0)) or skip right (backtrack(l=3, r=3, skips=0)). Try skip-left first.`,
-    highlightLine: 28,
+    highlightLine: 27,
     state: {
       type: 'array',
       cells: chars.map((ch, i) => ({
@@ -270,7 +270,7 @@ function generateStepsMemo(): Step[] {
   skipped.add(3);
   steps.push({
     explanation: `Skip left — remove 'd' at index 3. backtrack(l=4, r=4, skips=0): l >= r → palindrome condition met! Return true. Total removals used: 2 ('b' and 'd'). 2 ≤ k=2 → valid k-palindrome.`,
-    highlightLine: 30,
+    highlightLine: 28,
     state: {
       type: 'array',
       cells: chars.map((ch, i) => ({
@@ -302,7 +302,7 @@ function generateStepsMemo(): Step[] {
   // Final step
   steps.push({
     explanation: `Final result: true. The string "${s}" can be made into a palindrome by removing at most ${k} characters (e.g., remove 'b' and 'd' → "acdca" or remove 'b' and 'e' → "acdca"). The memoization (state = (l, r, skipsRemaining)) prevents re-computing the same sub-problems. Time: O(n²·k), Space: O(n²·k) with memo — but @cache reduces this from exponential O(n·2^k) to polynomial.`,
-    highlightLine: 33,
+    highlightLine: 30,
     state: {
       type: 'array',
       cells: chars.map((ch, i) => ({
@@ -326,7 +326,7 @@ function generateStepsMemo(): Step[] {
 
 // The @cache variant has the same algorithmic trace — only the Python code differs.
 function generateStepsCache(): Step[] {
-  return generateStepsMemo();
+  return generateStepsMemo(16);
 }
 
 const solutionMemo: SolutionVariant = {

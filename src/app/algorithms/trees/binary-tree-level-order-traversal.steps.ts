@@ -56,7 +56,7 @@ export function generateSteps() {
   return [
     {
       explanation: 'Initialize BFS. Queue=[3]. returnList=[]. We will process one level at a time.',
-      highlightLine: 19,
+      highlightLine: 21,
       state: {
         type: 'tree' as const,
         nodes: makeNodes(),
@@ -66,7 +66,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Level 0: queue has 1 node. Process node 3. Append 3 to currentList. Enqueue children 9 and 20.',
-      highlightLine: 28,
+      highlightLine: 32,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'active' }),
@@ -76,7 +76,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Level 0 done. returnList=[[3]]. Now level 1: queue has 2 nodes (9 and 20).',
-      highlightLine: 35,
+      highlightLine: 38,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited' }),
@@ -86,7 +86,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Level 1: process node 9 (leaf). Append 9. No children to enqueue.',
-      highlightLine: 28,
+      highlightLine: 32,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n1: 'active' }),
@@ -96,7 +96,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Level 1: process node 20. Append 20. Enqueue children 15 and 7.',
-      highlightLine: 28,
+      highlightLine: 32,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'active' }),
@@ -106,7 +106,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Level 1 done. returnList=[[3],[9,20]]. Now level 2: queue has 2 nodes (15 and 7).',
-      highlightLine: 35,
+      highlightLine: 38,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited' }),
@@ -115,18 +115,28 @@ export function generateSteps() {
       variables: [{ name: 'queue', value: '[15,7]' }],
     },
     {
-      explanation: 'Level 2: process nodes 15 and 7 (both leaves). currentList=[15,7]. Queue becomes empty.',
-      highlightLine: 28,
+      explanation: 'Level 2: process node 15 (leaf). Append 15 to currentList. No children to enqueue.',
+      highlightLine: 32,
       state: {
         type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited', n3: 'active', n4: 'active' }),
+        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited', n3: 'active' }),
+        counters: [{ label: 'returnList', value: '[[3],[9,20]]' }],
+      } as TreeState,
+      variables: [{ name: 'currentList', value: '[15]' }, { name: 'queue', value: '[7]' }],
+    },
+    {
+      explanation: 'Level 2: process node 7 (leaf). Append 7. currentList=[15,7]. Queue becomes empty.',
+      highlightLine: 32,
+      state: {
+        type: 'tree' as const,
+        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited', n3: 'visited', n4: 'active' }),
         counters: [{ label: 'returnList', value: '[[3],[9,20]]' }],
       } as TreeState,
       variables: [{ name: 'currentList', value: '[15,7]' }, { name: 'queue', value: '[]' }],
     },
     {
       explanation: 'All levels processed. returnList=[[3],[9,20],[15,7]]. BFS complete.',
-      highlightLine: 37,
+      highlightLine: 39,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'found', n1: 'found', n2: 'found', n3: 'found', n4: 'found' }),

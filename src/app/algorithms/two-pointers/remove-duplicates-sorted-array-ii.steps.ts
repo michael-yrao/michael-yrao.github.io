@@ -77,7 +77,7 @@ function generateSteps(): Step[] {
       l++;
       steps.push({
         explanation: `Wrote ${nums[l - 1]} at l=${l - 1}. Advance l to ${l}.`,
-        highlightLine: 6,
+        highlightLine: 13,
         state: {
           type: 'array',
           cells: snap(l, r),

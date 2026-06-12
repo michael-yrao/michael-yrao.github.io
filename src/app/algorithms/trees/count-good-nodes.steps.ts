@@ -54,7 +54,7 @@ export function generateSteps() {
   return [
     {
       explanation: 'Start iterative DFS. A "good node" is one where its value >= max value seen on the path from root. root(3) is always good. result=1, currentMax=3.',
-      highlightLine: 18,
+      highlightLine: 28,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'found' }),
@@ -64,7 +64,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Pop node 4 (right child of 3). currentMax=3. 4 >= 3 — good node! result=2, currentMax becomes 4.',
-      highlightLine: 27,
+      highlightLine: 28,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'found', n2: 'active' }),
@@ -74,7 +74,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Pop node 5 (right of 4). currentMax=4. 5 >= 4 — good node! result=3.',
-      highlightLine: 27,
+      highlightLine: 28,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'found', n2: 'found', n5: 'active' }),
@@ -84,7 +84,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Pop node 1 (left of 4). currentMax=4. 1 < 4 — NOT a good node. Skip, push its children (null).',
-      highlightLine: 30,
+      highlightLine: 32,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'found', n2: 'found', n4: 'active', n5: 'found' }),
@@ -94,7 +94,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Pop node 1 (left of root 3). currentMax=3. 1 < 3 — NOT a good node. Push its left child (3) with currentMax=3.',
-      highlightLine: 30,
+      highlightLine: 32,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'found', n1: 'active', n2: 'found', n4: 'visited', n5: 'found' }),
@@ -104,7 +104,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Pop node 3 (left of node 1, path: 3→1→3). currentMax=3. 3 >= 3 — good node! result=4.',
-      highlightLine: 27,
+      highlightLine: 28,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'found', n1: 'visited', n2: 'found', n3: 'active', n4: 'visited', n5: 'found' }),
@@ -114,7 +114,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Stack empty. Good nodes: root(3), node 4, node 5, node 3(leaf). Total result = 4.',
-      highlightLine: 33,
+      highlightLine: 35,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ n0: 'found', n1: 'visited', n2: 'found', n3: 'found', n4: 'visited', n5: 'found' }),

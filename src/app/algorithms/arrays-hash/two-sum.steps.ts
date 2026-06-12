@@ -80,7 +80,7 @@ function generateSteps(): Step[] {
 
       steps.push({
         explanation: `Found it! map[${diff}] = ${seen[diff]}. We return [${seen[diff]}, ${i}]. The hash map made this O(1) lookup — no second scan needed.`,
-        highlightLine: 18,
+        highlightLine: 15,
         state: {
           type: 'array',
           cells: foundCells,
@@ -104,7 +104,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `${diff} wasn't in the map. We store {${num}: ${i}} — "value ${num} is at index ${i}." Next time we need ${num} as someone's complement, we know exactly where it is.`,
-      highlightLine: 20,
+      highlightLine: 17,
       state: {
         type: 'array',
         cells: activeCells,

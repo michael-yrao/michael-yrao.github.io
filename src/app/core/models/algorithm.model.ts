@@ -33,7 +33,7 @@ export interface ArrayState {
   counters?: { label: string; value: number | string }[];
 }
 
-export type GridCellState = 'water' | 'land' | 'visited' | 'queued' | 'rotten' | 'fresh' | 'empty';
+export type GridCellState = 'water' | 'land' | 'visited' | 'queued' | 'rotten' | 'fresh' | 'empty' | 'active';
 
 export interface GridState {
   type: 'grid';

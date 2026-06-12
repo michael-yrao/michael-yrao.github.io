@@ -45,7 +45,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Root: p.val=1 == q.val=1. Match! Recurse into left children: p.left=2, q.left=2.',
-      highlightLine: 17,
+      highlightLine: 18,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ pn0: 'active' }),
@@ -54,7 +54,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Compare left children: p.val=2 == q.val=2. Match! Both have no children — recurse returns True.',
-      highlightLine: 17,
+      highlightLine: 18,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ pn0: 'visited', pn1: 'active' }),
@@ -63,7 +63,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Node 2 confirmed same. Now compare right children: p.val=3 == q.val=3.',
-      highlightLine: 17,
+      highlightLine: 18,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ pn0: 'visited', pn1: 'found', pn2: 'active' }),
@@ -72,7 +72,7 @@ export function generateSteps() {
     },
     {
       explanation: 'Node 3 confirmed same. Both children of null return True (base case). All nodes match — isSameTree returns True.',
-      highlightLine: 14,
+      highlightLine: 15,
       state: {
         type: 'tree' as const,
         nodes: makeNodes({ pn0: 'found', pn1: 'found', pn2: 'found' }),
