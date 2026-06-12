@@ -1,0 +1,149 @@
+<div class="maze-page">
+  <div class="breadcrumb">
+    <a routerLink="/">Home</a>
+    <span>›</span>
+    <a routerLink="/games">Games</a>
+    <span>›</span>
+    <span>Maze Generator &amp; Solver</span>
+  </div>
+
+  <header class="maze-header">
+    <p class="maze-header__eyebrow">Algorithm Game</p>
+    <h1 class="maze-header__title">Maze Generator &amp; Solver</h1>
+    <p class="maze-header__sub">
+      The maze is <strong>carved by randomized DFS</strong> (recursive backtracker),
+      then raced by two solvers: <strong>BFS</strong> finds the shortest path,
+      <strong>DFS</strong> finds <em>a</em> path. Watch how differently they explore.
+    </p>
+  </header>
+
+  <div class="maze-layout">
+    <div class="maze-column">
+      <div class="maze-controls">
+        <button class="btn-maze" (click)="newMaze()" [disabled]="phase === 'generating'">
+          ⛏ New maze
+        </button>
+        <button
+          class="btn-maze btn-maze--bfs"
+          [class.btn-maze--active]="activeSolver === 'bfs'"
+          (click)="solve('bfs')"
+          [disabled]="phase === 'generating' || phase === 'solving'"
+        >Solve with BFS</button>
+        <button
+          class="btn-maze btn-maze--dfs"
+          [class.btn-maze--active]="activeSolver === 'dfs'"
+          (click)="solve('dfs')"
+          [disabled]="phase === 'generating' || phase === 'solving'"
+        >Solve with DFS</button>
+        <span class="maze-phase" aria-live="polite">
+          <ng-container [ngSwitch]="phase">
+            <ng-container *ngSwitchCase="'generating'">carving with randomized DFS…</ng-container>
+            <ng-container *ngSwitchCase="'ready'">pick a solver</ng-container>
+            <ng-container *ngSwitchCase="'solving'">{{ activeSolver === 'bfs' ? 'BFS wavefront expanding…' : 'DFS diving down corridors…' }}</ng-container>
+            <ng-container *ngSwitchCase="'solved'">solved with {{ activeSolver?.toUpperCase() }}</ng-container>
+          </ng-container>
+        </span>
+      </div>
+
+      <div class="maze-grid" [style.grid-template-columns]="'repeat(' + cols + ', 1fr)'" role="img"
+        aria-label="Maze grid being generated and solved">
+        <ng-container *ngFor="let row of grid">
+          <div
+            *ngFor="let cell of row; trackBy: trackCell"
+            class="maze-cell"
+            [class.maze-cell--raw]="!cell.carved"
+            [class.maze-cell--current]="cell.isCurrent"
+            [class.maze-cell--explored]="cell.solve === 'explored'"
+            [class.maze-cell--path]="cell.solve === 'path'"
+            [class.maze-cell--start]="cell.r === 0 && cell.c === 0"
+            [class.maze-cell--goal]="cell.r === rows - 1 && cell.c === cols - 1"
+            [class.wall-t]="cell.walls.top"
+            [class.wall-l]="cell.walls.left"
+            [class.wall-r]="cell.c === cols - 1 && cell.walls.right"
+            [class.wall-b]="cell.r === rows - 1 && cell.walls.bottom"
+          ></div>
+        </ng-container>
+      </div>
+
+      <div class="maze-legend">
+        <span class="legend-item"><span class="swatch swatch--start"></span> start</span>
+        <span class="legend-item"><span class="swatch swatch--goal"></span> goal</span>
+        <span class="legend-item"><span class="swatch swatch--explored"></span> explored</span>
+        <span class="legend-item"><span class="swatch swatch--path"></span> final path</span>
+      </div>
+
+      <!-- ── BFS vs DFS scoreboard ─────────────────────────────── -->
+      <div class="solve-stats" *ngIf="results.bfs || results.dfs">
+        <div class="solve-stats__row solve-stats__row--header">
+          <span>Solver</span><span>Cells explored</span><span>Path length</span><span>Shortest?</span>
+        </div>
+        <div class="solve-stats__row" *ngIf="results.bfs as r">
+          <span class="solver-name solver-name--bfs">BFS</span>
+          <span>{{ r.explored }}</span>
+          <span>{{ r.pathLength }}</span>
+          <span>✓ guaranteed</span>
+        </div>
+        <div class="solve-stats__row" *ngIf="results.dfs as r">
+          <span class="solver-name solver-name--dfs">DFS</span>
+          <span>{{ r.explored }}</span>
+          <span>{{ r.pathLength }}</span>
+          <span>{{ results.bfs && r.pathLength > results.bfs!.pathLength ? '✗ longer' : 'not guaranteed' }}</span>
+        </div>
+        <p class="solve-stats__note" *ngIf="results.bfs && results.dfs">
+          Same maze, same start and goal — BFS explores level by level and provably finds the
+          shortest path; DFS commits to one corridor at a time and returns whatever path it
+          stumbles into. Run both on a few mazes and watch the gap.
+        </p>
+      </div>
+    </div>
+
+    <!-- ── Educational sidebar ─────────────────────────────────── -->
+    <aside class="maze-aside">
+      <section class="maze-breakdown">
+        <h2 class="maze-breakdown__title">How it works</h2>
+
+        <h3 class="maze-breakdown__step-title">Phase 1 — carving (randomized DFS)</h3>
+        <p class="maze-breakdown__text">
+          Start at the top-left cell. Walk to a random unvisited neighbor and knock down the
+          wall between you. Dead end? Backtrack to the last cell with an unvisited neighbor.
+          When the stack empties, every cell is reachable and there is exactly one path
+          between any two cells — a <em>perfect maze</em>. This is the same DFS + backtracking
+          shape as exploring an island in Max Area of Island.
+        </p>
+
+        <h3 class="maze-breakdown__step-title">Phase 2 — solving (BFS vs DFS)</h3>
+        <div class="mapping-table">
+          <div class="mapping-row mapping-row--header">
+            <span>Behavior</span><span>BFS</span><span>DFS</span>
+          </div>
+          <div class="mapping-row">
+            <span>Explores</span><span>wavefront, level by level</span><span>one corridor deep, then backtracks</span>
+          </div>
+          <div class="mapping-row">
+            <span>Data structure</span><span>queue (FIFO)</span><span>stack (LIFO)</span>
+          </div>
+          <div class="mapping-row">
+            <span>Path found</span><span>shortest, always</span><span>first one it hits</span>
+          </div>
+          <div class="mapping-row">
+            <span>Use when</span><span>"fewest steps"</span><span>"does a path exist / visit all"</span>
+          </div>
+        </div>
+
+        <p class="maze-breakdown__text">
+          That last row is the recognition cue: in an unweighted grid or graph, the words
+          <strong>"shortest" or "fewest steps" always mean BFS</strong>. DFS is the tool for
+          exhaustive exploration and existence checks.
+        </p>
+
+        <div class="maze-breakdown__links">
+          <span class="maze-breakdown__links-label">Practice the same algorithms</span>
+          <a routerLink="/algorithms/trees/binary-tree-level-order-traversal" class="problem-link">LC 102 · Level Order Traversal (pure BFS)</a>
+          <a routerLink="/algorithms/graphs/number-of-islands" class="problem-link">LC 200 · Number of Islands (BFS &amp; DFS)</a>
+          <a routerLink="/algorithms/graphs/max-area-of-island" class="problem-link">LC 695 · Max Area of Island (DFS)</a>
+          <a routerLink="/algorithms/graphs/rotting-oranges" class="problem-link">LC 994 · Rotting Oranges (multi-source BFS)</a>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>

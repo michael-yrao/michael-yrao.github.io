@@ -13,28 +13,40 @@
     </p>
   </header>
 
-  <div class="games-grid">
-    <a
-      *ngFor="let game of games"
-      class="game-card"
-      [class.game-card--available]="game.status === 'available'"
-      [class.game-card--soon]="game.status === 'coming-soon'"
-      [routerLink]="game.status === 'available' ? game.route : null"
-    >
-      <div class="game-card__header">
-        <h2 class="game-card__title">{{ game.title }}</h2>
-        <span class="game-card__badge" [class.game-card__badge--available]="game.status === 'available'">
-          {{ game.status === 'available' ? 'Play Now' : 'Coming Soon' }}
-        </span>
-      </div>
+  <section
+    *ngFor="let section of sections"
+    class="games-section"
+    [class.games-section--featured]="section.id === 'recognition'"
+    [attr.aria-labelledby]="'sec-' + section.id"
+  >
+    <div class="games-section__header">
+      <h2 class="games-section__title" [id]="'sec-' + section.id">{{ section.label }}</h2>
+      <p class="games-section__blurb">{{ section.blurb }}</p>
+    </div>
 
-      <p class="game-card__desc">{{ game.description }}</p>
+    <div class="games-grid">
+      <a
+        *ngFor="let game of section.games"
+        class="game-card"
+        [class.game-card--available]="game.status === 'available'"
+        [class.game-card--soon]="game.status === 'coming-soon'"
+        [routerLink]="game.status === 'available' ? game.route : null"
+      >
+        <div class="game-card__header">
+          <h3 class="game-card__title">{{ game.title }}</h3>
+          <span class="game-card__badge" [class.game-card__badge--available]="game.status === 'available'">
+            {{ game.status === 'available' ? 'Play Now' : 'Coming Soon' }}
+          </span>
+        </div>
 
-      <p class="game-card__algo-note">{{ game.algorithmNote }}</p>
+        <p class="game-card__desc">{{ game.description }}</p>
 
-      <div class="game-card__algos">
-        <span class="algo-tag" *ngFor="let algo of game.algorithms">{{ algo }}</span>
-      </div>
-    </a>
-  </div>
+        <p class="game-card__algo-note">{{ game.algorithmNote }}</p>
+
+        <div class="game-card__algos">
+          <span class="algo-tag" *ngFor="let algo of game.algorithms">{{ algo }}</span>
+        </div>
+      </a>
+    </div>
+  </section>
 </div>

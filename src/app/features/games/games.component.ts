@@ -1,5 +1,14 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
-import { GAMES } from '../../core/data/games.data';
+import { GAMES, GAME_CATEGORY_LABELS, GameCategory, GameMeta } from '../../core/data/games.data';
+
+interface GameSection {
+  id: GameCategory;
+  label: string;
+  blurb: string;
+  games: GameMeta[];
+}
+
+const CATEGORY_ORDER: GameCategory[] = ['recognition', 'graph-traversal'];
 
 @Component({
   selector: 'app-games',
@@ -8,5 +17,12 @@ import { GAMES } from '../../core/data/games.data';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GamesComponent {
-  readonly games = GAMES;
+  readonly sections: GameSection[] = CATEGORY_ORDER
+    .map((id) => ({
+      id,
+      label: GAME_CATEGORY_LABELS[id].label,
+      blurb: GAME_CATEGORY_LABELS[id].blurb,
+      games: GAMES.filter((g) => g.category === id),
+    }))
+    .filter((s) => s.games.length > 0);
 }

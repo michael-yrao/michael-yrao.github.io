@@ -15,6 +15,11 @@ const routes: Routes = [
     loadChildren: () =>
       import('./pattern-sense/pattern-sense.module').then((m) => m.PatternSenseModule),
   },
+  {
+    path: 'maze',
+    loadChildren: () =>
+      import('./maze/maze.module').then((m) => m.MazeModule),
+  },
 ];
 
 @NgModule({
