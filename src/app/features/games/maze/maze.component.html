@@ -90,9 +90,9 @@
           <span>{{ results.bfs && r.pathLength > results.bfs!.pathLength ? '✗ longer' : 'not guaranteed' }}</span>
         </div>
         <p class="solve-stats__note" *ngIf="results.bfs && results.dfs">
-          Same maze, same start and goal — BFS explores level by level and provably finds the
-          shortest path; DFS commits to one corridor at a time and returns whatever path it
-          stumbles into. Run both on a few mazes and watch the gap.
+          Same maze, same start and goal — BFS explores level by level and is guaranteed to
+          find the shortest path; DFS commits to one corridor at a time and returns whatever
+          path it stumbles into first. Run both on a few mazes and watch the gap.
         </p>
       </div>
     </div>
