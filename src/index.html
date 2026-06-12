@@ -17,6 +17,14 @@
     <meta name="twitter:card" content="summary">
 
     <script>
+      // Apply saved theme before first paint to avoid a flash (dark is default).
+      try {
+        if (localStorage.getItem('po-theme') === 'light') {
+          document.documentElement.dataset.theme = 'light';
+        }
+      } catch (e) { /* storage unavailable — stay dark */ }
+    </script>
+    <script>
       // Restore path encoded by 404.html redirect (GitHub Pages SPA fix).
       (function(l) {
         if (l.search[1] === '/') {

@@ -32,6 +32,10 @@
     &--visited {
       fill: rgba(51, 65, 85, 0.5);
       stroke: var(--color-visited);
+
+      :host-context([data-theme='light']) & {
+        fill: rgba(148, 163, 184, 0.35);
+      }
     }
 
     &--found {
@@ -42,6 +46,10 @@
     &--highlighted {
       fill: rgba(167, 139, 250, 0.15);
       stroke: #a78bfa;
+
+      :host-context([data-theme='light']) & {
+        stroke: #7c3aed;
+      }
     }
 
     &--comparing {

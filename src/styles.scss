@@ -42,10 +42,37 @@
   --transition-base: 250ms ease;
 }
 
+// ── Light theme ──────────────────────────────────────────────────────────────
+// Dark is the default (tokens above); [data-theme='light'] overrides colors only.
+[data-theme='light'] {
+  color-scheme: light;
+
+  --color-bg:          #f1f5f9;
+  --color-bg-card:     #ffffff;
+  --color-bg-raised:   #e2e8f0;
+  --color-border:      #cbd5e1;
+  --color-accent:      #0891b2;
+  --color-accent-dim:  rgba(8, 145, 178, 0.12);
+  --color-text:        #0f172a;
+  --color-text-muted:  #64748b;
+  --color-easy:        #16a34a;
+  --color-medium:      #ea580c;
+  --color-hard:        #dc2626;
+  --color-found:       #16a34a;
+  --color-active:      #0891b2;
+  --color-visited:     #cbd5e1;
+  --color-window:      rgba(8, 145, 178, 0.2);
+  --color-eliminated:  #e2e8f0;
+}
+
 // ── Reset & Base ─────────────────────────────────────────────────────────────
 *, *::before, *::after { box-sizing: border-box; }
 
 :root { color-scheme: dark; }
+
+html, body {
+  transition: background 200ms ease, color 200ms ease;
+}
 
 html, body {
   margin: 0;

@@ -21,6 +21,12 @@
       <a routerLink="/algorithms" routerLinkActive="active">Algorithms</a>
       <a routerLink="/games" routerLinkActive="active">Games</a>
       <a routerLink="/about" routerLinkActive="active">Human</a>
+      <button
+        class="po-nav__theme"
+        (click)="themeService.toggle()"
+        [attr.aria-label]="themeService.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        [title]="themeService.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+      >{{ themeService.theme === 'dark' ? '☀' : '☾' }}</button>
     </div>
   </div>
 

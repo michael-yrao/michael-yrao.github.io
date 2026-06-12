@@ -72,6 +72,11 @@
       border-color: #1e293b;
       color: #334155;
       text-decoration: line-through;
+
+      :host-context([data-theme='light']) & {
+        border-color: #e2e8f0;
+        color: #94a3b8;
+      }
     }
 
     &--window {

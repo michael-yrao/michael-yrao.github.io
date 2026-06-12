@@ -1,6 +1,7 @@
 import { Component, HostListener, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { NavContextService, NavContextEntry } from './core/services/nav-context.service';
+import { ThemeService } from './core/services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -13,7 +14,7 @@ export class AppComponent implements OnDestroy {
 
   private ctxSub: Subscription;
 
-  constructor(readonly navCtx: NavContextService) {
+  constructor(readonly navCtx: NavContextService, readonly themeService: ThemeService) {
     this.ctxSub = navCtx.ctx$.subscribe(ctx => {
       this.currentCtx = ctx;
       if (!ctx) this.descriptionOpen = false;
