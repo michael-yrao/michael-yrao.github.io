@@ -33,12 +33,13 @@ export interface ArrayState {
   counters?: { label: string; value: number | string }[];
 }
 
-export type GridCellState = 'water' | 'land' | 'visited' | 'queued' | 'rotten' | 'fresh' | 'empty' | 'active';
+export type GridCellState = 'water' | 'land' | 'visited' | 'queued' | 'rotten' | 'fresh' | 'empty' | 'active' | 'found';
 
 export interface GridState {
   type: 'grid';
   grid: { state: GridCellState; label?: string }[][];
   counters?: { label: string; value: number | string }[];
+  legend?: { state: GridCellState; label: string }[];
 }
 
 export interface LinkedListNode {

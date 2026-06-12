@@ -12,6 +12,13 @@
     </div>
   </div>
 
+  <div class="gv__legend" *ngIf="state.legend?.length">
+    <span *ngFor="let item of state.legend" class="gv__legend-item">
+      <span class="gv__legend-swatch" [ngClass]="'gv__cell--' + item.state"></span>
+      {{ item.label }}
+    </span>
+  </div>
+
   <div class="gv__counters" *ngIf="state.counters?.length">
     <div *ngFor="let counter of state.counters" class="gv__counter">
       <span class="gv__counter-label">{{ counter.label }}</span>

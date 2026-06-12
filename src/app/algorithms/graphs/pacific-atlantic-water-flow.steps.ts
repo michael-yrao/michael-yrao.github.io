@@ -93,8 +93,16 @@ function generateDfsSteps(): Step[] {
   const canReachPacific = new Set<string>();
   const canReachAtlantic = new Set<string>();
 
+  const LEGEND: NonNullable<GridState['legend']> = [
+    { state: 'empty', label: 'unreached' },
+    { state: 'visited', label: 'Pacific' },
+    { state: 'queued', label: 'Atlantic' },
+    { state: 'found', label: 'Both = answer' },
+    { state: 'active', label: 'current cell' },
+  ];
+
   // Render the grid from the CURRENT contents of both sets.
-  // Green = Pacific, orange = Atlantic, gold = both, cyan = active DFS cell.
+  // Green = Pacific, orange = Atlantic, gold = both (answer), cyan = active DFS cell.
   function render(activeKey?: string): GridState {
     return {
       type: 'grid',
@@ -104,13 +112,14 @@ function generateDfsSteps(): Step[] {
           let state: GridCellState = 'empty';
           const inP = canReachPacific.has(key);
           const inA = canReachAtlantic.has(key);
-          if (inP && inA) state = 'land';
+          if (inP && inA) state = 'found';
           else if (inP) state = 'visited';
           else if (inA) state = 'queued';
           if (key === activeKey) state = 'active';
           return { state, label: String(h) };
         })
       ),
+      legend: LEGEND,
       counters: [
         { label: 'canReachPacific', value: canReachPacific.size },
         { label: 'canReachAtlantic', value: canReachAtlantic.size },
@@ -118,13 +127,32 @@ function generateDfsSteps(): Step[] {
     };
   }
 
-  function emit(
-    explanation: string,
-    highlightLine: number,
-    activeKey: string | undefined,
-    variables: { name: string; value: string | number; highlight?: boolean }[],
-  ): void {
-    steps.push({ explanation, highlightLine, state: render(activeKey), variables });
+  // Every step carries the full variable watch so each Python local is
+  // trackable at every point of execution.
+  interface VarSnapshot {
+    row?: number;
+    col?: number;
+    previousHeight?: number;
+    setName?: string;            // visitedSet currently bound in dfs()
+    highlightSet?: boolean;      // highlight the set that just changed
+    extra?: { name: string; value: string | number; highlight?: boolean }[];
+  }
+
+  function emit(explanation: string, highlightLine: number, activeKey: string | undefined, v: VarSnapshot): void {
+    steps.push({
+      explanation,
+      highlightLine,
+      state: render(activeKey),
+      variables: [
+        { name: 'row', value: v.row ?? '—' },
+        { name: 'col', value: v.col ?? '—' },
+        { name: 'previousHeight', value: v.previousHeight ?? '—' },
+        { name: 'visitedSet', value: v.setName ?? '—' },
+        { name: 'canReachPacific.size', value: canReachPacific.size, highlight: v.highlightSet && v.setName === 'canReachPacific' },
+        { name: 'canReachAtlantic.size', value: canReachAtlantic.size, highlight: v.highlightSet && v.setName === 'canReachAtlantic' },
+        ...(v.extra ?? []),
+      ],
+    });
   }
 
   // Exact port of the Python dfs(): emits one step per cell added to the set.
@@ -138,11 +166,7 @@ function generateDfsSteps(): Step[] {
       `dfs(${row}, ${col}) — height ${HEIGHTS[row][col]} ≥ previousHeight ${previousHeight}, so water can flow back the way we came. Add (${row},${col}) to ${setName}, then recurse down, up, right, left.`,
       32,
       key,
-      [
-        { name: 'row, col', value: `${row}, ${col}` },
-        { name: 'previousHeight', value: previousHeight },
-        { name: `${setName}.size`, value: set.size, highlight: true },
-      ],
+      { row, col, previousHeight, setName, highlightSet: true },
     );
 
     dfs(row + 1, col, set, setName, HEIGHTS[row][col]);
@@ -155,39 +179,34 @@ function generateDfsSteps(): Step[] {
   // including the ones that return immediately because the cell is already visited.
   function seed(row: number, col: number, set: Set<string>, setName: string, ocean: string, line: number): void {
     const key = toKey(row, col);
+    const previousHeight = HEIGHTS[row][col];
     if (set.has(key)) {
       emit(
         `dfs(${row}, ${col}) for ${ocean}: (${row},${col}) is already in ${setName}, so the base case returns immediately.`,
         24,
         key,
-        [
-          { name: 'row, col', value: `${row}, ${col}` },
-          { name: `${setName}.size`, value: set.size },
-        ],
+        { row, col, previousHeight, setName },
       );
       return;
     }
     emit(
-      `Seed ${ocean}: call dfs(${row}, ${col}, ${setName}, heights[${row}][${col}]=${HEIGHTS[row][col]}). This border cell touches the ${ocean}, so anything we can climb to from here drains into it.`,
+      `Seed ${ocean}: call dfs(${row}, ${col}, ${setName}, heights[${row}][${col}]=${previousHeight}). This border cell touches the ${ocean}, so anything we can climb to from here drains into it.`,
       line,
       key,
-      [
-        { name: 'row, col', value: `${row}, ${col}` },
-        { name: 'phase', value: `${ocean} seed`, highlight: true },
-      ],
+      {
+        row, col, previousHeight, setName,
+        extra: [{ name: 'phase', value: `${ocean} seed`, highlight: true }],
+      },
     );
-    dfs(row, col, set, setName, HEIGHTS[row][col]);
+    dfs(row, col, set, setName, previousHeight);
   }
 
   // ── Intro ──────────────────────────────────────────────────────────────────
   emit(
-    'Pacific Ocean borders the top row and left column; Atlantic borders the bottom row and right column. Instead of DFS from every cell, we DFS from the ocean edges and climb UPHILL — any cell we reach can drain back to that ocean. Two sets track reachability; we seed them by walking the borders, alternating one Pacific call and one Atlantic call per loop iteration.',
+    'Pacific Ocean borders the top row and left column; Atlantic borders the bottom row and right column. Instead of DFS from every cell, we DFS from the ocean edges and climb UPHILL — any cell we reach can drain back to that ocean. Two sets track reachability; we seed them by walking the borders, alternating one Pacific call and one Atlantic call per loop iteration. The legend below the grid shows what each color means.',
     12,
     undefined,
-    [
-      { name: 'rows', value: ROWS },
-      { name: 'cols', value: COLS },
-    ],
+    { extra: [{ name: 'rows', value: ROWS }, { name: 'cols', value: COLS }] },
   );
 
   // ── for row in range(rows): one Pacific seed (left col), one Atlantic seed (right col) ──
@@ -212,20 +231,17 @@ function generateDfsSteps(): Step[] {
   }
 
   emit(
-    'Both for-loops are done. Now scan every cell row by row and collect those present in BOTH canReachPacific and canReachAtlantic. Green = Pacific only, orange = Atlantic only, gold = both.',
+    'Both for-loops are done. Now scan every cell row by row and collect those present in BOTH canReachPacific and canReachAtlantic — the gold cells.',
     57,
     undefined,
-    [
-      { name: 'canReachPacific.size', value: canReachPacific.size },
-      { name: 'canReachAtlantic.size', value: canReachAtlantic.size },
-    ],
+    { extra: [{ name: 'result', value: '[]' }] },
   );
 
   emit(
-    `Result: ${result.join(', ')} — the gold cells, which can drain to both oceans.`,
+    `Result: ${result.join(', ')} — the gold "Both = answer" cells, which can drain to both oceans.`,
     62,
     undefined,
-    [{ name: 'result', value: result.join(' '), highlight: true }],
+    { extra: [{ name: 'result', value: result.join(' '), highlight: true }] },
   );
 
   return steps;
