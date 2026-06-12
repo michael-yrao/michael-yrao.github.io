@@ -2,14 +2,10 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 // ── Solution 1: Set iteration ────────────────────────────────────────────────
 
-const SET_ITERATION_CODE = `from typing import List
-
-
-class Solution:
+const SET_ITERATION_CODE = `class Solution:
     def containsDuplicate(self, nums: List[int]) -> bool:
-        # since we only care about if it contains duplicates
-        # what we can do is just iterate til we see a duplicate
-        # question is how do we keep track of duplicates or if we need to
+        # a set gives O(1) membership checks — add each value and return True
+        # the moment we try to add something already present
         numsSet = set()
 
         for integer in nums:
@@ -99,10 +95,7 @@ function generateSetIterationSteps(): Step[] {
 
 // ── Solution 2: Length comparison ────────────────────────────────────────────
 
-const LEN_COMPARISON_CODE = `from typing import List
-
-
-class Solution:
+const LEN_COMPARISON_CODE = `class Solution:
     def containsDuplicateAlternative(self, nums: List[int]) -> bool:
         # since we only care about if it contains duplicates
         # we can check if when we convert this list to a set

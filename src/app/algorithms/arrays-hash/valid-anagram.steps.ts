@@ -1,20 +1,25 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from typing import List
-
-
-class Solution:
+const PYTHON_CODE = `class Solution:
     def isAnagram(self, s: str, t: str) -> bool:
+        # anagrams are same length
+        # anagrams are the same if sorted
+        # anagrams also have the same # of each char, so hashmap
+        sMap, tMap = {}, {}
+
         if len(s) != len(t):
             return False
 
-        sMap, tMap = {}, {}
-
         for i in range(len(s)):
-            sMap[s[i]] = 1 + sMap.get(s[i], 0)
-            tMap[t[i]] = 1 + tMap.get(t[i], 0)
+            sMap[s[i]] = 1 + sMap.get(s[i],0)
+            tMap[t[i]] = 1 + tMap.get(t[i],0)
 
         return sMap == tMap`;
+
+const PYTHON_CODE_ALT = `class Solution:
+    def isAnagramPython(self, s: str, t: str) -> bool:
+        # anagrams are the same if sorted
+        return ''.join(sorted(s)) == ''.join(sorted(t))`;
 
 function generateSteps(): Step[] {
   const s = 'anagram';
@@ -81,7 +86,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: equal
       ? `sMap == tMap — every character appears the same number of times in both strings. Return true: "${s}" and "${t}" are anagrams.`
-      : `sMap ≠ tMap — at least one character frequency differs. Return false.`,
+      : `sMap != tMap — at least one character frequency differs. Return false.`,
     highlightLine: 15,
     state: {
       type: 'array',
@@ -99,10 +104,78 @@ function generateSteps(): Step[] {
   return steps;
 }
 
+function generateSortedSteps(): Step[] {
+  const s = 'anagram';
+  const t = 'nagaram';
+  const steps: Step[] = [];
+
+  steps.push({
+    explanation: `Sort both strings. If they produce the same sequence of characters, they are anagrams. s="${s}", t="${t}".`,
+    highlightLine: 2,
+    state: {
+      type: 'array',
+      cells: s.split('').map(c => ({ value: c, state: 'default' as const })),
+      pointers: [],
+      hashmap: { t },
+    },
+    variables: [{ name: 's', value: s }, { name: 't', value: t }],
+  });
+
+  const sortedS = s.split('').sort().join('');
+  steps.push({
+    explanation: `sorted(s) = "${sortedS}".`,
+    highlightLine: 2,
+    state: {
+      type: 'array',
+      cells: sortedS.split('').map(c => ({ value: c, state: 'visited' as const })),
+      pointers: [],
+      hashmap: { 't': t, 'sorted(t)': '...' },
+    },
+    variables: [{ name: 'sorted(s)', value: sortedS, highlight: true }],
+  });
+
+  const sortedT = t.split('').sort().join('');
+  steps.push({
+    explanation: `sorted(t) = "${sortedT}".`,
+    highlightLine: 2,
+    state: {
+      type: 'array',
+      cells: sortedT.split('').map(c => ({ value: c, state: 'visited' as const })),
+      pointers: [],
+      hashmap: { 'sorted(s)': sortedS, 'sorted(t)': sortedT },
+    },
+    variables: [{ name: 'sorted(t)', value: sortedT, highlight: true }],
+  });
+
+  const equal = sortedS === sortedT;
+  steps.push({
+    explanation: `sorted(s) "${sortedS}" ${equal ? '==' : '!='} sorted(t) "${sortedT}" → return ${equal}.`,
+    highlightLine: 2,
+    state: {
+      type: 'array',
+      cells: sortedS.split('').map((c, i) => ({
+        value: c,
+        state: equal ? ('found' as const) : (c === sortedT[i] ? ('visited' as const) : ('eliminated' as const)),
+      })),
+      pointers: [],
+      hashmap: { 'sorted(s)': sortedS, 'sorted(t)': sortedT },
+    },
+    variables: [{ name: 'return', value: String(equal), highlight: true }],
+  });
+
+  return steps;
+}
+
 const hashMapSolution: SolutionVariant = {
   label: 'Hash Map',
   pythonCode: PYTHON_CODE,
   generateSteps,
+};
+
+const sortedSolution: SolutionVariant = {
+  label: 'Sort',
+  pythonCode: PYTHON_CODE_ALT,
+  generateSteps: generateSortedSteps,
 };
 
 export const validAnagramMeta: AlgorithmMeta = {
@@ -131,5 +204,5 @@ export const validAnagramMeta: AlgorithmMeta = {
     's and t consist of lowercase English letters.',
   ],
   hint: 'Two strings are anagrams if and only if their character frequency maps are identical. Build both maps in one pass and compare.',
-  solutions: [hashMapSolution],
+  solutions: [hashMapSolution, sortedSolution],
 };

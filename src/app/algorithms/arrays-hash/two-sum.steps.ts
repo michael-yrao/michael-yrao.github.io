@@ -5,12 +5,9 @@ const PYTHON_CODE = `from typing import List
 
 class Solution:
     def twoSum(self, nums: List[int], target: int) -> List[int]:
-        # num[i] + num[j] = target
-        # nums[i] = target - nums[i]
-
-        # iterate through list
-        # check if target - nums[j] exist in map
-        # if not, add nums[i], i to map
+        # for each number, the complement we need is target - number
+        # if that complement is already in the map, we found our pair
+        # otherwise store this number's index so a future number can find it
 
         map = {}
 
@@ -18,7 +15,7 @@ class Solution:
             diff = target - number
             if diff in map:
                 return [map[diff], index]
-            # not found, insert number
+            # complement not found yet — store index for future lookups
             map[number] = index
 
         return`;

@@ -2,13 +2,16 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const PYTHON_CODE = `class Solution:
     def removeDuplicates(self, nums: List[int]) -> int:
-        left = right = 1
+        # left = write cursor, right = read cursor; index 0 is always valid so both start at 1
+        # write nums[right] to nums[left] only when it differs from nums[left-1] (the last confirmed unique value)
+        left = right = counter = 1
         while right < len(nums):
             if nums[right] != nums[left - 1]:
                 nums[left] = nums[right]
                 left += 1
+                counter += 1
             right += 1
-        return left`;
+        return counter`;
 
 function generateSteps(): Step[] {
   const nums = [1, 1, 2, 3, 3];

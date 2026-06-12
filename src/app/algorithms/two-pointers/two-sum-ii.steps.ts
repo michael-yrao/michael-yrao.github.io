@@ -2,15 +2,22 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const PYTHON_CODE = `class Solution:
     def twoSum(self, numbers: List[int], target: int) -> List[int]:
+        # Since we know it's sorted
+        # we can just use two pointers, one starting from left
+        # one starting from right
+        # if l + r > target, move r left
+        # if l + r < target, move l right
+        # if equal return l and r
+
         l, r = 0, len(numbers) - 1
+
         while l < r:
-            s = numbers[l] + numbers[r]
-            if s == target:
-                return [l + 1, r + 1]
-            elif s < target:
-                l += 1
+            if numbers[l] + numbers[r] == target:
+                return [l+1,r+1]
+            if numbers[l] + numbers[r] > target:
+                r-=1
             else:
-                r -= 1`;
+                l+=1`;
 
 function generateSteps(): Step[] {
   const nums = [2, 7, 11, 15];

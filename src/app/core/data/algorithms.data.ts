@@ -32,6 +32,44 @@ import { containerWithMostWaterMeta } from '../../algorithms/arrays-hash/contain
 import { groupAnagramsMeta } from '../../algorithms/arrays-hash/group-anagrams.steps';
 import { searchInRotatedSortedArrayMeta } from '../../algorithms/binary-search/search-in-rotated-sorted-array.steps';
 import { majorityElementIIMeta } from '../../algorithms/arrays-hash/majority-element-ii.steps';
+import { linkedListCycleMeta } from '../../algorithms/linked-list/linked-list-cycle.steps';
+import { reorderListMeta } from '../../algorithms/linked-list/reorder-list.steps';
+import { findMinimumInRotatedSortedArrayMeta } from '../../algorithms/binary-search/find-minimum-in-rotated-sorted-array.steps';
+import { permutationInStringMeta } from '../../algorithms/sliding-window/permutation-in-string.steps';
+import { maxAreaOfIslandMeta } from '../../algorithms/graphs/max-area-of-island.steps';
+import { reverseStringMeta } from '../../algorithms/two-pointers/reverse-string.steps';
+import { plusOneMeta } from '../../algorithms/arrays-hash/plus-one.steps';
+import { findPeakElementMeta } from '../../algorithms/binary-search/find-peak-element.steps';
+import { searchA2DMatrixMeta } from '../../algorithms/binary-search/search-a-2d-matrix.steps';
+import { longestRepeatingCharReplacementMeta } from '../../algorithms/sliding-window/longest-repeating-char-replacement.steps';
+import { fourSumMeta } from '../../algorithms/two-pointers/four-sum.steps';
+import { minimumWindowSubstringMeta } from '../../algorithms/sliding-window/minimum-window-substring.steps';
+import { kokoEatingBananasMeta } from '../../algorithms/binary-search/koko-eating-bananas.steps';
+import { singleElementSortedArrayMeta } from '../../algorithms/binary-search/single-element-in-sorted-array.steps';
+import { cloneGraphMeta } from '../../algorithms/graphs/clone-graph.steps';
+import { courseScheduleMeta } from '../../algorithms/graphs/course-schedule.steps';
+import { courseScheduleIIMeta } from '../../algorithms/graphs/course-schedule-ii.steps';
+import { pacificAtlanticWaterFlowMeta } from '../../algorithms/graphs/pacific-atlantic-water-flow.steps';
+import { validPalindromeIIIMeta } from '../../algorithms/dynamic-programming/valid-palindrome-iii.steps';
+import { removeElementMeta } from '../../algorithms/arrays-hash/remove-element.steps';
+import { concatenationOfArrayMeta } from '../../algorithms/arrays-hash/concatenation-of-array.steps';
+import { mergeStringsAlternatelyMeta } from '../../algorithms/two-pointers/merge-strings-alternately.steps';
+import { bestTimeBuySellStockIiMeta } from '../../algorithms/arrays-hash/best-time-buy-sell-stock-ii.steps';
+import { capacityToShipPackagesMeta } from '../../algorithms/binary-search/capacity-to-ship-packages.steps';
+import { validSudokuMeta } from '../../algorithms/arrays-hash/valid-sudoku.steps';
+import { sortAnArrayMeta } from '../../algorithms/arrays-hash/sort-an-array.steps';
+import { timeBasedKeyValueStoreMeta } from '../../algorithms/binary-search/time-based-key-value-store.steps';
+import { successfulPairsSpellsPotionsMeta } from '../../algorithms/binary-search/successful-pairs-spells-potions.steps';
+import { invertBinaryTreeMeta } from '../../algorithms/trees/invert-binary-tree.steps';
+import { maximumDepthBinaryTreeMeta } from '../../algorithms/trees/maximum-depth-binary-tree.steps';
+import { diameterOfBinaryTreeMeta } from '../../algorithms/trees/diameter-of-binary-tree.steps';
+import { balancedBinaryTreeMeta } from '../../algorithms/trees/balanced-binary-tree.steps';
+import { sameTreeMeta } from '../../algorithms/trees/same-tree.steps';
+import { subtreeOfAnotherTreeMeta } from '../../algorithms/trees/subtree-of-another-tree.steps';
+import { binaryTreeLevelOrderTraversalMeta } from '../../algorithms/trees/binary-tree-level-order-traversal.steps';
+import { lowestCommonAncestorBstMeta } from '../../algorithms/trees/lowest-common-ancestor-bst.steps';
+import { validateBstMeta } from '../../algorithms/trees/validate-bst.steps';
+import { countGoodNodesMeta } from '../../algorithms/trees/count-good-nodes.steps';
 
 const stub = (
   id: string,
@@ -61,29 +99,29 @@ const stub = (
 export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   // ── Arrays & Hash ─────────────────────────────────────────────────────────
   twoSumMeta,
-  stub('plus-one', 66, 'Plus One', 'Easy', 'arrays-hash', ['Array', 'Math'], 'O(n)', 'O(1)'),
-  stub('remove-element', 27, 'Remove Element', 'Easy', 'arrays-hash', ['Array', 'Two Pointers'], 'O(n)', 'O(1)'),
+  plusOneMeta,
+  removeElementMeta,
   containsDuplicateMeta,
   validAnagramMeta,
-  stub('concatenation-of-array', 1929, 'Concatenation of Array', 'Easy', 'arrays-hash', ['Array'], 'O(n)', 'O(n)'),
+  concatenationOfArrayMeta,
   majorityElementMeta,
   rotateArrayMeta,
   longestCommonPrefixMeta,
   majorityElementIIMeta,
-  stub('best-time-buy-sell-stock-ii', 122, 'Best Time to Buy and Sell Stock II', 'Medium', 'arrays-hash', ['Array', 'Greedy'], 'O(n)', 'O(1)'),
+  bestTimeBuySellStockIiMeta,
   productOfArrayExceptSelfMeta,
   topKFrequentElementsMeta,
   groupAnagramsMeta,
   sortColorsMeta,
-  stub('valid-sudoku', 36, 'Valid Sudoku', 'Medium', 'arrays-hash', ['Array', 'Hash Set', 'Matrix'], 'O(1)', 'O(1)'),
-  stub('sort-an-array', 912, 'Sort an Array', 'Medium', 'arrays-hash', ['Array', 'Merge Sort', 'Heap Sort'], 'O(n log n)', 'O(n)'),
+  validSudokuMeta,
+  sortAnArrayMeta,
   longestConsecutiveSequenceMeta,
   containerWithMostWaterMeta,
 
   // ── Two Pointers ──────────────────────────────────────────────────────────
-  stub('merge-strings-alternatively', 1768, 'Merge Strings Alternately', 'Easy', 'two-pointers', ['Two Pointers', 'String'], 'O(n)', 'O(n)'),
+  mergeStringsAlternatelyMeta,
   moveZerosMeta,
-  stub('reverse-string', 344, 'Reverse String', 'Easy', 'two-pointers', ['Two Pointers', 'String'], 'O(n)', 'O(1)'),
+  reverseStringMeta,
   validPalindromeMeta,
   removeDuplicatesSortedArrayMeta,
   mergeSortedArrayMeta,
@@ -92,51 +130,54 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   removeDuplicatesSortedArrayIIMeta,
   threeSumMeta,
   trappingRainWaterMeta,
-  stub('four-sum', 18, '4Sum', 'Medium', 'two-pointers', ['Array', 'Two Pointers', 'Sorting'], 'O(n³)', 'O(n)'),
+  fourSumMeta,
 
   // ── Sliding Window ────────────────────────────────────────────────────────
   bestTimeBuySellMeta,
   containsDuplicateIIMeta,
-  stub('permutation-in-string', 567, 'Permutation in String', 'Medium', 'sliding-window', ['Hash Map', 'Sliding Window', 'Two Pointers'], 'O(n)', 'O(1)'),
-  stub('longest-repeating-char-replacement', 424, 'Longest Repeating Character Replacement', 'Medium', 'sliding-window', ['Hash Map', 'Sliding Window'], 'O(n)', 'O(1)'),
-  stub('minimum-window-substring', 76, 'Minimum Window Substring', 'Hard', 'sliding-window', ['Hash Map', 'Sliding Window', 'Two Pointers'], 'O(n)', 'O(k)'),
+  permutationInStringMeta,
+  longestRepeatingCharReplacementMeta,
+  minimumWindowSubstringMeta,
 
   // ── Binary Search ─────────────────────────────────────────────────────────
   binarySearchMeta,
-  stub('find-minimum-in-rotated-sorted-array', 153, 'Find Minimum in Rotated Sorted Array', 'Medium', 'binary-search', ['Array', 'Binary Search'], 'O(log n)', 'O(1)'),
-  stub('search-a-2d-matrix', 74, 'Search a 2D Matrix', 'Medium', 'binary-search', ['Array', 'Binary Search', 'Matrix'], 'O(log(m·n))', 'O(1)'),
+  findMinimumInRotatedSortedArrayMeta,
+  searchA2DMatrixMeta,
   searchInRotatedSortedArrayMeta,
-  stub('find-peak-element', 162, 'Find Peak Element', 'Medium', 'binary-search', ['Array', 'Binary Search'], 'O(log n)', 'O(1)'),
-  stub('single-element-in-sorted-array', 540, 'Single Element in a Sorted Array', 'Medium', 'binary-search', ['Array', 'Binary Search'], 'O(log n)', 'O(1)'),
-  stub('koko-eating-bananas', 875, 'Koko Eating Bananas', 'Medium', 'binary-search', ['Array', 'Binary Search'], 'O(n log m)', 'O(1)'),
-  stub('capacity-to-ship-packages', 1011, 'Capacity To Ship Packages Within D Days', 'Medium', 'binary-search', ['Array', 'Binary Search'], 'O(n log m)', 'O(1)'),
-  stub('time-based-key-value-store', 981, 'Time Based Key-Value Store', 'Medium', 'binary-search', ['Hash Map', 'Binary Search', 'Design'], 'O(log n)', 'O(n)'),
-  stub('successful-pairs-spells-potions', 2300, 'Successful Pairs of Spells and Potions', 'Medium', 'binary-search', ['Array', 'Binary Search', 'Sorting'], 'O(n log n)', 'O(n)'),
+  findPeakElementMeta,
+  singleElementSortedArrayMeta,
+  kokoEatingBananasMeta,
+  capacityToShipPackagesMeta,
+  timeBasedKeyValueStoreMeta,
+  successfulPairsSpellsPotionsMeta,
 
   // ── Linked List ───────────────────────────────────────────────────────────
   reverseLinkedListMeta,
-  stub('linked-list-cycle', 141, 'Linked List Cycle', 'Easy', 'linked-list', ['Linked List', 'Two Pointers', "Floyd's"], 'O(n)', 'O(1)'),
+  linkedListCycleMeta,
   mergeTwoSortedListsMeta,
   removeNthFromEndMeta,
-  stub('reorder-list', 143, 'Reorder List', 'Medium', 'linked-list', ['Linked List', 'Two Pointers', 'Stack'], 'O(n)', 'O(1)'),
+  reorderListMeta,
 
   // ── Trees ─────────────────────────────────────────────────────────────────
-  stub('invert-binary-tree', 226, 'Invert Binary Tree', 'Easy', 'trees', ['Tree', 'DFS', 'BFS', 'Recursion'], 'O(n)', 'O(h)'),
-  stub('max-depth-of-binary-tree', 104, 'Maximum Depth of Binary Tree', 'Easy', 'trees', ['Tree', 'DFS', 'BFS', 'Recursion'], 'O(n)', 'O(h)'),
-  stub('diameter-of-binary-tree', 543, 'Diameter of Binary Tree', 'Easy', 'trees', ['Tree', 'DFS'], 'O(n)', 'O(h)'),
-  stub('balanced-binary-tree', 110, 'Balanced Binary Tree', 'Easy', 'trees', ['Tree', 'DFS', 'Recursion'], 'O(n)', 'O(h)'),
-  stub('same-tree', 100, 'Same Tree', 'Easy', 'trees', ['Tree', 'DFS', 'BFS', 'Recursion'], 'O(n)', 'O(h)'),
-  stub('subtree-of-another-tree', 572, 'Subtree of Another Tree', 'Easy', 'trees', ['Tree', 'DFS', 'String Matching'], 'O(m·n)', 'O(m+n)'),
-  stub('binary-tree-level-order-traversal', 102, 'Binary Tree Level Order Traversal', 'Medium', 'trees', ['Tree', 'BFS', 'Queue'], 'O(n)', 'O(n)'),
-  stub('lowest-common-ancestor-bst', 235, 'Lowest Common Ancestor of BST', 'Medium', 'trees', ['Tree', 'DFS', 'BST'], 'O(h)', 'O(1)'),
-  stub('validate-bst', 98, 'Validate Binary Search Tree', 'Medium', 'trees', ['Tree', 'DFS', 'BST'], 'O(n)', 'O(h)'),
-  stub('count-good-nodes', 1448, 'Count Good Nodes in Binary Tree', 'Medium', 'trees', ['Tree', 'DFS'], 'O(n)', 'O(h)'),
+  invertBinaryTreeMeta,
+  maximumDepthBinaryTreeMeta,
+  diameterOfBinaryTreeMeta,
+  balancedBinaryTreeMeta,
+  sameTreeMeta,
+  subtreeOfAnotherTreeMeta,
+  binaryTreeLevelOrderTraversalMeta,
+  lowestCommonAncestorBstMeta,
+  validateBstMeta,
+  countGoodNodesMeta,
 
   // ── Graphs ────────────────────────────────────────────────────────────────
   numberOfIslandsMeta,
-  stub('max-area-of-island', 695, 'Max Area of Island', 'Medium', 'graphs', ['BFS', 'DFS', 'Graph', 'Matrix'], 'O(m×n)', 'O(m×n)'),
-  stub('clone-graph', 133, 'Clone Graph', 'Medium', 'graphs', ['DFS', 'BFS', 'Graph', 'Hash Map'], 'O(V+E)', 'O(V)'),
+  maxAreaOfIslandMeta,
+  cloneGraphMeta,
   rottingOrangesMeta,
+  courseScheduleMeta,
+  courseScheduleIIMeta,
+  pacificAtlanticWaterFlowMeta,
 
   // ── Stack ─────────────────────────────────────────────────────────────────
   validParenthesesMeta,
@@ -145,37 +186,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   maximumSubarrayMeta,
 
   // ── Dynamic Programming ───────────────────────────────────────────────────
-  {
-    id: 'valid-palindrome-iii',
-    lcNumber: 1216,
-    title: 'Valid Palindrome III',
-    difficulty: 'Hard',
-    category: 'dynamic-programming',
-    tags: ['String', 'Dynamic Programming'],
-    timeComplexity: 'O(n²)',
-    spaceComplexity: 'O(n²)',
-    description:
-      'Given a string s and an integer k, return true if s is a k-palindrome. A string is k-palindrome if it can be transformed into a palindrome by removing at most k characters from it.',
-    examples: [
-      {
-        input: 's = "abcdeca", k = 2',
-        output: 'true',
-        explanation: 'Remove \'b\' and \'e\' to get "acdca", which is a palindrome.',
-      },
-      {
-        input: 's = "abcdeca", k = 1',
-        output: 'false',
-        explanation: 'At least 2 deletions are needed; 1 is not enough.',
-      },
-    ] as ProblemExample[],
-    constraints: [
-      '1 ≤ s.length ≤ 1000',
-      's consists of lowercase English letters only.',
-      '1 ≤ k ≤ s.length',
-    ],
-    hint: 'The minimum deletions needed to make s a palindrome equals n minus the length of its longest palindromic subsequence (LPS). Compute LPS in O(n²) with DP, then check if n − LPS ≤ k.',
-    solutions: [{ label: '', pythonCode: '', generateSteps: () => [] }],
-  },
+  validPalindromeIIIMeta,
 ];
 
 export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {

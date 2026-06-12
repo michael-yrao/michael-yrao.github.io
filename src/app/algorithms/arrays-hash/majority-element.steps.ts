@@ -2,27 +2,32 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const FREQ_MAP_CODE = `class Solution:
     def majorityElement(self, nums: List[int]) -> int:
-        majority = (None, 0)
-        freq = {}
+        # build a frequency map and track the running majority in one pass
+        # avoids a second scan by updating the best candidate whenever a count exceeds the current max
+        majorityValuePair = (None, 0)
+        freqMap = {}
         for num in nums:
-            freq[num] = 1 + freq.get(num, 0)
-            if freq[num] > majority[1]:
-                majority = (num, freq[num])
-        return majority[0]`;
+            freqMap[num] = 1 + freqMap.get(num, 0)
+            if freqMap[num] > majorityValuePair[1]:
+                majorityValuePair = num, freqMap[num]
+        return majorityValuePair[0]`;
 
 const BOYER_MOORE_CODE = `class Solution:
     def majorityElement(self, nums: List[int]) -> int:
-        candidate = nums[0]
-        count = 0
+        # Boyer-Moore voting: the majority element (> n/2) can never be fully cancelled
+        # keep a candidate and a count — increment when we see the candidate, decrement otherwise
+        # when count drops to 0, the candidate has been cancelled; replace it with the current element
+        maxValue = nums[0]
+        maxCounter = 0
         for num in nums:
-            if num == candidate:
-                count += 1
+            if num == maxValue:
+                maxCounter += 1
             else:
-                count -= 1
-                if count < 0:
-                    candidate = num
-                    count = 1
-        return candidate`;
+                maxCounter -= 1
+                if maxCounter < 0:
+                    maxValue = num
+                    maxCounter = 1
+        return maxValue`;
 
 function generateFreqMapSteps(): Step[] {
   const nums = [2, 2, 1, 1, 1, 2, 2];
@@ -137,10 +142,10 @@ function generateBoyerMooreSteps(): Step[] {
       if (count < 0) {
         candidate = num;
         count = 1;
-        explanation = `num=${num} ≠ candidate ${prevCandidate}. count → -1: candidate cancelled! Swap to ${candidate}, count=1.`;
+        explanation = `num=${num} != candidate ${prevCandidate}. count → -1: candidate cancelled! Swap to ${candidate}, count=1.`;
         hl = 11;
       } else {
-        explanation = `num=${num} ≠ candidate ${prevCandidate}. count → ${count}.`;
+        explanation = `num=${num} != candidate ${prevCandidate}. count → ${count}.`;
         hl = 9;
       }
     }

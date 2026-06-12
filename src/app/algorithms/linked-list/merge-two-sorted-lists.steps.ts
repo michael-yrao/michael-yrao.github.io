@@ -2,31 +2,59 @@ import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, ProblemExample } 
 
 const ITERATIVE_CODE = `class Solution:
     def mergeTwoLists(self, list1, list2):
-        dummy = ListNode(-1)
-        curr = dummy
-        p1, p2 = list1, list2
-        while p1 and p2:
-            if p1.val <= p2.val:
-                curr.next = p1
-                p1 = p1.next
+        # creating new linked list
+        # thus we should use a dummy node to keep track of new head
+
+        # value is irrelevant, using -101 since constraint says node.val >= -100
+        dummy = ListNode(-101)
+
+        # now we need a cursor to actually traverse the list
+        # we initialize it to dummy so we keep references to it
+        current = dummy
+
+        # while both of the lists are not null
+        # we want to compare and provide lowest to current
+
+        while list1 and list2:
+            if list1.val < list2.val:
+                current.next = list1
+                list1 = list1.next
             else:
-                curr.next = p2
-                p2 = p2.next
-            curr = curr.next
-        curr.next = p1 or p2
+                current.next = list2
+                list2 = list2.next
+            current = current.next
+
+        # when we are here, we know one of the list is null
+
+        if list1:
+            current.next = list1
+        else:
+            current.next = list2
+
         return dummy.next`;
 
 const RECURSIVE_CODE = `class Solution:
-    def mergeTwoLists(self, list1, list2):
+    def mergeTwoListsRecursive(self, list1, list2):
+        # since we are merging, we have to do forward-order
+        # meaning we have to make our decision on our way down the call stack
+
+        # if either side is empty, we just set next to the rest of the other list
         if not list1:
             return list2
+
         if not list2:
             return list1
-        if list1.val <= list2.val:
-            list1.next = self.mergeTwoLists(list1.next, list2)
+
+        # knowing neither is None here, we check value
+        # if list1.val is smaller, we want to increment list1
+        # otherwise increment list2
+        if list1.val < list2.val:
+            list1.next = self.mergeTwoListsRecursive(list1.next, list2)
+            # forward traversal, thus since list1 is set in stone, we return it
             return list1
         else:
-            list2.next = self.mergeTwoLists(list1, list2.next)
+            list2.next = self.mergeTwoListsRecursive(list1, list2.next)
+            # forward traversal, thus since list2 is set in stone, we return it
             return list2`;
 
 // list1: 1→2→4, list2: 1→3→4

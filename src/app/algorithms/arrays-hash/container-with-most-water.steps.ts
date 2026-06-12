@@ -2,16 +2,26 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const PYTHON_CODE = `class Solution:
     def maxArea(self, height: List[int]) -> int:
-        l, r = 0, len(height) - 1
-        maxWater = 0
+        # height = min(height[l], height[r])
+        # width = r - l
+        # currentMaxArea = (r - l) * min(height[l], height[r])
+        # start l = 0, r = len(height) - 1
+        # increment min(height[l], height[r])
+        # update maxArea = max(maxArea, currentMaxArea) each iteration
+        # return maxArea
+        maxArea = 0
+        l = 0
+        r = len(height) - 1
         while l < r:
-            water = min(height[l], height[r]) * (r - l)
-            maxWater = max(maxWater, water)
+            areaHeight = min(height[l], height[r])
+            areaWidth = r - l
+            currentMaxArea = areaHeight * areaWidth
+            maxArea = max(maxArea, currentMaxArea)
             if height[l] < height[r]:
                 l += 1
             else:
                 r -= 1
-        return maxWater`;
+        return maxArea`;
 
 function generateSteps(): Step[] {
   const height = [1, 8, 6, 2, 5, 4, 8, 3, 7];

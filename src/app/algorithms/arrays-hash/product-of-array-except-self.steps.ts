@@ -5,6 +5,13 @@ const PYTHON_CODE = `from typing import List
 
 class Solution:
     def productExceptSelf(self, nums: List[int]) -> List[int]:
+        # prefix and suffix product arrays
+        # then loop through and just do result[i] = prefix[i] * suffix[i]
+        # [1,2,3,4]
+        # prefix: [1,1,2,6]
+        # suffix: [24,12,4,1]
+        # result = [24,12,8,6]
+
         prefix = [1] * len(nums)
         suffix = [1] * len(nums)
         result = [1] * len(nums)

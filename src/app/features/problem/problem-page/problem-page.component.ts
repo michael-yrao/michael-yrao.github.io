@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   AlgorithmMeta, Category, Step, SolutionVariant,
-  ArrayState, GridState, LinkedListState, CATEGORY_LABELS,
+  ArrayState, GridState, LinkedListState, TreeState, CATEGORY_LABELS,
 } from '../../../core/models/algorithm.model';
 import { findAlgorithm, getCategoryNeighbors } from '../../../core/data/algorithms.data';
 import { NavContextService } from '../../../core/services/nav-context.service';
@@ -47,8 +47,8 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.steps.length > 0;
   }
 
-  get currentState(): ArrayState | GridState | LinkedListState | null {
-    return (this.currentStep?.state as (ArrayState | GridState | LinkedListState)) ?? null;
+  get currentState(): ArrayState | GridState | LinkedListState | TreeState | null {
+    return (this.currentStep?.state as (ArrayState | GridState | LinkedListState | TreeState)) ?? null;
   }
 
   get isArrayState(): boolean {
@@ -61,6 +61,10 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get isLinkedListState(): boolean {
     return this.currentState?.type === 'linked-list';
+  }
+
+  get isTreeState(): boolean {
+    return this.currentState?.type === 'tree';
   }
 
   get bottomColumns(): string {

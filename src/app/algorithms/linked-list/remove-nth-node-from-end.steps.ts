@@ -2,18 +2,33 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample, LinkedListNode } 
 
 const PYTHON_CODE = `class Solution:
     def removeNthFromEnd(self, head, n):
+        # nth node from the end is length - n node from the front
+        # so we want to point node at length - n - 1 to node at length - n + 1
+        # since we are removing, we might be removing head, so let's create a dummy node to keep track
+
+        length = 0
         dummy = ListNode(0)
         dummy.next = head
-        length, ptr = 0, dummy
+        ptr = dummy
+
+        # [1,2,3,4,5]; n = 2; index = 3 -> length - n to be removed
+        # [0,1,2,3,4,5]; n = 2; index = 4 -> length - n to be removed
+
         while ptr:
             length += 1
             ptr = ptr.next
-        idx = length - n - 1   # index to repoint (in dummy-prefixed list)
+
+        indexToRepoint = length - n - 1
+
+        # now we traverse again until we get to indexToRepoint
+
         ptr = dummy
-        for i in range(idx + 1):
-            if i == idx:
+
+        for i in range(indexToRepoint + 1):
+            if i == indexToRepoint:
                 ptr.next = ptr.next.next
             ptr = ptr.next
+
         return dummy.next`;
 
 function makeNodes(

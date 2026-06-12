@@ -5,6 +5,8 @@
     <nav class="breadcrumb">
       <a routerLink="/">Home</a>
       <span>›</span>
+      <a routerLink="/algorithms">Algorithms</a>
+      <span>›</span>
       <a [routerLink]="['/algorithms', problem.category]">{{ categoryLabels[problem.category] }}</a>
       <span>›</span>
       <span>{{ problem.title }}</span>
@@ -170,6 +172,11 @@
               *ngIf="isLinkedListState"
               [state]="$any(currentState)"
             ></app-linked-list-visualizer>
+
+            <app-tree-visualizer
+              *ngIf="isTreeState"
+              [state]="$any(currentState)"
+            ></app-tree-visualizer>
           </div>
 
           <app-step-controls

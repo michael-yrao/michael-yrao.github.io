@@ -4,17 +4,25 @@ const PYTHON_CODE = `import heapq
 
 class Solution:
     def topKFrequent(self, nums: List[int], k: int) -> List[int]:
-        freq = {}
+        # frequency, so we should do a map
+        # then we can keep a min heap of size k
+        # return said heap's values
+        freqMap = {}
         for n in nums:
-            freq[n] = 1 + freq.get(n, 0)
+            freqMap[n] = 1 + freqMap.get(n, 0)
 
-        min_heap = []
-        for key, value in freq.items():
-            heapq.heappush(min_heap, (value, key))
-            if len(min_heap) > k:
-                heapq.heappop(min_heap)
+        minHeap = []
 
-        return [key for _, key in min_heap]`;
+        for key, value in freqMap.items():
+            # need to do value, key since minHeap will compare on first value in tuple
+            heapq.heappush(minHeap, (value, key))
+            while len(minHeap) > k:
+                heapq.heappop(minHeap)
+
+        result = []
+        for freq, key in minHeap:
+            result.append(key)
+        return result`;
 
 function generateSteps(): Step[] {
   const nums = [1, 1, 1, 2, 2, 3];

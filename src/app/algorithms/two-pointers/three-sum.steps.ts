@@ -1,22 +1,27 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
 const PYTHON_CODE = `class Solution:
-    def threeSum(self, nums: List[int]) -> List[List[int]]:
+    def threeSum(self, nums: list[int]) -> list[list[int]]:
+        # sort first so we can use two pointers for the inner pair
+        # fix nums[i] as the anchor; then find j and k in the remaining subarray such that nums[j] + nums[k] = -nums[i]
+        threeSumSet = set()
         nums.sort()
-        result = set()
         for i in range(len(nums)):
-            j, k = i + 1, len(nums) - 1
+            j = i + 1
+            k = len(nums) - 1
             while j < k:
-                s = nums[i] + nums[j] + nums[k]
-                if s == 0:
-                    result.add((nums[i], nums[j], nums[k]))
+                # sorted array lets us steer: sum > 0 → move k left (reduce); sum < 0 → move j right (increase)
+                if nums[i] + nums[j] + nums[k] == 0:
+                    solution = (nums[i], nums[j], nums[k])
+                    threeSumSet.add(solution)
+                    # advance both pointers — this pair is consumed, look for the next distinct pair
                     j += 1
                     k -= 1
-                elif s > 0:
+                elif nums[i] + nums[j] + nums[k] > 0:
                     k -= 1
                 else:
                     j += 1
-        return list(result)`;
+        return list(threeSumSet)`;
 
 function generateSteps(): Step[] {
   const original = [-1, 0, 1, 2, -1, -4];

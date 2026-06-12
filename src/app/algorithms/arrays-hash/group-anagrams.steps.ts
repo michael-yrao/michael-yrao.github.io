@@ -2,11 +2,23 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const PYTHON_CODE = `class Solution:
     def groupAnagrams(self, strs: List[str]) -> List[List[str]]:
-        groups = defaultdict(list)
-        for s in strs:
-            key = tuple(sorted(s))
-            groups[key].append(s)
-        return list(groups.values())`;
+        anagramMap = {}
+        for str in strs:
+            sortedStr = ''.join(sorted(str))
+            # a plain dict raises KeyError on missing keys, so initialize the list explicitly
+            if sortedStr not in anagramMap:
+                anagramMap[sortedStr] = []
+            anagramMap[sortedStr].append(str)
+        return list(anagramMap.values())`;
+
+const PYTHON_CODE_ALT = `class Solution:
+    def groupAnagramsAlternative(self, strs: List[str]) -> List[List[str]]:
+        # defaultdict(list) automatically initializes missing keys to [], removing the need for an explicit check
+        anagramMap = defaultdict(list)
+        for str in strs:
+            sortedStr = ''.join(sorted(str))
+            anagramMap[sortedStr].append(str)
+        return list(anagramMap.values())`;
 
 function generateSteps(): Step[] {
   const strs = ['eat', 'tea', 'tan', 'ate', 'nat', 'bat'];
@@ -84,10 +96,20 @@ function generateSteps(): Step[] {
   return steps;
 }
 
+function generateAltSteps(): Step[] {
+  return [];
+}
+
 const solution: SolutionVariant = {
   label: 'Sort Key HashMap',
   pythonCode: PYTHON_CODE,
   generateSteps,
+};
+
+const altSolution: SolutionVariant = {
+  label: 'defaultdict',
+  pythonCode: PYTHON_CODE_ALT,
+  generateSteps: generateAltSteps,
 };
 
 export const groupAnagramsMeta: AlgorithmMeta = {
@@ -117,5 +139,5 @@ export const groupAnagramsMeta: AlgorithmMeta = {
     'strs[i] consists of lowercase English letters.',
   ],
   hint: 'Anagrams sort to the same string. Use sorted(s) as the hash map key. An alternative O(n·k) approach uses a 26-character frequency count as the key instead of sorting.',
-  solutions: [solution],
+  solutions: [solution, altSolution],
 };

@@ -4,19 +4,37 @@ const PYTHON_CODE = `from collections import defaultdict
 
 class Solution:
     def majorityElement(self, nums: List[int]) -> List[int]:
+        # at most 2 elements can appear more than n/3 times, so we only need to track 2 candidates
+        # whenever a 3rd distinct value appears, decrement every candidate's count — this cancels
+        # one occurrence of each against the new value (extended Boyer-Moore)
+        # after the scan, do a verification pass since counts were decremented and may not reflect true frequency
+
         freqCount = defaultdict(int)
+
         for n in nums:
             freqCount[n] += 1
+            # if we still have at most 2 candidates, no cancellation needed
             if len(freqCount) <= 2:
                 continue
-            # 3rd distinct value — decrement all, evict zeros
-            for key in list(freqCount):
-                freqCount[key] -= 1
-            for key in list(freqCount):
-                if freqCount[key] == 0:
-                    del freqCount[key]
-        # Verify: candidates must actually appear > n/3 times
-        return [n for n in freqCount if nums.count(n) > len(nums) // 3]`;
+            else:
+                # if we have more than 2, decrement all
+                for key, value in freqCount.items():
+                    freqCount[key] -= 1
+                    # can't delete while iterating — collect keys to delete in a separate pass
+                for n in list(freqCount):
+                    if freqCount[n] == 0:
+                        freqCount.pop(n)
+
+        result = []
+
+        # decrementing may have reduced stored counts below their true frequency,
+        # so we must re-count from the original array to confirm each candidate is genuine
+        for n in freqCount:
+            # nums.count(n) is O(n), but freqCount has at most 2 candidates, so total is O(2n) = O(n)
+            if nums.count(n) > len(nums) // 3:
+                result.append(n)
+
+        return result`;
 
 function generateSteps(): Step[] {
   const nums = [1, 1, 1, 3, 3, 2, 2, 2];

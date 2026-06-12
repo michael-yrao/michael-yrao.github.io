@@ -1,0 +1,91 @@
+.tv {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  overflow-x: auto;
+
+  &__svg {
+    overflow: visible;
+  }
+
+  &__edge {
+    stroke: var(--color-border);
+    stroke-width: 2;
+  }
+
+  &__node {
+    fill: var(--color-bg);
+    stroke: var(--color-border);
+    stroke-width: 2;
+    transition: fill 250ms ease, stroke 250ms ease;
+
+    &--active {
+      fill: rgba(6, 182, 212, 0.2);
+      stroke: var(--color-accent);
+    }
+
+    &--visited {
+      fill: rgba(51, 65, 85, 0.5);
+      stroke: var(--color-visited);
+    }
+
+    &--found {
+      fill: rgba(74, 222, 128, 0.2);
+      stroke: var(--color-easy);
+    }
+
+    &--highlighted {
+      fill: rgba(167, 139, 250, 0.15);
+      stroke: #a78bfa;
+    }
+
+    &--comparing {
+      fill: rgba(251, 146, 60, 0.2);
+      stroke: var(--color-medium);
+    }
+  }
+
+  &__node-val {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    fill: var(--color-text);
+    pointer-events: none;
+  }
+
+  &__ptr-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    fill: var(--color-accent);
+    pointer-events: none;
+  }
+
+  &__counters {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  &__counter {
+    display: flex;
+    gap: var(--space-xs);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  &__counter-label {
+    color: var(--color-text-muted);
+  }
+
+  &__counter-val {
+    color: var(--color-accent);
+    font-weight: 700;
+  }
+}

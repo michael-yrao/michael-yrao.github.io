@@ -9,6 +9,7 @@ import { CodeViewerComponent } from './components/code-viewer/code-viewer.compon
 import { ArrayVisualizerComponent } from './visualizers/array-visualizer/array-visualizer.component';
 import { GridVisualizerComponent } from './visualizers/grid-visualizer/grid-visualizer.component';
 import { LinkedListVisualizerComponent } from './visualizers/linked-list-visualizer/linked-list-visualizer.component';
+import { TreeVisualizerComponent } from './visualizers/tree-visualizer/tree-visualizer.component';
 
 const COMPONENTS = [
   StepControlsComponent,
@@ -18,6 +19,7 @@ const COMPONENTS = [
   ArrayVisualizerComponent,
   GridVisualizerComponent,
   LinkedListVisualizerComponent,
+  TreeVisualizerComponent,
 ];
 
 @NgModule({

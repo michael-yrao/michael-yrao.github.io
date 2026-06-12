@@ -1,17 +1,16 @@
 import { AlgorithmMeta, SolutionVariant, Step, GridState, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `import collections
-from typing import List
-
-class Solution:
+const PYTHON_CODE = `class Solution:
     def orangesRotting(self, grid: List[List[int]]) -> int:
         # so this is clearly a bfs problem
         # what happens is when we hit a rotten orange, we perform a bfs on it to mark its neighbors as rotten
         # The above is wrong, we need to do a pre-scan to find all rotten oranges
         # because otherwise we will not be able to scan in real time
+        # but one thing we have to keep notice is what if the orange there is already rotten
+        # then we need to do a bfs on that so we should have a bfs helper function
         # we also need to check at the end if there are leftovers non-rotten oranges
-        # we should instead keep track of a starting count of fresh oranges
-        # and decrement every time we mark one as rotten and if the number is not 0 at the end, we return -1
+        # The above here is also wrong, we should instead keep track of a starting count of fresh oranges
+        # and decrement every time we mark one as rotten and if the number is not 0 at the end, we return false
         # we don't actually need a visited set like usual since when we rot the oranges, we mark the node as 2
         # which is equivalent of rotten here
 
@@ -28,9 +27,9 @@ class Solution:
         for row in range(rows):
             for col in range(cols):
                 if grid[row][col] == 1:
-                    freshOrangeCounter += 1
+                    freshOrangeCounter+=1
                 elif grid[row][col] == 2:
-                    rottenQueue.append((row, col))
+                    rottenQueue.append((row,col))
 
         # now we spread the rot to neighbors
         # we also need to make sure there are fresh oranges to spread to
@@ -42,20 +41,18 @@ class Solution:
                 currentRow, currentCol = rottenQueue.popleft()
                 for rowIncrement, colIncrement in neighbors:
                     # if 0, we don't do anything
-                    # if 1, we rotten them by adding them to rottenQueue
+                    # if 1, we rotten them by adding them to visited and rottenQueue
                     neighborRow = currentRow + rowIncrement
                     neighborCol = currentCol + colIncrement
-                    if (neighborRow >= 0 and neighborRow < rows
-                            and neighborCol >= 0 and neighborCol < cols
-                            and grid[neighborRow][neighborCol] == 1):
+                    if neighborRow >= 0 and neighborRow < rows and neighborCol >= 0 and neighborCol < cols and grid[neighborRow][neighborCol] == 1:
                         # change it to rotten
                         grid[neighborRow][neighborCol] = 2
                         # add to queue
                         rottenQueue.append((neighborRow, neighborCol))
                         # decrement fresh counter
-                        freshOrangeCounter -= 1
+                        freshOrangeCounter-=1
                 # with this breadth over, we will increment time
-            minute += 1
+            minute+=1
 
         if freshOrangeCounter > 0:
             return -1

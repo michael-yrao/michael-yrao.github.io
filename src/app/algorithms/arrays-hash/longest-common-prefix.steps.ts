@@ -2,13 +2,19 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const PYTHON_CODE = `class Solution:
     def longestCommonPrefix(self, strs: List[str]) -> str:
-        shortest = min(strs, key=len)
+        # the prefix can never be longer than the shortest string, so scan that as our limit
+        # at each position, if any string diverges from the shortest, we have our answer
+
+        shortestString = min(strs, key=len)
+
         lcp = ""
-        for i in range(len(shortest)):
-            for s in strs:
-                if s[i] != shortest[i]:
+
+        for i in range(len(shortestString)):
+            for str in strs:
+                if str[i] != shortestString[i]:
                     return lcp
-            lcp += shortest[i]
+            lcp += shortestString[i]
+
         return lcp`;
 
 function generateSteps(): Step[] {

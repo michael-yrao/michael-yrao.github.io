@@ -2,18 +2,13 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 // ── Solution 1: Iterative ─────────────────────────────────────────────────────
 
-const ITERATIVE_CODE = `from typing import List
-
-class Solution:
-    def search(self, nums: List[int], target: int) -> int:
-        # l,r,mid
+const ITERATIVE_CODE = `class Solution:
+    # loop method
+    def loopSearch(self, nums: List[int], target: int) -> int:
         l, r = 0, len(nums)-1
 
-        # continue until no more values to iterate through
-        # covers case of nums.length == 1 e.g. [1]
         while l <= r:
-            # l + (r - l) // 2 is same as (l + r) // 2
-            # however, this covers case where l and r are large numbers
+            # l + (r - l) // 2 avoids integer overflow for very large indices (same value as (l+r)//2 otherwise)
             mid = l + (r - l) // 2
             if nums[mid] == target:
                 return mid
@@ -135,11 +130,10 @@ function generateIterativeSteps(): Step[] {
 
 // ── Solution 2: Recursive ─────────────────────────────────────────────────────
 
-const RECURSIVE_CODE = `from typing import List
-
-class Solution:
+const RECURSIVE_CODE = `class Solution:
+    # recursion method
     def recursiveSearch(self, nums: List[int], target: int) -> int:
-        def search(l, r):
+        def search(l,r):
             if l > r:
                 return -1
             m = l + (r - l) // 2
@@ -147,8 +141,8 @@ class Solution:
             if nums[m] == target:
                 return m
             if nums[m] > target:
-                return search(l, m-1)
-            return search(m+1, r)
+                return search(l,m-1)
+            return search(m+1,r)
 
         return search(0, len(nums)-1)`;
 

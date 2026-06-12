@@ -2,14 +2,23 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const PYTHON_CODE = `class Solution:
     def longestConsecutive(self, nums: List[int]) -> int:
-        num_set = set(nums)
+        # only start counting from sequence beginnings to avoid O(n²) inner loops
+        # a number is a sequence start only if (num - 1) is not in the set
+        # a set (not map) suffices — we only need membership checks, not stored lengths
+
+        if not nums:
+            return 0
+        consecutiveSet = set(nums)
         longest = 0
-        for num in num_set:
-            if (num - 1) not in num_set:
+
+        for num in consecutiveSet:
+            if (num - 1) not in consecutiveSet:
+                # this is a sequence start — extend forward until the chain breaks
                 length = 1
-                while (num + length) in num_set:
+                while (num + length) in consecutiveSet:
                     length += 1
                 longest = max(longest, length)
+
         return longest`;
 
 function generateSteps(): Step[] {

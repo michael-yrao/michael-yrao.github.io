@@ -2,13 +2,40 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const PYTHON_CODE = `class Solution:
     def isPalindrome(self, s: str) -> bool:
-        filtered = [c.lower() for c in s if c.isalnum()]
-        l, r = 0, len(filtered) - 1
-        while l < r:
-            if filtered[l] != filtered[r]:
+        # clean string to alphabet only
+        # also make it lowercase
+        regex = re.compile('[^a-zA-Z]')
+        cleanString = regex.sub('', s).lower()
+
+        l,r=0,len(cleanString)-1
+        while r>=l:
+            if cleanString[l] != cleanString[r]:
                 return False
-            l += 1
-            r -= 1
+            l+=1
+            r-=1
+        return True`;
+
+const PYTHON_CODE_ALT = `class Solution:
+    def isPalindromeNoCleaning(self, s: str) -> bool:
+
+        def alphaNumeric(character):
+            return ((ord('A') <= ord(character) <= ord('Z')) or
+                    (ord('a') <= ord(character) <= ord('z')) or
+                    (ord('0') <= ord(character) <= ord('9'))
+                    )
+
+        l, r = 0, len(s) - 1
+
+        while r >= l:
+            # get to alphanumeric for both l and r
+            while l < r and not alphaNumeric(s[l]):
+                l+=1
+            while r > l and not alphaNumeric(s[r]):
+                r-=1
+            if s[r].lower() != s[l].lower():
+                return False
+            r-=1
+            l+=1
         return True`;
 
 function generateSteps(): Step[] {
@@ -94,10 +121,20 @@ function generateSteps(): Step[] {
   return steps;
 }
 
+function generateNoCleaningSteps(): Step[] {
+  return [];
+}
+
 const twoPointerSolution: SolutionVariant = {
   label: 'Two Pointers',
   pythonCode: PYTHON_CODE,
   generateSteps,
+};
+
+const noCleaningSolution: SolutionVariant = {
+  label: 'No Cleaning',
+  pythonCode: PYTHON_CODE_ALT,
+  generateSteps: generateNoCleaningSteps,
 };
 
 export const validPalindromeMeta: AlgorithmMeta = {
@@ -128,5 +165,5 @@ export const validPalindromeMeta: AlgorithmMeta = {
     's consists only of printable ASCII characters.',
   ],
   hint: 'Filter the string first, then use two pointers that start at each end and converge. If any pair doesn\'t match, return false immediately.',
-  solutions: [twoPointerSolution],
+  solutions: [twoPointerSolution, noCleaningSolution],
 };

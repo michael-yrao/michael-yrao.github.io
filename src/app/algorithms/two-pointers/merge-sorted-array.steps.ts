@@ -2,21 +2,30 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const PYTHON_CODE = `class Solution:
     def merge(self, nums1: List[int], m: int, nums2: List[int], n: int) -> None:
-        a, b = m - 1, n - 1
-        for i in range(m + n - 1, -1, -1):
-            if a >= 0 and b >= 0:
-                if nums1[a] > nums2[b]:
-                    nums1[i] = nums1[a]
-                    a -= 1
-                else:
-                    nums1[i] = nums2[b]
-                    b -= 1
-            elif a >= 0:
-                nums1[i] = nums1[a]
-                a -= 1
-            elif b >= 0:
-                nums1[i] = nums2[b]
-                b -= 1`;
+        # fill from the back so we write into the spare zeros without overwriting unprocessed values
+        # leftIterator and rightIterator point to the current tail of nums1 and nums2
+        # arrIterator tracks the next write position (starting at m + n - 1)
+        arrIterator = m + n - 1
+        leftIterator = m - 1
+        rightIterator = n - 1
+        # place the larger of the two current tails, then retreat that pointer
+        while leftIterator >= 0 and rightIterator >= 0:
+            if nums1[leftIterator] > nums2[rightIterator]:
+                nums1[arrIterator] = nums1[leftIterator]
+                leftIterator -= 1
+            else:
+                nums1[arrIterator] = nums2[rightIterator]
+                rightIterator -= 1
+            arrIterator -= 1
+        # one array is exhausted; the remaining elements in the other are already sorted and in place
+        while leftIterator >= 0:
+            nums1[arrIterator] = nums1[leftIterator]
+            leftIterator -= 1
+            arrIterator -= 1
+        while rightIterator >= 0:
+            nums1[arrIterator] = nums2[rightIterator]
+            rightIterator -= 1
+            arrIterator -= 1`;
 
 function generateSteps(): Step[] {
   const nums1 = [1, 2, 3, 0, 0, 0];

@@ -2,21 +2,32 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const DUTCH_FLAG_CODE = `class Solution:
     def sortColors(self, nums: List[int]) -> None:
+        # Dutch National Flag: maintain three regions in a single pass
+        # l = boundary of confirmed 0s, r = boundary of confirmed 2s, inc = current element
+        #   if nums[inc] == 0: swap with l, advance both l and inc (0 region grows left)
+        #   if nums[inc] == 1: just advance inc (already in the correct middle region)
+        #   if nums[inc] == 2: swap with r, shrink r (don't advance inc — must re-inspect swapped value)
+        def swap(l, r):
+            temp = nums[l]
+            nums[l] = nums[r]
+            nums[r] = temp
+
         l, inc, r = 0, 0, len(nums) - 1
-        while inc <= r:
+        while inc < len(nums):
             if nums[inc] == 0:
-                nums[l], nums[inc] = nums[inc], nums[l]
+                swap(l, inc)
                 l += 1
-                inc += 1
             elif nums[inc] == 2:
-                nums[r], nums[inc] = nums[inc], nums[r]
+                swap(r, inc)
                 r -= 1
-                # don't advance inc: must re-check swapped value
-            else:
-                inc += 1`;
+                # the value swapped in from r is unknown — decrement inc so the next inc += 1 re-visits it
+                inc -= 1
+            inc += 1`;
 
 const BUCKET_SORT_CODE = `class Solution:
     def sortColors(self, nums: List[int]) -> None:
+        # counting sort works here because values are bounded to {0, 1, 2}
+        # count occurrences of each color, then overwrite the array in color order
         bucket = {}
         for num in nums:
             bucket[num] = 1 + bucket.get(num, 0)
@@ -24,7 +35,7 @@ const BUCKET_SORT_CODE = `class Solution:
         for i in range(3):
             while bucket.get(i):
                 nums[counter] = i
-                bucket[i] -= 1
+                bucket[i] = -1 + bucket.get(i, 0)
                 counter += 1`;
 
 function generateDutchFlagSteps(): Step[] {

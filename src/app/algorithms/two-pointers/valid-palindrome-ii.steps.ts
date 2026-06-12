@@ -2,7 +2,11 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const PYTHON_CODE = `class Solution:
     def validPalindrome(self, s: str) -> bool:
-        def skippable(l, r):
+        # two pointers converge inward; on a mismatch we get one deletion attempt
+        # try skipping the left character or skipping the right — either may yield a palindrome
+        l, r = 0, len(s) - 1
+
+        def skippable(l, r) -> bool:
             while l < r:
                 if s[l] == s[r]:
                     l += 1
@@ -11,13 +15,13 @@ const PYTHON_CODE = `class Solution:
                     return False
             return True
 
-        l, r = 0, len(s) - 1
         while l < r:
             if s[l] == s[r]:
                 l += 1
                 r -= 1
             else:
                 return skippable(l+1, r) or skippable(l, r-1)
+
         return True`;
 
 function generateSteps(): Step[] {
@@ -63,7 +67,7 @@ function generateSteps(): Step[] {
   let r = chars.length - 1;
 
   steps.push({
-    explanation: `s[${l}]='${chars[l]}' ≠ s[${r}]='${chars[r]}': mismatch on first comparison! Try skipping the left (check s[${l + 1}..${r}]) OR skipping the right (check s[${l}..${r - 1}]).`,
+    explanation: `s[${l}]='${chars[l]}' != s[${r}]='${chars[r]}': mismatch on first comparison! Try skipping the left (check s[${l + 1}..${r}]) OR skipping the right (check s[${l}..${r - 1}]).`,
     highlightLine: 16,
     state: {
       type: 'array',

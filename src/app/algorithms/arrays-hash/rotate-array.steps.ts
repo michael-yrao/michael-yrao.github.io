@@ -2,15 +2,23 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const PYTHON_CODE = `class Solution:
     def rotate(self, nums: List[int], k: int) -> None:
-        def reverse(l, r):
-            while l < r:
-                nums[l], nums[r] = nums[r], nums[l]
+        # three-reversal trick: reverse all → reverse first k → reverse last (n-k)
+        # this repositions every element in O(n) time with O(1) space
+
+        def reverseArray(l, r):
+            def swap(l, r):
+                temp = nums[l]
+                nums[l] = nums[r]
+                nums[r] = temp
+            while r > l:
+                swap(l, r)
                 l += 1
                 r -= 1
+        # rotating by n is the same as no rotation, so reduce k to avoid redundant work
         k = k % len(nums)
-        reverse(0, len(nums) - 1)  # step 1: reverse all
-        reverse(0, k - 1)          # step 2: reverse first k
-        reverse(k, len(nums) - 1)  # step 3: reverse last n-k`;
+        reverseArray(0, len(nums) - 1)
+        reverseArray(0, k - 1)
+        reverseArray(k, len(nums) - 1)`;
 
 function generateSteps(): Step[] {
   const original = [1, 2, 3, 4, 5, 6, 7];

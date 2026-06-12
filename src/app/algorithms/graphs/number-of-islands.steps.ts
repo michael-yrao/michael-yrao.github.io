@@ -2,10 +2,7 @@ import { AlgorithmMeta, SolutionVariant, Step, GridState, ProblemExample } from 
 
 // ── Solution 1: BFS ───────────────────────────────────────────────────────────
 
-const BFS_CODE = `import collections
-from typing import List
-
-class Solution:
+const BFS_CODE = `class Solution:
     def numIslands(self, grid: List[List[str]]) -> int:
         # so this is clearly a bfs question
         # So how do we determine we have an island
@@ -19,9 +16,9 @@ class Solution:
         visited = set()
         islandCount = 0
 
-        def bfs(row, col):
+        def bfs(row,col):
             queue = collections.deque()
-            currentCoordinate = (row, col)
+            currentCoordinate = (row,col)
             visited.add(currentCoordinate)
             queue.append(currentCoordinate)
 
@@ -34,21 +31,21 @@ class Solution:
                 for dr, dc in directions:
                     # if neighbor is a valid unvisited land
                     # mark it as visited
-                    neighbourCoordinate = (r+dr, c+dc)
+                    neighourCoordinate = (r+dr, c+dc)
                     if (r + dr in range(rows)
                         and c + dc in range(cols)
                         and grid[r+dr][c+dc] == '1'
-                        and neighbourCoordinate not in visited):
-                        queue.append(neighbourCoordinate)
-                        visited.add(neighbourCoordinate)
+                        and neighourCoordinate not in visited):
+                        queue.append(neighourCoordinate)
+                        visited.add(neighourCoordinate)
 
         for r in range(rows):
             for c in range(cols):
                 # when we see an unvisited island
                 # we perform bfs on it to mark all land connected to it
-                if grid[r][c] == '1' and (r, c) not in visited:
-                    bfs(r, c)
-                    islandCount += 1
+                if grid[r][c] == '1' and (r,c) not in visited:
+                    bfs(r,c)
+                    islandCount+=1
 
         return islandCount`;
 
@@ -182,9 +179,7 @@ function generateBfsSteps(): Step[] {
 
 // ── Solution 2: DFS ───────────────────────────────────────────────────────────
 
-const DFS_CODE = `from typing import List
-
-class Solution:
+const DFS_CODE = `class Solution:
     def numIslandsDFS(self, grid: List[List[str]]) -> int:
         # so we can do DFS as well to traverse the island
         # we will traverse if node is land
@@ -213,17 +208,17 @@ class Solution:
             # mark current node as visited
             visited.add((row, col))
             # now we go as deep as possible in all 4 directions
-            dfs(row+1, col)
-            dfs(row-1, col)
-            dfs(row, col+1)
-            dfs(row, col-1)
+            dfs(row+1,col)
+            dfs(row-1,col)
+            dfs(row,col+1)
+            dfs(row,col-1)
 
             return 1
 
         for row in range(rows):
             for col in range(cols):
-                if grid[row][col] == '1' and (row, col) not in visited:
-                    result += dfs(row, col)
+                if grid[row][col] == '1' and (row,col) not in visited:
+                    result+=dfs(row,col)
         return result`;
 
 function generateDfsSteps(): Step[] {

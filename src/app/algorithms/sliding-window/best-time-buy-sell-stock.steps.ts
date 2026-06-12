@@ -4,21 +4,16 @@ const PYTHON_CODE = `from typing import List
 
 class Solution:
     def maxProfit(self, prices: List[int]) -> int:
-        # keep track of current max
-        # currentMaxProfit = max(currentMaxProfit, prices[r] - prices[l])
+        # l = buy day, r = sell day; profit = prices[r] - prices[l]
+        # if prices[r] < prices[l], buying at r is strictly better — move l there
+        # this keeps l at the lowest price seen so far without needing a separate min variable
         currentMaxProfit = 0
 
-        # l = buy
-        # r = sell
         l, r = 0, 1
 
         while r < len(prices):
-
-            # update currentMaxProfit
             currentMaxProfit = max(currentMaxProfit, prices[r] - prices[l])
 
-            # if prices[r] < prices[l], update l
-            # this ensures we have lowest prices[l] possible
             if prices[r] < prices[l]:
                 l = r
             r += 1

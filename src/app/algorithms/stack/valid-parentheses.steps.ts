@@ -1,9 +1,6 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from collections import deque
-
-
-class Solution:
+const PYTHON_CODE = `class Solution:
     def isValid(self, s: str) -> bool:
         # basically a bunch of if else statements
         # we can insert into stack on opening bracket
@@ -17,9 +14,35 @@ class Solution:
         for char in s:
             # check first if it is a closing bracket
             if char in openToCloseMap.values():
-                # if stack is empty and we see a closing bracket, return false
+                # if stack is empty and we see an closing bracket, return false
                 # if map[peek] != char, also return false
-                if not stack or openToCloseMap.get(stack[-1], None) != char:
+                if not stack or openToCloseMap.get(stack[-1],None) != char:
+                    return False
+                # otherwise we got a match, pop out opening bracket
+                stack.pop()
+            if char in openToCloseMap:
+                stack.append(char)
+        return not stack`;
+
+const PYTHON_CODE_ALT = `class Solution:
+    def isValidSet(self, s: str) -> bool:
+        # basically a bunch of if else statements
+        # we can insert into stack on opening bracket
+        # pop on ending if it matches, return False if not match
+        # so one thing we can do is just do an open to close map
+
+        openToCloseMap = {'(' : ')', '{' : '}', '[' : ']'}
+
+        closeBrackets = set(openToCloseMap.values())
+
+        stack = deque()
+
+        for char in s:
+            # check first if it is a closing bracket
+            if char in closeBrackets:
+                # if stack is empty and we see an closing bracket, return false
+                # if map[peek] != char, also return false
+                if not stack or openToCloseMap.get(stack[-1],None) != char:
                     return False
                 # otherwise we got a match, pop out opening bracket
                 stack.pop()
@@ -145,10 +168,20 @@ function generateSteps(): Step[] {
   return steps;
 }
 
+function generateSetSteps(): Step[] {
+  return [];
+}
+
 const stackSolution: SolutionVariant = {
   label: 'Stack',
   pythonCode: PYTHON_CODE,
   generateSteps,
+};
+
+const stackSetSolution: SolutionVariant = {
+  label: 'Stack + Set',
+  pythonCode: PYTHON_CODE_ALT,
+  generateSteps: generateSetSteps,
 };
 
 export const validParenthesesMeta: AlgorithmMeta = {
@@ -170,5 +203,5 @@ export const validParenthesesMeta: AlgorithmMeta = {
   ] as ProblemExample[],
   constraints: ['1 ≤ s.length ≤ 10⁴', 's consists of parentheses only: \'()[]{}\'' ],
   hint: 'When you see a closing bracket, what\'s the only opening bracket it could match? What data structure remembers the "most recent unmatched opener"?',
-  solutions: [stackSolution],
+  solutions: [stackSolution, stackSetSolution],
 };

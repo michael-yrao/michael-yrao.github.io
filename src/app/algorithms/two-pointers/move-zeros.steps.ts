@@ -5,10 +5,18 @@ const PYTHON_CODE = `from typing import List
 
 class Solution:
     def moveZeroes(self, nums: List[int]) -> None:
+        # two pointers both start at the left to preserve relative order of non-zeros
+        # left = next write slot for a non-zero value; right = current element being examined
+        # (opposite-end pointers would not preserve order)
+        def swap(l, r):
+            temp = nums[l]
+            nums[l] = nums[r]
+            nums[r] = temp
+
         left = right = 0
         while right < len(nums):
             if nums[right] != 0:
-                nums[left], nums[right] = nums[right], nums[left]
+                swap(left, right)
                 left += 1
             right += 1`;
 

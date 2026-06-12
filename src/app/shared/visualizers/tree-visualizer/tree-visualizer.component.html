@@ -1,0 +1,51 @@
+<div class="tv" *ngIf="state?.nodes?.length">
+  <svg
+    class="tv__svg"
+    [attr.width]="svgWidth"
+    [attr.height]="svgHeight"
+    [attr.viewBox]="'0 0 ' + svgWidth + ' ' + svgHeight"
+  >
+    <!-- Edges first -->
+    <line
+      *ngFor="let e of edges()"
+      [attr.x1]="e.x1"
+      [attr.y1]="e.y1"
+      [attr.x2]="e.x2"
+      [attr.y2]="e.y2"
+      class="tv__edge"
+    ></line>
+
+    <!-- Nodes on top -->
+    <g *ngFor="let l of layout; trackBy: trackById">
+      <circle
+        [attr.cx]="l.x"
+        [attr.cy]="l.y"
+        [attr.r]="NODE_RADIUS"
+        [attr.class]="'tv__node tv__node--' + l.node.state"
+      ></circle>
+      <text
+        [attr.x]="l.x"
+        [attr.y]="l.y"
+        class="tv__node-val"
+        dominant-baseline="central"
+        text-anchor="middle"
+      >{{ l.node.value }}</text>
+      <!-- Pointer labels below node -->
+      <text
+        *ngFor="let lbl of nodePointers(l.node.id); let i = index"
+        [attr.x]="l.x"
+        [attr.y]="l.y + NODE_RADIUS + 14 + i * 14"
+        class="tv__ptr-label"
+        text-anchor="middle"
+      >{{ lbl }}</text>
+    </g>
+  </svg>
+
+  <!-- Counters -->
+  <div class="tv__counters" *ngIf="state.counters?.length">
+    <span *ngFor="let c of state.counters" class="tv__counter">
+      <span class="tv__counter-label">{{ c.label }}</span>
+      <span class="tv__counter-val">{{ c.value }}</span>
+    </span>
+  </div>
+</div>

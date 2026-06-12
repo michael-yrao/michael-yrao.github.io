@@ -55,7 +55,24 @@ export interface LinkedListState {
   result?: LinkedListNode[];
 }
 
-export type VisualizerState = ArrayState | GridState | LinkedListState;
+export type TreeNodeState = 'default' | 'active' | 'visited' | 'found' | 'highlighted' | 'comparing';
+
+export interface TreeNode {
+  id: string;
+  value: number | string | null;
+  state: TreeNodeState;
+  leftId: string | null;
+  rightId: string | null;
+}
+
+export interface TreeState {
+  type: 'tree';
+  nodes: TreeNode[];
+  pointers?: { nodeId: string | null; label: string }[];
+  counters?: { label: string; value: string | number }[];
+}
+
+export type VisualizerState = ArrayState | GridState | LinkedListState | TreeState;
 
 export interface StepVariable {
   name: string;

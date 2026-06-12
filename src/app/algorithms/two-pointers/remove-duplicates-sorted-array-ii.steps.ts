@@ -2,11 +2,18 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const PYTHON_CODE = `class Solution:
     def removeDuplicates(self, nums: List[int]) -> int:
+        # same two-pointer pattern as Remove Duplicates I, but allow at most 2 copies
+        # compare nums[r] against nums[l-2]: if equal, nums[r] would be a 3rd copy — skip it
+        # first 2 elements are always valid, so both pointers start at index 2
+
         l = r = 2
+
         while r < len(nums):
             if nums[r] != nums[l - 2]:
+                # nums[r] is not a 3rd copy — safe to keep; write it and advance the write cursor
                 nums[l] = nums[r]
                 l += 1
+            # whether we wrote or skipped, always advance the read cursor
             r += 1
         return l`;
 

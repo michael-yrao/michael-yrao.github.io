@@ -11,8 +11,8 @@ class ListNode:
 
 class Solution:
     def reverseListIterative(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        # we need to initialize a prev so we can have the current head point to null
-        # then we have a pointer to help us traverse through the list
+        # prev starts as None so the new tail correctly points to null
+        # temp saves current.next before we overwrite it — without it we'd lose our forward reference
         prev, current = None, head
 
         while current is not None:

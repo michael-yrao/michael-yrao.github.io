@@ -2,28 +2,49 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 const PREFIX_CODE = `class Solution:
     def trap(self, height: List[int]) -> int:
-        n = len(height)
-        leftMax = [0] * n
-        rightMax = [0] * n
-        for i in range(1, n):
+        # knowing water at each index = min(leftMax, rightMax) - height[i]
+        # we need to keep track of leftMax and rightMax of each index
+        # leftMax and rightMax stands for the walls for which this current index
+        # can trap water
+
+        # height   = [0,1,0,2,1,0,1,3,2,1,2,1]
+        # leftMax  = [0,0,1,1,2,2,2,2,3,3,3,3]
+        # rightMax = [3,3,3,3,3,3,3,2,2,2,1,0]
+        # water    = [0,0,1,0,1,2,1,0,0,1,0,0]
+
+        leftMax = [0] * len(height)
+        rightMax = [0] * len(height)
+        totalWater = 0
+
+        for i in range(1, len(height)):
             leftMax[i] = max(leftMax[i-1], height[i-1])
-        for i in range(n-2, -1, -1):
+
+        for i in range(len(height)-2, -1, -1):
             rightMax[i] = max(rightMax[i+1], height[i+1])
-        total = 0
-        for i in range(n):
-            total += max(0, min(leftMax[i], rightMax[i]) - height[i])
-        return total`;
+
+        for i in range(len(height)):
+            currentWater = max(0, min(leftMax[i], rightMax[i]) - height[i])
+            totalWater += currentWater
+
+        return totalWater`;
 
 const TWO_PTR_CODE = `class Solution:
     def trap(self, height: List[int]) -> int:
+        # water[i] = min(leftMax, rightMax) - height[i]; the smaller side is the bottleneck
+        # two pointers: always process the side whose max is smaller — that side's max is the true potential water
+        # this lets us compute the running max from each side without storing full leftMax/rightMax arrays
+
+        if not height:
+            return 0
+
         l, r = 0, len(height) - 1
         leftMax, rightMax = height[l], height[r]
         res = 0
         while l < r:
             if leftMax < rightMax:
-                l += 1
-                leftMax = max(leftMax, height[l])
-                res += leftMax - height[l]
+                l += 1                             # move inward — boundary cells themselves hold no water
+                leftMax = max(leftMax, height[l])  # update running max from the left
+                res += leftMax - height[l]         # potential water - actual height = trapped water
             else:
                 r -= 1
                 rightMax = max(rightMax, height[r])

@@ -4,7 +4,15 @@ const PYTHON_CODE = `from typing import List
 
 
 class Solution:
-    def maxSubArray(self, nums: List[int]) -> int:
+    def maxSubArrayKadane(self, nums: List[int]) -> int:
+        # constant space dynamic sliding window algorithm
+        # we can be greedy and not care for negative sums
+        # e.g. if current sum is negative, discard it, start back at 0 at current index
+
+        # start maxSum at first index
+        # it should not be 0 since we have negatives
+        # e.g. if result is negative and we start at 0, 0 will always be bigger and we will return 0 if we initialize to 0
+
         maxSum = nums[0]
         curMax = 0
 
@@ -137,6 +145,14 @@ import math
 
 class Solution:
     def maxSubArrayPrefixSum(self, nums: List[int]) -> int:
+        # finding subarray with largest sum
+        # sliding window problem with dynamic window size
+        # one approach is prefix sum
+        # create prefixSum array
+        # prefixSum[j] - prefixSum[i] = sum of subarray between i and j, exclusive of i
+        # so we can keep track of a maximum sum
+        # keep track of the smallest prefixSum[i] we can find
+        # this way we maximize prefixSum[j] and minimize prefixSum[i]
         prefixSum = []
         for i in range(len(nums)):
             if i == 0:
@@ -144,13 +160,16 @@ class Solution:
             else:
                 prefixSum.append(nums[i] + prefixSum[i - 1])
 
+        # needs to be 0 to calc subarray of size 1, e.g. [1]
         minPrefixSum = 0
         maxSum = -math.inf
+
+        # nums = [-2,1,-3,4,-1,2,1,-5,4]
+        # prefixSum = [-2, -1, -4, 0, -1, 1, 2, -3, 1]
 
         for curSum in prefixSum:
             maxSum = max(maxSum, curSum - minPrefixSum)
             minPrefixSum = min(minPrefixSum, curSum)
-
         return maxSum`;
 
 function generatePrefixSumSteps(): Step[] {
