@@ -12,6 +12,15 @@ interface GameMeta {
 
 export const GAMES: GameMeta[] = [
   {
+    id: 'pattern-sense',
+    title: 'Pattern Sense',
+    description: 'Read a real problem with the title hidden — name the technique it calls for. Build the recognition reflex that is half of every interview.',
+    algorithmNote: 'Every problem on this site becomes a quiz round: spot the cues (sorted input? contiguous run? hierarchy?) and pick the right tool.',
+    algorithms: ['Recognition', 'All techniques'],
+    status: 'available',
+    route: '/games/pattern-sense',
+  },
+  {
     id: 'flood-fill',
     title: 'Flood Fill',
     description: 'Pick a color to flood the board outward from the top-left corner. Conquer the whole grid in 22 moves or fewer.',

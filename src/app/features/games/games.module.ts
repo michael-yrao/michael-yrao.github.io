@@ -10,6 +10,11 @@ const routes: Routes = [
     loadChildren: () =>
       import('./flood-fill/flood-fill.module').then((m) => m.FloodFillModule),
   },
+  {
+    path: 'pattern-sense',
+    loadChildren: () =>
+      import('./pattern-sense/pattern-sense.module').then((m) => m.PatternSenseModule),
+  },
 ];
 
 @NgModule({

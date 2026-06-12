@@ -1,0 +1,116 @@
+<div class="ps-page">
+  <div class="breadcrumb">
+    <a routerLink="/">Home</a>
+    <span>›</span>
+    <a routerLink="/games">Games</a>
+    <span>›</span>
+    <span>Pattern Sense</span>
+  </div>
+
+  <header class="ps-header">
+    <p class="ps-header__eyebrow">Recognition Trainer</p>
+    <h1 class="ps-header__title">Pattern Sense</h1>
+    <p class="ps-header__sub">
+      Read the problem. <strong>Don't solve it</strong> — just name the technique.
+      Recognizing the pattern is half the interview.
+    </p>
+  </header>
+
+  <!-- ── Scoreboard ──────────────────────────────────────────── -->
+  <div class="ps-stats" aria-live="polite">
+    <div class="stat">
+      <span class="stat__value" [class.stat__value--hot]="streak >= 3">{{ streak }}</span>
+      <span class="stat__label">streak</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat__value">{{ bestStreak }}</span>
+      <span class="stat__label">best</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat__value">{{ correctCount }}/{{ answeredCount }}</span>
+      <span class="stat__label">correct</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat__value">{{ progressLabel }}</span>
+      <span class="stat__label">problem</span>
+    </div>
+  </div>
+
+  <!-- ── Run summary ─────────────────────────────────────────── -->
+  <div class="ps-summary" *ngIf="finished">
+    <h2 class="ps-summary__title">Deck complete!</h2>
+    <p class="ps-summary__line">
+      You recognized <strong>{{ correctCount }}</strong> of <strong>{{ answeredCount }}</strong> patterns.
+      Best streak: <strong>{{ bestStreak }}</strong>.
+    </p>
+    <button class="ps-next" (click)="startRun()">↺ Shuffle &amp; play again</button>
+  </div>
+
+  <ng-container *ngIf="!finished && current">
+    <!-- ── Problem scenario (title hidden until reveal) ────────── -->
+    <section class="ps-scenario">
+      <div class="ps-scenario__label">
+        <ng-container *ngIf="!revealed">Mystery problem — which technique does it call for?</ng-container>
+        <ng-container *ngIf="revealed">
+          <a
+            class="ps-scenario__title-link"
+            [routerLink]="['/algorithms', current.category, current.id]"
+          >#{{ current.lcNumber }} · {{ current.title }} →</a>
+        </ng-container>
+      </div>
+
+      <p class="ps-scenario__desc">{{ current.description }}</p>
+
+      <ul class="ps-scenario__constraints" *ngIf="current.constraints.length">
+        <li *ngFor="let c of current.constraints">{{ c }}</li>
+      </ul>
+    </section>
+
+    <!-- ── Technique chips ─────────────────────────────────────── -->
+    <div class="ps-options" role="group" aria-label="Pick the technique">
+      <button
+        *ngFor="let opt of options"
+        class="ps-chip"
+        [class.ps-chip--selected]="selected === opt.id"
+        [class.ps-chip--correct]="revealed && opt.id === current.category"
+        [class.ps-chip--wrong]="revealed && selected === opt.id && opt.id !== current.category"
+        [disabled]="revealed"
+        [attr.aria-pressed]="selected === opt.id"
+        (click)="choose(opt.id)"
+      >{{ opt.label }}</button>
+    </div>
+
+    <!-- ── Reveal panel ────────────────────────────────────────── -->
+    <section class="ps-reveal" *ngIf="revealed" aria-live="polite">
+      <div class="ps-reveal__verdict" [class.ps-reveal__verdict--correct]="isCorrect">
+        <ng-container *ngIf="isCorrect">✓ Correct — {{ correctLabel }}</ng-container>
+        <ng-container *ngIf="!isCorrect">✗ It's {{ correctLabel }}</ng-container>
+      </div>
+
+      <p class="ps-reveal__cue">{{ recognitionCue }}</p>
+
+      <p class="ps-reveal__hint" *ngIf="current.hint">
+        <span class="ps-reveal__hint-label">Why it works here:</span> {{ current.hint }}
+      </p>
+
+      <div class="ps-reveal__meta">
+        <span
+          class="difficulty-badge"
+          [ngClass]="'badge-' + current.difficulty.toLowerCase()"
+        >{{ current.difficulty }}</span>
+        <span *ngFor="let tag of current.tags" class="ps-tag">{{ tag }}</span>
+      </div>
+
+      <div class="ps-reveal__actions">
+        <a
+          class="ps-see-algo"
+          [routerLink]="['/algorithms', current.category, current.id]"
+        >See it step by step →</a>
+        <button class="ps-next" (click)="next()">Next problem →</button>
+      </div>
+    </section>
+  </ng-container>
+</div>
