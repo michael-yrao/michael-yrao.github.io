@@ -50,6 +50,7 @@ import { cloneGraphMeta } from '../../algorithms/graphs/clone-graph.steps';
 import { courseScheduleMeta } from '../../algorithms/graphs/course-schedule.steps';
 import { courseScheduleIIMeta } from '../../algorithms/graphs/course-schedule-ii.steps';
 import { pacificAtlanticWaterFlowMeta } from '../../algorithms/graphs/pacific-atlantic-water-flow.steps';
+import { floodFillMeta } from '../../algorithms/graphs/flood-fill.steps';
 import { validPalindromeIIIMeta } from '../../algorithms/dynamic-programming/valid-palindrome-iii.steps';
 import { removeElementMeta } from '../../algorithms/arrays-hash/remove-element.steps';
 import { concatenationOfArrayMeta } from '../../algorithms/arrays-hash/concatenation-of-array.steps';
@@ -173,6 +174,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   // ── Graphs ────────────────────────────────────────────────────────────────
   numberOfIslandsMeta,
   maxAreaOfIslandMeta,
+  floodFillMeta,
   cloneGraphMeta,
   rottingOrangesMeta,
   courseScheduleMeta,
