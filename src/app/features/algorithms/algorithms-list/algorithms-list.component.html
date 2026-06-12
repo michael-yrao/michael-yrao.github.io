@@ -13,17 +13,19 @@
   </div>
 
   <!-- View toggle tabs -->
-  <div class="view-toggle" role="tablist">
+  <div class="view-toggle" role="tablist" aria-label="View mode">
     <button
       role="tab"
       class="view-toggle__btn"
       [class.view-toggle__btn--active]="viewMode === 'all'"
+      [attr.aria-selected]="viewMode === 'all'"
       (click)="setViewMode('all')"
     >≡ All Problems</button>
     <button
       role="tab"
       class="view-toggle__btn"
       [class.view-toggle__btn--active]="viewMode === 'categories'"
+      [attr.aria-selected]="viewMode === 'categories'"
       (click)="setViewMode('categories')"
     >⊞ Browse by Category</button>
   </div>
@@ -51,11 +53,13 @@
         *ngFor="let d of difficulties"
         class="filter-btn"
         [class.filter-btn--active]="filterDifficulty === d"
+        [attr.aria-pressed]="filterDifficulty === d"
         (click)="setDifficulty(d)"
       >{{ d }}</button>
       <button
         class="filter-btn filter-btn--viz"
         [class.filter-btn--active]="filterVisualized"
+        [attr.aria-pressed]="filterVisualized"
         (click)="filterVisualized = !filterVisualized"
       >⬡ Visualized only</button>
     </div>
@@ -64,7 +68,11 @@
       <div
         *ngFor="let p of filtered"
         class="problem-row"
+        role="link"
+        tabindex="0"
+        [attr.aria-label]="p.lcNumber + '. ' + p.title"
         [routerLink]="['/algorithms', p.category, p.id]"
+        (keydown.enter)="openProblem(p)"
       >
         <span class="problem-row__num">#{{ p.lcNumber }}</span>
         <div class="problem-row__title-area">
@@ -114,12 +122,14 @@
       *ngFor="let d of difficulties"
       class="filter-btn"
       [class.filter-btn--active]="filterDifficulty === d"
+      [attr.aria-pressed]="filterDifficulty === d"
       (click)="setDifficulty(d)"
     >{{ d }}</button>
 
     <button
       class="filter-btn filter-btn--viz"
       [class.filter-btn--active]="filterVisualized"
+      [attr.aria-pressed]="filterVisualized"
       (click)="filterVisualized = !filterVisualized"
     >⬡ Visualized only</button>
   </div>
@@ -128,7 +138,11 @@
     <div
       *ngFor="let p of filtered"
       class="problem-row"
+      role="link"
+      tabindex="0"
+      [attr.aria-label]="p.lcNumber + '. ' + p.title"
       [routerLink]="['/algorithms', p.category, p.id]"
+      (keydown.enter)="openProblem(p)"
     >
       <span class="problem-row__num">#{{ p.lcNumber }}</span>
       <span class="problem-row__title">{{ p.title }}</span>

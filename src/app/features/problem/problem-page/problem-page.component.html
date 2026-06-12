@@ -94,11 +94,13 @@
 
   <!-- ── Mid: solution tabs (left) · panel toggles (right) ───── -->
   <div class="problem-page__mid">
-    <div class="solution-tabs" *ngIf="hasMultipleSolutions">
+    <div class="solution-tabs" role="tablist" aria-label="Solution variants" *ngIf="hasMultipleSolutions">
       <button
         *ngFor="let sol of problem.solutions; let i = index"
+        role="tab"
         class="solution-tab"
         [class.active]="i === activeSolutionIndex"
+        [attr.aria-selected]="i === activeSolutionIndex"
         (click)="selectSolution(i)"
       >{{ sol.label }}</button>
     </div>
@@ -108,12 +110,14 @@
       <button
         class="panel-toggle"
         [class.active]="showViz"
+        [attr.aria-pressed]="showViz"
         (click)="togglePanel('viz')"
         title="{{ showViz ? 'Hide' : 'Show' }} visualizer"
       >Visualizer</button>
       <button
         class="panel-toggle"
         [class.active]="showCode"
+        [attr.aria-pressed]="showCode"
         (click)="togglePanel('code')"
         title="{{ showCode ? 'Hide' : 'Show' }} code"
       >Code</button>

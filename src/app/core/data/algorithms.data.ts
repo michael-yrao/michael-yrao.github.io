@@ -202,6 +202,22 @@ export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
   'dynamic-programming': ALL_ALGORITHMS.filter((a) => a.category === 'dynamic-programming'),
 };
 
+// Memoized: generateSteps() builds the full step array, so list views must not
+// re-run it on every change-detection pass.
+const visualizationCache = new Map<string, boolean>();
+
+export function hasVisualization(algorithm: AlgorithmMeta): boolean {
+  const cached = visualizationCache.get(algorithm.id);
+  if (cached !== undefined) return cached;
+  const result = algorithm.solutions.some((s) => s.generateSteps().length > 0);
+  visualizationCache.set(algorithm.id, result);
+  return result;
+}
+
+export function countVisualized(algorithms: AlgorithmMeta[]): number {
+  return algorithms.filter(hasVisualization).length;
+}
+
 export function findAlgorithm(category: Category, id: string): AlgorithmMeta | undefined {
   return ALGORITHMS_BY_CATEGORY[category]?.find((a) => a.id === id);
 }

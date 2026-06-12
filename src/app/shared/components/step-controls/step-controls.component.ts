@@ -1,6 +1,6 @@
 import {
   Component, Input, Output, EventEmitter, ChangeDetectorRef,
-  ChangeDetectionStrategy, OnDestroy, OnInit,
+  ChangeDetectionStrategy, OnDestroy, OnInit, HostListener,
 } from '@angular/core';
 
 @Component({
@@ -30,6 +30,45 @@ export class StepControlsComponent implements OnInit, OnDestroy {
 
   get atStart(): boolean { return this.currentStep === 0; }
   get atEnd(): boolean   { return this.currentStep >= this.totalSteps - 1; }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement;
+    // Don't hijack keys while the user is typing or operating a control.
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.isContentEditable
+    ) return;
+
+    switch (event.key) {
+      case 'ArrowLeft':
+        event.preventDefault();
+        this.pause();
+        this.stepBack();
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        this.pause();
+        this.stepForward();
+        break;
+      case ' ':
+        // Space on a focused button should activate that button instead.
+        if (target.tagName === 'BUTTON') return;
+        event.preventDefault();
+        this.togglePlay();
+        break;
+      case 'Home':
+        event.preventDefault();
+        this.goToStart();
+        break;
+      case 'End':
+        event.preventDefault();
+        this.goToEnd();
+        break;
+    }
+    this.cdr.markForCheck();
+  }
 
   stepBack(): void {
     if (!this.atStart) this.stepChange.emit(this.currentStep - 1);

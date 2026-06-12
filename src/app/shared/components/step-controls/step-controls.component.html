@@ -1,17 +1,25 @@
 <div class="controls">
   <div class="controls__nav">
-    <button class="btn-ctrl" (click)="goToStart()" [disabled]="atStart" title="Go to start">|◀</button>
-    <button class="btn-ctrl" (click)="stepBack()"  [disabled]="atStart" title="Step back">◀</button>
-    <button class="btn-ctrl btn-ctrl--play" (click)="togglePlay()" [title]="isPlaying ? 'Pause' : 'Play'">
+    <button class="btn-ctrl" (click)="goToStart()" [disabled]="atStart" title="Go to start" aria-label="Go to start">|◀</button>
+    <button class="btn-ctrl" (click)="stepBack()"  [disabled]="atStart" title="Step back (←)" aria-label="Step back">◀</button>
+    <button
+      class="btn-ctrl btn-ctrl--play"
+      (click)="togglePlay()"
+      [title]="isPlaying ? 'Pause (Space)' : 'Play (Space)'"
+      [attr.aria-label]="isPlaying ? 'Pause' : 'Play'"
+    >
       {{ isPlaying ? '⏸' : '▶' }}
     </button>
-    <button class="btn-ctrl" (click)="stepForward()" [disabled]="atEnd" title="Step forward">▶</button>
-    <button class="btn-ctrl" (click)="goToEnd()"    [disabled]="atEnd" title="Go to end">▶|</button>
-    <button class="btn-ctrl btn-ctrl--reset" (click)="onReset()" title="Reset">↺</button>
+    <button class="btn-ctrl" (click)="stepForward()" [disabled]="atEnd" title="Step forward (→)" aria-label="Step forward">▶</button>
+    <button class="btn-ctrl" (click)="goToEnd()"    [disabled]="atEnd" title="Go to end" aria-label="Go to end">▶|</button>
+    <button class="btn-ctrl btn-ctrl--reset" (click)="onReset()" title="Reset" aria-label="Reset">↺</button>
   </div>
 
   <div class="controls__meta">
-    <span class="controls__counter">Step {{ currentStep + 1 }} / {{ totalSteps }}</span>
+    <span class="controls__counter" aria-live="polite">Step {{ currentStep + 1 }} / {{ totalSteps }}</span>
+    <span class="controls__kbd-hint" aria-hidden="true">
+      <kbd>←</kbd><kbd>→</kbd> step · <kbd>Space</kbd> play
+    </span>
     <label class="controls__speed">
       <span>Speed</span>
       <input
@@ -21,6 +29,7 @@
         step="100"
         [value]="speed"
         (input)="onSpeedChange($event)"
+        aria-label="Playback speed in milliseconds per step"
       />
       <span>{{ speed }}ms</span>
     </label>

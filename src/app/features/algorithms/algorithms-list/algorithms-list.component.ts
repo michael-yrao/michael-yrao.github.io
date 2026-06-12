@@ -1,7 +1,9 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { ALGORITHMS_BY_CATEGORY, ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
+import {
+  ALGORITHMS_BY_CATEGORY, ALL_ALGORITHMS, hasVisualization, countVisualized,
+} from '../../../core/data/algorithms.data';
 import { AlgorithmMeta, Category, CATEGORY_LABELS, CATEGORY_ICONS, Difficulty } from '../../../core/models/algorithm.model';
 
 interface CategoryCard {
@@ -37,13 +39,12 @@ export class AlgorithmsListComponent implements OnInit, OnDestroy {
       label: CATEGORY_LABELS[cat],
       icon: CATEGORY_ICONS[cat],
       total: problems.length,
-      visualized: problems.filter((p) => p.solutions.some((s) => s.generateSteps().length > 0)).length,
+      visualized: countVisualized(problems),
     };
   });
 
   readonly totalProblems = ALL_ALGORITHMS.length;
-  readonly totalVisualized = ALL_ALGORITHMS
-    .filter((p) => p.solutions.some((s) => s.generateSteps().length > 0)).length;
+  readonly totalVisualized = countVisualized(ALL_ALGORITHMS);
 
   private sub = new Subscription();
 
@@ -59,7 +60,15 @@ export class AlgorithmsListComponent implements OnInit, OnDestroy {
     });
   }
 
-  constructor(private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+  ) {}
+
+  openProblem(p: AlgorithmMeta): void {
+    this.router.navigate(['/algorithms', p.category, p.id]);
+  }
 
   ngOnInit(): void {
     this.sub = this.route.paramMap.subscribe((params) => {
@@ -85,6 +94,6 @@ export class AlgorithmsListComponent implements OnInit, OnDestroy {
   }
 
   hasSteps(p: AlgorithmMeta): boolean {
-    return p.solutions.some((s) => s.generateSteps().length > 0);
+    return hasVisualization(p);
   }
 }
