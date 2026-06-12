@@ -23,14 +23,16 @@
       <span class="section-card__cta">Browse problems →</span>
     </a>
 
-    <a routerLink="/games" class="section-card section-card--coming-soon">
+    <a routerLink="/games" class="section-card">
       <div class="section-card__icon">◉</div>
       <h2 class="section-card__title">Games</h2>
       <p class="section-card__desc">
         Interactive coding challenges to test and reinforce what you've learned — built on the same problems.
       </p>
-      <span class="section-card__badge">Coming soon</span>
-      <span class="section-card__cta">Explore →</span>
+      <div class="section-card__meta">
+        <span><strong>{{ totalGames }}</strong> playable</span>
+      </div>
+      <span class="section-card__cta">Play →</span>
     </a>
 
   </section>
