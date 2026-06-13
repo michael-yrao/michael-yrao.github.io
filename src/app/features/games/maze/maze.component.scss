@@ -41,19 +41,28 @@
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
   gap: var(--space-xl);
-  align-items: start;
+  align-items: stretch;
+  position: sticky;
+  top: 56px;
+  height: calc(100vh - 56px);
+  overflow: hidden;
 
-  @media (max-width: 960px) { grid-template-columns: 1fr; }
+  @media (max-width: 960px) {
+    grid-template-columns: 1fr;
+    position: static;
+    height: auto;
+    overflow: visible;
+  }
 }
 
 .maze-column {
-  position: sticky;
-  top: 88px;   // clears the fixed nav bar
-  align-self: start;
+  overflow-y: auto;
+  padding-bottom: var(--space-2xl);
+}
 
-  @media (max-width: 960px) {
-    position: static;
-  }
+.maze-aside {
+  overflow-y: auto;
+  padding-bottom: var(--space-2xl);
 }
 
 // ── Controls ────────────────────────────────────────────────────

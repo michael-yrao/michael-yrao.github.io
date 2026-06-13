@@ -67,23 +67,32 @@
   display: grid;
   grid-template-columns: 480px 1fr;
   gap: var(--space-2xl);
-  align-items: start;
+  align-items: stretch;
+  position: sticky;
+  top: 56px;
+  height: calc(100vh - 56px);
+  overflow: hidden;
 
   @media (max-width: 860px) {
     grid-template-columns: 1fr;
+    position: static;
+    height: auto;
+    overflow: visible;
   }
 }
 
 .game-column {
-  position: sticky;
-  top: 88px;
+  overflow-y: auto;
   min-width: 0;
+  padding-bottom: var(--space-2xl);
 }
 
 .algo-column {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow-y: auto;
+  padding-bottom: var(--space-2xl);
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
