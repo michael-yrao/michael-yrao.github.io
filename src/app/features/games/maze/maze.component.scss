@@ -46,6 +46,16 @@
   @media (max-width: 960px) { grid-template-columns: 1fr; }
 }
 
+.maze-column {
+  position: sticky;
+  top: 88px;   // clears the fixed nav bar
+  align-self: start;
+
+  @media (max-width: 960px) {
+    position: static;
+  }
+}
+
 // ── Controls ────────────────────────────────────────────────────
 .maze-controls {
   display: flex;
