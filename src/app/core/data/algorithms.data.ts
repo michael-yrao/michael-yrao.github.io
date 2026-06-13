@@ -71,6 +71,7 @@ import { binaryTreeLevelOrderTraversalMeta } from '../../algorithms/trees/binary
 import { lowestCommonAncestorBstMeta } from '../../algorithms/trees/lowest-common-ancestor-bst.steps';
 import { validateBstMeta } from '../../algorithms/trees/validate-bst.steps';
 import { countGoodNodesMeta } from '../../algorithms/trees/count-good-nodes.steps';
+import { binaryTreeRightSideViewMeta } from '../../algorithms/trees/binary-tree-right-side-view.steps';
 
 const stub = (
   id: string,
@@ -170,6 +171,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   lowestCommonAncestorBstMeta,
   validateBstMeta,
   countGoodNodesMeta,
+  binaryTreeRightSideViewMeta,
 
   // ── Graphs ────────────────────────────────────────────────────────────────
   numberOfIslandsMeta,
