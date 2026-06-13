@@ -136,6 +136,47 @@
           exhaustive exploration and existence checks.
         </p>
 
+        <div class="maze-why">
+          <h3 class="maze-breakdown__step-title">Why BFS is always shortest</h3>
+          <p class="maze-breakdown__text">
+            BFS expands in <strong>rings by distance</strong>. Ring&nbsp;1 is every cell
+            one step from the start. Ring&nbsp;2 is every cell two steps away that wasn't
+            already in ring&nbsp;1. And so on. Think of dropping a stone in still water —
+            ripples spread one layer at a time.
+          </p>
+          <p class="maze-breakdown__text">
+            The first time BFS reaches the goal, that reach happens inside the
+            <em>earliest possible ring</em>. If a shorter path existed, the goal would
+            have appeared in a prior ring — but it didn't. So the first touch is
+            guaranteed to be the minimum number of steps.
+          </p>
+          <div class="maze-why__diagram" aria-hidden="true">
+            <div class="ring-row">
+              <span class="ring ring--start">S</span>
+              <span class="ring ring--1">1</span>
+              <span class="ring ring--1">1</span>
+              <span class="ring ring--2">2</span>
+              <span class="ring ring--2">2</span>
+              <span class="ring ring--3">3</span>
+              <span class="ring ring--goal">G</span>
+            </div>
+            <p class="maze-why__diagram-caption">Each ring is one step further from S. G is first touched at ring&nbsp;3 — that's the shortest path.</p>
+          </div>
+
+          <h3 class="maze-breakdown__step-title">Why DFS can miss shorter paths</h3>
+          <p class="maze-breakdown__text">
+            DFS picks one direction and follows it all the way to the end before
+            backtracking. If the first corridor it chooses happens to be a long detour,
+            DFS commits to it fully — even if a 3-step shortcut was sitting one cell to
+            the right. It finds <em>a</em> path, not necessarily the shortest one.
+          </p>
+          <p class="maze-breakdown__text">
+            Run both solvers on the same maze above: the <strong>Cells explored</strong>
+            count shows how much BFS spreads out evenly, while DFS often dives deep into
+            one arm before covering the rest.
+          </p>
+        </div>
+
         <div class="maze-breakdown__links">
           <span class="maze-breakdown__links-label">Practice the same algorithms</span>
           <a routerLink="/algorithms/trees/binary-tree-level-order-traversal" class="problem-link">LC 102 · Level Order Traversal (pure BFS)</a>
