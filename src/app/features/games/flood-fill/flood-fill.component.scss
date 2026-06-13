@@ -76,13 +76,11 @@
 
 .game-column {
   position: sticky;
-  top: calc(56px + var(--space-md));
+  top: 88px;
   min-width: 0;
 }
 
 .algo-column {
-  position: sticky;
-  top: calc(56px + var(--space-md));
   display: flex;
   flex-direction: column;
   min-width: 0;
