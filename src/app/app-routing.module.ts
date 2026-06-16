@@ -22,6 +22,11 @@ const routes: Routes = [
       import('./features/games/games.module').then((m) => m.GamesModule),
   },
   {
+    path: 'learn',
+    loadChildren: () =>
+      import('./features/learn/learn.module').then((m) => m.LearnModule),
+  },
+  {
     path: '**',
     redirectTo: '',
   },

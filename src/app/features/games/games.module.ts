@@ -20,6 +20,11 @@ const routes: Routes = [
     loadChildren: () =>
       import('./maze/maze.module').then((m) => m.MazeModule),
   },
+  {
+    path: 'big-o',
+    loadChildren: () =>
+      import('./big-o/big-o.module').then((m) => m.BigOModule),
+  },
 ];
 
 @NgModule({

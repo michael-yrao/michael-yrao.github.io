@@ -1,0 +1,31 @@
+<div class="ll-page">
+  <div class="breadcrumb">
+    <a routerLink="/">Home</a>
+    <span>›</span>
+    <span>Learn</span>
+  </div>
+
+  <header class="ll-hero">
+    <p class="ll-hero__eyebrow">Pattern Reference</p>
+    <h1 class="ll-hero__title">Learn</h1>
+    <p class="ll-hero__sub">
+      One cheat sheet per pattern: when to reach for it, what signals point to it,
+      the canonical template, and the pitfalls to watch for.
+    </p>
+  </header>
+
+  <div class="ll-grid">
+    <a
+      *ngFor="let card of cards"
+      class="ll-card"
+      [routerLink]="['/learn', card.category]"
+    >
+      <div class="ll-card__icon">{{ card.icon }}</div>
+      <div class="ll-card__body">
+        <h2 class="ll-card__title">{{ card.label }}</h2>
+        <p class="ll-card__when">{{ card.whenToUse }}</p>
+        <span class="ll-card__count">{{ card.problemCount }} problems on this site →</span>
+      </div>
+    </a>
+  </div>
+</div>

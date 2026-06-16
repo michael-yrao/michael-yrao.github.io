@@ -1,0 +1,92 @@
+<div class="cs-page" *ngIf="sheet">
+  <div class="breadcrumb">
+    <a routerLink="/">Home</a>
+    <span>›</span>
+    <a routerLink="/learn">Learn</a>
+    <span>›</span>
+    <span>{{ label }}</span>
+  </div>
+
+  <!-- ── Header ──────────────────────────────────────────────── -->
+  <header class="cs-header">
+    <span class="cs-header__icon">{{ icon }}</span>
+    <div>
+      <p class="cs-header__eyebrow">Pattern Cheat Sheet</p>
+      <h1 class="cs-header__title">{{ label }}</h1>
+    </div>
+  </header>
+
+  <!-- ── When to Use ─────────────────────────────────────────── -->
+  <section class="cs-section">
+    <h2 class="cs-section__title">When to Use</h2>
+    <p class="cs-when">{{ sheet.whenToUse }}</p>
+  </section>
+
+  <!-- ── Recognition Signals ─────────────────────────────────── -->
+  <section class="cs-section">
+    <h2 class="cs-section__title">Recognition Signals</h2>
+    <ul class="cs-signals">
+      <li *ngFor="let signal of sheet.signals">
+        <span class="cs-signal__dot">▸</span>
+        <span>{{ signal }}</span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ── Templates ───────────────────────────────────────────── -->
+  <section class="cs-section" *ngFor="let template of sheet.templates">
+    <h2 class="cs-section__title">Template: {{ template.title }}</h2>
+    <div class="cs-code">
+      <app-code-viewer [code]="template.code"></app-code-viewer>
+    </div>
+  </section>
+
+  <!-- ── Common Pitfalls ─────────────────────────────────────── -->
+  <section class="cs-section">
+    <h2 class="cs-section__title">Common Pitfalls</h2>
+    <ul class="cs-pitfalls">
+      <li *ngFor="let pitfall of sheet.pitfalls">
+        <span class="cs-pitfall__icon">⚠</span>
+        <span>{{ pitfall }}</span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ── Key Problems ────────────────────────────────────────── -->
+  <section class="cs-section">
+    <h2 class="cs-section__title">Key Problems</h2>
+    <p class="cs-problems__hint">Step through these problems to see the pattern in action.</p>
+    <div class="cs-problems">
+      <a
+        *ngFor="let p of sheet.keyProblems"
+        class="cs-problem"
+        [routerLink]="['/algorithms', p.category, p.id]"
+      >
+        <span class="cs-problem__num">#{{ p.lcNumber }}</span>
+        <span class="cs-problem__title">{{ p.title }}</span>
+        <span class="cs-problem__arrow">→</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ── Prev / Next navigation ──────────────────────────────── -->
+  <nav class="cs-nav">
+    <a
+      *ngIf="prevCategory; else prevPlaceholder"
+      class="cs-nav__btn cs-nav__btn--prev"
+      [routerLink]="['/learn', prevCategory]"
+    >← {{ labelFor(prevCategory) }}</a>
+    <ng-template #prevPlaceholder><span></span></ng-template>
+
+    <a
+      class="cs-nav__all"
+      routerLink="/learn"
+    >All patterns</a>
+
+    <a
+      *ngIf="nextCategory"
+      class="cs-nav__btn cs-nav__btn--next"
+      [routerLink]="['/learn', nextCategory]"
+    >{{ labelFor(nextCategory) }} →</a>
+  </nav>
+</div>

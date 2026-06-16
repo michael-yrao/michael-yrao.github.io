@@ -8,7 +8,7 @@ interface GameSection {
   games: GameMeta[];
 }
 
-const CATEGORY_ORDER: GameCategory[] = ['recognition', 'graph-traversal'];
+const CATEGORY_ORDER: GameCategory[] = ['recognition', 'graph-traversal', 'complexity'];
 
 @Component({
   selector: 'app-games',

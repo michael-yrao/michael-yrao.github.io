@@ -1,4 +1,4 @@
-export type GameCategory = 'recognition' | 'graph-traversal';
+export type GameCategory = 'recognition' | 'graph-traversal' | 'complexity';
 
 export const GAME_CATEGORY_LABELS: Record<GameCategory, { label: string; blurb: string }> = {
   'recognition': {
@@ -8,6 +8,10 @@ export const GAME_CATEGORY_LABELS: Record<GameCategory, { label: string; blurb: 
   'graph-traversal': {
     label: 'Graph Traversal',
     blurb: 'BFS and DFS made playable — frontiers, flood fills, and shortest paths you can watch.',
+  },
+  'complexity': {
+    label: 'Complexity Analysis',
+    blurb: 'Read real code, name the time and space complexity, and learn why each loop or structure costs what it does.',
   },
 };
 
@@ -52,5 +56,15 @@ export const GAMES: GameMeta[] = [
     category: 'graph-traversal',
     status: 'available',
     route: '/games/maze',
+  },
+  {
+    id: 'big-o',
+    title: 'Big-O Trainer',
+    description: 'Read a real code snippet from this site and name both the time and space complexity. The harder questions target common gotchas — recursion stack space, input-vs-output counting, and why O(n log m) is not O(n log n).',
+    algorithmNote: '25 questions drawn from problems across all 10 patterns. Each answer includes a line-by-line explanation of the reasoning.',
+    algorithms: ['All complexities', 'Time & Space'],
+    category: 'complexity',
+    status: 'available',
+    route: '/games/big-o',
   },
 ];

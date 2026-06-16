@@ -1,0 +1,153 @@
+<div class="bo-page">
+  <div class="breadcrumb">
+    <a routerLink="/">Home</a>
+    <span>›</span>
+    <a routerLink="/games">Games</a>
+    <span>›</span>
+    <span>Big-O Trainer</span>
+  </div>
+
+  <header class="bo-header">
+    <p class="bo-header__eyebrow">Complexity Analysis</p>
+    <h1 class="bo-header__title">Big-O Trainer</h1>
+    <p class="bo-header__sub">
+      Read the code. <strong>Don't run it in your head</strong> — count the loops,
+      identify the data structures, and name the complexity.
+    </p>
+  </header>
+
+  <!-- ── Scoreboard ──────────────────────────────────────────── -->
+  <div class="bo-stats" aria-live="polite">
+    <div class="stat">
+      <span class="stat__value">{{ timeScore }}/{{ deck.length }}</span>
+      <span class="stat__label">time</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat__value">{{ spaceScore }}/{{ deck.length }}</span>
+      <span class="stat__label">space</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat__value">{{ progressLabel }}</span>
+      <span class="stat__label">question</span>
+    </div>
+  </div>
+
+  <!-- ── Finished summary ────────────────────────────────────── -->
+  <div class="bo-summary" *ngIf="mode === 'finished'">
+    <h2 class="bo-summary__title">Done!</h2>
+    <p class="bo-summary__score">
+      {{ totalScore }} / {{ maxScore }} points
+      <span class="bo-summary__pct">({{ scorePercent }}%)</span>
+    </p>
+    <div class="bo-summary__breakdown">
+      <div class="breakdown-row">
+        <span class="breakdown-label">Time complexity</span>
+        <span class="breakdown-value">{{ timeScore }}/{{ deck.length }} correct</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="breakdown-label">Space complexity</span>
+        <span class="breakdown-value">{{ spaceScore }}/{{ deck.length }} correct</span>
+      </div>
+    </div>
+    <button class="bo-btn bo-btn--primary" (click)="startRun()">↺ Shuffle &amp; play again</button>
+  </div>
+
+  <ng-container *ngIf="mode !== 'finished' && current">
+    <!-- ── Code snippet ─────────────────────────────────────── -->
+    <section class="bo-snippet">
+      <p class="bo-snippet__context">{{ current.context }}</p>
+      <div class="bo-snippet__code">
+        <app-code-viewer [code]="current.code"></app-code-viewer>
+      </div>
+    </section>
+
+    <!-- ── Questions ───────────────────────────────────────── -->
+    <div class="bo-questions">
+      <!-- Time complexity -->
+      <div class="bo-q">
+        <p class="bo-q__label">
+          <span class="bo-q__tag">T</span>
+          Time complexity
+          <span class="bo-q__result" *ngIf="mode === 'revealed'"
+            [class.bo-q__result--correct]="timeCorrect"
+            [class.bo-q__result--wrong]="!timeCorrect">
+            {{ timeCorrect ? '✓' : '✗ ' + current.correctTime }}
+          </span>
+        </p>
+        <div class="bo-options">
+          <button
+            *ngFor="let opt of current.timeOptions"
+            class="bo-chip"
+            [class.bo-chip--selected]="selectedTime === opt"
+            [class.bo-chip--correct]="mode === 'revealed' && opt === current.correctTime"
+            [class.bo-chip--wrong]="mode === 'revealed' && selectedTime === opt && opt !== current.correctTime"
+            [disabled]="mode === 'revealed'"
+            (click)="pickTime(opt)"
+          >{{ opt }}</button>
+        </div>
+      </div>
+
+      <!-- Space complexity -->
+      <div class="bo-q">
+        <p class="bo-q__label">
+          <span class="bo-q__tag">S</span>
+          Space complexity
+          <span class="bo-q__result" *ngIf="mode === 'revealed'"
+            [class.bo-q__result--correct]="spaceCorrect"
+            [class.bo-q__result--wrong]="!spaceCorrect">
+            {{ spaceCorrect ? '✓' : '✗ ' + current.correctSpace }}
+          </span>
+        </p>
+        <div class="bo-options">
+          <button
+            *ngFor="let opt of current.spaceOptions"
+            class="bo-chip"
+            [class.bo-chip--selected]="selectedSpace === opt"
+            [class.bo-chip--correct]="mode === 'revealed' && opt === current.correctSpace"
+            [class.bo-chip--wrong]="mode === 'revealed' && selectedSpace === opt && opt !== current.correctSpace"
+            [disabled]="mode === 'revealed'"
+            (click)="pickSpace(opt)"
+          >{{ opt }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Check button ────────────────────────────────────── -->
+    <div class="bo-actions" *ngIf="mode === 'quiz'">
+      <button
+        class="bo-btn bo-btn--primary"
+        [disabled]="!canCheck"
+        (click)="check()"
+      >Check →</button>
+    </div>
+
+    <!-- ── Explanation panel ──────────────────────────────── -->
+    <section class="bo-reveal" *ngIf="mode === 'revealed'" aria-live="polite">
+      <div class="bo-reveal__row">
+        <div class="bo-explain">
+          <p class="bo-explain__head">
+            <span class="bo-q__tag">T</span> Time: <code>{{ current.correctTime }}</code>
+          </p>
+          <p class="bo-explain__body">{{ current.timeExplanation }}</p>
+        </div>
+        <div class="bo-explain">
+          <p class="bo-explain__head">
+            <span class="bo-q__tag">S</span> Space: <code>{{ current.correctSpace }}</code>
+          </p>
+          <p class="bo-explain__body">{{ current.spaceExplanation }}</p>
+        </div>
+      </div>
+
+      <div class="bo-reveal__actions">
+        <a
+          *ngIf="current.linkedProblemId"
+          class="bo-link"
+          [routerLink]="['/algorithms', current.linkedProblemCategory, current.linkedProblemId]"
+        >See #{{ current.linkedProblemLcNumber }} step by step →</a>
+        <button class="bo-btn bo-btn--primary" (click)="next()">Next →</button>
+      </div>
+    </section>
+  </ng-container>
+</div>
