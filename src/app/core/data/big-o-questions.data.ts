@@ -22,13 +22,13 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     id: 'two-sum',
     context: 'Find two indices in an array whose values sum to a target.',
     code: `def two_sum(nums, target):
-    seen = {}
-    for i, x in enumerate(nums):
-        complement = target - x
-        if complement in seen:
-            return [seen[complement], i]
-        seen[x] = i
-    return []`,
+    num_map = {}
+    for index, number in enumerate(nums):
+        diff = target - number
+        if diff in num_map:
+            return [num_map[diff], index]
+        num_map[number] = index
+    return`,
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     correctTime: 'O(n)',
@@ -47,11 +47,12 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     id: 'contains-duplicate',
     context: 'Return true if any value appears at least twice in an array.',
     code: `def contains_duplicate(nums):
-    seen = set()
-    for x in nums:
-        if x in seen:
+    nums_set = set()
+    for integer in nums:
+        if integer in nums_set:
             return True
-        seen.add(x)
+        else:
+            nums_set.add(integer)
     return False`,
     timeOptions: ['O(1)', 'O(n)', 'O(n log n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
@@ -71,16 +72,22 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     id: 'valid-palindrome',
     context: 'Check whether a string is a palindrome ignoring non-alphanumeric characters.',
     code: `def is_palindrome(s):
-    left, right = 0, len(s) - 1
-    while left < right:
-        while left < right and not s[left].isalnum():
-            left += 1
-        while left < right and not s[right].isalnum():
-            right -= 1
-        if s[left].lower() != s[right].lower():
+    def alphanumeric(char):
+        return (
+            ord('A') <= ord(char) <= ord('Z') or
+            ord('a') <= ord(char) <= ord('z') or
+            ord('0') <= ord(char) <= ord('9')
+        )
+    l, r = 0, len(s) - 1
+    while r >= l:
+        while l < r and not alphanumeric(s[l]):
+            l += 1
+        while r > l and not alphanumeric(s[r]):
+            r -= 1
+        if s[r].lower() != s[l].lower():
             return False
-        left += 1
-        right -= 1
+        r -= 1
+        l += 1
     return True`,
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
@@ -89,7 +96,7 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     timeExplanation:
       'Each character is visited at most once by the left or right pointer, so the total work is O(n).',
     spaceExplanation:
-      'Only two pointer variables — no extra data structures. Space is O(1).',
+      'Only two pointer variables and a constant-size helper — no extra data structures. Space is O(1).',
     category: 'two-pointers',
     linkedProblemId: 'valid-palindrome',
     linkedProblemTitle: 'Valid Palindrome',
@@ -100,20 +107,22 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     id: 'best-time-buy-sell',
     context: 'Find the maximum profit from a single buy-sell of a stock given daily prices.',
     code: `def max_profit(prices):
-    min_price = float('inf')
-    max_profit = 0
-    for p in prices:
-        min_price = min(min_price, p)
-        max_profit = max(max_profit, p - min_price)
-    return max_profit`,
+    current_max = 0
+    l, r = 0, 1
+    while r < len(prices):
+        current_max = max(current_max, prices[r] - prices[l])
+        if prices[r] < prices[l]:
+            l = r
+        r += 1
+    return current_max`,
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
     correctTime: 'O(n)',
     correctSpace: 'O(1)',
     timeExplanation:
-      'Single pass through the prices array. Each iteration does O(1) work, giving O(n) total.',
+      'Single pass through the prices array. The right pointer r advances each iteration, so the loop runs n-1 times — O(n).',
     spaceExplanation:
-      'Two scalar variables (min_price, max_profit). Space is O(1).',
+      'Only three scalar variables (current_max, l, r). Space is O(1).',
     category: 'sliding-window',
     linkedProblemId: 'best-time-to-buy-and-sell-stock',
     linkedProblemTitle: 'Best Time to Buy and Sell Stock',
@@ -124,15 +133,15 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     id: 'binary-search',
     context: 'Find a target value in a sorted array.',
     code: `def search(nums, target):
-    left, right = 0, len(nums) - 1
-    while left <= right:
-        mid = (left + right) // 2
+    l, r = 0, len(nums) - 1
+    while l <= r:
+        mid = l + (r - l) // 2
         if nums[mid] == target:
             return mid
-        elif nums[mid] < target:
-            left = mid + 1
+        if nums[mid] > target:
+            r = mid - 1
         else:
-            right = mid - 1
+            l = mid + 1
     return -1`,
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
@@ -141,7 +150,7 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     timeExplanation:
       'Each iteration halves the search space. Starting from n, after k iterations only n/2ᵏ elements remain, so k = log₂(n) iterations suffice — O(log n).',
     spaceExplanation:
-      'Only the left, right, and mid variables. Space is O(1).',
+      'Only the l, r, and mid variables. Space is O(1).',
     category: 'binary-search',
     linkedProblemId: 'binary-search',
     linkedProblemTitle: 'Binary Search',
@@ -152,12 +161,12 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     id: 'reverse-linked-list-iterative',
     context: 'Reverse a singly linked list in-place (iterative approach).',
     code: `def reverse_list(head):
-    prev, curr = None, head
-    while curr:
-        nxt = curr.next
-        curr.next = prev
-        prev = curr
-        curr = nxt
+    prev, current = None, head
+    while current is not None:
+        temp = current.next
+        current.next = prev
+        prev = current
+        current = temp
     return prev`,
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
@@ -166,7 +175,7 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     timeExplanation:
       'Each node is visited exactly once. The loop runs n times, giving O(n).',
     spaceExplanation:
-      'Only prev, curr, and nxt pointers are used. No extra data structures. Space is O(1).',
+      'Only prev, current, and temp pointers are used. No extra data structures. Space is O(1).',
     category: 'linked-list',
     linkedProblemId: 'reverse-linked-list',
     linkedProblemTitle: 'Reverse Linked List',
@@ -177,12 +186,12 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     id: 'reverse-linked-list-recursive',
     context: 'Reverse a singly linked list in-place (recursive approach).',
     code: `def reverse_list(head):
-    if not head or not head.next:
+    if head is None or head.next is None:
         return head
-    new_head = reverse_list(head.next)
+    return_node = reverse_list(head.next)
     head.next.next = head
     head.next = None
-    return new_head`,
+    return return_node`,
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     correctTime: 'O(n)',
@@ -203,9 +212,7 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     code: `def max_depth(root):
     if not root:
         return 0
-    left  = max_depth(root.left)
-    right = max_depth(root.right)
-    return 1 + max(left, right)`,
+    return 1 + max(max_depth(root.left), max_depth(root.right))`,
     timeOptions: ['O(log n)', 'O(n)', 'O(n log n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     correctTime: 'O(n)',
@@ -224,29 +231,37 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     id: 'number-of-islands',
     context: 'Count connected components of land cells ("1") in a grid.',
     code: `def num_islands(grid):
+    visited = set()
+    result = 0
     rows, cols = len(grid), len(grid[0])
-    def dfs(r, c):
-        if r < 0 or r >= rows or c < 0 or c >= cols:
-            return
-        if grid[r][c] != '1':
-            return
-        grid[r][c] = '0'
-        dfs(r+1,c); dfs(r-1,c); dfs(r,c+1); dfs(r,c-1)
-    count = 0
-    for r in range(rows):
-        for c in range(cols):
-            if grid[r][c] == '1':
-                dfs(r, c)
-                count += 1
-    return count`,
+
+    def dfs(row, col):
+        if row < 0 or row >= rows or col < 0 or col >= cols:
+            return 0
+        if grid[row][col] == '0':
+            return 0
+        if (row, col) in visited:
+            return 0
+        visited.add((row, col))
+        dfs(row + 1, col)
+        dfs(row - 1, col)
+        dfs(row, col + 1)
+        dfs(row, col - 1)
+        return 1
+
+    for row in range(rows):
+        for col in range(cols):
+            if grid[row][col] == '1' and (row, col) not in visited:
+                result += dfs(row, col)
+    return result`,
     timeOptions: ['O(n)', 'O(n log n)', 'O(m×n)', 'O(m×n log(m×n))'],
     spaceOptions: ['O(1)', 'O(m+n)', 'O(m×n)', 'O(n²)'],
     correctTime: 'O(m×n)',
     correctSpace: 'O(m×n)',
     timeExplanation:
-      'Every cell is visited at most once by DFS (marked "0" to avoid revisiting). With m rows and n columns, total work is O(m×n).',
+      'Every cell is added to the visited set at most once. DFS processes each cell exactly once. With m rows and n columns, total work is O(m×n).',
     spaceExplanation:
-      'The DFS call stack can be as deep as m×n in the worst case (e.g., a grid of all land in a spiral), giving O(m×n) space.',
+      'The visited set stores up to m×n coordinates. The DFS call stack can reach depth m×n in the worst case (e.g., all land in one connected spiral). Both contribute O(m×n) space.',
     category: 'graphs',
     linkedProblemId: 'number-of-islands',
     linkedProblemTitle: 'Number of Islands',
@@ -256,16 +271,18 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
   {
     id: 'valid-parentheses',
     context: 'Determine whether a string of brackets is valid (correctly matched and ordered).',
-    code: `def is_valid(s):
-    pairs = {')': '(', ']': '[', '}': '{'}
-    stack = []
-    for c in s:
-        if c in '([{':
-            stack.append(c)
-        elif not stack or stack[-1] != pairs[c]:
-            return False
-        else:
+    code: `from collections import deque
+
+def is_valid(s):
+    open_to_close = {'(': ')', '{': '}', '[': ']'}
+    stack = deque()
+    for char in s:
+        if char in open_to_close.values():
+            if not stack or open_to_close.get(stack[-1], None) != char:
+                return False
             stack.pop()
+        if char in open_to_close:
+            stack.append(char)
     return not stack`,
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
@@ -274,7 +291,7 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     timeExplanation:
       'Each character is processed once. Every append and pop is O(1), giving O(n) total.',
     spaceExplanation:
-      'In the worst case (all open brackets), the stack holds n/2 items — O(n) space.',
+      'In the worst case (all open brackets), the stack holds n items — O(n) space.',
     category: 'stack',
     linkedProblemId: 'valid-parentheses',
     linkedProblemTitle: 'Valid Parentheses',
@@ -285,10 +302,10 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     id: 'maximum-subarray',
     context: "Find the contiguous subarray with the largest sum (Kadane's algorithm).",
     code: `def max_subarray(nums):
-    curr = max_sum = nums[0]
+    max_sum = current_sum = nums[0]
     for n in nums[1:]:
-        curr = max(n, curr + n)
-        max_sum = max(max_sum, curr)
+        current_sum = max(n, current_sum + n)
+        max_sum = max(max_sum, current_sum)
     return max_sum`,
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
@@ -297,7 +314,7 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     timeExplanation:
       'Single pass through n elements, each requiring O(1) work. Total: O(n).',
     spaceExplanation:
-      'Only two scalar variables (curr, max_sum). Space is O(1).',
+      'Only two scalar variables (max_sum, current_sum). Space is O(1).',
     category: 'greedy',
     linkedProblemId: 'maximum-subarray',
     linkedProblemTitle: 'Maximum Subarray',
@@ -309,21 +326,20 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     context: 'Find all unique triplets in a sorted array that sum to zero.',
     code: `def three_sum(nums):
     nums.sort()
-    result = []
-    for i in range(len(nums) - 2):
-        if i > 0 and nums[i] == nums[i-1]:
-            continue
-        left, right = i + 1, len(nums) - 1
-        while left < right:
-            s = nums[i] + nums[left] + nums[right]
-            if s == 0:
-                result.append([nums[i], nums[left], nums[right]])
-                while left < right and nums[left] == nums[left+1]: left += 1
-                while left < right and nums[right] == nums[right-1]: right -= 1
-                left += 1; right -= 1
-            elif s < 0: left += 1
-            else: right -= 1
-    return result`,
+    solution_set = set()
+    for i in range(len(nums)):
+        j, k = i + 1, len(nums) - 1
+        while j < k:
+            total = nums[i] + nums[j] + nums[k]
+            if total == 0:
+                solution_set.add((nums[i], nums[j], nums[k]))
+                j += 1
+                k -= 1
+            elif total > 0:
+                k -= 1
+            else:
+                j += 1
+    return list(solution_set)`,
     timeOptions: ['O(n)', 'O(n log n)', 'O(n²)', 'O(n³)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     correctTime: 'O(n²)',
@@ -331,7 +347,7 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     timeExplanation:
       'Sorting is O(n log n). The outer loop runs n times; for each index, the two-pointer sweep is O(n). Total: O(n²) dominates.',
     spaceExplanation:
-      'No extra data structures beyond the output list (not counted). The sort uses O(log n) stack space. Space is O(log n).',
+      'The solution_set stores the output (excluded by convention). The sort uses O(log n) call stack space. Space is O(log n).',
     category: 'two-pointers',
     linkedProblemId: 'three-sum',
     linkedProblemTitle: 'Three Sum',
@@ -340,27 +356,30 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
   },
   {
     id: 'top-k-frequent',
-    context: 'Return the k most frequent elements using bucket sort.',
-    code: `def top_k_frequent(nums, k):
-    freq = {}
+    context: 'Return the k most frequent elements using a min-heap of size k.',
+    code: `import heapq
+
+def top_k_frequent(nums, k):
+    freq_map = {}
     for n in nums:
-        freq[n] = freq.get(n, 0) + 1
-    buckets = [[] for _ in range(len(nums) + 1)]
-    for num, count in freq.items():
-        buckets[count].append(num)
+        freq_map[n] = 1 + freq_map.get(n, 0)
+    heap = []
+    for num in freq_map.keys():
+        heapq.heappush(heap, (freq_map[num], num))
+        if len(heap) > k:
+            heapq.heappop(heap)
     result = []
-    for i in range(len(buckets) - 1, -1, -1):
-        result.extend(buckets[i])
-        if len(result) >= k:
-            return result[:k]`,
+    for freq, value in heap:
+        result.append(value)
+    return result`,
     timeOptions: ['O(n)', 'O(n log n)', 'O(n log k)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(k)', 'O(n)', 'O(n²)'],
-    correctTime: 'O(n)',
+    correctTime: 'O(n log k)',
     correctSpace: 'O(n)',
     timeExplanation:
-      'Building the frequency map is O(n). Filling and scanning the n+1 buckets is also O(n). No sorting, so this beats the heap approach.',
+      'Building the frequency map is O(n). For each of the up to n unique elements we push/pop a heap of size k — O(log k) per operation, O(n log k) total.',
     spaceExplanation:
-      'The frequency map and the n+1 buckets together hold at most n elements — O(n) space.',
+      'The frequency map stores up to n entries — O(n). The heap holds at most k+1 elements at a time — O(k). The map dominates: O(n).',
     category: 'arrays-hash',
     linkedProblemId: 'top-k-frequent-elements',
     linkedProblemTitle: 'Top K Frequent Elements',
@@ -371,11 +390,13 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     id: 'group-anagrams',
     context: 'Group strings that are anagrams of each other, using a sorted key.',
     code: `def group_anagrams(strs):
-    groups = {}
+    anagram_map = {}
     for s in strs:
-        key = tuple(sorted(s))
-        groups.setdefault(key, []).append(s)
-    return list(groups.values())`,
+        sorted_str = ''.join(sorted(s))
+        if sorted_str not in anagram_map:
+            anagram_map[sorted_str] = []
+        anagram_map[sorted_str].append(s)
+    return list(anagram_map.values())`,
     timeOptions: ['O(n)', 'O(n log n)', 'O(n·k log k)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(n)', 'O(n·k)', 'O(n²)'],
     correctTime: 'O(n·k log k)',
@@ -394,22 +415,21 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     id: 'trapping-rain-water',
     context: 'Calculate how much water is trapped between elevation bars (two-pointer approach).',
     code: `def trap(height):
-    left, right = 0, len(height) - 1
-    left_max = right_max = water = 0
-    while left < right:
-        if height[left] < height[right]:
-            if height[left] >= left_max:
-                left_max = height[left]
-            else:
-                water += left_max - height[left]
-            left += 1
+    if not height:
+        return 0
+    l, r = 0, len(height) - 1
+    left_max, right_max = height[l], height[r]
+    res = 0
+    while l < r:
+        if left_max < right_max:
+            l += 1
+            left_max = max(left_max, height[l])
+            res += left_max - height[l]
         else:
-            if height[right] >= right_max:
-                right_max = height[right]
-            else:
-                water += right_max - height[right]
-            right -= 1
-    return water`,
+            r -= 1
+            right_max = max(right_max, height[r])
+            res += right_max - height[r]
+    return res`,
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
     correctTime: 'O(n)',
@@ -417,7 +437,7 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     timeExplanation:
       'Each element is processed once by the left or right pointer. Single pass → O(n).',
     spaceExplanation:
-      'Only left, right, left_max, right_max, and water — all scalar. Space is O(1).',
+      'Only l, r, left_max, right_max, and res — all scalars. Space is O(1).',
     category: 'two-pointers',
     linkedProblemId: 'trapping-rain-water',
     linkedProblemTitle: 'Trapping Rain Water',
@@ -427,16 +447,20 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
   {
     id: 'koko-eating-bananas',
     context: 'Find the minimum eating speed such that all piles are finished in h hours.',
-    code: `def min_eating_speed(piles, h):
-    left, right = 1, max(piles)
-    while left < right:
-        mid = (left + right) // 2
-        hours = sum(math.ceil(p / mid) for p in piles)
-        if hours <= h:
-            right = mid
+    code: `import math
+
+def min_eating_speed(piles, h):
+    l, r = 1, max(piles)
+    while l < r:
+        mid = (l + r) // 2
+        current_hours = 0
+        for pile in piles:
+            current_hours += math.ceil(pile / mid)
+        if current_hours > h:
+            l = mid + 1
         else:
-            left = mid + 1
-    return left`,
+            r = mid
+    return l`,
     timeOptions: ['O(log n)', 'O(n)', 'O(n log n)', 'O(n log m)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(log m)'],
     correctTime: 'O(n log m)',
@@ -455,18 +479,24 @@ export const BIG_O_QUESTIONS: BigOQuestion[] = [
     id: 'level-order-traversal',
     context: 'Collect the values of a binary tree level by level using BFS.',
     code: `from collections import deque
+
 def level_order(root):
     if not root:
         return []
-    result, q = [], deque([root])
-    while q:
-        level = []
-        for _ in range(len(q)):
-            node = q.popleft()
-            level.append(node.val)
-            if node.left:  q.append(node.left)
-            if node.right: q.append(node.right)
-        result.append(level)
+    queue = deque()
+    queue.append(root)
+    result = []
+    while queue:
+        size = len(queue)
+        current_level = []
+        for _ in range(size):
+            node = queue.popleft()
+            current_level.append(node.val)
+            if node.left:
+                queue.append(node.left)
+            if node.right:
+                queue.append(node.right)
+        result.append(current_level)
     return result`,
     timeOptions: ['O(log n)', 'O(n)', 'O(n log n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
@@ -486,17 +516,17 @@ def level_order(root):
     id: 'clone-graph',
     context: 'Deep-copy an undirected graph, visiting each node exactly once.',
     code: `def clone_graph(node):
-    if not node:
-        return None
-    clones = {}
-    def dfs(n):
-        if n in clones:
-            return clones[n]
-        clone = Node(n.val)
-        clones[n] = clone
-        for nei in n.neighbors:
-            clone.neighbors.append(dfs(nei))
-        return clone
+    old_to_new = {}
+
+    def dfs(old_node):
+        if old_node in old_to_new:
+            return old_to_new[old_node]
+        new_node = Node(old_node.val)
+        old_to_new[old_node] = new_node
+        for neighbor in old_node.neighbors:
+            new_node.neighbors.append(dfs(neighbor))
+        return new_node
+
     return dfs(node)`,
     timeOptions: ['O(V)', 'O(V+E)', 'O(V²)', 'O(V·E)'],
     spaceOptions: ['O(1)', 'O(V)', 'O(V+E)', 'O(V²)'],
@@ -505,7 +535,7 @@ def level_order(root):
     timeExplanation:
       'Each vertex is cloned once (O(V)) and each edge is traversed once when building neighbor lists (O(E)). Total: O(V+E).',
     spaceExplanation:
-      'The clones map holds one entry per vertex — O(V). The DFS call stack is at most O(V) deep. Space: O(V).',
+      'The old_to_new map holds one entry per vertex — O(V). The DFS call stack is at most O(V) deep. Space: O(V).',
     category: 'graphs',
     linkedProblemId: 'clone-graph',
     linkedProblemTitle: 'Clone Graph',
@@ -514,30 +544,41 @@ def level_order(root):
   },
   {
     id: 'course-schedule',
-    context: 'Detect whether a cycle exists in a directed prerequisite graph.',
-    code: `from collections import defaultdict
-def can_finish(numCourses, prerequisites):
-    graph = defaultdict(list)
-    for a, b in prerequisites:
-        graph[b].append(a)
-    state = [0] * numCourses  # 0=unvisited 1=visiting 2=done
-    def dfs(node):
-        if state[node] == 1: return False  # cycle
-        if state[node] == 2: return True   # already cleared
-        state[node] = 1
-        for nei in graph[node]:
-            if not dfs(nei): return False
-        state[node] = 2
-        return True
-    return all(dfs(i) for i in range(numCourses))`,
+    context: 'Determine if all courses can be finished given their prerequisites (detect if a valid ordering exists).',
+    code: `import collections
+
+def can_finish(num_courses, prerequisites):
+    prereq_counter = [0] * num_courses
+    neighbor_map = collections.defaultdict(list)
+    can_take = collections.deque()
+    courses_taken = 0
+
+    for row in prerequisites:
+        course, prereq = row[0], row[1]
+        prereq_counter[course] += 1
+        neighbor_map[prereq].append(course)
+
+    for i in range(len(prereq_counter)):
+        if prereq_counter[i] == 0:
+            can_take.append(i)
+
+    while can_take:
+        current = can_take.popleft()
+        courses_taken += 1
+        for dep in neighbor_map[current]:
+            prereq_counter[dep] -= 1
+            if prereq_counter[dep] == 0:
+                can_take.append(dep)
+
+    return courses_taken >= num_courses`,
     timeOptions: ['O(V)', 'O(V+E)', 'O(V²)', 'O(V·E)'],
     spaceOptions: ['O(V)', 'O(V+E)', 'O(V²)', 'O(V·E)'],
     correctTime: 'O(V+E)',
     correctSpace: 'O(V+E)',
     timeExplanation:
-      'Building the graph is O(E). Each node is fully processed once in DFS — O(V+E) total.',
+      'Building the adjacency list and prereq counter is O(E). BFS (Kahn\'s algorithm) processes each course once and each edge once — O(V+E) total.',
     spaceExplanation:
-      'The adjacency list stores all V nodes and E edges — O(V+E). The state array and call stack add O(V). Total: O(V+E).',
+      'The adjacency list stores all edges O(E), the prereq counter and queue store all nodes O(V). Total: O(V+E).',
     category: 'graphs',
     linkedProblemId: 'course-schedule',
     linkedProblemTitle: 'Course Schedule',
@@ -547,16 +588,21 @@ def can_finish(numCourses, prerequisites):
   {
     id: 'merge-two-sorted-lists',
     context: 'Merge two sorted linked lists into one sorted list in-place.',
-    code: `def merge(l1, l2):
-    dummy = ListNode(0)
-    curr = dummy
-    while l1 and l2:
-        if l1.val <= l2.val:
-            curr.next = l1; l1 = l1.next
+    code: `def merge_two_lists(list1, list2):
+    dummy = ListNode(-101)
+    current = dummy
+    while list1 and list2:
+        if list1.val < list2.val:
+            current.next = list1
+            list1 = list1.next
         else:
-            curr.next = l2; l2 = l2.next
-        curr = curr.next
-    curr.next = l1 or l2
+            current.next = list2
+            list2 = list2.next
+        current = current.next
+    if list1:
+        current.next = list1
+    else:
+        current.next = list2
     return dummy.next`,
     timeOptions: ['O(m+n)', 'O(m·n)', 'O(n)', 'O(n log n)'],
     spaceOptions: ['O(1)', 'O(m+n)', 'O(m)', 'O(n)'],
@@ -565,7 +611,7 @@ def can_finish(numCourses, prerequisites):
     timeExplanation:
       'Each node from both lists is visited at most once. With m and n nodes respectively, total work is O(m+n).',
     spaceExplanation:
-      'Only the dummy head and curr pointer — no new nodes are created. Space is O(1).',
+      'Only the dummy head and current pointer — no new nodes are created. Space is O(1).',
     category: 'linked-list',
     linkedProblemId: 'merge-two-sorted-lists',
     linkedProblemTitle: 'Merge Two Sorted Lists',
@@ -574,16 +620,14 @@ def can_finish(numCourses, prerequisites):
   },
   {
     id: 'product-except-self',
-    context: 'Return an array where each element is the product of all other elements (no division).',
+    context: 'Return an array where each element is the product of all other elements (no division, O(1) extra space).',
     code: `def product_except_self(nums):
-    n = len(nums)
-    result = [1] * n
-    prefix = 1
-    for i in range(n):
+    result = [1] * len(nums)
+    prefix = suffix = 1
+    for i in range(len(nums)):
         result[i] = prefix
         prefix *= nums[i]
-    suffix = 1
-    for i in range(n - 1, -1, -1):
+    for i in range(len(nums) - 1, -1, -1):
         result[i] *= suffix
         suffix *= nums[i]
     return result`,
@@ -604,26 +648,31 @@ def can_finish(numCourses, prerequisites):
   {
     id: 'rotting-oranges',
     context: 'Find the minimum time (in minutes) for all fresh oranges to rot via BFS spreading.',
-    code: `from collections import deque
+    code: `import collections
+
 def oranges_rotting(grid):
+    minute = 0
+    neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+    rotten_queue = collections.deque()
+    fresh_count = 0
     rows, cols = len(grid), len(grid[0])
-    q, fresh = deque(), 0
-    for r in range(rows):
-        for c in range(cols):
-            if grid[r][c] == 2: q.append((r, c, 0))
-            elif grid[r][c] == 1: fresh += 1
-    minutes = 0
-    dirs = [(0,1),(0,-1),(1,0),(-1,0)]
-    while q:
-        r, c, t = q.popleft()
-        for dr, dc in dirs:
-            nr, nc = r+dr, c+dc
-            if 0<=nr<rows and 0<=nc<cols and grid[nr][nc]==1:
-                grid[nr][nc] = 2
-                fresh -= 1
-                q.append((nr, nc, t+1))
-                minutes = t+1
-    return minutes if fresh == 0 else -1`,
+    for row in range(rows):
+        for col in range(cols):
+            if grid[row][col] == 1:
+                fresh_count += 1
+            elif grid[row][col] == 2:
+                rotten_queue.append((row, col))
+    while rotten_queue and fresh_count > 0:
+        for _ in range(len(rotten_queue)):
+            r, c = rotten_queue.popleft()
+            for dr, dc in neighbors:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == 1:
+                    grid[nr][nc] = 2
+                    rotten_queue.append((nr, nc))
+                    fresh_count -= 1
+        minute += 1
+    return minute if fresh_count == 0 else -1`,
     timeOptions: ['O(n)', 'O(n log n)', 'O(m+n)', 'O(m×n)'],
     spaceOptions: ['O(1)', 'O(m+n)', 'O(m×n)', 'O(n²)'],
     correctTime: 'O(m×n)',
@@ -642,21 +691,24 @@ def oranges_rotting(grid):
     id: 'remove-nth-from-end',
     context: 'Remove the nth node from the end of a linked list in a single pass.',
     code: `def remove_nth_from_end(head, n):
-    dummy = ListNode(0, head)
-    fast = slow = dummy
-    for _ in range(n + 1):
-        fast = fast.next
-    while fast:
-        fast = fast.next
-        slow = slow.next
-    slow.next = slow.next.next
+    dummy = ListNode(0)
+    dummy.next = head
+    l = dummy
+    r = head
+    while n > 0 and r:
+        r = r.next
+        n -= 1
+    while r:
+        l = l.next
+        r = r.next
+    l.next = l.next.next
     return dummy.next`,
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
     correctTime: 'O(n)',
     correctSpace: 'O(1)',
     timeExplanation:
-      'The fast pointer advances n+1 steps, then both pointers walk the rest of the list — at most L steps total where L is the list length. Single pass: O(n).',
+      'The fast pointer advances n steps, then both pointers walk the rest of the list — at most L steps total where L is the list length. Single pass: O(n).',
     spaceExplanation:
       'Only the dummy node and two pointer variables. Space is O(1).',
     category: 'linked-list',
@@ -670,15 +722,14 @@ def oranges_rotting(grid):
     context: 'Find the length of the longest consecutive integer sequence in an unsorted array.',
     code: `def longest_consecutive(nums):
     num_set = set(nums)
-    best = 0
-    for n in num_set:
-        if n - 1 not in num_set:   # start of a sequence
-            curr, length = n, 1
-            while curr + 1 in num_set:
-                curr += 1
-                length += 1
-            best = max(best, length)
-    return best`,
+    longest = 0
+    for n in nums:
+        if n - 1 not in num_set:
+            current_longest = 1
+            while n + current_longest in num_set:
+                current_longest += 1
+            longest = max(longest, current_longest)
+    return longest`,
     timeOptions: ['O(1)', 'O(n)', 'O(n log n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     correctTime: 'O(n)',
@@ -697,30 +748,38 @@ def oranges_rotting(grid):
     id: 'search-rotated',
     context: 'Search for a target in a rotated sorted array using binary search.',
     code: `def search(nums, target):
-    left, right = 0, len(nums) - 1
-    while left <= right:
-        mid = (left + right) // 2
-        if nums[mid] == target:
-            return mid
-        if nums[left] <= nums[mid]:          # left half is sorted
-            if nums[left] <= target < nums[mid]:
-                right = mid - 1
+    l, r = 0, len(nums) - 1
+    while l < r:
+        m = (l + r) // 2
+        if nums[m] > nums[r]:
+            l = m + 1
+        else:
+            r = m
+    k = l
+
+    def binary_search(l, r):
+        while l <= r:
+            mid = (l + r) // 2
+            if nums[mid] == target:
+                return mid
+            elif nums[mid] > target:
+                r = mid - 1
             else:
-                left = mid + 1
-        else:                                # right half is sorted
-            if nums[mid] < target <= nums[right]:
-                left = mid + 1
-            else:
-                right = mid - 1
-    return -1`,
+                l = mid + 1
+        return -1
+
+    result = binary_search(0, k - 1)
+    if result == -1:
+        result = binary_search(k, len(nums) - 1)
+    return result`,
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
     correctTime: 'O(log n)',
     correctSpace: 'O(1)',
     timeExplanation:
-      'Even with a rotation, each iteration still halves the search space. Total: O(log n).',
+      'First, find the rotation index k with binary search — O(log n). Then run binary search on each of the two halves — O(log n) each. Total: O(log n).',
     spaceExplanation:
-      'Only pointer variables — no auxiliary data structures. Space is O(1).',
+      'Both the rotation-finding loop and the binary searches are iterative. Only pointer variables — no auxiliary data structures. Space is O(1).',
     category: 'binary-search',
     linkedProblemId: 'search-in-rotated-sorted-array',
     linkedProblemTitle: 'Search in Rotated Sorted Array',
@@ -735,7 +794,7 @@ def oranges_rotting(grid):
     while fast and fast.next:
         slow = slow.next
         fast = fast.next.next
-        if slow is fast:
+        if slow == fast:
             return True
     return False`,
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
