@@ -52,6 +52,7 @@ import { courseScheduleIIMeta } from '../../algorithms/graphs/course-schedule-ii
 import { pacificAtlanticWaterFlowMeta } from '../../algorithms/graphs/pacific-atlantic-water-flow.steps';
 import { floodFillMeta } from '../../algorithms/graphs/flood-fill.steps';
 import { surroundedRegionsMeta } from '../../algorithms/graphs/surrounded-regions.steps';
+import { numberOfConnectedComponentsMeta } from '../../algorithms/graphs/number-of-connected-components.steps';
 import { validPalindromeIIIMeta } from '../../algorithms/dynamic-programming/valid-palindrome-iii.steps';
 import { removeElementMeta } from '../../algorithms/arrays-hash/remove-element.steps';
 import { concatenationOfArrayMeta } from '../../algorithms/arrays-hash/concatenation-of-array.steps';
@@ -184,6 +185,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   courseScheduleIIMeta,
   pacificAtlanticWaterFlowMeta,
   surroundedRegionsMeta,
+  numberOfConnectedComponentsMeta,
 
   // ── Stack ─────────────────────────────────────────────────────────────────
   validParenthesesMeta,
