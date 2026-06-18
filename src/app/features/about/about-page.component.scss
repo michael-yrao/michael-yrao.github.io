@@ -9,8 +9,25 @@
 
 // ── Hero ──────────────────────────────────────────────────────────
 .hero {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xl);
   padding: var(--space-2xl) 0 var(--space-xl);
+
+  &__photo {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center top;
+    flex-shrink: 0;
+    border: 2px solid var(--color-border);
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+  }
 
   &__eyebrow {
     font-size: 0.8rem;
@@ -35,14 +52,12 @@
     font-size: 1.05rem;
     line-height: 1.75;
     color: var(--color-text-muted);
-    max-width: 620px;
-    margin: 0 auto var(--space-md);
+    margin: 0 0 var(--space-md);
   }
 
   &__contact {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: var(--space-sm);
     font-size: 0.88rem;
     color: var(--color-text-muted);
@@ -53,6 +68,16 @@
     }
 
     .divider { opacity: 0.4; }
+  }
+
+  @media (max-width: 560px) {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+
+    &__contact {
+      justify-content: center;
+    }
   }
 }
 
