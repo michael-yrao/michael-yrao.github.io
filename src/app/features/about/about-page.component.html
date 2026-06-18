@@ -5,10 +5,10 @@
     <div class="hero__eyebrow">About Me</div>
     <h1 id="about-heading" class="hero__name">Michael Rao</h1>
     <p class="hero__bio">
-      Full-stack developer specializing in financial technology. Currently at Morgan Stanley, where recent work
-      helped establish Morgan Stanley Wealth Management Canada's FA recruit programme — onboarding the first
-      Canadian-based Financial Advisor team and launching the FA Notes tracking platform as a key milestone for
-      the Canadian business. Double major in Computer Science and Applied Mathematics from Stony Brook University.
+      Senior full-stack developer and squad lead with 9+ years of experience in financial technology at Morgan Stanley.
+      Deep expertise in accounting systems, data migration, and financial platform engineering. Currently leading an
+      accounting architecture modernization onto Snowflake and an in-house accounting engine. Double major in
+      Computer Science and Applied Mathematics and Statistics from Stony Brook University.
     </p>
     <div class="hero__contact">
       <a href="mailto:cn.yrao@gmail.com">cn.yrao&#64;gmail.com</a>
@@ -23,20 +23,25 @@
         <span class="skill-tier">Proficient</span>
         <div class="tags">
           <span class="tag">Java</span>
+          <span class="tag">Python</span>
           <span class="tag">C#</span>
+          <span class="tag">TypeScript</span>
+          <span class="tag">SQL</span>
+          <span class="tag">Shell</span>
           <span class="tag">.NET</span>
+          <span class="tag">Angular</span>
+          <span class="tag">Node.js</span>
+          <span class="tag">Express</span>
           <span class="tag">WPF</span>
+          <span class="tag">ASP.NET</span>
+          <span class="tag">Snowflake</span>
           <span class="tag">DB2</span>
           <span class="tag">Teradata</span>
-          <span class="tag">UNIX</span>
-          <span class="tag">Git</span>
-          <span class="tag">Python</span>
-          <span class="tag">Flutter</span>
-          <span class="tag">TypeScript</span>
           <span class="tag">MongoDB</span>
-          <span class="tag">NodeJS</span>
-          <span class="tag">Express</span>
           <span class="tag">AWS</span>
+          <span class="tag">Autosys</span>
+          <span class="tag">Git</span>
+          <span class="tag">Flutter</span>
         </div>
       </div>
       <div class="skill-row">
@@ -45,10 +50,8 @@
           <span class="tag tag--dim">C</span>
           <span class="tag tag--dim">Sybase</span>
           <span class="tag tag--dim">jQuery</span>
-          <span class="tag tag--dim">HTML</span>
           <span class="tag tag--dim">MySQL</span>
           <span class="tag tag--dim">MIPS</span>
-          <span class="tag tag--dim">Autosys</span>
         </div>
       </div>
     </div>
@@ -63,25 +66,34 @@
       <div class="job">
         <div class="job__header">
           <div>
-            <div class="job__role">Senior Full-Stack Developer</div>
+            <div class="job__role">Senior Full-Stack Developer | Squad Lead</div>
             <div class="job__company">Morgan Stanley</div>
           </div>
           <span class="job__period">Oct 2023 – Present</span>
         </div>
 
         <div class="subproject">
+          <div class="subproject__name">Accounting Architecture Modernization (Snowflake / Serenity)</div>
+          <ul class="bullets">
+            <li>Leading architecture of a Snowflake-based cloud data platform to eliminate manual Excel-driven EUC accounting and reporting processes across wealth management business lines, enabling AI-powered financial reporting at scale</li>
+            <li>Engineering an integration layer between Snowflake and Serenity, Morgan Stanley's in-house accounting engine, to standardize journal processing — removing manual reconciliation steps and establishing a foundation for automated, auditable reporting</li>
+            <li>Establishing data contracts, transformation pipelines, and reconciliation checks to ensure zero-discrepancy cutover and support automated reporting workflows</li>
+          </ul>
+        </div>
+
+        <div class="subproject">
           <div class="subproject__name">EquityZen Acquisition</div>
           <ul class="bullets">
-            <li>Led a cross-functional Agile squad through end-to-end technical delivery of Morgan Stanley's EquityZen acquisition, coordinating workstreams across data migration, systems integration, and operational cutover</li>
+            <li>Led a cross-functional Agile squad through end-to-end technical delivery of Morgan Stanley's ~$100M EquityZen acquisition, coordinating workstreams across data migration, systems integration, and operational cutover</li>
             <li>Engineered automated reconciliation pipelines to validate financial data integrity across acquired systems, ensuring zero accounting discrepancies at cutover</li>
-            <li>Built a C# application enabling Operations to execute, review, and audit acquisition-related accounting adjustments — with approval workflows and a full audit trail</li>
+            <li>Engineered an audited C# application that enables Operations to execute, review, and audit acquisition-related accounting adjustments — with approval workflows and a full audit trail ensuring regulatory traceability</li>
           </ul>
         </div>
 
         <div class="subproject">
           <div class="subproject__name">FA Notes System — Canadian Expansion (MSWC)</div>
           <ul class="bullets">
-            <li>Extended the FA Notes platform to support Canadian regulatory and compensation models, enabling MSWC to onboard its first Canadian-based FA Recruit Team</li>
+            <li>Led expansion of the FA Notes platform to support Canadian regulatory and compensation models, enabling MSWC to onboard its first Canadian-based FA Recruit Team</li>
             <li>Delivered end-to-end loan lifecycle tracking for Canadian FA notes — covering issuance, disbursement, and repayment — supporting the inaugural note on the MSWC platform</li>
             <li>Implemented jurisdiction-specific controls, audit logging, and operational reporting to satisfy Canadian regulatory requirements ahead of pilot go-live</li>
             <li>Designed the system to be jurisdiction-configurable, establishing a reusable foundation for scaling the recruit programme beyond the initial pilot cohort</li>
@@ -117,7 +129,7 @@
         <div class="subproject">
           <div class="subproject__name">General Ledger Integration</div>
           <ul class="bullets">
-            <li>Led decommissioning of three acquired general ledgers (Shareworks, Eaton Vance, E*TRADE) by engineering automated journal ingestion pipelines in Teradata and Shell, orchestrated via Autosys and an in-house ETL framework</li>
+            <li>Led GL decommissioning across three major Morgan Stanley acquisitions — E*TRADE ($13B, retail brokerage), Eaton Vance ($7B, investment management clients), and Shareworks (~$900M, equity plan management) — by engineering automated journal ingestion pipelines in Teradata and Shell, orchestrated via Autosys and an in-house ETL framework</li>
             <li>Built a C# .NET WPF application with MVVM architecture for the Shareworks GL migration, providing audited data correction workflows and approval-gated journal posting</li>
           </ul>
         </div>
@@ -125,15 +137,15 @@
         <div class="subproject">
           <div class="subproject__name">Manual Automation Delivery (MAD)</div>
           <ul class="bullets">
-            <li>Eliminated a recurring manual end-user computing (EUC) process by delivering a fully automated monthly journal pipeline with structured logging, persistent archival, and dynamic notifications on completion or failure</li>
+            <li>Eliminated a recurring monthly EUC process across fees and billing systems — replacing hundreds of hours of manual Operations effort and processing tens of thousands of journal entries per month through a fully automated pipeline with structured logging, persistent archival, and dynamic completion/failure notifications</li>
           </ul>
         </div>
 
         <div class="subproject">
           <div class="subproject__name">Retail Inventory Application (RETINA)</div>
           <ul class="bullets">
-            <li>Delivered a C# .NET WPF application following strict MVVM architecture as the primary hub for inventory maintenance, position adjustments, and finance-facing reporting</li>
-            <li>Authored DB2 stored procedures called from Java middleware to compute real-time Balance Sheet positions and P&amp;L, encapsulating complex financial logic at the data layer</li>
+            <li>Delivered a C# .NET WPF application following strict MVVM architecture as the primary hub for inventory maintenance, position adjustments, and finance-facing reporting used by ~15 users daily</li>
+            <li>Implemented DB2 stored procedures called from Java middleware to compute real-time Balance Sheet and P&amp;L positions, encapsulating complex financial logic at the data layer and keeping reporting latency near-zero for daily Operations use</li>
             <li>Drove trunk-based development and CI/CD adoption across the team, reducing integration overhead and enabling frequent, stable releases with direct client feedback loops</li>
           </ul>
         </div>
@@ -141,7 +153,7 @@
         <div class="subproject">
           <div class="subproject__name">Financial Advisor Notes (FANs)</div>
           <ul class="bullets">
-            <li>Redesigned the ASP.NET front-end with dual-layer input validation (client-side and server-side), directly reducing data-entry errors and improving downstream data quality</li>
+            <li>Redesigned the ASP.NET front-end with dual-layer input validation (client-side and server-side), cutting data-entry errors at the source and preventing invalid entries from propagating into downstream journal and compensation calculations</li>
           </ul>
         </div>
 
