@@ -233,6 +233,173 @@ function generateSteps(): Step[] {
   return steps;
 }
 
+const PYTHON_CODE_UF = `def countComponents(self, n: int, edges: List[List[int]]) -> int:
+    parentMap, rankMap = {}, {}
+    componentCounter = n
+
+    for i in range(n):
+        parentMap[i] = i
+        rankMap[i] = 0
+
+    def findParent(node):
+        if node == parentMap[node]:
+            return parentMap[node]
+        parentMap[node] = findParent(parentMap[node])
+        return parentMap[node]
+
+    def unionByRank(node1, node2):
+        node1Root = findParent(node1)
+        node2Root = findParent(node2)
+        if node1Root == node2Root:
+            return False
+        if rankMap[node1Root] > rankMap[node2Root]:
+            parentMap[node2Root] = node1Root
+        elif rankMap[node2Root] > rankMap[node1Root]:
+            parentMap[node1Root] = node2Root
+        else:
+            parentMap[node2Root] = node1Root
+            rankMap[node1Root] += 1
+        return True
+
+    for node1, node2 in edges:
+        if unionByRank(node1, node2):
+            componentCounter -= 1
+
+    return componentCounter`;
+
+function generateStepsUF(): Step[] {
+  const n = 5;
+  const edgeList: [number, number][] = [[0, 1], [1, 2], [3, 4]];
+  const steps: Step[] = [];
+
+  type NS = 'default' | 'active' | 'visited' | 'found';
+  const ns: NS[] = new Array(n).fill('default');
+  const parent = [0, 1, 2, 3, 4];
+  const rank = [0, 0, 0, 0, 0];
+  let comp = 5;
+
+  const mkState = (edge?: [number, number]) => ({
+    type: 'array' as const,
+    cells: ns.map((state, i) => ({ value: i, state: state as import('../../core/models/algorithm.model').CellState })),
+    pointers: [] as import('../../core/models/algorithm.model').Pointer[],
+    stackItems: edge ? [`[${edge[0]}, ${edge[1]}]`] : [],
+    counters: [{ label: 'components', value: comp }],
+    hashmap: Object.fromEntries(parent.map((p, i) => [String(i), String(p)])) as Record<string | number, string>,
+  });
+
+  // Step 1: Init
+  steps.push({
+    explanation:
+      'Start with componentCounter = n = 5. Every node begins as its own isolated component. parentMap: {0:0, 1:1, 2:2, 3:3, 4:4}. Each successful union will decrement the counter.',
+    highlightLine: 4,
+    state: mkState(),
+    variables: [
+      { name: 'n', value: 5 },
+      { name: 'componentCounter', value: 5 },
+      { name: 'parentMap', value: '{0:0, 1:1, 2:2, 3:3, 4:4}' },
+      { name: 'rankMap', value: '{0:0, 1:0, 2:0, 3:0, 4:0}' },
+    ],
+  });
+
+  // Edge [0,1]
+  ns[0] = 'active'; ns[1] = 'active';
+  steps.push({
+    explanation:
+      'Edge [0,1]: findParent(0)→0, findParent(1)→1. Different roots — safe to union.',
+    highlightLine: 13,
+    state: mkState([0, 1]),
+    variables: [
+      { name: 'node1', value: 0, highlight: true },
+      { name: 'node2', value: 1, highlight: true },
+      { name: 'node1Root', value: 0 },
+      { name: 'node2Root', value: 1 },
+    ],
+  });
+
+  parent[1] = 0; rank[0] = 1; comp = 4;
+  ns[0] = 'visited'; ns[1] = 'found';
+  steps.push({
+    explanation:
+      'Ranks equal → parentMap[1]=0, rankMap[0]→1. componentCounter→4. Node 1 merges into component rooted at 0.',
+    highlightLine: 17,
+    state: mkState([0, 1]),
+    variables: [
+      { name: 'parentMap[1]', value: 0, highlight: true },
+      { name: 'rankMap[0]', value: 1, highlight: true },
+      { name: 'componentCounter', value: 4, highlight: true },
+    ],
+  });
+
+  // Edge [1,2]
+  ns[1] = 'active'; ns[2] = 'active';
+  steps.push({
+    explanation:
+      'Edge [1,2]: findParent(1)→parentMap[1]=0→findParent(0)=0 (path compression). findParent(2)=2. Roots 0 and 2 differ — safe to union.',
+    highlightLine: 13,
+    state: mkState([1, 2]),
+    variables: [
+      { name: 'node1', value: 1, highlight: true },
+      { name: 'node2', value: 2, highlight: true },
+      { name: 'node1Root', value: 0 },
+      { name: 'node2Root', value: 2 },
+    ],
+  });
+
+  parent[2] = 0; comp = 3;
+  ns[1] = 'found'; ns[2] = 'found';
+  steps.push({
+    explanation:
+      'rankMap[0]=1 > rankMap[2]=0 → parentMap[2]=0. componentCounter→3. Nodes {0,1,2} now share root 0.',
+    highlightLine: 15,
+    state: mkState([1, 2]),
+    variables: [
+      { name: 'parentMap[2]', value: 0, highlight: true },
+      { name: 'componentCounter', value: 3, highlight: true },
+    ],
+  });
+
+  // Edge [3,4]
+  ns[3] = 'active'; ns[4] = 'active';
+  steps.push({
+    explanation:
+      'Edge [3,4]: findParent(3)=3, findParent(4)=4. Different roots — safe to union.',
+    highlightLine: 13,
+    state: mkState([3, 4]),
+    variables: [
+      { name: 'node1', value: 3, highlight: true },
+      { name: 'node2', value: 4, highlight: true },
+      { name: 'node1Root', value: 3 },
+      { name: 'node2Root', value: 4 },
+    ],
+  });
+
+  parent[4] = 3; rank[3] = 1; comp = 2;
+  ns[3] = 'visited'; ns[4] = 'found';
+  steps.push({
+    explanation:
+      'Ranks equal → parentMap[4]=3, rankMap[3]→1. componentCounter→2. Nodes {3,4} merge into component rooted at 3.',
+    highlightLine: 17,
+    state: mkState([3, 4]),
+    variables: [
+      { name: 'parentMap[4]', value: 3, highlight: true },
+      { name: 'rankMap[3]', value: 1, highlight: true },
+      { name: 'componentCounter', value: 2, highlight: true },
+    ],
+  });
+
+  steps.push({
+    explanation:
+      'All edges processed. Two components remain: {0,1,2} under root 0 and {3,4} under root 3. Return 2. O(n·α(n)) time — near-constant per union/find with path compression and union by rank.',
+    highlightLine: 22,
+    state: mkState(),
+    variables: [
+      { name: 'result', value: 2, highlight: true },
+    ],
+  });
+
+  return steps;
+}
+
 export const numberOfConnectedComponentsMeta: AlgorithmMeta = {
   id: 'number-of-connected-components',
   lcNumber: 323,
@@ -266,5 +433,6 @@ export const numberOfConnectedComponentsMeta: AlgorithmMeta = {
   hint: 'Each call to BFS from an unvisited node marks exactly one connected component. Count how many times you launch BFS.',
   solutions: [
     { label: 'BFS', pythonCode: PYTHON_CODE, generateSteps },
+    { label: 'Union Find', pythonCode: PYTHON_CODE_UF, generateSteps: generateStepsUF },
   ],
 };
