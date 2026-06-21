@@ -50,7 +50,15 @@ const PYTHON_CODE_ALT = `class Solution:
                 stack.append(char)
         return not stack`;
 
-function generateSteps(): Step[] {
+interface ParenLines {
+  intro: number;
+  push: number;
+  pop: number;
+  mismatch: number;
+  final: number;
+}
+
+function buildParenSteps(intro: string, L: ParenLines): Step[] {
   const s = '([{}])';
   const steps: Step[] = [];
   const openToClose: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
@@ -58,8 +66,8 @@ function generateSteps(): Step[] {
   const stack: string[] = [];
 
   steps.push({
-    explanation: `Input: "${s}". A stack is perfect here because brackets must be closed in LIFO order — the most recently opened bracket must be the next one closed. We map each opener to its expected closer.`,
-    highlightLine: 10,
+    explanation: intro,
+    highlightLine: L.intro,
     state: {
       type: 'array',
       cells: s.split('').map((c) => ({ value: c, state: 'default' })),
@@ -81,24 +89,7 @@ function generateSteps(): Step[] {
       state: idx === i ? ('active' as const) : idx < i ? ('visited' as const) : ('default' as const),
     }));
 
-    if (isOpen) {
-      steps.push({
-        explanation: `'${char}' is an opening bracket. Push it onto the stack. We'll match it when we see its partner '${openToClose[char]}'. Stack is LIFO — last in, first out.`,
-        highlightLine: 25,
-        state: {
-          type: 'array',
-          cells,
-          pointers: [{ index: i, label: 'i' }],
-          stackItems: [...stack, char],
-        },
-        variables: [
-          { name: 'char', value: char, highlight: true },
-          { name: 'openToCloseMap[char]', value: openToClose[char] },
-          { name: 'stack[-1]', value: char, highlight: true },
-        ],
-      });
-      stack.push(char);
-    } else if (isClose) {
+    if (isClose) {
       const topOfStack = stack[stack.length - 1];
       const expected = topOfStack ? openToClose[topOfStack] : null;
       const matches = expected === char;
@@ -106,7 +97,7 @@ function generateSteps(): Step[] {
       if (matches) {
         steps.push({
           explanation: `'${char}' is a closing bracket. Top of stack is '${topOfStack}', whose expected closer is '${expected}'. They match! Pop '${topOfStack}' off the stack.`,
-          highlightLine: 23,
+          highlightLine: L.pop,
           state: {
             type: 'array',
             cells: cells.map((c, idx) => ({
@@ -127,7 +118,7 @@ function generateSteps(): Step[] {
       } else {
         steps.push({
           explanation: `'${char}' is a closing bracket but ${topOfStack ? `top of stack '${topOfStack}' expects '${expected}', not '${char}'` : 'the stack is empty'}. Mismatch — return false.`,
-          highlightLine: 21,
+          highlightLine: L.mismatch,
           state: {
             type: 'array',
             cells: cells.map((c, idx) => ({
@@ -147,11 +138,31 @@ function generateSteps(): Step[] {
         break;
       }
     }
+    // Note: '}' / ']' / ')' are only closers, but in this nested example the
+    // same character is never both; openers fall straight through to here.
+    if (isOpen) {
+      steps.push({
+        explanation: `'${char}' is an opening bracket. Push it onto the stack. We'll match it when we see its partner '${openToClose[char]}'. Stack is LIFO — last in, first out.`,
+        highlightLine: L.push,
+        state: {
+          type: 'array',
+          cells,
+          pointers: [{ index: i, label: 'i' }],
+          stackItems: [...stack, char],
+        },
+        variables: [
+          { name: 'char', value: char, highlight: true },
+          { name: 'openToCloseMap[char]', value: openToClose[char] },
+          { name: 'stack[-1]', value: char, highlight: true },
+        ],
+      });
+      stack.push(char);
+    }
   }
 
   steps.push({
     explanation: `All characters processed. Stack is ${stack.length === 0 ? 'empty — every opener was matched' : 'not empty — some openers were never closed'}. Return ${stack.length === 0}.`,
-    highlightLine: 23,
+    highlightLine: L.final,
     state: {
       type: 'array',
       cells: s.split('').map((c) => ({ value: c, state: 'visited' })),
@@ -168,8 +179,18 @@ function generateSteps(): Step[] {
   return steps;
 }
 
+function generateSteps(): Step[] {
+  return buildParenSteps(
+    `Input: "([{}])". A stack is perfect here because brackets must be closed in LIFO order — the most recently opened bracket must be the next one closed. We map each opener to its expected closer.`,
+    { intro: 8, push: 22, pop: 20, mismatch: 18, final: 23 }
+  );
+}
+
 function generateSetSteps(): Step[] {
-  return [];
+  return buildParenSteps(
+    `Same stack logic, one micro-optimization: we pre-build closeBrackets = set(openToCloseMap.values()). Checking "is this char a closing bracket?" against a set is O(1), whereas "char in openToCloseMap.values()" rebuilds and scans the values list every time — O(k) per check. Identical steps, slightly faster closing-bracket test.`,
+    { intro: 10, push: 24, pop: 22, mismatch: 20, final: 25 }
+  );
 }
 
 const stackSolution: SolutionVariant = {

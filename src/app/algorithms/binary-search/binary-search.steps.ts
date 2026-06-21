@@ -147,7 +147,93 @@ const RECURSIVE_CODE = `class Solution:
         return search(0, len(nums)-1)`;
 
 function generateRecursiveSteps(): Step[] {
-  return [];
+  const nums = [-1, 0, 3, 5, 9, 12];
+  const target = 9;
+  const steps: Step[] = [];
+
+  const makeState = (l: number, r: number, mid: number | null, depth: number, foundAt: number | null = null) => ({
+    type: 'array' as const,
+    cells: nums.map((v, i) => ({
+      value: v,
+      state:
+        foundAt !== null && i === foundAt
+          ? ('found' as const)
+          : i < l || i > r
+          ? ('eliminated' as const)
+          : mid !== null && i === mid
+          ? ('active' as const)
+          : ('default' as const),
+    })),
+    pointers: [
+      { index: l, label: 'l' },
+      { index: r, label: 'r' },
+      ...(mid !== null ? [{ index: mid, label: 'm' }] : []),
+    ],
+    counters: [{ label: 'call stack depth', value: depth }],
+  });
+
+  steps.push({
+    explanation: `Same halving idea as the loop, but expressed with recursion: search(l, r) inspects the middle, then CALLS ITSELF on whichever half can still contain the target. The base case l > r means the window is empty → not found (return −1). We kick it off with search(0, ${nums.length - 1}).`,
+    highlightLine: 15,
+    state: makeState(0, nums.length - 1, null, 0),
+    variables: [{ name: 'target', value: target }],
+  });
+
+  let depth = 0;
+  function search(l: number, r: number): number {
+    depth++;
+    if (l > r) {
+      steps.push({
+        explanation: `search(${l}, ${r}): l > r, the window is empty. Base case → return −1 (target not present).`,
+        highlightLine: 5,
+        state: makeState(l, r, null, depth),
+        variables: [{ name: 'l', value: l }, { name: 'r', value: r }, { name: 'return', value: -1, highlight: true }],
+      });
+      depth--;
+      return -1;
+    }
+    const m = l + Math.floor((r - l) / 2);
+    if (nums[m] === target) {
+      steps.push({
+        explanation: `search(${l}, ${r}): m = ${m}, nums[${m}] = ${nums[m]} == target ${target}. Found! Return ${m} straight up the call stack.`,
+        highlightLine: 10,
+        state: makeState(l, r, m, depth, m),
+        variables: [{ name: 'l', value: l }, { name: 'r', value: r }, { name: 'm', value: m, highlight: true }, { name: 'nums[m]', value: nums[m] }, { name: 'return', value: m, highlight: true }],
+      });
+      depth--;
+      return m;
+    }
+    if (nums[m] > target) {
+      steps.push({
+        explanation: `search(${l}, ${r}): m = ${m}, nums[${m}] = ${nums[m]} > target ${target}. The target must be in the LEFT half. Recurse: search(${l}, ${m - 1}). Call stack grows to depth ${depth + 1}.`,
+        highlightLine: 12,
+        state: makeState(l, r, m, depth),
+        variables: [{ name: 'l', value: l }, { name: 'r', value: r }, { name: 'm', value: m }, { name: 'nums[m]', value: nums[m], highlight: true }],
+      });
+      const res = search(l, m - 1);
+      depth--;
+      return res;
+    }
+    steps.push({
+      explanation: `search(${l}, ${r}): m = ${m}, nums[${m}] = ${nums[m]} < target ${target}. The target must be in the RIGHT half. Recurse: search(${m + 1}, ${r}). Call stack grows to depth ${depth + 1}.`,
+      highlightLine: 13,
+      state: makeState(l, r, m, depth),
+      variables: [{ name: 'l', value: l }, { name: 'r', value: r }, { name: 'm', value: m }, { name: 'nums[m]', value: nums[m], highlight: true }],
+    });
+    const res = search(m + 1, r);
+    depth--;
+    return res;
+  }
+
+  const answer = search(0, nums.length - 1);
+  steps.push({
+    explanation: `The found index ${answer} bubbles back through every pending recursive call unchanged. Final answer: ${answer}. Same O(log n) work as the loop, but O(log n) stack space instead of O(1).`,
+    highlightLine: 15,
+    state: makeState(answer, answer, answer, 0, answer),
+    variables: [{ name: 'result', value: answer, highlight: true }],
+  });
+
+  return steps;
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────

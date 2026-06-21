@@ -1,4 +1,4 @@
-import { AlgorithmMeta, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
 const PYTHON_CODE = `from typing import Optional
 
@@ -23,73 +23,117 @@ class Solution:
         # return max(1+self.maxDepth(root.left),1+self.maxDepth(root.right))
         return 1+max(self.maxDepth(root.left),self.maxDepth(root.right))`;
 
-function makeNodes(overrides: Record<string, TreeNode['state']> = {}): TreeNode[] {
-  const base: Omit<TreeNode, 'state'>[] = [
-    { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
-    { id: 'n1', value: 9, leftId: null, rightId: null },
-    { id: 'n2', value: 20, leftId: 'n3', rightId: 'n4' },
-    { id: 'n3', value: 15, leftId: null, rightId: null },
-    { id: 'n4', value: 7, leftId: null, rightId: null },
-  ];
-  return base.map(n => ({ ...n, state: overrides[n.id] ?? 'default' }));
-}
+// Tree: [3,9,20,null,null,15,7]
+const NODES: Omit<TreeNode, 'state'>[] = [
+  { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
+  { id: 'n1', value: 9, leftId: null, rightId: null },
+  { id: 'n2', value: 20, leftId: 'n3', rightId: 'n4' },
+  { id: 'n3', value: 15, leftId: null, rightId: null },
+  { id: 'n4', value: 7, leftId: null, rightId: null },
+];
 
-export function generateSteps() {
-  return [
-    {
-      explanation: 'Start postorder DFS. We recurse as deep as possible first. Visiting node 9 (leaf, left child of 3).',
-      highlightLine: 22,
-      state: { type: 'tree' as const, nodes: makeNodes({ n1: 'active' }) } as TreeState,
-    },
-    {
-      explanation: 'Node 9 has no children. Both calls return 0. maxDepth(9) = 1 + max(0,0) = 1. Mark as visited.',
-      highlightLine: 18,
+function generateSteps(): Step[] {
+  const steps: Step[] = [];
+  const nodeMap = new Map(NODES.map((n) => [n.id, n]));
+  const valueOf = (id: string) => nodeMap.get(id)!.value as number;
+
+  // Live node colouring. 'active' = currently on the call stack,
+  // 'visited' = finished and returned, 'found' = final answer path.
+  const colour: Record<string, TreeNode['state']> = {};
+  let stackDepth = 0;
+
+  const makeNodes = (): TreeNode[] =>
+    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
+
+  const push = (
+    explanation: string,
+    line: number,
+    opts: {
+      current?: string | null;
+      vars?: { name: string; value: string | number; highlight?: boolean }[];
+      counters?: { label: string; value: string | number }[];
+    } = {}
+  ) => {
+    steps.push({
+      explanation,
+      highlightLine: line,
       state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n1: 'visited' }),
-        counters: [{ label: 'depth(9)', value: 1 }],
+        type: 'tree',
+        nodes: makeNodes(),
+        pointers: opts.current ? [{ nodeId: opts.current, label: '▶ here' }] : [],
+        counters: [{ label: 'call stack depth', value: stackDepth }, ...(opts.counters ?? [])],
       } as TreeState,
-      variables: [{ name: 'depth(9)', value: 1 }],
-    },
-    {
-      explanation: 'Visit node 15 (left leaf of 20). No children — returns 1.',
-      highlightLine: 22,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n1: 'visited', n3: 'active' }),
-        counters: [{ label: 'depth(9)', value: 1 }],
-      } as TreeState,
-    },
-    {
-      explanation: 'Visit node 7 (right leaf of 20). No children — returns 1.',
-      highlightLine: 22,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n1: 'visited', n3: 'visited', n4: 'active' }),
-        counters: [{ label: 'depth(9)', value: 1 }, { label: 'depth(15)', value: 1 }],
-      } as TreeState,
-    },
-    {
-      explanation: 'Back at node 20. left=1, right=1. maxDepth(20) = 1 + max(1,1) = 2.',
-      highlightLine: 22,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n1: 'visited', n2: 'active', n3: 'visited', n4: 'visited' }),
-        counters: [{ label: 'depth(9)', value: 1 }, { label: 'depth(20)', value: 2 }],
-      } as TreeState,
-      variables: [{ name: 'left', value: 1 }, { name: 'right', value: 1 }],
-    },
-    {
-      explanation: 'Back at root (3). left=1 (from node 9), right=2 (from node 20). maxDepth(3) = 1 + max(1,2) = 3.',
-      highlightLine: 22,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found', n1: 'found', n2: 'found', n3: 'found', n4: 'found' }),
-        counters: [{ label: 'maxDepth', value: 3 }],
-      } as TreeState,
-      variables: [{ name: 'left', value: 1 }, { name: 'right', value: 2 }, { name: 'result', value: 3, highlight: true }],
-    },
-  ];
+      variables: opts.vars,
+    });
+  };
+
+  push(
+    'Goal: max depth = the number of nodes on the longest root→leaf path. Strategy: postorder DFS — to know a node’s depth we must FIRST know both children’s depths, so we dive all the way down, then build the answer back up. A null (missing) child counts as depth 0. Watch the "call stack depth" counter grow as we dive and shrink as we return.',
+    11,
+    { vars: [{ name: 'root', value: 3 }] }
+  );
+
+  function dfs(id: string | null, side: string, parentId: string | null): number {
+    // Base case: a null child contributes depth 0.
+    if (id === null) {
+      push(
+        `${side} is null → base case "if not root: return 0". A missing node has depth 0, so we return 0 right away without recursing deeper.`,
+        18,
+        { current: parentId, vars: [{ name: 'node', value: 'null' }, { name: 'returns', value: 0, highlight: true }] }
+      );
+      return 0;
+    }
+
+    stackDepth++;
+    const v = valueOf(id);
+    colour[id] = 'active';
+    push(
+      `Call maxDepth(node ${v}) — push it on the call stack (depth now ${stackDepth}). We can’t compute its depth yet; first recurse into its LEFT child.`,
+      22,
+      { current: id, vars: [{ name: 'node', value: v }] }
+    );
+
+    const left = dfs(nodeMap.get(id)!.leftId, `Left child of ${v}`, id);
+
+    // Left subtree resolved; come back to this node before going right.
+    colour[id] = 'active';
+    push(
+      `Back at node ${v}. Its left subtree returned depth ${left}. Now recurse into the RIGHT child.`,
+      22,
+      { current: id, vars: [{ name: 'node', value: v }, { name: 'left', value: left, highlight: true }] }
+    );
+
+    const right = dfs(nodeMap.get(id)!.rightId, `Right child of ${v}`, id);
+
+    const depth = 1 + Math.max(left, right);
+    colour[id] = 'visited';
+    stackDepth--;
+    push(
+      `Node ${v} is done: left=${left}, right=${right} → maxDepth(${v}) = 1 + max(${left}, ${right}) = ${depth}. Pop it off the stack and return ${depth} up to its parent (depth now ${stackDepth}).`,
+      22,
+      {
+        current: id,
+        vars: [
+          { name: 'node', value: v },
+          { name: 'left', value: left },
+          { name: 'right', value: right },
+          { name: 'return', value: depth, highlight: true },
+        ],
+      }
+    );
+    return depth;
+  }
+
+  const answer = dfs('n0', 'root', null);
+
+  NODES.forEach((n) => (colour[n.id] = 'found'));
+  push(
+    `Every node has been visited and the recursion has fully unwound. The root returned ${answer}, so the maximum depth is ${answer} — the longest path 3 → 20 → 15 (or 7).`,
+    22,
+    { vars: [{ name: 'maxDepth', value: answer, highlight: true }] }
+  );
+
+  return steps;
 }
 
 export const maximumDepthBinaryTreeMeta: AlgorithmMeta = {

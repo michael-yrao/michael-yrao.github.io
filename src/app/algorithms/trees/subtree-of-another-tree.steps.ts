@@ -1,4 +1,4 @@
-import { AlgorithmMeta, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
 const PYTHON_CODE = `from collections import deque
 from typing import Optional
@@ -50,82 +50,138 @@ class Solution:
 
         return False`;
 
-// Root tree: [3, 4, 5, 1, 2]
-// n0=3(root), n1=4(leftId='n3',rightId='n4'), n2=5(leaf), n3=1(leaf), n4=2(leaf)
-function makeNodes(overrides: Record<string, TreeNode['state']> = {}): TreeNode[] {
-  const base: Omit<TreeNode, 'state'>[] = [
-    { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
-    { id: 'n1', value: 4, leftId: 'n3', rightId: 'n4' },
-    { id: 'n2', value: 5, leftId: null, rightId: null },
-    { id: 'n3', value: 1, leftId: null, rightId: null },
-    { id: 'n4', value: 2, leftId: null, rightId: null },
-  ];
-  return base.map(n => ({ ...n, state: overrides[n.id] ?? 'default' }));
-}
+// Root tree: [3, 4, 5, 1, 2]   subRoot = [4, 1, 2]
+const NODES: Omit<TreeNode, 'state'>[] = [
+  { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
+  { id: 'n1', value: 4, leftId: 'n3', rightId: 'n4' },
+  { id: 'n2', value: 5, leftId: null, rightId: null },
+  { id: 'n3', value: 1, leftId: null, rightId: null },
+  { id: 'n4', value: 2, leftId: null, rightId: null },
+];
 
-export function generateSteps() {
-  return [
-    {
-      explanation: 'BFS through root tree looking for node with value matching subRoot.val=4. Queue: [3].',
-      highlightLine: 31,
+// subRoot tree (not rendered; compared against by value).
+const SUB: Record<string, { val: number; left: string | null; right: string | null }> = {
+  s0: { val: 4, left: 's1', right: 's2' },
+  s1: { val: 1, left: null, right: null },
+  s2: { val: 2, left: null, right: null },
+};
+
+function generateSteps(): Step[] {
+  const steps: Step[] = [];
+  const nodeMap = new Map(NODES.map((n) => [n.id, n]));
+  const valueOf = (id: string) => nodeMap.get(id)!.value as number;
+  const subVal = 4; // subRoot.val
+
+  const colour: Record<string, TreeNode['state']> = {};
+  const queue: string[] = ['n0'];
+
+  const makeNodes = (): TreeNode[] =>
+    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
+
+  const queueStr = () => '[' + queue.map((id) => valueOf(id)).join(', ') + ']';
+
+  const push = (
+    explanation: string,
+    line: number,
+    opts: {
+      current?: string | null;
+      queueShown?: string;
+      vars?: { name: string; value: string | number; highlight?: boolean }[];
+    } = {}
+  ) => {
+    steps.push({
+      explanation,
+      highlightLine: line,
       state: {
-        type: 'tree' as const,
+        type: 'tree',
         nodes: makeNodes(),
-        counters: [{ label: 'queue', value: '[3]' }],
+        pointers: opts.current ? [{ nodeId: opts.current, label: '▶ here' }] : [],
+        counters: [{ label: 'BFS queue', value: opts.queueShown ?? queueStr() }],
       } as TreeState,
-      variables: [{ name: 'subRoot.val', value: 4 }],
-    },
-    {
-      explanation: 'Dequeue node 3. val=3 ≠ 4. Add children to queue. Queue: [4, 5].',
-      highlightLine: 37,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited' }),
-        counters: [{ label: 'queue', value: '[4,5]' }],
-      } as TreeState,
-      variables: [{ name: 'currentNode.val', value: 3 }, { name: 'subRoot.val', value: 4 }],
-    },
-    {
-      explanation: 'Dequeue node 4. val=4 == subRoot.val=4! Run isSameTree(node4, subRoot=[4,1,2]).',
-      highlightLine: 42,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'active' }),
-        counters: [{ label: 'queue', value: '[5]' }],
-      } as TreeState,
-      variables: [{ name: 'currentNode.val', value: 4 }, { name: 'subRoot.val', value: 4, highlight: true }],
-    },
-    {
-      explanation: 'isSameTree: compare node 4 (val=4) with subRoot (val=4). Match! Recurse left: 1==1.',
-      highlightLine: 26,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'comparing', n3: 'active' }),
-        counters: [{ label: 'dfs match', value: '4==4' }],
-      } as TreeState,
-      variables: [{ name: 'p.val', value: 4 }, { name: 'q.val', value: 4 }],
-    },
-    {
-      explanation: 'Recurse right: node 2 (val=2) == subRoot.right (val=2). Both leaves match. isSameTree returns True.',
-      highlightLine: 26,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'comparing', n3: 'found', n4: 'active' }),
-        counters: [{ label: 'dfs match', value: '2==2' }],
-      } as TreeState,
-      variables: [{ name: 'p.val', value: 2 }, { name: 'q.val', value: 2 }],
-    },
-    {
-      explanation: 'Subtree [4,1,2] found at node 4! isSubtree returns True.',
-      highlightLine: 43,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'found', n2: 'default', n3: 'found', n4: 'found' }),
-        counters: [{ label: 'result', value: 'True' }],
-      } as TreeState,
-      variables: [{ name: 'result', value: 'True', highlight: true }],
-    },
-  ];
+      variables: opts.vars,
+    });
+  };
+
+  push(
+    'Plan (two phases): (1) BFS through the big tree to find any node whose value equals subRoot.val = 4; (2) from each such candidate, run isSameTree to check the WHOLE subtree matches. Start BFS with the root in the queue.',
+    31,
+    { vars: [{ name: 'subRoot.val', value: subVal }, { name: 'queue', value: '[3]' }] }
+  );
+
+  // Phase 2 helper: compare root-tree node id against subRoot node sId.
+  function dfs(id: string | null, sId: string | null, side: string, parentId: string | null): boolean {
+    const sub = sId ? SUB[sId] : null;
+    if (id === null && sub === null) {
+      push(
+        `isSameTree — ${side}: both sides are null → base case "return True". Two empty spots match.`,
+        24,
+        { current: parentId, vars: [{ name: 'p', value: 'null' }, { name: 'q', value: 'null' }, { name: 'match', value: 'True', highlight: true }] }
+      );
+      return true;
+    }
+    if (id === null || sub === null) {
+      push(
+        `isSameTree — ${side}: one side has a node and the other is null → structures differ, return False.`,
+        29,
+        { current: parentId, vars: [{ name: 'match', value: 'False', highlight: true }] }
+      );
+      return false;
+    }
+    const v = valueOf(id);
+    colour[id] = 'comparing';
+    push(
+      `isSameTree — ${side}: compare ${v} (big tree) vs ${sub.val} (subRoot) → ${v === sub.val ? 'equal ✓, recurse into both left children.' : 'differ ✗, return False.'}`,
+      v === sub.val ? 27 : 29,
+      { current: id, vars: [{ name: 'p.val', value: v }, { name: 'q.val', value: sub.val }, { name: 'match', value: v === sub.val ? 'True' : 'False', highlight: true }] }
+    );
+    if (v !== sub.val) return false;
+    const leftSame = dfs(nodeMap.get(id)!.leftId, sub.left, `left of ${v}`, id);
+    const rightSame = dfs(nodeMap.get(id)!.rightId, sub.right, `right of ${v}`, id);
+    return leftSame && rightSame;
+  }
+
+  let found = false;
+  while (queue.length && !found) {
+    const id = queue.shift()!;
+    const v = valueOf(id);
+    const isMatch = v === subVal;
+
+    push(
+      `Dequeue node ${v} (front of queue). Compare its value to subRoot.val ${subVal}: ${isMatch ? `equal — this is a candidate, launch isSameTree from here.` : `not equal, it can't be the subtree root; we'll just enqueue its children and move on.`}`,
+      isMatch ? 39 : 37,
+      { current: id, queueShown: queueStr(), vars: [{ name: 'currentNode.val', value: v }, { name: 'subRoot.val', value: subVal }] }
+    );
+
+    if (isMatch) {
+      const same = dfs(id, 's0', 'roots', null);
+      if (same) {
+        NODES.forEach((n) => {
+          if (n.id === 'n1' || n.id === 'n3' || n.id === 'n4') colour[n.id] = 'found';
+        });
+        push(
+          `isSameTree returned True — the subtree rooted at node ${v} matches subRoot [4,1,2] exactly. isSubtree returns True; we can stop searching.`,
+          43,
+          { current: id, vars: [{ name: 'result', value: 'True', highlight: true }] }
+        );
+        found = true;
+        break;
+      }
+    }
+
+    colour[id] = 'visited';
+    const node = nodeMap.get(id)!;
+    if (node.leftId) queue.push(node.leftId);
+    if (node.rightId) queue.push(node.rightId);
+    if (!isMatch) {
+      push(
+        `Enqueue node ${v}'s children. Queue is now ${queueStr()}, loop again.`,
+        45,
+        { vars: [{ name: 'queue', value: queueStr() }] }
+      );
+    }
+  }
+
+  return steps;
 }
 
 export const subtreeOfAnotherTreeMeta: AlgorithmMeta = {

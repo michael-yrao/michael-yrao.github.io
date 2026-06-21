@@ -1,4 +1,4 @@
-import { AlgorithmMeta, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
 const PYTHON_CODE = `from collections import deque
 import math
@@ -41,92 +41,117 @@ class Solution:
         return True`;
 
 // BST: [5, 3, 6, 2, 4, null, 7]
-// n0=5(root), n1=3(leftId='n3',rightId='n4'), n2=6(leftId=null,rightId='n5'), n3=2(leaf), n4=4(leaf), n5=7(leaf)
-function makeNodes(overrides: Record<string, TreeNode['state']> = {}): TreeNode[] {
-  const base: Omit<TreeNode, 'state'>[] = [
-    { id: 'n0', value: 5, leftId: 'n1', rightId: 'n2' },
-    { id: 'n1', value: 3, leftId: 'n3', rightId: 'n4' },
-    { id: 'n2', value: 6, leftId: null, rightId: 'n5' },
-    { id: 'n3', value: 2, leftId: null, rightId: null },
-    { id: 'n4', value: 4, leftId: null, rightId: null },
-    { id: 'n5', value: 7, leftId: null, rightId: null },
-  ];
-  return base.map(n => ({ ...n, state: overrides[n.id] ?? 'default' }));
-}
+const NODES: Omit<TreeNode, 'state'>[] = [
+  { id: 'n0', value: 5, leftId: 'n1', rightId: 'n2' },
+  { id: 'n1', value: 3, leftId: 'n3', rightId: 'n4' },
+  { id: 'n2', value: 6, leftId: null, rightId: 'n5' },
+  { id: 'n3', value: 2, leftId: null, rightId: null },
+  { id: 'n4', value: 4, leftId: null, rightId: null },
+  { id: 'n5', value: 7, leftId: null, rightId: null },
+];
 
-export function generateSteps() {
-  return [
-    {
-      explanation: 'Iterative DFS with bounds. Push root(5) with bounds (-inf, inf). Stack: [[5, -inf, inf]].',
-      highlightLine: 20,
+function generateSteps(): Step[] {
+  const steps: Step[] = [];
+  const nodeMap = new Map(NODES.map((n) => [n.id, n]));
+  const valueOf = (id: string) => nodeMap.get(id)!.value as number;
+  const fmt = (n: number) => (n === -Infinity ? '−∞' : n === Infinity ? '+∞' : String(n));
+
+  const colour: Record<string, TreeNode['state']> = {};
+  type Frame = [string, number, number];
+  const stack: Frame[] = [['n0', -Infinity, Infinity]];
+
+  const makeNodes = (): TreeNode[] =>
+    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
+
+  const stackStr = () =>
+    '[' + stack.map(([id, lo, hi]) => `(${valueOf(id)}: ${fmt(lo)}<x<${fmt(hi)})`).join(', ') + ']';
+
+  const push = (
+    explanation: string,
+    line: number,
+    opts: {
+      current?: string | null;
+      vars?: { name: string; value: string | number; highlight?: boolean }[];
+    } = {}
+  ) => {
+    steps.push({
+      explanation,
+      highlightLine: line,
       state: {
-        type: 'tree' as const,
+        type: 'tree',
         nodes: makeNodes(),
-        counters: [{ label: 'valid', value: '?' }],
+        pointers: opts.current ? [{ nodeId: opts.current, label: '▶ checking' }] : [],
+        counters: [{ label: 'stack', value: stackStr() }],
       } as TreeState,
-      variables: [{ name: 'stack', value: '[[5,-inf,inf]]' }],
-    },
-    {
-      explanation: 'Pop node 5. Bounds: (-inf, inf). 5 > -inf AND 5 < inf — valid. Push left(3) with (-inf,5) and right(6) with (5,inf).',
-      highlightLine: 31,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'active' }),
-        counters: [{ label: 'valid', value: '?' }],
-      } as TreeState,
-      variables: [{ name: 'node', value: 5 }, { name: 'low', value: '-inf' }, { name: 'high', value: 'inf' }],
-    },
-    {
-      explanation: 'Pop node 6 (right of 5). Bounds: (5, inf). 6 > 5 AND 6 < inf — valid. Push right(7) with (6,inf).',
-      highlightLine: 31,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n2: 'active' }),
-        counters: [{ label: 'valid', value: '?' }],
-      } as TreeState,
-      variables: [{ name: 'node', value: 6 }, { name: 'low', value: 5 }, { name: 'high', value: 'inf' }],
-    },
-    {
-      explanation: 'Pop node 7 (right of 6). Bounds: (6, inf). 7 > 6 AND 7 < inf — valid. No children.',
-      highlightLine: 31,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n2: 'visited', n5: 'active' }),
-        counters: [{ label: 'valid', value: '?' }],
-      } as TreeState,
-      variables: [{ name: 'node', value: 7 }, { name: 'low', value: 6 }, { name: 'high', value: 'inf' }],
-    },
-    {
-      explanation: 'Pop node 3 (left of 5). Bounds: (-inf, 5). 3 > -inf AND 3 < 5 — valid. Push left(2) with (-inf,3) and right(4) with (3,5).',
-      highlightLine: 31,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'active', n2: 'visited', n5: 'visited' }),
-        counters: [{ label: 'valid', value: '?' }],
-      } as TreeState,
-      variables: [{ name: 'node', value: 3 }, { name: 'low', value: '-inf' }, { name: 'high', value: 5 }],
-    },
-    {
-      explanation: 'Pop node 4 (right of 3). Bounds: (3, 5). 4 > 3 AND 4 < 5 — valid. No children.',
-      highlightLine: 31,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited', n4: 'active', n5: 'visited' }),
-        counters: [{ label: 'valid', value: '?' }],
-      } as TreeState,
-      variables: [{ name: 'node', value: 4 }, { name: 'low', value: 3 }, { name: 'high', value: 5 }],
-    },
-    {
-      explanation: 'Pop node 2 (left of 3). Bounds: (-inf, 3). 2 > -inf AND 2 < 3 — valid. Stack empty. All nodes valid — return True!',
-      highlightLine: 39,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found', n1: 'found', n2: 'found', n3: 'found', n4: 'found', n5: 'found' }),
-        counters: [{ label: 'isValidBST', value: 'True' }],
-      } as TreeState,
-      variables: [{ name: 'node', value: 2 }, { name: 'low', value: '-inf' }, { name: 'high', value: 3 }, { name: 'result', value: 'True', highlight: true }],
-    },
-  ];
+      variables: opts.vars,
+    });
+  };
+
+  push(
+    'A BST is valid if every node sits inside an allowed range. The trick: carry a (low, high) bound down the tree. Going LEFT tightens the upper bound to the parent; going RIGHT tightens the lower bound to the parent. We do this iteratively with a stack of (node, low, high). Push the root with the widest range (−∞, +∞).',
+    21,
+    { vars: [{ name: 'stack', value: '[(5: −∞<x<+∞)]' }] }
+  );
+
+  let valid = true;
+  while (stack.length) {
+    const [id, low, high] = stack.pop()!;
+    const v = valueOf(id);
+    colour[id] = 'active';
+
+    const inBounds = v > low && v < high;
+    push(
+      `Pop node ${v} with allowed range (${fmt(low)}, ${fmt(high)}). Check ${fmt(low)} < ${v} < ${fmt(high)}? ${
+        inBounds ? 'Yes ✓ — this node is valid so far.' : `No ✗ — ${v} violates its range, the tree is NOT a valid BST, return False.`
+      }`,
+      inBounds ? 31 : 32,
+      {
+        current: id,
+        vars: [
+          { name: 'node', value: v },
+          { name: 'low', value: fmt(low) },
+          { name: 'high', value: fmt(high) },
+          { name: 'in range?', value: inBounds ? 'Yes' : 'No', highlight: !inBounds },
+        ],
+      }
+    );
+
+    if (!inBounds) {
+      valid = false;
+      colour[id] = 'comparing';
+      break;
+    }
+
+    colour[id] = 'visited';
+    const node = nodeMap.get(id)!;
+    const pushed: string[] = [];
+    if (node.leftId) {
+      stack.push([node.leftId, low, v]);
+      pushed.push(`left ${valueOf(node.leftId)} gets range (${fmt(low)}, ${v})`);
+    }
+    if (node.rightId) {
+      stack.push([node.rightId, v, high]);
+      pushed.push(`right ${valueOf(node.rightId)} gets range (${v}, ${fmt(high)})`);
+    }
+    if (pushed.length) {
+      push(
+        `Node ${v} valid. Push its children with tightened bounds: ${pushed.join('; ')}. Stack is now ${stackStr()}.`,
+        node.rightId ? 38 : 36,
+        { current: id, vars: pushed.map((p, i) => ({ name: `push ${i + 1}`, value: p })) }
+      );
+    }
+  }
+
+  if (valid) {
+    NODES.forEach((n) => (colour[n.id] = 'found'));
+    push(
+      'Stack is empty and no node ever broke its range — the tree is a valid BST, return True.',
+      39,
+      { vars: [{ name: 'result', value: 'True', highlight: true }] }
+    );
+  }
+
+  return steps;
 }
 
 export const validateBstMeta: AlgorithmMeta = {

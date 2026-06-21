@@ -97,7 +97,75 @@ function generateSteps(): Step[] {
 }
 
 function generateAltSteps(): Step[] {
-  return [];
+  const strs = ['eat', 'tea', 'tan', 'ate', 'nat', 'bat'];
+  const steps: Step[] = [];
+  const groups: Record<string, string[]> = {};
+
+  steps.push({
+    explanation:
+      'Same sort-the-key idea, but using defaultdict(list). The difference: with a plain dict you must write "if key not in map: map[key] = []" before appending. defaultdict creates that empty list automatically the first time a key is touched, so we can append directly — one fewer line and no missing-key check.',
+    highlightLine: 4,
+    state: {
+      type: 'array',
+      cells: strs.map((s) => ({ value: s, state: 'default' as const })),
+      pointers: [],
+      hashmap: {},
+    },
+    variables: [{ name: 'anagramMap', value: 'defaultdict(list)' }],
+  });
+
+  for (let i = 0; i < strs.length; i++) {
+    const s = strs[i];
+    const key = s.split('').sort().join('');
+    const firstTouch = !groups[key];
+    if (firstTouch) groups[key] = [];
+    groups[key].push(s);
+
+    const hashmapSnapshot: Record<string, string> = {};
+    for (const [k, v] of Object.entries(groups)) {
+      hashmapSnapshot[k] = `[${v.map((w) => `"${w}"`).join(', ')}]`;
+    }
+
+    steps.push({
+      explanation: `"${s}" → sorted key = "${key}". ${firstTouch ? `Key "${key}" is new — defaultdict auto-creates an empty list, then we append.` : `Key "${key}" already exists — append directly.`} Group is now ${hashmapSnapshot[key]}.`,
+      highlightLine: 7,
+      state: {
+        type: 'array',
+        cells: strs.map((w, j) => ({
+          value: w,
+          state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
+        })),
+        pointers: [{ index: i, label: 'i' }],
+        hashmap: hashmapSnapshot,
+      },
+      variables: [
+        { name: 's', value: `"${s}"` },
+        { name: 'key', value: `"${key}"`, highlight: true },
+        { name: 'auto-created?', value: firstTouch ? 'yes' : 'no', highlight: firstTouch },
+        { name: `groups["${key}"]`, value: hashmapSnapshot[key] },
+      ],
+    });
+  }
+
+  const result = Object.values(groups);
+  const hashmapFinal: Record<string, string> = {};
+  for (const [k, v] of Object.entries(groups)) {
+    hashmapFinal[k] = `[${v.map((w) => `"${w}"`).join(', ')}]`;
+  }
+
+  steps.push({
+    explanation: `All strings grouped into ${result.length} buckets: ${result.map((g) => '[' + g.map((w) => `"${w}"`).join(', ') + ']').join(', ')}. Return the map's values.`,
+    highlightLine: 8,
+    state: {
+      type: 'array',
+      cells: strs.map((s) => ({ value: s, state: 'found' as const })),
+      pointers: [],
+      hashmap: hashmapFinal,
+    },
+    variables: [{ name: 'groups', value: result.length, highlight: true }],
+  });
+
+  return steps;
 }
 
 const solution: SolutionVariant = {

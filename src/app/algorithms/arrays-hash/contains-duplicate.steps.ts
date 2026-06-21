@@ -107,7 +107,80 @@ const LEN_COMPARISON_CODE = `class Solution:
         return len(set(nums)) < len(nums)`;
 
 function generateLenComparisonSteps(): Step[] {
-  return [];
+  const nums = [1, 2, 3, 1];
+  const steps: Step[] = [];
+  const seen = new Set<number>();
+
+  steps.push({
+    explanation:
+      'Different idea: a set automatically discards duplicates. So if we drop the whole array into a set and it comes out SHORTER than the array, at least one value collapsed — meaning there was a duplicate. We\'ll build set(nums) one element at a time to watch it happen, then compare the two lengths.',
+    highlightLine: 10,
+    state: {
+      type: 'array',
+      cells: nums.map((v) => ({ value: v, state: 'default' })),
+      pointers: [],
+      hashmap: {},
+    },
+    variables: [
+      { name: 'len(nums)', value: nums.length },
+      { name: 'set(nums)', value: '{}' },
+    ],
+  });
+
+  for (let i = 0; i < nums.length; i++) {
+    const n = nums[i];
+    const already = seen.has(n);
+    if (!already) seen.add(n);
+
+    const cells = nums.map((v, idx) => ({
+      value: v,
+      state:
+        idx === i
+          ? already
+            ? ('found' as const) // this element collapsed into an existing one
+            : ('active' as const)
+          : idx < i
+          ? ('visited' as const)
+          : ('default' as const),
+    }));
+
+    steps.push({
+      explanation: already
+        ? `set(nums) construction, index ${i}: value ${n} is ALREADY in the set, so adding it changes nothing — the set stays size ${seen.size}. This is the duplicate being silently dropped.`
+        : `set(nums) construction, index ${i}: value ${n} is new, add it. Set grows to size ${seen.size}.`,
+      highlightLine: 10,
+      state: {
+        type: 'array',
+        cells,
+        pointers: [{ index: i, label: 'i' }],
+        hashmap: Object.fromEntries([...seen].map((v) => [v, '✓'])),
+      },
+      variables: [
+        { name: 'value', value: n, highlight: true },
+        { name: 'already in set?', value: already ? 'yes (dropped)' : 'no (added)', highlight: already },
+        { name: 'set size', value: seen.size },
+      ],
+    });
+  }
+
+  const dup = seen.size < nums.length;
+  steps.push({
+    explanation: `Set built. len(set(nums)) = ${seen.size}, len(nums) = ${nums.length}. Is ${seen.size} < ${nums.length}? ${dup ? 'Yes → the set is shorter, so a duplicate was dropped. Return True.' : 'No → same length, every value was unique. Return False.'}`,
+    highlightLine: 10,
+    state: {
+      type: 'array',
+      cells: nums.map((v) => ({ value: v, state: dup ? ('found' as const) : ('visited' as const) })),
+      pointers: [],
+      hashmap: Object.fromEntries([...seen].map((v) => [v, '✓'])),
+    },
+    variables: [
+      { name: 'len(set(nums))', value: seen.size },
+      { name: 'len(nums)', value: nums.length },
+      { name: 'result', value: String(dup), highlight: true },
+    ],
+  });
+
+  return steps;
 }
 
 // ── Export ───────────────────────────────────────────────────────────────────

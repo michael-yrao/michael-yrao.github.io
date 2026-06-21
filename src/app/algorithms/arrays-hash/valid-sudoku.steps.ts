@@ -392,50 +392,84 @@ function generateSingleLoopSteps(): Step[] {
   for (let i = 0; i < 9; i++) { rowMap[i] = new Set(); columnMap[i] = new Set(); }
   for (let br = 0; br < 3; br++) for (let bc = 0; bc < 3; bc++) squareMap[`${br},${bc}`] = new Set();
 
-  // Only show first 3 filled cells + 1 dot cell to keep steps manageable
-  const toShow: [number, number][] = [[0, 0], [0, 1], [0, 2], [1, 0]];
+  // Traverse the full 9x9 board, one cell per step — every iteration of the
+  // double for-loop is shown. Filled cells from earlier in the scan are marked
+  // visited so you can watch the single pass sweep across the grid.
+  const visited: [number, number][] = [];
+  let duplicate = false;
 
-  for (const [row, col] of toShow) {
-    const val = BOARD[row][col];
-    const g = makeBaseGrid();
-    g[row][col].state = 'queued' as GridCellState;
+  for (let row = 0; row < 9 && !duplicate; row++) {
+    for (let col = 0; col < 9 && !duplicate; col++) {
+      const val = BOARD[row][col];
+      const g = makeBaseGrid();
+      for (const [vr, vc] of visited) {
+        if (g[vr][vc].state === 'land') g[vr][vc].state = 'visited' as GridCellState;
+      }
+      g[row][col].state = 'queued' as GridCellState;
 
-    if (val === '.') {
-      steps.push({
-        explanation: `Row ${row}, col ${col}: "." — wildcard, skip. All three maps unchanged.`,
-        highlightLine: 13,
-        state: {
-          type: 'grid',
-          grid: g,
-          counters: [
-            { label: 'cell', value: `(${row},${col})` },
-            { label: 'value', value: '.' },
-            { label: 'action', value: 'skip' },
-          ],
-        } as GridState,
-      });
-    } else {
-      const boxKey = `${Math.floor(row / 3)},${Math.floor(col / 3)}`;
-      rowMap[row].add(val);
-      columnMap[col].add(val);
-      squareMap[boxKey].add(val);
+      if (val === '.') {
+        steps.push({
+          explanation: `Cell (row ${row}, col ${col}) = "." — an empty cell, the "continue" branch. Sudoku rules only constrain filled cells, so skip it and move on. All three maps unchanged.`,
+          highlightLine: 13,
+          state: {
+            type: 'grid',
+            grid: g,
+            counters: [
+              { label: 'cell', value: `(${row},${col})` },
+              { label: 'value', value: '.' },
+              { label: 'action', value: 'skip (continue)' },
+            ],
+          } as GridState,
+        });
+      } else {
+        const boxKey = `${Math.floor(row / 3)},${Math.floor(col / 3)}`;
+        const dupInRow = rowMap[row].has(val);
+        const dupInCol = columnMap[col].has(val);
+        const dupInBox = squareMap[boxKey].has(val);
+        const isDup = dupInRow || dupInCol || dupInBox;
 
-      steps.push({
-        explanation: `Row ${row}, col ${col}: "${val}" — check rowMap[${row}], columnMap[${col}], squareMap[(${boxKey})]. Not found in any — add to all three maps. This single pass catches all three types of duplicates.`,
-        highlightLine: 17,
-        state: {
-          type: 'grid',
-          grid: g,
-          counters: [
-            { label: 'cell', value: `(${row},${col}) = "${val}"` },
-            { label: `rowMap[${row}]`, value: JSON.stringify([...rowMap[row]]) },
-            { label: `colMap[${col}]`, value: JSON.stringify([...columnMap[col]]) },
-            { label: `boxMap[(${boxKey})]`, value: JSON.stringify([...squareMap[boxKey]]) },
-          ],
-        } as GridState,
-      });
+        if (isDup) {
+          g[row][col].state = 'rotten' as GridCellState;
+          const where = dupInRow ? `row ${row}` : dupInCol ? `column ${col}` : `box (${boxKey})`;
+          steps.push({
+            explanation: `Cell (${row}, ${col}) = "${val}": "${val}" is ALREADY in ${where}. That's a duplicate → the board is invalid, return False immediately.`,
+            highlightLine: 17,
+            state: {
+              type: 'grid',
+              grid: g,
+              counters: [
+                { label: 'cell', value: `(${row},${col}) = "${val}"` },
+                { label: 'duplicate in', value: where },
+                { label: 'result', value: 'false' },
+              ],
+            } as GridState,
+          });
+          duplicate = true;
+        } else {
+          rowMap[row].add(val);
+          columnMap[col].add(val);
+          squareMap[boxKey].add(val);
+          visited.push([row, col]);
+          steps.push({
+            explanation: `Cell (${row}, ${col}) = "${val}": check rowMap[${row}], columnMap[${col}], and squareMap[(${boxKey})] all at once. "${val}" is in none of them — valid so far, so add it to all three. One pass enforces all three rules together.`,
+            highlightLine: 17,
+            state: {
+              type: 'grid',
+              grid: g,
+              counters: [
+                { label: 'cell', value: `(${row},${col}) = "${val}"` },
+                { label: `rowMap[${row}]`, value: JSON.stringify([...rowMap[row]]) },
+                { label: `colMap[${col}]`, value: JSON.stringify([...columnMap[col]]) },
+                { label: `boxMap[(${boxKey})]`, value: JSON.stringify([...squareMap[boxKey]]) },
+              ],
+            } as GridState,
+          });
+        }
+      }
     }
   }
+
+  if (duplicate) return steps;
 
   steps.push({
     explanation:

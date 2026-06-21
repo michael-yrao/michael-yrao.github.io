@@ -122,7 +122,98 @@ function generateSteps(): Step[] {
 }
 
 function generateNoCleaningSteps(): Step[] {
-  return [];
+  // No pre-filtering: pointers skip non-alphanumeric chars in place.
+  const s = 'Race, car'.split(''); // R a c e ,   c a r  → "racecar"
+  const steps: Step[] = [];
+  const isAlnum = (c: string) => /[a-z0-9]/i.test(c);
+
+  const matched = new Set<number>();
+  const skipped = new Set<number>();
+
+  const snap = (l: number, r: number, done = false) =>
+    s.map((c, i) => ({
+      value: c,
+      state: done
+        ? isAlnum(c)
+          ? ('found' as const)
+          : ('eliminated' as const)
+        : skipped.has(i)
+        ? ('eliminated' as const)
+        : i === l || i === r
+        ? ('active' as const)
+        : matched.has(i)
+        ? ('visited' as const)
+        : ('default' as const),
+    }));
+
+  steps.push({
+    explanation:
+      'This version never builds a cleaned copy of the string — it saves that O(n) extra space by skipping non-alphanumeric characters on the fly. Two pointers start at the ends; before each comparison we slide each pointer inward past any punctuation or spaces.',
+    highlightLine: 10,
+    state: { type: 'array', cells: snap(0, s.length - 1), pointers: [{ index: 0, label: 'l' }, { index: s.length - 1, label: 'r' }] },
+    variables: [{ name: 'l', value: 0 }, { name: 'r', value: s.length - 1 }],
+  });
+
+  let l = 0;
+  let r = s.length - 1;
+  let result = true;
+
+  while (r >= l) {
+    // Inner loop: advance l past non-alphanumeric characters.
+    while (l < r && !isAlnum(s[l])) {
+      skipped.add(l);
+      steps.push({
+        explanation: `Left pointer: s[${l}] = '${s[l]}' is NOT alphanumeric, so skip it (l++). We don't compare punctuation.`,
+        highlightLine: 15,
+        state: { type: 'array', cells: snap(l, r), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }] },
+        variables: [{ name: 'l', value: l, highlight: true }, { name: `s[l]`, value: `'${s[l]}'` }, { name: 'alphanumeric?', value: 'no → skip' }],
+      });
+      l++;
+    }
+    // Inner loop: advance r past non-alphanumeric characters.
+    while (r > l && !isAlnum(s[r])) {
+      skipped.add(r);
+      steps.push({
+        explanation: `Right pointer: s[${r}] = '${s[r]}' is NOT alphanumeric, so skip it (r--).`,
+        highlightLine: 17,
+        state: { type: 'array', cells: snap(l, r), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }] },
+        variables: [{ name: 'r', value: r, highlight: true }, { name: `s[r]`, value: `'${s[r]}'` }, { name: 'alphanumeric?', value: 'no → skip' }],
+      });
+      r--;
+    }
+
+    const a = s[l].toLowerCase();
+    const b = s[r].toLowerCase();
+    const match = a === b;
+    steps.push({
+      explanation: match
+        ? `Both alphanumeric now. Compare s[${l}]→'${a}' vs s[${r}]→'${b}' (lowercased): they match. Move both pointers inward (l++, r--).`
+        : `Compare s[${l}]→'${a}' vs s[${r}]→'${b}' (lowercased): they do NOT match. Return False immediately.`,
+      highlightLine: match ? 21 : 19,
+      state: { type: 'array', cells: snap(l, r), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }] },
+      variables: [
+        { name: 'l', value: l }, { name: 'r', value: r },
+        { name: "s[l].lower()", value: `'${a}'` }, { name: "s[r].lower()", value: `'${b}'` },
+        { name: 'match', value: match ? 'yes' : 'NO → False', highlight: true },
+      ],
+    });
+
+    if (!match) { result = false; break; }
+    if (l !== r) { matched.add(l); matched.add(r); }
+    l++;
+    r--;
+  }
+
+  steps.push({
+    explanation: result
+      ? `r (${r}) < l (${l}) — the pointers crossed and every alphanumeric pair matched. Return True. Same answer as the cleaning version, but O(1) extra space.`
+      : `Returned False above — not a palindrome.`,
+    highlightLine: 22,
+    state: { type: 'array', cells: snap(l, r, result), pointers: [] },
+    variables: [{ name: 'result', value: String(result), highlight: true }],
+  });
+
+  return steps;
 }
 
 const twoPointerSolution: SolutionVariant = {

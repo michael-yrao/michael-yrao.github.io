@@ -1,4 +1,4 @@
-import { AlgorithmMeta, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
 const PYTHON_CODE = `from collections import deque
 
@@ -37,92 +37,133 @@ class Solution:
         return result`;
 
 // Tree: [3, 1, 4, 3, null, 1, 5]
-// n0=3(root), n1=1(leftId='n3',rightId=null), n2=4(leftId='n4',rightId='n5'), n3=3(leaf), n4=1(leaf), n5=5(leaf)
-function makeNodes(overrides: Record<string, TreeNode['state']> = {}): TreeNode[] {
-  const base: Omit<TreeNode, 'state'>[] = [
-    { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
-    { id: 'n1', value: 1, leftId: 'n3', rightId: null },
-    { id: 'n2', value: 4, leftId: 'n4', rightId: 'n5' },
-    { id: 'n3', value: 3, leftId: null, rightId: null },
-    { id: 'n4', value: 1, leftId: null, rightId: null },
-    { id: 'n5', value: 5, leftId: null, rightId: null },
-  ];
-  return base.map(n => ({ ...n, state: overrides[n.id] ?? 'default' }));
-}
+const NODES: Omit<TreeNode, 'state'>[] = [
+  { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
+  { id: 'n1', value: 1, leftId: 'n3', rightId: null },
+  { id: 'n2', value: 4, leftId: 'n4', rightId: 'n5' },
+  { id: 'n3', value: 3, leftId: null, rightId: null },
+  { id: 'n4', value: 1, leftId: null, rightId: null },
+  { id: 'n5', value: 5, leftId: null, rightId: null },
+];
 
-export function generateSteps() {
-  return [
-    {
-      explanation: 'Start iterative DFS. A "good node" is one where its value >= max value seen on the path from root. root(3) is always good. result=1, currentMax=3.',
-      highlightLine: 28,
+function generateSteps(): Step[] {
+  const steps: Step[] = [];
+  const nodeMap = new Map(NODES.map((n) => [n.id, n]));
+  const valueOf = (id: string) => nodeMap.get(id)!.value as number;
+
+  const colour: Record<string, TreeNode['state']> = {};
+  let result = 0;
+
+  // Explicit stack of [nodeId|null, currentMax] — mirrors the Python deque.
+  type Frame = [string | null, number];
+  const stack: Frame[] = [['n0', 3]];
+
+  const makeNodes = (): TreeNode[] =>
+    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
+
+  const stackStr = () =>
+    '[' +
+    stack
+      .map(([id, cm]) => `(${id ? valueOf(id) : 'ø'},max${cm})`)
+      .join(', ') +
+    ']';
+
+  const push = (
+    explanation: string,
+    line: number,
+    opts: {
+      current?: string | null;
+      vars?: { name: string; value: string | number; highlight?: boolean }[];
+    } = {}
+  ) => {
+    steps.push({
+      explanation,
+      highlightLine: line,
       state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found' }),
-        counters: [{ label: 'result', value: 1 }, { label: 'currentMax', value: 3 }],
+        type: 'tree',
+        nodes: makeNodes(),
+        pointers: opts.current ? [{ nodeId: opts.current, label: '▶ popped' }] : [],
+        counters: [
+          { label: 'result', value: result },
+          { label: 'stack', value: stackStr() },
+        ],
       } as TreeState,
-      variables: [{ name: 'result', value: 1 }, { name: 'currentMax', value: 3 }],
-    },
-    {
-      explanation: 'Pop node 4 (right child of 3). currentMax=3. 4 >= 3 — good node! result=2, currentMax becomes 4.',
-      highlightLine: 28,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found', n2: 'active' }),
-        counters: [{ label: 'result', value: 2 }, { label: 'currentMax', value: 4 }],
-      } as TreeState,
-      variables: [{ name: 'node.val', value: 4 }, { name: 'currentMax', value: 3 }, { name: 'good?', value: 'Yes', highlight: true }],
-    },
-    {
-      explanation: 'Pop node 5 (right of 4). currentMax=4. 5 >= 4 — good node! result=3.',
-      highlightLine: 28,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found', n2: 'found', n5: 'active' }),
-        counters: [{ label: 'result', value: 3 }, { label: 'currentMax', value: 5 }],
-      } as TreeState,
-      variables: [{ name: 'node.val', value: 5 }, { name: 'currentMax', value: 4 }, { name: 'good?', value: 'Yes', highlight: true }],
-    },
-    {
-      explanation: 'Pop node 1 (left of 4). currentMax=4. 1 < 4 — NOT a good node. Skip, push its children (null).',
-      highlightLine: 32,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found', n2: 'found', n4: 'active', n5: 'found' }),
-        counters: [{ label: 'result', value: 3 }, { label: 'currentMax', value: 4 }],
-      } as TreeState,
-      variables: [{ name: 'node.val', value: 1 }, { name: 'currentMax', value: 4 }, { name: 'good?', value: 'No' }],
-    },
-    {
-      explanation: 'Pop node 1 (left of root 3). currentMax=3. 1 < 3 — NOT a good node. Push its left child (3) with currentMax=3.',
-      highlightLine: 32,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found', n1: 'active', n2: 'found', n4: 'visited', n5: 'found' }),
-        counters: [{ label: 'result', value: 3 }, { label: 'currentMax', value: 3 }],
-      } as TreeState,
-      variables: [{ name: 'node.val', value: 1 }, { name: 'currentMax', value: 3 }, { name: 'good?', value: 'No' }],
-    },
-    {
-      explanation: 'Pop node 3 (left of node 1, path: 3→1→3). currentMax=3. 3 >= 3 — good node! result=4.',
-      highlightLine: 28,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found', n1: 'visited', n2: 'found', n3: 'active', n4: 'visited', n5: 'found' }),
-        counters: [{ label: 'result', value: 4 }, { label: 'currentMax', value: 3 }],
-      } as TreeState,
-      variables: [{ name: 'node.val', value: 3 }, { name: 'currentMax', value: 3 }, { name: 'good?', value: 'Yes', highlight: true }],
-    },
-    {
-      explanation: 'Stack empty. Good nodes: root(3), node 4, node 5, node 3(leaf). Total result = 4.',
-      highlightLine: 35,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found', n1: 'visited', n2: 'found', n3: 'found', n4: 'visited', n5: 'found' }),
-        counters: [{ label: 'result', value: 4 }],
-      } as TreeState,
-      variables: [{ name: 'result', value: 4, highlight: true }],
-    },
-  ];
+      variables: opts.vars,
+    });
+  };
+
+  push(
+    'A node is "good" if no node on the path from the root to it is larger than it — i.e. its value ≥ the max value seen so far on that path. We do an iterative DFS with an explicit stack holding (node, currentMax) pairs. currentMax travels DOWN each path so every node knows the biggest ancestor above it. Start by pushing (root 3, max 3).',
+    22,
+    { vars: [{ name: 'result', value: 0 }, { name: 'stack', value: '[(3,max3)]' }] }
+  );
+
+  while (stack.length) {
+    const [id, cm] = stack.pop()!;
+
+    // Pop step.
+    push(
+      `Pop (${id ? valueOf(id) : 'null'}, max ${cm}) off the stack. ${
+        id ? 'Node is non-null, so process it.' : 'Node is null → the "if currentNode" check is False, skip it entirely and loop again.'
+      }`,
+      id ? 27 : 27,
+      {
+        current: id,
+        vars: [
+          { name: 'currentNode', value: id ? valueOf(id) : 'null' },
+          { name: 'currentMax', value: cm },
+        ],
+      }
+    );
+
+    if (!id) continue;
+
+    const v = valueOf(id);
+    const good = v >= cm;
+    const newMax = Math.max(cm, v);
+    if (good) result += 1;
+    colour[id] = good ? 'found' : 'visited';
+
+    push(
+      `Node ${v} vs currentMax ${cm}: ${v} ${good ? `≥ ${cm} → GOOD node, result becomes ${result} and currentMax updates to ${newMax} for this node's children.` : `< ${cm} → NOT good (an ancestor was bigger). result stays ${result}.`}`,
+      good ? 29 : 31,
+      {
+        current: id,
+        vars: [
+          { name: 'node.val', value: v },
+          { name: 'currentMax', value: cm },
+          { name: 'good?', value: good ? 'Yes' : 'No', highlight: good },
+          { name: 'result', value: result, highlight: good },
+        ],
+      }
+    );
+
+    // Push both children (even null — matches the code, which is why we needed the null check above).
+    const node = nodeMap.get(id)!;
+    stack.push([node.leftId, newMax]);
+    stack.push([node.rightId, newMax]);
+    const leftLabel = node.leftId ? valueOf(node.leftId) : 'null';
+    const rightLabel = node.rightId ? valueOf(node.rightId) : 'null';
+    push(
+      `Push ${v}'s children with the updated max ${newMax}: left=${leftLabel}, right=${rightLabel}. (We push even null children — that's why each pop starts with an "is it null?" check.) Stack is now ${stackStr()}.`,
+      33,
+      {
+        current: id,
+        vars: [
+          { name: 'pushed left', value: `(${leftLabel}, max${newMax})` },
+          { name: 'pushed right', value: `(${rightLabel}, max${newMax})` },
+        ],
+      }
+    );
+  }
+
+  push(
+    `Stack is empty — every node has been processed. Good nodes found: root 3, node 4, node 5, and the leaf 3 (path 3→1→3, max 3, 3 ≥ 3). Total result = ${result}.`,
+    37,
+    { vars: [{ name: 'result', value: result, highlight: true }] }
+  );
+
+  return steps;
 }
 
 export const countGoodNodesMeta: AlgorithmMeta = {

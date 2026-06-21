@@ -39,42 +39,53 @@ function generateSteps(): Step[] {
     ],
   });
 
+  // Highlight which string in the map is currently being compared.
+  const strMap = (activeStr: number | null, mark?: 'ok' | 'bad') => {
+    const m: Record<string, string> = {};
+    strs.forEach((str, k) => {
+      const tag = activeStr === k ? (mark === 'bad' ? ' ✗' : mark === 'ok' ? ' ✓' : ' ◀') : '';
+      m[`str${k + 1}`] = `"${str}"${tag}`;
+    });
+    return m;
+  };
+
   outer: for (let i = 0; i < shortest.length; i++) {
     const ch = shortest[i];
 
-    for (const s of strs) {
-      if (s[i] !== ch) {
-        steps.push({
-          explanation: `i=${i}, char="${ch}": "${s}" has "${s[i]}" at position ${i} — mismatch! Return lcp="${lcp}".`,
-          highlightLine: 6,
-          state: {
-            type: 'array',
-            cells: shortest.split('').map((c, j) => ({
-              value: c,
-              state:
-                j < i
-                  ? ('found' as const)
-                  : j === i
-                  ? ('eliminated' as const)
-                  : ('default' as const),
-            })),
-            pointers: [{ index: i, label: 'i' }],
-            hashmap: Object.fromEntries(strs.map((str, k) => [`str${k + 1}`, str])),
-          },
-          variables: [
-            { name: 'i', value: i },
-            { name: 'mismatch in', value: s, highlight: true },
-            { name: 'return', value: `"${lcp}"` },
-          ],
-        });
-        break outer;
-      }
+    // Inner loop: compare EVERY string's char at position i, one at a time.
+    for (let k = 0; k < strs.length; k++) {
+      const s = strs[k];
+      const matchHere = s[i] === ch;
+      steps.push({
+        explanation: matchHere
+          ? `i=${i}: check string "${s}". Is "${s}"[${i}] = "${s[i]}" equal to the shortest's "${ch}"? Yes ✓ — keep going to the next string.`
+          : `i=${i}: check string "${s}". Is "${s}"[${i}] = "${s[i]}" equal to "${ch}"? NO ✗ — a string diverged here, so the common prefix ends. Return lcp="${lcp}".`,
+        highlightLine: matchHere ? 5 : 6,
+        state: {
+          type: 'array',
+          cells: shortest.split('').map((c, j) => ({
+            value: c,
+            state:
+              j < i ? ('found' as const) : j === i ? (matchHere ? ('active' as const) : ('eliminated' as const)) : ('default' as const),
+          })),
+          pointers: [{ index: i, label: 'i' }],
+          hashmap: strMap(k, matchHere ? 'ok' : 'bad'),
+        },
+        variables: [
+          { name: 'i', value: i },
+          { name: 'checking', value: `"${s}"`, highlight: true },
+          { name: `"${s}"[${i}]`, value: `"${s[i]}"` },
+          { name: 'shortest char', value: `"${ch}"` },
+          { name: 'equal?', value: matchHere ? 'yes' : 'NO → return', highlight: !matchHere },
+        ],
+      });
+      if (!matchHere) break outer;
     }
 
     lcp += ch;
 
     steps.push({
-      explanation: `i=${i}, char="${ch}": all strings have "${ch}" at position ${i} ✓. lcp grows to "${lcp}".`,
+      explanation: `i=${i}: every string had "${ch}" at position ${i} ✓. Commit it — lcp grows to "${lcp}". Move to the next position.`,
       highlightLine: 8,
       state: {
         type: 'array',
@@ -88,7 +99,7 @@ function generateSteps(): Step[] {
               : ('default' as const),
         })),
         pointers: [{ index: i, label: 'i' }],
-        hashmap: Object.fromEntries(strs.map((str, k) => [`str${k + 1}`, str])),
+        hashmap: strMap(null),
       },
       variables: [
         { name: 'i', value: i },

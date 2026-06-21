@@ -1,4 +1,4 @@
-import { AlgorithmMeta, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
 const PYTHON_CODE = `from typing import Optional
 
@@ -36,81 +36,119 @@ class Solution:
         return maxDiameter`;
 
 // Tree: [1, 2, 3, 4, 5]
-// n0=1(root), n1=2(left), n2=3(right), n3=4(n1.left), n4=5(n1.right)
-function makeNodes(overrides: Record<string, TreeNode['state']> = {}): TreeNode[] {
-  const base: Omit<TreeNode, 'state'>[] = [
-    { id: 'n0', value: 1, leftId: 'n1', rightId: 'n2' },
-    { id: 'n1', value: 2, leftId: 'n3', rightId: 'n4' },
-    { id: 'n2', value: 3, leftId: null, rightId: null },
-    { id: 'n3', value: 4, leftId: null, rightId: null },
-    { id: 'n4', value: 5, leftId: null, rightId: null },
-  ];
-  return base.map(n => ({ ...n, state: overrides[n.id] ?? 'default' }));
-}
+const NODES: Omit<TreeNode, 'state'>[] = [
+  { id: 'n0', value: 1, leftId: 'n1', rightId: 'n2' },
+  { id: 'n1', value: 2, leftId: 'n3', rightId: 'n4' },
+  { id: 'n2', value: 3, leftId: null, rightId: null },
+  { id: 'n3', value: 4, leftId: null, rightId: null },
+  { id: 'n4', value: 5, leftId: null, rightId: null },
+];
 
-export function generateSteps() {
-  return [
-    {
-      explanation: 'Start postorder DFS. maxDiameter=0. At each node we compute left+right depth and update maxDiameter.',
-      highlightLine: 18,
+function generateSteps(): Step[] {
+  const steps: Step[] = [];
+  const nodeMap = new Map(NODES.map((n) => [n.id, n]));
+  const valueOf = (id: string) => nodeMap.get(id)!.value as number;
+
+  const colour: Record<string, TreeNode['state']> = {};
+  let stackDepth = 0;
+  let maxDiameter = 0;
+
+  const makeNodes = (): TreeNode[] =>
+    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
+
+  const push = (
+    explanation: string,
+    line: number,
+    opts: {
+      current?: string | null;
+      vars?: { name: string; value: string | number; highlight?: boolean }[];
+    } = {}
+  ) => {
+    steps.push({
+      explanation,
+      highlightLine: line,
       state: {
-        type: 'tree' as const,
+        type: 'tree',
         nodes: makeNodes(),
-        counters: [{ label: 'maxDiameter', value: 0 }],
+        pointers: opts.current ? [{ nodeId: opts.current, label: '▶ here' }] : [],
+        counters: [
+          { label: 'call stack depth', value: stackDepth },
+          { label: 'maxDiameter', value: maxDiameter },
+        ],
       } as TreeState,
-      variables: [{ name: 'maxDiameter', value: 0 }],
-    },
-    {
-      explanation: 'Visit node 4 (leaf, left child of 2). left=0, right=0. diameter=0+0=0. Returns depth=1.',
-      highlightLine: 28,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n3: 'active' }),
-        counters: [{ label: 'maxDiameter', value: 0 }],
-      } as TreeState,
-      variables: [{ name: 'left', value: 0 }, { name: 'right', value: 0 }, { name: 'depth(4)', value: 1 }],
-    },
-    {
-      explanation: 'Visit node 5 (leaf, right child of 2). left=0, right=0. diameter=0+0=0. Returns depth=1.',
-      highlightLine: 28,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n3: 'visited', n4: 'active' }),
-        counters: [{ label: 'maxDiameter', value: 0 }],
-      } as TreeState,
-      variables: [{ name: 'left', value: 0 }, { name: 'right', value: 0 }, { name: 'depth(5)', value: 1 }],
-    },
-    {
-      explanation: 'Back at node 2. left=1 (from 4), right=1 (from 5). diameter=1+1=2. maxDiameter = max(0,2) = 2. Returns depth=2.',
-      highlightLine: 28,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n1: 'active', n3: 'visited', n4: 'visited' }),
-        counters: [{ label: 'maxDiameter', value: 2 }],
-      } as TreeState,
-      variables: [{ name: 'left', value: 1 }, { name: 'right', value: 1 }, { name: 'maxDiameter', value: 2, highlight: true }],
-    },
-    {
-      explanation: 'Visit node 3 (leaf, right child of 1). left=0, right=0. diameter=0. maxDiameter stays 2. Returns depth=1.',
-      highlightLine: 28,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n1: 'visited', n2: 'active', n3: 'visited', n4: 'visited' }),
-        counters: [{ label: 'maxDiameter', value: 2 }],
-      } as TreeState,
-      variables: [{ name: 'depth(3)', value: 1 }],
-    },
-    {
-      explanation: 'Back at root (1). left=2 (from node 2), right=1 (from node 3). diameter=2+1=3. maxDiameter = max(2,3) = 3. Answer: 3.',
-      highlightLine: 28,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found', n1: 'found', n2: 'found', n3: 'found', n4: 'found' }),
-        counters: [{ label: 'maxDiameter', value: 3 }],
-      } as TreeState,
-      variables: [{ name: 'left', value: 2 }, { name: 'right', value: 1 }, { name: 'maxDiameter', value: 3, highlight: true }],
-    },
-  ];
+      variables: opts.vars,
+    });
+  };
+
+  push(
+    'Diameter = longest path (counted in edges) between any two nodes. Key insight: the longest path that bends at a given node = leftDepth + rightDepth of that node. So we run a postorder DFS that returns each subtree’s depth, and at every node we update a shared maxDiameter with left+right. Start maxDiameter = 0.',
+    18,
+    { vars: [{ name: 'maxDiameter', value: 0 }] }
+  );
+
+  function dfs(id: string | null, side: string, parentId: string | null): number {
+    if (id === null) {
+      push(
+        `${side} is null → base case "return 0". A missing subtree has depth 0.`,
+        24,
+        { current: parentId, vars: [{ name: 'node', value: 'null' }, { name: 'returns', value: 0, highlight: true }] }
+      );
+      return 0;
+    }
+
+    stackDepth++;
+    const v = valueOf(id);
+    colour[id] = 'active';
+    push(
+      `Call dfs(node ${v}) — push on the call stack (depth now ${stackDepth}). Recurse LEFT first.`,
+      26,
+      { current: id, vars: [{ name: 'node', value: v }] }
+    );
+
+    const left = dfs(nodeMap.get(id)!.leftId, `Left child of ${v}`, id);
+
+    colour[id] = 'active';
+    push(
+      `Back at node ${v}. Left depth = ${left}. Now recurse RIGHT.`,
+      27,
+      { current: id, vars: [{ name: 'node', value: v }, { name: 'left', value: left, highlight: true }] }
+    );
+
+    const right = dfs(nodeMap.get(id)!.rightId, `Right child of ${v}`, id);
+
+    const through = left + right;
+    const prev = maxDiameter;
+    maxDiameter = Math.max(maxDiameter, through);
+    const depth = 1 + Math.max(left, right);
+    colour[id] = 'visited';
+    stackDepth--;
+    push(
+      `Node ${v}: leftDepth=${left}, rightDepth=${right}. Longest path bending at ${v} = ${left}+${right} = ${through}. maxDiameter = max(${prev}, ${through}) = ${maxDiameter}. Then return this subtree’s depth = 1 + max(${left}, ${right}) = ${depth} to the parent.`,
+      28,
+      {
+        current: id,
+        vars: [
+          { name: 'node', value: v },
+          { name: 'left', value: left },
+          { name: 'right', value: right },
+          { name: 'left+right', value: through, highlight: maxDiameter === through && through > prev },
+          { name: 'return', value: depth, highlight: true },
+        ],
+      }
+    );
+    return depth;
+  }
+
+  dfs('n0', 'root', null);
+
+  NODES.forEach((n) => (colour[n.id] = 'found'));
+  push(
+    `Recursion finished. The largest left+right seen at any node was ${maxDiameter}, so the diameter is ${maxDiameter} (path 4 → 2 → 1 → 3).`,
+    34,
+    { vars: [{ name: 'maxDiameter', value: maxDiameter, highlight: true }] }
+  );
+
+  return steps;
 }
 
 export const diameterOfBinaryTreeMeta: AlgorithmMeta = {

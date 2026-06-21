@@ -1,4 +1,4 @@
-import { AlgorithmMeta, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
 const PYTHON_CODE = `from typing import Optional
 
@@ -38,78 +38,121 @@ class Solution:
         return isBalanced`;
 
 // Tree: [3, 9, 20, null, null, 15, 7]
-function makeNodes(overrides: Record<string, TreeNode['state']> = {}): TreeNode[] {
-  const base: Omit<TreeNode, 'state'>[] = [
-    { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
-    { id: 'n1', value: 9, leftId: null, rightId: null },
-    { id: 'n2', value: 20, leftId: 'n3', rightId: 'n4' },
-    { id: 'n3', value: 15, leftId: null, rightId: null },
-    { id: 'n4', value: 7, leftId: null, rightId: null },
-  ];
-  return base.map(n => ({ ...n, state: overrides[n.id] ?? 'default' }));
-}
+const NODES: Omit<TreeNode, 'state'>[] = [
+  { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
+  { id: 'n1', value: 9, leftId: null, rightId: null },
+  { id: 'n2', value: 20, leftId: 'n3', rightId: 'n4' },
+  { id: 'n3', value: 15, leftId: null, rightId: null },
+  { id: 'n4', value: 7, leftId: null, rightId: null },
+];
 
-export function generateSteps() {
-  return [
-    {
-      explanation: 'Start postorder DFS. isBalanced=True. We check |leftDepth - rightDepth| > 1 at each node.',
-      highlightLine: 19,
+function generateSteps(): Step[] {
+  const steps: Step[] = [];
+  const nodeMap = new Map(NODES.map((n) => [n.id, n]));
+  const valueOf = (id: string) => nodeMap.get(id)!.value as number;
+
+  const colour: Record<string, TreeNode['state']> = {};
+  let stackDepth = 0;
+  let isBalanced = true;
+
+  const makeNodes = (): TreeNode[] =>
+    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
+
+  const push = (
+    explanation: string,
+    line: number,
+    opts: {
+      current?: string | null;
+      vars?: { name: string; value: string | number; highlight?: boolean }[];
+    } = {}
+  ) => {
+    steps.push({
+      explanation,
+      highlightLine: line,
       state: {
-        type: 'tree' as const,
+        type: 'tree',
         nodes: makeNodes(),
-        counters: [{ label: 'isBalanced', value: 'True' }],
+        pointers: opts.current ? [{ nodeId: opts.current, label: '▶ here' }] : [],
+        counters: [
+          { label: 'call stack depth', value: stackDepth },
+          { label: 'isBalanced', value: String(isBalanced) },
+        ],
       } as TreeState,
-      variables: [{ name: 'isBalanced', value: 'True' }],
-    },
-    {
-      explanation: 'Visit node 9 (leaf). left=0, right=0. |0-0|=0 ≤ 1. Balanced. Returns depth=1.',
-      highlightLine: 29,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n1: 'active' }),
-        counters: [{ label: 'isBalanced', value: 'True' }],
-      } as TreeState,
-      variables: [{ name: 'left', value: 0 }, { name: 'right', value: 0 }, { name: '|0-0|', value: 0 }],
-    },
-    {
-      explanation: 'Visit node 15 (leaf). left=0, right=0. |0-0|=0 ≤ 1. Balanced. Returns depth=1.',
-      highlightLine: 29,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n1: 'visited', n3: 'active' }),
-        counters: [{ label: 'isBalanced', value: 'True' }],
-      } as TreeState,
-    },
-    {
-      explanation: 'Visit node 7 (leaf). left=0, right=0. |0-0|=0 ≤ 1. Balanced. Returns depth=1.',
-      highlightLine: 29,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n1: 'visited', n3: 'visited', n4: 'active' }),
-        counters: [{ label: 'isBalanced', value: 'True' }],
-      } as TreeState,
-    },
-    {
-      explanation: 'Back at node 20. left=1 (from 15), right=1 (from 7). |1-1|=0 ≤ 1. Balanced. Returns depth=2.',
-      highlightLine: 29,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n1: 'visited', n2: 'active', n3: 'visited', n4: 'visited' }),
-        counters: [{ label: 'isBalanced', value: 'True' }],
-      } as TreeState,
-      variables: [{ name: 'left', value: 1 }, { name: 'right', value: 1 }, { name: '|1-1|', value: 0 }],
-    },
-    {
-      explanation: 'Back at root (3). left=1 (from 9), right=2 (from 20). |1-2|=1 ≤ 1. Balanced! isBalanced stays True. Answer: True.',
-      highlightLine: 36,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found', n1: 'found', n2: 'found', n3: 'found', n4: 'found' }),
-        counters: [{ label: 'isBalanced', value: 'True' }],
-      } as TreeState,
-      variables: [{ name: 'left', value: 1 }, { name: 'right', value: 2 }, { name: '|1-2|', value: 1 }, { name: 'isBalanced', value: 'True', highlight: true }],
-    },
-  ];
+      variables: opts.vars,
+    });
+  };
+
+  push(
+    'A tree is height-balanced if at EVERY node |leftDepth − rightDepth| ≤ 1. We reuse the max-depth idea: postorder DFS returns each subtree’s depth, and along the way we flip a shared isBalanced flag to False the moment any node breaks the rule. Start with isBalanced = True.',
+    19,
+    { vars: [{ name: 'isBalanced', value: 'True' }] }
+  );
+
+  function dfs(id: string | null, side: string, parentId: string | null): number {
+    if (id === null) {
+      push(
+        `${side} is null → base case "return 0". A missing subtree has depth 0.`,
+        24,
+        { current: parentId, vars: [{ name: 'node', value: 'null' }, { name: 'returns', value: 0, highlight: true }] }
+      );
+      return 0;
+    }
+
+    stackDepth++;
+    const v = valueOf(id);
+    colour[id] = 'active';
+    push(
+      `Call dfs(node ${v}) — push on the call stack (depth now ${stackDepth}). Recurse LEFT first to get its left subtree’s depth.`,
+      26,
+      { current: id, vars: [{ name: 'node', value: v }] }
+    );
+
+    const left = dfs(nodeMap.get(id)!.leftId, `Left child of ${v}`, id);
+
+    colour[id] = 'active';
+    push(
+      `Back at node ${v}. Left depth = ${left}. Now recurse RIGHT.`,
+      27,
+      { current: id, vars: [{ name: 'node', value: v }, { name: 'left', value: left, highlight: true }] }
+    );
+
+    const right = dfs(nodeMap.get(id)!.rightId, `Right child of ${v}`, id);
+
+    const diff = Math.abs(left - right);
+    const broke = diff > 1;
+    if (broke) isBalanced = false;
+    const depth = 1 + Math.max(left, right);
+    colour[id] = 'visited';
+    stackDepth--;
+    push(
+      `Node ${v}: left=${left}, right=${right}. |${left} − ${right}| = ${diff} ${
+        broke ? '> 1 → this node is UNBALANCED, set isBalanced = False.' : '≤ 1 → still balanced here.'
+      } Return depth = 1 + max(${left}, ${right}) = ${depth}.`,
+      broke ? 30 : 29,
+      {
+        current: id,
+        vars: [
+          { name: 'node', value: v },
+          { name: 'left', value: left },
+          { name: 'right', value: right },
+          { name: '|left−right|', value: diff, highlight: broke },
+          { name: 'return', value: depth, highlight: true },
+        ],
+      }
+    );
+    return depth;
+  }
+
+  dfs('n0', 'root', null);
+
+  NODES.forEach((n) => (colour[n.id] = isBalanced ? 'found' : 'visited'));
+  push(
+    `Recursion finished. No node ever broke the rule, so isBalanced is still ${String(isBalanced)} — the tree IS height-balanced.`,
+    36,
+    { vars: [{ name: 'isBalanced', value: String(isBalanced), highlight: true }] }
+  );
+
+  return steps;
 }
 
 export const balancedBinaryTreeMeta: AlgorithmMeta = {

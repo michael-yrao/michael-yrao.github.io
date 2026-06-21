@@ -1,4 +1,4 @@
-import { AlgorithmMeta, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
 const PYTHON_CODE = `from collections import deque
 from typing import List, Optional
@@ -41,110 +41,115 @@ class Solution:
         return returnList`;
 
 // Tree: [3, 9, 20, null, null, 15, 7]
-function makeNodes(overrides: Record<string, TreeNode['state']> = {}): TreeNode[] {
-  const base: Omit<TreeNode, 'state'>[] = [
-    { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
-    { id: 'n1', value: 9, leftId: null, rightId: null },
-    { id: 'n2', value: 20, leftId: 'n3', rightId: 'n4' },
-    { id: 'n3', value: 15, leftId: null, rightId: null },
-    { id: 'n4', value: 7, leftId: null, rightId: null },
-  ];
-  return base.map(n => ({ ...n, state: overrides[n.id] ?? 'default' }));
-}
+const NODES: Omit<TreeNode, 'state'>[] = [
+  { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
+  { id: 'n1', value: 9, leftId: null, rightId: null },
+  { id: 'n2', value: 20, leftId: 'n3', rightId: 'n4' },
+  { id: 'n3', value: 15, leftId: null, rightId: null },
+  { id: 'n4', value: 7, leftId: null, rightId: null },
+];
 
-export function generateSteps() {
-  return [
-    {
-      explanation: 'Initialize BFS. Queue=[3]. returnList=[]. We will process one level at a time.',
-      highlightLine: 21,
+function generateSteps(): Step[] {
+  const steps: Step[] = [];
+  const nodeMap = new Map(NODES.map((n) => [n.id, n]));
+  const valueOf = (id: string) => nodeMap.get(id)!.value as number;
+
+  const colour: Record<string, TreeNode['state']> = {};
+  const queue: string[] = ['n0'];
+  const returnList: number[][] = [];
+
+  const makeNodes = (): TreeNode[] =>
+    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
+
+  const queueStr = () => '[' + queue.map((id) => valueOf(id)).join(', ') + ']';
+  const resultStr = () => '[' + returnList.map((l) => '[' + l.join(',') + ']').join(', ') + ']';
+
+  const push = (
+    explanation: string,
+    line: number,
+    opts: { current?: string | null; vars?: { name: string; value: string | number; highlight?: boolean }[] } = {}
+  ) => {
+    steps.push({
+      explanation,
+      highlightLine: line,
       state: {
-        type: 'tree' as const,
+        type: 'tree',
         nodes: makeNodes(),
-        counters: [{ label: 'returnList', value: '[]' }],
+        pointers: opts.current ? [{ nodeId: opts.current, label: '▶ processing' }] : [],
+        counters: [
+          { label: 'queue', value: queueStr() },
+          { label: 'returnList', value: resultStr() },
+        ],
       } as TreeState,
-      variables: [{ name: 'queue', value: '[3]' }],
-    },
-    {
-      explanation: 'Level 0: queue has 1 node. Process node 3. Append 3 to currentList. Enqueue children 9 and 20.',
-      highlightLine: 32,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'active' }),
-        counters: [{ label: 'returnList', value: '[]' }],
-      } as TreeState,
-      variables: [{ name: 'currentList', value: '[3]' }, { name: 'queue', value: '[9,20]' }],
-    },
-    {
-      explanation: 'Level 0 done. returnList=[[3]]. Now level 1: queue has 2 nodes (9 and 20).',
-      highlightLine: 38,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited' }),
-        counters: [{ label: 'returnList', value: '[[3]]' }],
-      } as TreeState,
-      variables: [{ name: 'queue', value: '[9,20]' }],
-    },
-    {
-      explanation: 'Level 1: process node 9 (leaf). Append 9. No children to enqueue.',
-      highlightLine: 32,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'active' }),
-        counters: [{ label: 'returnList', value: '[[3]]' }],
-      } as TreeState,
-      variables: [{ name: 'currentList', value: '[9]' }, { name: 'queue', value: '[20]' }],
-    },
-    {
-      explanation: 'Level 1: process node 20. Append 20. Enqueue children 15 and 7.',
-      highlightLine: 32,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'active' }),
-        counters: [{ label: 'returnList', value: '[[3]]' }],
-      } as TreeState,
-      variables: [{ name: 'currentList', value: '[9,20]' }, { name: 'queue', value: '[15,7]' }],
-    },
-    {
-      explanation: 'Level 1 done. returnList=[[3],[9,20]]. Now level 2: queue has 2 nodes (15 and 7).',
-      highlightLine: 38,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited' }),
-        counters: [{ label: 'returnList', value: '[[3],[9,20]]' }],
-      } as TreeState,
-      variables: [{ name: 'queue', value: '[15,7]' }],
-    },
-    {
-      explanation: 'Level 2: process node 15 (leaf). Append 15 to currentList. No children to enqueue.',
-      highlightLine: 32,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited', n3: 'active' }),
-        counters: [{ label: 'returnList', value: '[[3],[9,20]]' }],
-      } as TreeState,
-      variables: [{ name: 'currentList', value: '[15]' }, { name: 'queue', value: '[7]' }],
-    },
-    {
-      explanation: 'Level 2: process node 7 (leaf). Append 7. currentList=[15,7]. Queue becomes empty.',
-      highlightLine: 32,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited', n3: 'visited', n4: 'active' }),
-        counters: [{ label: 'returnList', value: '[[3],[9,20]]' }],
-      } as TreeState,
-      variables: [{ name: 'currentList', value: '[15,7]' }, { name: 'queue', value: '[]' }],
-    },
-    {
-      explanation: 'All levels processed. returnList=[[3],[9,20],[15,7]]. BFS complete.',
-      highlightLine: 39,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found', n1: 'found', n2: 'found', n3: 'found', n4: 'found' }),
-        counters: [{ label: 'returnList', value: '[[3],[9,20],[15,7]]' }],
-      } as TreeState,
-      variables: [{ name: 'result', value: '[[3],[9,20],[15,7]]', highlight: true }],
-    },
-  ];
+      variables: opts.vars,
+    });
+  };
+
+  push(
+    'Level order = BFS with a queue. The one trick: at the START of each level the queue holds EXACTLY the nodes of that level. So we snapshot the queue length, pop that many nodes into one list, enqueuing their children as we go (those become the next level). Seed the queue with the root.',
+    21,
+    { vars: [{ name: 'queue', value: '[3]' }, { name: 'returnList', value: '[]' }] }
+  );
+
+  let level = 0;
+  while (queue.length) {
+    const levelSize = queue.length;
+    const currentList: number[] = [];
+    push(
+      `Level ${level} begins. Snapshot lenOfQueue = ${levelSize} → there are ${levelSize} node(s) on this level. We'll pop exactly ${levelSize} of them into a fresh currentList = [].`,
+      24,
+      { vars: [{ name: 'lenOfQueue', value: levelSize, highlight: true }, { name: 'currentList', value: '[]' }] }
+    );
+
+    for (let i = 0; i < levelSize; i++) {
+      const id = queue.shift()!;
+      const v = valueOf(id);
+      colour[id] = 'active';
+      currentList.push(v);
+      const node = nodeMap.get(id)!;
+      const enq: string[] = [];
+      if (node.leftId) {
+        queue.push(node.leftId);
+        enq.push(`left ${valueOf(node.leftId)}`);
+      }
+      if (node.rightId) {
+        queue.push(node.rightId);
+        enq.push(`right ${valueOf(node.rightId)}`);
+      }
+      colour[id] = 'visited';
+      push(
+        `Level ${level}, i=${i}: pop node ${v} from the front, append it to currentList (now [${currentList.join(',')}]). ${
+          enq.length ? `Enqueue its children (${enq.join(', ')}) for the next level → queue ${queueStr()}.` : 'It has no children, nothing to enqueue.'
+        }`,
+        enq.length ? 34 : 32,
+        {
+          current: id,
+          vars: [
+            { name: 'i', value: i },
+            { name: 'currentNode', value: v },
+            { name: 'currentList', value: '[' + currentList.join(',') + ']', highlight: true },
+          ],
+        }
+      );
+    }
+
+    returnList.push(currentList);
+    push(
+      `Level ${level} finished — all ${levelSize} node(s) processed. Append currentList [${currentList.join(',')}] to returnList → ${resultStr()}. ${queue.length ? 'The queue now holds the next level.' : 'The queue is empty.'}`,
+      38,
+      { vars: [{ name: 'returnList', value: resultStr(), highlight: true }] }
+    );
+    level++;
+  }
+
+  NODES.forEach((n) => (colour[n.id] = 'found'));
+  push(
+    `Queue is empty — BFS complete. Final level order = ${resultStr()}.`,
+    39,
+    { vars: [{ name: 'result', value: resultStr(), highlight: true }] }
+  );
+
+  return steps;
 }
 
 export const binaryTreeLevelOrderTraversalMeta: AlgorithmMeta = {

@@ -1,4 +1,4 @@
-import { AlgorithmMeta, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
 const PYTHON_CODE = `class TreeNode:
     def __init__(self, x):
@@ -25,62 +25,92 @@ class Solution:
             else:
                 return currentNode`;
 
-// BST: [6, 2, 8, 0, 4, 7, 9]
-// n0=6(root), n1=2(leftId='n3',rightId='n4'), n2=8(leftId='n5',rightId='n6'), n3=0(leaf), n4=4(leaf), n5=7(leaf), n6=9(leaf)
-// Finding LCA of p=2, q=4
-function makeNodes(overrides: Record<string, TreeNode['state']> = {}): TreeNode[] {
-  const base: Omit<TreeNode, 'state'>[] = [
-    { id: 'n0', value: 6, leftId: 'n1', rightId: 'n2' },
-    { id: 'n1', value: 2, leftId: 'n3', rightId: 'n4' },
-    { id: 'n2', value: 8, leftId: 'n5', rightId: 'n6' },
-    { id: 'n3', value: 0, leftId: null, rightId: null },
-    { id: 'n4', value: 4, leftId: null, rightId: null },
-    { id: 'n5', value: 7, leftId: null, rightId: null },
-    { id: 'n6', value: 9, leftId: null, rightId: null },
-  ];
-  return base.map(n => ({ ...n, state: overrides[n.id] ?? 'default' }));
-}
+// BST: [6, 2, 8, 0, 4, 7, 9], find LCA of p=2, q=4
+const NODES: Omit<TreeNode, 'state'>[] = [
+  { id: 'n0', value: 6, leftId: 'n1', rightId: 'n2' },
+  { id: 'n1', value: 2, leftId: 'n3', rightId: 'n4' },
+  { id: 'n2', value: 8, leftId: 'n5', rightId: 'n6' },
+  { id: 'n3', value: 0, leftId: null, rightId: null },
+  { id: 'n4', value: 4, leftId: null, rightId: null },
+  { id: 'n5', value: 7, leftId: null, rightId: null },
+  { id: 'n6', value: 9, leftId: null, rightId: null },
+];
 
-export function generateSteps() {
-  return [
-    {
-      explanation: 'Find LCA of p=2 and q=4 in the BST. Start at root (6). p=2, q=4 are highlighted.',
-      highlightLine: 13,
+function generateSteps(): Step[] {
+  const steps: Step[] = [];
+  const nodeMap = new Map(NODES.map((n) => [n.id, n]));
+  const valueOf = (id: string) => nodeMap.get(id)!.value as number;
+  const p = 2;
+  const q = 4;
+
+  // Mark the two target nodes throughout so the viewer can see what we are seeking.
+  const colour: Record<string, TreeNode['state']> = { n1: 'highlighted', n4: 'highlighted' };
+
+  const makeNodes = (): TreeNode[] =>
+    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
+
+  const push = (
+    explanation: string,
+    line: number,
+    opts: { current?: string | null; vars?: { name: string; value: string | number; highlight?: boolean }[] } = {}
+  ) => {
+    steps.push({
+      explanation,
+      highlightLine: line,
       state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n1: 'highlighted', n4: 'highlighted' }),
+        type: 'tree',
+        nodes: makeNodes(),
+        pointers: opts.current ? [{ nodeId: opts.current, label: '▶ here' }] : [],
+        counters: [{ label: 'p', value: p }, { label: 'q', value: q }],
       } as TreeState,
-      variables: [{ name: 'p.val', value: 2 }, { name: 'q.val', value: 4 }],
-    },
-    {
-      explanation: 'At node 6: p.val=2 < 6 AND q.val=4 < 6. Both smaller — go left.',
-      highlightLine: 17,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'active', n1: 'highlighted', n4: 'highlighted' }),
-      } as TreeState,
-      variables: [{ name: 'currentNode.val', value: 6 }, { name: 'p.val', value: 2 }, { name: 'q.val', value: 4 }],
-    },
-    {
-      explanation: 'At node 2: p.val=2 is NOT < 2, so they are not both smaller. Check if both bigger: 2 > 2? No. We are in the else branch — currentNode IS the LCA!',
-      highlightLine: 20,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'active', n4: 'highlighted' }),
-      } as TreeState,
-      variables: [{ name: 'currentNode.val', value: 2 }, { name: 'p.val', value: 2 }, { name: 'q.val', value: 4 }],
-    },
-    {
-      explanation: 'Node 2 is the LCA of p=2 and q=4. p=2 IS node 2 itself, and q=4 is in node 2\'s right subtree. They diverge here.',
-      highlightLine: 24,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'found', n3: 'highlighted', n4: 'highlighted' }),
-        counters: [{ label: 'LCA', value: 'node 2' }],
-      } as TreeState,
-      variables: [{ name: 'LCA', value: 2, highlight: true }],
-    },
-  ];
+      variables: opts.vars,
+    });
+  };
+
+  push(
+    `We want the lowest common ancestor of p=${p} and q=${q}. We exploit the BST ordering instead of searching blindly: from the current node, if BOTH targets are smaller we go left, if BOTH are larger we go right. The instant they fall on different sides (or one equals the current node) we have found the split point — that node is the LCA. Start at the root.`,
+    13,
+    { vars: [{ name: 'p.val', value: p }, { name: 'q.val', value: q }] }
+  );
+
+  let id: string | null = 'n0';
+  while (id) {
+    const cur: string = id;
+    const v = valueOf(cur);
+    colour[cur] = colour[cur] === 'highlighted' ? 'highlighted' : 'active';
+    const node = nodeMap.get(cur)!;
+
+    const bothSmaller = p < v && q < v;
+    const bothBigger = p > v && q > v;
+
+    if (bothSmaller) {
+      push(
+        `At node ${v}: is p (${p}) < ${v} AND q (${q}) < ${v}? Yes — both targets are in the LEFT subtree, so move left.`,
+        18,
+        { current: cur, vars: [{ name: 'currentNode.val', value: v }, { name: 'p<node', value: 'True' }, { name: 'q<node', value: 'True', highlight: true }] }
+      );
+      if (colour[cur] === 'active') colour[cur] = 'visited';
+      id = node.leftId;
+    } else if (bothBigger) {
+      push(
+        `At node ${v}: both smaller? No. Is p (${p}) > ${v} AND q (${q}) > ${v}? Yes — both targets are in the RIGHT subtree, so move right.`,
+        21,
+        { current: cur, vars: [{ name: 'currentNode.val', value: v }, { name: 'p>node', value: 'True' }, { name: 'q>node', value: 'True', highlight: true }] }
+      );
+      if (colour[cur] === 'active') colour[cur] = 'visited';
+      id = node.rightId;
+    } else {
+      colour[cur] = 'found';
+      push(
+        `At node ${v}: both smaller? No (p=${p} is not < ${v}). Both bigger? No. So p and q split here — one is on each side, or one equals this node. Node ${v} is the LCA. Return it.`,
+        24,
+        { current: cur, vars: [{ name: 'currentNode.val', value: v }, { name: 'LCA', value: v, highlight: true }] }
+      );
+      break;
+    }
+  }
+
+  return steps;
 }
 
 export const lowestCommonAncestorBstMeta: AlgorithmMeta = {

@@ -1,4 +1,4 @@
-import { AlgorithmMeta, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
 const PYTHON_CODE = `import collections
 from typing import List, Optional
@@ -40,156 +40,119 @@ class Solution:
         return result`;
 
 // Tree: [1,2,3,null,5,null,4]  →  right side view = [1,3,4]
-//
 //        1
 //       / \
 //      2   3
 //       \    \
 //        5    4
-function makeNodes(overrides: Record<string, TreeNode['state']> = {}): TreeNode[] {
-  const base: Omit<TreeNode, 'state'>[] = [
-    { id: 'n0', value: 1, leftId: 'n1', rightId: 'n2' },
-    { id: 'n1', value: 2, leftId: null, rightId: 'n3' },
-    { id: 'n2', value: 3, leftId: null, rightId: 'n4' },
-    { id: 'n3', value: 5, leftId: null, rightId: null },
-    { id: 'n4', value: 4, leftId: null, rightId: null },
-  ];
-  return base.map(n => ({ ...n, state: overrides[n.id] ?? 'default' }));
-}
+const NODES: Omit<TreeNode, 'state'>[] = [
+  { id: 'n0', value: 1, leftId: 'n1', rightId: 'n2' },
+  { id: 'n1', value: 2, leftId: null, rightId: 'n3' },
+  { id: 'n2', value: 3, leftId: null, rightId: 'n4' },
+  { id: 'n3', value: 5, leftId: null, rightId: null },
+  { id: 'n4', value: 4, leftId: null, rightId: null },
+];
 
-export function generateSteps() {
-  return [
-    {
-      explanation: 'Seed BFS: append root 1 to the queue. result=[], queue=[1].',
-      highlightLine: 21,
+function generateSteps(): Step[] {
+  const steps: Step[] = [];
+  const nodeMap = new Map(NODES.map((n) => [n.id, n]));
+  const valueOf = (id: string) => nodeMap.get(id)!.value as number;
+
+  const colour: Record<string, TreeNode['state']> = {};
+  const queue: string[] = ['n0'];
+  const result: number[] = [];
+
+  const makeNodes = (): TreeNode[] =>
+    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
+
+  const queueStr = () => '[' + queue.map((id) => valueOf(id)).join(', ') + ']';
+  const resultStr = () => '[' + result.join(', ') + ']';
+
+  const push = (
+    explanation: string,
+    line: number,
+    opts: { current?: string | null; vars?: { name: string; value: string | number; highlight?: boolean }[] } = {}
+  ) => {
+    steps.push({
+      explanation,
+      highlightLine: line,
       state: {
-        type: 'tree' as const,
+        type: 'tree',
         nodes: makeNodes(),
-        counters: [{ label: 'result', value: '[]' }],
+        pointers: opts.current ? [{ nodeId: opts.current, label: '▶ here' }] : [],
+        counters: [
+          { label: 'queue', value: queueStr() },
+          { label: 'result', value: resultStr() },
+        ],
       } as TreeState,
-      variables: [{ name: 'queue', value: '[1]' }],
-    },
-    {
-      explanation: 'Level 0: numElementInLevel=1. We will iterate i=0..0.',
-      highlightLine: 26,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes(),
-        counters: [{ label: 'result', value: '[]' }],
-      } as TreeState,
-      variables: [{ name: 'numElementInLevel', value: '1' }, { name: 'queue', value: '[1]' }],
-    },
-    {
-      explanation: 'Level 0, i=0: dequeue node 1. i==0==numElementInLevel-1 — this is the last (and only) node in the level.',
-      highlightLine: 29,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'active' }),
-        counters: [{ label: 'result', value: '[]' }],
-      } as TreeState,
-      variables: [{ name: 'currentNode', value: '1' }, { name: 'i', value: '0' }, { name: 'numElementInLevel', value: '1' }, { name: 'queue', value: '[]' }],
-    },
-    {
-      explanation: 'i==numElementInLevel-1 → last node in this level. Append 1 to result. Then enqueue children 2 and 3.',
-      highlightLine: 32,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'active' }),
-        counters: [{ label: 'result', value: '[1]' }],
-      } as TreeState,
-      variables: [{ name: 'result', value: '[1]', highlight: true }, { name: 'queue', value: '[2,3]' }],
-    },
-    {
-      explanation: 'Level 1: numElementInLevel=2. We will iterate i=0..1. Only the node at i=1 is added to result.',
-      highlightLine: 26,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited' }),
-        counters: [{ label: 'result', value: '[1]' }],
-      } as TreeState,
-      variables: [{ name: 'numElementInLevel', value: '2' }, { name: 'queue', value: '[2,3]' }],
-    },
-    {
-      explanation: 'Level 1, i=0: dequeue node 2. i=0 != numElementInLevel-1=1 — NOT the last node; skip it. Enqueue right child 5.',
-      highlightLine: 31,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'active' }),
-        counters: [{ label: 'result', value: '[1]' }],
-      } as TreeState,
-      variables: [{ name: 'currentNode', value: '2' }, { name: 'i', value: '0' }, { name: 'numElementInLevel', value: '2' }, { name: 'queue', value: '[3,5]' }],
-    },
-    {
-      explanation: 'Level 1, i=1: dequeue node 3. i=1==numElementInLevel-1 — last node in this level.',
-      highlightLine: 29,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'active' }),
-        counters: [{ label: 'result', value: '[1]' }],
-      } as TreeState,
-      variables: [{ name: 'currentNode', value: '3' }, { name: 'i', value: '1' }, { name: 'numElementInLevel', value: '2' }, { name: 'queue', value: '[5]' }],
-    },
-    {
-      explanation: 'i==numElementInLevel-1 → last node. Append 3 to result. Enqueue right child 4. queue=[5,4].',
-      highlightLine: 32,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'active' }),
-        counters: [{ label: 'result', value: '[1,3]' }],
-      } as TreeState,
-      variables: [{ name: 'result', value: '[1,3]', highlight: true }, { name: 'queue', value: '[5,4]' }],
-    },
-    {
-      explanation: 'Level 2: numElementInLevel=2. Iterate i=0..1.',
-      highlightLine: 26,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited' }),
-        counters: [{ label: 'result', value: '[1,3]' }],
-      } as TreeState,
-      variables: [{ name: 'numElementInLevel', value: '2' }, { name: 'queue', value: '[5,4]' }],
-    },
-    {
-      explanation: 'Level 2, i=0: dequeue node 5. i=0 != 1 — NOT last. 5 has no children. queue=[4].',
-      highlightLine: 31,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited', n3: 'active' }),
-        counters: [{ label: 'result', value: '[1,3]' }],
-      } as TreeState,
-      variables: [{ name: 'currentNode', value: '5' }, { name: 'i', value: '0' }, { name: 'numElementInLevel', value: '2' }, { name: 'queue', value: '[4]' }],
-    },
-    {
-      explanation: 'Level 2, i=1: dequeue node 4. i=1==numElementInLevel-1 — last in this level.',
-      highlightLine: 29,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited', n3: 'visited', n4: 'active' }),
-        counters: [{ label: 'result', value: '[1,3]' }],
-      } as TreeState,
-      variables: [{ name: 'currentNode', value: '4' }, { name: 'i', value: '1' }, { name: 'numElementInLevel', value: '2' }, { name: 'queue', value: '[]' }],
-    },
-    {
-      explanation: 'i==numElementInLevel-1 → last node. Append 4 to result. No children. Queue is now empty.',
-      highlightLine: 32,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'visited', n1: 'visited', n2: 'visited', n3: 'visited', n4: 'active' }),
-        counters: [{ label: 'result', value: '[1,3,4]' }],
-      } as TreeState,
-      variables: [{ name: 'result', value: '[1,3,4]', highlight: true }, { name: 'queue', value: '[]' }],
-    },
-    {
-      explanation: 'Queue empty — BFS complete. The rightmost node at each depth was [1, 3, 4]. Return result.',
-      highlightLine: 38,
-      state: {
-        type: 'tree' as const,
-        nodes: makeNodes({ n0: 'found', n1: 'found', n2: 'found', n3: 'found', n4: 'found' }),
-        counters: [{ label: 'result', value: '[1,3,4]' }],
-      } as TreeState,
-      variables: [{ name: 'result', value: '[1,3,4]', highlight: true }],
-    },
-  ];
+      variables: opts.vars,
+    });
+  };
+
+  push(
+    'Standing on the right, you see exactly the LAST node of each level (the rightmost one). So we BFS level by level, and within a level we only record the node at index i == numElementInLevel − 1. Seed the queue with the root.',
+    21,
+    { vars: [{ name: 'queue', value: '[1]' }, { name: 'result', value: '[]' }] }
+  );
+
+  let level = 0;
+  while (queue.length) {
+    const levelSize = queue.length;
+    push(
+      `Level ${level}: snapshot numElementInLevel = ${levelSize}. The visible node will be the one at i = ${levelSize - 1} (the last we pop this level).`,
+      26,
+      { vars: [{ name: 'numElementInLevel', value: levelSize, highlight: true }] }
+    );
+
+    for (let i = 0; i < levelSize; i++) {
+      const id = queue.shift()!;
+      const v = valueOf(id);
+      const isLast = i === levelSize - 1;
+      colour[id] = 'active';
+      if (isLast) {
+        result.push(v);
+        colour[id] = 'found';
+      } else {
+        colour[id] = 'visited';
+      }
+      const node = nodeMap.get(id)!;
+      const enq: string[] = [];
+      if (node.leftId) {
+        queue.push(node.leftId);
+        enq.push(`left ${valueOf(node.leftId)}`);
+      }
+      if (node.rightId) {
+        queue.push(node.rightId);
+        enq.push(`right ${valueOf(node.rightId)}`);
+      }
+      push(
+        `Level ${level}, i=${i}: pop node ${v}. Is i (${i}) == numElementInLevel−1 (${levelSize - 1})? ${
+          isLast
+            ? `Yes → it's the rightmost on this level, append ${v} to result → ${resultStr()}.`
+            : `No → not the rightmost, don't record it.`
+        } ${enq.length ? `Enqueue its children (${enq.join(', ')}) → queue ${queueStr()}.` : 'No children to enqueue.'}`,
+        isLast ? 32 : 29,
+        {
+          current: id,
+          vars: [
+            { name: 'i', value: i },
+            { name: 'currentNode', value: v },
+            { name: 'last in level?', value: isLast ? 'Yes' : 'No', highlight: isLast },
+            { name: 'result', value: resultStr(), highlight: isLast },
+          ],
+        }
+      );
+    }
+    level++;
+  }
+
+  push(
+    `Queue empty — done. The rightmost node at each depth, top to bottom, is ${resultStr()}.`,
+    38,
+    { vars: [{ name: 'result', value: resultStr(), highlight: true }] }
+  );
+
+  return steps;
 }
 
 export const binaryTreeRightSideViewMeta: AlgorithmMeta = {
