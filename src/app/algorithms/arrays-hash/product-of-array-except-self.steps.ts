@@ -156,6 +156,131 @@ const prefixSuffixSolution: SolutionVariant = {
   label: 'Prefix & Suffix',
   pythonCode: PYTHON_CODE,
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
+};
+
+// ── Solution 2: O(1) extra space (store prefix in result, then multiply suffix) ──
+
+const PYTHON_CODE_EFFICIENT = `class Solution:
+    def productExceptSelf(self, nums: List[int]) -> List[int]:
+        # take advantage of the fact that result does not count towards space complexity
+        # store prefix in result, using a variable to help
+        # then loop through again multiplying by suffix, using another variable to help
+
+        result = [1] * len(nums)
+
+        prefix = suffix = 1
+
+        for i in range(len(nums)):
+            result[i] = prefix
+            prefix *= nums[i]
+
+        for i in range(len(nums)-1,-1,-1):
+            result[i] *= suffix
+            suffix *= nums[i]
+
+        return result`;
+
+function generateStepsEfficient(): Step[] {
+  const nums = [1, 2, 3, 4];
+  const n = nums.length;
+  const steps: Step[] = [];
+  const result = Array(n).fill(1);
+  let prefix = 1;
+  let suffix = 1;
+
+  const snap = (active: number | null, isDone: (i: number) => boolean) => ({
+    type: 'array' as const,
+    cells: result.map((v, i) => ({
+      value: v,
+      state: i === active ? ('active' as const) : isDone(i) ? ('visited' as const) : ('default' as const),
+    })),
+    pointers: active !== null ? [{ index: active, label: 'i' }] : [],
+    counters: [
+      { label: 'prefix', value: prefix },
+      { label: 'suffix', value: suffix },
+    ],
+  });
+
+  steps.push({
+    explanation:
+      "Follow-up: O(1) extra space. The output array doesn't count, so we reuse it. Pass 1 fills result[i] with the product of everything to the LEFT (a running prefix). Pass 2 multiplies in the product of everything to the RIGHT (a running suffix). Just two scalar variables — no prefix/suffix arrays.",
+    highlightLine: 3,
+    state: snap(null, () => false),
+    variables: [
+      { name: 'result', value: `[${result.join(', ')}]` },
+      { name: 'prefix', value: 1 },
+      { name: 'suffix', value: 1 },
+    ],
+  });
+
+  for (let i = 0; i < n; i++) {
+    const old = prefix;
+    result[i] = prefix;
+    prefix *= nums[i];
+    steps.push({
+      explanation: `Pass 1, i=${i}: result[${i}] = prefix = ${old} (product of everything left of index ${i}). Then prefix ×= nums[${i}]=${nums[i]} → ${prefix}.`,
+      highlightLine: 12,
+      state: snap(i, (j) => j < i),
+      variables: [
+        { name: 'i', value: i },
+        { name: `result[${i}]`, value: result[i], highlight: true },
+        { name: 'prefix', value: prefix },
+      ],
+    });
+  }
+
+  steps.push({
+    explanation: `After pass 1, result = [${result.join(', ')}] — each cell holds its left-product. Now scan right-to-left with a running suffix starting at 1.`,
+    highlightLine: 15,
+    state: snap(null, () => true),
+    variables: [
+      { name: 'result', value: `[${result.join(', ')}]` },
+      { name: 'suffix', value: 1 },
+    ],
+  });
+
+  for (let i = n - 1; i >= 0; i--) {
+    const old = suffix;
+    result[i] *= suffix;
+    suffix *= nums[i];
+    steps.push({
+      explanation: `Pass 2, i=${i}: result[${i}] ×= suffix = ${old} → ${result[i]} (now folds in the right-product too). Then suffix ×= nums[${i}]=${nums[i]} → ${suffix}.`,
+      highlightLine: 16,
+      state: snap(i, (j) => j > i),
+      variables: [
+        { name: 'i', value: i },
+        { name: `result[${i}]`, value: result[i], highlight: true },
+        { name: 'suffix', value: suffix },
+      ],
+    });
+  }
+
+  steps.push({
+    explanation: `Done. result = [${result.join(', ')}]. O(n) time and O(1) extra space — no auxiliary arrays, just the prefix and suffix scalars.`,
+    highlightLine: 19,
+    state: {
+      type: 'array',
+      cells: result.map((v) => ({ value: v, state: 'found' as const })),
+      pointers: [],
+      counters: [
+        { label: 'prefix', value: prefix },
+        { label: 'suffix', value: suffix },
+      ],
+    },
+    variables: [{ name: 'result', value: `[${result.join(', ')}]`, highlight: true }],
+  });
+
+  return steps;
+}
+
+const efficientSolution: SolutionVariant = {
+  label: 'O(1) Space (prefix then suffix)',
+  pythonCode: PYTHON_CODE_EFFICIENT,
+  generateSteps: generateStepsEfficient,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const productOfArrayExceptSelfMeta: AlgorithmMeta = {
@@ -185,5 +310,5 @@ export const productOfArrayExceptSelfMeta: AlgorithmMeta = {
     'The product of any prefix or suffix of nums is guaranteed to fit in a 32-bit integer.',
   ],
   hint: 'result[i] needs everything except nums[i]. Split that into "everything to the left" and "everything to the right." Each half can be computed in a single pass.',
-  solutions: [prefixSuffixSolution],
+  solutions: [prefixSuffixSolution, efficientSolution],
 };
