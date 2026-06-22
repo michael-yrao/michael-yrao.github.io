@@ -1,7 +1,16 @@
 import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
 
+// Solutions + comments sourced verbatim from cse-review:
+// dsa/leetcode/graphs/323_number_of_connected_components_in_an_undirected_graph.py
+// (countComponents_BFS_20260616 = BFS, countComponents_20260619_UnionFind = Union Find)
+
 const PYTHON_CODE = `class Solution:
     def countComponents(self, n: int, edges: List[List[int]]) -> int:
+        # first thought is that we iterate through n
+        # bfs on each node and mark them as visited as we visit them
+        # each time bfs comes back, we basically have a component
+        # we should also have an adjMap
+
         componentCounter = 0
 
         visited = set()
@@ -71,7 +80,7 @@ function generateSteps(): Step[] {
   // Step 1: Build adjMap
   steps.push({
     explanation: 'Build adjacency map from edges. 0→[1], 1→[0,2], 2→[1], 3→[4], 4→[3]. Then scan nodes 0..4: each unvisited node starts one BFS that marks an entire component.',
-    highlightLine: 9,
+    highlightLine: 14,
     state: mkState([]),
     variables: [
       { name: 'n', value: 5 },
@@ -84,7 +93,7 @@ function generateSteps(): Step[] {
   ns[0] = 'found';
   steps.push({
     explanation: 'i=0 not in visited → call bfs(0). Enqueue node 0 and mark it visited.',
-    highlightLine: 32,
+    highlightLine: 37,
     state: mkState([0]),
     variables: [
       { name: 'i', value: 0, highlight: true },
@@ -97,7 +106,7 @@ function generateSteps(): Step[] {
   ns[0] = 'active'; ns[1] = 'found'; es[0] = 'active';
   steps.push({
     explanation: 'Pop node 0. adj[0]=[1]. Node 1 unvisited → enqueue and mark visited.',
-    highlightLine: 22,
+    highlightLine: 27,
     state: mkState([1]),
     variables: [
       { name: 'currentNode', value: 0, highlight: true },
@@ -110,7 +119,7 @@ function generateSteps(): Step[] {
   ns[0] = 'visited'; ns[1] = 'active'; ns[2] = 'found'; es[0] = 'visited'; es[1] = 'active';
   steps.push({
     explanation: 'Pop node 1. adj[1]=[0,2]. Node 0 already visited. Node 2 unvisited → enqueue.',
-    highlightLine: 22,
+    highlightLine: 27,
     state: mkState([2]),
     variables: [
       { name: 'currentNode', value: 1, highlight: true },
@@ -123,7 +132,7 @@ function generateSteps(): Step[] {
   ns[1] = 'visited'; ns[2] = 'active'; es[1] = 'visited';
   steps.push({
     explanation: 'Pop node 2. adj[2]=[1]. Node 1 already visited. Queue empty — component {0,1,2} fully explored.',
-    highlightLine: 22,
+    highlightLine: 27,
     state: mkState([]),
     variables: [
       { name: 'currentNode', value: 2, highlight: true },
@@ -136,7 +145,7 @@ function generateSteps(): Step[] {
   ns[2] = 'visited'; comp = 1;
   steps.push({
     explanation: 'bfs(0) returned. Increment componentCounter → 1. Component {0,1,2} discovered.',
-    highlightLine: 33,
+    highlightLine: 38,
     state: mkState([]),
     variables: [
       { name: 'componentCounter', value: 1, highlight: true },
@@ -148,7 +157,7 @@ function generateSteps(): Step[] {
   ns[3] = 'found';
   steps.push({
     explanation: 'i=1,2 already visited. i=3 unvisited → call bfs(3). Enqueue node 3.',
-    highlightLine: 32,
+    highlightLine: 37,
     state: mkState([3]),
     variables: [
       { name: 'i', value: 3, highlight: true },
@@ -160,7 +169,7 @@ function generateSteps(): Step[] {
   ns[3] = 'active'; ns[4] = 'found'; es[2] = 'active';
   steps.push({
     explanation: 'Pop node 3. adj[3]=[4]. Node 4 unvisited → enqueue.',
-    highlightLine: 22,
+    highlightLine: 27,
     state: mkState([4]),
     variables: [
       { name: 'currentNode', value: 3, highlight: true },
@@ -173,7 +182,7 @@ function generateSteps(): Step[] {
   ns[3] = 'visited'; ns[4] = 'active'; es[2] = 'visited';
   steps.push({
     explanation: 'Pop node 4. adj[4]=[3]. Node 3 already visited. Queue empty — component {3,4} fully explored.',
-    highlightLine: 22,
+    highlightLine: 27,
     state: mkState([]),
     variables: [
       { name: 'currentNode', value: 4, highlight: true },
@@ -186,7 +195,7 @@ function generateSteps(): Step[] {
   ns[4] = 'visited'; comp = 2;
   steps.push({
     explanation: 'bfs(3) returned. Increment componentCounter → 2. i=4 already visited — outer loop ends.',
-    highlightLine: 33,
+    highlightLine: 38,
     state: mkState([]),
     variables: [
       { name: 'componentCounter', value: 2, highlight: true },
@@ -197,7 +206,7 @@ function generateSteps(): Step[] {
   // Step 11: return
   steps.push({
     explanation: 'Return 2. Two connected components: {0–1–2} and {3–4}. Every node and edge visited exactly once — O(n + e) time, O(n + e) space.',
-    highlightLine: 35,
+    highlightLine: 40,
     state: mkState([]),
     variables: [
       { name: 'result', value: 2, highlight: true },
@@ -208,36 +217,47 @@ function generateSteps(): Step[] {
 }
 
 const PYTHON_CODE_UF = `def countComponents(self, n: int, edges: List[List[int]]) -> int:
+    # union find solution
+    # since we are given n nodes, we can say that we started out with n components
+    # then we try to merge as many as we can and when we cannot anymore, we decrement component counter
+    # then we return the end component counter
+
     parentMap, rankMap = {}, {}
     componentCounter = n
 
+    # initialize parent and rank maps
     for i in range(n):
         parentMap[i] = i
         rankMap[i] = 0
 
+    # path compression
     def findParent(node):
         if node == parentMap[node]:
             return parentMap[node]
         parentMap[node] = findParent(parentMap[node])
         return parentMap[node]
 
+    # union by rank
     def unionByRank(node1, node2):
         node1Root = findParent(node1)
         node2Root = findParent(node2)
         if node1Root == node2Root:
             return False
+
         if rankMap[node1Root] > rankMap[node2Root]:
             parentMap[node2Root] = node1Root
         elif rankMap[node2Root] > rankMap[node1Root]:
             parentMap[node1Root] = node2Root
         else:
+            # if equal, pick a random one to rank up
             parentMap[node2Root] = node1Root
             rankMap[node1Root] += 1
         return True
 
     for node1, node2 in edges:
+        # if we can connect, subtract 1 from component counter
         if unionByRank(node1, node2):
-            componentCounter -= 1
+            componentCounter-=1
 
     return componentCounter`;
 
@@ -266,17 +286,17 @@ function generateStepsUF(): Step[] {
     type: 'graph' as const,
     nodes: NODE_POS.map((p, i) => ({ ...p, state: ns[i] })),
     edges: edgeList.map(([from, to], i) => ({ from, to, state: es[i] })),
-    hashmapLabel: 'parent',
+    hashmapLabel: 'parentMap',
     hashmap: Object.fromEntries(parent.map((p, i) => [String(i), p])) as Record<string | number, number>,
-    hashmap2Label: 'rank',
+    hashmap2Label: 'rankMap',
     hashmap2: Object.fromEntries(rank.map((r, i) => [String(i), r])) as Record<string | number, number>,
     counters: [{ label: 'components', value: comp }],
   });
 
   // Step 1: Init
   steps.push({
-    explanation: 'componentCounter=5 (n=5 isolated nodes). parent[i]=i, rank[i]=0 — each node is its own root. Each successful union decrements the count.',
-    highlightLine: 5,
+    explanation: 'componentCounter=5 (n=5 isolated nodes). parentMap[i]=i, rankMap[i]=0 — each node is its own root. Each successful union decrements the count.',
+    highlightLine: 11,
     state: mkState(),
     variables: [
       { name: 'n', value: 5 },
@@ -288,7 +308,7 @@ function generateStepsUF(): Step[] {
   ns[0] = 'active'; ns[1] = 'active'; es[0] = 'active';
   steps.push({
     explanation: 'Edge [0,1]: findParent(0)=0 (own root), findParent(1)=1 (own root). Roots differ — no cycle, safe to union.',
-    highlightLine: 16,
+    highlightLine: 24,
     state: mkState(),
     variables: [
       { name: 'node1Root', value: 0 },
@@ -300,8 +320,8 @@ function generateStepsUF(): Step[] {
   parent[1] = 0; rank[0] = 1; comp = 4;
   ns[0] = 'visited'; ns[1] = 'found'; es[0] = 'visited';
   steps.push({
-    explanation: 'Ranks equal → else branch: parent[1]=0, rank[0]→1. componentCounter→4. Node 1 is now a child of root 0.',
-    highlightLine: 25,
+    explanation: 'Ranks equal → else branch: parentMap[1]=0, rankMap[0]→1. componentCounter→4. Node 1 is now a child of root 0.',
+    highlightLine: 35,
     state: mkState(),
     variables: [
       { name: 'componentCounter', value: 4, highlight: true },
@@ -311,8 +331,8 @@ function generateStepsUF(): Step[] {
   // Edge [1,2]: find
   ns[1] = 'active'; ns[2] = 'active'; es[1] = 'active';
   steps.push({
-    explanation: 'Edge [1,2]: findParent(1)→parent[1]=0→parent[0]=0 (path compression). findParent(2)=2. Roots 0 vs 2 — safe to union.',
-    highlightLine: 16,
+    explanation: 'Edge [1,2]: findParent(1)→parentMap[1]=0→parentMap[0]=0 (path compression). findParent(2)=2. Roots 0 vs 2 — safe to union.',
+    highlightLine: 24,
     state: mkState(),
     variables: [
       { name: 'node1Root', value: 0 },
@@ -324,8 +344,8 @@ function generateStepsUF(): Step[] {
   parent[2] = 0; comp = 3;
   ns[1] = 'found'; ns[2] = 'found'; es[1] = 'visited';
   steps.push({
-    explanation: 'rank[0]=1 > rank[2]=0 → if branch: parent[2]=0. componentCounter→3. All of {0,1,2} share root 0.',
-    highlightLine: 21,
+    explanation: 'rankMap[0]=1 > rankMap[2]=0 → if branch: parentMap[2]=0. componentCounter→3. All of {0,1,2} share root 0.',
+    highlightLine: 30,
     state: mkState(),
     variables: [
       { name: 'componentCounter', value: 3, highlight: true },
@@ -336,7 +356,7 @@ function generateStepsUF(): Step[] {
   ns[3] = 'active'; ns[4] = 'active'; es[2] = 'active';
   steps.push({
     explanation: 'Edge [3,4]: findParent(3)=3, findParent(4)=4. Both self-roots — safe to union.',
-    highlightLine: 16,
+    highlightLine: 24,
     state: mkState(),
     variables: [
       { name: 'node1Root', value: 3 },
@@ -348,8 +368,8 @@ function generateStepsUF(): Step[] {
   parent[4] = 3; rank[3] = 1; comp = 2;
   ns[3] = 'visited'; ns[4] = 'found'; es[2] = 'visited';
   steps.push({
-    explanation: 'Ranks equal → else branch: parent[4]=3, rank[3]→1. componentCounter→2. {3,4} share root 3.',
-    highlightLine: 25,
+    explanation: 'Ranks equal → else branch: parentMap[4]=3, rankMap[3]→1. componentCounter→2. {3,4} share root 3.',
+    highlightLine: 35,
     state: mkState(),
     variables: [
       { name: 'componentCounter', value: 2, highlight: true },
@@ -359,7 +379,7 @@ function generateStepsUF(): Step[] {
   // Final
   steps.push({
     explanation: 'All edges processed. Two distinct roots — 0 (for {0,1,2}) and 3 (for {3,4}). Return 2. O(n·α(n)) time.',
-    highlightLine: 33,
+    highlightLine: 44,
     state: mkState(),
     variables: [
       { name: 'result', value: 2, highlight: true },
