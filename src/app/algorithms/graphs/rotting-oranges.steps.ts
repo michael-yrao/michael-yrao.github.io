@@ -77,16 +77,23 @@ function generateSteps(): Step[] {
   const toGridState = (
     minute: number,
     fresh: number,
-    highlightQueue?: [number, number][],
-    newlyRotten?: [number, number][]
+    opts: {
+      queued?: [number, number][];
+      newlyRotten?: [number, number][];
+      active?: [number, number];
+    } = {}
   ): GridState => ({
     type: 'grid',
     grid: grid.map((row, r) =>
       row.map((cell, c) => {
-        const inQueue = highlightQueue?.some(([qr, qc]) => qr === r && qc === c);
-        const newRotten = newlyRotten?.some(([nr, nc]) => nr === r && nc === c);
+        const isActive = !!opts.active && opts.active[0] === r && opts.active[1] === c;
+        const inQueue = opts.queued?.some(([qr, qc]) => qr === r && qc === c);
+        const newRotten = opts.newlyRotten?.some(([nr, nc]) => nr === r && nc === c);
         if (cell === 0) return { state: 'empty' };
         if (cell === 1) return { state: newRotten ? 'rotten' : 'fresh' };
+        // cell === 2 (rotten): active cell being processed > just-rotted > still-queued > settled
+        if (isActive) return { state: 'active' };
+        if (newRotten) return { state: 'rotten' };
         return { state: inQueue ? 'queued' : 'rotten' };
       })
     ),
@@ -125,18 +132,19 @@ function generateSteps(): Step[] {
     const newlyRotten: [number, number][] = [];
 
     steps.push({
-      explanation: `Minute ${minute + 1}: process all ${batchSize} currently-rotten orange(s) in the queue as a batch. One BFS level = one minute of time passing.`,
+      explanation: `Minute ${minute + 1} begins: snapshot numberOfRottenOranges = ${batchSize} (the oranges already rotten at the start of this minute). We'll pop exactly these ${batchSize} and let each infect its neighbors. Processing one whole BFS level = one minute passing.`,
       highlightLine: 37,
-      state: toGridState(minute, fresh, queue.slice(0, batchSize)),
+      state: toGridState(minute, fresh, { queued: queue.slice(0, batchSize) }),
       variables: [
         { name: 'minute', value: minute + 1, highlight: true },
         { name: 'freshOrangeCounter', value: fresh },
-        { name: 'numberOfRottenOranges', value: batchSize },
+        { name: 'numberOfRottenOranges', value: batchSize, highlight: true },
       ],
     });
 
     for (let i = 0; i < batchSize; i++) {
       const [r, c] = queue.shift()!;
+      const rottedThisPop: [number, number][] = [];
       for (const [dr, dc] of dirs) {
         const nr = r + dr;
         const nc = c + dc;
@@ -144,17 +152,34 @@ function generateSteps(): Step[] {
           grid[nr][nc] = 2;
           queue.push([nr, nc]);
           fresh--;
+          rottedThisPop.push([nr, nc]);
           newlyRotten.push([nr, nc]);
         }
       }
+
+      steps.push({
+        explanation: `Minute ${minute + 1}, pop ${i + 1}/${batchSize}: take rotten orange (${r},${c}) off the queue and check its 4 neighbors. ${
+          rottedThisPop.length
+            ? `Fresh orange(s) at ${rottedThisPop.map(([rr, cc]) => `(${rr},${cc})`).join(', ')} become rotten — mark them 2, push to queue, decrement fresh.`
+            : `No fresh neighbor (each is out of bounds, empty, or already rotten) — nothing to rot.`
+        } fresh left: ${fresh}.`,
+        highlightLine: rottedThisPop.length ? 49 : 47,
+        state: toGridState(minute, fresh, { queued: queue.slice(), newlyRotten: rottedThisPop, active: [r, c] }),
+        variables: [
+          { name: 'pop', value: `(${r},${c})`, highlight: true },
+          { name: 'rotted this pop', value: rottedThisPop.length },
+          { name: 'freshOrangeCounter', value: fresh, highlight: rottedThisPop.length > 0 },
+          { name: 'rottenQueue', value: queue.length },
+        ],
+      });
     }
 
     minute++;
 
     steps.push({
-      explanation: `After minute ${minute}: ${newlyRotten.length} new orange(s) rotted. ${fresh} fresh remain. Each fresh orange adjacent to a rotten one gets infected exactly once.`,
+      explanation: `Minute ${minute} complete: all ${batchSize} orange(s) from this level processed, ${newlyRotten.length} new orange(s) rotted in total this minute. ${fresh} fresh remain. The newly-rotten oranges form the next BFS level.`,
       highlightLine: 53,
-      state: toGridState(minute, fresh, queue, newlyRotten),
+      state: toGridState(minute, fresh, { queued: queue.slice(), newlyRotten }),
       variables: [
         { name: 'minute', value: minute, highlight: true },
         { name: 'freshOrangeCounter', value: fresh, highlight: true },

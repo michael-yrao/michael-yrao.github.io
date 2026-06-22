@@ -78,7 +78,7 @@ function generatePrefixSteps(): Step[] {
   for (let i = 1; i < n; i++) {
     leftMax[i] = Math.max(leftMax[i - 1], height[i - 1]);
     steps.push({
-      explanation: `leftMax[${i}] = max(leftMax[${i - 1}]=${leftMax[i - 1] - (leftMax[i] !== leftMax[i - 1] ? (leftMax[i] - leftMax[i - 1]) : 0)}, height[${i - 1}]=${height[i - 1]}) = ${leftMax[i]}.`,
+      explanation: `leftMax[${i}] = max(leftMax[${i - 1}]=${leftMax[i - 1]}, height[${i - 1}]=${height[i - 1]}) = ${leftMax[i]}.`,
       highlightLine: 6,
       state: {
         type: 'array',

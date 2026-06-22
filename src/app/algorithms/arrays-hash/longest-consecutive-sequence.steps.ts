@@ -120,11 +120,12 @@ function generateSteps(): Step[] {
         });
       }
 
+      const prevLongest = longest;
       longest = Math.max(longest, length);
       seq.forEach(v => visited.add(v));
 
       steps.push({
-        explanation: `Sequence [${seq.join('→')}] has length ${length}. longest = max(${longest - (length > longest - length + length ? 0 : 0)}, ${length}) = ${longest}.`,
+        explanation: `Sequence [${seq.join('→')}] has length ${length}. longest = max(${prevLongest}, ${length}) = ${longest}.`,
         highlightLine: 9,
         state: {
           type: 'array',
