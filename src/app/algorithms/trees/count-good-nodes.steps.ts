@@ -159,7 +159,7 @@ function generateSteps(): Step[] {
 
   push(
     `Stack is empty — every node has been processed. Good nodes found: root 3, node 4, node 5, and the leaf 3 (path 3→1→3, max 3, 3 ≥ 3). Total result = ${result}.`,
-    37,
+    35,
     { vars: [{ name: 'result', value: result, highlight: true }] }
   );
 
