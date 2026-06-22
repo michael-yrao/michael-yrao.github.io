@@ -28,7 +28,11 @@ export interface ArrayState {
   type: 'array';
   cells: ArrayCell[];
   pointers: Pointer[];
+  arrayLabel?: string;
   hashmap?: Record<string | number, number | string>;
+  hashmapLabel?: string;
+  hashmap2?: Record<string | number, number | string>;
+  hashmap2Label?: string;
   stackItems?: (string | number)[];
   counters?: { label: string; value: number | string }[];
 }
@@ -73,7 +77,37 @@ export interface TreeState {
   counters?: { label: string; value: string | number }[];
 }
 
-export type VisualizerState = ArrayState | GridState | LinkedListState | TreeState;
+export type GraphNodeState = 'default' | 'active' | 'visited' | 'found';
+export type GraphEdgeState = 'default' | 'active' | 'visited' | 'found';
+
+export interface GraphNode {
+  id: string | number;
+  x: number;
+  y: number;
+  state: GraphNodeState;
+}
+
+export interface GraphEdge {
+  from: string | number;
+  to: string | number;
+  state: GraphEdgeState;
+}
+
+export interface GraphState {
+  type: 'graph';
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  directed?: boolean;
+  hashmap?: Record<string | number, number | string>;
+  hashmapLabel?: string;
+  hashmap2?: Record<string | number, number | string>;
+  hashmap2Label?: string;
+  stackItems?: (string | number)[];
+  stackLabel?: string;
+  counters?: { label: string; value: number | string }[];
+}
+
+export type VisualizerState = ArrayState | GridState | LinkedListState | TreeState | GraphState;
 
 export interface StepVariable {
   name: string;
@@ -98,6 +132,8 @@ export interface SolutionVariant {
   label: string;
   pythonCode: string;
   generateSteps: () => Step[];
+  timeComplexity?: string;
+  spaceComplexity?: string;
 }
 
 export interface AlgorithmMeta {

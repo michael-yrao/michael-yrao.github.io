@@ -1,0 +1,163 @@
+.gv {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+
+  // ── SVG canvas ────────────────────────────────────────────────
+  &__svg {
+    width: 100%;
+    max-height: 300px;
+    overflow: visible;
+  }
+
+  // ── Edges ─────────────────────────────────────────────────────
+  &__edge {
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transition: stroke 200ms, stroke-width 200ms, stroke-opacity 200ms;
+
+    &--default  { stroke: var(--color-border); }
+    &--active   { stroke: var(--color-accent); stroke-width: 3.5; }
+    &--visited  { stroke: #334155; }
+    &--found    { stroke: var(--color-found); }
+  }
+
+  // ── Nodes ─────────────────────────────────────────────────────
+  &__node {
+    stroke-width: 2.5;
+    transition: fill 200ms, stroke 200ms;
+
+    &--default {
+      fill: var(--color-bg);
+      stroke: var(--color-border);
+    }
+    &--active {
+      fill: rgba(6, 182, 212, 0.18);
+      stroke: var(--color-accent);
+      stroke-width: 3;
+    }
+    &--visited {
+      fill: var(--color-bg-raised);
+      stroke: #475569;
+    }
+    &--found {
+      fill: rgba(74, 222, 128, 0.18);
+      stroke: var(--color-found);
+    }
+  }
+
+  &__node-label {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    text-anchor: middle;
+    fill: var(--color-text);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  // ── Shared label (map / stack headings) ───────────────────────
+  &__label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    padding-top: 4px;
+    white-space: nowrap;
+  }
+
+  // ── Maps ──────────────────────────────────────────────────────
+  &__hashmaps {
+    display: flex;
+    gap: var(--space-xl);
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  &__hashmap {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  &__hashmap-entries {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  &__hashmap-entry {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  &__hashmap-key   { color: var(--color-accent); }
+  &__hashmap-arrow { color: var(--color-text-muted); }
+  &__hashmap-val   { color: var(--color-text); }
+
+  // ── Stack / Queue ─────────────────────────────────────────────
+  &__stack {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+
+  &__stack-items {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 4px;
+  }
+
+  &__stack-item {
+    padding: 4px 16px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    text-align: center;
+    min-width: 40px;
+  }
+
+  &__empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+    font-size: 0.85rem;
+  }
+
+  // ── Counters ─────────────────────────────────────────────────
+  &__counters {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  &__counter {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 4px 12px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  &__counter-label { color: var(--color-text-muted); }
+  &__counter-value { color: var(--color-accent); font-weight: 700; }
+}

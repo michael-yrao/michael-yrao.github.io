@@ -47,8 +47,8 @@
         [ngClass]="'badge-' + problem.difficulty.toLowerCase()"
       >{{ problem.difficulty }}</span>
       <span *ngFor="let tag of problem.tags" class="meta-tag">{{ tag }}</span>
-      <span class="complexity">⏱ {{ problem.timeComplexity }}</span>
-      <span class="complexity">💾 {{ problem.spaceComplexity }}</span>
+      <span class="complexity">⏱ {{ activeSolution?.timeComplexity || problem.timeComplexity }}</span>
+      <span class="complexity">💾 {{ activeSolution?.spaceComplexity || problem.spaceComplexity }}</span>
     </div>
   </div>
 
@@ -181,6 +181,11 @@
               *ngIf="isTreeState"
               [state]="$any(currentState)"
             ></app-tree-visualizer>
+
+            <app-graph-visualizer
+              *ngIf="isGraphState"
+              [state]="$any(currentState)"
+            ></app-graph-visualizer>
           </div>
 
           <app-step-controls

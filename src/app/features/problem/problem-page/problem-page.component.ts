@@ -47,8 +47,8 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.steps.length > 0;
   }
 
-  get currentState(): ArrayState | GridState | LinkedListState | TreeState | null {
-    return (this.currentStep?.state as (ArrayState | GridState | LinkedListState | TreeState)) ?? null;
+  get currentState(): ArrayState | GridState | LinkedListState | TreeState | import('../../../core/models/algorithm.model').GraphState | null {
+    return (this.currentStep?.state as any) ?? null;
   }
 
   get isArrayState(): boolean {
@@ -65,6 +65,10 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get isTreeState(): boolean {
     return this.currentState?.type === 'tree';
+  }
+
+  get isGraphState(): boolean {
+    return this.currentState?.type === 'graph';
   }
 
   get bottomColumns(): string {

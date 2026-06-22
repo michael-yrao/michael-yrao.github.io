@@ -10,6 +10,7 @@ import { ArrayVisualizerComponent } from './visualizers/array-visualizer/array-v
 import { GridVisualizerComponent } from './visualizers/grid-visualizer/grid-visualizer.component';
 import { LinkedListVisualizerComponent } from './visualizers/linked-list-visualizer/linked-list-visualizer.component';
 import { TreeVisualizerComponent } from './visualizers/tree-visualizer/tree-visualizer.component';
+import { GraphVisualizerComponent } from './visualizers/graph-visualizer/graph-visualizer.component';
 
 const COMPONENTS = [
   StepControlsComponent,
@@ -20,6 +21,7 @@ const COMPONENTS = [
   GridVisualizerComponent,
   LinkedListVisualizerComponent,
   TreeVisualizerComponent,
+  GraphVisualizerComponent,
 ];
 
 @NgModule({

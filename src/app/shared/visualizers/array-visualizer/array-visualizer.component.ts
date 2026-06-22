@@ -23,4 +23,9 @@ export class ArrayVisualizerComponent {
     if (!this.state.hashmap) return [];
     return Object.entries(this.state.hashmap);
   }
+
+  hashmap2Entries(): [string, number | string][] {
+    if (!this.state.hashmap2) return [];
+    return Object.entries(this.state.hashmap2);
+  }
 }

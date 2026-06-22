@@ -1,0 +1,67 @@
+<div class="gv">
+
+  <!-- SVG graph -->
+  <svg [attr.viewBox]="viewBox" class="gv__svg" xmlns="http://www.w3.org/2000/svg">
+    <!-- Edges drawn first (behind nodes) -->
+    <line
+      *ngFor="let edge of state.edges"
+      [attr.x1]="edgeLine(edge.from, edge.to).x1"
+      [attr.y1]="edgeLine(edge.from, edge.to).y1"
+      [attr.x2]="edgeLine(edge.from, edge.to).x2"
+      [attr.y2]="edgeLine(edge.from, edge.to).y2"
+      [ngClass]="'gv__edge gv__edge--' + edge.state"
+    />
+    <!-- Nodes -->
+    <g
+      *ngFor="let node of state.nodes"
+      [attr.transform]="'translate(' + node.x + ',' + node.y + ')'"
+    >
+      <circle [attr.r]="NODE_R" [ngClass]="'gv__node gv__node--' + node.state" />
+      <text class="gv__node-label" dy="0.35em">{{ node.id }}</text>
+    </g>
+  </svg>
+
+  <!-- Maps -->
+  <div class="gv__hashmaps" *ngIf="state.hashmap !== undefined">
+    <div class="gv__hashmap">
+      <div class="gv__label">{{ state.hashmapLabel || 'map' }}</div>
+      <div class="gv__hashmap-entries">
+        <div *ngFor="let entry of hashmapEntries()" class="gv__hashmap-entry">
+          <span class="gv__hashmap-key">{{ entry[0] }}</span>
+          <span class="gv__hashmap-arrow">→</span>
+          <span class="gv__hashmap-val">{{ entry[1] }}</span>
+        </div>
+        <div class="gv__empty" *ngIf="hashmapEntries().length === 0">empty</div>
+      </div>
+    </div>
+    <div class="gv__hashmap" *ngIf="state.hashmap2 !== undefined">
+      <div class="gv__label">{{ state.hashmap2Label || 'map 2' }}</div>
+      <div class="gv__hashmap-entries">
+        <div *ngFor="let entry of hashmap2Entries()" class="gv__hashmap-entry">
+          <span class="gv__hashmap-key">{{ entry[0] }}</span>
+          <span class="gv__hashmap-arrow">→</span>
+          <span class="gv__hashmap-val">{{ entry[1] }}</span>
+        </div>
+        <div class="gv__empty" *ngIf="hashmap2Entries().length === 0">empty</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stack / Queue -->
+  <div class="gv__stack" *ngIf="state.stackItems !== undefined">
+    <div class="gv__label">{{ state.stackLabel || 'stack' }}</div>
+    <div class="gv__stack-items">
+      <div *ngFor="let item of state.stackItems" class="gv__stack-item">{{ item }}</div>
+      <div class="gv__empty" *ngIf="state.stackItems.length === 0">empty</div>
+    </div>
+  </div>
+
+  <!-- Counters -->
+  <div class="gv__counters" *ngIf="state.counters?.length">
+    <div *ngFor="let c of state.counters" class="gv__counter">
+      <span class="gv__counter-label">{{ c.label }}</span>
+      <span class="gv__counter-value">{{ c.value }}</span>
+    </div>
+  </div>
+
+</div>

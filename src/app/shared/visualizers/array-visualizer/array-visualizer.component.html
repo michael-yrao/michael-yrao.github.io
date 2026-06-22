@@ -1,37 +1,56 @@
 <div class="av">
 
   <!-- Array cells -->
-  <div class="av__array">
-    <div
-      *ngFor="let cell of state.cells; let i = index"
-      class="av__cell-wrap"
-    >
-      <div class="av__pointer" [class.av__pointer--visible]="hasPointer(i)">
-        {{ pointerAt(i) }}
-      </div>
+  <div class="av__array-wrap">
+    <div class="av__label" *ngIf="state.arrayLabel">{{ state.arrayLabel }}</div>
+    <div class="av__array">
       <div
-        class="av__cell"
-        [ngClass]="'av__cell--' + cell.state"
+        *ngFor="let cell of state.cells; let i = index"
+        class="av__cell-wrap"
       >
-        {{ cell.value }}
+        <div class="av__pointer" [class.av__pointer--visible]="hasPointer(i)">
+          {{ pointerAt(i) }}
+        </div>
+        <div
+          class="av__cell"
+          [ngClass]="'av__cell--' + cell.state"
+        >
+          {{ cell.value }}
+        </div>
+        <div class="av__index">{{ i }}</div>
       </div>
-      <div class="av__index">{{ i }}</div>
     </div>
   </div>
 
   <!-- Hash map display -->
-  <div class="av__hashmap" *ngIf="state.hashmap !== undefined">
-    <div class="av__label">map</div>
-    <div class="av__hashmap-entries">
-      <div
-        *ngFor="let entry of hashmapEntries()"
-        class="av__hashmap-entry"
-      >
-        <span class="av__hashmap-key">{{ entry[0] }}</span>
-        <span class="av__hashmap-arrow">→</span>
-        <span class="av__hashmap-val">{{ entry[1] }}</span>
+  <div class="av__hashmaps" *ngIf="state.hashmap !== undefined">
+    <div class="av__hashmap">
+      <div class="av__label">{{ state.hashmapLabel || 'map' }}</div>
+      <div class="av__hashmap-entries">
+        <div
+          *ngFor="let entry of hashmapEntries()"
+          class="av__hashmap-entry"
+        >
+          <span class="av__hashmap-key">{{ entry[0] }}</span>
+          <span class="av__hashmap-arrow">→</span>
+          <span class="av__hashmap-val">{{ entry[1] }}</span>
+        </div>
+        <div class="av__hashmap-empty" *ngIf="hashmapEntries().length === 0">empty</div>
       </div>
-      <div class="av__hashmap-empty" *ngIf="hashmapEntries().length === 0">empty</div>
+    </div>
+    <div class="av__hashmap" *ngIf="state.hashmap2 !== undefined">
+      <div class="av__label">{{ state.hashmap2Label || 'map 2' }}</div>
+      <div class="av__hashmap-entries">
+        <div
+          *ngFor="let entry of hashmap2Entries()"
+          class="av__hashmap-entry"
+        >
+          <span class="av__hashmap-key">{{ entry[0] }}</span>
+          <span class="av__hashmap-arrow">→</span>
+          <span class="av__hashmap-val">{{ entry[1] }}</span>
+        </div>
+        <div class="av__hashmap-empty" *ngIf="hashmap2Entries().length === 0">empty</div>
+      </div>
     </div>
   </div>
 

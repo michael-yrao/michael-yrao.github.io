@@ -135,6 +135,8 @@ const kadaneSolution: SolutionVariant = {
   label: "Kadane's",
   pythonCode: PYTHON_CODE,
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 // ── Solution 2: Prefix Sum ────────────────────────────────────────────────────
@@ -309,6 +311,8 @@ const prefixSumSolution: SolutionVariant = {
   label: 'Prefix Sum',
   pythonCode: PYTHON_CODE_PREFIX,
   generateSteps: generatePrefixSumSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
 };
 
 export const maximumSubarrayMeta: AlgorithmMeta = {
