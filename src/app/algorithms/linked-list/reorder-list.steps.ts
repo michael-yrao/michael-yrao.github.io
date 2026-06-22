@@ -176,38 +176,87 @@ function generateSteps(): Step[] {
     ],
   });
 
-  // Simulate reversing [4, 5] → [5, 4]
   const reversedSecond = [...secondHalfVals].reverse(); // [5, 4]
 
-  steps.push({
-    explanation: `Reversing: 4→5 becomes 5→4. After reversal, prev points to the new head of the second half (node 5).`,
-    highlightLine: 31,
-    state: {
-      type: 'linked-list',
-      nodes: [
-        ...firstHalfVals.map((v, i) => ({
-          id: `n${i}`,
-          value: v,
-          nextId: i < firstHalfVals.length - 1 ? `n${i + 1}` : null,
-          state: 'default' as const,
-        })),
-        ...reversedSecond.map((v, i) => ({
-          id: `r${i}`,
-          value: v,
-          nextId: i < reversedSecond.length - 1 ? `r${i + 1}` : null,
-          state: i === 0 ? ('active' as const) : ('default' as const),
-        })),
-      ],
-      pointers: [
-        { nodeId: 'n0', label: 'head (firstHalf)' },
-        { nodeId: 'r0', label: 'prev (secondHalf)' },
-      ],
-    },
-    variables: [
-      { name: 'firstHalf', value: firstHalfVals.join('→') },
-      { name: 'secondHalf', value: reversedSecond.join('→'), highlight: true },
-    ],
+  // Reverse the second half in-place, ONE step per iteration of the while loop
+  // (temp = current.next; current.next = prev; prev = current; current = temp).
+  const shIds = secondHalfVals.map((_, i) => `s${i}`); // s0=4, s1=5
+  const shVal: Record<string, number> = {};
+  const shNext: Record<string, string | null> = {};
+  secondHalfVals.forEach((v, i) => {
+    shVal[shIds[i]] = v;
+    shNext[shIds[i]] = i < shIds.length - 1 ? shIds[i + 1] : null;
   });
+
+  const firstHalfNodes = () =>
+    firstHalfVals.map((v, i) => ({
+      id: `n${i}`,
+      value: v,
+      nextId: i < firstHalfVals.length - 1 ? `n${i + 1}` : null,
+      state: 'default' as const,
+    }));
+
+  // Render second-half nodes following the current (possibly reversed) pointers:
+  // the already-reversed chain hanging off `prevId`, then the untouched remainder from `curId`.
+  const renderReverse = (prevId: string | null, curId: string | null): LinkedListNode[] => {
+    const order: string[] = [];
+    for (let p = prevId; p; p = shNext[p]) order.push(p);
+    for (let c = curId; c; c = shNext[c]) order.push(c);
+    return order.map((id) => ({
+      id,
+      value: shVal[id],
+      nextId: shNext[id],
+      state: id === curId ? ('curr' as const) : id === prevId ? ('active' as const) : ('done' as const),
+    }));
+  };
+
+  {
+    let prevId: string | null = null;
+    let curId: string | null = shIds[0];
+    let it = 0;
+    while (curId) {
+      it++;
+      const temp: string | null = shNext[curId];
+      shNext[curId] = prevId; // reverse this node's pointer
+      const curVal = shVal[curId];
+      steps.push({
+        explanation: `Reverse iteration ${it}: temp = current.next = ${temp ? shVal[temp] : 'null'}. Point current (${curVal}).next back to prev (${prevId ? shVal[prevId] : 'None'}). Then advance: prev → ${curVal}, current → ${temp ? shVal[temp] : 'null'}.`,
+        highlightLine: 31,
+        state: {
+          type: 'linked-list',
+          nodes: [...firstHalfNodes(), ...renderReverse(curId, temp)],
+          pointers: [
+            { nodeId: curId, label: 'prev (new head)' },
+            { nodeId: temp, label: 'current' },
+          ],
+        },
+        variables: [
+          { name: 'current', value: curVal, highlight: true },
+          { name: 'prev', value: prevId ? shVal[prevId] : 'None' },
+          { name: 'temp', value: temp ? shVal[temp] : 'null' },
+        ],
+      });
+      prevId = curId;
+      curId = temp;
+    }
+
+    steps.push({
+      explanation: `current is null — reversal done. prev (node ${shVal[prevId!]}) is the new head of the second half: [${reversedSecond.join('→')}].`,
+      highlightLine: 31,
+      state: {
+        type: 'linked-list',
+        nodes: [...firstHalfNodes(), ...renderReverse(prevId, null)],
+        pointers: [
+          { nodeId: 'n0', label: 'head (firstHalf)' },
+          { nodeId: prevId, label: 'prev (secondHalf)' },
+        ],
+      },
+      variables: [
+        { name: 'firstHalf', value: firstHalfVals.join('→') },
+        { name: 'secondHalf', value: reversedSecond.join('→'), highlight: true },
+      ],
+    });
+  }
 
   // ── Phase 3: Interleave Merge ──────────────────────────────────────────────
   steps.push({

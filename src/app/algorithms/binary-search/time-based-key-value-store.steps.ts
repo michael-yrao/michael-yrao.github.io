@@ -185,7 +185,30 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation:
-      'l=0, r=1, mid=0. timestamps[0]=1. 1 <= 5? YES → l=mid+1=1. Now l=1, r=1, mid=1. timestamps[1]=4. 4 <= 5? YES → l=mid+1=2. Loop ends (l > r). Last valid was index 1 → timestamps[1]=4, value="bar2". Return "bar2".',
+      'l=0, r=1, mid=(0+1)//2=0. timestamps[mid=0]=1. Is 1 <= 5? YES — valid candidate. We want the largest valid ts, so set l=mid+1=1 to look right.',
+    highlightLine: 10,
+    state: {
+      type: 'array',
+      cells: [
+        { value: 1, state: 'active' as const },
+        { value: 4, state: 'window' as const },
+      ],
+      pointers: [
+        { index: 0, label: 'mid' },
+        { index: 1, label: 'r' },
+      ],
+      hashmap: { 'foo[ts=1]': '"bar"', 'foo[ts=4]': '"bar2"' },
+      counters: [
+        { label: 'mid ts', value: 1 },
+        { label: '1 <= 5?', value: 'YES → l = mid+1 = 1' },
+        { label: 'query timestamp', value: 5 },
+      ],
+    } as ArrayState,
+  });
+
+  steps.push({
+    explanation:
+      'l=1, r=1, mid=1. timestamps[mid=1]=4. Is 4 <= 5? YES — also valid, and larger. Set l=mid+1=2. Loop ends (l > r). The last valid position was index 1 → timestamps[1]=4, value="bar2". Return "bar2".',
     highlightLine: 10,
     state: {
       type: 'array',
@@ -196,10 +219,9 @@ function generateSteps(): Step[] {
       pointers: [{ index: 1, label: 'result (ts=4)' }],
       hashmap: { 'foo[ts=1]': '"bar"', 'foo[ts=4]': '"bar2"' },
       counters: [
-        { label: 'operation', value: 'get("foo", 5)' },
-        { label: 'query timestamp', value: 5 },
-        { label: 'ts[0]=1 <= 5?', value: 'YES → keep, go right' },
-        { label: 'ts[1]=4 <= 5?', value: 'YES → keep, go right' },
+        { label: 'mid ts', value: 4 },
+        { label: '4 <= 5?', value: 'YES → keep, go right' },
+        { label: 'result ts', value: 4 },
         { label: 'return', value: '"bar2"' },
       ],
     } as ArrayState,
