@@ -153,10 +153,123 @@ function generateSteps(): Step[] {
   return steps;
 }
 
+// ── Solution: Frequency Map (intuitive O(n) space) ───────────────────────────
+
+const PYTHON_CODE_FREQ = `class Solution:
+    def majorityElement(self, nums: List[int]) -> List[int]:
+        # all return keys must have size bigger than minSize
+        # double / for int, single / for float
+        minSize = len(nums)//3
+
+        # map of n -> freq(n)
+        freqMap = defaultdict(int)
+
+        for n in nums:
+            freqMap[n] += 1
+
+        returnList = []
+
+        for key, value in freqMap.items():
+            if value > minSize:
+                returnList.append(key)
+
+        return returnList`;
+
+function generateStepsFreq(): Step[] {
+  const nums = [1, 1, 1, 3, 3, 2, 2, 2];
+  const minSize = Math.floor(nums.length / 3);
+  const steps: Step[] = [];
+  const freq: Record<number, number> = {};
+
+  steps.push({
+    explanation: `Frequency-map approach (the intuitive one). minSize = len(nums)//3 = ${nums.length}//3 = ${minSize}. Count every value, then return those appearing MORE than minSize times. Uses a full map — O(n) space — vs Boyer-Moore's O(1).`,
+    highlightLine: 5,
+    state: {
+      type: 'array',
+      cells: nums.map((v) => ({ value: v, state: 'default' as const })),
+      pointers: [],
+      hashmap: {},
+      hashmapLabel: 'freqMap',
+      counters: [{ label: 'minSize (n/3)', value: minSize }],
+    },
+    variables: [{ name: 'minSize', value: minSize }],
+  });
+
+  for (let i = 0; i < nums.length; i++) {
+    freq[nums[i]] = (freq[nums[i]] || 0) + 1;
+    steps.push({
+      explanation: `i=${i}: freqMap[${nums[i]}] → ${freq[nums[i]]}.`,
+      highlightLine: 11,
+      state: {
+        type: 'array',
+        cells: nums.map((v, j) => ({ value: v, state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const) })),
+        pointers: [{ index: i, label: 'i' }],
+        hashmap: { ...freq },
+        hashmapLabel: 'freqMap',
+        counters: [{ label: 'minSize (n/3)', value: minSize }],
+      },
+      variables: [
+        { name: 'i', value: i },
+        { name: `freqMap[${nums[i]}]`, value: freq[nums[i]], highlight: true },
+      ],
+    });
+  }
+
+  const result: number[] = [];
+  for (const k of Object.keys(freq).map(Number)) {
+    const v = freq[k];
+    const pass = v > minSize;
+    if (pass) result.push(k);
+    steps.push({
+      explanation: `Check key ${k}: count = ${v}. ${pass ? `${v} > ${minSize} → include ${k} in the result.` : `${v} ≤ ${minSize} → exclude.`}`,
+      highlightLine: 16,
+      state: {
+        type: 'array',
+        cells: nums.map((x) => ({ value: x, state: x === k ? (pass ? ('found' as const) : ('eliminated' as const)) : ('visited' as const) })),
+        pointers: [],
+        hashmap: { ...freq },
+        hashmapLabel: 'freqMap',
+        counters: [{ label: 'minSize (n/3)', value: minSize }],
+      },
+      variables: [
+        { name: 'key', value: k, highlight: true },
+        { name: 'count', value: v },
+        { name: `> ${minSize}?`, value: pass ? 'yes' : 'no', highlight: pass },
+      ],
+    });
+  }
+
+  steps.push({
+    explanation: `Done. Keys with count > ${minSize}: [${result.join(', ')}]. Return them. O(n) time and O(n) space — the Boyer-Moore variant gets this down to O(1) space.`,
+    highlightLine: 19,
+    state: {
+      type: 'array',
+      cells: nums.map((v) => ({ value: v, state: result.includes(v) ? ('found' as const) : ('eliminated' as const) })),
+      pointers: [],
+      hashmap: { ...freq },
+      hashmapLabel: 'freqMap',
+      counters: [{ label: 'minSize (n/3)', value: minSize }],
+    },
+    variables: [{ name: 'return', value: `[${result.join(', ')}]`, highlight: true }],
+  });
+
+  return steps;
+}
+
+const freqSolution: SolutionVariant = {
+  label: 'Frequency Map',
+  pythonCode: PYTHON_CODE_FREQ,
+  generateSteps: generateStepsFreq,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
+};
+
 const solution: SolutionVariant = {
   label: 'Extended Boyer-Moore',
   pythonCode: PYTHON_CODE,
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const majorityElementIIMeta: AlgorithmMeta = {
@@ -185,5 +298,5 @@ export const majorityElementIIMeta: AlgorithmMeta = {
     '-10⁹ ≤ nums[i] ≤ 10⁹',
   ],
   hint: 'Extension of Boyer-Moore: at most 2 elements can exceed n/3. Keep a map of at most 2 candidates. When a 3rd distinct value appears, decrement all counts and evict zeros — this "cancels" one occurrence of each candidate against the new value. After the scan, do a verification pass to confirm real counts exceed n/3.',
-  solutions: [solution],
+  solutions: [freqSolution, solution],
 };

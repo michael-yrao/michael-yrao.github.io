@@ -196,13 +196,104 @@ const solution: SolutionVariant = {
   generateSteps,
 };
 
+// ── Solution 2: HashMap (endpoint run-length merge) ───────────────────────────
+
+const PYTHON_CODE_MAP = `class Solution:
+    def longestConsecutive(self, nums: List[int]) -> int:
+        numSet = set(nums)
+        numMap = {}
+        longest = 0
+
+        for n in numSet:
+            # numMap[n-1] = length ending at n-1
+            leftSequenceLength = numMap.get(n-1,0)
+            # numMap[n+1] = length starting at n+1
+            rightSequenceLength = numMap.get(n+1,0)
+            # Add left sequence length, right sequence length and 1 for current value to get current sequence length
+            numMap[n] = leftSequenceLength + rightSequenceLength + 1
+            # set starting left sequence to new value
+            numMap[n-leftSequenceLength] = numMap[n]
+            # set ending right sequence to new value
+            numMap[n+rightSequenceLength] = numMap[n]
+            longest = max(longest, numMap[n])
+
+        return longest`;
+
+function generateStepsMap(): Step[] {
+  const nums = [100, 4, 200, 1, 3, 2];
+  const order = [...new Set(nums)];
+  const steps: Step[] = [];
+  const numMap: Record<number, number> = {};
+  let longest = 0;
+
+  const snap = (active: number | null) => ({
+    type: 'array' as const,
+    cells: nums.map((v) => ({
+      value: v,
+      state: v === active ? ('active' as const) : numMap[v] !== undefined ? ('visited' as const) : ('default' as const),
+    })),
+    pointers: active !== null ? [{ index: nums.indexOf(active), label: 'n' }] : [],
+    hashmap: { ...numMap } as Record<string | number, number>,
+    hashmapLabel: 'numMap',
+    counters: [{ label: 'longest', value: longest }],
+  });
+
+  steps.push({
+    explanation:
+      "HashMap approach: numMap[x] stores the length of the consecutive run that has x as an ENDPOINT. For each value, glue its left run (ending at n−1) to its right run (starting at n+1), then write the merged length onto the two OUTER endpoints. O(n) — no per-run scanning.",
+    highlightLine: 3,
+    state: snap(null),
+    variables: [
+      { name: 'numSet', value: `{${order.join(', ')}}` },
+      { name: 'longest', value: 0 },
+    ],
+  });
+
+  for (const n of order) {
+    const left = numMap[n - 1] || 0;
+    const right = numMap[n + 1] || 0;
+    const total = left + right + 1;
+    numMap[n] = total;
+    numMap[n - left] = total;
+    numMap[n + right] = total;
+    longest = Math.max(longest, total);
+    steps.push({
+      explanation: `n=${n}: left run ending at ${n - 1} = ${left}, right run starting at ${n + 1} = ${right}. Merge → numMap[${n}] = ${left}+${right}+1 = ${total}. Stamp that length onto the outer endpoints numMap[${n - left}] and numMap[${n + right}]. longest = ${longest}.`,
+      highlightLine: 13,
+      state: snap(n),
+      variables: [
+        { name: 'n', value: n, highlight: true },
+        { name: 'left', value: left },
+        { name: 'right', value: right },
+        { name: 'numMap[n]', value: total, highlight: true },
+        { name: 'longest', value: longest, highlight: longest === total },
+      ],
+    });
+  }
+
+  steps.push({
+    explanation: `All values processed. The longest run is ${longest} — the 1–2–3–4 chain, assembled as 3 glued 2 (right run) and 2 glued 1 (left run). Return ${longest}.`,
+    highlightLine: 20,
+    state: snap(null),
+    variables: [{ name: 'return', value: longest, highlight: true }],
+  });
+
+  return steps;
+}
+
+const mapSolution: SolutionVariant = {
+  label: 'HashMap (endpoint merge)',
+  pythonCode: PYTHON_CODE_MAP,
+  generateSteps: generateStepsMap,
+};
+
 export const longestConsecutiveSequenceMeta: AlgorithmMeta = {
   id: 'longest-consecutive-sequence',
   lcNumber: 128,
   title: 'Longest Consecutive Sequence',
   difficulty: 'Medium',
   category: 'arrays-hash',
-  tags: ['Array', 'Hash Set'],
+  tags: ['Array', 'Hash Set', 'Hash Map'],
   timeComplexity: 'O(n)',
   spaceComplexity: 'O(n)',
   description:
@@ -223,5 +314,5 @@ export const longestConsecutiveSequenceMeta: AlgorithmMeta = {
     '-10⁹ ≤ nums[i] ≤ 10⁹',
   ],
   hint: 'Put all numbers in a set for O(1) lookup. A number starts a sequence only if num-1 is not in the set. From each start, count forward while consecutive numbers exist. This ensures the inner while-loop runs O(n) total across all outer iterations.',
-  solutions: [solution],
+  solutions: [solution, mapSolution],
 };
