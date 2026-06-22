@@ -189,7 +189,7 @@ export const maxAreaOfIslandMeta: AlgorithmMeta = {
   title: 'Max Area of Island',
   difficulty: 'Medium',
   category: 'graphs',
-  tags: ['BFS', 'DFS', 'Graph', 'Matrix'],
+  tags: ['BFS', 'DFS', 'Matrix'],
   timeComplexity: 'O(m × n)',
   spaceComplexity: 'O(m × n)',
   description:

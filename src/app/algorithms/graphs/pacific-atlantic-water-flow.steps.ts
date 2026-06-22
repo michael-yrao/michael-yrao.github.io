@@ -255,7 +255,7 @@ export const pacificAtlanticWaterFlowMeta: AlgorithmMeta = {
   title: 'Pacific Atlantic Water Flow',
   difficulty: 'Medium',
   category: 'graphs',
-  tags: ['DFS', 'BFS', 'Graph', 'Matrix'],
+  tags: ['DFS', 'BFS', 'Matrix'],
   timeComplexity: 'O(m × n)',
   spaceComplexity: 'O(m × n)',
   description:

@@ -183,7 +183,7 @@ export const cloneGraphMeta: AlgorithmMeta = {
   title: 'Clone Graph',
   difficulty: 'Medium',
   category: 'graphs',
-  tags: ['DFS', 'BFS', 'Graph', 'Hash Map'],
+  tags: ['DFS', 'BFS', 'Hash Map'],
   timeComplexity: 'O(V+E)',
   spaceComplexity: 'O(V)',
   description:

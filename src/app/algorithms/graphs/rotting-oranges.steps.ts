@@ -194,7 +194,7 @@ export const rottingOrangesMeta: AlgorithmMeta = {
   title: 'Rotting Oranges',
   difficulty: 'Medium',
   category: 'graphs',
-  tags: ['BFS', 'Graph', 'Matrix'],
+  tags: ['BFS', 'Matrix'],
   timeComplexity: 'O(m × n)',
   spaceComplexity: 'O(m × n)',
   description:

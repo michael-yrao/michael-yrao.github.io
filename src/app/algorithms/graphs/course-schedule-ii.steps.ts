@@ -355,7 +355,7 @@ export const courseScheduleIIMeta: AlgorithmMeta = {
   title: 'Course Schedule II',
   difficulty: 'Medium',
   category: 'graphs',
-  tags: ['BFS', 'Topological Sort', 'Graph', 'Cycle Detection'],
+  tags: ['Topological Sort', 'BFS', 'Cycle Detection'],
   timeComplexity: 'O(V+E)',
   spaceComplexity: 'O(V+E)',
   description:
