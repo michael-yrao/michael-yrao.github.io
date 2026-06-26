@@ -10,6 +10,7 @@ export type Category =
   | 'graphs'
   | 'stack'
   | 'greedy'
+  | 'heap'
   | 'dynamic-programming';
 
 export type CellState = 'default' | 'active' | 'visited' | 'found' | 'eliminated' | 'window' | 'min-ptr' | 'max-ptr';
@@ -162,6 +163,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   'graphs': 'Graphs',
   'stack': 'Stack',
   'greedy': 'Greedy',
+  'heap': 'Heap / Priority Queue',
   'dynamic-programming': 'Dynamic Programming',
 };
 
@@ -175,5 +177,6 @@ export const CATEGORY_ICONS: Record<Category, string> = {
   'graphs': '⬡',
   'stack': '⬒',
   'greedy': '⚡',
+  'heap': '△',
   'dynamic-programming': '⊞',
 };

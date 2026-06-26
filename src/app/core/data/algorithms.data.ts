@@ -63,7 +63,6 @@ import { bestTimeBuySellStockIiMeta } from '../../algorithms/arrays-hash/best-ti
 import { capacityToShipPackagesMeta } from '../../algorithms/binary-search/capacity-to-ship-packages.steps';
 import { validSudokuMeta } from '../../algorithms/arrays-hash/valid-sudoku.steps';
 import { sortAnArrayMeta } from '../../algorithms/arrays-hash/sort-an-array.steps';
-import { timeBasedKeyValueStoreMeta } from '../../algorithms/binary-search/time-based-key-value-store.steps';
 import { successfulPairsSpellsPotionsMeta } from '../../algorithms/binary-search/successful-pairs-spells-potions.steps';
 import { invertBinaryTreeMeta } from '../../algorithms/trees/invert-binary-tree.steps';
 import { maximumDepthBinaryTreeMeta } from '../../algorithms/trees/maximum-depth-binary-tree.steps';
@@ -76,6 +75,9 @@ import { lowestCommonAncestorBstMeta } from '../../algorithms/trees/lowest-commo
 import { validateBstMeta } from '../../algorithms/trees/validate-bst.steps';
 import { countGoodNodesMeta } from '../../algorithms/trees/count-good-nodes.steps';
 import { binaryTreeRightSideViewMeta } from '../../algorithms/trees/binary-tree-right-side-view.steps';
+import { lastStoneWeightMeta } from '../../algorithms/heap/last-stone-weight.steps';
+import { kClosestPointsMeta } from '../../algorithms/heap/k-closest-points-to-origin.steps';
+import { kthLargestInStreamMeta } from '../../algorithms/heap/kth-largest-element-in-stream.steps';
 
 const stub = (
   id: string,
@@ -154,7 +156,6 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   singleElementSortedArrayMeta,
   kokoEatingBananasMeta,
   capacityToShipPackagesMeta,
-  timeBasedKeyValueStoreMeta,
   successfulPairsSpellsPotionsMeta,
 
   // ── Linked List ───────────────────────────────────────────────────────────
@@ -199,6 +200,11 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
 
   // ── Dynamic Programming ───────────────────────────────────────────────────
   validPalindromeIIIMeta,
+
+  // ── Heap / Priority Queue ─────────────────────────────────────────────────
+  lastStoneWeightMeta,
+  kthLargestInStreamMeta,
+  kClosestPointsMeta,
 ];
 
 export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
@@ -211,6 +217,7 @@ export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
   'graphs': ALL_ALGORITHMS.filter((a) => a.category === 'graphs'),
   'stack': ALL_ALGORITHMS.filter((a) => a.category === 'stack'),
   'greedy': ALL_ALGORITHMS.filter((a) => a.category === 'greedy'),
+  'heap': ALL_ALGORITHMS.filter((a) => a.category === 'heap'),
   'dynamic-programming': ALL_ALGORITHMS.filter((a) => a.category === 'dynamic-programming'),
 };
 
