@@ -78,6 +78,8 @@ import { binaryTreeRightSideViewMeta } from '../../algorithms/trees/binary-tree-
 import { lastStoneWeightMeta } from '../../algorithms/heap/last-stone-weight.steps';
 import { kClosestPointsMeta } from '../../algorithms/heap/k-closest-points-to-origin.steps';
 import { kthLargestInStreamMeta } from '../../algorithms/heap/kth-largest-element-in-stream.steps';
+import { designTwitterMeta } from '../../algorithms/heap/design-twitter.steps';
+import { subarraySumEqualsKMeta } from '../../algorithms/arrays-hash/subarray-sum-equals-k.steps';
 
 const stub = (
   id: string,
@@ -124,6 +126,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   validSudokuMeta,
   sortAnArrayMeta,
   longestConsecutiveSequenceMeta,
+  subarraySumEqualsKMeta,
   containerWithMostWaterMeta,
 
   // ── Two Pointers ──────────────────────────────────────────────────────────
@@ -205,6 +208,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   lastStoneWeightMeta,
   kthLargestInStreamMeta,
   kClosestPointsMeta,
+  designTwitterMeta,
 ];
 
 export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
