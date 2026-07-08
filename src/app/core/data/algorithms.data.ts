@@ -83,6 +83,7 @@ import { subarraySumEqualsKMeta } from '../../algorithms/arrays-hash/subarray-su
 import { encodeAndDecodeStringsMeta } from '../../algorithms/arrays-hash/encode-and-decode-strings.steps';
 import { addTwoNumbersMeta } from '../../algorithms/linked-list/add-two-numbers.steps';
 import { nextGreaterElementIMeta } from '../../algorithms/stack/next-greater-element-i.steps';
+import { implementTrieMeta } from '../../algorithms/trie/implement-trie.steps';
 
 const stub = (
   id: string,
@@ -215,6 +216,9 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   kthLargestInStreamMeta,
   kClosestPointsMeta,
   designTwitterMeta,
+
+  // ── Trie / Prefix Tree ────────────────────────────────────────────────────
+  implementTrieMeta,
 ];
 
 export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
@@ -228,6 +232,7 @@ export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
   'stack': ALL_ALGORITHMS.filter((a) => a.category === 'stack'),
   'greedy': ALL_ALGORITHMS.filter((a) => a.category === 'greedy'),
   'heap': ALL_ALGORITHMS.filter((a) => a.category === 'heap'),
+  'trie': ALL_ALGORITHMS.filter((a) => a.category === 'trie'),
   'dynamic-programming': ALL_ALGORITHMS.filter((a) => a.category === 'dynamic-programming'),
 };
 

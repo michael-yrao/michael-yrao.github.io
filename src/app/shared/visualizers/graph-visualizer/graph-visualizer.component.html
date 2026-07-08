@@ -17,7 +17,7 @@
       [attr.transform]="'translate(' + node.x + ',' + node.y + ')'"
     >
       <circle [attr.r]="NODE_R" [ngClass]="'gv__node gv__node--' + node.state" />
-      <text class="gv__node-label" dy="0.35em">{{ node.id }}</text>
+      <text class="gv__node-label" dy="0.35em">{{ node.label ?? node.id }}</text>
     </g>
   </svg>
 

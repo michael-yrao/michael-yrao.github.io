@@ -11,6 +11,7 @@ export type Category =
   | 'stack'
   | 'greedy'
   | 'heap'
+  | 'trie'
   | 'dynamic-programming';
 
 export type CellState = 'default' | 'active' | 'visited' | 'found' | 'eliminated' | 'window' | 'min-ptr' | 'max-ptr';
@@ -86,6 +87,9 @@ export interface GraphNode {
   x: number;
   y: number;
   state: GraphNodeState;
+  /** Text drawn inside the node. Falls back to `id` when omitted. Lets nodes
+   *  display a value distinct from their unique id (e.g. repeated trie chars). */
+  label?: string;
 }
 
 export interface GraphEdge {
@@ -164,6 +168,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   'stack': 'Stack',
   'greedy': 'Greedy',
   'heap': 'Heap / Priority Queue',
+  'trie': 'Trie / Prefix Tree',
   'dynamic-programming': 'Dynamic Programming',
 };
 
@@ -178,5 +183,6 @@ export const CATEGORY_ICONS: Record<Category, string> = {
   'stack': '⬒',
   'greedy': '⚡',
   'heap': '△',
+  'trie': '⋔',
   'dynamic-programming': '⊞',
 };
