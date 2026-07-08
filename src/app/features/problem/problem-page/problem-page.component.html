@@ -148,19 +148,6 @@
             [stepIndex]="currentStepIndex"
           ></app-explanation-card>
 
-          <!-- Variable watch -->
-          <div class="var-watch" *ngIf="currentStep?.variables?.length">
-            <span
-              *ngFor="let v of currentStep!.variables"
-              class="var-watch__item"
-              [class.var-watch__item--hl]="v.highlight"
-            >
-              <span class="var-watch__name">{{ v.name }}</span>
-              <span class="var-watch__sep">=</span>
-              <span class="var-watch__val">{{ v.value }}</span>
-            </span>
-          </div>
-
           <div class="viz-canvas">
             <app-array-visualizer
               *ngIf="isArrayState"
@@ -188,12 +175,29 @@
             ></app-graph-visualizer>
           </div>
 
-          <app-step-controls
-            [currentStep]="currentStepIndex"
-            [totalSteps]="steps.length"
-            (stepChange)="onStepChange($event)"
-            (reset)="onReset()"
-          ></app-step-controls>
+          <!-- Footer dock: outer-scope variables sit directly above the controls.
+               Local per-step state (pointers, counters, maps) lives inside the canvas above. -->
+          <div class="viz-footer">
+            <div class="var-watch" *ngIf="currentStep?.variables?.length">
+              <span class="var-watch__label">Variables</span>
+              <span
+                *ngFor="let v of currentStep!.variables"
+                class="var-watch__item"
+                [class.var-watch__item--hl]="v.highlight"
+              >
+                <span class="var-watch__name">{{ v.name }}</span>
+                <span class="var-watch__sep">=</span>
+                <span class="var-watch__val">{{ v.value }}</span>
+              </span>
+            </div>
+
+            <app-step-controls
+              [currentStep]="currentStepIndex"
+              [totalSteps]="steps.length"
+              (stepChange)="onStepChange($event)"
+              (reset)="onReset()"
+            ></app-step-controls>
+          </div>
         </ng-container>
       </section>
 

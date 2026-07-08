@@ -405,10 +405,18 @@
   p { margin: 0; color: var(--color-text-muted); font-size: 0.9rem; }
 }
 
+// ── Viz footer dock (variables + controls, grouped above play bar) ────────
+.viz-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
 // ── Variable watch ────────────────────────────────────────────
 .var-watch {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
   padding: var(--space-sm) var(--space-md);
   background: var(--color-bg-raised);
@@ -416,6 +424,17 @@
   border-radius: var(--radius-md);
   font-family: var(--font-mono);
   font-size: 0.76rem;
+
+  &__label {
+    font-family: var(--font-sans, inherit);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-right: var(--space-xs);
+    align-self: center;
+  }
 
   &__item {
     display: inline-flex;
