@@ -181,17 +181,17 @@
             ></app-graph-visualizer>
             </div>
             <!-- end .viz-canvas -->
-
-            <!-- 'Why this step?' — toggled by the ? button, floats over the canvas
-                 so it never pushes layout or gets cut off. -->
-            <div class="viz-why" *ngIf="showWhy">
-              <app-explanation-card
-                [explanation]="currentStep?.explanation || ''"
-                [stepIndex]="currentStepIndex"
-              ></app-explanation-card>
-            </div>
           </div>
           <!-- end .viz-stage -->
+
+          <!-- 'Why this step?' — toggled by the ? button; sits in normal flow
+               below the canvas so it reserves space instead of covering the viz. -->
+          <div class="viz-why" *ngIf="showWhy">
+            <app-explanation-card
+              [explanation]="currentStep?.explanation || ''"
+              [stepIndex]="currentStepIndex"
+            ></app-explanation-card>
+          </div>
 
           <!-- Footer dock: step controls + outer-scope variables -->
           <div class="viz-footer">
