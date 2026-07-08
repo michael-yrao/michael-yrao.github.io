@@ -80,6 +80,9 @@ import { kClosestPointsMeta } from '../../algorithms/heap/k-closest-points-to-or
 import { kthLargestInStreamMeta } from '../../algorithms/heap/kth-largest-element-in-stream.steps';
 import { designTwitterMeta } from '../../algorithms/heap/design-twitter.steps';
 import { subarraySumEqualsKMeta } from '../../algorithms/arrays-hash/subarray-sum-equals-k.steps';
+import { encodeAndDecodeStringsMeta } from '../../algorithms/arrays-hash/encode-and-decode-strings.steps';
+import { addTwoNumbersMeta } from '../../algorithms/linked-list/add-two-numbers.steps';
+import { nextGreaterElementIMeta } from '../../algorithms/stack/next-greater-element-i.steps';
 
 const stub = (
   id: string,
@@ -127,6 +130,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   sortAnArrayMeta,
   longestConsecutiveSequenceMeta,
   subarraySumEqualsKMeta,
+  encodeAndDecodeStringsMeta,
   containerWithMostWaterMeta,
 
   // ── Two Pointers ──────────────────────────────────────────────────────────
@@ -167,6 +171,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   mergeTwoSortedListsMeta,
   removeNthFromEndMeta,
   reorderListMeta,
+  addTwoNumbersMeta,
 
   // ── Trees ─────────────────────────────────────────────────────────────────
   invertBinaryTreeMeta,
@@ -197,6 +202,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
 
   // ── Stack ─────────────────────────────────────────────────────────────────
   validParenthesesMeta,
+  nextGreaterElementIMeta,
 
   // ── Greedy ────────────────────────────────────────────────────────────────
   maximumSubarrayMeta,
