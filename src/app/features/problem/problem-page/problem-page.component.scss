@@ -178,21 +178,6 @@
   }
 }
 
-// ── All-panels-hidden fallback ────────────────────────────────
-.all-hidden {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-2xl);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-lg);
-  text-align: center;
-
-  p { margin: 0; color: var(--color-text-muted); font-size: 0.9rem; }
-}
-
-
 // ── Sticky sentinel (0-height, triggers is-stuck class) ───────
 .sticky-sentinel {
   height: 0;
@@ -261,9 +246,54 @@
   color: var(--color-text-muted);
 }
 
+// ── Viz stage: canvas + floating "?" explanation ──
+.viz-stage { position: relative; }
+
 .viz-canvas {
   border-radius: var(--radius-lg);
   overflow: hidden;
+}
+
+.viz-help-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 6;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  &.active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-bg);
+  }
+}
+
+.viz-why {
+  position: absolute;
+  top: 46px;
+  right: 10px;
+  width: min(360px, calc(100% - 20px)); // collapses to 100%-20px when narrow
+  max-height: calc(100% - 60px);
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  ::ng-deep .explanation { margin-bottom: 0; }
 }
 
 // ── Problem description ───────────────────────────────────────

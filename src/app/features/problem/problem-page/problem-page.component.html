@@ -143,7 +143,18 @@
         </div>
 
         <ng-container *ngIf="started">
-          <div class="viz-canvas">
+          <div class="viz-stage">
+            <button
+              type="button"
+              class="viz-help-btn"
+              [class.active]="showWhy"
+              [attr.aria-pressed]="showWhy"
+              (click)="toggleWhy()"
+              title="{{ showWhy ? 'Hide' : 'Show' }} the 'Why this step?' explanation"
+              aria-label="Toggle explanation"
+            >?</button>
+
+            <div class="viz-canvas">
             <app-array-visualizer
               *ngIf="isArrayState"
               [state]="$any(currentState)"
@@ -168,10 +179,21 @@
               *ngIf="isGraphState"
               [state]="$any(currentState)"
             ></app-graph-visualizer>
-          </div>
+            </div>
+            <!-- end .viz-canvas -->
 
-          <!-- Footer dock: outer-scope variables sit directly above the controls.
-               Local per-step state (pointers, counters, maps) lives inside the canvas above. -->
+            <!-- 'Why this step?' — toggled by the ? button, floats over the canvas
+                 so it never pushes layout or gets cut off. -->
+            <div class="viz-why" *ngIf="showWhy">
+              <app-explanation-card
+                [explanation]="currentStep?.explanation || ''"
+                [stepIndex]="currentStepIndex"
+              ></app-explanation-card>
+            </div>
+          </div>
+          <!-- end .viz-stage -->
+
+          <!-- Footer dock: step controls + outer-scope variables -->
           <div class="viz-footer">
             <div class="var-watch" *ngIf="currentStep?.variables?.length">
               <span class="var-watch__label">Variables</span>
@@ -192,12 +214,6 @@
               (stepChange)="onStepChange($event)"
               (reset)="onReset()"
             ></app-step-controls>
-
-            <!-- 'Why this step?' explanation sits below the step controls -->
-            <app-explanation-card
-              [explanation]="currentStep?.explanation || ''"
-              [stepIndex]="currentStepIndex"
-            ></app-explanation-card>
           </div>
         </ng-container>
       </section>
