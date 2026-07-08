@@ -143,11 +143,6 @@
         </div>
 
         <ng-container *ngIf="started">
-          <app-explanation-card
-            [explanation]="currentStep?.explanation || ''"
-            [stepIndex]="currentStepIndex"
-          ></app-explanation-card>
-
           <div class="viz-canvas">
             <app-array-visualizer
               *ngIf="isArrayState"
@@ -197,6 +192,12 @@
               (stepChange)="onStepChange($event)"
               (reset)="onReset()"
             ></app-step-controls>
+
+            <!-- 'Why this step?' explanation sits below the step controls -->
+            <app-explanation-card
+              [explanation]="currentStep?.explanation || ''"
+              [stepIndex]="currentStepIndex"
+            ></app-explanation-card>
           </div>
         </ng-container>
       </section>
