@@ -85,6 +85,8 @@ import { addTwoNumbersMeta } from '../../algorithms/linked-list/add-two-numbers.
 import { nextGreaterElementIMeta } from '../../algorithms/stack/next-greater-element-i.steps';
 import { implementTrieMeta } from '../../algorithms/trie/implement-trie.steps';
 import { onlineStockSpanMeta } from '../../algorithms/stack/online-stock-span.steps';
+import { copyListWithRandomPointerMeta } from '../../algorithms/linked-list/copy-list-with-random-pointer.steps';
+import { constructTreePreorderInorderMeta } from '../../algorithms/trees/construct-tree-preorder-inorder.steps';
 
 const stub = (
   id: string,
@@ -174,6 +176,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   removeNthFromEndMeta,
   reorderListMeta,
   addTwoNumbersMeta,
+  copyListWithRandomPointerMeta,
 
   // ── Trees ─────────────────────────────────────────────────────────────────
   invertBinaryTreeMeta,
@@ -187,6 +190,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   validateBstMeta,
   countGoodNodesMeta,
   binaryTreeRightSideViewMeta,
+  constructTreePreorderInorderMeta,
 
   // ── Graphs ────────────────────────────────────────────────────────────────
   numberOfIslandsMeta,
