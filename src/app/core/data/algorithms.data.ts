@@ -90,6 +90,11 @@ import { constructTreePreorderInorderMeta } from '../../algorithms/trees/constru
 import { taskSchedulerMeta } from '../../algorithms/greedy/task-scheduler.steps';
 import { cheapestFlightsWithinKStopsMeta } from '../../algorithms/graphs/cheapest-flights-within-k-stops.steps';
 import { lruCacheMeta } from '../../algorithms/linked-list/lru-cache.steps';
+import { nextGreaterElementIIMeta } from '../../algorithms/stack/next-greater-element-ii.steps';
+import { binaryTreeMaximumPathSumMeta } from '../../algorithms/trees/binary-tree-maximum-path-sum.steps';
+import { networkDelayTimeMeta } from '../../algorithms/graphs/network-delay-time.steps';
+import { designAddAndSearchWordsMeta } from '../../algorithms/trie/design-add-and-search-words.steps';
+import { minCostConnectAllPointsMeta } from '../../algorithms/graphs/min-cost-connect-all-points.steps';
 
 const stub = (
   id: string,
@@ -195,6 +200,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   countGoodNodesMeta,
   binaryTreeRightSideViewMeta,
   constructTreePreorderInorderMeta,
+  binaryTreeMaximumPathSumMeta,
 
   // ── Graphs ────────────────────────────────────────────────────────────────
   numberOfIslandsMeta,
@@ -210,11 +216,14 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   graphValidTreeMeta,
   redundantConnectionMeta,
   cheapestFlightsWithinKStopsMeta,
+  networkDelayTimeMeta,
+  minCostConnectAllPointsMeta,
 
   // ── Stack ─────────────────────────────────────────────────────────────────
   validParenthesesMeta,
   nextGreaterElementIMeta,
   onlineStockSpanMeta,
+  nextGreaterElementIIMeta,
 
   // ── Greedy ────────────────────────────────────────────────────────────────
   maximumSubarrayMeta,
@@ -231,6 +240,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
 
   // ── Trie / Prefix Tree ────────────────────────────────────────────────────
   implementTrieMeta,
+  designAddAndSearchWordsMeta,
 ];
 
 export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
