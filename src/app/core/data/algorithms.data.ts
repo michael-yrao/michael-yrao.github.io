@@ -87,6 +87,9 @@ import { implementTrieMeta } from '../../algorithms/trie/implement-trie.steps';
 import { onlineStockSpanMeta } from '../../algorithms/stack/online-stock-span.steps';
 import { copyListWithRandomPointerMeta } from '../../algorithms/linked-list/copy-list-with-random-pointer.steps';
 import { constructTreePreorderInorderMeta } from '../../algorithms/trees/construct-tree-preorder-inorder.steps';
+import { taskSchedulerMeta } from '../../algorithms/greedy/task-scheduler.steps';
+import { cheapestFlightsWithinKStopsMeta } from '../../algorithms/graphs/cheapest-flights-within-k-stops.steps';
+import { lruCacheMeta } from '../../algorithms/linked-list/lru-cache.steps';
 
 const stub = (
   id: string,
@@ -177,6 +180,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   reorderListMeta,
   addTwoNumbersMeta,
   copyListWithRandomPointerMeta,
+  lruCacheMeta,
 
   // ── Trees ─────────────────────────────────────────────────────────────────
   invertBinaryTreeMeta,
@@ -205,6 +209,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   numberOfConnectedComponentsMeta,
   graphValidTreeMeta,
   redundantConnectionMeta,
+  cheapestFlightsWithinKStopsMeta,
 
   // ── Stack ─────────────────────────────────────────────────────────────────
   validParenthesesMeta,
@@ -213,6 +218,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
 
   // ── Greedy ────────────────────────────────────────────────────────────────
   maximumSubarrayMeta,
+  taskSchedulerMeta,
 
   // ── Dynamic Programming ───────────────────────────────────────────────────
   validPalindromeIIIMeta,
