@@ -84,6 +84,7 @@ import { encodeAndDecodeStringsMeta } from '../../algorithms/arrays-hash/encode-
 import { addTwoNumbersMeta } from '../../algorithms/linked-list/add-two-numbers.steps';
 import { nextGreaterElementIMeta } from '../../algorithms/stack/next-greater-element-i.steps';
 import { implementTrieMeta } from '../../algorithms/trie/implement-trie.steps';
+import { onlineStockSpanMeta } from '../../algorithms/stack/online-stock-span.steps';
 
 const stub = (
   id: string,
@@ -204,6 +205,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   // ── Stack ─────────────────────────────────────────────────────────────────
   validParenthesesMeta,
   nextGreaterElementIMeta,
+  onlineStockSpanMeta,
 
   // ── Greedy ────────────────────────────────────────────────────────────────
   maximumSubarrayMeta,
