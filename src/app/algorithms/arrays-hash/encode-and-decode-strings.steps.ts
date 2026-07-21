@@ -1,6 +1,6 @@
 import { AlgorithmMeta, SolutionVariant, Step, ArrayCell, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-review: dsa/leetcode/arrays_and_hash/271_encode_and_decode_string.py
+// Solution + comments sourced from cse-progress: dsa/leetcode/arrays_and_hash/271_encode_and_decode_string.py
 // (the two-pointer decode variant, Solution_20260703)
 const PYTHON_CODE = `class Solution:
     # this problem is the basis of Length Prefix Framing for transmitting over networks

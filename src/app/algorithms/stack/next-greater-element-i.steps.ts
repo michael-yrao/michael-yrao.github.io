@@ -1,6 +1,6 @@
 import { AlgorithmMeta, SolutionVariant, Step, ArrayCell, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-review: dsa/leetcode/stack/496_next_greater_element_i.py
+// Solution + comments sourced from cse-progress: dsa/leetcode/stack/496_next_greater_element_i.py
 const PYTHON_CODE = `class Solution:
     def nextGreaterElement(self, nums1: List[int], nums2: List[int]) -> List[int]:
         # monotonic stack practice

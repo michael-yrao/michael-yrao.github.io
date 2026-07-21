@@ -1,6 +1,6 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-review: dsa/leetcode/heap/973_k_closest_points_to_origin.py
+// Solution + comments sourced from cse-progress: dsa/leetcode/heap/973_k_closest_points_to_origin.py
 const PYTHON_CODE = `import heapq
 import math
 

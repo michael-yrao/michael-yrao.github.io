@@ -1,6 +1,6 @@
 import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-review: dsa/leetcode/linked_list/2_add_two_numbers.py
+// Solution + comments sourced from cse-progress: dsa/leetcode/linked_list/2_add_two_numbers.py
 // (the elegant single-loop variant, addTwoNumbers_20260705_elegant)
 const PYTHON_CODE = `class Solution:
     def addTwoNumbers(self, l1: Optional[ListNode], l2: Optional[ListNode]) -> Optional[ListNode]:

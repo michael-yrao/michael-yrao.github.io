@@ -1,6 +1,6 @@
 import { AlgorithmMeta, SolutionVariant, Step, GraphState, GraphNode, GraphEdge, StepVariable, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-review: dsa/leetcode/trie/208_implement_trie_prefix_tree.py
+// Solution + comments sourced from cse-progress: dsa/leetcode/trie/208_implement_trie_prefix_tree.py
 const PYTHON_CODE = `class TrieNode:
     def __init__(self):
         # char -> TrieNode map

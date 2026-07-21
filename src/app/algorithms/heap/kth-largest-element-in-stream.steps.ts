@@ -1,6 +1,6 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-review: dsa/leetcode/heap/703_kth_largest_element_in_stream.py
+// Solution + comments sourced from cse-progress: dsa/leetcode/heap/703_kth_largest_element_in_stream.py
 const PYTHON_CODE = `import heapq
 
 class KthLargest:

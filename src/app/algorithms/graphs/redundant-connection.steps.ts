@@ -1,6 +1,6 @@
 import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced verbatim from cse-review:
+// Solution + comments sourced verbatim from cse-progress:
 // dsa/leetcode/graphs/684_redundant_connection.py (findRedundantConnection = Union Find)
 
 const PYTHON_CODE = `def findRedundantConnection(self, edges: List[List[int]]) -> List[int]:
