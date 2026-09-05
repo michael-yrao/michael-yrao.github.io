@@ -1,0 +1,62 @@
+name: Deploy to GitHub Pages
+
+# Builds the Angular app and publishes it to GitHub Pages on every push to the
+# default branch. Replaces the old manual `angular-cli-ghpages` deploy.
+#
+# ONE-TIME SETUP (repo Settings -> Pages):
+#   Source: "GitHub Actions"  (switch away from "Deploy from a branch")
+# The custom domain (progressiveoverflow.com) is preserved automatically because
+# src/CNAME is copied into the build output via angular.json `assets`.
+#
+# NOTE: this assumes the default branch is `main`. If it is `master`, change the
+# branch below (or just use the "Run workflow" button -> workflow_dispatch).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; newer pushes cancel in-flight runs.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (production)
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/progressive-overflow
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
