@@ -80,6 +80,21 @@ import { kClosestPointsMeta } from '../../algorithms/heap/k-closest-points-to-or
 import { kthLargestInStreamMeta } from '../../algorithms/heap/kth-largest-element-in-stream.steps';
 import { designTwitterMeta } from '../../algorithms/heap/design-twitter.steps';
 import { subarraySumEqualsKMeta } from '../../algorithms/arrays-hash/subarray-sum-equals-k.steps';
+import { encodeAndDecodeStringsMeta } from '../../algorithms/arrays-hash/encode-and-decode-strings.steps';
+import { addTwoNumbersMeta } from '../../algorithms/linked-list/add-two-numbers.steps';
+import { nextGreaterElementIMeta } from '../../algorithms/stack/next-greater-element-i.steps';
+import { implementTrieMeta } from '../../algorithms/trie/implement-trie.steps';
+import { onlineStockSpanMeta } from '../../algorithms/stack/online-stock-span.steps';
+import { copyListWithRandomPointerMeta } from '../../algorithms/linked-list/copy-list-with-random-pointer.steps';
+import { constructTreePreorderInorderMeta } from '../../algorithms/trees/construct-tree-preorder-inorder.steps';
+import { taskSchedulerMeta } from '../../algorithms/greedy/task-scheduler.steps';
+import { cheapestFlightsWithinKStopsMeta } from '../../algorithms/graphs/cheapest-flights-within-k-stops.steps';
+import { lruCacheMeta } from '../../algorithms/linked-list/lru-cache.steps';
+import { nextGreaterElementIIMeta } from '../../algorithms/stack/next-greater-element-ii.steps';
+import { binaryTreeMaximumPathSumMeta } from '../../algorithms/trees/binary-tree-maximum-path-sum.steps';
+import { networkDelayTimeMeta } from '../../algorithms/graphs/network-delay-time.steps';
+import { designAddAndSearchWordsMeta } from '../../algorithms/trie/design-add-and-search-words.steps';
+import { minCostConnectAllPointsMeta } from '../../algorithms/graphs/min-cost-connect-all-points.steps';
 
 const stub = (
   id: string,
@@ -127,6 +142,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   sortAnArrayMeta,
   longestConsecutiveSequenceMeta,
   subarraySumEqualsKMeta,
+  encodeAndDecodeStringsMeta,
   containerWithMostWaterMeta,
 
   // ── Two Pointers ──────────────────────────────────────────────────────────
@@ -167,6 +183,9 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   mergeTwoSortedListsMeta,
   removeNthFromEndMeta,
   reorderListMeta,
+  addTwoNumbersMeta,
+  copyListWithRandomPointerMeta,
+  lruCacheMeta,
 
   // ── Trees ─────────────────────────────────────────────────────────────────
   invertBinaryTreeMeta,
@@ -180,6 +199,8 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   validateBstMeta,
   countGoodNodesMeta,
   binaryTreeRightSideViewMeta,
+  constructTreePreorderInorderMeta,
+  binaryTreeMaximumPathSumMeta,
 
   // ── Graphs ────────────────────────────────────────────────────────────────
   numberOfIslandsMeta,
@@ -194,12 +215,19 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   numberOfConnectedComponentsMeta,
   graphValidTreeMeta,
   redundantConnectionMeta,
+  cheapestFlightsWithinKStopsMeta,
+  networkDelayTimeMeta,
+  minCostConnectAllPointsMeta,
 
   // ── Stack ─────────────────────────────────────────────────────────────────
   validParenthesesMeta,
+  nextGreaterElementIMeta,
+  onlineStockSpanMeta,
+  nextGreaterElementIIMeta,
 
   // ── Greedy ────────────────────────────────────────────────────────────────
   maximumSubarrayMeta,
+  taskSchedulerMeta,
 
   // ── Dynamic Programming ───────────────────────────────────────────────────
   validPalindromeIIIMeta,
@@ -209,6 +237,10 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   kthLargestInStreamMeta,
   kClosestPointsMeta,
   designTwitterMeta,
+
+  // ── Trie / Prefix Tree ────────────────────────────────────────────────────
+  implementTrieMeta,
+  designAddAndSearchWordsMeta,
 ];
 
 export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
@@ -222,6 +254,7 @@ export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
   'stack': ALL_ALGORITHMS.filter((a) => a.category === 'stack'),
   'greedy': ALL_ALGORITHMS.filter((a) => a.category === 'greedy'),
   'heap': ALL_ALGORITHMS.filter((a) => a.category === 'heap'),
+  'trie': ALL_ALGORITHMS.filter((a) => a.category === 'trie'),
   'dynamic-programming': ALL_ALGORITHMS.filter((a) => a.category === 'dynamic-programming'),
 };
 

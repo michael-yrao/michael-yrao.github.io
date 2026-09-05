@@ -1,6 +1,6 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample, LinkedListNode } from '../../core/models/algorithm.model';
 
-// Solutions sourced from cse-review: dsa/leetcode/linked_list/19_remove_nth_node_from_end_of_list.py
+// Solutions sourced from cse-progress: dsa/leetcode/linked_list/19_remove_nth_node_from_end_of_list.py
 // (removeNthFromEndTwoIteration = Two-Pass, removeNthFromEnd = One-Pass Two-Pointer, removeNthFromEndRecursion = Recursion)
 
 const PYTHON_CODE = `class Solution:

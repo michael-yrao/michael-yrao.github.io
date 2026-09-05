@@ -1,6 +1,6 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-review: dsa/leetcode/heap/1046_last_stone_weight.py
+// Solution + comments sourced from cse-progress: dsa/leetcode/heap/1046_last_stone_weight.py
 const PYTHON_CODE = `import heapq
 
 class Solution:

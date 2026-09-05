@@ -1,6 +1,6 @@
 import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solutions + comments sourced verbatim from cse-review:
+// Solutions + comments sourced verbatim from cse-progress:
 // dsa/leetcode/graphs/323_number_of_connected_components_in_an_undirected_graph.py
 // (countComponents_BFS_20260616 = BFS, countComponents_20260619_UnionFind = Union Find)
 

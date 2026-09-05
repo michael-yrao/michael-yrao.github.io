@@ -1,6 +1,6 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-review: dsa/leetcode/arrays_and_hash/560_subarray_sum_equals_k.py
+// Solution + comments sourced from cse-progress: dsa/leetcode/arrays_and_hash/560_subarray_sum_equals_k.py
 const PYTHON_CODE = `class Solution:
     def subarraySum(self, nums: List[int], k: int) -> int:
         # first thing that comes to mind for subarray sum is prefixSum

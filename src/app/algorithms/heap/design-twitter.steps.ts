@@ -1,6 +1,6 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-review: dsa/leetcode/heap/355_design_twitter.py
+// Solution + comments sourced from cse-progress: dsa/leetcode/heap/355_design_twitter.py
 const PYTHON_CODE = `import collections
 import heapq
 

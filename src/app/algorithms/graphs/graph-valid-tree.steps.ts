@@ -1,6 +1,6 @@
 import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solutions + comments sourced verbatim from cse-review:
+// Solutions + comments sourced verbatim from cse-progress:
 // dsa/leetcode/graphs/261_graph_valid_tree.py  (validTree = DFS, validTree_20260619_UnionFind = Union Find)
 
 const PYTHON_CODE_DFS = `def validTree(self, n: int, edges: List[List[int]]) -> bool:

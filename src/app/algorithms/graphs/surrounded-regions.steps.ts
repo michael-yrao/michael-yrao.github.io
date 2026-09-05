@@ -1,6 +1,6 @@
 import { AlgorithmMeta, Step, GridState, GridCellState, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solutions + comments sourced verbatim from cse-review:
+// Solutions + comments sourced verbatim from cse-progress:
 // dsa/leetcode/graphs/130_surrounded_regions.py (solve = BFS, solve_20260621_UnionFind = Union Find)
 
 const PYTHON_CODE = `class Solution:

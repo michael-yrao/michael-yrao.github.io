@@ -26,6 +26,8 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   showViz = true;
   showCode = false;
+  showWhy = true;
+  private readonly WHY_KEY = 'po-show-why';
 
   @ViewChild('descSentinel') private descSentinel!: ElementRef<HTMLElement>;
   private stickyObs?: IntersectionObserver;
@@ -81,7 +83,12 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
     private router: Router,
     private cdr: ChangeDetectorRef,
     private navCtx: NavContextService,
-  ) {}
+  ) {
+    try {
+      const pref = localStorage.getItem(this.WHY_KEY);
+      if (pref !== null) this.showWhy = pref === '1';
+    } catch { /* localStorage unavailable — keep default */ }
+  }
 
   ngAfterViewInit(): void {
     this.stickyObs = new IntersectionObserver(
@@ -134,6 +141,12 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
       this.nextProblem = neighbors.next;
       this.cdr.markForCheck();
     });
+  }
+
+  toggleWhy(): void {
+    this.showWhy = !this.showWhy;
+    try { localStorage.setItem(this.WHY_KEY, this.showWhy ? '1' : '0'); } catch { /* ignore */ }
+    this.cdr.markForCheck();
   }
 
   togglePanel(panel: 'viz' | 'code'): void {
