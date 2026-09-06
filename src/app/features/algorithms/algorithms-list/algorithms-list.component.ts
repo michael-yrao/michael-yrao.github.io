@@ -1,10 +1,11 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   ALGORITHMS_BY_CATEGORY, ALL_ALGORITHMS, hasVisualization, countVisualized,
 } from '../../../core/data/algorithms.data';
 import { AlgorithmMeta, Category, CATEGORY_LABELS, CATEGORY_ICONS, Difficulty } from '../../../core/models/algorithm.model';
+import { NgClass } from '@angular/common';
 
 interface CategoryCard {
   id: Category;
@@ -21,7 +22,7 @@ type ViewMode = 'categories' | 'all';
     templateUrl: './algorithms-list.component.html',
     styleUrls: ['./algorithms-list.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [RouterLink, NgClass]
 })
 export class AlgorithmsListComponent implements OnInit, OnDestroy {
   category: Category | null = null;

@@ -28,7 +28,6 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  declarations: [GamesComponent],
-  imports: [CommonModule, RouterModule.forChild(routes)],
+    imports: [CommonModule, RouterModule.forChild(routes), GamesComponent],
 })
 export class GamesModule {}

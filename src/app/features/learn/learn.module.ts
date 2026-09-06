@@ -12,7 +12,6 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  declarations: [LearnListComponent, CheatSheetComponent],
-  imports: [CommonModule, RouterModule.forChild(routes), SharedModule],
+    imports: [CommonModule, RouterModule.forChild(routes), SharedModule, LearnListComponent, CheatSheetComponent],
 })
 export class LearnModule {}

@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { GAMES, GAME_CATEGORY_LABELS, GameCategory, GameMeta } from '../../core/data/games.data';
+import { RouterLink } from '@angular/router';
 
 interface GameSection {
   id: GameCategory;
@@ -15,7 +16,7 @@ const CATEGORY_ORDER: GameCategory[] = ['recognition', 'graph-traversal', 'compl
     templateUrl: './games.component.html',
     styleUrls: ['./games.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [RouterLink]
 })
 export class GamesComponent {
   readonly sections: GameSection[] = CATEGORY_ORDER

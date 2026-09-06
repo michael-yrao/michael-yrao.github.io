@@ -6,7 +6,6 @@ import { PatternSenseComponent } from './pattern-sense.component';
 const routes: Routes = [{ path: '', component: PatternSenseComponent }];
 
 @NgModule({
-  declarations: [PatternSenseComponent],
-  imports: [CommonModule, RouterModule.forChild(routes)],
+    imports: [CommonModule, RouterModule.forChild(routes), PatternSenseComponent],
 })
 export class PatternSenseModule {}

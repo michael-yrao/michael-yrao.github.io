@@ -1,12 +1,13 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { ArrayState } from '../../../core/models/algorithm.model';
+import { NgClass, SlicePipe } from '@angular/common';
 
 @Component({
     selector: 'app-array-visualizer',
     templateUrl: './array-visualizer.component.html',
     styleUrls: ['./array-visualizer.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [NgClass, SlicePipe]
 })
 export class ArrayVisualizerComponent {
   @Input() state!: ArrayState;

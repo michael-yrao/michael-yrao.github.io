@@ -8,7 +8,6 @@ import { BigOComponent } from './big-o.component';
 const routes: Routes = [{ path: '', component: BigOComponent }];
 
 @NgModule({
-  declarations: [BigOComponent],
-  imports: [CommonModule, RouterModule.forChild(routes), SharedModule],
+    imports: [CommonModule, RouterModule.forChild(routes), SharedModule, BigOComponent],
 })
 export class BigOModule {}

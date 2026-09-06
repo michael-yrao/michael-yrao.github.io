@@ -16,8 +16,7 @@ import { animate, style, transition, trigger } from '@angular/animations';
                 animate('150ms ease', style({ opacity: 0, transform: 'translateY(-8px)' })),
             ]),
         ]),
-    ],
-    standalone: false
+    ]
 })
 export class HintCardComponent {
   @Input() hint = '';

@@ -1,4 +1,5 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 const GRID_SIZE = 12;
 const MOVE_BUFFER = 5;
@@ -12,7 +13,7 @@ export const COLORS = ['#06b6d4', '#f97316', '#22c55e', '#a855f7', '#ec4899', '#
     templateUrl: './flood-fill.component.html',
     styleUrls: ['./flood-fill.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [RouterLink]
 })
 export class FloodFillComponent implements OnInit {
   readonly gridSize = GRID_SIZE;

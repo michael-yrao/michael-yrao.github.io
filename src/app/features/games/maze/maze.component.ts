@@ -1,4 +1,5 @@
 import { Component, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 type Phase = 'generating' | 'ready' | 'solving' | 'solved';
 type Solver = 'bfs' | 'dfs';
@@ -30,7 +31,7 @@ const PATH_TICK_MS = 24;
     templateUrl: './maze.component.html',
     styleUrls: ['./maze.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [RouterLink]
 })
 export class MazeComponent implements OnDestroy {
   readonly rows = ROWS;

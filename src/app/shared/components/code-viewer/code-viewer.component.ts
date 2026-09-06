@@ -11,8 +11,7 @@ hljs.registerLanguage('python', python);
     selector: 'app-code-viewer',
     templateUrl: './code-viewer.component.html',
     styleUrls: ['./code-viewer.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CodeViewerComponent implements OnChanges, AfterViewInit {
   @Input() code = '';

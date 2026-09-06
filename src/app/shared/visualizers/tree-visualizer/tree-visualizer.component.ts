@@ -11,8 +11,7 @@ interface LayoutNode {
     selector: 'app-tree-visualizer',
     templateUrl: './tree-visualizer.component.html',
     styleUrls: ['./tree-visualizer.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TreeVisualizerComponent {
   @Input() state!: TreeState;

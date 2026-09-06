@@ -1,5 +1,7 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { BIG_O_QUESTIONS, BigOQuestion } from '../../../core/data/big-o-questions.data';
+import { RouterLink } from '@angular/router';
+import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
 
 type Mode = 'quiz' | 'revealed' | 'finished';
 
@@ -8,7 +10,7 @@ type Mode = 'quiz' | 'revealed' | 'finished';
     templateUrl: './big-o.component.html',
     styleUrls: ['./big-o.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [RouterLink, CodeViewerComponent]
 })
 export class BigOComponent {
   deck: BigOQuestion[] = [];

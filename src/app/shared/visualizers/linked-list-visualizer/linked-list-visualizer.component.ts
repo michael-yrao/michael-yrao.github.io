@@ -1,12 +1,13 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { LinkedListState, LinkedListNode } from '../../../core/models/algorithm.model';
+import { NgClass } from '@angular/common';
 
 @Component({
     selector: 'app-linked-list-visualizer',
     templateUrl: './linked-list-visualizer.component.html',
     styleUrls: ['./linked-list-visualizer.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [NgClass]
 })
 export class LinkedListVisualizerComponent {
   @Input() state!: LinkedListState;

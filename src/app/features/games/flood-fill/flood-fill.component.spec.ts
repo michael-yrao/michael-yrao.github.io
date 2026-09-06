@@ -8,9 +8,8 @@ describe('FloodFillComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [FloodFillComponent],
-      imports: [RouterTestingModule],
-    });
+    imports: [RouterTestingModule, FloodFillComponent],
+});
     fixture = TestBed.createComponent(FloodFillComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();

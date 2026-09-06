@@ -7,7 +7,6 @@ import { AboutPageComponent } from './about-page.component';
 const routes: Routes = [{ path: '', component: AboutPageComponent }];
 
 @NgModule({
-  declarations: [AboutPageComponent],
-  imports: [CommonModule, RouterModule.forChild(routes)],
+    imports: [CommonModule, RouterModule.forChild(routes), AboutPageComponent],
 })
 export class AboutPageModule {}

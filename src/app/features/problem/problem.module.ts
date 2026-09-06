@@ -8,7 +8,6 @@ import { ProblemPageComponent } from './problem-page/problem-page.component';
 const routes: Routes = [{ path: '', component: ProblemPageComponent }];
 
 @NgModule({
-  declarations: [ProblemPageComponent],
-  imports: [CommonModule, RouterModule.forChild(routes), SharedModule],
+    imports: [CommonModule, RouterModule.forChild(routes), SharedModule, ProblemPageComponent],
 })
 export class ProblemModule {}

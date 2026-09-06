@@ -13,8 +13,7 @@ import { animate, style, transition, trigger } from '@angular/animations';
                 animate('180ms ease', style({ opacity: 1, transform: 'translateY(0)' })),
             ]),
         ]),
-    ],
-    standalone: false
+    ]
 })
 export class ExplanationCardComponent {
   @Input() explanation = '';

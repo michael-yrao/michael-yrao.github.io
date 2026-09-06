@@ -6,7 +6,6 @@ import { FloodFillComponent } from './flood-fill.component';
 const routes: Routes = [{ path: '', component: FloodFillComponent }];
 
 @NgModule({
-  declarations: [FloodFillComponent],
-  imports: [CommonModule, RouterModule.forChild(routes)],
+    imports: [CommonModule, RouterModule.forChild(routes), FloodFillComponent],
 })
 export class FloodFillModule {}

@@ -1,13 +1,14 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ALL_ALGORITHMS, countVisualized } from '../../core/data/algorithms.data';
 import { GAMES } from '../../core/data/games.data';
+import { RouterLink } from '@angular/router';
 
 @Component({
     selector: 'app-home',
     templateUrl: './home.component.html',
     styleUrls: ['./home.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [RouterLink]
 })
 export class HomeComponent {
   readonly totalSolved = ALL_ALGORITHMS.length;

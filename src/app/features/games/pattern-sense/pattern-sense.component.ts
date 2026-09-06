@@ -1,6 +1,8 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
 import { AlgorithmMeta, Category, CATEGORY_LABELS } from '../../../core/models/algorithm.model';
+import { RouterLink } from '@angular/router';
+import { NgClass } from '@angular/common';
 
 const BEST_STREAK_KEY = 'po-pattern-sense-best';
 
@@ -42,7 +44,7 @@ interface CategoryOption {
     templateUrl: './pattern-sense.component.html',
     styleUrls: ['./pattern-sense.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [RouterLink, NgClass]
 })
 export class PatternSenseComponent {
   readonly categoryLabels = CATEGORY_LABELS;

@@ -1,5 +1,5 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   AlgorithmMeta, Category, Step, SolutionVariant,
@@ -7,13 +7,23 @@ import {
 } from '../../../core/models/algorithm.model';
 import { findAlgorithm, getCategoryNeighbors } from '../../../core/data/algorithms.data';
 import { NavContextService } from '../../../core/services/nav-context.service';
+import { NgClass } from '@angular/common';
+import { HintCardComponent } from '../../../shared/components/hint-card/hint-card.component';
+import { ArrayVisualizerComponent } from '../../../shared/visualizers/array-visualizer/array-visualizer.component';
+import { GridVisualizerComponent } from '../../../shared/visualizers/grid-visualizer/grid-visualizer.component';
+import { LinkedListVisualizerComponent } from '../../../shared/visualizers/linked-list-visualizer/linked-list-visualizer.component';
+import { TreeVisualizerComponent } from '../../../shared/visualizers/tree-visualizer/tree-visualizer.component';
+import { GraphVisualizerComponent } from '../../../shared/visualizers/graph-visualizer/graph-visualizer.component';
+import { ExplanationCardComponent } from '../../../shared/components/explanation-card/explanation-card.component';
+import { StepControlsComponent } from '../../../shared/components/step-controls/step-controls.component';
+import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
 
 @Component({
     selector: 'app-problem-page',
     templateUrl: './problem-page.component.html',
     styleUrls: ['./problem-page.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [RouterLink, NgClass, HintCardComponent, ArrayVisualizerComponent, GridVisualizerComponent, LinkedListVisualizerComponent, TreeVisualizerComponent, GraphVisualizerComponent, ExplanationCardComponent, StepControlsComponent, CodeViewerComponent]
 })
 export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly categoryLabels = CATEGORY_LABELS;

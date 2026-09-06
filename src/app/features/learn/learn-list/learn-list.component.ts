@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { Category, CATEGORY_ICONS, CATEGORY_LABELS } from '../../../core/models/algorithm.model';
 import { CHEAT_SHEETS } from '../../../core/data/cheat-sheets.data';
 import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
+import { RouterLink } from '@angular/router';
 
 interface CategoryCard {
   category: Category;
@@ -16,7 +17,7 @@ interface CategoryCard {
     templateUrl: './learn-list.component.html',
     styleUrls: ['./learn-list.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [RouterLink]
 })
 export class LearnListComponent {
   readonly cards: CategoryCard[] = CHEAT_SHEETS.map((sheet) => ({

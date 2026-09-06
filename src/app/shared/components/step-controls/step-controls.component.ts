@@ -7,8 +7,7 @@ import {
     selector: 'app-step-controls',
     templateUrl: './step-controls.component.html',
     styleUrls: ['./step-controls.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class StepControlsComponent implements OnInit, OnDestroy {
   @Input() currentStep = 0;

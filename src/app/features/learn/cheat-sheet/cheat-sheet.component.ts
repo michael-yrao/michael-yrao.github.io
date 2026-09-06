@@ -1,14 +1,15 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Category, CATEGORY_ICONS, CATEGORY_LABELS } from '../../../core/models/algorithm.model';
 import { CHEAT_SHEETS, CheatSheet, CATEGORY_ORDER } from '../../../core/data/cheat-sheets.data';
+import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
 
 @Component({
     selector: 'app-cheat-sheet',
     templateUrl: './cheat-sheet.component.html',
     styleUrls: ['./cheat-sheet.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [RouterLink, CodeViewerComponent]
 })
 export class CheatSheetComponent implements OnInit {
   sheet: CheatSheet | null = null;

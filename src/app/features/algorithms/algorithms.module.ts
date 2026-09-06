@@ -16,7 +16,6 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  declarations: [AlgorithmsListComponent],
-  imports: [CommonModule, RouterModule.forChild(routes), SharedModule],
+    imports: [CommonModule, RouterModule.forChild(routes), SharedModule, AlgorithmsListComponent],
 })
 export class AlgorithmsModule {}

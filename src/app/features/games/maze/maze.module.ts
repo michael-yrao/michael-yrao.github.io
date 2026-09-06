@@ -6,7 +6,6 @@ import { MazeComponent } from './maze.component';
 const routes: Routes = [{ path: '', component: MazeComponent }];
 
 @NgModule({
-  declarations: [MazeComponent],
-  imports: [CommonModule, RouterModule.forChild(routes)],
+    imports: [CommonModule, RouterModule.forChild(routes), MazeComponent],
 })
 export class MazeModule {}
