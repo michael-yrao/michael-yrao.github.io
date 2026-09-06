@@ -4,9 +4,8 @@ import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
   beforeEach(() => TestBed.configureTestingModule({
-    imports: [RouterTestingModule],
-    declarations: [AppComponent]
-}));
+    imports: [RouterTestingModule, AppComponent]
+  }));
 
   it('should create the app', () => {
     const fixture = TestBed.createComponent(AppComponent);
@@ -14,16 +13,10 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have as title 'progressiveOverflow'`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title).toEqual('progressiveOverflow');
-  });
-
-  it('should render title', () => {
+  it('renders the Progressive Overflow brand in the nav', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.content span')?.textContent).toContain('progressiveOverflow app is running!');
+    expect(compiled.querySelector('.po-nav__title')?.textContent).toContain('Progressive Overflow');
   });
 });

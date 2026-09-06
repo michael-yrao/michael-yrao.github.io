@@ -1,6 +1,14 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { FloodFillComponent, COLORS } from './flood-fill.component';
+
+// The wave animation schedules recursive setTimeouts. These tests assert the
+// synchronous state changes (movesLeft is decremented in pickColor before any
+// animation; initGame resets immediately), so we stub the private applyColor to
+// keep the assertions deterministic and leave no pending timers.
+type WithApplyColor = { applyColor: (colorIdx: number, isSolver?: boolean) => void };
+const stubAnimation = (c: FloodFillComponent) =>
+  vi.spyOn(c as unknown as WithApplyColor, 'applyColor').mockImplementation(() => {});
 
 describe('FloodFillComponent', () => {
   let component: FloodFillComponent;
@@ -24,7 +32,7 @@ describe('FloodFillComponent', () => {
   });
 
   it('initializes all cells with valid color indices', () => {
-    expect(component.cells.every(c => c >= 0 && c < COLORS.length)).toBeTrue();
+    expect(component.cells.every(c => c >= 0 && c < COLORS.length)).toBe(true);
   });
 
   it('starts with max moves and playing state', () => {
@@ -42,20 +50,20 @@ describe('FloodFillComponent', () => {
     expect(component.movesLeft).toBe(before);
   });
 
-  it('decrements movesLeft on a valid color pick', fakeAsync(() => {
+  it('decrements movesLeft on a valid color pick', () => {
+    stubAnimation(component);
     const before = component.movesLeft;
     const differentColor = (component.currentColor + 1) % COLORS.length;
     component.pickColor(differentColor);
-    tick(5000);
     expect(component.movesLeft).toBe(before - 1);
-  }));
+  });
 
-  it('resets game state on initGame', fakeAsync(() => {
+  it('resets game state on initGame', () => {
+    stubAnimation(component);
     const differentColor = (component.currentColor + 1) % COLORS.length;
     component.pickColor(differentColor);
-    tick(5000);
     component.initGame();
     expect(component.movesLeft).toBe(component.maxMoves);
     expect(component.gameState).toBe('playing');
-  }));
+  });
 });
