@@ -12,10 +12,11 @@ interface CategoryCard {
 }
 
 @Component({
-  selector: 'app-learn-list',
-  templateUrl: './learn-list.component.html',
-  styleUrls: ['./learn-list.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-learn-list',
+    templateUrl: './learn-list.component.html',
+    styleUrls: ['./learn-list.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class LearnListComponent {
   readonly cards: CategoryCard[] = CHEAT_SHEETS.map((sheet) => ({

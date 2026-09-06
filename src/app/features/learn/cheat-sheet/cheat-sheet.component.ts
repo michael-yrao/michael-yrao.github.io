@@ -4,10 +4,11 @@ import { Category, CATEGORY_ICONS, CATEGORY_LABELS } from '../../../core/models/
 import { CHEAT_SHEETS, CheatSheet, CATEGORY_ORDER } from '../../../core/data/cheat-sheets.data';
 
 @Component({
-  selector: 'app-cheat-sheet',
-  templateUrl: './cheat-sheet.component.html',
-  styleUrls: ['./cheat-sheet.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-cheat-sheet',
+    templateUrl: './cheat-sheet.component.html',
+    styleUrls: ['./cheat-sheet.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class CheatSheetComponent implements OnInit {
   sheet: CheatSheet | null = null;

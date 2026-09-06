@@ -4,10 +4,11 @@ import { BIG_O_QUESTIONS, BigOQuestion } from '../../../core/data/big-o-question
 type Mode = 'quiz' | 'revealed' | 'finished';
 
 @Component({
-  selector: 'app-big-o',
-  templateUrl: './big-o.component.html',
-  styleUrls: ['./big-o.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-big-o',
+    templateUrl: './big-o.component.html',
+    styleUrls: ['./big-o.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class BigOComponent {
   deck: BigOQuestion[] = [];

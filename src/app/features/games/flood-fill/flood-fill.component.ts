@@ -8,10 +8,11 @@ const SOLVER_MOVE_PAUSE_MS = 480;
 export const COLORS = ['#06b6d4', '#f97316', '#22c55e', '#a855f7', '#ec4899', '#eab308'];
 
 @Component({
-  selector: 'app-flood-fill',
-  templateUrl: './flood-fill.component.html',
-  styleUrls: ['./flood-fill.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-flood-fill',
+    templateUrl: './flood-fill.component.html',
+    styleUrls: ['./flood-fill.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class FloodFillComponent implements OnInit {
   readonly gridSize = GRID_SIZE;

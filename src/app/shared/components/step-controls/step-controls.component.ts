@@ -4,10 +4,11 @@ import {
 } from '@angular/core';
 
 @Component({
-  selector: 'app-step-controls',
-  templateUrl: './step-controls.component.html',
-  styleUrls: ['./step-controls.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-step-controls',
+    templateUrl: './step-controls.component.html',
+    styleUrls: ['./step-controls.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class StepControlsComponent implements OnInit, OnDestroy {
   @Input() currentStep = 0;

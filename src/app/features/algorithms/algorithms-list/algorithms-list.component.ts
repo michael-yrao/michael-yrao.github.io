@@ -17,10 +17,11 @@ interface CategoryCard {
 type ViewMode = 'categories' | 'all';
 
 @Component({
-  selector: 'app-algorithms-list',
-  templateUrl: './algorithms-list.component.html',
-  styleUrls: ['./algorithms-list.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-algorithms-list',
+    templateUrl: './algorithms-list.component.html',
+    styleUrls: ['./algorithms-list.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class AlgorithmsListComponent implements OnInit, OnDestroy {
   category: Category | null = null;

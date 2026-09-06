@@ -2,10 +2,11 @@ import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { GraphState } from '../../../core/models/algorithm.model';
 
 @Component({
-  selector: 'app-graph-visualizer',
-  templateUrl: './graph-visualizer.component.html',
-  styleUrls: ['./graph-visualizer.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-graph-visualizer',
+    templateUrl: './graph-visualizer.component.html',
+    styleUrls: ['./graph-visualizer.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class GraphVisualizerComponent {
   @Input() state!: GraphState;

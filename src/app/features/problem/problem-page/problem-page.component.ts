@@ -9,10 +9,11 @@ import { findAlgorithm, getCategoryNeighbors } from '../../../core/data/algorith
 import { NavContextService } from '../../../core/services/nav-context.service';
 
 @Component({
-  selector: 'app-problem-page',
-  templateUrl: './problem-page.component.html',
-  styleUrls: ['./problem-page.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-problem-page',
+    templateUrl: './problem-page.component.html',
+    styleUrls: ['./problem-page.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly categoryLabels = CATEGORY_LABELS;

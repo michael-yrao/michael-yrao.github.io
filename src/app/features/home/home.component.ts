@@ -3,10 +3,11 @@ import { ALL_ALGORITHMS, countVisualized } from '../../core/data/algorithms.data
 import { GAMES } from '../../core/data/games.data';
 
 @Component({
-  selector: 'app-home',
-  templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-home',
+    templateUrl: './home.component.html',
+    styleUrls: ['./home.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class HomeComponent {
   readonly totalSolved = ALL_ALGORITHMS.length;

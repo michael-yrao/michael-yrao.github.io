@@ -2,10 +2,11 @@ import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { GridState } from '../../../core/models/algorithm.model';
 
 @Component({
-  selector: 'app-grid-visualizer',
-  templateUrl: './grid-visualizer.component.html',
-  styleUrls: ['./grid-visualizer.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-grid-visualizer',
+    templateUrl: './grid-visualizer.component.html',
+    styleUrls: ['./grid-visualizer.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class GridVisualizerComponent {
   @Input() state!: GridState;

@@ -26,10 +26,11 @@ const TICK_MS = 16;
 const PATH_TICK_MS = 24;
 
 @Component({
-  selector: 'app-maze',
-  templateUrl: './maze.component.html',
-  styleUrls: ['./maze.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-maze',
+    templateUrl: './maze.component.html',
+    styleUrls: ['./maze.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class MazeComponent implements OnDestroy {
   readonly rows = ROWS;

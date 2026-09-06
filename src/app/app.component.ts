@@ -4,9 +4,10 @@ import { NavContextService, NavContextEntry } from './core/services/nav-context.
 import { ThemeService } from './core/services/theme.service';
 
 @Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss'],
+    selector: 'app-root',
+    templateUrl: './app.component.html',
+    styleUrls: ['./app.component.scss'],
+    standalone: false
 })
 export class AppComponent implements OnDestroy {
   currentCtx: NavContextEntry | null = null;

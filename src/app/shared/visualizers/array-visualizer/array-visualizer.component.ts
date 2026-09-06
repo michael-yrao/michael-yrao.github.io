@@ -2,10 +2,11 @@ import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { ArrayState } from '../../../core/models/algorithm.model';
 
 @Component({
-  selector: 'app-array-visualizer',
-  templateUrl: './array-visualizer.component.html',
-  styleUrls: ['./array-visualizer.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-array-visualizer',
+    templateUrl: './array-visualizer.component.html',
+    styleUrls: ['./array-visualizer.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ArrayVisualizerComponent {
   @Input() state!: ArrayState;

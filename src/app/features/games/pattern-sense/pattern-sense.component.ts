@@ -38,10 +38,11 @@ interface CategoryOption {
 }
 
 @Component({
-  selector: 'app-pattern-sense',
-  templateUrl: './pattern-sense.component.html',
-  styleUrls: ['./pattern-sense.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-pattern-sense',
+    templateUrl: './pattern-sense.component.html',
+    styleUrls: ['./pattern-sense.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class PatternSenseComponent {
   readonly categoryLabels = CATEGORY_LABELS;

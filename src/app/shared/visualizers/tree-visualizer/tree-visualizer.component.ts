@@ -8,10 +8,11 @@ interface LayoutNode {
 }
 
 @Component({
-  selector: 'app-tree-visualizer',
-  templateUrl: './tree-visualizer.component.html',
-  styleUrls: ['./tree-visualizer.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-tree-visualizer',
+    templateUrl: './tree-visualizer.component.html',
+    styleUrls: ['./tree-visualizer.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class TreeVisualizerComponent {
   @Input() state!: TreeState;

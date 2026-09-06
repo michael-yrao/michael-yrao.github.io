@@ -11,10 +11,11 @@ interface GameSection {
 const CATEGORY_ORDER: GameCategory[] = ['recognition', 'graph-traversal', 'complexity'];
 
 @Component({
-  selector: 'app-games',
-  templateUrl: './games.component.html',
-  styleUrls: ['./games.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-games',
+    templateUrl: './games.component.html',
+    styleUrls: ['./games.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class GamesComponent {
   readonly sections: GameSection[] = CATEGORY_ORDER
