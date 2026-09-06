@@ -67,10 +67,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "progressiveOverflow:build:production"
+              "buildTarget": "progressiveOverflow:build:production"
             },
             "development": {
-              "browserTarget": "progressiveOverflow:build:development"
+              "buildTarget": "progressiveOverflow:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -78,7 +78,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "progressiveOverflow:build"
+            "buildTarget": "progressiveOverflow:build"
           }
         },
         "test": {
