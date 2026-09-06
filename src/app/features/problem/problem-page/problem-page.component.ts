@@ -121,7 +121,11 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       { rootMargin: '-56px 0px 0px 0px', threshold: 0 },
     );
-    this.stickyObs.observe(this.descSentinel.nativeElement);
+    // descSentinel lives inside @if (problem); if the route had no valid problem
+    // it won't exist (we navigate away), so guard against observing undefined.
+    if (this.descSentinel) {
+      this.stickyObs.observe(this.descSentinel.nativeElement);
+    }
   }
 
   ngOnDestroy(): void {
@@ -131,8 +135,9 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    const params$ = this.route.parent?.paramMap ?? this.route.paramMap;
-    this.routeSub = params$.subscribe(map => {
+    // The :category/:id params live on this component's own route (it is loaded
+    // directly via loadComponent), so read them from this.route — not the parent.
+    this.routeSub = this.route.paramMap.subscribe(map => {
       const category = map.get('category') as Category;
       const id = map.get('id') ?? '';
 
