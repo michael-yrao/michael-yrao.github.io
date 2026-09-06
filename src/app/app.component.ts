@@ -1,4 +1,5 @@
 import { Component, HostListener, OnDestroy } from '@angular/core';
+import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { NavContextService, NavContextEntry } from './core/services/nav-context.service';
 import { ThemeService } from './core/services/theme.service';
@@ -7,7 +8,7 @@ import { ThemeService } from './core/services/theme.service';
     selector: 'app-root',
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.scss'],
-    standalone: false
+    imports: [RouterOutlet, RouterLink, RouterLinkActive]
 })
 export class AppComponent implements OnDestroy {
   currentCtx: NavContextEntry | null = null;
