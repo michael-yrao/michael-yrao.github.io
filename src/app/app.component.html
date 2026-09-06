@@ -5,17 +5,18 @@
       <span class="po-nav__title">Progressive Overflow</span>
     </a>
 
-    <button
-      *ngIf="currentCtx"
-      class="po-nav__context"
-      [class.open]="descriptionOpen"
-      (click)="toggleDescription($event)"
-      aria-label="Toggle problem description"
-    >
-      <span class="po-nav__ctx-num">#{{ currentCtx.num }}</span>
-      <span class="po-nav__ctx-title">{{ currentCtx.title }}</span>
-      <span class="po-nav__ctx-chevron" [class.open]="descriptionOpen">›</span>
-    </button>
+    @if (currentCtx) {
+      <button
+        class="po-nav__context"
+        [class.open]="descriptionOpen"
+        (click)="toggleDescription($event)"
+        aria-label="Toggle problem description"
+        >
+        <span class="po-nav__ctx-num">#{{ currentCtx.num }}</span>
+        <span class="po-nav__ctx-title">{{ currentCtx.title }}</span>
+        <span class="po-nav__ctx-chevron" [class.open]="descriptionOpen">›</span>
+      </button>
+    }
 
     <div class="po-nav__links">
       <a routerLink="/algorithms" routerLinkActive="active">Algorithms</a>
@@ -32,37 +33,49 @@
   </div>
 
   <!-- Description popover, anchored below the nav -->
-  <div class="po-nav__popover" *ngIf="descriptionOpen && currentCtx">
-    <p class="po-popover__desc">{{ currentCtx.description }}</p>
-
-    <div class="po-popover__examples" *ngIf="currentCtx.examples.length">
-      <div *ngFor="let ex of currentCtx.examples; let i = index" class="po-popover__example">
-        <div class="po-popover__ex-header">Example {{ i + 1 }}</div>
-        <div class="po-popover__ex-body">
-          <div class="po-popover__ex-row">
-            <span class="po-popover__ex-label">Input</span>
-            <code class="po-popover__ex-code">{{ ex.input }}</code>
-          </div>
-          <div class="po-popover__ex-row">
-            <span class="po-popover__ex-label">Output</span>
-            <code class="po-popover__ex-code">{{ ex.output }}</code>
-          </div>
-          <div class="po-popover__ex-row" *ngIf="ex.explanation">
-            <span class="po-popover__ex-label">Why</span>
-            <span class="po-popover__ex-note">{{ ex.explanation }}</span>
-          </div>
+  @if (descriptionOpen && currentCtx) {
+    <div class="po-nav__popover">
+      <p class="po-popover__desc">{{ currentCtx.description }}</p>
+      @if (currentCtx.examples.length) {
+        <div class="po-popover__examples">
+          @for (ex of currentCtx.examples; track ex; let i = $index) {
+            <div class="po-popover__example">
+              <div class="po-popover__ex-header">Example {{ i + 1 }}</div>
+              <div class="po-popover__ex-body">
+                <div class="po-popover__ex-row">
+                  <span class="po-popover__ex-label">Input</span>
+                  <code class="po-popover__ex-code">{{ ex.input }}</code>
+                </div>
+                <div class="po-popover__ex-row">
+                  <span class="po-popover__ex-label">Output</span>
+                  <code class="po-popover__ex-code">{{ ex.output }}</code>
+                </div>
+                @if (ex.explanation) {
+                  <div class="po-popover__ex-row">
+                    <span class="po-popover__ex-label">Why</span>
+                    <span class="po-popover__ex-note">{{ ex.explanation }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
         </div>
-      </div>
+      }
+      @if (currentCtx.constraints.length) {
+        <ul class="po-popover__constraints">
+          @for (c of currentCtx.constraints; track c) {
+            <li>{{ c }}</li>
+          }
+        </ul>
+      }
     </div>
-
-    <ul class="po-popover__constraints" *ngIf="currentCtx.constraints.length">
-      <li *ngFor="let c of currentCtx.constraints">{{ c }}</li>
-    </ul>
-  </div>
+  }
 </nav>
 
 <!-- Backdrop: closes popover on outside click -->
-<div class="po-nav__backdrop" *ngIf="descriptionOpen" (click)="descriptionOpen = false"></div>
+@if (descriptionOpen) {
+  <div class="po-nav__backdrop" (click)="descriptionOpen = false"></div>
+}
 
 <main class="po-main">
   <router-outlet></router-outlet>

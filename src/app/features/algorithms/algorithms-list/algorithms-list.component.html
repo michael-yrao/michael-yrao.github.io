@@ -1,61 +1,142 @@
 <!-- ── Category picker (/algorithms) ─────────────────────────── -->
-<div class="list-page" *ngIf="!category">
-  <div class="list-page__header">
-    <div>
-      <div class="breadcrumb">
-        <a routerLink="/">Home</a>
-        <span>›</span>
-        <span>Algorithms</span>
+@if (!category) {
+  <div class="list-page">
+    <div class="list-page__header">
+      <div>
+        <div class="breadcrumb">
+          <a routerLink="/">Home</a>
+          <span>›</span>
+          <span>Algorithms</span>
+        </div>
+        <h1 class="list-page__title">Algorithms</h1>
       </div>
-      <h1 class="list-page__title">Algorithms</h1>
+      <span class="list-page__count">{{ totalVisualized }} visualized · {{ totalProblems }} total</span>
     </div>
-    <span class="list-page__count">{{ totalVisualized }} visualized · {{ totalProblems }} total</span>
-  </div>
-
-  <!-- View toggle tabs -->
-  <div class="view-toggle" role="tablist" aria-label="View mode">
-    <button
-      role="tab"
-      class="view-toggle__btn"
-      [class.view-toggle__btn--active]="viewMode === 'all'"
-      [attr.aria-selected]="viewMode === 'all'"
-      (click)="setViewMode('all')"
-    >≡ All Problems</button>
-    <button
-      role="tab"
-      class="view-toggle__btn"
-      [class.view-toggle__btn--active]="viewMode === 'categories'"
-      [attr.aria-selected]="viewMode === 'categories'"
-      (click)="setViewMode('categories')"
-    >⊞ Browse by Category</button>
-  </div>
-
-  <!-- Category grid -->
-  <div class="cat-grid" aria-label="Algorithm categories" *ngIf="viewMode === 'categories'">
-    <a
-      *ngFor="let card of categoryCards"
-      class="cat-card"
-      [routerLink]="['/algorithms', card.id]"
-    >
-      <div class="cat-card__top">
-        <span class="cat-card__icon">{{ card.icon }}</span>
-        <span class="cat-card__viz-badge" *ngIf="card.visualized > 0">{{ card.visualized }} viz</span>
-      </div>
-      <h3 class="cat-card__name">{{ card.label }}</h3>
-      <p class="cat-card__count">{{ card.total }} problem{{ card.total !== 1 ? 's' : '' }}</p>
-    </a>
-  </div>
-
-  <!-- All problems flat list -->
-  <ng-container *ngIf="viewMode === 'all'">
-    <div class="filters">
+    <!-- View toggle tabs -->
+    <div class="view-toggle" role="tablist" aria-label="View mode">
       <button
-        *ngFor="let d of difficulties"
-        class="filter-btn"
-        [class.filter-btn--active]="filterDifficulty === d"
-        [attr.aria-pressed]="filterDifficulty === d"
-        (click)="setDifficulty(d)"
-      >{{ d }}</button>
+        role="tab"
+        class="view-toggle__btn"
+        [class.view-toggle__btn--active]="viewMode === 'all'"
+        [attr.aria-selected]="viewMode === 'all'"
+        (click)="setViewMode('all')"
+      >≡ All Problems</button>
+      <button
+        role="tab"
+        class="view-toggle__btn"
+        [class.view-toggle__btn--active]="viewMode === 'categories'"
+        [attr.aria-selected]="viewMode === 'categories'"
+        (click)="setViewMode('categories')"
+      >⊞ Browse by Category</button>
+    </div>
+    <!-- Category grid -->
+    @if (viewMode === 'categories') {
+      <div class="cat-grid" aria-label="Algorithm categories">
+        @for (card of categoryCards; track card) {
+          <a
+            class="cat-card"
+            [routerLink]="['/algorithms', card.id]"
+            >
+            <div class="cat-card__top">
+              <span class="cat-card__icon">{{ card.icon }}</span>
+              @if (card.visualized > 0) {
+                <span class="cat-card__viz-badge">{{ card.visualized }} viz</span>
+              }
+            </div>
+            <h3 class="cat-card__name">{{ card.label }}</h3>
+            <p class="cat-card__count">{{ card.total }} problem{{ card.total !== 1 ? 's' : '' }}</p>
+          </a>
+        }
+      </div>
+    }
+    <!-- All problems flat list -->
+    @if (viewMode === 'all') {
+      <div class="filters">
+        @for (d of difficulties; track d) {
+          <button
+            class="filter-btn"
+            [class.filter-btn--active]="filterDifficulty === d"
+            [attr.aria-pressed]="filterDifficulty === d"
+            (click)="setDifficulty(d)"
+          >{{ d }}</button>
+        }
+        <button
+          class="filter-btn filter-btn--viz"
+          [class.filter-btn--active]="filterVisualized"
+          [attr.aria-pressed]="filterVisualized"
+          (click)="filterVisualized = !filterVisualized"
+        >⬡ Visualized only</button>
+      </div>
+      <div class="problem-list problem-list--all">
+        @for (p of filtered; track p) {
+          <div
+            class="problem-row"
+            role="link"
+            tabindex="0"
+            [attr.aria-label]="p.lcNumber + '. ' + p.title"
+            [routerLink]="['/algorithms', p.category, p.id]"
+            (keydown.enter)="openProblem(p)"
+            >
+            <span class="problem-row__num">#{{ p.lcNumber }}</span>
+            <div class="problem-row__title-area">
+              <span class="problem-row__title">{{ p.title }}</span>
+              <span class="problem-row__cat">{{ CATEGORY_LABELS[p.category] }}</span>
+            </div>
+            <span class="problem-row__tags">
+              @for (tag of p.tags.slice(0, 2); track tag) {
+                <span class="tag">{{ tag }}</span>
+              }
+            </span>
+            <span
+              class="difficulty-badge problem-row__diff"
+              [ngClass]="'badge-' + p.difficulty.toLowerCase()"
+            >{{ p.difficulty }}</span>
+            @if (hasSteps(p)) {
+              <span class="problem-row__viz" title="Visualization available">⬡</span>
+            }
+            @if (!hasSteps(p)) {
+              <span class="problem-row__viz problem-row__viz--empty"></span>
+            }
+            <a
+              class="problem-row__lc"
+              href="https://leetcode.com/problems/{{ p.id }}/"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="View on LeetCode"
+              (click)="$event.stopPropagation()"
+            >↗</a>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}
+
+<!-- ── Problem list (/algorithms/:category) ──────────────────── -->
+@if (category) {
+  <div class="list-page">
+    <div class="list-page__header">
+      <div>
+        <div class="breadcrumb">
+          <a routerLink="/">Home</a>
+          <span>›</span>
+          <a routerLink="/algorithms">Algorithms</a>
+          <span>›</span>
+          <span>{{ categoryLabel }}</span>
+        </div>
+        <h1 class="list-page__title">{{ categoryLabel }}</h1>
+      </div>
+      <span class="list-page__count">{{ filtered.length }} of {{ allProblems.length }}</span>
+    </div>
+    <div class="filters">
+      @for (d of difficulties; track d) {
+        <button
+          class="filter-btn"
+          [class.filter-btn--active]="filterDifficulty === d"
+          [attr.aria-pressed]="filterDifficulty === d"
+          (click)="setDifficulty(d)"
+        >{{ d }}</button>
+      }
       <button
         class="filter-btn filter-btn--viz"
         [class.filter-btn--active]="filterVisualized"
@@ -63,106 +144,43 @@
         (click)="filterVisualized = !filterVisualized"
       >⬡ Visualized only</button>
     </div>
-
-    <div class="problem-list problem-list--all">
-      <div
-        *ngFor="let p of filtered"
-        class="problem-row"
-        role="link"
-        tabindex="0"
-        [attr.aria-label]="p.lcNumber + '. ' + p.title"
-        [routerLink]="['/algorithms', p.category, p.id]"
-        (keydown.enter)="openProblem(p)"
-      >
-        <span class="problem-row__num">#{{ p.lcNumber }}</span>
-        <div class="problem-row__title-area">
+    <div class="problem-list">
+      @for (p of filtered; track p) {
+        <div
+          class="problem-row"
+          role="link"
+          tabindex="0"
+          [attr.aria-label]="p.lcNumber + '. ' + p.title"
+          [routerLink]="['/algorithms', p.category, p.id]"
+          (keydown.enter)="openProblem(p)"
+          >
+          <span class="problem-row__num">#{{ p.lcNumber }}</span>
           <span class="problem-row__title">{{ p.title }}</span>
-          <span class="problem-row__cat">{{ CATEGORY_LABELS[p.category] }}</span>
+          <span class="problem-row__tags">
+            @for (tag of p.tags.slice(0, 2); track tag) {
+              <span class="tag">{{ tag }}</span>
+            }
+          </span>
+          <span
+            class="difficulty-badge problem-row__diff"
+            [ngClass]="'badge-' + p.difficulty.toLowerCase()"
+          >{{ p.difficulty }}</span>
+          @if (hasSteps(p)) {
+            <span class="problem-row__viz" title="Visualization available">⬡</span>
+          }
+          @if (!hasSteps(p)) {
+            <span class="problem-row__viz problem-row__viz--empty"></span>
+          }
+          <a
+            class="problem-row__lc"
+            href="https://leetcode.com/problems/{{ p.id }}/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View on LeetCode"
+            (click)="$event.stopPropagation()"
+          >↗</a>
         </div>
-        <span class="problem-row__tags">
-          <span *ngFor="let tag of p.tags.slice(0, 2)" class="tag">{{ tag }}</span>
-        </span>
-        <span
-          class="difficulty-badge problem-row__diff"
-          [ngClass]="'badge-' + p.difficulty.toLowerCase()"
-        >{{ p.difficulty }}</span>
-        <span class="problem-row__viz" *ngIf="hasSteps(p)" title="Visualization available">⬡</span>
-        <span class="problem-row__viz problem-row__viz--empty" *ngIf="!hasSteps(p)"></span>
-        <a
-          class="problem-row__lc"
-          href="https://leetcode.com/problems/{{ p.id }}/"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="View on LeetCode"
-          (click)="$event.stopPropagation()"
-        >↗</a>
-      </div>
-    </div>
-  </ng-container>
-</div>
-
-<!-- ── Problem list (/algorithms/:category) ──────────────────── -->
-<div class="list-page" *ngIf="category">
-  <div class="list-page__header">
-    <div>
-      <div class="breadcrumb">
-        <a routerLink="/">Home</a>
-        <span>›</span>
-        <a routerLink="/algorithms">Algorithms</a>
-        <span>›</span>
-        <span>{{ categoryLabel }}</span>
-      </div>
-      <h1 class="list-page__title">{{ categoryLabel }}</h1>
-    </div>
-    <span class="list-page__count">{{ filtered.length }} of {{ allProblems.length }}</span>
-  </div>
-
-  <div class="filters">
-    <button
-      *ngFor="let d of difficulties"
-      class="filter-btn"
-      [class.filter-btn--active]="filterDifficulty === d"
-      [attr.aria-pressed]="filterDifficulty === d"
-      (click)="setDifficulty(d)"
-    >{{ d }}</button>
-
-    <button
-      class="filter-btn filter-btn--viz"
-      [class.filter-btn--active]="filterVisualized"
-      [attr.aria-pressed]="filterVisualized"
-      (click)="filterVisualized = !filterVisualized"
-    >⬡ Visualized only</button>
-  </div>
-
-  <div class="problem-list">
-    <div
-      *ngFor="let p of filtered"
-      class="problem-row"
-      role="link"
-      tabindex="0"
-      [attr.aria-label]="p.lcNumber + '. ' + p.title"
-      [routerLink]="['/algorithms', p.category, p.id]"
-      (keydown.enter)="openProblem(p)"
-    >
-      <span class="problem-row__num">#{{ p.lcNumber }}</span>
-      <span class="problem-row__title">{{ p.title }}</span>
-      <span class="problem-row__tags">
-        <span *ngFor="let tag of p.tags.slice(0, 2)" class="tag">{{ tag }}</span>
-      </span>
-      <span
-        class="difficulty-badge problem-row__diff"
-        [ngClass]="'badge-' + p.difficulty.toLowerCase()"
-      >{{ p.difficulty }}</span>
-      <span class="problem-row__viz" *ngIf="hasSteps(p)" title="Visualization available">⬡</span>
-      <span class="problem-row__viz problem-row__viz--empty" *ngIf="!hasSteps(p)"></span>
-      <a
-        class="problem-row__lc"
-        href="https://leetcode.com/problems/{{ p.id }}/"
-        target="_blank"
-        rel="noopener noreferrer"
-        title="View on LeetCode"
-        (click)="$event.stopPropagation()"
-      >↗</a>
+      }
     </div>
   </div>
-</div>
+}

@@ -1,244 +1,261 @@
-<div class="problem-page" *ngIf="problem">
-
-  <!-- ── Breadcrumb · neighbor nav ────────────────────────────── -->
-  <div class="problem-page__topbar">
-    <nav class="breadcrumb">
-      <a routerLink="/">Home</a>
-      <span>›</span>
-      <a routerLink="/algorithms">Algorithms</a>
-      <span>›</span>
-      <a [routerLink]="['/algorithms', problem.category]">{{ categoryLabels[problem.category] }}</a>
-      <span>›</span>
-      <span>{{ problem.title }}</span>
-    </nav>
-    <div class="problem-page__neighbor-nav">
-      <a
-        *ngIf="prevProblem"
-        [routerLink]="['/algorithms', prevProblem.category, prevProblem.id]"
-        class="neighbor-btn"
-        title="{{ prevProblem.title }}"
-      >← {{ prevProblem.lcNumber }}</a>
-      <a
-        *ngIf="nextProblem"
-        [routerLink]="['/algorithms', nextProblem.category, nextProblem.id]"
-        class="neighbor-btn"
-        title="{{ nextProblem.title }}"
-      >{{ nextProblem.lcNumber }} →</a>
+@if (problem) {
+  <div class="problem-page">
+    <!-- ── Breadcrumb · neighbor nav ────────────────────────────── -->
+    <div class="problem-page__topbar">
+      <nav class="breadcrumb">
+        <a routerLink="/">Home</a>
+        <span>›</span>
+        <a routerLink="/algorithms">Algorithms</a>
+        <span>›</span>
+        <a [routerLink]="['/algorithms', problem.category]">{{ categoryLabels[problem.category] }}</a>
+        <span>›</span>
+        <span>{{ problem.title }}</span>
+      </nav>
+      <div class="problem-page__neighbor-nav">
+        @if (prevProblem) {
+          <a
+            [routerLink]="['/algorithms', prevProblem.category, prevProblem.id]"
+            class="neighbor-btn"
+            title="{{ prevProblem.title }}"
+          >← {{ prevProblem.lcNumber }}</a>
+        }
+        @if (nextProblem) {
+          <a
+            [routerLink]="['/algorithms', nextProblem.category, nextProblem.id]"
+            class="neighbor-btn"
+            title="{{ nextProblem.title }}"
+          >{{ nextProblem.lcNumber }} →</a>
+        }
+      </div>
     </div>
-  </div>
-
-  <!-- ── Title + meta ──────────────────────────────────────────── -->
-  <div class="problem-page__header">
-    <div class="problem-page__title-row">
-      <span class="problem-page__num">#{{ problem.lcNumber }}</span>
-      <h1 class="problem-page__title">
-        <a
-          class="problem-page__title-link"
-          href="https://leetcode.com/problems/{{ problem.id }}/"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="View on LeetCode"
-        >{{ problem.title }}<sup class="problem-page__ext-icon">↗</sup></a>
-      </h1>
-    </div>
-    <div class="problem-page__meta">
-      <span
-        class="difficulty-badge"
-        [ngClass]="'badge-' + problem.difficulty.toLowerCase()"
-      >{{ problem.difficulty }}</span>
-      <span *ngFor="let tag of problem.tags" class="meta-tag">{{ tag }}</span>
-      <span class="complexity">⏱ {{ activeSolution?.timeComplexity || problem.timeComplexity }}</span>
-      <span class="complexity">💾 {{ activeSolution?.spaceComplexity || problem.spaceComplexity }}</span>
-    </div>
-  </div>
-
-  <!-- ── Sentinel: IntersectionObserver trigger ────────────────── -->
-  <div #descSentinel class="sticky-sentinel"></div>
-
-  <!-- ── Top: problem description (normal flow) ────────────────── -->
-  <div class="problem-page__top">
-
-    <section class="problem-page__section" *ngIf="problem.description">
-      <p class="prob-description">{{ problem.description }}</p>
-
-      <div class="prob-examples" *ngIf="problem.examples.length">
-        <div *ngFor="let ex of problem.examples; let i = index" class="prob-example">
-          <div class="prob-example__header">Example {{ i + 1 }}</div>
-          <div class="prob-example__body">
-            <div class="prob-example__row">
-              <span class="prob-example__label">Input</span>
-              <code class="prob-example__code">{{ ex.input }}</code>
-            </div>
-            <div class="prob-example__row">
-              <span class="prob-example__label">Output</span>
-              <code class="prob-example__code">{{ ex.output }}</code>
-            </div>
-            <div class="prob-example__row" *ngIf="ex.explanation">
-              <span class="prob-example__label">Why</span>
-              <span class="prob-example__explanation">{{ ex.explanation }}</span>
-            </div>
-          </div>
+    <!-- ── Title + meta ──────────────────────────────────────────── -->
+    <div class="problem-page__header">
+      <div class="problem-page__title-row">
+        <span class="problem-page__num">#{{ problem.lcNumber }}</span>
+        <h1 class="problem-page__title">
+          <a
+            class="problem-page__title-link"
+            href="https://leetcode.com/problems/{{ problem.id }}/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View on LeetCode"
+            >{{ problem.title }}<sup class="problem-page__ext-icon">↗</sup></a>
+          </h1>
+        </div>
+        <div class="problem-page__meta">
+          <span
+            class="difficulty-badge"
+            [ngClass]="'badge-' + problem.difficulty.toLowerCase()"
+          >{{ problem.difficulty }}</span>
+          @for (tag of problem.tags; track tag) {
+            <span class="meta-tag">{{ tag }}</span>
+          }
+          <span class="complexity">⏱ {{ activeSolution?.timeComplexity || problem.timeComplexity }}</span>
+          <span class="complexity">💾 {{ activeSolution?.spaceComplexity || problem.spaceComplexity }}</span>
         </div>
       </div>
-
-      <ul class="prob-constraints" *ngIf="problem.constraints.length">
-        <li *ngFor="let c of problem.constraints">{{ c }}</li>
-      </ul>
-    </section>
-
-    <section class="problem-page__section" *ngIf="problem.hint">
-      <app-hint-card [hint]="problem.hint"></app-hint-card>
-    </section>
-
-  </div>
-
-  <!-- ── Mid: solution tabs (left) · panel toggles (right) ───── -->
-  <div class="problem-page__mid">
-    <div class="solution-tabs" role="tablist" aria-label="Solution variants" *ngIf="hasMultipleSolutions">
-      <button
-        *ngFor="let sol of problem.solutions; let i = index"
-        role="tab"
-        class="solution-tab"
-        [class.active]="i === activeSolutionIndex"
-        [attr.aria-selected]="i === activeSolutionIndex"
-        (click)="selectSolution(i)"
-      >{{ sol.label }}</button>
-    </div>
-    <!-- spacer when no tabs, keeps toggles right-aligned -->
-    <span *ngIf="!hasMultipleSolutions"></span>
-    <div class="panel-toggles">
-      <button
-        class="panel-toggle"
-        [class.active]="showViz"
-        [attr.aria-pressed]="showViz"
-        (click)="togglePanel('viz')"
-        title="{{ showViz ? 'Hide' : 'Show' }} visualizer"
-      >Visualizer</button>
-      <button
-        class="panel-toggle"
-        [class.active]="showCode"
-        [attr.aria-pressed]="showCode"
-        (click)="togglePanel('code')"
-        title="{{ showCode ? 'Hide' : 'Show' }} code"
-      >Code</button>
-    </div>
-  </div>
-
-  <!-- ── Bottom: visualizer + code (side by side) ──────────────── -->
-  <div
-    class="problem-page__bottom"
-    [style.grid-template-columns]="bottomColumns"
-    *ngIf="showViz || showCode"
-  >
-
-    <!-- Visualizer ───────────────────────────────────────────────── -->
-    <div class="problem-page__panel" *ngIf="showViz">
-
-      <section class="problem-page__section" *ngIf="hasVisualization">
-        <div class="section-label">Visualization</div>
-
-        <div class="viz-prompt" *ngIf="!started">
-          <button class="viz-prompt__btn" (click)="startViz()">▶ Start Visualization</button>
-          <p class="viz-prompt__sub">Step through the algorithm with plain-English explanations at every decision point</p>
-        </div>
-
-        <ng-container *ngIf="started">
-          <div class="viz-stage">
-            <button
-              type="button"
-              class="viz-help-btn"
-              [class.active]="showWhy"
-              [attr.aria-pressed]="showWhy"
-              (click)="toggleWhy()"
-              title="{{ showWhy ? 'Hide' : 'Show' }} the 'Why this step?' explanation"
-              aria-label="Toggle explanation"
-            >?</button>
-
-            <div class="viz-canvas">
-            <app-array-visualizer
-              *ngIf="isArrayState"
-              [state]="$any(currentState)"
-            ></app-array-visualizer>
-
-            <app-grid-visualizer
-              *ngIf="isGridState"
-              [state]="$any(currentState)"
-            ></app-grid-visualizer>
-
-            <app-linked-list-visualizer
-              *ngIf="isLinkedListState"
-              [state]="$any(currentState)"
-            ></app-linked-list-visualizer>
-
-            <app-tree-visualizer
-              *ngIf="isTreeState"
-              [state]="$any(currentState)"
-            ></app-tree-visualizer>
-
-            <app-graph-visualizer
-              *ngIf="isGraphState"
-              [state]="$any(currentState)"
-            ></app-graph-visualizer>
-            </div>
-            <!-- end .viz-canvas -->
-          </div>
-          <!-- end .viz-stage -->
-
-          <!-- 'Why this step?' — toggled by the ? button; sits in normal flow
-               below the canvas so it reserves space instead of covering the viz. -->
-          <div class="viz-why" *ngIf="showWhy">
-            <app-explanation-card
-              [explanation]="currentStep?.explanation || ''"
-              [stepIndex]="currentStepIndex"
-            ></app-explanation-card>
-          </div>
-
-          <!-- Footer dock: step controls + outer-scope variables -->
-          <div class="viz-footer">
-            <div class="var-watch" *ngIf="currentStep?.variables?.length">
-              <span class="var-watch__label">Variables</span>
-              <span
-                *ngFor="let v of currentStep!.variables"
-                class="var-watch__item"
-                [class.var-watch__item--hl]="v.highlight"
-              >
-                <span class="var-watch__name">{{ v.name }}</span>
-                <span class="var-watch__sep">=</span>
-                <span class="var-watch__val">{{ v.value }}</span>
-              </span>
-            </div>
-
-            <app-step-controls
-              [currentStep]="currentStepIndex"
-              [totalSteps]="steps.length"
-              (stepChange)="onStepChange($event)"
-              (reset)="onReset()"
-            ></app-step-controls>
-          </div>
-        </ng-container>
-      </section>
-
-      <div class="no-viz" *ngIf="!hasVisualization">
-        <span>⬡</span>
-        <p>Visualization coming soon for this problem.</p>
+      <!-- ── Sentinel: IntersectionObserver trigger ────────────────── -->
+      <div #descSentinel class="sticky-sentinel"></div>
+      <!-- ── Top: problem description (normal flow) ────────────────── -->
+      <div class="problem-page__top">
+        @if (problem.description) {
+          <section class="problem-page__section">
+            <p class="prob-description">{{ problem.description }}</p>
+            @if (problem.examples.length) {
+              <div class="prob-examples">
+                @for (ex of problem.examples; track ex; let i = $index) {
+                  <div class="prob-example">
+                    <div class="prob-example__header">Example {{ i + 1 }}</div>
+                    <div class="prob-example__body">
+                      <div class="prob-example__row">
+                        <span class="prob-example__label">Input</span>
+                        <code class="prob-example__code">{{ ex.input }}</code>
+                      </div>
+                      <div class="prob-example__row">
+                        <span class="prob-example__label">Output</span>
+                        <code class="prob-example__code">{{ ex.output }}</code>
+                      </div>
+                      @if (ex.explanation) {
+                        <div class="prob-example__row">
+                          <span class="prob-example__label">Why</span>
+                          <span class="prob-example__explanation">{{ ex.explanation }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+            @if (problem.constraints.length) {
+              <ul class="prob-constraints">
+                @for (c of problem.constraints; track c) {
+                  <li>{{ c }}</li>
+                }
+              </ul>
+            }
+          </section>
+        }
+        @if (problem.hint) {
+          <section class="problem-page__section">
+            <app-hint-card [hint]="problem.hint"></app-hint-card>
+          </section>
+        }
       </div>
-
+      <!-- ── Mid: solution tabs (left) · panel toggles (right) ───── -->
+      <div class="problem-page__mid">
+        @if (hasMultipleSolutions) {
+          <div class="solution-tabs" role="tablist" aria-label="Solution variants">
+            @for (sol of problem.solutions; track sol; let i = $index) {
+              <button
+                role="tab"
+                class="solution-tab"
+                [class.active]="i === activeSolutionIndex"
+                [attr.aria-selected]="i === activeSolutionIndex"
+                (click)="selectSolution(i)"
+              >{{ sol.label }}</button>
+            }
+          </div>
+        }
+        <!-- spacer when no tabs, keeps toggles right-aligned -->
+        @if (!hasMultipleSolutions) {
+          <span></span>
+        }
+        <div class="panel-toggles">
+          <button
+            class="panel-toggle"
+            [class.active]="showViz"
+            [attr.aria-pressed]="showViz"
+            (click)="togglePanel('viz')"
+            title="{{ showViz ? 'Hide' : 'Show' }} visualizer"
+          >Visualizer</button>
+          <button
+            class="panel-toggle"
+            [class.active]="showCode"
+            [attr.aria-pressed]="showCode"
+            (click)="togglePanel('code')"
+            title="{{ showCode ? 'Hide' : 'Show' }} code"
+          >Code</button>
+        </div>
+      </div>
+      <!-- ── Bottom: visualizer + code (side by side) ──────────────── -->
+      @if (showViz || showCode) {
+        <div
+          class="problem-page__bottom"
+          [style.grid-template-columns]="bottomColumns"
+          >
+          <!-- Visualizer ───────────────────────────────────────────────── -->
+          @if (showViz) {
+            <div class="problem-page__panel">
+              @if (hasVisualization) {
+                <section class="problem-page__section">
+                  <div class="section-label">Visualization</div>
+                  @if (!started) {
+                    <div class="viz-prompt">
+                      <button class="viz-prompt__btn" (click)="startViz()">▶ Start Visualization</button>
+                      <p class="viz-prompt__sub">Step through the algorithm with plain-English explanations at every decision point</p>
+                    </div>
+                  }
+                  @if (started) {
+                    <div class="viz-stage">
+                      <button
+                        type="button"
+                        class="viz-help-btn"
+                        [class.active]="showWhy"
+                        [attr.aria-pressed]="showWhy"
+                        (click)="toggleWhy()"
+                        title="{{ showWhy ? 'Hide' : 'Show' }} the 'Why this step?' explanation"
+                        aria-label="Toggle explanation"
+                      >?</button>
+                      <div class="viz-canvas">
+                        @if (isArrayState) {
+                          <app-array-visualizer
+                            [state]="$any(currentState)"
+                          ></app-array-visualizer>
+                        }
+                        @if (isGridState) {
+                          <app-grid-visualizer
+                            [state]="$any(currentState)"
+                          ></app-grid-visualizer>
+                        }
+                        @if (isLinkedListState) {
+                          <app-linked-list-visualizer
+                            [state]="$any(currentState)"
+                          ></app-linked-list-visualizer>
+                        }
+                        @if (isTreeState) {
+                          <app-tree-visualizer
+                            [state]="$any(currentState)"
+                          ></app-tree-visualizer>
+                        }
+                        @if (isGraphState) {
+                          <app-graph-visualizer
+                            [state]="$any(currentState)"
+                          ></app-graph-visualizer>
+                        }
+                      </div>
+                      <!-- end .viz-canvas -->
+                    </div>
+                    <!-- end .viz-stage -->
+                    <!-- 'Why this step?' — toggled by the ? button; sits in normal flow
+                    below the canvas so it reserves space instead of covering the viz. -->
+                    @if (showWhy) {
+                      <div class="viz-why">
+                        <app-explanation-card
+                          [explanation]="currentStep?.explanation || ''"
+                          [stepIndex]="currentStepIndex"
+                        ></app-explanation-card>
+                      </div>
+                    }
+                    <!-- Footer dock: step controls + outer-scope variables -->
+                    <div class="viz-footer">
+                      @if (currentStep?.variables?.length) {
+                        <div class="var-watch">
+                          <span class="var-watch__label">Variables</span>
+                          @for (v of currentStep!.variables; track v) {
+                            <span
+                              class="var-watch__item"
+                              [class.var-watch__item--hl]="v.highlight"
+                              >
+                              <span class="var-watch__name">{{ v.name }}</span>
+                              <span class="var-watch__sep">=</span>
+                              <span class="var-watch__val">{{ v.value }}</span>
+                            </span>
+                          }
+                        </div>
+                      }
+                      <app-step-controls
+                        [currentStep]="currentStepIndex"
+                        [totalSteps]="steps.length"
+                        (stepChange)="onStepChange($event)"
+                        (reset)="onReset()"
+                      ></app-step-controls>
+                    </div>
+                  }
+                </section>
+              }
+              @if (!hasVisualization) {
+                <div class="no-viz">
+                  <span>⬡</span>
+                  <p>Visualization coming soon for this problem.</p>
+                </div>
+              }
+            </div>
+          }
+          <!-- Code ────────────────────────────────────────────────────── -->
+          @if (showCode) {
+            <div class="problem-page__panel">
+              @if (activeSolution?.pythonCode) {
+                <section class="problem-page__section">
+                  <div class="section-label">{{ activeSolution!.label || 'Solution' }}</div>
+                  <app-code-viewer
+                    [code]="activeSolution!.pythonCode"
+                    [activeLine]="started ? currentStep?.highlightLine : undefined"
+                  ></app-code-viewer>
+                </section>
+              }
+            </div>
+          }
+        </div>
+      }
     </div>
-
-    <!-- Code ────────────────────────────────────────────────────── -->
-    <div class="problem-page__panel" *ngIf="showCode">
-
-      <section class="problem-page__section" *ngIf="activeSolution?.pythonCode">
-        <div class="section-label">{{ activeSolution!.label || 'Solution' }}</div>
-        <app-code-viewer
-          [code]="activeSolution!.pythonCode"
-          [activeLine]="started ? currentStep?.highlightLine : undefined"
-        ></app-code-viewer>
-      </section>
-
-    </div>
-
-  </div>
-
-
-</div>
+  }

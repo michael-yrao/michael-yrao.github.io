@@ -40,77 +40,88 @@
   </div>
 
   <!-- ── Run summary ─────────────────────────────────────────── -->
-  <div class="ps-summary" *ngIf="finished">
-    <h2 class="ps-summary__title">Deck complete!</h2>
-    <p class="ps-summary__line">
-      You recognized <strong>{{ correctCount }}</strong> of <strong>{{ answeredCount }}</strong> patterns.
-      Best streak: <strong>{{ bestStreak }}</strong>.
-    </p>
-    <button class="ps-next" (click)="startRun()">↺ Shuffle &amp; play again</button>
-  </div>
+  @if (finished) {
+    <div class="ps-summary">
+      <h2 class="ps-summary__title">Deck complete!</h2>
+      <p class="ps-summary__line">
+        You recognized <strong>{{ correctCount }}</strong> of <strong>{{ answeredCount }}</strong> patterns.
+        Best streak: <strong>{{ bestStreak }}</strong>.
+      </p>
+      <button class="ps-next" (click)="startRun()">↺ Shuffle &amp; play again</button>
+    </div>
+  }
 
-  <ng-container *ngIf="!finished && current">
+  @if (!finished && current) {
     <!-- ── Problem scenario (title hidden until reveal) ────────── -->
     <section class="ps-scenario">
       <div class="ps-scenario__label">
-        <ng-container *ngIf="!revealed">Mystery problem — which technique does it call for?</ng-container>
-        <ng-container *ngIf="revealed">
+        @if (!revealed) {
+          Mystery problem — which technique does it call for?
+        }
+        @if (revealed) {
           <a
             class="ps-scenario__title-link"
             [routerLink]="['/algorithms', current.category, current.id]"
           >#{{ current.lcNumber }} · {{ current.title }} →</a>
-        </ng-container>
+        }
       </div>
-
       <p class="ps-scenario__desc">{{ current.description }}</p>
-
-      <ul class="ps-scenario__constraints" *ngIf="current.constraints.length">
-        <li *ngFor="let c of current.constraints">{{ c }}</li>
-      </ul>
+      @if (current.constraints.length) {
+        <ul class="ps-scenario__constraints">
+          @for (c of current.constraints; track c) {
+            <li>{{ c }}</li>
+          }
+        </ul>
+      }
     </section>
-
     <!-- ── Technique chips ─────────────────────────────────────── -->
     <div class="ps-options" role="group" aria-label="Pick the technique">
-      <button
-        *ngFor="let opt of options"
-        class="ps-chip"
-        [class.ps-chip--selected]="selected === opt.id"
-        [class.ps-chip--correct]="revealed && opt.id === current.category"
-        [class.ps-chip--wrong]="revealed && selected === opt.id && opt.id !== current.category"
-        [disabled]="revealed"
-        [attr.aria-pressed]="selected === opt.id"
-        (click)="choose(opt.id)"
-      >{{ opt.label }}</button>
+      @for (opt of options; track opt) {
+        <button
+          class="ps-chip"
+          [class.ps-chip--selected]="selected === opt.id"
+          [class.ps-chip--correct]="revealed && opt.id === current.category"
+          [class.ps-chip--wrong]="revealed && selected === opt.id && opt.id !== current.category"
+          [disabled]="revealed"
+          [attr.aria-pressed]="selected === opt.id"
+          (click)="choose(opt.id)"
+        >{{ opt.label }}</button>
+      }
     </div>
-
     <!-- ── Reveal panel ────────────────────────────────────────── -->
-    <section class="ps-reveal" *ngIf="revealed" aria-live="polite">
-      <div class="ps-reveal__verdict" [class.ps-reveal__verdict--correct]="isCorrect">
-        <ng-container *ngIf="isCorrect">✓ Correct — {{ correctLabel }}</ng-container>
-        <ng-container *ngIf="!isCorrect">✗ It's {{ correctLabel }}</ng-container>
-      </div>
-
-      <p class="ps-reveal__cue">{{ recognitionCue }}</p>
-
-      <p class="ps-reveal__hint" *ngIf="current.hint">
-        <span class="ps-reveal__hint-label">Why it works here:</span> {{ current.hint }}
-      </p>
-
-      <div class="ps-reveal__meta">
-        <span
-          class="difficulty-badge"
-          [ngClass]="'badge-' + current.difficulty.toLowerCase()"
-        >{{ current.difficulty }}</span>
-        <span *ngFor="let tag of current.tags" class="ps-tag">{{ tag }}</span>
-      </div>
-
-      <div class="ps-reveal__actions">
-        <a
-          class="ps-see-algo"
-          [routerLink]="['/algorithms', current.category, current.id]"
-        >See it step by step →</a>
-        <button class="ps-next" (click)="next()">Next problem →</button>
-      </div>
-    </section>
-  </ng-container>
+    @if (revealed) {
+      <section class="ps-reveal" aria-live="polite">
+        <div class="ps-reveal__verdict" [class.ps-reveal__verdict--correct]="isCorrect">
+          @if (isCorrect) {
+            ✓ Correct — {{ correctLabel }}
+          }
+          @if (!isCorrect) {
+            ✗ It's {{ correctLabel }}
+          }
+        </div>
+        <p class="ps-reveal__cue">{{ recognitionCue }}</p>
+        @if (current.hint) {
+          <p class="ps-reveal__hint">
+            <span class="ps-reveal__hint-label">Why it works here:</span> {{ current.hint }}
+          </p>
+        }
+        <div class="ps-reveal__meta">
+          <span
+            class="difficulty-badge"
+            [ngClass]="'badge-' + current.difficulty.toLowerCase()"
+          >{{ current.difficulty }}</span>
+          @for (tag of current.tags; track tag) {
+            <span class="ps-tag">{{ tag }}</span>
+          }
+        </div>
+        <div class="ps-reveal__actions">
+          <a
+            class="ps-see-algo"
+            [routerLink]="['/algorithms', current.category, current.id]"
+          >See it step by step →</a>
+          <button class="ps-next" (click)="next()">Next problem →</button>
+        </div>
+      </section>
+    }
+  }
 </div>

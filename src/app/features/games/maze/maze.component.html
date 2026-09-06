@@ -36,33 +36,42 @@
           [disabled]="phase === 'generating' || phase === 'solving'"
         >Solve with DFS</button>
         <span class="maze-phase" aria-live="polite">
-          <ng-container [ngSwitch]="phase">
-            <ng-container *ngSwitchCase="'generating'">carving with randomized DFS…</ng-container>
-            <ng-container *ngSwitchCase="'ready'">pick a solver</ng-container>
-            <ng-container *ngSwitchCase="'solving'">{{ activeSolver === 'bfs' ? 'BFS wavefront expanding…' : 'DFS diving down corridors…' }}</ng-container>
-            <ng-container *ngSwitchCase="'solved'">solved with {{ activeSolver?.toUpperCase() }}</ng-container>
-          </ng-container>
+          @switch (phase) {
+            @case ('generating') {
+              carving with randomized DFS…
+            }
+            @case ('ready') {
+              pick a solver
+            }
+            @case ('solving') {
+              {{ activeSolver === 'bfs' ? 'BFS wavefront expanding…' : 'DFS diving down corridors…' }}
+            }
+            @case ('solved') {
+              solved with {{ activeSolver?.toUpperCase() }}
+            }
+          }
         </span>
       </div>
 
       <div class="maze-grid" [style.grid-template-columns]="'repeat(' + cols + ', 1fr)'" role="img"
         aria-label="Maze grid being generated and solved">
-        <ng-container *ngFor="let row of grid">
-          <div
-            *ngFor="let cell of row; trackBy: trackCell"
-            class="maze-cell"
-            [class.maze-cell--raw]="!cell.carved"
-            [class.maze-cell--current]="cell.isCurrent"
-            [class.maze-cell--explored]="cell.solve === 'explored'"
-            [class.maze-cell--path]="cell.solve === 'path'"
-            [class.maze-cell--start]="cell.r === 0 && cell.c === 0"
-            [class.maze-cell--goal]="cell.r === rows - 1 && cell.c === cols - 1"
-            [class.wall-t]="cell.walls.top"
-            [class.wall-l]="cell.walls.left"
-            [class.wall-r]="cell.c === cols - 1 && cell.walls.right"
-            [class.wall-b]="cell.r === rows - 1 && cell.walls.bottom"
-          ></div>
-        </ng-container>
+        @for (row of grid; track row) {
+          @for (cell of row; track trackCell($index, cell)) {
+            <div
+              class="maze-cell"
+              [class.maze-cell--raw]="!cell.carved"
+              [class.maze-cell--current]="cell.isCurrent"
+              [class.maze-cell--explored]="cell.solve === 'explored'"
+              [class.maze-cell--path]="cell.solve === 'path'"
+              [class.maze-cell--start]="cell.r === 0 && cell.c === 0"
+              [class.maze-cell--goal]="cell.r === rows - 1 && cell.c === cols - 1"
+              [class.wall-t]="cell.walls.top"
+              [class.wall-l]="cell.walls.left"
+              [class.wall-r]="cell.c === cols - 1 && cell.walls.right"
+              [class.wall-b]="cell.r === rows - 1 && cell.walls.bottom"
+            ></div>
+          }
+        }
       </div>
 
       <div class="maze-legend">
@@ -73,28 +82,36 @@
       </div>
 
       <!-- ── BFS vs DFS scoreboard ─────────────────────────────── -->
-      <div class="solve-stats" *ngIf="results.bfs || results.dfs">
-        <div class="solve-stats__row solve-stats__row--header">
-          <span>Solver</span><span>Cells explored</span><span>Path length</span><span>Shortest?</span>
+      @if (results.bfs || results.dfs) {
+        <div class="solve-stats">
+          <div class="solve-stats__row solve-stats__row--header">
+            <span>Solver</span><span>Cells explored</span><span>Path length</span><span>Shortest?</span>
+          </div>
+          @if (results.bfs; as r) {
+            <div class="solve-stats__row">
+              <span class="solver-name solver-name--bfs">BFS</span>
+              <span>{{ r.explored }}</span>
+              <span>{{ r.pathLength }}</span>
+              <span>✓ guaranteed</span>
+            </div>
+          }
+          @if (results.dfs; as r) {
+            <div class="solve-stats__row">
+              <span class="solver-name solver-name--dfs">DFS</span>
+              <span>{{ r.explored }}</span>
+              <span>{{ r.pathLength }}</span>
+              <span>{{ results.bfs && r.pathLength > results.bfs!.pathLength ? '✗ longer' : 'not guaranteed' }}</span>
+            </div>
+          }
+          @if (results.bfs && results.dfs) {
+            <p class="solve-stats__note">
+              Same maze, same start and goal — BFS explores level by level and is guaranteed to
+              find the shortest path; DFS commits to one corridor at a time and returns whatever
+              path it stumbles into first. Run both on a few mazes and watch the gap.
+            </p>
+          }
         </div>
-        <div class="solve-stats__row" *ngIf="results.bfs as r">
-          <span class="solver-name solver-name--bfs">BFS</span>
-          <span>{{ r.explored }}</span>
-          <span>{{ r.pathLength }}</span>
-          <span>✓ guaranteed</span>
-        </div>
-        <div class="solve-stats__row" *ngIf="results.dfs as r">
-          <span class="solver-name solver-name--dfs">DFS</span>
-          <span>{{ r.explored }}</span>
-          <span>{{ r.pathLength }}</span>
-          <span>{{ results.bfs && r.pathLength > results.bfs!.pathLength ? '✗ longer' : 'not guaranteed' }}</span>
-        </div>
-        <p class="solve-stats__note" *ngIf="results.bfs && results.dfs">
-          Same maze, same start and goal — BFS explores level by level and is guaranteed to
-          find the shortest path; DFS commits to one corridor at a time and returns whatever
-          path it stumbles into first. Run both on a few mazes and watch the gap.
-        </p>
-      </div>
+      }
     </div>
 
     <!-- ── Educational sidebar ─────────────────────────────────── -->

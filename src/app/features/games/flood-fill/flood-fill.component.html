@@ -44,46 +44,50 @@
             class="game-grid"
             [class.game-grid--won]="gameState === 'won'"
             [class.game-grid--lost]="gameState === 'lost'"
-          >
-            <div
-              *ngFor="let cell of cells; trackBy: trackByIdx; let i = index"
-              class="cell"
-              [class.cell--wave]="waveCells.has(i)"
-              [style.background-color]="colors[cell]"
-            ></div>
+            >
+            @for (cell of cells; track $index; let i = $index) {
+              <div
+                class="cell"
+                [class.cell--wave]="waveCells.has(i)"
+                [style.background-color]="colors[cell]"
+              ></div>
+            }
           </div>
 
-          <div class="game-overlay" *ngIf="gameState !== 'playing'">
-            <div class="game-overlay__content">
-              <div class="game-overlay__icon" [class.game-overlay__icon--win]="gameState === 'won'">
-                {{ gameState === 'won' ? '✓' : '✗' }}
+          @if (gameState !== 'playing') {
+            <div class="game-overlay">
+              <div class="game-overlay__content">
+                <div class="game-overlay__icon" [class.game-overlay__icon--win]="gameState === 'won'">
+                  {{ gameState === 'won' ? '✓' : '✗' }}
+                </div>
+                <div class="game-overlay__title">
+                  {{ gameState === 'won' ? 'Board Conquered!' : 'Game Over' }}
+                </div>
+                <div class="game-overlay__sub">
+                  @if (gameState === 'won') {
+                    Finished in {{ maxMoves - movesLeft }} move{{ maxMoves - movesLeft === 1 ? '' : 's' }}
+                  }
+                  @if (gameState === 'lost') {
+                    The board wasn't conquered in {{ maxMoves }} moves.
+                  }
+                </div>
+                <button class="btn-play-again" (click)="initGame()">Play Again</button>
               </div>
-              <div class="game-overlay__title">
-                {{ gameState === 'won' ? 'Board Conquered!' : 'Game Over' }}
-              </div>
-              <div class="game-overlay__sub">
-                <ng-container *ngIf="gameState === 'won'">
-                  Finished in {{ maxMoves - movesLeft }} move{{ maxMoves - movesLeft === 1 ? '' : 's' }}
-                </ng-container>
-                <ng-container *ngIf="gameState === 'lost'">
-                  The board wasn't conquered in {{ maxMoves }} moves.
-                </ng-container>
-              </div>
-              <button class="btn-play-again" (click)="initGame()">Play Again</button>
             </div>
-          </div>
+          }
         </div>
 
         <div class="color-picker">
-          <button
-            *ngFor="let i of colorIndices"
-            class="color-btn"
-            [class.color-btn--active]="i === currentColor"
-            [style.background-color]="colors[i]"
-            [attr.aria-label]="'Pick color ' + (i + 1)"
-            [disabled]="gameState !== 'playing' || isAnimating || solverRunning"
-            (click)="pickColor(i)"
-          ></button>
+          @for (i of colorIndices; track i) {
+            <button
+              class="color-btn"
+              [class.color-btn--active]="i === currentColor"
+              [style.background-color]="colors[i]"
+              [attr.aria-label]="'Pick color ' + (i + 1)"
+              [disabled]="gameState !== 'playing' || isAnimating || solverRunning"
+              (click)="pickColor(i)"
+            ></button>
+          }
         </div>
       </div>
     </div>
@@ -153,18 +157,21 @@
           </div>
 
           <div class="solver-controls">
-            <button
-              *ngIf="!solverRunning"
-              class="btn-solver"
-              [disabled]="gameState !== 'playing' || isAnimating"
-              (click)="watchSolver()"
-            >
-              ▶ Watch it solve this board
-            </button>
-            <div *ngIf="solverRunning" class="solver-running">
-              <span class="solver-running__label">Greedy solver — move {{ solverMoveIdx }} / {{ greedyBest }}</span>
-              <button class="btn-solver-stop" (click)="stopSolver()">Stop</button>
-            </div>
+            @if (!solverRunning) {
+              <button
+                class="btn-solver"
+                [disabled]="gameState !== 'playing' || isAnimating"
+                (click)="watchSolver()"
+                >
+                ▶ Watch it solve this board
+              </button>
+            }
+            @if (solverRunning) {
+              <div class="solver-running">
+                <span class="solver-running__label">Greedy solver — move {{ solverMoveIdx }} / {{ greedyBest }}</span>
+                <button class="btn-solver-stop" (click)="stopSolver()">Stop</button>
+              </div>
+            }
           </div>
 
           <div class="algo-breakdown__links">

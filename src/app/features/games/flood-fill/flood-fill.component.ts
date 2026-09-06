@@ -118,10 +118,6 @@ export class FloodFillComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  trackByIdx(index: number): number {
-    return index;
-  }
-
   // ── Solver playback ──────────────────────────────────────────────────────────
 
   private stepSolver(): void {

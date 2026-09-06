@@ -4,7 +4,9 @@
     {{ revealed ? 'Hide Hint' : 'Show Hint' }}
     <span class="hint__chevron" [class.hint__chevron--open]="revealed">›</span>
   </button>
-  <div class="hint__body" *ngIf="revealed" [@expand]>
-    <p>{{ hint }}</p>
-  </div>
+  @if (revealed) {
+    <div class="hint__body" [@expand]>
+      <p>{{ hint }}</p>
+    </div>
+  }
 </div>
