@@ -1,0 +1,15 @@
+<div class="badges">
+  @for (b of sorted(); track b.id) {
+    <div
+      class="badge"
+      [class.earned]="b.earned"
+      [class.locked]="!b.earned"
+      [attr.title]="b.description"
+      tabindex="0"
+    >
+      <span class="badge__icon">{{ b.icon || '•' }}</span>
+      <span class="badge__title">{{ b.title }}</span>
+      <span class="badge__desc">{{ b.description }}</span>
+    </div>
+  }
+</div>

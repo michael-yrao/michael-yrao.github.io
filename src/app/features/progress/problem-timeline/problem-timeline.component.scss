@@ -1,0 +1,35 @@
+.timeline {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.grid {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  opacity: 0.4;
+}
+
+.curve {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+
+circle {
+  transition: r var(--transition-fast);
+}
+
+circle.unknown {
+  stroke-dasharray: 2 2;
+  opacity: 0.7;
+}
+
+.timeline-empty {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}

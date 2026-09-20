@@ -1,0 +1,187 @@
+<section class="progress">
+  <header class="progress__head">
+    <h1>Progress</h1>
+    @if (repoSlug()) {
+      <a
+        class="progress__repo"
+        [href]="'https://github.com/' + repoSlug()"
+        target="_blank"
+        rel="noopener"
+        >{{ repoSlug() }} ↗</a
+      >
+    }
+  </header>
+
+  @switch (status()) {
+    @case ('loading') {
+      <p class="progress__msg">Loading progress…</p>
+    }
+    @case ('error') {
+      <div class="progress__error">
+        <p>{{ error() }}</p>
+        <button type="button" (click)="retry()">Retry</button>
+        <p class="progress__hint">
+          Point the viewer at any public cse-coach repo with
+          <code>?repo=owner/name</code> in the URL.
+        </p>
+      </div>
+    }
+    @case ('ready') {
+      @if (data(); as d) {
+        <!-- Streak hero -->
+        <div class="hero">
+          <div class="hero__streak">
+            <span class="hero__flame">🔥</span>
+            <span class="hero__num">{{ d.streak.current }}</span>
+            <span class="hero__label"
+              >day streak
+              @if (d.streak.longest > d.streak.current) {
+                <em>· best {{ d.streak.longest }}</em>
+              }
+            </span>
+          </div>
+          <div class="hero__tiles">
+            <div class="tile"><b>{{ d.totals.reps }}</b><span>reps</span></div>
+            <div class="tile"><b>{{ d.totals.problems }}</b><span>problems</span></div>
+            <div class="tile">
+              <b>{{ d.pipeline.graduated + d.pipeline.retired }}</b><span>mastered</span>
+            </div>
+            @if (d.coverage) {
+              <div class="tile">
+                <b>{{ d.coverage.started }}/{{ d.coverage.total }}</b><span>techniques</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Mastery pipeline -->
+        <div class="card">
+          <h2>Mastery pipeline</h2>
+          <p class="card__sub">Problems maturing 🔴 → 🟡 → 🟢 → 🎓 → 🏆. This, not a row count, is progress.</p>
+          <div class="funnel" role="img" aria-label="Mastery pipeline distribution">
+            @for (seg of pipelineSegments(); track seg.key) {
+              <div
+                class="funnel__seg"
+                [class]="seg.cls"
+                [style.width.%]="pct(seg.value)"
+                [attr.title]="seg.label + ': ' + seg.value"
+              >
+                <span class="funnel__val">{{ seg.value }}</span>
+              </div>
+            }
+          </div>
+          <ul class="legend">
+            @for (seg of pipelineSegments(); track seg.key) {
+              <li><span class="legend__dot" [class]="seg.cls"></span>{{ seg.label }} · {{ seg.value }}</li>
+            }
+          </ul>
+        </div>
+
+        <!-- On-schedule + coverage gauges -->
+        <div class="gauges">
+          @if (d.onSchedule; as os) {
+            <div class="card gauge">
+              <h2>On schedule</h2>
+              <div class="gauge__big" [class.gauge__warn]="onSchedulePct() < 90">
+                {{ onSchedulePct() }}%
+              </div>
+              <p class="card__sub">
+                {{ os.overdue }} overdue · {{ os.dueToday }} due today · {{ os.totalActive }} active
+              </p>
+            </div>
+          }
+          @if (d.coverage; as cov) {
+            <div class="card gauge">
+              <h2>Technique breadth</h2>
+              <div class="gauge__big">{{ cov.started }}/{{ cov.total }}</div>
+              <p class="card__sub">
+                {{ cov.noGreen }} with no 🟢 · {{ cov.thin }} thin · {{ cov.variantGaps }} variant gaps
+              </p>
+            </div>
+          }
+        </div>
+
+        <!-- Achievements -->
+        <div class="card">
+          <h2>Achievements</h2>
+          <p class="card__sub">Every badge unlocks on a genuine event — never a raw count or a rating.</p>
+          <app-badge-grid [badges]="d.badges" />
+        </div>
+
+        <!-- Trophy case -->
+        @if (d.trophyCase; as tc) {
+          @if (tc.graduated.length || tc.retired.length) {
+            <div class="card">
+              <h2>Trophy case</h2>
+              <p class="card__sub">The accomplishment record — graduated 🎓 and retired 🏆.</p>
+              <div class="trophies">
+                @for (g of tc.graduated; track g.lcNumber) {
+                  <span class="trophy">🎓 {{ g.lcNumber }} · {{ g.title }}</span>
+                }
+                @for (r of tc.retired; track r.lcNumber) {
+                  <span class="trophy trophy--retired">🏆 {{ r.lcNumber }} · {{ r.title }}</span>
+                }
+              </div>
+            </div>
+          }
+        }
+
+        <!-- Per-problem progression -->
+        <div class="card">
+          <div class="problems__head">
+            <h2>Per-problem progression</h2>
+            <div class="filters">
+              @for (f of comfortFilters; track f) {
+                <button
+                  type="button"
+                  class="filters__btn"
+                  [class.active]="filter() === f"
+                  (click)="filter.set(f)"
+                >{{ f === 'all' ? 'All' : f }}</button>
+              }
+            </div>
+          </div>
+
+          <div class="problems">
+            @for (p of visibleProblems(); track p.lcNumber + '-' + p.title) {
+              <div class="problem">
+                <div class="problem__meta">
+                  <div class="problem__title">
+                    <span class="problem__comfort">{{ p.comfort }}</span>
+                    <span class="problem__num">{{ p.lcNumber }}</span>
+                    <span class="problem__name">{{ p.title }}</span>
+                  </div>
+                  <div class="problem__tags">
+                    @if (p.difficulty) {
+                      <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
+                    }
+                    @if (p.category) { <span class="tag">{{ p.category }}</span> }
+                    <span class="tag">{{ p.repDates.length }} reps</span>
+                  </div>
+                  <div class="problem__links">
+                    @if (vizRoute(p.lcNumber); as route) {
+                      <a [routerLink]="route">Visualize ▶</a>
+                    }
+                    @if (p.url) {
+                      <a [href]="p.url" target="_blank" rel="noopener">LeetCode ↗</a>
+                    }
+                  </div>
+                </div>
+                <div class="problem__chart">
+                  <app-problem-timeline [problem]="p" />
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        @if (d.warnings?.length) {
+          <p class="progress__warn">
+            Some inputs were partial: {{ d.warnings?.join('; ') }}
+          </p>
+        }
+        <p class="progress__gen">Generated {{ d.generatedAt }}</p>
+      }
+    }
+  }
+</section>

@@ -1,0 +1,40 @@
+@if (points().length) {
+  <svg
+    class="timeline"
+    [attr.viewBox]="'0 0 ' + W + ' ' + H"
+    preserveAspectRatio="xMidYMid meet"
+    role="img"
+    [attr.aria-label]="'Comfort progression for problem ' + problem().lcNumber"
+  >
+    <!-- comfort gridlines (🔴 baseline up to 🎓/🏆) -->
+    @for (g of [0, 1, 2, 3, 4]; track g) {
+      <line
+        class="grid"
+        [attr.x1]="padX"
+        [attr.x2]="W - padX"
+        [attr.y1]="padY + (H - padY * 2) - ((H - padY * 2) * g) / 4"
+        [attr.y2]="padY + (H - padY * 2) - ((H - padY * 2) * g) / 4"
+      />
+    }
+
+    @if (linePath()) {
+      <path class="curve" [attr.d]="linePath()" />
+    }
+
+    @for (p of points(); track p.date) {
+      <circle
+        [attr.cx]="p.x"
+        [attr.cy]="p.y"
+        [attr.r]="p.known ? 5 : 3.5"
+        [attr.fill]="p.known ? colorFor(p) : 'transparent'"
+        [attr.stroke]="colorFor(p)"
+        stroke-width="1.5"
+        [class.unknown]="!p.known"
+      >
+        <title>{{ p.date }}{{ p.comfort ? ' · ' + p.comfort : ' · (pre-archive rep)' }}</title>
+      </circle>
+    }
+  </svg>
+} @else {
+  <p class="timeline-empty">No rep history yet.</p>
+}

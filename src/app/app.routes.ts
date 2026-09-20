@@ -27,6 +27,11 @@ export const routes: Routes = [
       import('./features/learn/learn.routes').then((m) => m.LEARN_ROUTES),
   },
   {
+    path: 'progress',
+    loadChildren: () =>
+      import('./features/progress/progress.routes').then((m) => m.PROGRESS_ROUTES),
+  },
+  {
     path: '**',
     redirectTo: '',
   },
