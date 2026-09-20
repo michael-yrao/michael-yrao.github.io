@@ -1,11 +1,8 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { catchError, of } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, catchError, of, throwError } from 'rxjs';
 
-import {
-  ProgressData,
-  PROGRESS_SCHEMA_VERSION,
-} from '../models/progress.model';
+import { ProgressData, PROGRESS_SCHEMA_VERSION } from '../models/progress.model';
 
 // The dashboard renders any repo that follows the cse-coach schema. This is the default
 // when no ?repo= is given; ?repo=owner/name overrides it for any PUBLIC repo.
@@ -21,10 +18,14 @@ interface RepoRef {
 }
 
 /**
- * Fetches progress.json from a public GitHub repo's raw content. No auth is needed for a
- * public repo (Phase 1); GitHub login (Phase 2) will only add auto-discovery, higher rate
- * limits and private-repo access on top of this. All state is exposed as signals so the
- * page stays declarative.
+ * Fetches progress.json from a public GitHub repo.
+ *
+ * Primary source is the GitHub Contents API with `Accept: application/vnd.github.raw`
+ * (Cache-Control max-age=60), NOT raw.githubusercontent (max-age=300). The reason is the
+ * Refresh button: a user-initiated refresh has to return current data, and a click against
+ * raw's 5-minute CDN copy would do nothing. On a 403 (the API's 60/hr anonymous limit) we
+ * fall back to raw so the page still renders. Phase 2 (GitHub login) lifts the limit to
+ * 5000/hr. All state is signals so the page stays declarative.
  */
 @Injectable({ providedIn: 'root' })
 export class ProgressService {
@@ -32,6 +33,10 @@ export class ProgressService {
   readonly error = signal<string | null>(null);
   readonly data = signal<ProgressData | null>(null);
   readonly source = signal<RepoRef | null>(null);
+  // A forced refresh keeps the current dashboard on screen (no blanking) and just spins the
+  // button; refreshError surfaces a failed refresh inline without tearing down good data.
+  readonly refreshing = signal(false);
+  readonly refreshError = signal<string | null>(null);
 
   // Monotonic request id: a slow earlier fetch must not overwrite a newer one (the ?repo
   // param can change, and there is no HttpClient cancellation on a bare subscribe).
@@ -58,12 +63,42 @@ export class ProgressService {
     return { owner, repo, branch };
   }
 
-  load(raw: string | null | undefined): void {
+  private apiUrl(ref: RepoRef, bust: boolean): string {
+    const base = `https://api.github.com/repos/${ref.owner}/${ref.repo}/contents/progress.json?ref=${encodeURIComponent(ref.branch)}`;
+    return bust ? `${base}&_=${Date.now()}` : base;
+  }
+
+  private rawUrl(ref: RepoRef): string {
+    return `https://raw.githubusercontent.com/${ref.owner}/${ref.repo}/${ref.branch}/progress.json`;
+  }
+
+  /** GET the contract, API-first with a raw fallback on the API's rate-limit (403). */
+  private fetch$(ref: RepoRef, bust: boolean): Observable<ProgressData> {
+    const apiHeaders = new HttpHeaders({ Accept: 'application/vnd.github.raw' });
+    return this.http
+      .get<ProgressData>(this.apiUrl(ref, bust), { headers: apiHeaders, responseType: 'json' })
+      .pipe(
+        catchError((err) =>
+          err?.status === 403
+            ? this.http.get<ProgressData>(this.rawUrl(ref), { responseType: 'json' })
+            : throwError(() => err),
+        ),
+      );
+  }
+
+  /** Re-fetch the repo currently shown, bypassing caches. Used by the Refresh button. */
+  refresh(): void {
+    const cur = this.source();
+    if (cur) this.load(`${cur.owner}/${cur.repo}@${cur.branch}`, true);
+  }
+
+  load(raw: string | null | undefined, force = false): void {
     const ref = this.parseRepo(raw);
     // Skip a redundant reload of the repo already shown (the effect can fire twice with the
-    // same value). Only skip when we actually have data for it — never skip a retry.
+    // same value). A forced refresh always proceeds; a retry (not ready) always proceeds.
     const cur = this.source();
     if (
+      !force &&
       cur &&
       cur.owner === ref.owner &&
       cur.repo === ref.repo &&
@@ -75,41 +110,57 @@ export class ProgressService {
 
     const mine = ++this.seq;
     this.source.set(ref);
-    this.status.set('loading');
-    this.error.set(null);
+    if (force) {
+      // Keep the current dashboard visible; just spin the button.
+      this.refreshing.set(true);
+      this.refreshError.set(null);
+    } else {
+      this.status.set('loading');
+      this.error.set(null);
+    }
 
-    const url = `https://raw.githubusercontent.com/${ref.owner}/${ref.repo}/${ref.branch}/progress.json`;
-
-    this.http
-      .get<ProgressData>(url, { responseType: 'json' })
+    this.fetch$(ref, force)
       .pipe(catchError((err) => of(this.toError(err))))
       .subscribe((result) => {
         if (mine !== this.seq) return; // a newer load() superseded this response
+        this.refreshing.set(false);
+
         if (result instanceof Error) {
-          this.status.set('error');
-          this.error.set(result.message);
-          this.data.set(null);
+          if (force) {
+            // A failed refresh must not tear down good data already on screen.
+            this.refreshError.set(result.message);
+          } else {
+            this.status.set('error');
+            this.error.set(result.message);
+            this.data.set(null);
+          }
           return;
         }
-        if (!result || typeof result.schemaVersion !== 'number') {
-          this.status.set('error');
-          this.error.set(
-            `${ref.owner}/${ref.repo} has no valid progress.json — is it a cse-coach repo?`,
-          );
-          this.data.set(null);
-          return;
-        }
-        if (result.schemaVersion > PROGRESS_SCHEMA_VERSION) {
-          this.status.set('error');
-          this.error.set(
-            `That repo's progress.json is schema v${result.schemaVersion}; this viewer speaks v${PROGRESS_SCHEMA_VERSION}. Update the site.`,
-          );
-          this.data.set(null);
+        const invalid = this.invalidReason(result, ref);
+        if (invalid) {
+          if (force) {
+            this.refreshError.set(invalid);
+          } else {
+            this.status.set('error');
+            this.error.set(invalid);
+            this.data.set(null);
+          }
           return;
         }
         this.data.set(result);
         this.status.set('ready');
       });
+  }
+
+  /** null when the payload is a usable, compatible contract; else a human reason. */
+  private invalidReason(result: ProgressData | null, ref: RepoRef): string | null {
+    if (!result || typeof result.schemaVersion !== 'number') {
+      return `${ref.owner}/${ref.repo} has no valid progress.json — is it a cse-coach repo?`;
+    }
+    if (result.schemaVersion > PROGRESS_SCHEMA_VERSION) {
+      return `That repo's progress.json is schema v${result.schemaVersion}; this viewer speaks v${PROGRESS_SCHEMA_VERSION}. Update the site.`;
+    }
+    return null;
   }
 
   /** Turn an HttpErrorResponse into a human message (rate-limit / missing / offline). */

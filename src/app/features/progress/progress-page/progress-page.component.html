@@ -1,16 +1,34 @@
 <section class="progress">
   <header class="progress__head">
     <h1>Progress</h1>
-    @if (repoSlug()) {
-      <a
-        class="progress__repo"
-        [href]="'https://github.com/' + repoSlug()"
-        target="_blank"
-        rel="noopener"
-        >{{ repoSlug() }} ↗</a
-      >
-    }
+    <div class="progress__head-right">
+      @if (repoSlug()) {
+        <a
+          class="progress__repo"
+          [href]="'https://github.com/' + repoSlug()"
+          target="_blank"
+          rel="noopener"
+          >{{ repoSlug() }} ↗</a
+        >
+      }
+      @if (status() === 'ready') {
+        <button
+          type="button"
+          class="progress__refresh"
+          (click)="refresh()"
+          [disabled]="refreshing()"
+          [attr.aria-label]="'Refresh progress data'"
+          [title]="'Pull the latest from GitHub'"
+        >
+          <span class="progress__refresh-icon" [class.spinning]="refreshing()">↻</span>
+          {{ refreshing() ? 'Refreshing…' : 'Refresh' }}
+        </button>
+      }
+    </div>
   </header>
+  @if (refreshError()) {
+    <p class="progress__refresh-err">Couldn’t refresh: {{ refreshError() }}</p>
+  }
 
   @switch (status()) {
     @case ('loading') {

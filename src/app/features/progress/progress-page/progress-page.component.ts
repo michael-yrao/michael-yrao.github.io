@@ -29,6 +29,8 @@ export class ProgressPageComponent {
   readonly error = this.progress.error;
   readonly data = this.progress.data;
   readonly repoSlug = this.progress.repoSlug;
+  readonly refreshing = this.progress.refreshing;
+  readonly refreshError = this.progress.refreshError;
 
   readonly filter = signal<ComfortFilter>('all');
   readonly comfortFilters: ComfortFilter[] = ['all', '🔴', '🟡', '🟢', '🎓'];
@@ -93,5 +95,9 @@ export class ProgressPageComponent {
 
   retry(): void {
     this.progress.load(this.repoParam());
+  }
+
+  refresh(): void {
+    this.progress.refresh();
   }
 }
