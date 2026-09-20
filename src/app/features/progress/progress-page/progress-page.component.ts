@@ -17,6 +17,12 @@ const VIZ_ROUTE = new Map<number, string>(
   ALL_ALGORITHMS.map((a) => [a.lcNumber, `/algorithms/${a.category}/${a.id}`]),
 );
 
+/** lcNumber + title identifies a row uniquely even when a number carries several method
+ *  variants (e.g. 21 Recursion vs Iterative) — same key the funnel/timeline `track` uses. */
+function rowKey(p: ProblemProgress): string {
+  return `${p.lcNumber}-${p.title}`;
+}
+
 @Component({
   selector: 'app-progress-page',
   templateUrl: './progress-page.component.html',
@@ -32,15 +38,24 @@ export class ProgressPageComponent {
   readonly refreshing = this.progress.refreshing;
   readonly refreshError = this.progress.refreshError;
 
+  // Opt-in detail: the full `problems[]` array, fetched only via "Explore problems".
+  readonly detailsStatus = this.progress.detailsStatus;
+  readonly detailsError = this.progress.detailsError;
+  readonly detailsRefreshing = this.progress.detailsRefreshing;
+  readonly details = this.progress.details;
+
   readonly filter = signal<ComfortFilter>('all');
   readonly comfortFilters: ComfortFilter[] = ['all', '🔴', '🟡', '🟢', '🎓'];
 
+  // Which rows are expanded — only an expanded row mounts <app-problem-timeline>, so at most
+  // a handful of per-problem SVGs ever exist at once (the 132-at-once mount can never recur).
+  private readonly expandedKeys = signal<ReadonlySet<string>>(new Set());
+
   readonly visibleProblems = computed<ProblemProgress[]>(() => {
-    const d = this.data();
-    if (!d) return [];
+    const list = this.details();
+    if (!list) return [];
     const f = this.filter();
-    const list = f === 'all' ? d.problems : d.problems.filter((p) => p.comfort === f);
-    return list;
+    return f === 'all' ? list : list.filter((p) => p.comfort === f);
   });
 
   // Pipeline as ordered segments for the funnel bar.
@@ -80,8 +95,9 @@ export class ProgressPageComponent {
     this.repoParam = toSignal(route.queryParamMap.pipe(map((p) => p.get('repo'))), {
       initialValue: route.snapshot.queryParamMap.get('repo'),
     });
-    // (Re)load whenever the repo param changes.
-    effect(() => this.progress.load(this.repoParam()));
+    // (Re)load the lightweight summary whenever the repo param changes. The landing never
+    // fetches the full problems[] file on its own — that is the "Explore problems" opt-in.
+    effect(() => this.progress.loadSummary(this.repoParam()));
   }
 
   pct(value: number): number {
@@ -94,10 +110,29 @@ export class ProgressPageComponent {
   }
 
   retry(): void {
-    this.progress.load(this.repoParam());
+    this.progress.loadSummary(this.repoParam());
   }
 
   refresh(): void {
     this.progress.refresh();
+  }
+
+  exploreProblems(): void {
+    this.progress.loadDetails();
+  }
+
+  toggle(p: ProblemProgress): void {
+    const key = rowKey(p);
+    const next = new Set(this.expandedKeys());
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    this.expandedKeys.set(next);
+  }
+
+  isExpanded(p: ProblemProgress): boolean {
+    return this.expandedKeys().has(rowKey(p));
   }
 }

@@ -84,3 +84,30 @@ export interface ProgressData {
   problems: ProblemProgress[];
   warnings?: string[];
 }
+
+/** A trophy-case graduate reduced to the fields the landing needs — no timeline/repDates. */
+export interface TrophyGraduateSummary {
+  lcNumber: number;
+  title: string;
+  difficulty?: 'Easy' | 'Medium' | 'Hard';
+}
+
+/**
+ * The lightweight landing contract (progress-summary.json, emitted by gamify.py's
+ * summary_of()): the aggregate fields only — same shape as ProgressData minus `problems[]`,
+ * with a compact `trophyCase`. This is what the page fetches on every navigation; the full
+ * ProgressData (with `problems[]`) is fetched only on explicit opt-in.
+ */
+export interface ProgressSummary {
+  schemaVersion: number;
+  generatedAt: string;
+  totals: { problems: number; solutions: number; reps: number };
+  pipeline: Pipeline;
+  difficulty?: { Easy: number; Medium: number; Hard: number };
+  streak: Streak;
+  coverage: Coverage | null;
+  onSchedule?: OnSchedule;
+  trophyCase?: { graduated: TrophyGraduateSummary[]; retired: RetiredProblem[] };
+  badges: Badge[];
+  warnings?: string[];
+}

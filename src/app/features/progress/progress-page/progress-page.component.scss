@@ -193,22 +193,48 @@
   &.active { border-color: var(--color-accent); background: var(--color-accent-dim); }
 }
 
-.problems { display: flex; flex-direction: column; gap: var(--space-md); margin-top: var(--space-md); }
+.progress__explore {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 0.9rem;
+  &:hover { border-color: var(--color-accent); background: var(--color-accent-dim); }
+}
+
+.problems { display: flex; flex-direction: column; gap: var(--space-sm); margin-top: var(--space-md); }
 .problem {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: var(--space-md);
-  align-items: center;
-  padding: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-raised);
 }
-.problem__title { display: flex; align-items: center; gap: var(--space-sm); }
+// Compact row IS the expand toggle — a plain button reset so it reads like the rest of the row.
+.problem__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
 .problem__comfort { font-size: 1.1rem; }
 .problem__num { font-family: var(--font-mono); color: var(--color-text-muted); }
-.problem__name { font-weight: 600; }
-.problem__tags { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin: var(--space-xs) 0; }
+.problem__name { font-weight: 600; flex: 1 1 auto; }
+.problem__caret {
+  display: inline-block;
+  color: var(--color-text-muted);
+  transition: transform var(--transition-fast);
+  &.problem__caret--open { transform: rotate(90deg); }
+}
 .tag {
   font-size: 0.7rem; padding: 2px 6px; border-radius: var(--radius-sm);
   background: var(--color-bg-card); color: var(--color-text-muted); border: 1px solid var(--color-border);
@@ -216,15 +242,14 @@
 .tag--easy { color: var(--color-easy); }
 .tag--medium { color: var(--color-medium); }
 .tag--hard { color: var(--color-hard); }
-.problem__links { display: flex; gap: var(--space-md); font-size: 0.8rem;
+.problem__links { display: flex; gap: var(--space-md); font-size: 0.8rem; margin-top: var(--space-xs);
   a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
 }
-.problem__chart { width: 320px; max-width: 100%; }
+.problem__chart { width: 320px; max-width: 100%; margin-top: var(--space-sm); }
 
 // ── Responsive ───────────────────────────────────────────────────────────────
 @media (max-width: 680px) {
   .gauges { grid-template-columns: 1fr; }
-  .problem { grid-template-columns: 1fr; }
   .problem__chart { width: 100%; }
   .hero { flex-direction: column; align-items: flex-start; }
 }

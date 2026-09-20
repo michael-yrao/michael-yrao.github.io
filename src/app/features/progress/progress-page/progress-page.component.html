@@ -144,53 +144,82 @@
           }
         }
 
-        <!-- Per-problem progression -->
+        <!-- Per-problem progression — opt-in: no per-problem component mounts until the
+             learner explicitly asks, and a chart mounts only for a row they expand. -->
         <div class="card">
           <div class="problems__head">
             <h2>Per-problem progression</h2>
-            <div class="filters">
-              @for (f of comfortFilters; track f) {
-                <button
-                  type="button"
-                  class="filters__btn"
-                  [class.active]="filter() === f"
-                  (click)="filter.set(f)"
-                >{{ f === 'all' ? 'All' : f }}</button>
-              }
-            </div>
-          </div>
-
-          <div class="problems">
-            @for (p of visibleProblems(); track p.lcNumber + '-' + p.title) {
-              <div class="problem">
-                <div class="problem__meta">
-                  <div class="problem__title">
-                    <span class="problem__comfort">{{ p.comfort }}</span>
-                    <span class="problem__num">{{ p.lcNumber }}</span>
-                    <span class="problem__name">{{ p.title }}</span>
-                  </div>
-                  <div class="problem__tags">
-                    @if (p.difficulty) {
-                      <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
-                    }
-                    @if (p.category) { <span class="tag">{{ p.category }}</span> }
-                    <span class="tag">{{ p.repDates.length }} reps</span>
-                  </div>
-                  <div class="problem__links">
-                    @if (vizRoute(p.lcNumber); as route) {
-                      <a [routerLink]="route">Visualize ▶</a>
-                    }
-                    @if (p.url) {
-                      <a [href]="p.url" target="_blank" rel="noopener">LeetCode ↗</a>
-                    }
-                  </div>
-                </div>
-                <div class="problem__chart">
-                  <app-problem-timeline [problem]="p" />
-                </div>
+            @if (detailsStatus() === 'ready') {
+              <div class="filters">
+                @for (f of comfortFilters; track f) {
+                  <button
+                    type="button"
+                    class="filters__btn"
+                    [class.active]="filter() === f"
+                    (click)="filter.set(f)"
+                  >{{ f === 'all' ? 'All' : f }}</button>
+                }
               </div>
             }
           </div>
+
+          @switch (detailsStatus()) {
+            @case ('idle') {
+              <p class="card__sub">
+                Per-problem detail (comfort history, rep counts, timeline charts) is not
+                fetched until you ask for it — this keeps the landing instant.
+              </p>
+              <button type="button" class="progress__explore" (click)="exploreProblems()">
+                Explore problems
+              </button>
+            }
+            @case ('loading') {
+              <p class="progress__msg">Loading problems…</p>
+            }
+            @case ('error') {
+              <div class="progress__error">
+                <p>{{ detailsError() }}</p>
+                <button type="button" (click)="exploreProblems()">Retry</button>
+              </div>
+            }
+            @case ('ready') {
+              <div class="problems">
+                @for (p of visibleProblems(); track p.lcNumber + '-' + p.title) {
+                  <div class="problem">
+                    <button
+                      type="button"
+                      class="problem__row"
+                      [attr.aria-expanded]="isExpanded(p)"
+                      (click)="toggle(p)"
+                    >
+                      <span class="problem__comfort">{{ p.comfort }}</span>
+                      <span class="problem__num">{{ p.lcNumber }}</span>
+                      <span class="problem__name">{{ p.title }}</span>
+                      @if (p.difficulty) {
+                        <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
+                      }
+                      @if (p.category) { <span class="tag">{{ p.category }}</span> }
+                      <span class="tag">{{ p.repDates.length }} reps</span>
+                      <span class="problem__caret" [class.problem__caret--open]="isExpanded(p)">▸</span>
+                    </button>
+                    <div class="problem__links">
+                      @if (vizRoute(p.lcNumber); as route) {
+                        <a [routerLink]="route">Visualize ▶</a>
+                      }
+                      @if (p.url) {
+                        <a [href]="p.url" target="_blank" rel="noopener">LeetCode ↗</a>
+                      }
+                    </div>
+                    @if (isExpanded(p)) {
+                      <div class="problem__chart">
+                        <app-problem-timeline [problem]="p" />
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          }
         </div>
 
         @if (d.warnings?.length) {

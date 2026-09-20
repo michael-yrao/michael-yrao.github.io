@@ -1,8 +1,14 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, catchError, of, throwError } from 'rxjs';
+import { Observable, catchError, map, of, throwError } from 'rxjs';
 
-import { ProgressData, PROGRESS_SCHEMA_VERSION } from '../models/progress.model';
+import {
+  ProgressData,
+  ProgressSummary,
+  ProblemProgress,
+  TrophyGraduateSummary,
+  PROGRESS_SCHEMA_VERSION,
+} from '../models/progress.model';
 
 // The dashboard renders any repo that follows the cse-coach schema. This is the default
 // when no ?repo= is given; ?repo=owner/name overrides it for any PUBLIC repo.
@@ -17,8 +23,40 @@ interface RepoRef {
   branch: string;
 }
 
+// Landing fetches SUMMARY_FILE only (a few KB, no `problems[]`) — instant, cheap, no
+// per-problem components. DETAILS_FILE (the full 144 KB contract) is fetched only when the
+// learner opts into "Explore problems".
+const SUMMARY_FILE = 'progress-summary.json';
+const DETAILS_FILE = 'progress.json';
+
+/** Derive the lightweight summary from a full contract — the client-side mirror of
+ *  cse-progress's `gamify.py::summary_of()`. Used when `progress-summary.json` 404s (an
+ *  adopter on an older gamify.py that only emits progress.json, or the transient window
+ *  before a repo regenerates) so the landing still renders off progress.json alone. */
+function summaryFromFull(full: ProgressData): ProgressSummary {
+  const trophyCase = full.trophyCase;
+  const graduated: TrophyGraduateSummary[] = (trophyCase?.graduated ?? []).map((p) => ({
+    lcNumber: p.lcNumber,
+    title: p.title,
+    difficulty: p.difficulty,
+  }));
+  return {
+    schemaVersion: full.schemaVersion,
+    generatedAt: full.generatedAt,
+    totals: full.totals,
+    pipeline: full.pipeline,
+    difficulty: full.difficulty,
+    streak: full.streak,
+    coverage: full.coverage,
+    onSchedule: full.onSchedule,
+    badges: full.badges,
+    trophyCase: { graduated, retired: trophyCase?.retired ?? [] },
+    warnings: full.warnings,
+  };
+}
+
 /**
- * Fetches progress.json from a public GitHub repo.
+ * Fetches the cse-coach progress contract from a public GitHub repo.
  *
  * Primary source is the GitHub Contents API with `Accept: application/vnd.github.raw`
  * (Cache-Control max-age=60), NOT raw.githubusercontent (max-age=300). The reason is the
@@ -26,21 +64,34 @@ interface RepoRef {
  * raw's 5-minute CDN copy would do nothing. On a 403 (the API's 60/hr anonymous limit) we
  * fall back to raw so the page still renders. Phase 2 (GitHub login) lifts the limit to
  * 5000/hr. All state is signals so the page stays declarative.
+ *
+ * Two tiers, on purpose (see progress-summary.json in cse-progress/scripts/gamify.py):
+ *   - `data` / `status` — the lightweight summary (aggregates only). Loaded on every
+ *     navigation via `loadSummary()`. This is what the landing renders.
+ *   - `details` / `detailsStatus` — the full `problems[]` array. Loaded only on explicit
+ *     opt-in via `loadDetails()`, once per repo (or on a forced refresh).
  */
 @Injectable({ providedIn: 'root' })
 export class ProgressService {
   readonly status = signal<LoadStatus>('idle');
   readonly error = signal<string | null>(null);
-  readonly data = signal<ProgressData | null>(null);
+  readonly data = signal<ProgressSummary | null>(null);
   readonly source = signal<RepoRef | null>(null);
   // A forced refresh keeps the current dashboard on screen (no blanking) and just spins the
   // button; refreshError surfaces a failed refresh inline without tearing down good data.
   readonly refreshing = signal(false);
   readonly refreshError = signal<string | null>(null);
 
-  // Monotonic request id: a slow earlier fetch must not overwrite a newer one (the ?repo
-  // param can change, and there is no HttpClient cancellation on a bare subscribe).
+  readonly details = signal<ProblemProgress[] | null>(null);
+  readonly detailsStatus = signal<LoadStatus>('idle');
+  readonly detailsError = signal<string | null>(null);
+  readonly detailsRefreshing = signal(false);
+
+  // Monotonic request ids: a slow earlier fetch must not overwrite a newer one (the ?repo
+  // param can change, and there is no HttpClient cancellation on a bare subscribe). Summary
+  // and details are independent request streams, so each gets its own sequence.
   private seq = 0;
+  private detailsSeq = 0;
 
   readonly repoSlug = computed(() => {
     const s = this.source();
@@ -63,36 +114,39 @@ export class ProgressService {
     return { owner, repo, branch };
   }
 
-  private apiUrl(ref: RepoRef, bust: boolean): string {
-    const base = `https://api.github.com/repos/${ref.owner}/${ref.repo}/contents/progress.json?ref=${encodeURIComponent(ref.branch)}`;
+  private apiUrl(ref: RepoRef, file: string, bust: boolean): string {
+    const base = `https://api.github.com/repos/${ref.owner}/${ref.repo}/contents/${file}?ref=${encodeURIComponent(ref.branch)}`;
     return bust ? `${base}&_=${Date.now()}` : base;
   }
 
-  private rawUrl(ref: RepoRef): string {
-    return `https://raw.githubusercontent.com/${ref.owner}/${ref.repo}/${ref.branch}/progress.json`;
+  private rawUrl(ref: RepoRef, file: string): string {
+    return `https://raw.githubusercontent.com/${ref.owner}/${ref.repo}/${ref.branch}/${file}`;
   }
 
-  /** GET the contract, API-first with a raw fallback on the API's rate-limit (403). */
-  private fetch$(ref: RepoRef, bust: boolean): Observable<ProgressData> {
+  /** GET a named file from the repo, API-first with a raw fallback on the API's rate-limit (403). */
+  private fetch$<T>(ref: RepoRef, file: string, bust: boolean): Observable<T> {
     const apiHeaders = new HttpHeaders({ Accept: 'application/vnd.github.raw' });
-    return this.http
-      .get<ProgressData>(this.apiUrl(ref, bust), { headers: apiHeaders, responseType: 'json' })
-      .pipe(
-        catchError((err) =>
-          err?.status === 403
-            ? this.http.get<ProgressData>(this.rawUrl(ref), { responseType: 'json' })
-            : throwError(() => err),
-        ),
-      );
+    return this.http.get<T>(this.apiUrl(ref, file, bust), { headers: apiHeaders, responseType: 'json' }).pipe(
+      catchError((err) =>
+        err?.status === 403
+          ? this.http.get<T>(this.rawUrl(ref, file), { responseType: 'json' })
+          : throwError(() => err),
+      ),
+    );
   }
 
-  /** Re-fetch the repo currently shown, bypassing caches. Used by the Refresh button. */
+  /** Re-fetch the repo currently shown, bypassing caches. Used by the Refresh button.
+   *  Always re-loads the summary; re-loads details too, but only if they were opened. */
   refresh(): void {
     const cur = this.source();
-    if (cur) this.load(`${cur.owner}/${cur.repo}@${cur.branch}`, true);
+    if (!cur) return;
+    this.loadSummary(`${cur.owner}/${cur.repo}@${cur.branch}`, true);
+    if (this.detailsStatus() === 'ready') this.loadDetails(true);
   }
 
-  load(raw: string | null | undefined, force = false): void {
+  /** Load the lightweight aggregate summary (progress-summary.json). This is what the
+   *  landing renders and what the effect calls on every ?repo change. */
+  loadSummary(raw: string | null | undefined, force = false): void {
     const ref = this.parseRepo(raw);
     // Skip a redundant reload of the repo already shown (the effect can fire twice with the
     // same value). A forced refresh always proceeds; a retry (not ready) always proceeds.
@@ -119,10 +173,22 @@ export class ProgressService {
       this.error.set(null);
     }
 
-    this.fetch$(ref, force)
-      .pipe(catchError((err) => of(this.toError(err))))
+    this.fetch$<ProgressSummary>(ref, SUMMARY_FILE, force)
+      .pipe(
+        catchError((err) => {
+          // A genuine 404 on the summary alone (not "the whole repo is unreachable") means
+          // this repo hasn't regenerated progress-summary.json yet — fall back to the full
+          // contract and derive the aggregates client-side, so the landing still works.
+          // Any other failure (403 rate-limit, network, etc.) keeps the normal error path.
+          if (err?.status !== 404) return of(this.toError(err));
+          return this.fetch$<ProgressData>(ref, DETAILS_FILE, force).pipe(
+            map((full) => summaryFromFull(full)),
+            catchError((fallbackErr) => of(this.toError(fallbackErr))),
+          );
+        }),
+      )
       .subscribe((result) => {
-        if (mine !== this.seq) return; // a newer load() superseded this response
+        if (mine !== this.seq) return; // a newer loadSummary() superseded this response
         this.refreshing.set(false);
 
         if (result instanceof Error) {
@@ -152,13 +218,51 @@ export class ProgressService {
       });
   }
 
+  /** Load the full contract's `problems[]` (progress.json) for the repo currently shown.
+   *  Explicit opt-in only — never called from the navigation effect. A details error never
+   *  blanks the (already-loaded) summary. */
+  loadDetails(force = false): void {
+    const ref = this.source();
+    if (!ref) return;
+    if (!force && this.detailsStatus() === 'ready') return;
+
+    const mine = ++this.detailsSeq;
+    const wasReady = this.detailsStatus() === 'ready';
+    if (force && wasReady) {
+      this.detailsRefreshing.set(true);
+    } else {
+      this.detailsStatus.set('loading');
+      this.detailsError.set(null);
+    }
+
+    this.fetch$<ProgressData>(ref, DETAILS_FILE, force)
+      .pipe(catchError((err) => of(this.toError(err))))
+      .subscribe((result) => {
+        if (mine !== this.detailsSeq) return; // a newer loadDetails() superseded this response
+        this.detailsRefreshing.set(false);
+
+        if (result instanceof Error) {
+          this.detailsError.set(result.message);
+          if (!wasReady) this.detailsStatus.set('error');
+          return;
+        }
+        if (!Array.isArray(result.problems)) {
+          this.detailsError.set(`${ref.owner}/${ref.repo} has no problems[] in progress.json.`);
+          if (!wasReady) this.detailsStatus.set('error');
+          return;
+        }
+        this.details.set(result.problems);
+        this.detailsStatus.set('ready');
+      });
+  }
+
   /** null when the payload is a usable, compatible contract; else a human reason. */
-  private invalidReason(result: ProgressData | null, ref: RepoRef): string | null {
+  private invalidReason(result: { schemaVersion?: number } | null, ref: RepoRef): string | null {
     if (!result || typeof result.schemaVersion !== 'number') {
-      return `${ref.owner}/${ref.repo} has no valid progress.json — is it a cse-coach repo?`;
+      return `${ref.owner}/${ref.repo} has no valid progress data — is it a cse-coach repo?`;
     }
     if (result.schemaVersion > PROGRESS_SCHEMA_VERSION) {
-      return `That repo's progress.json is schema v${result.schemaVersion}; this viewer speaks v${PROGRESS_SCHEMA_VERSION}. Update the site.`;
+      return `That repo's progress data is schema v${result.schemaVersion}; this viewer speaks v${PROGRESS_SCHEMA_VERSION}. Update the site.`;
     }
     return null;
   }
@@ -167,7 +271,7 @@ export class ProgressService {
   private toError(err: { status?: number }): Error {
     if (err?.status === 404) {
       return new Error(
-        'No progress.json found on that repo/branch. It must be a public cse-coach repo that has generated one.',
+        'No progress data found on that repo/branch. It must be a public cse-coach repo that has generated one.',
       );
     }
     if (err?.status === 403) {
