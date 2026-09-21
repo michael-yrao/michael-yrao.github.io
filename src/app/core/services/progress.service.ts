@@ -163,7 +163,13 @@ export class ProgressService {
     }
 
     const mine = ++this.seq;
-    this.source.set(ref);
+    // Idempotent write: only replace `source` when the repo actually changed. `parseRepo`
+    // builds a NEW RepoRef object on every call, so an unconditional `source.set(ref)` here
+    // would look like a change to anything tracking `source` (e.g. an effect calling this
+    // method) even when the repo is identical — defense in depth alongside the `untracked`
+    // wrap at the call site in progress-page.component.ts.
+    const same = cur && cur.owner === ref.owner && cur.repo === ref.repo && cur.branch === ref.branch;
+    if (!same) this.source.set(ref);
     if (force) {
       // Keep the current dashboard visible; just spin the button.
       this.refreshing.set(true);

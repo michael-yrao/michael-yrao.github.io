@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, signal, untracked } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -97,7 +97,17 @@ export class ProgressPageComponent {
     });
     // (Re)load the lightweight summary whenever the repo param changes. The landing never
     // fetches the full problems[] file on its own — that is the "Explore problems" opt-in.
-    effect(() => this.progress.loadSummary(this.repoParam()));
+    //
+    // ⚠️ loadSummary() reads/writes `source`/`status` signals internally. If those reads
+    // happened INSIDE this effect's reactive tracking, the effect would depend on them too —
+    // and since loadSummary writes a brand-new `source` object on every call, that write
+    // would always look like a change, re-triggering the effect in an infinite loop (and
+    // spamming HTTP). `untracked` confines this effect's dependency to `repoParam()` alone;
+    // everything loadSummary reads/writes is invisible to it.
+    effect(() => {
+      const repo = this.repoParam();
+      untracked(() => this.progress.loadSummary(repo));
+    });
   }
 
   pct(value: number): number {

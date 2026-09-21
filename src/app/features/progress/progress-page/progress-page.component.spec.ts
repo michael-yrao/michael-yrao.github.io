@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
-import { of } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { vi } from 'vitest';
 
 import { ProgressPageComponent } from './progress-page.component';
@@ -130,5 +131,61 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(1);
+  });
+});
+
+// Regression test for the effect-loop bug: the constructor's
+// `effect(() => this.progress.loadSummary(this.repoParam()))` used to read `loadSummary`
+// INLINE inside the effect's reactive tracking. loadSummary reads `source`/`status` (making
+// the effect depend on them) and then writes a brand-new `source` object on every call — a
+// write that always looks like a change, re-triggering the effect. A stub with a fake
+// `loadSummary()` (as used above) can never exercise this: the bug is in the REAL signal
+// read/write interplay inside ProgressService, so this test wires up the actual
+// ProgressService against a counting HttpClient double instead.
+//
+// The HTTP response deliberately NEVER resolves during the test: the loop only manifests
+// while `status` is still 'loading' (the skip-check's `this.status() === 'ready'` reads
+// false), which needs a real, sustained gap between issuing the request and it resolving —
+// a synchronous `of()` mock resolves before the effect can ever re-run and masks the bug
+// entirely. Angular flushes dirty effects synchronously as part of change detection, so with
+// the request permanently pending, a real loop cascades entirely within the single
+// `detectChanges()` call below — no fakeAsync/tick needed, and nothing to await. Each
+// HttpClient.get() past CALL_CAP throws synchronously with a clear message, so a real loop
+// fails fast instead of spinning forever.
+const CALL_CAP = 5;
+
+function makeCountingHttp() {
+  const calls: string[] = [];
+  return {
+    calls,
+    get: (url: string) => {
+      calls.push(url);
+      if (calls.length > CALL_CAP) {
+        throw new Error(
+          `Effect loop regression: HttpClient.get() called ${calls.length} times for a ` +
+            `stable ?repo param (expected 1). URLs: ${calls.join(', ')}`,
+        );
+      }
+      return new Observable(); // never emits, never completes — status can never reach 'ready'
+    },
+  };
+}
+
+describe('ProgressPageComponent — effect loop regression (real ProgressService)', () => {
+  it('fetches the summary exactly once for a stable repo param (no infinite effect loop)', () => {
+    const http = makeCountingHttp();
+    TestBed.configureTestingModule({
+      imports: [ProgressPageComponent],
+      providers: [
+        ProgressService,
+        { provide: HttpClient, useValue: http },
+        { provide: ActivatedRoute, useValue: makeActivatedRouteStub() },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges(); // constructs the effect and flushes it (synchronously, to stability)
+
+    expect(http.calls.length).toBe(1);
   });
 });
