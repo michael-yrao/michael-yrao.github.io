@@ -8,9 +8,13 @@ import { vi } from 'vitest';
 import { ProgressPageComponent } from './progress-page.component';
 import { ProgressService } from '../../../core/services/progress.service';
 import { ProgressSummary, ProblemProgress } from '../../../core/models/progress.model';
+import { todayLocalISO } from '../../../core/utils/local-date';
 
 // A minimal, valid summary — enough for the 'ready' branch of every card on the landing,
-// including the two instant drills (techniques/studyDays ride the summary, no fetch).
+// including the two instant drills (techniques/studyDays ride the summary, no fetch) and
+// the overview-first landing's lead tile (schedule rides the summary too). The schedule's
+// matching day uses the SAME local-date function the component uses, so "today" always
+// lines up with whatever date the test actually runs on.
 function makeSummary(): ProgressSummary {
   return {
     schemaVersion: 1,
@@ -39,6 +43,23 @@ function makeSummary(): ProgressSummary {
         bestComfort: '🎓', hasGreen: true, thin: false, hasVariantGap: false },
     ],
     studyDays: ['2026-09-18', '2026-09-19', '2026-09-20'],
+    schedule: {
+      weekOf: '2026-09-21',
+      days: [
+        {
+          date: todayLocalISO(),
+          weekday: 'Today',
+          label: 'Test day',
+          units: 5,
+          items: [
+            { lcNumber: 22, title: 'Generate Parentheses', technique: 'Backtracking',
+              startComfort: '🔴', done: false },
+            { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS',
+              startComfort: '🟢', done: true },
+          ],
+        },
+      ],
+    },
   };
 }
 
@@ -71,6 +92,15 @@ function makeActivatedRouteStub() {
   return { queryParamMap: of(paramMap), snapshot: { queryParamMap: paramMap } };
 }
 
+// The overview rebalance moved everything except the streak hero + Today's board behind
+// one "Full breakdown" toggle. Every test below that touches pipeline/gauges/difficulty/
+// technique-panel/streak-calendar/Explore needs this called first.
+function openBreakdown(fixture: { nativeElement: HTMLElement; detectChanges: () => void }): void {
+  const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.breakdown-toggle')!;
+  toggle.click();
+  fixture.detectChanges();
+}
+
 describe('ProgressPageComponent', () => {
   let progress: ReturnType<typeof makeProgressServiceStub>;
 
@@ -101,9 +131,52 @@ describe('ProgressPageComponent', () => {
     expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
+  // ── Overview-first landing: Today's board is the lead tile, everything else is hidden
+  // behind "Full breakdown" by default. ───────────────────────────────────────────────
+  it("renders Today's board on the landing with the correct done count, no details fetch", () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const board = fixture.nativeElement.querySelector('app-today-board');
+    expect(board).toBeTruthy();
+    expect(board!.textContent).toContain('1 of 2 done today');
+    expect(board!.textContent).toContain('Generate Parentheses');
+    expect(board!.textContent).toContain('Same Tree');
+    expect(progress.loadDetails).not.toHaveBeenCalled();
+  });
+
+  it('hides the breakdown (pipeline, gauges, difficulty, Explore) by default', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.funnel')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.gauges')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.difficulty-row')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.progress__explore')).toBeFalsy();
+    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
+
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.breakdown-toggle');
+    expect(toggle).toBeTruthy();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('reveals the breakdown after clicking "Full breakdown"', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    openBreakdown(fixture);
+
+    expect(fixture.nativeElement.querySelector('.funnel')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.gauges')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.progress__explore')).toBeTruthy();
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.breakdown-toggle');
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('fetches details only when "Explore problems" is clicked', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
+    openBreakdown(fixture);
 
     const exploreBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.progress__explore');
     expect(exploreBtn).toBeTruthy();
@@ -131,6 +204,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
+    openBreakdown(fixture);
 
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
 
@@ -145,6 +219,7 @@ describe('ProgressPageComponent', () => {
   it('renders the technique panel from the summary alone, with no details fetch', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
+    openBreakdown(fixture);
 
     const disclosure: HTMLButtonElement = fixture.nativeElement.querySelector('.gauge__disclosure');
     expect(disclosure).toBeTruthy();
@@ -157,14 +232,14 @@ describe('ProgressPageComponent', () => {
     expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
-  it('renders the streak calendar from the summary alone, with no details fetch', () => {
+  it('renders the streak calendar inside the breakdown, with no details fetch', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
-    const streakBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.hero__streak--btn');
-    expect(streakBtn).toBeTruthy();
-    streakBtn.click();
-    fixture.detectChanges();
+    // Before opening the breakdown, the calendar (unlike the plain streak hero) isn't there.
+    expect(fixture.nativeElement.querySelectorAll('app-streak-calendar').length).toBe(0);
+
+    openBreakdown(fixture);
 
     expect(fixture.nativeElement.querySelectorAll('app-streak-calendar').length).toBe(1);
     expect(progress.loadDetails).not.toHaveBeenCalled();
@@ -174,6 +249,7 @@ describe('ProgressPageComponent', () => {
   it('clicking a pipeline tier fetches details and sets the comfort facet', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
+    openBreakdown(fixture);
 
     const seg: HTMLButtonElement = fixture.nativeElement.querySelector('.funnel__seg.seg-grad');
     expect(seg).toBeTruthy();
@@ -187,6 +263,7 @@ describe('ProgressPageComponent', () => {
     // Fixture has overdue:0, dueToday:1 — sum > 0, so the single drill button renders.
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
+    openBreakdown(fixture);
 
     const attentionBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.gauge__drill');
     expect(attentionBtn).toBeTruthy();
@@ -201,6 +278,7 @@ describe('ProgressPageComponent', () => {
     progress.data.set({ ...makeSummary(), onSchedule: { totalActive: 5, dueToday: 0, overdue: 0 } });
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
+    openBreakdown(fixture);
 
     expect(fixture.nativeElement.querySelector('.gauge__drill')).toBeFalsy();
   });
@@ -208,6 +286,7 @@ describe('ProgressPageComponent', () => {
   it('clicking a difficulty count fetches details and sets the difficulty facet', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
+    openBreakdown(fixture);
 
     const diffBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.difficulty-row__btn');
     expect(diffBtn).toBeTruthy();
@@ -234,6 +313,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
+    openBreakdown(fixture);
 
     // jsdom doesn't implement scrollIntoView; find the Trophy Case card by its heading and
     // stub it so the click doesn't throw, then assert it was called.

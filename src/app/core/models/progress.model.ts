@@ -83,6 +83,34 @@ export interface Technique {
   hasVariantGap: boolean;
 }
 
+/** One row of the current week's Daily Schedule table (cse-progress gamify.py's
+ *  parse_current_week_schedule()) — the "what do I do today" drill. `lcNumber` is null for
+ *  a 🆕 intake row not yet scaffolded to a local solution file (no Visualize/LeetCode deep
+ *  link for that row); `startComfort` is null for a 🆕/🎯-tagged row (no prior comfort). */
+export interface ScheduleItem {
+  lcNumber: number | null;
+  title: string;
+  technique: string | null;
+  startComfort: Comfort | null;
+  done: boolean;
+}
+
+export interface ScheduleDay {
+  date: string;
+  weekday: string;
+  label: string | null;
+  units?: number | null;
+  items: ScheduleItem[];
+}
+
+/** The current week's board — always 7 days; the viewer picks "today" by its OWN local
+ *  date against each day's `date`, never a server-baked one (the summary can be viewed
+ *  days after it was generated). */
+export interface Schedule {
+  weekOf: string;
+  days: ScheduleDay[];
+}
+
 export interface ProgressData {
   schemaVersion: number;
   generatedAt: string;
@@ -97,6 +125,7 @@ export interface ProgressData {
   problems: ProblemProgress[];
   techniques?: Technique[];
   studyDays?: string[];
+  schedule?: Schedule | null;
   warnings?: string[];
 }
 
@@ -130,5 +159,9 @@ export interface ProgressSummary {
   /** Sorted distinct ISO study-day dates — small, rides the summary so the streak-calendar
    *  drill renders with no fetch. */
   studyDays?: string[];
+  /** The current week's board — the landing's lead tile. Rides the summary (one week of
+   *  compact rows) so Today's board renders with no fetch. null when no current weekly
+   *  schedule file was found. */
+  schedule?: Schedule | null;
   warnings?: string[];
 }

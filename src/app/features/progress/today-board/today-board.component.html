@@ -1,0 +1,47 @@
+<div class="today-board">
+  @if (today(); as day) {
+    @if (day.items.length) {
+      <div class="today-board__head">
+        <span class="today-board__count">{{ doneCount() }} of {{ totalCount() }} done today</span>
+        @if (day.label) {
+          <span class="today-board__label">{{ day.label }}</span>
+        }
+      </div>
+      <ul class="today-board__list">
+        @for (item of day.items; track item.lcNumber + '-' + item.title) {
+          <li class="today-board__row" [class.today-board__row--done]="item.done">
+            <span class="today-board__check" [attr.aria-label]="item.done ? 'done' : 'not done'">{{
+              item.done ? '✓' : '○'
+            }}</span>
+            @if (item.startComfort) {
+              <span class="today-board__comfort">{{ item.startComfort }}</span>
+            }
+            @if (item.lcNumber) {
+              <span class="today-board__num">#{{ item.lcNumber }}</span>
+            }
+            <span class="today-board__title">{{ item.title }}</span>
+            @if (item.technique) {
+              <span class="tag">{{ item.technique }}</span>
+            }
+            <span class="today-board__links">
+              @if (vizRoute(item.lcNumber); as route) {
+                <a [routerLink]="route">Visualize ▶</a>
+              }
+              @if (item.lcNumber) {
+                <a [href]="leetCodeUrl(item.lcNumber)" target="_blank" rel="noopener">LeetCode ↗</a>
+              }
+            </span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="today-board__hint">
+        No board scheduled for today — enjoy the rest, or open Full breakdown.
+      </p>
+    }
+  } @else {
+    <p class="today-board__hint">
+      No board scheduled for today — enjoy the rest, or open Full breakdown.
+    </p>
+  }
+</div>

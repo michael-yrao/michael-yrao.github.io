@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
+import { todayLocalISO } from '../../../core/utils/local-date';
+
 interface DayCell {
   date: string;
   studied: boolean;
@@ -9,14 +11,6 @@ interface DayCell {
 // (GitHub's contribution graph is the reference point) without needing ISO-week arithmetic.
 const WINDOW_WEEKS = 20;
 const CELL_COUNT = WINDOW_WEEKS * 7;
-
-function todayLocalISO(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 /**
  * The streak drill: "when did I practice? longest run?" A compact contribution-style

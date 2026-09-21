@@ -14,11 +14,13 @@ import { map } from 'rxjs';
 
 import { ProgressService } from '../../../core/services/progress.service';
 import { Comfort, ProblemProgress } from '../../../core/models/progress.model';
-import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
+import { vizRouteFor } from '../../../core/data/viz-route';
+import { todayLocalISO } from '../../../core/utils/local-date';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { BadgeGridComponent } from '../badge-grid/badge-grid.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
 import { StreakCalendarComponent } from '../streak-calendar/streak-calendar.component';
+import { TodayBoardComponent } from '../today-board/today-board.component';
 
 type ComfortFilter = 'all' | Comfort;
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
@@ -32,24 +34,10 @@ type ListFacet =
   | { kind: 'difficulty'; value: Difficulty }
   | { kind: 'schedule'; value: 'overdue' | 'due' | 'attention' };
 
-// lcNumber -> the visualizer route on this site (if one exists). This is the viz-coverage
-// join by LeetCode number that unifies the practice log with the visualizer library.
-const VIZ_ROUTE = new Map<number, string>(
-  ALL_ALGORITHMS.map((a) => [a.lcNumber, `/algorithms/${a.category}/${a.id}`]),
-);
-
 /** lcNumber + title identifies a row uniquely even when a number carries several method
  *  variants (e.g. 21 Recursion vs Iterative) — same key the funnel/timeline `track` uses. */
 function rowKey(p: ProblemProgress): string {
   return `${p.lcNumber}-${p.title}`;
-}
-
-function todayLocalISO(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
 }
 
 @Component({
@@ -63,6 +51,7 @@ function todayLocalISO(): string {
     BadgeGridComponent,
     TechniqueListComponent,
     StreakCalendarComponent,
+    TodayBoardComponent,
   ],
 })
 export class ProgressPageComponent {
@@ -88,9 +77,17 @@ export class ProgressPageComponent {
   // a handful of per-problem SVGs ever exist at once (the 132-at-once mount can never recur).
   private readonly expandedKeys = signal<ReadonlySet<string>>(new Set());
 
-  // Instant drills (summary data only, no fetch): toggled panels under their own card.
+  // Overview-first landing (Sep 2026 rebalance): the landing shows only the streak hero
+  // (number/flame — not the calendar) and Today's board. Everything else — pipeline,
+  // gauges, difficulty, badges, trophy case, technique panel, the streak CALENDAR, and the
+  // Explore-problems section — lives behind this one toggle. All their drill behavior
+  // (facet filter, expand-to-render timeline, loadDetails, refresh) is unchanged; this only
+  // gates visibility.
+  readonly breakdownOpen = signal(false);
+
+  // Instant drill (summary data only, no fetch): the technique panel's own disclosure,
+  // nested inside the breakdown once it's open.
   readonly techPanelOpen = signal(false);
-  readonly streakPanelOpen = signal(false);
 
   private readonly exploreSectionRef = viewChild<ElementRef<HTMLElement>>('exploreSection');
   // 🏆 Retired never appears in details().problems[] (retired rows leave the tracker
@@ -189,7 +186,7 @@ export class ProgressPageComponent {
   }
 
   vizRoute(lc: number): string | null {
-    return VIZ_ROUTE.get(lc) ?? null;
+    return vizRouteFor(lc);
   }
 
   retry(): void {
@@ -240,8 +237,8 @@ export class ProgressPageComponent {
     this.techPanelOpen.update((v) => !v);
   }
 
-  toggleStreakPanel(): void {
-    this.streakPanelOpen.update((v) => !v);
+  toggleBreakdown(): void {
+    this.breakdownOpen.update((v) => !v);
   }
 
   private scrollToExplore(): void {

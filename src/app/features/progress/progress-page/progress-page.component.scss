@@ -124,14 +124,6 @@
   align-items: baseline;
   gap: var(--space-sm);
 }
-.hero__streak--btn {
-  @extend %btn-reset;
-  padding: var(--space-xs);
-  margin: calc(-1 * var(--space-xs));
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-fast);
-  &:hover, &:focus-visible { background: var(--color-accent-dim); outline: none; }
-}
 .hero__flame { font-size: 2rem; }
 .hero__num { font-size: 3rem; font-weight: 800; color: var(--color-text); line-height: 1; }
 .hero__label { color: var(--color-text-muted); font-size: 1rem; em { font-style: normal; opacity: 0.8; } }
@@ -153,6 +145,24 @@
   h2 { margin: 0 0 var(--space-xs); font-size: 1.1rem; }
 }
 .card__sub { margin: 0 0 var(--space-md); color: var(--color-text-muted); font-size: 0.82rem; }
+
+// The lead tile — a slightly stronger border to read as the landing's main focus.
+.today-board-card { border-color: var(--color-accent-dim); }
+
+// ── Full breakdown toggle ──────────────────────────────────────────────────────
+.breakdown-toggle {
+  align-self: flex-start;
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  &:hover, &:focus-visible { border-color: var(--color-accent); background: var(--color-accent-dim); outline: none; }
+}
 
 // ── Pipeline funnel ──────────────────────────────────────────────────────────
 .funnel {

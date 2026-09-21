@@ -46,15 +46,10 @@
     }
     @case ('ready') {
       @if (data(); as d) {
-        <!-- Streak hero — click the streak to drill into a study-day calendar (instant, no fetch) -->
+        <!-- Streak hero — compact identity/motivator only; the calendar lives in the
+             breakdown below. -->
         <div class="hero">
-          <button
-            type="button"
-            class="hero__streak hero__streak--btn"
-            [attr.aria-expanded]="streakPanelOpen()"
-            (click)="toggleStreakPanel()"
-            [title]="'Study-day calendar'"
-          >
+          <div class="hero__streak">
             <span class="hero__flame">🔥</span>
             <span class="hero__num">{{ d.streak.current }}</span>
             <span class="hero__label"
@@ -63,7 +58,7 @@
                 <em>· best {{ d.streak.longest }}</em>
               }
             </span>
-          </button>
+          </div>
           <div class="hero__tiles">
             <div class="tile"><b>{{ d.totals.reps }}</b><span>reps</span></div>
             <div class="tile"><b>{{ d.totals.problems }}</b><span>problems</span></div>
@@ -77,217 +72,239 @@
             }
           </div>
         </div>
-        @if (streakPanelOpen() && d.studyDays) {
+
+        <!-- Today's board — the lead tile. Entirely summary-derived (schedule rides the
+             summary); no fetch, ever. -->
+        <div class="card today-board-card">
+          <h2>Today's board</h2>
+          <app-today-board [schedule]="d.schedule" />
+        </div>
+
+        <!-- Full breakdown toggle — everything below (pipeline, gauges, difficulty,
+             achievements, trophy case, technique panel, streak calendar, Explore-problems)
+             is gated here. All existing drill behavior inside is unchanged. -->
+        <button
+          type="button"
+          class="breakdown-toggle"
+          [attr.aria-expanded]="breakdownOpen()"
+          (click)="toggleBreakdown()"
+        >
+          Full breakdown {{ breakdownOpen() ? '▾' : '▸' }}
+        </button>
+
+        @if (breakdownOpen()) {
+          @if (d.studyDays) {
+            <div class="card">
+              <h2>Study-day calendar</h2>
+              <p class="card__sub">When did I practice? A filled cell is a study day.</p>
+              <app-streak-calendar
+                [studyDays]="d.studyDays"
+                [current]="d.streak.current"
+                [longest]="d.streak.longest"
+              />
+            </div>
+          }
+
+          <!-- Mastery pipeline — each tier drills into the Explore list filtered to it -->
           <div class="card">
-            <h2>Study-day calendar</h2>
-            <p class="card__sub">When did I practice? A filled cell is a study day.</p>
-            <app-streak-calendar
-              [studyDays]="d.studyDays"
-              [current]="d.streak.current"
-              [longest]="d.streak.longest"
-            />
-          </div>
-        }
-
-        <!-- Mastery pipeline — each tier drills into the Explore list filtered to it -->
-        <div class="card">
-          <h2>Mastery pipeline</h2>
-          <p class="card__sub">Problems maturing 🔴 → 🟡 → 🟢 → 🎓 → 🏆. This, not a row count, is progress. Click a tier to see which problems.</p>
-          <div class="funnel" role="img" aria-label="Mastery pipeline distribution">
-            @for (seg of pipelineSegments(); track seg.key) {
-              <button
-                type="button"
-                class="funnel__seg"
-                [class]="seg.cls"
-                [style.width.%]="pct(seg.value)"
-                [attr.title]="seg.label + ': ' + seg.value"
-                (click)="pipelineSegmentClick(seg)"
-              >
-                <span class="funnel__val">{{ seg.value }}</span>
-              </button>
-            }
-          </div>
-          <ul class="legend">
-            @for (seg of pipelineSegments(); track seg.key) {
-              <li>
-                <button type="button" class="legend__btn" (click)="pipelineSegmentClick(seg)">
-                  <span class="legend__dot" [class]="seg.cls"></span>{{ seg.label }} · {{ seg.value }}
-                </button>
-              </li>
-            }
-          </ul>
-        </div>
-
-        <!-- Difficulty mix — the third heavy drill -->
-        @if (difficultySegments().length) {
-          <div class="card">
-            <h2>Difficulty mix</h2>
-            <p class="card__sub">Click a difficulty to see which problems.</p>
-            <div class="difficulty-row">
-              @for (seg of difficultySegments(); track seg.key) {
+            <h2>Mastery pipeline</h2>
+            <p class="card__sub">Problems maturing 🔴 → 🟡 → 🟢 → 🎓 → 🏆. This, not a row count, is progress. Click a tier to see which problems.</p>
+            <div class="funnel" role="img" aria-label="Mastery pipeline distribution">
+              @for (seg of pipelineSegments(); track seg.key) {
                 <button
                   type="button"
-                  class="tag tag--{{ seg.key.toLowerCase() }} difficulty-row__btn"
-                  (click)="drill({ kind: 'difficulty', value: seg.key })"
+                  class="funnel__seg"
+                  [class]="seg.cls"
+                  [style.width.%]="pct(seg.value)"
+                  [attr.title]="seg.label + ': ' + seg.value"
+                  (click)="pipelineSegmentClick(seg)"
                 >
-                  {{ seg.key }} · {{ seg.value }}
+                  <span class="funnel__val">{{ seg.value }}</span>
                 </button>
               }
             </div>
+            <ul class="legend">
+              @for (seg of pipelineSegments(); track seg.key) {
+                <li>
+                  <button type="button" class="legend__btn" (click)="pipelineSegmentClick(seg)">
+                    <span class="legend__dot" [class]="seg.cls"></span>{{ seg.label }} · {{ seg.value }}
+                  </button>
+                </li>
+              }
+            </ul>
           </div>
-        }
 
-        <!-- On-schedule + coverage gauges — on-schedule counts drill; technique breadth toggles
-             an instant, summary-only panel (no fetch). -->
-        <div class="gauges">
-          @if (d.onSchedule; as os) {
-            <div class="card gauge">
-              <h2>On schedule</h2>
-              <div class="gauge__big" [class.gauge__warn]="onSchedulePct() < 90">
-                {{ onSchedulePct() }}%
-              </div>
-              <p class="card__sub">
-                {{ os.overdue }} overdue · {{ os.dueToday }} due today · {{ os.totalActive }} active
-              </p>
-              @if (os.overdue + os.dueToday > 0) {
-                <button
-                  type="button"
-                  class="gauge__drill"
-                  (click)="drill({ kind: 'schedule', value: 'attention' })"
-                >
-                  Needs attention ({{ os.overdue + os.dueToday }}) →
-                </button>
-              }
-            </div>
-          }
-          @if (d.coverage; as cov) {
-            <div class="card gauge">
-              <div class="gauge__head">
-                <h2>Technique breadth</h2>
-                <button
-                  type="button"
-                  class="gauge__disclosure"
-                  [attr.aria-expanded]="techPanelOpen()"
-                  [attr.aria-label]="techPanelOpen() ? 'Hide technique list' : 'Show technique list'"
-                  (click)="toggleTechPanel()"
-                >{{ techPanelOpen() ? '▾' : '▸' }}</button>
-              </div>
-              <div class="gauge__big">{{ cov.started }}/{{ cov.total }}</div>
-              <p class="card__sub">
-                {{ cov.noGreen }} with no 🟢 · {{ cov.thin }} thin · {{ cov.variantGaps }} variant gaps
-              </p>
-              @if (techPanelOpen() && d.techniques) {
-                <app-technique-list [techniques]="d.techniques" />
-              }
-            </div>
-          }
-        </div>
-
-        <!-- Achievements -->
-        <div class="card">
-          <h2>Achievements</h2>
-          <p class="card__sub">Every badge unlocks on a genuine event — never a raw count or a rating.</p>
-          <app-badge-grid [badges]="d.badges" />
-        </div>
-
-        <!-- Trophy case — the 🏆 Retired pipeline segment scrolls here (retired rows are
-             never in details().problems[], so a comfort-facet drill would land empty). -->
-        @if (d.trophyCase; as tc) {
-          @if (tc.graduated.length || tc.retired.length) {
-            <div class="card" #trophyCase>
-              <h2>Trophy case</h2>
-              <p class="card__sub">The accomplishment record — graduated 🎓 and retired 🏆.</p>
-              <div class="trophies">
-                @for (g of tc.graduated; track g.lcNumber) {
-                  <span class="trophy">🎓 {{ g.lcNumber }} · {{ g.title }}</span>
-                }
-                @for (r of tc.retired; track r.lcNumber) {
-                  <span class="trophy trophy--retired">🏆 {{ r.lcNumber }} · {{ r.title }}</span>
-                }
-              </div>
-            </div>
-          }
-        }
-
-        <!-- Per-problem progression — opt-in: no per-problem component mounts until the
-             learner explicitly asks, and a chart mounts only for a row they expand. Also the
-             landing spot for the three heavy drills (pipeline tier / on-schedule / difficulty),
-             which set listFilter and scroll here. -->
-        <div class="card" #exploreSection>
-          <div class="problems__head">
-            <h2>Per-problem progression</h2>
-            @if (detailsStatus() === 'ready') {
-              <div class="filters">
-                @for (f of comfortFilters; track f) {
+          <!-- Difficulty mix — the third heavy drill -->
+          @if (difficultySegments().length) {
+            <div class="card">
+              <h2>Difficulty mix</h2>
+              <p class="card__sub">Click a difficulty to see which problems.</p>
+              <div class="difficulty-row">
+                @for (seg of difficultySegments(); track seg.key) {
                   <button
                     type="button"
-                    class="filters__btn"
-                    [class.active]="isComfortFilterActive(f)"
-                    (click)="setComfortFilter(f)"
-                  >{{ f === 'all' ? 'All' : f }}</button>
+                    class="tag tag--{{ seg.key.toLowerCase() }} difficulty-row__btn"
+                    (click)="drill({ kind: 'difficulty', value: seg.key })"
+                  >
+                    {{ seg.key }} · {{ seg.value }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- On-schedule + coverage gauges — on-schedule counts drill; technique breadth
+               toggles an instant, summary-only panel (no fetch). -->
+          <div class="gauges">
+            @if (d.onSchedule; as os) {
+              <div class="card gauge">
+                <h2>On schedule</h2>
+                <div class="gauge__big" [class.gauge__warn]="onSchedulePct() < 90">
+                  {{ onSchedulePct() }}%
+                </div>
+                <p class="card__sub">
+                  {{ os.overdue }} overdue · {{ os.dueToday }} due today · {{ os.totalActive }} active
+                </p>
+                @if (os.overdue + os.dueToday > 0) {
+                  <button
+                    type="button"
+                    class="gauge__drill"
+                    (click)="drill({ kind: 'schedule', value: 'attention' })"
+                  >
+                    Needs attention ({{ os.overdue + os.dueToday }}) →
+                  </button>
+                }
+              </div>
+            }
+            @if (d.coverage; as cov) {
+              <div class="card gauge">
+                <div class="gauge__head">
+                  <h2>Technique breadth</h2>
+                  <button
+                    type="button"
+                    class="gauge__disclosure"
+                    [attr.aria-expanded]="techPanelOpen()"
+                    [attr.aria-label]="techPanelOpen() ? 'Hide technique list' : 'Show technique list'"
+                    (click)="toggleTechPanel()"
+                  >{{ techPanelOpen() ? '▾' : '▸' }}</button>
+                </div>
+                <div class="gauge__big">{{ cov.started }}/{{ cov.total }}</div>
+                <p class="card__sub">
+                  {{ cov.noGreen }} with no 🟢 · {{ cov.thin }} thin · {{ cov.variantGaps }} variant gaps
+                </p>
+                @if (techPanelOpen() && d.techniques) {
+                  <app-technique-list [techniques]="d.techniques" />
                 }
               </div>
             }
           </div>
 
-          @switch (detailsStatus()) {
-            @case ('idle') {
-              <p class="card__sub">
-                Per-problem detail (comfort history, rep counts, timeline charts) is not
-                fetched until you ask for it — this keeps the landing instant.
-              </p>
-              <button type="button" class="progress__explore" (click)="exploreProblems()">
-                Explore problems
-              </button>
-            }
-            @case ('loading') {
-              <p class="progress__msg">Loading problems…</p>
-            }
-            @case ('error') {
-              <div class="progress__error">
-                <p>{{ detailsError() }}</p>
-                <button type="button" (click)="exploreProblems()">Retry</button>
-              </div>
-            }
-            @case ('ready') {
-              <div class="problems">
-                @for (p of visibleProblems(); track p.lcNumber + '-' + p.title) {
-                  <div class="problem">
-                    <button
-                      type="button"
-                      class="problem__row"
-                      [attr.aria-expanded]="isExpanded(p)"
-                      (click)="toggle(p)"
-                    >
-                      <span class="problem__comfort">{{ p.comfort }}</span>
-                      <span class="problem__num">{{ p.lcNumber }}</span>
-                      <span class="problem__name">{{ p.title }}</span>
-                      @if (p.difficulty) {
-                        <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
-                      }
-                      @if (p.category) { <span class="tag">{{ p.category }}</span> }
-                      <span class="tag">{{ p.repDates.length }} reps</span>
-                      <span class="problem__caret" [class.problem__caret--open]="isExpanded(p)">▸</span>
-                    </button>
-                    <div class="problem__links">
-                      @if (vizRoute(p.lcNumber); as route) {
-                        <a [routerLink]="route">Visualize ▶</a>
-                      }
-                      @if (p.url) {
-                        <a [href]="p.url" target="_blank" rel="noopener">LeetCode ↗</a>
-                      }
-                    </div>
-                    @if (isExpanded(p)) {
-                      <div class="problem__chart">
-                        <app-problem-timeline [problem]="p" />
-                      </div>
-                    }
-                  </div>
-                }
+          <!-- Achievements -->
+          <div class="card">
+            <h2>Achievements</h2>
+            <p class="card__sub">Every badge unlocks on a genuine event — never a raw count or a rating.</p>
+            <app-badge-grid [badges]="d.badges" />
+          </div>
+
+          <!-- Trophy case — the 🏆 Retired pipeline segment scrolls here (retired rows are
+               never in details().problems[], so a comfort-facet drill would land empty). -->
+          @if (d.trophyCase; as tc) {
+            @if (tc.graduated.length || tc.retired.length) {
+              <div class="card" #trophyCase>
+                <h2>Trophy case</h2>
+                <p class="card__sub">The accomplishment record — graduated 🎓 and retired 🏆.</p>
+                <div class="trophies">
+                  @for (g of tc.graduated; track g.lcNumber) {
+                    <span class="trophy">🎓 {{ g.lcNumber }} · {{ g.title }}</span>
+                  }
+                  @for (r of tc.retired; track r.lcNumber) {
+                    <span class="trophy trophy--retired">🏆 {{ r.lcNumber }} · {{ r.title }}</span>
+                  }
+                </div>
               </div>
             }
           }
-        </div>
+
+          <!-- Per-problem progression — opt-in: no per-problem component mounts until the
+               learner explicitly asks, and a chart mounts only for a row they expand. Also
+               the landing spot for the three heavy drills (pipeline tier / on-schedule /
+               difficulty), which set listFilter and scroll here. -->
+          <div class="card" #exploreSection>
+            <div class="problems__head">
+              <h2>Per-problem progression</h2>
+              @if (detailsStatus() === 'ready') {
+                <div class="filters">
+                  @for (f of comfortFilters; track f) {
+                    <button
+                      type="button"
+                      class="filters__btn"
+                      [class.active]="isComfortFilterActive(f)"
+                      (click)="setComfortFilter(f)"
+                    >{{ f === 'all' ? 'All' : f }}</button>
+                  }
+                </div>
+              }
+            </div>
+
+            @switch (detailsStatus()) {
+              @case ('idle') {
+                <p class="card__sub">
+                  Per-problem detail (comfort history, rep counts, timeline charts) is not
+                  fetched until you ask for it — this keeps the landing instant.
+                </p>
+                <button type="button" class="progress__explore" (click)="exploreProblems()">
+                  Explore problems
+                </button>
+              }
+              @case ('loading') {
+                <p class="progress__msg">Loading problems…</p>
+              }
+              @case ('error') {
+                <div class="progress__error">
+                  <p>{{ detailsError() }}</p>
+                  <button type="button" (click)="exploreProblems()">Retry</button>
+                </div>
+              }
+              @case ('ready') {
+                <div class="problems">
+                  @for (p of visibleProblems(); track p.lcNumber + '-' + p.title) {
+                    <div class="problem">
+                      <button
+                        type="button"
+                        class="problem__row"
+                        [attr.aria-expanded]="isExpanded(p)"
+                        (click)="toggle(p)"
+                      >
+                        <span class="problem__comfort">{{ p.comfort }}</span>
+                        <span class="problem__num">{{ p.lcNumber }}</span>
+                        <span class="problem__name">{{ p.title }}</span>
+                        @if (p.difficulty) {
+                          <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
+                        }
+                        @if (p.category) { <span class="tag">{{ p.category }}</span> }
+                        <span class="tag">{{ p.repDates.length }} reps</span>
+                        <span class="problem__caret" [class.problem__caret--open]="isExpanded(p)">▸</span>
+                      </button>
+                      <div class="problem__links">
+                        @if (vizRoute(p.lcNumber); as route) {
+                          <a [routerLink]="route">Visualize ▶</a>
+                        }
+                        @if (p.url) {
+                          <a [href]="p.url" target="_blank" rel="noopener">LeetCode ↗</a>
+                        }
+                      </div>
+                      @if (isExpanded(p)) {
+                        <div class="problem__chart">
+                          <app-problem-timeline [problem]="p" />
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            }
+          </div>
+        }
 
         @if (d.warnings?.length) {
           <p class="progress__warn">
