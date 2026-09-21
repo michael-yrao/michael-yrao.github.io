@@ -9,7 +9,8 @@ import { ProgressPageComponent } from './progress-page.component';
 import { ProgressService } from '../../../core/services/progress.service';
 import { ProgressSummary, ProblemProgress } from '../../../core/models/progress.model';
 
-// A minimal, valid summary — enough for the 'ready' branch of every card on the landing.
+// A minimal, valid summary — enough for the 'ready' branch of every card on the landing,
+// including the two instant drills (techniques/studyDays ride the summary, no fetch).
 function makeSummary(): ProgressSummary {
   return {
     schemaVersion: 1,
@@ -31,6 +32,13 @@ function makeSummary(): ProgressSummary {
       retired: [],
     },
     badges: [{ id: 'first-graduate', title: 'First Graduation', earned: true }],
+    techniques: [
+      { name: 'Bellman-Ford', family: 'advanced_graphs', problemCount: 1, problems: [787],
+        bestComfort: '🟢', hasGreen: true, thin: true, hasVariantGap: false },
+      { name: 'Frequency Counting', family: 'arrays_and_hash', problemCount: 2, problems: [49, 242],
+        bestComfort: '🎓', hasGreen: true, thin: false, hasVariantGap: false },
+    ],
+    studyDays: ['2026-09-18', '2026-09-19', '2026-09-20'],
   };
 }
 
@@ -132,6 +140,117 @@ describe('ProgressPageComponent', () => {
 
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(1);
   });
+
+  // ── Drill-through: the two instant drills (summary-only, no fetch) ──────────────────
+  it('renders the technique panel from the summary alone, with no details fetch', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const disclosure: HTMLButtonElement = fixture.nativeElement.querySelector('.gauge__disclosure');
+    expect(disclosure).toBeTruthy();
+    disclosure.click();
+    fixture.detectChanges();
+
+    const techList = fixture.nativeElement.querySelectorAll('app-technique-list');
+    expect(techList.length).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain('Bellman-Ford');
+    expect(progress.loadDetails).not.toHaveBeenCalled();
+  });
+
+  it('renders the streak calendar from the summary alone, with no details fetch', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const streakBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.hero__streak--btn');
+    expect(streakBtn).toBeTruthy();
+    streakBtn.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('app-streak-calendar').length).toBe(1);
+    expect(progress.loadDetails).not.toHaveBeenCalled();
+  });
+
+  // ── Drill-through: the three heavy drills (pipeline / on-schedule / difficulty) ─────
+  it('clicking a pipeline tier fetches details and sets the comfort facet', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const seg: HTMLButtonElement = fixture.nativeElement.querySelector('.funnel__seg.seg-grad');
+    expect(seg).toBeTruthy();
+    seg.click();
+
+    expect(progress.loadDetails).toHaveBeenCalled();
+    expect(fixture.componentInstance.listFilter()).toEqual({ kind: 'comfort', value: '🎓' });
+  });
+
+  it('clicking "Needs attention" fetches details and sets a single schedule facet covering overdue + due today', () => {
+    // Fixture has overdue:0, dueToday:1 — sum > 0, so the single drill button renders.
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const attentionBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.gauge__drill');
+    expect(attentionBtn).toBeTruthy();
+    expect(attentionBtn.textContent).toContain('Needs attention');
+    attentionBtn.click();
+
+    expect(progress.loadDetails).toHaveBeenCalled();
+    expect(fixture.componentInstance.listFilter()).toEqual({ kind: 'schedule', value: 'attention' });
+  });
+
+  it('hides the "Needs attention" drill when nothing is overdue or due', () => {
+    progress.data.set({ ...makeSummary(), onSchedule: { totalActive: 5, dueToday: 0, overdue: 0 } });
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.gauge__drill')).toBeFalsy();
+  });
+
+  it('clicking a difficulty count fetches details and sets the difficulty facet', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const diffBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.difficulty-row__btn');
+    expect(diffBtn).toBeTruthy();
+    diffBtn.click();
+
+    expect(progress.loadDetails).toHaveBeenCalled();
+    const facet = fixture.componentInstance.listFilter();
+    expect(facet?.kind).toBe('difficulty');
+  });
+
+  // ── Fix: 🏆 Retired never appears in details().problems[] (retired rows leave the
+  // tracker entirely), so it must not drill into a comfort facet — it scrolls to the
+  // Trophy Case card instead, with no fetch and no filter change. ──────────────────────
+  it('clicking the 🏆 Retired segment scrolls to the Trophy Case and does NOT set a facet or fetch details', () => {
+    const withRetired: ProgressSummary = {
+      ...makeSummary(),
+      pipeline: { ...makeSummary().pipeline, retired: 1 },
+      trophyCase: {
+        graduated: makeSummary().trophyCase!.graduated,
+        retired: [{ lcNumber: 704, title: 'Binary Search', retiredOn: '2026-08-01' }],
+      },
+    };
+    progress.data.set(withRetired);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    // jsdom doesn't implement scrollIntoView; find the Trophy Case card by its heading and
+    // stub it so the click doesn't throw, then assert it was called.
+    const cards: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.card'));
+    const trophyCard = cards.find((c) => c.querySelector('h2')?.textContent === 'Trophy case');
+    expect(trophyCard).toBeTruthy();
+    const scrollSpy = vi.fn();
+    (trophyCard as HTMLElement & { scrollIntoView: () => void }).scrollIntoView = scrollSpy;
+
+    const retiredSeg: HTMLButtonElement = fixture.nativeElement.querySelector('.funnel__seg.seg-retired');
+    expect(retiredSeg).toBeTruthy();
+    retiredSeg.click();
+
+    expect(scrollSpy).toHaveBeenCalled();
+    expect(progress.loadDetails).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.listFilter()).toBeNull();
+  });
 });
 
 // Regression test for the effect-loop bug: the constructor's
@@ -186,6 +305,54 @@ describe('ProgressPageComponent — effect loop regression (real ProgressService
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges(); // constructs the effect and flushes it (synchronously, to stability)
 
+    expect(http.calls.length).toBe(1);
+  });
+});
+
+// Smoke test: mount with the REAL ProgressService (not a stub — see the regression test above
+// for why a fake loadSummary() can't catch a wiring bug) against a call-capped counting
+// HttpClient double that DOES resolve (unlike the never-emitting double above), so this
+// asserts the OTHER half of the effect-loop lesson: not just "bounded call count" but "the
+// landing actually renders DOM and mounting/wiring the drill-through additions throws
+// nothing." Synchronous `of()` is safe here specifically because we are not testing loop
+// timing — see the never-emitting double above for why timing-sensitive assertions need an
+// unresolved response instead.
+function makeResolvingCountingHttp() {
+  const calls: string[] = [];
+  const payload = makeSummary();
+  return {
+    calls,
+    get: (url: string) => {
+      calls.push(url);
+      if (calls.length > CALL_CAP) {
+        throw new Error(
+          `Effect loop regression: HttpClient.get() called ${calls.length} times for a ` +
+            `stable ?repo param (expected 1). URLs: ${calls.join(', ')}`,
+        );
+      }
+      return of(payload);
+    },
+  };
+}
+
+describe('ProgressPageComponent — smoke test (real ProgressService, resolving HTTP)', () => {
+  it('renders the landing DOM with a bounded fetch count and throws nothing', () => {
+    const http = makeResolvingCountingHttp();
+    TestBed.configureTestingModule({
+      imports: [ProgressPageComponent],
+      providers: [
+        ProgressService,
+        { provide: HttpClient, useValue: http },
+        { provide: ActivatedRoute, useValue: makeActivatedRouteStub() },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    expect(() => fixture.detectChanges()).not.toThrow();
+
+    expect(fixture.nativeElement.querySelectorAll('.hero').length).toBeGreaterThan(0);
+    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
+    expect(http.calls.length).toBeLessThanOrEqual(CALL_CAP);
     expect(http.calls.length).toBe(1);
   });
 });

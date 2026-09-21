@@ -46,9 +46,15 @@
     }
     @case ('ready') {
       @if (data(); as d) {
-        <!-- Streak hero -->
+        <!-- Streak hero — click the streak to drill into a study-day calendar (instant, no fetch) -->
         <div class="hero">
-          <div class="hero__streak">
+          <button
+            type="button"
+            class="hero__streak hero__streak--btn"
+            [attr.aria-expanded]="streakPanelOpen()"
+            (click)="toggleStreakPanel()"
+            [title]="'Study-day calendar'"
+          >
             <span class="hero__flame">🔥</span>
             <span class="hero__num">{{ d.streak.current }}</span>
             <span class="hero__label"
@@ -57,7 +63,7 @@
                 <em>· best {{ d.streak.longest }}</em>
               }
             </span>
-          </div>
+          </button>
           <div class="hero__tiles">
             <div class="tile"><b>{{ d.totals.reps }}</b><span>reps</span></div>
             <div class="tile"><b>{{ d.totals.problems }}</b><span>problems</span></div>
@@ -71,31 +77,68 @@
             }
           </div>
         </div>
+        @if (streakPanelOpen() && d.studyDays) {
+          <div class="card">
+            <h2>Study-day calendar</h2>
+            <p class="card__sub">When did I practice? A filled cell is a study day.</p>
+            <app-streak-calendar
+              [studyDays]="d.studyDays"
+              [current]="d.streak.current"
+              [longest]="d.streak.longest"
+            />
+          </div>
+        }
 
-        <!-- Mastery pipeline -->
+        <!-- Mastery pipeline — each tier drills into the Explore list filtered to it -->
         <div class="card">
           <h2>Mastery pipeline</h2>
-          <p class="card__sub">Problems maturing 🔴 → 🟡 → 🟢 → 🎓 → 🏆. This, not a row count, is progress.</p>
+          <p class="card__sub">Problems maturing 🔴 → 🟡 → 🟢 → 🎓 → 🏆. This, not a row count, is progress. Click a tier to see which problems.</p>
           <div class="funnel" role="img" aria-label="Mastery pipeline distribution">
             @for (seg of pipelineSegments(); track seg.key) {
-              <div
+              <button
+                type="button"
                 class="funnel__seg"
                 [class]="seg.cls"
                 [style.width.%]="pct(seg.value)"
                 [attr.title]="seg.label + ': ' + seg.value"
+                (click)="pipelineSegmentClick(seg)"
               >
                 <span class="funnel__val">{{ seg.value }}</span>
-              </div>
+              </button>
             }
           </div>
           <ul class="legend">
             @for (seg of pipelineSegments(); track seg.key) {
-              <li><span class="legend__dot" [class]="seg.cls"></span>{{ seg.label }} · {{ seg.value }}</li>
+              <li>
+                <button type="button" class="legend__btn" (click)="pipelineSegmentClick(seg)">
+                  <span class="legend__dot" [class]="seg.cls"></span>{{ seg.label }} · {{ seg.value }}
+                </button>
+              </li>
             }
           </ul>
         </div>
 
-        <!-- On-schedule + coverage gauges -->
+        <!-- Difficulty mix — the third heavy drill -->
+        @if (difficultySegments().length) {
+          <div class="card">
+            <h2>Difficulty mix</h2>
+            <p class="card__sub">Click a difficulty to see which problems.</p>
+            <div class="difficulty-row">
+              @for (seg of difficultySegments(); track seg.key) {
+                <button
+                  type="button"
+                  class="tag tag--{{ seg.key.toLowerCase() }} difficulty-row__btn"
+                  (click)="drill({ kind: 'difficulty', value: seg.key })"
+                >
+                  {{ seg.key }} · {{ seg.value }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- On-schedule + coverage gauges — on-schedule counts drill; technique breadth toggles
+             an instant, summary-only panel (no fetch). -->
         <div class="gauges">
           @if (d.onSchedule; as os) {
             <div class="card gauge">
@@ -106,15 +149,36 @@
               <p class="card__sub">
                 {{ os.overdue }} overdue · {{ os.dueToday }} due today · {{ os.totalActive }} active
               </p>
+              @if (os.overdue + os.dueToday > 0) {
+                <button
+                  type="button"
+                  class="gauge__drill"
+                  (click)="drill({ kind: 'schedule', value: 'attention' })"
+                >
+                  Needs attention ({{ os.overdue + os.dueToday }}) →
+                </button>
+              }
             </div>
           }
           @if (d.coverage; as cov) {
             <div class="card gauge">
-              <h2>Technique breadth</h2>
+              <div class="gauge__head">
+                <h2>Technique breadth</h2>
+                <button
+                  type="button"
+                  class="gauge__disclosure"
+                  [attr.aria-expanded]="techPanelOpen()"
+                  [attr.aria-label]="techPanelOpen() ? 'Hide technique list' : 'Show technique list'"
+                  (click)="toggleTechPanel()"
+                >{{ techPanelOpen() ? '▾' : '▸' }}</button>
+              </div>
               <div class="gauge__big">{{ cov.started }}/{{ cov.total }}</div>
               <p class="card__sub">
                 {{ cov.noGreen }} with no 🟢 · {{ cov.thin }} thin · {{ cov.variantGaps }} variant gaps
               </p>
+              @if (techPanelOpen() && d.techniques) {
+                <app-technique-list [techniques]="d.techniques" />
+              }
             </div>
           }
         </div>
@@ -126,10 +190,11 @@
           <app-badge-grid [badges]="d.badges" />
         </div>
 
-        <!-- Trophy case -->
+        <!-- Trophy case — the 🏆 Retired pipeline segment scrolls here (retired rows are
+             never in details().problems[], so a comfort-facet drill would land empty). -->
         @if (d.trophyCase; as tc) {
           @if (tc.graduated.length || tc.retired.length) {
-            <div class="card">
+            <div class="card" #trophyCase>
               <h2>Trophy case</h2>
               <p class="card__sub">The accomplishment record — graduated 🎓 and retired 🏆.</p>
               <div class="trophies">
@@ -145,8 +210,10 @@
         }
 
         <!-- Per-problem progression — opt-in: no per-problem component mounts until the
-             learner explicitly asks, and a chart mounts only for a row they expand. -->
-        <div class="card">
+             learner explicitly asks, and a chart mounts only for a row they expand. Also the
+             landing spot for the three heavy drills (pipeline tier / on-schedule / difficulty),
+             which set listFilter and scroll here. -->
+        <div class="card" #exploreSection>
           <div class="problems__head">
             <h2>Per-problem progression</h2>
             @if (detailsStatus() === 'ready') {
@@ -155,8 +222,8 @@
                   <button
                     type="button"
                     class="filters__btn"
-                    [class.active]="filter() === f"
-                    (click)="filter.set(f)"
+                    [class.active]="isComfortFilterActive(f)"
+                    (click)="setComfortFilter(f)"
                   >{{ f === 'all' ? 'All' : f }}</button>
                 }
               </div>

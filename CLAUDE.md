@@ -60,6 +60,18 @@ Recorded from real mistakes. Read before answering "what's been visualized / wha
 - **Compute viz coverage as a set diff:** extract `lcNumber` from every `src/app/algorithms/**/*.steps.ts`, extract leading numbers from `cse-progress/dsa/leetcode/**/*.py`, and `comm` the two sorted-unique lists. Report the direction asked (gaps vs. extras) explicitly.
 - **Triangulate before reporting "done."** The file count, the mastery tracker, and the viz `lcNumber` set should agree; if they don't, find out why before answering.
 
+## Testing gotchas
+
+`fakeAsync`/`tick()` are **unavailable** under this project's Angular `unit-test` (vitest) builder —
+it throws `Expected to be running in 'ProxyZone', but it was not found` (the experimental builder
+doesn't wire up zone.js's Jasmine/Mocha-only ProxyZone patching `fakeAsync` needs). For a test that
+needs to control WHEN an HTTP response resolves (e.g. to catch a signal-effect loop that only
+manifests while a request is still pending), use a never-emitting Observable (`new Observable(() =>
+{})`) instead of `delay()` + `tick()` — see `progress-page.component.spec.ts`'s effect-loop
+regression test for the pattern. A synchronous `of()` mock is fine for ordinary "does it render"
+assertions; it's specifically wrong for timing-sensitive ones, since it resolves before an effect
+ever gets a chance to re-run.
+
 ## Deploy
 
 `main` is source. The live site (custom domain **progressiveoverflow.com**) is served from the

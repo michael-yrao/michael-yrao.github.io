@@ -70,6 +70,19 @@ export interface Badge {
   earned: boolean;
 }
 
+/** One row of technique_coverage.md's Coverage table (cse-progress gamify.py's
+ *  parse_techniques()) — the drill-through detail behind the technique-breadth header. */
+export interface Technique {
+  name: string;
+  family: string;
+  problemCount: number;
+  problems: number[];
+  bestComfort: Comfort | null;
+  hasGreen: boolean;
+  thin: boolean;
+  hasVariantGap: boolean;
+}
+
 export interface ProgressData {
   schemaVersion: number;
   generatedAt: string;
@@ -82,6 +95,8 @@ export interface ProgressData {
   trophyCase?: { graduated: ProblemProgress[]; retired: RetiredProblem[] };
   badges: Badge[];
   problems: ProblemProgress[];
+  techniques?: Technique[];
+  studyDays?: string[];
   warnings?: string[];
 }
 
@@ -109,5 +124,11 @@ export interface ProgressSummary {
   onSchedule?: OnSchedule;
   trophyCase?: { graduated: TrophyGraduateSummary[]; retired: RetiredProblem[] };
   badges: Badge[];
+  /** Per-technique detail (name/family/problemCount/bestComfort/thin/hasVariantGap) — small
+   *  (~56 rows), rides the summary so the technique-breadth drill renders with no fetch. */
+  techniques?: Technique[];
+  /** Sorted distinct ISO study-day dates — small, rides the summary so the streak-calendar
+   *  drill renders with no fetch. */
+  studyDays?: string[];
   warnings?: string[];
 }

@@ -51,6 +51,8 @@ function summaryFromFull(full: ProgressData): ProgressSummary {
     onSchedule: full.onSchedule,
     badges: full.badges,
     trophyCase: { graduated, retired: trophyCase?.retired ?? [] },
+    techniques: full.techniques,
+    studyDays: full.studyDays,
     warnings: full.warnings,
   };
 }

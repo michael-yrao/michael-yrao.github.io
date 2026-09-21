@@ -1,0 +1,15 @@
+<div class="streak-cal">
+  <div class="streak-cal__grid" role="img" aria-label="Study-day heatmap, last 20 weeks">
+    @for (cell of cells(); track cell.date) {
+      <span
+        class="streak-cal__cell"
+        [class.streak-cal__cell--filled]="cell.studied"
+        [class.streak-cal__cell--today]="cell.date === today"
+        [attr.title]="cell.date + (cell.studied ? ' · studied' : '')"
+      ></span>
+    }
+  </div>
+  <p class="streak-cal__legend">
+    {{ studyDays().length }} study days total · current streak {{ current() }} · longest {{ longest() }}
+  </p>
+</div>
