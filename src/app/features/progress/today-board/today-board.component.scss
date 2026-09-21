@@ -16,10 +16,26 @@
 .today-board__workload-fill--moderate { background: var(--color-medium); }
 .today-board__workload-fill--heavy { background: var(--color-hard); }
 .today-board__workload-label {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-top: var(--space-xs);
   font-size: 0.78rem;
   color: var(--color-text-muted);
+}
+.today-board__info {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-text-muted);
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  line-height: 1;
+  font-size: 0.65rem;
+  cursor: help;
+  padding: 0;
+  &:hover, &:focus-visible { border-color: var(--color-accent); color: var(--color-accent); outline: none; }
 }
 
 .today-board__head {
@@ -94,6 +110,7 @@
 .tag--easy { color: var(--color-easy); }
 .tag--medium { color: var(--color-medium); }
 .tag--hard { color: var(--color-hard); }
+.today-board__difficulty { margin-left: auto; }
 
 .today-board__links {
   display: flex;

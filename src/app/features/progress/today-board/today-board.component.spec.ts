@@ -183,4 +183,29 @@ describe('TodayBoardComponent', () => {
 
     expect(fixture.nativeElement.querySelector('.tag--easy, .tag--medium, .tag--hard')).toBeFalsy();
   });
+
+  // ── Round 3 item 1: difficulty tag moves to the END of the row ───────────────────
+  it('renders the difficulty tag as the LAST element in the row (after the links)', () => {
+    const fixture = createFixture(makeSchedule());
+
+    const row = fixture.nativeElement.querySelector('.today-board__row');
+    const last = row?.lastElementChild as HTMLElement;
+    expect(last?.classList.contains('today-board__difficulty')).toBe(true);
+  });
+
+  // ── Round 3 item 5: units explainer affordance on the workload bar ───────────────
+  it('renders an info affordance next to the workload label explaining what units means', () => {
+    const fixture = createFixture(makeSchedule(), 8, 3);
+
+    const info = fixture.nativeElement.querySelector('.today-board__info');
+    expect(info).toBeTruthy();
+    expect(info.getAttribute('title')?.toLowerCase()).toContain('comfort');
+    expect(info.getAttribute('title')?.toLowerCase()).toContain('difficulty');
+  });
+
+  it('renders no info affordance when there is no workload bar', () => {
+    const fixture = createFixture(null, 8, 3);
+
+    expect(fixture.nativeElement.querySelector('.today-board__info')).toBeFalsy();
+  });
 });

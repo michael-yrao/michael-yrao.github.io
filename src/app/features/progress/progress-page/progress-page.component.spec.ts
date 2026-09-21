@@ -40,16 +40,16 @@ function makeSummary(): ProgressSummary {
     badges: [{ id: 'first-graduate', title: 'First Graduation', earned: true }],
     techniques: [
       { name: 'Bellman-Ford', family: 'advanced_graphs', tier: 'core', started: true,
-        problemCount: 1, problems: [787], bestComfort: '🟢',
+        minProblems: 3, problemCount: 1, problems: [787], bestComfort: '🟢',
         hasGreen: true, thin: true, hasVariantGap: false },
       { name: 'Frequency Counting', family: 'arrays_and_hash', tier: 'core', started: true,
-        problemCount: 2, problems: [49, 242], bestComfort: '🎓',
+        minProblems: 2, problemCount: 2, problems: [49, 242], bestComfort: '🎓',
         hasGreen: true, thin: false, hasVariantGap: false },
       { name: 'Knapsack', family: 'dynamic_programming', tier: 'dp', started: false,
-        problemCount: 0, problems: [], bestComfort: null,
+        minProblems: 3, problemCount: 0, problems: [], bestComfort: null,
         hasGreen: false, thin: false, hasVariantGap: false },
       { name: 'Segment Tree Beats', family: 'expansion', tier: 'tier3', started: false,
-        problemCount: 0, problems: [], bestComfort: null,
+        minProblems: 3, problemCount: 0, problems: [], bestComfort: null,
         hasGreen: false, thin: false, hasVariantGap: false },
     ],
     studyDays: ['2026-09-18', '2026-09-19', '2026-09-20'],
@@ -72,6 +72,14 @@ function makeSummary(): ProgressSummary {
     },
     effortCeiling: 8,
     effortFloor: 3,
+    probes: {
+      total: 8,
+      cleanRate: 0.5,
+      items: [
+        { date: '2026-09-01', lcNumber: 1, title: 'Two Sum', technique: 'Hash Map', result: '🟢' },
+        { date: '2026-09-08', lcNumber: 200, title: 'Number of Islands', technique: 'Graph-DFS', result: '🔴' },
+      ],
+    },
   };
 }
 
@@ -407,7 +415,7 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelector('#tab-mastery').getAttribute('aria-selected')).toBe('true');
   });
 
-  it('ArrowLeft on the first tab wraps to the last tab', () => {
+  it('ArrowLeft on the first tab wraps to the last tab (Recognition, round 3)', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
@@ -415,7 +423,59 @@ describe('ProgressPageComponent', () => {
     overviewTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#tab-recognition').getAttribute('aria-selected')).toBe('true');
+  });
+
+  // ── Round 3: the 6th "Recognition" tab ──────────────────────────────────────────────
+  it('renders a 6th "Recognition" tab in the tablist, hidden until selected', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const tabs = fixture.nativeElement.querySelectorAll('[role="tab"]');
+    expect(tabs.length).toBe(6);
+    const recognitionTab: HTMLButtonElement = fixture.nativeElement.querySelector('#tab-recognition');
+    expect(recognitionTab).toBeTruthy();
+    expect(recognitionTab.textContent).toContain('Recognition');
+    expect(recognitionTab.getAttribute('aria-selected')).toBe('false');
+    expect(fixture.nativeElement.querySelector('app-recognition-panel')).toBeFalsy();
+  });
+
+  it('switching to Recognition renders app-recognition-panel wired to the summary\'s probes, no fetch', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    clickTab(fixture, 'recognition');
+
+    const panel = fixture.nativeElement.querySelector('app-recognition-panel');
+    expect(panel).toBeTruthy();
+    expect(panel!.textContent).toContain('8 probes');
+    expect(panel!.textContent).toContain('50% clean cold');
+    expect(progress.loadDetails).not.toHaveBeenCalled();
+  });
+
+  // ── Round 3: technique minProblems + click-to-expand-problems wiring ────────────────
+  it('shows each technique\'s count/target ratio (problemCount/minProblems) on the Techniques tab', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'techniques');
+
+    const ratios = Array.from(fixture.nativeElement.querySelectorAll('.tech-row__ratio'))
+      .map((el) => (el as HTMLElement).textContent);
+    expect(ratios).toContain('1/3');
+    expect(ratios).toContain('2/2');
+  });
+
+  it('expanding a technique row calls onTechniqueExpand, which fetches details via loadDetails()', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'techniques');
+
+    const row: HTMLButtonElement = fixture.nativeElement.querySelector('.tech-row__toggle');
+    expect(row).toBeTruthy();
+    row.click();
+    fixture.detectChanges();
+
+    expect(progress.loadDetails).toHaveBeenCalled();
   });
 });
 

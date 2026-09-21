@@ -210,7 +210,11 @@
             }
             @if (d.techniques) {
               <div class="card">
-                <app-technique-list [techniques]="d.techniques" />
+                <app-technique-list
+                  [techniques]="d.techniques"
+                  [details]="details()"
+                  (expand)="onTechniqueExpand($event)"
+                />
               </div>
             }
           </div>
@@ -331,6 +335,18 @@
                   </div>
                 }
               }
+            </div>
+          </div>
+        }
+
+        <!-- Recognition — the Probe log (cold, label-stripped, disposable reps). Entirely
+             summary-derived; no fetch, ever. -->
+        @if (isTabActive('recognition')) {
+          <div class="tabpanel" role="tabpanel" id="panel-recognition" aria-labelledby="tab-recognition">
+            <div class="card">
+              <h2>Recognition</h2>
+              <p class="card__sub">Does the practiced pool still teach recognition? The free diagnostic.</p>
+              <app-recognition-panel [probes]="d.probes" />
             </div>
           </div>
         }

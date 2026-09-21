@@ -1,0 +1,43 @@
+<div class="recognition">
+  @if (probes(); as p) {
+    @if (p.total) {
+      <div class="recognition__head">
+        <span class="recognition__headline">{{ p.total }} probes · {{ cleanPct() }}% clean cold</span>
+      </div>
+      <p class="recognition__gloss">{{ gloss() }}</p>
+
+      <ul class="recognition__list">
+        @for (item of recent(); track item.date + '-' + item.lcNumber) {
+          <li class="recognition__row">
+            @if (item.result) {
+              <span class="recognition__result">{{ item.result }}</span>
+            }
+            <span class="recognition__date">{{ item.date }}</span>
+            @if (item.lcNumber) {
+              <span class="recognition__num">#{{ item.lcNumber }}</span>
+            }
+            <span class="recognition__title">{{ item.title }}</span>
+            <span class="tag">{{ item.technique }}</span>
+            @if (item.lcNumber) {
+              <a
+                [href]="leetCodeUrl(item.lcNumber)"
+                target="_blank"
+                rel="noopener"
+                class="recognition__link"
+              >LeetCode ↗</a>
+            }
+          </li>
+        }
+      </ul>
+
+      <p class="recognition__note">
+        Probes are cold, label-stripped, and disposable — a clean 🟢 earns no tracker row, so
+        this is the only place they're counted.
+      </p>
+    } @else {
+      <p class="recognition__hint">No probes logged yet.</p>
+    }
+  } @else {
+    <p class="recognition__hint">No probes logged yet.</p>
+  }
+</div>

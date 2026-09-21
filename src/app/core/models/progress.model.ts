@@ -86,6 +86,10 @@ export interface Technique {
   /** Has the learner solved anything under this technique — technique_coverage.py's
    *  `is_started`. false for a declared-but-not-yet-begun tier1/2/3/dp entry. */
   started: boolean;
+  /** The per-technique coverage bar (techniques.yml's min_problems — 1 for most, up to 5
+   *  for one) — makes `thin` self-explanatory as problemCount/minProblems instead of a
+   *  bare label. A not-started technique still carries its declared target (0/minProblems). */
+  minProblems: number;
   problemCount: number;
   problems: number[];
   bestComfort: Comfort | null;
@@ -125,6 +129,27 @@ export interface Schedule {
   days: ScheduleDay[];
 }
 
+/** One row of the Probe log (dsa/probes/README.md — cold, label-stripped, disposable
+ *  recognition reps). `result` is the FIRST comfort glyph in the Result cell — the row is
+ *  scored on the COLD call, not a later conversion (e.g. "🔴 → 🟡 (re-rep Sep 16)" reads 🔴). */
+export interface Probe {
+  date: string;
+  lcNumber: number | null;
+  title: string;
+  technique: string;
+  result: Comfort | null;
+}
+
+/** The Probe log's tally — the ONLY place a disposable, cold 🟢 probe is counted (it earns
+ *  no tracker row). `cleanRate` = count(result === 🟢) / total; the README's own built-in
+ *  diagnostic reads >=0.85 as "the pool has stopped teaching" and <=0.70 as "real gaps
+ *  remain". */
+export interface Probes {
+  total: number;
+  cleanRate: number;
+  items: Probe[];
+}
+
 export interface ProgressData {
   schemaVersion: number;
   generatedAt: string;
@@ -142,6 +167,7 @@ export interface ProgressData {
   schedule?: Schedule | null;
   effortCeiling?: number;
   effortFloor?: number;
+  probes?: Probes | null;
   warnings?: string[];
 }
 
@@ -183,5 +209,8 @@ export interface ProgressSummary {
    *  workload bar's Heavy (>= 0.9x ceiling) / Light (<= floor) / Moderate bands. */
   effortCeiling?: number;
   effortFloor?: number;
+  /** The Probe log tally — backs the Recognition tab. Rides the summary (~1 row/week,
+   *  small either way); null when no Probe log table was found. */
+  probes?: Probes | null;
   warnings?: string[];
 }

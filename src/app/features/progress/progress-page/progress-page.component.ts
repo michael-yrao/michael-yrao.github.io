@@ -21,6 +21,8 @@ import { BadgeGridComponent } from '../badge-grid/badge-grid.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
 import { StreakCalendarComponent } from '../streak-calendar/streak-calendar.component';
 import { TodayBoardComponent } from '../today-board/today-board.component';
+import { RecognitionPanelComponent } from '../recognition-panel/recognition-panel.component';
+import { Technique } from '../../../core/models/progress.model';
 
 type ComfortFilter = 'all' | Comfort;
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
@@ -29,14 +31,17 @@ type Difficulty = 'Easy' | 'Medium' | 'Hard';
 // feedback: the toggle "doesn't connect the top and bottom"). Overview is the default —
 // streak hero + Today's board, the at-a-glance landing. Everything else has a home tab;
 // all existing drill behavior keeps working inside them, just re-homed.
-export type ProgressTab = 'overview' | 'mastery' | 'techniques' | 'activity' | 'problems';
-const TAB_ORDER: ProgressTab[] = ['overview', 'mastery', 'techniques', 'activity', 'problems'];
+export type ProgressTab = 'overview' | 'mastery' | 'techniques' | 'activity' | 'problems' | 'recognition';
+const TAB_ORDER: ProgressTab[] = [
+  'overview', 'mastery', 'techniques', 'activity', 'problems', 'recognition',
+];
 const TAB_LABEL: Record<ProgressTab, string> = {
   overview: 'Overview',
   mastery: 'Mastery',
   techniques: 'Techniques',
   activity: 'Activity',
   problems: 'Problems',
+  recognition: 'Recognition',
 };
 
 // The Explore list's unified filter facet. `null` = show everything. Each drill button on
@@ -66,6 +71,7 @@ function rowKey(p: ProblemProgress): string {
     TechniqueListComponent,
     StreakCalendarComponent,
     TodayBoardComponent,
+    RecognitionPanelComponent,
   ],
 })
 export class ProgressPageComponent {
@@ -257,6 +263,13 @@ export class ProgressPageComponent {
   }
 
   exploreProblems(): void {
+    this.progress.loadDetails();
+  }
+
+  /** A technique row expanded to its problems (Techniques tab, round 3) — same on-demand,
+   *  idempotent loadDetails() as the Problems tab; TechniqueListComponent only emits this
+   *  for a STARTED technique (a not-started one has nothing to join). */
+  onTechniqueExpand(_t: Technique): void {
     this.progress.loadDetails();
   }
 

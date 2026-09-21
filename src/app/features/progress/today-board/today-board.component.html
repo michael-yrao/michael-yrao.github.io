@@ -11,6 +11,12 @@
         </div>
         <span class="today-board__workload-label">
           today: {{ w.units }} / {{ w.ceiling }} units · {{ w.band }}
+          <button
+            type="button"
+            class="today-board__info"
+            aria-label="What are units?"
+            title="Units = today's effort-budget cost: each problem priced by comfort × difficulty, familiarity-discounted, capped at your daily ceiling. This bar is today's load against that ceiling."
+          >ⓘ</button>
         </span>
       </div>
     }
@@ -30,9 +36,6 @@
             @if (item.startComfort) {
               <span class="today-board__comfort">{{ item.startComfort }}</span>
             }
-            @if (item.difficulty) {
-              <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
-            }
             @if (item.lcNumber) {
               <span class="today-board__num">#{{ item.lcNumber }}</span>
             }
@@ -48,6 +51,9 @@
                 <a [href]="leetCodeUrl(item.lcNumber)" target="_blank" rel="noopener">LeetCode ↗</a>
               }
             </span>
+            @if (item.difficulty) {
+              <span class="tag tag--{{ item.difficulty.toLowerCase() }} today-board__difficulty">{{ item.difficulty }}</span>
+            }
           </li>
         }
       </ul>

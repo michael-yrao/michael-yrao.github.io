@@ -8,23 +8,64 @@
           <ul class="tech-list__items">
             @for (t of fam.items; track t.name) {
               <li class="tech-row" [class.tech-row--not-started]="!t.started">
-                <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
-                <span class="tech-row__name">{{ t.name }}</span>
-                @if (t.started) {
-                  <span class="tech-row__count"
-                    >{{ t.problemCount }} problem{{ t.problemCount === 1 ? '' : 's' }}</span
-                  >
-                  @if (t.thin) {
-                    <span class="chip chip--thin">thin</span>
+                <button
+                  type="button"
+                  class="tech-row__toggle"
+                  [attr.aria-expanded]="isExpanded(t)"
+                  (click)="toggle(t)"
+                >
+                  <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
+                  <span class="tech-row__name">{{ t.name }}</span>
+                  <span class="tech-row__ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
+                  @if (t.started) {
+                    <span class="chip" [class.chip--thin]="t.thin" [class.chip--covered]="!t.thin">
+                      {{ t.thin ? 'thin' : 'covered' }}
+                    </span>
+                    @if (t.hasVariantGap) {
+                      <span class="chip chip--gap">variant gap</span>
+                    }
+                    @if (!t.hasGreen) {
+                      <span class="chip chip--nogreen">no 🟢</span>
+                    }
+                  } @else {
+                    <span class="chip chip--not-started">not started</span>
                   }
-                  @if (t.hasVariantGap) {
-                    <span class="chip chip--gap">variant gap</span>
-                  }
-                  @if (!t.hasGreen) {
-                    <span class="chip chip--nogreen">no 🟢</span>
-                  }
-                } @else {
-                  <span class="chip chip--not-started">not started</span>
+                  <span class="tech-row__caret" [class.tech-row__caret--open]="isExpanded(t)">▸</span>
+                </button>
+                @if (isExpanded(t)) {
+                  <div class="tech-row__detail">
+                    @if (!t.started) {
+                      <p class="tech-row__empty">Not started yet.</p>
+                    } @else {
+                      @let probs = problemsFor(t);
+                      @if (probs === null) {
+                        <p class="tech-row__empty">Loading problems…</p>
+                      } @else if (probs.length) {
+                        <ul class="tech-row__problems">
+                          @for (p of probs; track p.lcNumber + '-' + p.title) {
+                            <li class="tech-row__problem">
+                              <span class="tech-row__problem-comfort">{{ p.comfort }}</span>
+                              <span class="tech-row__problem-num">#{{ p.lcNumber }}</span>
+                              <span class="tech-row__problem-title">{{ p.title }}</span>
+                              <span class="tech-row__problem-links">
+                                @if (vizRoute(p.lcNumber); as route) {
+                                  <a [routerLink]="route">Visualize ▶</a>
+                                }
+                                @if (p.url) {
+                                  <a [href]="p.url" target="_blank" rel="noopener">LeetCode ↗</a>
+                                }
+                              </span>
+                              @if (p.difficulty) {
+                                <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
+                              }
+                            </li>
+                          }
+                        </ul>
+                      } @else {
+                        <p class="tech-row__empty">No matching problems found.</p>
+                      }
+                    }
+                  </div>
                 }
               </li>
             }
