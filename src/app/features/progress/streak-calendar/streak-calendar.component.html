@@ -1,5 +1,10 @@
 <div class="streak-cal">
-  <div class="streak-cal__grid" role="img" aria-label="Study-day heatmap, last 20 weeks">
+  <div class="streak-cal__months" aria-hidden="true">
+    @for (col of monthColumns(); track $index) {
+      <span class="streak-cal__month">{{ col.label }}</span>
+    }
+  </div>
+  <div class="streak-cal__grid" role="img" [attr.aria-label]="'Study-day heatmap, last ' + windowWeeks + ' weeks, since ' + since()">
     @for (cell of cells(); track cell.date) {
       <span
         class="streak-cal__cell"
@@ -10,6 +15,7 @@
     }
   </div>
   <p class="streak-cal__legend">
-    {{ studyDays().length }} study days total · current streak {{ current() }} · longest {{ longest() }}
+    last {{ windowWeeks }} weeks · since {{ since() }} · {{ studyDays().length }} study days total ·
+    current streak {{ current() }} · longest {{ longest() }}
   </p>
 </div>

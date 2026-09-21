@@ -54,6 +54,8 @@ function summaryFromFull(full: ProgressData): ProgressSummary {
     techniques: full.techniques,
     studyDays: full.studyDays,
     schedule: full.schedule,
+    effortCeiling: full.effortCeiling,
+    effortFloor: full.effortFloor,
     warnings: full.warnings,
   };
 }

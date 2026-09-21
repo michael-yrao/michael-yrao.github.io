@@ -20,9 +20,9 @@ function makeSchedule(overrides: Partial<Schedule> = {}): Schedule {
         units: 5,
         items: [
           { lcNumber: 22, title: 'Generate Parentheses', technique: 'Backtracking',
-            startComfort: '🔴', done: false },
+            startComfort: '🔴', difficulty: 'Medium', done: false },
           { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS',
-            startComfort: '🟢', done: true },
+            startComfort: '🟢', difficulty: 'Easy', done: true },
         ],
       },
     ],
@@ -30,7 +30,11 @@ function makeSchedule(overrides: Partial<Schedule> = {}): Schedule {
   };
 }
 
-function createFixture(schedule: Schedule | null | undefined) {
+function createFixture(
+  schedule: Schedule | null | undefined,
+  effortCeiling?: number,
+  effortFloor?: number,
+) {
   // RouterLink (the Visualize link, rendered when a schedule item's lcNumber has a
   // visualizer route) needs an injectable ActivatedRoute the moment it's actually
   // instantiated in the DOM — an empty route config is enough, nothing navigates here.
@@ -40,6 +44,8 @@ function createFixture(schedule: Schedule | null | undefined) {
   });
   const fixture = TestBed.createComponent(TodayBoardComponent);
   fixture.componentRef.setInput('schedule', schedule);
+  if (effortCeiling !== undefined) fixture.componentRef.setInput('effortCeiling', effortCeiling);
+  if (effortFloor !== undefined) fixture.componentRef.setInput('effortFloor', effortFloor);
   fixture.detectChanges();
   return fixture;
 }
@@ -82,7 +88,7 @@ describe('TodayBoardComponent', () => {
           label: 'Not today',
           units: 5,
           items: [{ lcNumber: 1, title: 'Two Sum', technique: 'Hash Map',
-                    startComfort: '🟢', done: false }],
+                    startComfort: '🟢', difficulty: 'Easy', done: false }],
         },
       ],
     });
@@ -116,5 +122,65 @@ describe('TodayBoardComponent', () => {
 
     expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(0);
     expect(fixture.nativeElement.querySelector('.today-board__hint')).toBeTruthy();
+  });
+
+  // ── Round 2: the workload bar + per-item difficulty tag ──────────────────────────
+  it('renders "today: {units} / {ceiling} units · Moderate" between the floor and 0.9x ceiling', () => {
+    // units=5, ceiling=8, floor=3 -> 5 is above the floor and below 0.9*8=7.2 -> Moderate.
+    const fixture = createFixture(makeSchedule(), 8, 3);
+
+    const label = fixture.nativeElement.querySelector('.today-board__workload-label');
+    expect(label?.textContent).toContain('today: 5 / 8 units · Moderate');
+    const fill = fixture.nativeElement.querySelector('.today-board__workload-fill--moderate');
+    expect(fill).toBeTruthy();
+  });
+
+  it('bands as Heavy at >= 0.9x ceiling', () => {
+    // units=5, ceiling=5 -> 5 >= 0.9*5=4.5 -> Heavy.
+    const fixture = createFixture(makeSchedule(), 5, 3);
+
+    const label = fixture.nativeElement.querySelector('.today-board__workload-label');
+    expect(label?.textContent).toContain('Heavy');
+    expect(fixture.nativeElement.querySelector('.today-board__workload-fill--heavy')).toBeTruthy();
+  });
+
+  it('bands as Light at or below the floor', () => {
+    // units=5, ceiling=20, floor=5 -> 5 <= floor -> Light.
+    const fixture = createFixture(makeSchedule(), 20, 5);
+
+    const label = fixture.nativeElement.querySelector('.today-board__workload-label');
+    expect(label?.textContent).toContain('Light');
+    expect(fixture.nativeElement.querySelector('.today-board__workload-fill--light')).toBeTruthy();
+  });
+
+  it('renders no workload bar when the day has no board (empty/no-board day -> no bar)', () => {
+    const fixture = createFixture(null, 8, 3);
+
+    expect(fixture.nativeElement.querySelector('.today-board__workload-bar')).toBeFalsy();
+  });
+
+  it('renders no workload bar when effortCeiling is not provided', () => {
+    const fixture = createFixture(makeSchedule());
+
+    expect(fixture.nativeElement.querySelector('.today-board__workload-bar')).toBeFalsy();
+  });
+
+  it("shows each item's difficulty tag next to the comfort glyph", () => {
+    const fixture = createFixture(makeSchedule());
+
+    expect(fixture.nativeElement.querySelector('.tag--medium')?.textContent).toContain('Medium');
+    expect(fixture.nativeElement.querySelector('.tag--easy')?.textContent).toContain('Easy');
+  });
+
+  it('omits the difficulty tag when difficulty is null (an untracked number)', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 39, title: 'Combination Sum', technique: 'Backtracking',
+        startComfort: null, difficulty: null, done: false },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    expect(fixture.nativeElement.querySelector('.tag--easy, .tag--medium, .tag--hard')).toBeFalsy();
   });
 });

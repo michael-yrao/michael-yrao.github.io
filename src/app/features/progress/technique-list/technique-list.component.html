@@ -1,27 +1,36 @@
 <div class="tech-list">
-  @for (group of groups(); track group.family) {
-    <div class="tech-list__group">
-      <h3 class="tech-list__family">{{ group.family }}</h3>
-      <ul class="tech-list__items">
-        @for (t of group.items; track t.name) {
-          <li class="tech-row">
-            <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
-            <span class="tech-row__name">{{ t.name }}</span>
-            <span class="tech-row__count"
-              >{{ t.problemCount }} problem{{ t.problemCount === 1 ? '' : 's' }}</span
-            >
-            @if (t.thin) {
-              <span class="chip chip--thin">thin</span>
+  @for (group of groups(); track group.tier) {
+    <div class="tech-list__tier">
+      <h3 class="tech-list__tier-label">{{ group.label }}</h3>
+      @for (fam of group.families; track fam.family) {
+        <div class="tech-list__group">
+          <h4 class="tech-list__family">{{ fam.family }}</h4>
+          <ul class="tech-list__items">
+            @for (t of fam.items; track t.name) {
+              <li class="tech-row" [class.tech-row--not-started]="!t.started">
+                <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
+                <span class="tech-row__name">{{ t.name }}</span>
+                @if (t.started) {
+                  <span class="tech-row__count"
+                    >{{ t.problemCount }} problem{{ t.problemCount === 1 ? '' : 's' }}</span
+                  >
+                  @if (t.thin) {
+                    <span class="chip chip--thin">thin</span>
+                  }
+                  @if (t.hasVariantGap) {
+                    <span class="chip chip--gap">variant gap</span>
+                  }
+                  @if (!t.hasGreen) {
+                    <span class="chip chip--nogreen">no 🟢</span>
+                  }
+                } @else {
+                  <span class="chip chip--not-started">not started</span>
+                }
+              </li>
             }
-            @if (t.hasVariantGap) {
-              <span class="chip chip--gap">variant gap</span>
-            }
-            @if (!t.hasGreen) {
-              <span class="chip chip--nogreen">no 🟢</span>
-            }
-          </li>
-        }
-      </ul>
+          </ul>
+        </div>
+      }
     </div>
   }
 </div>

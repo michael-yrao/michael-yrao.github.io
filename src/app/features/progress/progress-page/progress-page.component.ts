@@ -6,7 +6,7 @@ import {
   effect,
   signal,
   untracked,
-  viewChild,
+  viewChildren,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -25,10 +25,24 @@ import { TodayBoardComponent } from '../today-board/today-board.component';
 type ComfortFilter = 'all' | Comfort;
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
+// Segmented tabs (replaces round-1's single "Full breakdown" toggle — round-2 learner
+// feedback: the toggle "doesn't connect the top and bottom"). Overview is the default —
+// streak hero + Today's board, the at-a-glance landing. Everything else has a home tab;
+// all existing drill behavior keeps working inside them, just re-homed.
+export type ProgressTab = 'overview' | 'mastery' | 'techniques' | 'activity' | 'problems';
+const TAB_ORDER: ProgressTab[] = ['overview', 'mastery', 'techniques', 'activity', 'problems'];
+const TAB_LABEL: Record<ProgressTab, string> = {
+  overview: 'Overview',
+  mastery: 'Mastery',
+  techniques: 'Techniques',
+  activity: 'Activity',
+  problems: 'Problems',
+};
+
 // The Explore list's unified filter facet. `null` = show everything. Each drill button on
 // the landing (a pipeline tier, an on-schedule count, a difficulty count) sets one of these
-// and triggers loadDetails() + a scroll to the list — the three heavy drills all funnel
-// through this single facet rather than each growing its own ad-hoc filter state.
+// and triggers loadDetails() + switches to the Problems tab — the three heavy drills all
+// funnel through this single facet rather than each growing its own ad-hoc filter state.
 type ListFacet =
   | { kind: 'comfort'; value: Comfort }
   | { kind: 'difficulty'; value: Difficulty }
@@ -62,11 +76,17 @@ export class ProgressPageComponent {
   readonly refreshing = this.progress.refreshing;
   readonly refreshError = this.progress.refreshError;
 
-  // Opt-in detail: the full `problems[]` array, fetched only via "Explore problems".
+  // Opt-in detail: the full `problems[]` array, fetched only when the Problems tab is
+  // entered for the first time (loadDetails() itself no-ops on a redundant call).
   readonly detailsStatus = this.progress.detailsStatus;
   readonly detailsError = this.progress.detailsError;
   readonly detailsRefreshing = this.progress.detailsRefreshing;
   readonly details = this.progress.details;
+
+  readonly tabs = TAB_ORDER;
+  readonly tabLabel = TAB_LABEL;
+  readonly activeTab = signal<ProgressTab>('overview');
+  private readonly tabButtons = viewChildren<ElementRef<HTMLButtonElement>>('tabBtn');
 
   // Unified filter facet for the Explore list. The manual comfort chips set `{kind:'comfort'}`
   // (or null for the "All" chip); the three headline drills below set 'difficulty'/'schedule'.
@@ -76,25 +96,6 @@ export class ProgressPageComponent {
   // Which rows are expanded — only an expanded row mounts <app-problem-timeline>, so at most
   // a handful of per-problem SVGs ever exist at once (the 132-at-once mount can never recur).
   private readonly expandedKeys = signal<ReadonlySet<string>>(new Set());
-
-  // Overview-first landing (Sep 2026 rebalance): the landing shows only the streak hero
-  // (number/flame — not the calendar) and Today's board. Everything else — pipeline,
-  // gauges, difficulty, badges, trophy case, technique panel, the streak CALENDAR, and the
-  // Explore-problems section — lives behind this one toggle. All their drill behavior
-  // (facet filter, expand-to-render timeline, loadDetails, refresh) is unchanged; this only
-  // gates visibility.
-  readonly breakdownOpen = signal(false);
-
-  // Instant drill (summary data only, no fetch): the technique panel's own disclosure,
-  // nested inside the breakdown once it's open.
-  readonly techPanelOpen = signal(false);
-
-  private readonly exploreSectionRef = viewChild<ElementRef<HTMLElement>>('exploreSection');
-  // 🏆 Retired never appears in details().problems[] (retired rows leave the tracker
-  // entirely — see cse-progress's parse_retired()), so that segment can't drill into the
-  // Explore list without landing on a permanently empty result. It scrolls to the Trophy
-  // Case card instead, where retired items are already listed.
-  private readonly trophyCaseRef = viewChild<ElementRef<HTMLElement>>('trophyCase');
 
   readonly visibleProblems = computed<ProblemProgress[]>(() => {
     const list = this.details();
@@ -112,8 +113,9 @@ export class ProgressPageComponent {
     });
   });
 
-  // Pipeline as ordered segments for the funnel bar — each is a drill into the Explore list
-  // filtered to that comfort tier.
+  // Pipeline as ordered segments for the funnel bar — each is a drill into the Problems tab
+  // filtered to that comfort tier. No legend (round-2 item 6 — the glyph segments are
+  // self-evident); the funnel bar's own segments are the only click target now.
   readonly pipelineSegments = computed(() => {
     const d = this.data();
     if (!d) return [];
@@ -133,7 +135,8 @@ export class ProgressPageComponent {
     this.pipelineSegments().reduce((sum, s) => sum + s.value, 0),
   );
 
-  // Difficulty mix — the third heavy drill (Easy/Medium/Hard counts -> filtered list).
+  // Difficulty mix — round-2 item 5: folded into the Mastery tab's pipeline card (no longer
+  // its own top-level card). Still the third heavy drill (Easy/Medium/Hard -> filtered list).
   readonly difficultySegments = computed(() => {
     const diff = this.data()?.difficulty;
     if (!diff) return [];
@@ -146,10 +149,32 @@ export class ProgressPageComponent {
     ).filter((s) => s.value > 0);
   });
 
+  readonly difficultyTotal = computed(() =>
+    this.difficultySegments().reduce((sum, s) => sum + s.value, 0),
+  );
+
   readonly onSchedulePct = computed(() => {
     const os = this.data()?.onSchedule;
     if (!os || !os.totalActive) return 100;
     return Math.round(((os.totalActive - os.overdue) / os.totalActive) * 100);
+  });
+
+  // The honest technique denominator (round-2 item 1): breadth tiered by the interview-ROI
+  // line rather than one flat fraction. "practiced" = started (any tier — in practice only
+  // 'core' is ever started); "upcoming" = not-started but ABOVE the line (dp + tier1);
+  // "horizon" = not-started and BELOW the line (tier2 + tier3, competitive-only).
+  readonly techniqueBreadth = computed(() => {
+    const techs = this.data()?.techniques;
+    if (!techs || !techs.length) return null;
+    let practiced = 0;
+    let upcoming = 0;
+    let horizon = 0;
+    for (const t of techs) {
+      if (t.started) practiced++;
+      else if (t.tier === 'dp' || t.tier === 'tier1') upcoming++;
+      else horizon++;
+    }
+    return { practiced, upcoming, horizon, total: techs.length };
   });
 
   private readonly repoParam;
@@ -166,7 +191,7 @@ export class ProgressPageComponent {
       initialValue: route.snapshot.queryParamMap.get('repo'),
     });
     // (Re)load the lightweight summary whenever the repo param changes. The landing never
-    // fetches the full problems[] file on its own — that is the "Explore problems" opt-in.
+    // fetches the full problems[] file on its own — that is the Problems-tab opt-in.
     //
     // ⚠️ loadSummary() reads/writes `source`/`status` signals internally. If those reads
     // happened INSIDE this effect's reactive tracking, the effect would depend on them too —
@@ -185,6 +210,16 @@ export class ProgressPageComponent {
     return total ? (value / total) * 100 : 0;
   }
 
+  difficultyPct(value: number): number {
+    const total = this.difficultyTotal();
+    return total ? (value / total) * 100 : 0;
+  }
+
+  breadthPct(value: number): number {
+    const tb = this.techniqueBreadth();
+    return tb?.total ? (value / tb.total) * 100 : 0;
+  }
+
   vizRoute(lc: number): string | null {
     return vizRouteFor(lc);
   }
@@ -195,6 +230,30 @@ export class ProgressPageComponent {
 
   refresh(): void {
     this.progress.refresh();
+  }
+
+  /** Selects a tab; entering Problems for the first time fires loadDetails() (idempotent —
+   *  it no-ops if details are already loaded, per ProgressService). */
+  selectTab(tab: ProgressTab): void {
+    this.activeTab.set(tab);
+    if (tab === 'problems') this.progress.loadDetails();
+  }
+
+  isTabActive(tab: ProgressTab): boolean {
+    return this.activeTab() === tab;
+  }
+
+  /** Roving tabindex keyboard nav for the tablist (ArrowLeft/Right wrap, Home/End jump). */
+  onTabKeydown(event: KeyboardEvent, index: number): void {
+    let next: number | null = null;
+    if (event.key === 'ArrowRight') next = (index + 1) % TAB_ORDER.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + TAB_ORDER.length) % TAB_ORDER.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = TAB_ORDER.length - 1;
+    if (next === null) return;
+    event.preventDefault();
+    this.selectTab(TAB_ORDER[next]);
+    this.tabButtons()[next]?.nativeElement.focus();
   }
 
   exploreProblems(): void {
@@ -214,41 +273,25 @@ export class ProgressPageComponent {
   }
 
   /** A headline-metric drill: a pipeline tier, an on-schedule count, or a difficulty count.
-   *  Sets the Explore list's facet, fetches details (once, cached), and scrolls to the list —
-   *  the three heavy drills all funnel through here. */
+   *  Sets the Explore list's facet, fetches details (once, cached), and switches to the
+   *  Problems tab — the three heavy drills all funnel through here. */
   drill(facet: ListFacet): void {
     this.listFilter.set(facet);
     this.progress.loadDetails();
-    this.scrollToExplore();
+    this.selectTab('problems');
   }
 
-  /** Pipeline segment click: every tier except 🏆 Retired drills into the Explore list.
-   *  Retired rows are never in details().problems[] (see the trophyCaseRef comment above),
-   *  so that segment scrolls to the Trophy Case instead — no fetch, no dead-end facet. */
+  /** Pipeline segment click: every tier except 🏆 Retired drills into the Problems tab.
+   *  Retired rows are never in details().problems[] (retired rows leave the tracker
+   *  entirely — see cse-progress's parse_retired()), so that segment just switches to the
+   *  Mastery tab instead, where the Trophy Case already lists them — no fetch, no dead-end
+   *  facet. */
   pipelineSegmentClick(seg: { key: string; comfort: Comfort }): void {
     if (seg.key === 'retired') {
-      this.scrollToTrophyCase();
+      this.selectTab('mastery');
       return;
     }
     this.drill({ kind: 'comfort', value: seg.comfort });
-  }
-
-  toggleTechPanel(): void {
-    this.techPanelOpen.update((v) => !v);
-  }
-
-  toggleBreakdown(): void {
-    this.breakdownOpen.update((v) => !v);
-  }
-
-  private scrollToExplore(): void {
-    // Guarded: jsdom (unit tests) doesn't implement scrollIntoView, and the ref is undefined
-    // until the template has rendered once.
-    this.exploreSectionRef()?.nativeElement.scrollIntoView?.({ behavior: 'smooth' });
-  }
-
-  private scrollToTrophyCase(): void {
-    this.trophyCaseRef()?.nativeElement.scrollIntoView?.({ behavior: 'smooth' });
   }
 
   toggle(p: ProblemProgress): void {

@@ -70,11 +70,22 @@ export interface Badge {
   earned: boolean;
 }
 
+/** Curriculum tier for the honest technique-breadth denominator (Sep 21, 2026): 'core' =
+ *  already-started NC150/pattern-doc techniques; 'dp' = the not-yet-started DP framework
+ *  lenses + core 1D/2D DP; 'tier1' = Knowledge Expansion Queue ABOVE the interview-ROI
+ *  line (still shows up in hard interviews); 'tier2'/'tier3' = BELOW the line —
+ *  competitive-programming horizon only. See cse-progress's study_guide.md. */
+export type TechniqueTier = 'core' | 'dp' | 'tier1' | 'tier2' | 'tier3';
+
 /** One row of technique_coverage.md's Coverage table (cse-progress gamify.py's
  *  parse_techniques()) — the drill-through detail behind the technique-breadth header. */
 export interface Technique {
   name: string;
   family: string;
+  tier: TechniqueTier;
+  /** Has the learner solved anything under this technique — technique_coverage.py's
+   *  `is_started`. false for a declared-but-not-yet-begun tier1/2/3/dp entry. */
+  started: boolean;
   problemCount: number;
   problems: number[];
   bestComfort: Comfort | null;
@@ -86,12 +97,15 @@ export interface Technique {
 /** One row of the current week's Daily Schedule table (cse-progress gamify.py's
  *  parse_current_week_schedule()) — the "what do I do today" drill. `lcNumber` is null for
  *  a 🆕 intake row not yet scaffolded to a local solution file (no Visualize/LeetCode deep
- *  link for that row); `startComfort` is null for a 🆕/🎯-tagged row (no prior comfort). */
+ *  link for that row); `startComfort` is null for a 🆕/🎯-tagged row (no prior comfort);
+ *  `difficulty` is null when the number isn't in the tracker yet (joined by lcNumber — the
+ *  schedule file itself carries no difficulty column). */
 export interface ScheduleItem {
   lcNumber: number | null;
   title: string;
   technique: string | null;
   startComfort: Comfort | null;
+  difficulty: 'Easy' | 'Medium' | 'Hard' | null;
   done: boolean;
 }
 
@@ -126,6 +140,8 @@ export interface ProgressData {
   techniques?: Technique[];
   studyDays?: string[];
   schedule?: Schedule | null;
+  effortCeiling?: number;
+  effortFloor?: number;
   warnings?: string[];
 }
 
@@ -163,5 +179,9 @@ export interface ProgressSummary {
    *  compact rows) so Today's board renders with no fetch. null when no current weekly
    *  schedule file was found. */
   schedule?: Schedule | null;
+  /** The learner's daily effort-budget ceiling/floor (units) — backs the Today's-board
+   *  workload bar's Heavy (>= 0.9x ceiling) / Light (<= floor) / Moderate bands. */
+  effortCeiling?: number;
+  effortFloor?: number;
   warnings?: string[];
 }

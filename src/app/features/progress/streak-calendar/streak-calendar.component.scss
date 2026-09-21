@@ -2,6 +2,19 @@
   margin-top: var(--space-md);
 }
 
+.streak-cal__months {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 2px;
+}
+.streak-cal__month {
+  flex: 0 0 11px;
+  font-size: 0.62rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: visible;
+}
+
 .streak-cal__grid {
   display: grid;
   grid-auto-flow: column;

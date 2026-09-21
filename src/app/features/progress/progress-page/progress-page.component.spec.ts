@@ -5,16 +5,18 @@ import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { vi } from 'vitest';
 
-import { ProgressPageComponent } from './progress-page.component';
+import { ProgressPageComponent, ProgressTab } from './progress-page.component';
 import { ProgressService } from '../../../core/services/progress.service';
 import { ProgressSummary, ProblemProgress } from '../../../core/models/progress.model';
 import { todayLocalISO } from '../../../core/utils/local-date';
 
-// A minimal, valid summary — enough for the 'ready' branch of every card on the landing,
-// including the two instant drills (techniques/studyDays ride the summary, no fetch) and
-// the overview-first landing's lead tile (schedule rides the summary too). The schedule's
-// matching day uses the SAME local-date function the component uses, so "today" always
-// lines up with whatever date the test actually runs on.
+// A minimal, valid summary — enough for the 'ready' branch of every tab, including the two
+// instant drills (techniques/studyDays ride the summary, no fetch) and the overview-first
+// landing's lead tile (schedule rides the summary too). The schedule's matching day uses the
+// SAME local-date function the component uses, so "today" always lines up with whatever
+// date the test actually runs on. `techniques` mixes a started 'core' entry with two
+// not-started entries (one above the interview-ROI line, one below) so the honest-
+// denominator breadth bar has something real to tier.
 function makeSummary(): ProgressSummary {
   return {
     schemaVersion: 1,
@@ -37,10 +39,18 @@ function makeSummary(): ProgressSummary {
     },
     badges: [{ id: 'first-graduate', title: 'First Graduation', earned: true }],
     techniques: [
-      { name: 'Bellman-Ford', family: 'advanced_graphs', problemCount: 1, problems: [787],
-        bestComfort: '🟢', hasGreen: true, thin: true, hasVariantGap: false },
-      { name: 'Frequency Counting', family: 'arrays_and_hash', problemCount: 2, problems: [49, 242],
-        bestComfort: '🎓', hasGreen: true, thin: false, hasVariantGap: false },
+      { name: 'Bellman-Ford', family: 'advanced_graphs', tier: 'core', started: true,
+        problemCount: 1, problems: [787], bestComfort: '🟢',
+        hasGreen: true, thin: true, hasVariantGap: false },
+      { name: 'Frequency Counting', family: 'arrays_and_hash', tier: 'core', started: true,
+        problemCount: 2, problems: [49, 242], bestComfort: '🎓',
+        hasGreen: true, thin: false, hasVariantGap: false },
+      { name: 'Knapsack', family: 'dynamic_programming', tier: 'dp', started: false,
+        problemCount: 0, problems: [], bestComfort: null,
+        hasGreen: false, thin: false, hasVariantGap: false },
+      { name: 'Segment Tree Beats', family: 'expansion', tier: 'tier3', started: false,
+        problemCount: 0, problems: [], bestComfort: null,
+        hasGreen: false, thin: false, hasVariantGap: false },
     ],
     studyDays: ['2026-09-18', '2026-09-19', '2026-09-20'],
     schedule: {
@@ -53,20 +63,23 @@ function makeSummary(): ProgressSummary {
           units: 5,
           items: [
             { lcNumber: 22, title: 'Generate Parentheses', technique: 'Backtracking',
-              startComfort: '🔴', done: false },
+              startComfort: '🔴', difficulty: 'Medium', done: false },
             { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS',
-              startComfort: '🟢', done: true },
+              startComfort: '🟢', difficulty: 'Easy', done: true },
           ],
         },
       ],
     },
+    effortCeiling: 8,
+    effortFloor: 3,
   };
 }
 
 // A stub with real signals (so the component's `readonly x = this.progress.x` field
 // assignments and template bindings behave exactly as against the real service), but no
-// HTTP: loadSummary/loadDetails/refresh are spies that never populate `details`, so the
-// 'Explore problems' opt-in is never exercised unless a test calls it explicitly.
+// HTTP: loadSummary/loadDetails/refresh are spies that never populate `details` or change
+// `detailsStatus`, so the Problems tab's idle branch (and its manual "Explore problems"
+// button) stays visible throughout unless a test explicitly flips the stub's signals.
 function makeProgressServiceStub() {
   return {
     status: signal<'idle' | 'loading' | 'ready' | 'error'>('ready'),
@@ -92,12 +105,15 @@ function makeActivatedRouteStub() {
   return { queryParamMap: of(paramMap), snapshot: { queryParamMap: paramMap } };
 }
 
-// The overview rebalance moved everything except the streak hero + Today's board behind
-// one "Full breakdown" toggle. Every test below that touches pipeline/gauges/difficulty/
-// technique-panel/streak-calendar/Explore needs this called first.
-function openBreakdown(fixture: { nativeElement: HTMLElement; detectChanges: () => void }): void {
-  const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.breakdown-toggle')!;
-  toggle.click();
+// Round 2 replaced the single "Full breakdown" toggle with a segmented tablist. Every test
+// below that touches pipeline/gauges/difficulty/techniques/activity/Explore needs this
+// called first to switch off the Overview tab.
+function clickTab(
+  fixture: { nativeElement: HTMLElement; detectChanges: () => void },
+  tab: ProgressTab,
+): void {
+  const btn: HTMLButtonElement = fixture.nativeElement.querySelector(`#tab-${tab}`)!;
+  btn.click();
   fixture.detectChanges();
 }
 
@@ -131,8 +147,8 @@ describe('ProgressPageComponent', () => {
     expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
-  // ── Overview-first landing: Today's board is the lead tile, everything else is hidden
-  // behind "Full breakdown" by default. ───────────────────────────────────────────────
+  // ── Overview-first landing: Today's board is the lead tile; everything else lives in a
+  // tab, Overview selected by default. ────────────────────────────────────────────────
   it("renders Today's board on the landing with the correct done count, no details fetch", () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
@@ -145,38 +161,77 @@ describe('ProgressPageComponent', () => {
     expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
-  it('hides the breakdown (pipeline, gauges, difficulty, Explore) by default', () => {
+  it('shows only the Overview tab content by default — pipeline/gauges/difficulty/Explore live elsewhere', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.funnel')).toBeFalsy();
-    expect(fixture.nativeElement.querySelector('.gauges')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.gauge')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.difficulty-row')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.progress__explore')).toBeFalsy();
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
 
-    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.breakdown-toggle');
-    expect(toggle).toBeTruthy();
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    const overviewTab: HTMLButtonElement = fixture.nativeElement.querySelector('#tab-overview');
+    expect(overviewTab.getAttribute('aria-selected')).toBe('true');
+    const masteryTab: HTMLButtonElement = fixture.nativeElement.querySelector('#tab-mastery');
+    expect(masteryTab.getAttribute('aria-selected')).toBe('false');
   });
 
-  it('reveals the breakdown after clicking "Full breakdown"', () => {
+  it('the pipeline funnel has no legend (round 2 item 6)', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-
-    openBreakdown(fixture);
+    clickTab(fixture, 'mastery');
 
     expect(fixture.nativeElement.querySelector('.funnel')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('.gauges')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('.progress__explore')).toBeTruthy();
-    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.breakdown-toggle');
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelector('.legend')).toBeFalsy();
   });
 
-  it('fetches details only when "Explore problems" is clicked', () => {
+  it('difficulty mix is folded into the Mastery pipeline card, not a standalone card', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    openBreakdown(fixture);
+    clickTab(fixture, 'mastery');
+
+    const pipelineCard = fixture.nativeElement.querySelector('.funnel')!.closest('.card');
+    expect(pipelineCard).toBeTruthy();
+    expect(pipelineCard!.querySelector('.difficulty-row')).toBeTruthy();
+    // No separate "Difficulty mix" h2 card heading — only the inline h3 inside the pipeline card.
+    const h2s = Array.from(fixture.nativeElement.querySelectorAll('h2')) as HTMLElement[];
+    expect(h2s.some((h) => h.textContent === 'Difficulty mix')).toBe(false);
+  });
+
+  it('Mastery, Techniques, Activity, and Problems tabs reveal their content on selection', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    clickTab(fixture, 'mastery');
+    expect(fixture.nativeElement.querySelector('.funnel')).toBeTruthy();
+
+    clickTab(fixture, 'techniques');
+    expect(fixture.nativeElement.querySelector('app-technique-list')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.breadth-bar')).toBeTruthy();
+
+    clickTab(fixture, 'activity');
+    expect(fixture.nativeElement.querySelector('app-streak-calendar')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.gauge')).toBeTruthy();
+
+    clickTab(fixture, 'problems');
+    expect(fixture.nativeElement.querySelector('.progress__explore')).toBeTruthy();
+  });
+
+  it('switching to the Problems tab fetches details automatically', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    clickTab(fixture, 'problems');
+
+    expect(progress.loadDetails).toHaveBeenCalled();
+  });
+
+  it('the manual "Explore problems" button also fetches (idle-state fallback)', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'problems');
+    progress.loadDetails.mockClear();
 
     const exploreBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.progress__explore');
     expect(exploreBtn).toBeTruthy();
@@ -204,7 +259,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    openBreakdown(fixture);
+    clickTab(fixture, 'problems');
 
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
 
@@ -215,92 +270,107 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(1);
   });
 
-  // ── Drill-through: the two instant drills (summary-only, no fetch) ──────────────────
-  it('renders the technique panel from the summary alone, with no details fetch', () => {
+  // ── Techniques tab: the technique list + the honest, tiered denominator ────────────
+  it('renders the technique list on the Techniques tab, with no details fetch', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    openBreakdown(fixture);
+    clickTab(fixture, 'techniques');
 
-    const disclosure: HTMLButtonElement = fixture.nativeElement.querySelector('.gauge__disclosure');
-    expect(disclosure).toBeTruthy();
-    disclosure.click();
-    fixture.detectChanges();
-
-    const techList = fixture.nativeElement.querySelectorAll('app-technique-list');
-    expect(techList.length).toBe(1);
+    expect(fixture.nativeElement.querySelectorAll('app-technique-list').length).toBe(1);
     expect(fixture.nativeElement.textContent).toContain('Bellman-Ford');
     expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
-  it('renders the streak calendar inside the breakdown, with no details fetch', () => {
+  it('the breadth bar tiers practiced / interview-upcoming / competitive-horizon honestly', () => {
+    // Fixture: 2 started ('core'), 1 not-started 'dp' (above the ROI line), 1 not-started
+    // 'tier3' (below the line) -> practiced=2, upcoming=1, horizon=1.
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'techniques');
+
+    const sub = fixture.nativeElement.querySelector('.breadth-bar')!
+      .closest('.card')!.querySelector('.card__sub')!;
+    expect(sub.textContent).toContain('2 practiced');
+    expect(sub.textContent).toContain('1 interview-upcoming');
+    expect(sub.textContent).toContain('1 competitive-horizon');
+  });
+
+  it('the streak calendar is not present until the Activity tab is opened', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
-    // Before opening the breakdown, the calendar (unlike the plain streak hero) isn't there.
     expect(fixture.nativeElement.querySelectorAll('app-streak-calendar').length).toBe(0);
 
-    openBreakdown(fixture);
+    clickTab(fixture, 'activity');
 
     expect(fixture.nativeElement.querySelectorAll('app-streak-calendar').length).toBe(1);
     expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
-  // ── Drill-through: the three heavy drills (pipeline / on-schedule / difficulty) ─────
-  it('clicking a pipeline tier fetches details and sets the comfort facet', () => {
+  // ── The three heavy drills (pipeline / on-schedule / difficulty) now switch to the
+  // Problems tab instead of scrolling to an in-page anchor. ──────────────────────────
+  it('clicking a pipeline tier fetches details, sets the comfort facet, and switches to Problems', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    openBreakdown(fixture);
+    clickTab(fixture, 'mastery');
 
     const seg: HTMLButtonElement = fixture.nativeElement.querySelector('.funnel__seg.seg-grad');
     expect(seg).toBeTruthy();
     seg.click();
+    fixture.detectChanges();
 
     expect(progress.loadDetails).toHaveBeenCalled();
     expect(fixture.componentInstance.listFilter()).toEqual({ kind: 'comfort', value: '🎓' });
+    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe('true');
   });
 
-  it('clicking "Needs attention" fetches details and sets a single schedule facet covering overdue + due today', () => {
+  it('clicking "Needs attention" fetches details, sets the schedule facet, and switches to Problems', () => {
     // Fixture has overdue:0, dueToday:1 — sum > 0, so the single drill button renders.
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    openBreakdown(fixture);
+    clickTab(fixture, 'activity');
 
     const attentionBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.gauge__drill');
     expect(attentionBtn).toBeTruthy();
     expect(attentionBtn.textContent).toContain('Needs attention');
     attentionBtn.click();
+    fixture.detectChanges();
 
     expect(progress.loadDetails).toHaveBeenCalled();
     expect(fixture.componentInstance.listFilter()).toEqual({ kind: 'schedule', value: 'attention' });
+    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe('true');
   });
 
   it('hides the "Needs attention" drill when nothing is overdue or due', () => {
     progress.data.set({ ...makeSummary(), onSchedule: { totalActive: 5, dueToday: 0, overdue: 0 } });
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    openBreakdown(fixture);
+    clickTab(fixture, 'activity');
 
     expect(fixture.nativeElement.querySelector('.gauge__drill')).toBeFalsy();
   });
 
-  it('clicking a difficulty count fetches details and sets the difficulty facet', () => {
+  it('clicking a difficulty count fetches details, sets the difficulty facet, and switches to Problems', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    openBreakdown(fixture);
+    clickTab(fixture, 'mastery');
 
     const diffBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.difficulty-row__btn');
     expect(diffBtn).toBeTruthy();
     diffBtn.click();
+    fixture.detectChanges();
 
     expect(progress.loadDetails).toHaveBeenCalled();
     const facet = fixture.componentInstance.listFilter();
     expect(facet?.kind).toBe('difficulty');
+    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe('true');
   });
 
-  // ── Fix: 🏆 Retired never appears in details().problems[] (retired rows leave the
-  // tracker entirely), so it must not drill into a comfort facet — it scrolls to the
-  // Trophy Case card instead, with no fetch and no filter change. ──────────────────────
-  it('clicking the 🏆 Retired segment scrolls to the Trophy Case and does NOT set a facet or fetch details', () => {
+  // ── 🏆 Retired never appears in details().problems[] (retired rows leave the tracker
+  // entirely), so it must not drill into a comfort facet. Now that the Trophy Case lives
+  // on the SAME (Mastery) tab as the pipeline funnel, clicking it is simply a no-op stay —
+  // no fetch, no facet, no tab switch, no scrollIntoView needed. ─────────────────────────
+  it('clicking the 🏆 Retired segment does NOT set a facet or fetch details, and stays on Mastery', () => {
     const withRetired: ProgressSummary = {
       ...makeSummary(),
       pipeline: { ...makeSummary().pipeline, retired: 1 },
@@ -313,23 +383,39 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    openBreakdown(fixture);
-
-    // jsdom doesn't implement scrollIntoView; find the Trophy Case card by its heading and
-    // stub it so the click doesn't throw, then assert it was called.
-    const cards: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.card'));
-    const trophyCard = cards.find((c) => c.querySelector('h2')?.textContent === 'Trophy case');
-    expect(trophyCard).toBeTruthy();
-    const scrollSpy = vi.fn();
-    (trophyCard as HTMLElement & { scrollIntoView: () => void }).scrollIntoView = scrollSpy;
+    clickTab(fixture, 'mastery');
 
     const retiredSeg: HTMLButtonElement = fixture.nativeElement.querySelector('.funnel__seg.seg-retired');
     expect(retiredSeg).toBeTruthy();
     retiredSeg.click();
+    fixture.detectChanges();
 
-    expect(scrollSpy).toHaveBeenCalled();
     expect(progress.loadDetails).not.toHaveBeenCalled();
     expect(fixture.componentInstance.listFilter()).toBeNull();
+    expect(fixture.nativeElement.querySelector('#tab-mastery').getAttribute('aria-selected')).toBe('true');
+  });
+
+  // ── Keyboard nav: the tablist is a real roving-tabindex control ─────────────────────
+  it('ArrowRight on the active tab moves selection to the next tab', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const overviewTab: HTMLButtonElement = fixture.nativeElement.querySelector('#tab-overview');
+    overviewTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#tab-mastery').getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('ArrowLeft on the first tab wraps to the last tab', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const overviewTab: HTMLButtonElement = fixture.nativeElement.querySelector('#tab-overview');
+    overviewTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe('true');
   });
 });
 

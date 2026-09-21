@@ -1,5 +1,19 @@
 <div class="today-board">
   @if (today(); as day) {
+    @if (workload(); as w) {
+      <div class="today-board__workload">
+        <div class="today-board__workload-bar">
+          <span
+            class="today-board__workload-fill"
+            [class]="'today-board__workload-fill--' + w.band.toLowerCase()"
+            [style.width.%]="w.pct"
+          ></span>
+        </div>
+        <span class="today-board__workload-label">
+          today: {{ w.units }} / {{ w.ceiling }} units · {{ w.band }}
+        </span>
+      </div>
+    }
     @if (day.items.length) {
       <div class="today-board__head">
         <span class="today-board__count">{{ doneCount() }} of {{ totalCount() }} done today</span>
@@ -15,6 +29,9 @@
             }}</span>
             @if (item.startComfort) {
               <span class="today-board__comfort">{{ item.startComfort }}</span>
+            }
+            @if (item.difficulty) {
+              <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
             }
             @if (item.lcNumber) {
               <span class="today-board__num">#{{ item.lcNumber }}</span>
