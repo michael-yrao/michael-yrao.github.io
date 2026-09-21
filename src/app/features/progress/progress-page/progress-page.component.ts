@@ -22,6 +22,7 @@ import { TechniqueListComponent } from '../technique-list/technique-list.compone
 import { StreakCalendarComponent } from '../streak-calendar/streak-calendar.component';
 import { TodayBoardComponent } from '../today-board/today-board.component';
 import { RecognitionPanelComponent } from '../recognition-panel/recognition-panel.component';
+import { SegmentedBarComponent, SegmentedBarSegment } from '../segmented-bar/segmented-bar.component';
 import { Technique } from '../../../core/models/progress.model';
 
 type ComfortFilter = 'all' | Comfort;
@@ -59,6 +60,18 @@ function rowKey(p: ProblemProgress): string {
   return `${p.lcNumber}-${p.title}`;
 }
 
+// The pipeline segment KEY -> comfort glyph it drills into. Kept as a lookup (rather than
+// carrying an extra `comfort` field on each SegmentedBarSegment) so pipelineSegments() can
+// emit the exact same shape every other bar usage emits — the component itself only ever
+// needs to know key/label/value/cls.
+const PIPELINE_COMFORT: Record<string, Comfort> = {
+  blank: '🔴',
+  shaky: '🟡',
+  clean: '🟢',
+  grad: '🎓',
+  retired: '🏆',
+};
+
 @Component({
   selector: 'app-progress-page',
   templateUrl: './progress-page.component.html',
@@ -72,6 +85,7 @@ function rowKey(p: ProblemProgress): string {
     StreakCalendarComponent,
     TodayBoardComponent,
     RecognitionPanelComponent,
+    SegmentedBarComponent,
   ],
 })
 export class ProgressPageComponent {
@@ -119,45 +133,39 @@ export class ProgressPageComponent {
     });
   });
 
-  // Pipeline as ordered segments for the funnel bar — each is a drill into the Problems tab
-  // filtered to that comfort tier. No legend (round-2 item 6 — the glyph segments are
-  // self-evident); the funnel bar's own segments are the only click target now.
-  readonly pipelineSegments = computed(() => {
+  // Pipeline as ordered segments for the shared segmented bar (round 4 — same component the
+  // difficulty mix and technique breadth now render through) — each is a drill into the
+  // Problems tab filtered to that comfort tier. No legend (round-2 item 6 — the segments are
+  // self-labeling); the bar's own segments are the only click target.
+  readonly pipelineSegments = computed<SegmentedBarSegment[]>(() => {
     const d = this.data();
     if (!d) return [];
     const p = d.pipeline;
     return (
       [
-        { key: 'blank', label: '🔴 Blank', value: p.blank, cls: 'seg-blank', comfort: '🔴' },
-        { key: 'shaky', label: '🟡 Shaky', value: p.shaky, cls: 'seg-shaky', comfort: '🟡' },
-        { key: 'clean', label: '🟢 Clean', value: p.clean.total, cls: 'seg-clean', comfort: '🟢' },
-        { key: 'grad', label: '🎓 Graduated', value: p.graduated, cls: 'seg-grad', comfort: '🎓' },
-        { key: 'retired', label: '🏆 Retired', value: p.retired, cls: 'seg-retired', comfort: '🏆' },
-      ] satisfies { key: string; label: string; value: number; cls: string; comfort: Comfort }[]
+        { key: 'blank', label: '🔴 Blank', value: p.blank, cls: 'seg-blank' },
+        { key: 'shaky', label: '🟡 Shaky', value: p.shaky, cls: 'seg-shaky' },
+        { key: 'clean', label: '🟢 Clean', value: p.clean.total, cls: 'seg-clean' },
+        { key: 'grad', label: '🎓 Graduated', value: p.graduated, cls: 'seg-grad' },
+        { key: 'retired', label: '🏆 Retired', value: p.retired, cls: 'seg-retired' },
+      ] satisfies SegmentedBarSegment[]
     ).filter((s) => s.value > 0);
   });
 
-  readonly pipelineTotal = computed(() =>
-    this.pipelineSegments().reduce((sum, s) => sum + s.value, 0),
-  );
-
   // Difficulty mix — round-2 item 5: folded into the Mastery tab's pipeline card (no longer
-  // its own top-level card). Still the third heavy drill (Easy/Medium/Hard -> filtered list).
-  readonly difficultySegments = computed(() => {
+  // its own top-level card). Round 4: now the same shared segmented bar, still the third
+  // heavy drill (Easy/Medium/Hard -> filtered list).
+  readonly difficultySegments = computed<SegmentedBarSegment[]>(() => {
     const diff = this.data()?.difficulty;
     if (!diff) return [];
     return (
       [
-        { key: 'Easy', value: diff.Easy },
-        { key: 'Medium', value: diff.Medium },
-        { key: 'Hard', value: diff.Hard },
-      ] satisfies { key: Difficulty; value: number }[]
+        { key: 'Easy', label: 'Easy', value: diff.Easy, cls: 'seg-easy' },
+        { key: 'Medium', label: 'Medium', value: diff.Medium, cls: 'seg-medium' },
+        { key: 'Hard', label: 'Hard', value: diff.Hard, cls: 'seg-hard' },
+      ] satisfies SegmentedBarSegment[]
     ).filter((s) => s.value > 0);
   });
-
-  readonly difficultyTotal = computed(() =>
-    this.difficultySegments().reduce((sum, s) => sum + s.value, 0),
-  );
 
   readonly onSchedulePct = computed(() => {
     const os = this.data()?.onSchedule;
@@ -181,6 +189,22 @@ export class ProgressPageComponent {
       else horizon++;
     }
     return { practiced, upcoming, horizon, total: techs.length };
+  });
+
+  // Round 4: the breadth bar rebuilt onto the shared segmented-bar component — same
+  // definitions as techniqueBreadth() above (practiced=started; upcoming/horizon split by
+  // the interview-ROI line), just reshaped into self-labeling segments so it reads like the
+  // pipeline instead of needing its own vertical "ROI line" marker to be legible.
+  readonly breadthSegments = computed<SegmentedBarSegment[]>(() => {
+    const tb = this.techniqueBreadth();
+    if (!tb) return [];
+    return (
+      [
+        { key: 'practiced', label: 'Practiced (started)', value: tb.practiced, cls: 'seg-practiced' },
+        { key: 'upcoming', label: 'Interview-upcoming', value: tb.upcoming, cls: 'seg-upcoming' },
+        { key: 'horizon', label: 'Competitive-horizon', value: tb.horizon, cls: 'seg-horizon' },
+      ] satisfies SegmentedBarSegment[]
+    ).filter((s) => s.value > 0);
   });
 
   private readonly repoParam;
@@ -209,21 +233,6 @@ export class ProgressPageComponent {
       const repo = this.repoParam();
       untracked(() => this.progress.loadSummary(repo));
     });
-  }
-
-  pct(value: number): number {
-    const total = this.pipelineTotal();
-    return total ? (value / total) * 100 : 0;
-  }
-
-  difficultyPct(value: number): number {
-    const total = this.difficultyTotal();
-    return total ? (value / total) * 100 : 0;
-  }
-
-  breadthPct(value: number): number {
-    const tb = this.techniqueBreadth();
-    return tb?.total ? (value / tb.total) * 100 : 0;
   }
 
   vizRoute(lc: number): string | null {
@@ -299,12 +308,19 @@ export class ProgressPageComponent {
    *  entirely — see cse-progress's parse_retired()), so that segment just switches to the
    *  Mastery tab instead, where the Trophy Case already lists them — no fetch, no dead-end
    *  facet. */
-  pipelineSegmentClick(seg: { key: string; comfort: Comfort }): void {
+  pipelineSegmentClick(seg: SegmentedBarSegment): void {
     if (seg.key === 'retired') {
       this.selectTab('mastery');
       return;
     }
-    this.drill({ kind: 'comfort', value: seg.comfort });
+    const comfort = PIPELINE_COMFORT[seg.key];
+    if (!comfort) return; // defensive — every real pipeline segment key has a mapping
+    this.drill({ kind: 'comfort', value: comfort });
+  }
+
+  /** Difficulty segment click — same drill the old chip row fired, now via the shared bar. */
+  difficultySegmentClick(seg: SegmentedBarSegment): void {
+    this.drill({ kind: 'difficulty', value: seg.key as Difficulty });
   }
 
   toggle(p: ProblemProgress): void {

@@ -23,6 +23,10 @@
   font-size: 0.78rem;
   color: var(--color-text-muted);
 }
+.today-board__info-wrap {
+  position: relative;
+  display: inline-flex;
+}
 .today-board__info {
   appearance: none;
   border: 1px solid var(--color-border);
@@ -33,9 +37,39 @@
   height: 15px;
   line-height: 1;
   font-size: 0.65rem;
-  cursor: help;
+  cursor: pointer;
   padding: 0;
   &:hover, &:focus-visible { border-color: var(--color-accent); color: var(--color-accent); outline: none; }
+}
+// Instant custom popover (round 4 item 2) — no native `title` delay, and it toggles on
+// tap/click (`--open`) for touch, where there is no hover to trigger it.
+.today-board__info-bubble {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 220px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-align: left;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+  z-index: 5;
+}
+.today-board__info-wrap:hover .today-board__info-bubble,
+.today-board__info-wrap:focus-within .today-board__info-bubble,
+.today-board__info-wrap--open .today-board__info-bubble {
+  opacity: 1;
+  visibility: visible;
 }
 
 .today-board__head {
@@ -110,7 +144,6 @@
 .tag--easy { color: var(--color-easy); }
 .tag--medium { color: var(--color-medium); }
 .tag--hard { color: var(--color-hard); }
-.today-board__difficulty { margin-left: auto; }
 
 .today-board__links {
   display: flex;

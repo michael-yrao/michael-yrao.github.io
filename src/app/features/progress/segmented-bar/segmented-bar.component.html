@@ -1,0 +1,33 @@
+<div class="segbar">
+  @if (title()) {
+    <h3 class="segbar__title">{{ title() }}</h3>
+  }
+  <div class="segbar__bar" role="img" [attr.aria-label]="ariaLabel()">
+    @for (seg of visibleSegments(); track seg.key) {
+      @if (clickable()) {
+        <button
+          type="button"
+          class="segbar__seg"
+          [class]="seg.cls"
+          [style.width.%]="pct(seg.value)"
+          [attr.title]="seg.label + ': ' + seg.value"
+          (click)="onSegmentClick(seg)"
+        >
+          <span class="segbar__seg-text">{{ seg.label }} · {{ seg.value }}</span>
+        </button>
+      } @else {
+        <span
+          class="segbar__seg"
+          [class]="seg.cls"
+          [style.width.%]="pct(seg.value)"
+          [attr.title]="seg.label + ': ' + seg.value"
+        >
+          <span class="segbar__seg-text">{{ seg.label }} · {{ seg.value }}</span>
+        </span>
+      }
+    }
+  </div>
+  @if (caption()) {
+    <p class="segbar__caption">{{ caption() }}</p>
+  }
+</div>

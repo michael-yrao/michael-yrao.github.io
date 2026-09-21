@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Schedule, ScheduleDay } from '../../../core/models/progress.model';
@@ -69,6 +69,16 @@ export class TodayBoardComponent {
     else band = 'Moderate';
     return { units, ceiling, pct, band };
   });
+
+  // The units-explainer popover (round 4 item 2 — replaces the native `title` tooltip, which
+  // is slow (~1s), invisible on touch, and too wordy). Click/tap TOGGLES it (works on touch,
+  // where there's no hover); the template also shows it instantly on `:hover`/`:focus-within`
+  // for mouse/keyboard, in pure CSS, no signal involved for that path.
+  readonly infoOpen = signal(false);
+
+  toggleInfo(): void {
+    this.infoOpen.update((v) => !v);
+  }
 
   vizRoute(lcNumber: number | null): string | null {
     return vizRouteFor(lcNumber);

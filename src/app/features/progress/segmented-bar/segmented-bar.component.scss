@@ -1,0 +1,64 @@
+.segbar__title {
+  margin: 0 0 var(--space-xs);
+  font-size: 1.1rem; // matches .card h2 — lets a caller use this AS the card heading (breadth)
+}
+
+.segbar__bar {
+  display: flex;
+  height: 32px; // ONE height for every bar usage (was 34px pipeline / 20px breadth — the
+  // learner's exact complaint was that these didn't match)
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-bg-raised);
+}
+
+.segbar__seg {
+  appearance: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 100%;
+  padding: 0 6px;
+  color: #0b1220; // fixed dark text — every segment color below is bright enough for this
+  font-weight: 700;
+  font-size: 0.72rem;
+  transition: width var(--transition-base), filter var(--transition-fast);
+  overflow: hidden;
+}
+
+button.segbar__seg {
+  cursor: pointer;
+  &:hover, &:focus-visible { filter: brightness(1.12); outline: none; }
+}
+
+.segbar__seg-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.segbar__caption {
+  margin: var(--space-sm) 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+// ── Segment palette — the one shared source of color classes for every bar usage ──────────
+// Mastery pipeline (comfort tiers)
+.seg-blank { background: var(--color-hard); }
+.seg-shaky { background: var(--color-medium); }
+.seg-clean { background: var(--color-easy); }
+.seg-grad { background: var(--color-accent); }
+.seg-retired { background: #a78bfa; }
+
+// Difficulty mix
+.seg-easy { background: var(--color-easy); }
+.seg-medium { background: var(--color-medium); }
+.seg-hard { background: var(--color-hard); }
+
+// Technique breadth (tiered by the interview-ROI line)
+.seg-practiced { background: var(--color-accent); }
+.seg-upcoming { background: var(--color-easy); }
+.seg-horizon { background: var(--color-border); }

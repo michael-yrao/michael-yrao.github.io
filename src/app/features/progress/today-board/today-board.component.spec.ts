@@ -184,23 +184,55 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.tag--easy, .tag--medium, .tag--hard')).toBeFalsy();
   });
 
-  // ── Round 3 item 1: difficulty tag moves to the END of the row ───────────────────
-  it('renders the difficulty tag as the LAST element in the row (after the links)', () => {
+  // ── Round 4 item 1: difficulty tag moves to directly AFTER the title ─────────────
+  it('renders the difficulty tag immediately after the title (before technique/links)', () => {
     const fixture = createFixture(makeSchedule());
 
     const row = fixture.nativeElement.querySelector('.today-board__row');
-    const last = row?.lastElementChild as HTMLElement;
-    expect(last?.classList.contains('today-board__difficulty')).toBe(true);
+    const children = Array.from(row.children) as HTMLElement[];
+    const titleIndex = children.findIndex((el) => el.classList.contains('today-board__title'));
+    const nextEl = children[titleIndex + 1];
+    expect(nextEl.classList.contains('tag--medium')).toBe(true);
+    expect(nextEl.textContent).toContain('Medium');
+
+    // Technique tag and links still follow, in that order, after the difficulty tag.
+    const techniqueEl = children[titleIndex + 2];
+    expect(techniqueEl.textContent).toContain('Backtracking');
+    const linksEl = children[titleIndex + 3];
+    expect(linksEl.classList.contains('today-board__links')).toBe(true);
   });
 
-  // ── Round 3 item 5: units explainer affordance on the workload bar ───────────────
-  it('renders an info affordance next to the workload label explaining what units means', () => {
+  // ── Round 4 item 2: units explainer is a custom, instant popover (not the native `title`
+  // tooltip, which is slow and invisible on touch) ─────────────────────────────────
+  it('renders an info affordance with a custom popover bubble (not a native title tooltip)', () => {
     const fixture = createFixture(makeSchedule(), 8, 3);
 
-    const info = fixture.nativeElement.querySelector('.today-board__info');
+    const info: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__info');
     expect(info).toBeTruthy();
-    expect(info.getAttribute('title')?.toLowerCase()).toContain('comfort');
-    expect(info.getAttribute('title')?.toLowerCase()).toContain('difficulty');
+    expect(info.getAttribute('title')).toBeFalsy();
+
+    const bubble = fixture.nativeElement.querySelector('.today-board__info-bubble');
+    expect(bubble).toBeTruthy();
+    expect(bubble.textContent).toContain('effort load');
+    expect(bubble.textContent).toContain('daily ceiling');
+    expect(info.getAttribute('aria-describedby')).toBe(bubble.id);
+  });
+
+  it('toggles the popover open/closed on click (tap support — no hover on touch)', () => {
+    const fixture = createFixture(makeSchedule(), 8, 3);
+
+    const info: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__info');
+    const wrap = () => fixture.nativeElement.querySelector('.today-board__info-wrap');
+
+    expect(wrap()?.classList.contains('today-board__info-wrap--open')).toBe(false);
+
+    info.click();
+    fixture.detectChanges();
+    expect(wrap()?.classList.contains('today-board__info-wrap--open')).toBe(true);
+
+    info.click();
+    fixture.detectChanges();
+    expect(wrap()?.classList.contains('today-board__info-wrap--open')).toBe(false);
   });
 
   it('renders no info affordance when there is no workload bar', () => {

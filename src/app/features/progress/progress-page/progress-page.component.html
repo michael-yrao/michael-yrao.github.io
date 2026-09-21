@@ -115,35 +115,20 @@
             <div class="card">
               <h2>Mastery pipeline</h2>
               <p class="card__sub">Problems maturing 🔴 → 🟡 → 🟢 → 🎓 → 🏆. This, not a row count, is progress. Click a tier to see which problems.</p>
-              <div class="funnel" role="img" aria-label="Mastery pipeline distribution">
-                @for (seg of pipelineSegments(); track seg.key) {
-                  <button
-                    type="button"
-                    class="funnel__seg"
-                    [class]="seg.cls"
-                    [style.width.%]="pct(seg.value)"
-                    [attr.title]="seg.label + ': ' + seg.value"
-                    (click)="pipelineSegmentClick(seg)"
-                  >
-                    <span class="funnel__val">{{ seg.value }}</span>
-                  </button>
-                }
-              </div>
+              <app-segmented-bar
+                [segments]="pipelineSegments()"
+                [clickable]="true"
+                (segmentClick)="pipelineSegmentClick($event)"
+              />
 
               @if (difficultySegments().length) {
                 <div class="difficulty-inline">
                   <h3 class="difficulty-inline__label">Difficulty mix</h3>
-                  <div class="difficulty-row">
-                    @for (seg of difficultySegments(); track seg.key) {
-                      <button
-                        type="button"
-                        class="tag tag--{{ seg.key.toLowerCase() }} difficulty-row__btn"
-                        (click)="drill({ kind: 'difficulty', value: seg.key })"
-                      >
-                        {{ seg.key }} · {{ seg.value }}
-                      </button>
-                    }
-                  </div>
+                  <app-segmented-bar
+                    [segments]="difficultySegments()"
+                    [clickable]="true"
+                    (segmentClick)="difficultySegmentClick($event)"
+                  />
                 </div>
               }
             </div>
@@ -179,27 +164,11 @@
           <div class="tabpanel" role="tabpanel" id="panel-techniques" aria-labelledby="tab-techniques">
             @if (techniqueBreadth(); as tb) {
               <div class="card">
-                <h2>Technique breadth</h2>
-                <p class="card__sub">
-                  {{ tb.practiced }} practiced · {{ tb.upcoming }} interview-upcoming ·
-                  {{ tb.horizon }} competitive-horizon
-                </p>
-                <div class="breadth-bar" role="img" aria-label="Technique breadth, tiered by the interview-ROI line">
-                  @if (tb.practiced) {
-                    <span class="breadth-bar__seg breadth-bar__practiced" [style.width.%]="breadthPct(tb.practiced)"></span>
-                  }
-                  @if (tb.upcoming) {
-                    <span class="breadth-bar__seg breadth-bar__upcoming" [style.width.%]="breadthPct(tb.upcoming)"></span>
-                  }
-                  <span class="breadth-bar__roi-line" [attr.title]="'Interview-ROI line'"></span>
-                  @if (tb.horizon) {
-                    <span class="breadth-bar__seg breadth-bar__horizon" [style.width.%]="breadthPct(tb.horizon)"></span>
-                  }
-                </div>
-                <p class="card__sub breadth-bar__caption">
-                  ↑ interview-ROI line — practiced + interview-upcoming still pay interview
-                  dividends; competitive-horizon is depth beyond that.
-                </p>
+                <app-segmented-bar
+                  [segments]="breadthSegments()"
+                  title="Roadmap coverage"
+                  caption="How much of your full technique roadmap you've started, split by the interview-ROI line — practiced + interview-upcoming still pay interview dividends; competitive-horizon is depth beyond that."
+                />
                 @if (d.coverage; as cov) {
                   <p class="card__sub">
                     Of the practiced: {{ cov.noGreen }} with no 🟢 · {{ cov.thin }} thin ·

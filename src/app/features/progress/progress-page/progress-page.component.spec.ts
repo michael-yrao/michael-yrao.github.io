@@ -173,9 +173,8 @@ describe('ProgressPageComponent', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.funnel')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.gauge')).toBeFalsy();
-    expect(fixture.nativeElement.querySelector('.difficulty-row')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.progress__explore')).toBeFalsy();
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
 
@@ -185,23 +184,27 @@ describe('ProgressPageComponent', () => {
     expect(masteryTab.getAttribute('aria-selected')).toBe('false');
   });
 
-  it('the pipeline funnel has no legend (round 2 item 6)', () => {
+  it('the pipeline bar has no legend (round 2 item 6)', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    expect(fixture.nativeElement.querySelector('.funnel')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('.legend')).toBeFalsy();
   });
 
-  it('difficulty mix is folded into the Mastery pipeline card, not a standalone card', () => {
+  // ── Round 4: the pipeline, difficulty, and breadth bars all render through the ONE
+  // shared <app-segmented-bar> component instead of three bespoke markups. ──────────────
+  it('difficulty mix is folded into the Mastery pipeline card, sharing the segmented-bar component', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const pipelineCard = fixture.nativeElement.querySelector('.funnel')!.closest('.card');
+    const bars = fixture.nativeElement.querySelectorAll('app-segmented-bar');
+    expect(bars.length).toBe(2); // pipeline + difficulty, both inside the same card
+    const pipelineCard = bars[0].closest('.card');
     expect(pipelineCard).toBeTruthy();
-    expect(pipelineCard!.querySelector('.difficulty-row')).toBeTruthy();
+    expect(pipelineCard!.contains(bars[1])).toBe(true);
     // No separate "Difficulty mix" h2 card heading — only the inline h3 inside the pipeline card.
     const h2s = Array.from(fixture.nativeElement.querySelectorAll('h2')) as HTMLElement[];
     expect(h2s.some((h) => h.textContent === 'Difficulty mix')).toBe(false);
@@ -212,11 +215,11 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     clickTab(fixture, 'mastery');
-    expect(fixture.nativeElement.querySelector('.funnel')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeTruthy();
 
     clickTab(fixture, 'techniques');
     expect(fixture.nativeElement.querySelector('app-technique-list')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('.breadth-bar')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeTruthy();
 
     clickTab(fixture, 'activity');
     expect(fixture.nativeElement.querySelector('app-streak-calendar')).toBeTruthy();
@@ -289,18 +292,28 @@ describe('ProgressPageComponent', () => {
     expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
-  it('the breadth bar tiers practiced / interview-upcoming / competitive-horizon honestly', () => {
+  it('the breadth bar tiers practiced / interview-upcoming / competitive-horizon honestly, self-labeled', () => {
     // Fixture: 2 started ('core'), 1 not-started 'dp' (above the ROI line), 1 not-started
     // 'tier3' (below the line) -> practiced=2, upcoming=1, horizon=1.
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'techniques');
 
-    const sub = fixture.nativeElement.querySelector('.breadth-bar')!
-      .closest('.card')!.querySelector('.card__sub')!;
-    expect(sub.textContent).toContain('2 practiced');
-    expect(sub.textContent).toContain('1 interview-upcoming');
-    expect(sub.textContent).toContain('1 competitive-horizon');
+    const bar = fixture.nativeElement.querySelector('app-segmented-bar')!;
+    expect(bar.textContent).toContain('Practiced (started)');
+    expect(bar.textContent).toContain('2');
+    expect(bar.textContent).toContain('Interview-upcoming');
+    expect(bar.textContent).toContain('Competitive-horizon');
+  });
+
+  it("the breadth bar shows a title and a caption explaining the interview-ROI split", () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'techniques');
+
+    const bar = fixture.nativeElement.querySelector('app-segmented-bar')!;
+    expect(bar.querySelector('.segbar__title')?.textContent).toContain('Roadmap coverage');
+    expect(bar.querySelector('.segbar__caption')?.textContent).toContain('interview-ROI');
   });
 
   it('the streak calendar is not present until the Activity tab is opened', () => {
@@ -322,7 +335,7 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const seg: HTMLButtonElement = fixture.nativeElement.querySelector('.funnel__seg.seg-grad');
+    const seg: HTMLButtonElement = fixture.nativeElement.querySelector('.segbar__seg.seg-grad');
     expect(seg).toBeTruthy();
     seg.click();
     fixture.detectChanges();
@@ -363,7 +376,7 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const diffBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.difficulty-row__btn');
+    const diffBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.difficulty-inline .segbar__seg');
     expect(diffBtn).toBeTruthy();
     diffBtn.click();
     fixture.detectChanges();
@@ -393,7 +406,7 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const retiredSeg: HTMLButtonElement = fixture.nativeElement.querySelector('.funnel__seg.seg-retired');
+    const retiredSeg: HTMLButtonElement = fixture.nativeElement.querySelector('.segbar__seg.seg-retired');
     expect(retiredSeg).toBeTruthy();
     retiredSeg.click();
     fixture.detectChanges();

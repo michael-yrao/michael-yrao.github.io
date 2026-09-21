@@ -1,5 +1,6 @@
 // Shared reset for an inline control that must read as plain content, not a button — used by
-// every drill trigger below (funnel segments, legend, gauge links, streak toggle, problem rows).
+// the drill triggers below (gauge links, problem rows). Segment-bar buttons have their own
+// reset in segmented-bar.component.scss.
 %btn-reset {
   appearance: none;
   border: none;
@@ -195,33 +196,9 @@
   gap: var(--space-lg);
 }
 
-// ── Pipeline funnel ──────────────────────────────────────────────────────────
-.funnel {
-  display: flex;
-  height: 34px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  background: var(--color-bg-raised);
-}
-.funnel__seg {
-  @extend %btn-reset;
-  display: flex; align-items: center; justify-content: center;
-  min-width: 24px;
-  height: 100%;
-  color: #0b1220;
-  font-weight: 700; font-size: 0.8rem;
-  transition: width var(--transition-base), filter var(--transition-fast);
-  &:hover, &:focus-visible { filter: brightness(1.12); outline: none; }
-}
-.funnel__val { padding: 0 4px; }
-
-.seg-blank { background: var(--color-hard); }
-.seg-shaky { background: var(--color-medium); }
-.seg-clean { background: var(--color-easy); }
-.seg-grad { background: var(--color-accent); }
-.seg-retired { background: #a78bfa; }
-
 // ── Difficulty mix (folded into the Mastery pipeline card — round 2 item 5) ──
+// The bar itself (round 4: <app-segmented-bar>) styles in segmented-bar.component.scss —
+// only the section label + spacing live here.
 .difficulty-inline { margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border); }
 .difficulty-inline__label {
   margin: 0 0 var(--space-sm);
@@ -231,16 +208,6 @@
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
 }
-.difficulty-row { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
-.difficulty-row__btn {
-  appearance: none;
-  font: inherit;
-  cursor: pointer;
-  font-size: 0.85rem;
-  padding: var(--space-xs) var(--space-sm);
-  &:hover, &:focus-visible { border-color: var(--color-accent); outline: none; }
-}
-// (kept its own border/background from .tag — not %btn-reset — so it still reads as a chip)
 
 // ── Gauges ───────────────────────────────────────────────────────────────────
 .gauge__big { font-size: 2.2rem; font-weight: 800; color: var(--color-easy); }
@@ -252,27 +219,6 @@
   color: var(--color-accent); text-decoration: none;
   &:hover, &:focus-visible { text-decoration: underline; outline: none; }
 }
-
-// ── Technique breadth bar (tiered by the interview-ROI line — round 2 item 1) ─
-.breadth-bar {
-  display: flex;
-  align-items: stretch;
-  height: 20px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  background: var(--color-bg-raised);
-  position: relative;
-}
-.breadth-bar__seg { display: block; height: 100%; min-width: 2px; }
-.breadth-bar__practiced { background: var(--color-accent); }
-.breadth-bar__upcoming { background: var(--color-easy); }
-.breadth-bar__horizon { background: var(--color-border); }
-.breadth-bar__roi-line {
-  width: 2px;
-  background: var(--color-text);
-  opacity: 0.6;
-}
-.breadth-bar__caption { margin-top: var(--space-sm); }
 
 // ── Trophy case ──────────────────────────────────────────────────────────────
 .trophies { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
