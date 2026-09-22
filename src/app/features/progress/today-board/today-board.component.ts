@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, signal } from '@an
 import { RouterLink } from '@angular/router';
 import { NgTemplateOutlet } from '@angular/common';
 
-import { Schedule, ScheduleDay } from '../../../core/models/progress.model';
+import { Schedule, ScheduleDay, ScheduleItem } from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import { todayLocalISO } from '../../../core/utils/local-date';
@@ -20,6 +20,76 @@ interface Workload {
 // ("Mon priced 8.8 over ceiling") — a day this close to the cap reads as heavy even before
 // it's technically over. Below this and above the floor is the (unremarkable) Moderate band.
 const HEAVY_THRESHOLD = 0.9;
+
+const COMPLEXITY_GATE_TITLE = 'Complexity gate';
+const RE_ASK_SUFFIX = 're-asks';
+
+/** A run of consecutive `kind === 'complexity'` items collapsed into one board row (the
+ *  Sunday complexity re-ask block) — a purely local, derived shape, never part of the
+ *  `ScheduleItem`/`Schedule` contract itself. `done` is true only once every member item is
+ *  done; `subtitle` is numbers-only ("3 re-asks · 226 · 211 · 778") — the re-ask answers
+ *  live off the board by design, so the gate row carries no links. */
+export interface ComplexityGateRow {
+  readonly isGate: true;
+  readonly items: readonly ScheduleItem[];
+  readonly done: boolean;
+  readonly subtitle: string;
+  readonly doneCount: number;
+  readonly totalCount: number;
+}
+
+/** One rendered board row: either a plain schedule item, or a collapsed complexity gate. */
+export type BoardRow = ScheduleItem | ComplexityGateRow;
+
+function isGateRow(row: BoardRow): row is ComplexityGateRow {
+  return (row as ComplexityGateRow).isGate === true;
+}
+
+function toGateRow(items: readonly ScheduleItem[]): ComplexityGateRow {
+  const numbers = items
+    .map((i) => i.lcNumber)
+    .filter((n): n is number => n != null)
+    .join(' · ');
+  const doneCount = items.filter((i) => i.done).length;
+  return {
+    isGate: true,
+    items,
+    done: doneCount === items.length,
+    subtitle: `${items.length} ${RE_ASK_SUFFIX} · ${numbers}`,
+    doneCount,
+    totalCount: items.length,
+  };
+}
+
+interface GroupAcc {
+  readonly rows: readonly BoardRow[];
+  readonly pending: readonly ScheduleItem[];
+}
+
+const EMPTY_GROUP_ACC: GroupAcc = { rows: [], pending: [] };
+
+/** Flushes any pending run of complexity items into the accumulated rows: a lone pending
+ *  item stays a plain row (only a run of 2+ collapses into a gate). Always returns a NEW
+ *  accumulator — never mutates the one it was given. */
+function flushPending(acc: GroupAcc): GroupAcc {
+  if (acc.pending.length === 0) return acc;
+  const row: BoardRow = acc.pending.length === 1 ? acc.pending[0] : toGateRow(acc.pending);
+  return { rows: [...acc.rows, row], pending: [] };
+}
+
+/** Groups a day's items into board rows, collapsing consecutive `kind === 'complexity'`
+ *  items into one gate row. Pure — every step returns a new accumulator, never mutates
+ *  `items` or a prior accumulator. */
+function groupComplexityItems(items: readonly ScheduleItem[]): BoardRow[] {
+  const grouped = items.reduce<GroupAcc>((acc, item) => {
+    if (item.kind === 'complexity') {
+      return { rows: acc.rows, pending: [...acc.pending, item] };
+    }
+    const flushed = flushPending(acc);
+    return { rows: [...flushed.rows, item], pending: [] };
+  }, EMPTY_GROUP_ACC);
+  return [...flushPending(grouped).rows];
+}
 
 /**
  * The Overview tab's one schedule card: a 7-day selector strip over the week's
@@ -73,8 +143,23 @@ export class TodayBoardComponent {
     () => this.days().find((d) => d.date === this.effectiveDate()) ?? null,
   );
 
-  readonly doneCount = computed(() => this.selectedDay()?.items.filter((i) => i.done).length ?? 0);
-  readonly totalCount = computed(() => this.selectedDay()?.items.length ?? 0);
+  // Per-day board rows — a run of consecutive `kind === 'complexity'` items collapses into
+  // one gate row (see groupComplexityItems()). Keyed by date so both the collapsed
+  // (single-day) and expanded (7-day) views share the same derived rows.
+  readonly boardRowsByDate = computed<ReadonlyMap<string, BoardRow[]>>(
+    () => new Map(this.days().map((d) => [d.date, groupComplexityItems(d.items)])),
+  );
+
+  readonly selectedDayRows = computed<BoardRow[]>(() => {
+    const day = this.selectedDay();
+    if (!day) return [];
+    return this.boardRowsByDate().get(day.date) ?? [];
+  });
+
+  // A gate row counts as ONE item toward both the numerator and denominator — `done` is
+  // defined identically on ScheduleItem and ComplexityGateRow, so no type guard is needed here.
+  readonly doneCount = computed(() => this.selectedDayRows().filter((r) => r.done).length);
+  readonly totalCount = computed(() => this.selectedDayRows().length);
 
   // null when there's no board/day, or the day carries no units, or ceiling is unknown —
   // "empty/no-board day -> no bar" (round 2 item 3).
@@ -122,5 +207,22 @@ export class TodayBoardComponent {
     return vizRouteFor(lcNumber);
   }
 
+  /** Rows for one day, used by both the collapsed (selected-day) and expanded (7-day) views. */
+  rowsFor(day: ScheduleDay): BoardRow[] {
+    return this.boardRowsByDate().get(day.date) ?? [];
+  }
+
+  hasMovedTag(item: ScheduleItem): boolean {
+    return item.tags?.includes('moved') ?? false;
+  }
+
+  /** trackBy for board rows: a gate row has no lcNumber of its own, so it tracks by its
+   *  first member's number instead. */
+  rowKey(row: BoardRow): string {
+    return isGateRow(row) ? `gate-${row.items[0]?.lcNumber ?? 'x'}` : `${row.lcNumber}-${row.title}`;
+  }
+
   protected readonly leetCodeUrlFor = leetCodeUrlFor;
+  protected readonly isGateRow = isGateRow;
+  protected readonly gateTitle = COMPLEXITY_GATE_TITLE;
 }

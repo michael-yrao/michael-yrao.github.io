@@ -3,6 +3,8 @@ import { Category, CATEGORY_ICONS, CATEGORY_LABELS } from '../../../core/models/
 import { CHEAT_SHEETS } from '../../../core/data/cheat-sheets.data';
 import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
 import { RouterLink } from '@angular/router';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
 
 interface CategoryCard {
   category: Category;
@@ -17,7 +19,7 @@ interface CategoryCard {
     templateUrl: './learn-list.component.html',
     styleUrls: ['./learn-list.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink]
+    imports: [RouterLink, PageHeaderComponent, LibrarySubnavComponent]
 })
 export class LearnListComponent {
   readonly cards: CategoryCard[] = CHEAT_SHEETS.map((sheet) => ({

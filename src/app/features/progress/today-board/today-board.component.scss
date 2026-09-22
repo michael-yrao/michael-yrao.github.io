@@ -226,6 +226,9 @@
 .today-board__comfort { font-size: 1rem; }
 .today-board__num { font-family: var(--font-mono); color: var(--color-text-muted); }
 .today-board__title { font-weight: 600; flex: 1 1 auto; }
+// A rescheduled ("moved") row gets a muted arrow ahead of its title — no color beyond the
+// existing tag palette, just a directional cue.
+.today-board__moved { color: var(--color-text-muted); }
 
 .tag {
   font-size: 0.7rem;
@@ -238,13 +241,34 @@
 .tag--easy { color: var(--color-easy); }
 .tag--medium { color: var(--color-medium); }
 .tag--hard { color: var(--color-hard); }
+// A 🆕 intake row's chip — accent-dim so it reads as "new" without a new color.
+.tag--new { background: var(--color-accent-dim); color: var(--color-accent); border-color: transparent; }
+.tag--probe { font-style: italic; }
 
+// LeetCode stays alone at the row's right edge — pushed there by the flex row's own wrap,
+// never adjacent to the solution glyph (which sits up by the title instead).
 .today-board__links {
   display: flex;
   gap: var(--space-sm);
   font-size: 0.78rem;
+  margin-left: auto;
 
   a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
+}
+
+// ── Complexity gate row (collapsed run of consecutive kind==='complexity' items) ────
+.today-board__row--gate { align-items: baseline; }
+.today-board__gate-sub {
+  flex: 1 1 100%;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+}
+// Partial-progress line — only rendered when the gate is neither untouched nor fully done.
+.today-board__gate-progress {
+  flex: 1 1 100%;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
 }
 
 .today-board__hint {

@@ -1,0 +1,53 @@
+<div class="library">
+  <app-page-header [breadcrumb]="breadcrumb" eyebrow="Reference" heading="Library">
+    Step through algorithms with a plain-English explanation of <em>why</em> each decision is made.
+    <strong>{{ totalVisualized }}</strong> interactive visualizations across <strong>{{ totalSolved }}</strong> solved problems.
+  </app-page-header>
+
+  <section class="library__sections" aria-label="Site sections">
+
+    <a routerLink="/algorithms" class="section-card po-card po-card--link">
+      <div class="section-card__icon">◈</div>
+      <h2 class="section-card__title">Algorithms</h2>
+      <p class="section-card__desc">
+        Step through NeetCode 150 solutions one decision at a time, with plain-English explanations and animated visualizations.
+      </p>
+      <div class="section-card__meta">
+        <span><strong>{{ totalVisualized }}</strong> visualized</span>
+        <span><strong>{{ totalSolved }}</strong> problems</span>
+      </div>
+      <span class="section-card__cta">Browse problems →</span>
+    </a>
+
+    <a routerLink="/learn" class="section-card po-card po-card--link">
+      <div class="section-card__icon">▤</div>
+      <h2 class="section-card__title">Patterns</h2>
+      <p class="section-card__desc">
+        One cheat sheet per pattern — when to reach for it, the canonical template, and the pitfalls to watch for.
+      </p>
+      <div class="section-card__meta">
+        <span><strong>{{ CHEAT_SHEETS.length }}</strong> cheat sheets</span>
+      </div>
+      <span class="section-card__cta">Browse patterns →</span>
+    </a>
+
+    <a routerLink="/games" class="section-card po-card po-card--link">
+      <div class="section-card__icon">◉</div>
+      <h2 class="section-card__title">Games</h2>
+      <p class="section-card__desc">
+        Interactive coding challenges to test and reinforce what you've learned — built on the same problems.
+      </p>
+      <div class="section-card__meta">
+        <span><strong>{{ totalGames }}</strong> playable</span>
+      </div>
+      <span class="section-card__cta">Play →</span>
+    </a>
+
+    <a [routerLink]="SITE_LINKS.coach" class="section-card section-card--coach po-card po-card--link">
+      <div class="section-card__icon">◎</div>
+      <h2 class="section-card__title">Coach — the engine behind the Progress page</h2>
+      <span class="section-card__cta">See how it works →</span>
+    </a>
+
+  </section>
+</div>

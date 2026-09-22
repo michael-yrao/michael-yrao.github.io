@@ -35,6 +35,11 @@ const DETAILS_FILE = 'dashboard/progress.json';
 const LEGACY_SUMMARY_FILE = 'progress-summary.json';
 const LEGACY_DETAILS_FILE = 'progress.json';
 
+// A repo slug is "owner/name" or "owner/name@branch" — exactly one '@' at most, and exactly
+// two non-empty '/'-parts either side of it.
+const MAX_SLUG_AT_PARTS = 2;
+const SLUG_PART_COUNT = 2;
+
 /** Derive the lightweight summary from a full contract — the client-side mirror of
  *  cse-progress's `gamify.py::summary_of()`. Used when `progress-summary.json` 404s (an
  *  adopter on an older gamify.py that only emits progress.json, or the transient window
@@ -112,12 +117,18 @@ export class ProgressService {
 
   constructor(private readonly http: HttpClient) {}
 
-  /** Parse "owner/name" or "owner/name@branch"; falls back to the default repo. */
-  parseRepo(raw: string | null | undefined): RepoRef {
+  /** Parse "owner/name" or "owner/name@branch"; empty/missing input falls back to the
+   *  default repo, but a malformed slug (not exactly owner/name[@branch], every part
+   *  non-empty) returns `null` instead of silently substituting the default — the caller
+   *  decides how to surface that (see `loadSummary`'s null-ref branch). */
+  parseRepo(raw: string | null | undefined): RepoRef | null {
     if (!raw) return this.split(DEFAULT_REPO, DEFAULT_BRANCH);
-    const [slug, branch] = raw.split('@');
-    const parts = slug.split('/').filter(Boolean);
-    if (parts.length !== 2) return this.split(DEFAULT_REPO, DEFAULT_BRANCH);
+    const atParts = raw.split('@');
+    if (atParts.length > MAX_SLUG_AT_PARTS) return null;
+    const [slug, branch] = atParts;
+    if (atParts.length === MAX_SLUG_AT_PARTS && !branch) return null;
+    const parts = slug.split('/');
+    if (parts.length !== SLUG_PART_COUNT || parts.some((p) => !p)) return null;
     return { owner: parts[0], repo: parts[1], branch: branch || DEFAULT_BRANCH };
   }
 
@@ -173,6 +184,10 @@ export class ProgressService {
    *  landing renders and what the effect calls on every ?repo change. */
   loadSummary(raw: string | null | undefined, force = false): void {
     const ref = this.parseRepo(raw);
+    if (!ref) {
+      this.failInvalidSlug(raw);
+      return;
+    }
     // Skip a redundant reload of the repo already shown (the effect can fire twice with the
     // same value). A forced refresh always proceeds; a retry (not ready) always proceeds.
     const cur = this.source();
@@ -286,6 +301,17 @@ export class ProgressService {
         this.details.set(result.problems);
         this.detailsStatus.set('ready');
       });
+  }
+
+  /** A malformed `?repo=` (`parseRepo` returned `null`) is a fatal, non-retryable input
+   *  error — no fetch attempted. Clears `source` so the header doesn't keep showing the
+   *  previous, still-valid repo's slug next to a message that no longer describes it. */
+  private failInvalidSlug(raw: string | null | undefined): void {
+    this.seq++; // invalidate any in-flight fetch from a previously valid repo
+    this.source.set(null);
+    this.status.set('error');
+    this.error.set(`'${raw}' isn't a repo slug — use owner/name or owner/name@branch.`);
+    this.data.set(null);
   }
 
   /** null when the payload is a usable, compatible contract; else a human reason. */

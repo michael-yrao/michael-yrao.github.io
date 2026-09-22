@@ -5,80 +5,131 @@
       <span class="po-nav__title">Progressive Overflow</span>
     </a>
 
-    @if (currentCtx) {
+    @if (currentCtx(); as ctx) {
       <button
         class="po-nav__context"
-        [class.open]="descriptionOpen"
+        [class.open]="isDescriptionOpen()"
         (click)="toggleDescription($event)"
         aria-label="Toggle problem description"
         >
-        <span class="po-nav__ctx-num">#{{ currentCtx.num }}</span>
-        <span class="po-nav__ctx-title">{{ currentCtx.title }}</span>
-        <span class="po-nav__ctx-chevron" [class.open]="descriptionOpen">›</span>
+        <span class="po-nav__ctx-num">#{{ ctx.num }}</span>
+        <span class="po-nav__ctx-title">{{ ctx.title }}</span>
+        <span class="po-nav__ctx-chevron" [class.open]="isDescriptionOpen()">›</span>
       </button>
     }
 
     <div class="po-nav__links">
-      <a routerLink="/explore" routerLinkActive="active">Explore</a>
-      <a routerLink="/algorithms" routerLinkActive="active">Algorithms</a>
-      <a routerLink="/games" routerLinkActive="active">Games</a>
-      <a routerLink="/learn" routerLinkActive="active">Learn</a>
-      <a routerLink="/progress" routerLinkActive="active">Progress</a>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }">Progress</a>
+
+      <div class="po-nav__dropdown" (mouseenter)="onLibraryEnter()" (mouseleave)="onLibraryLeave()">
+        <a routerLink="/library" routerLinkActive="active">Library</a>
+        <button
+          class="po-nav__dropdown-toggle"
+          [attr.aria-expanded]="isLibraryOpen()"
+          aria-label="Toggle library menu"
+          (click)="toggleLibrary($event)"
+        >⌄</button>
+        @if (isLibraryOpen()) {
+          <div class="po-nav__dropdown-panel">
+            <a routerLink="/algorithms" routerLinkActive="active" (click)="closeLibrary()">Algorithms</a>
+            <a routerLink="/learn" routerLinkActive="active" (click)="closeLibrary()">Patterns</a>
+            <a routerLink="/games" routerLinkActive="active" (click)="closeLibrary()">Games</a>
+          </div>
+        }
+      </div>
+
       <a routerLink="/about" routerLinkActive="active">Human</a>
+    </div>
+
+    <div class="po-nav__actions">
       <button
         class="po-nav__theme"
         (click)="themeService.toggle()"
         [attr.aria-label]="themeService.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
         [title]="themeService.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
       >{{ themeService.theme === 'dark' ? '☀' : '☾' }}</button>
+
+      <button
+        class="po-nav__hamburger"
+        [attr.aria-expanded]="isDrawerOpen()"
+        aria-label="Toggle menu"
+        (click)="toggleDrawer($event)"
+      >☰</button>
     </div>
   </div>
 
   <!-- Description popover, anchored below the nav -->
-  @if (descriptionOpen && currentCtx) {
-    <div class="po-nav__popover">
-      <p class="po-popover__desc">{{ currentCtx.description }}</p>
-      @if (currentCtx.examples.length) {
-        <div class="po-popover__examples">
-          @for (ex of currentCtx.examples; track ex; let i = $index) {
-            <div class="po-popover__example">
-              <div class="po-popover__ex-header">Example {{ i + 1 }}</div>
-              <div class="po-popover__ex-body">
-                <div class="po-popover__ex-row">
-                  <span class="po-popover__ex-label">Input</span>
-                  <code class="po-popover__ex-code">{{ ex.input }}</code>
-                </div>
-                <div class="po-popover__ex-row">
-                  <span class="po-popover__ex-label">Output</span>
-                  <code class="po-popover__ex-code">{{ ex.output }}</code>
-                </div>
-                @if (ex.explanation) {
+  @if (isDescriptionOpen()) {
+    @if (currentCtx(); as ctx) {
+      <div class="po-nav__popover">
+        <p class="po-popover__desc">{{ ctx.description }}</p>
+        @if (ctx.examples.length) {
+          <div class="po-popover__examples">
+            @for (ex of ctx.examples; track ex; let i = $index) {
+              <div class="po-popover__example">
+                <div class="po-popover__ex-header">Example {{ i + 1 }}</div>
+                <div class="po-popover__ex-body">
                   <div class="po-popover__ex-row">
-                    <span class="po-popover__ex-label">Why</span>
-                    <span class="po-popover__ex-note">{{ ex.explanation }}</span>
+                    <span class="po-popover__ex-label">Input</span>
+                    <code class="po-popover__ex-code">{{ ex.input }}</code>
                   </div>
-                }
+                  <div class="po-popover__ex-row">
+                    <span class="po-popover__ex-label">Output</span>
+                    <code class="po-popover__ex-code">{{ ex.output }}</code>
+                  </div>
+                  @if (ex.explanation) {
+                    <div class="po-popover__ex-row">
+                      <span class="po-popover__ex-label">Why</span>
+                      <span class="po-popover__ex-note">{{ ex.explanation }}</span>
+                    </div>
+                  }
+                </div>
               </div>
-            </div>
-          }
-        </div>
-      }
-      @if (currentCtx.constraints.length) {
-        <ul class="po-popover__constraints">
-          @for (c of currentCtx.constraints; track c) {
-            <li>{{ c }}</li>
-          }
-        </ul>
-      }
+            }
+          </div>
+        }
+        @if (ctx.constraints.length) {
+          <ul class="po-popover__constraints">
+            @for (c of ctx.constraints; track c) {
+              <li>{{ c }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  }
+
+  <!-- Mobile drawer: all links flat, shown at <= the nav breakpoint -->
+  @if (isDrawerOpen()) {
+    <div class="po-nav__drawer">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }" (click)="closeAll()">Progress</a>
+      <div class="po-nav__drawer-group">
+        <span class="po-nav__drawer-label">Library</span>
+        <a routerLink="/algorithms" routerLinkActive="active" (click)="closeAll()">Algorithms</a>
+        <a routerLink="/learn" routerLinkActive="active" (click)="closeAll()">Patterns</a>
+        <a routerLink="/games" routerLinkActive="active" (click)="closeAll()">Games</a>
+      </div>
+      <a routerLink="/about" routerLinkActive="active" (click)="closeAll()">Human</a>
     </div>
   }
 </nav>
 
-<!-- Backdrop: closes popover on outside click -->
-@if (descriptionOpen) {
-  <div class="po-nav__backdrop" (click)="descriptionOpen = false"></div>
+<!-- Backdrop: closes popover/dropdown/drawer on outside click -->
+@if (isBackdropVisible()) {
+  <div class="po-nav__backdrop" (click)="closeAll()"></div>
 }
 
 <main class="po-main">
   <router-outlet></router-outlet>
 </main>
+
+<footer class="po-footer">
+  <div class="po-footer__inner">
+    <span class="po-footer__line">Built by a human, with Claude in the loop.</span>
+    <div class="po-footer__links">
+      <a [href]="SITE_LINKS.siteRepo" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      <a [routerLink]="SITE_LINKS.coach">Get the coach</a>
+    </div>
+    <span class="po-footer__copy">© {{ year }}</span>
+  </div>
+</footer>

@@ -3,13 +3,14 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Category, CATEGORY_ICONS, CATEGORY_LABELS } from '../../../core/models/algorithm.model';
 import { CHEAT_SHEETS, CheatSheet, CATEGORY_ORDER } from '../../../core/data/cheat-sheets.data';
 import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
+import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 
 @Component({
     selector: 'app-cheat-sheet',
     templateUrl: './cheat-sheet.component.html',
     styleUrls: ['./cheat-sheet.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink, CodeViewerComponent]
+    imports: [RouterLink, CodeViewerComponent, PageHeaderComponent]
 })
 export class CheatSheetComponent implements OnInit {
   sheet: CheatSheet | null = null;
@@ -17,6 +18,10 @@ export class CheatSheetComponent implements OnInit {
   label = '';
   prevCategory: Category | null = null;
   nextCategory: Category | null = null;
+
+  get breadcrumb(): BreadcrumbEntry[] {
+    return [{ label: 'Home', link: '/' }, { label: 'Learn', link: '/learn' }, { label: this.label }];
+  }
 
   constructor(
     private route: ActivatedRoute,

@@ -2,17 +2,25 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { BIG_O_QUESTIONS, BigOQuestion } from '../../../core/data/big-o-questions.data';
 import { RouterLink } from '@angular/router';
 import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
+import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 
 type Mode = 'quiz' | 'revealed' | 'finished';
+
+const BREADCRUMB: BreadcrumbEntry[] = [
+  { label: 'Home', link: '/' },
+  { label: 'Games', link: '/games' },
+  { label: 'Big-O Trainer' },
+];
 
 @Component({
     selector: 'app-big-o',
     templateUrl: './big-o.component.html',
     styleUrls: ['./big-o.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink, CodeViewerComponent]
+    imports: [RouterLink, CodeViewerComponent, PageHeaderComponent]
 })
 export class BigOComponent {
+  readonly breadcrumb = BREADCRUMB;
   deck: BigOQuestion[] = [];
   questionIndex = 0;
   current: BigOQuestion | null = null;

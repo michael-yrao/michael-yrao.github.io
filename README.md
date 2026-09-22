@@ -26,3 +26,12 @@ Manual fallback (if ever needed):
 npm run build
 npx angular-cli-ghpages --dir=dist/progressive-overflow
 ```
+
+## Progress
+
+The [Progress page](https://progressiveoverflow.com/progress) renders a learner's
+[cse-coach](https://github.com/michael-yrao/cse-coach)-driven practice log. Point it at your own
+log with a `?repo=owner/name` query param, optionally `@branch`; with no param it shows the site
+author's own log by default. See `/coach` for what cse-coach is.
+
+Built by a human, with Claude in the loop.

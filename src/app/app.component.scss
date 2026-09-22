@@ -1,3 +1,8 @@
+// Single named breakpoint for the whole file — the hamburger/drawer switch it drives
+// is the only responsive behavior this component has, so a Sass variable here (rather
+// than a token, which `@media` cannot read) is enough to keep it out of a bare literal.
+$nav-breakpoint: 720px;
+
 .po-nav {
   position: sticky;
   top: 0;
@@ -135,6 +140,143 @@
 
       &:hover, &.active { color: var(--color-text); }
     }
+
+    @media (max-width: $nav-breakpoint) {
+      display: none;
+    }
+  }
+
+  // ── Right-side actions: theme toggle + hamburger, always visible ──
+  // (the theme button used to live inside &__links, which hides at the nav
+  // breakpoint — that hid the only way to switch theme on mobile)
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  // ── Library: link + disclosure dropdown ──────────────────────
+  &__dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  &__dropdown-toggle {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 2px;
+    transition: color var(--transition-fast);
+
+    &:hover { color: var(--color-text); }
+  }
+
+  &__dropdown-panel {
+    // top: 100% (flush with the trigger row) + margin-top for the visual gap,
+    // rather than baking the gap into `top`, so the ::before below can bridge
+    // that gap with a hoverable (if invisible) box: with the old
+    // `top: calc(100% + gap)`, the gap itself belonged to no element, so the
+    // pointer crossing it left `.po-nav__dropdown` and mouseleave closed the
+    // panel before the pointer ever reached it.
+    position: absolute;
+    top: 100%;
+    margin-top: var(--space-sm);
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    min-width: 160px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-strong);
+    padding: var(--space-sm);
+    z-index: 101;
+
+    // Invisible bridge over the margin-top gap above, so the pointer stays
+    // over a descendant of `.po-nav__dropdown` the whole way from the toggle
+    // to the panel.
+    &::before {
+      content: '';
+      position: absolute;
+      top: calc(-1 * var(--space-sm));
+      left: 0;
+      right: 0;
+      height: var(--space-sm);
+    }
+
+    a {
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-sm);
+
+      &:hover, &.active {
+        background: var(--hover-tint);
+        color: var(--color-text);
+      }
+    }
+  }
+
+  // ── Hamburger: shown only at/under the nav breakpoint ─────────
+  &__hamburger {
+    display: none;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+
+    @media (max-width: $nav-breakpoint) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  // ── Mobile drawer: all links flat ─────────────────────────────
+  &__drawer {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-md) var(--space-xl);
+    border-top: 1px solid var(--color-border);
+    background: var(--color-bg);
+
+    a {
+      padding: var(--space-sm) 0;
+      color: var(--color-text-muted);
+      font-size: 0.95rem;
+      font-weight: 500;
+
+      &:hover, &.active { color: var(--color-text); }
+    }
+
+    // Belt-and-suspenders with the resize listener in app.component.ts: if the
+    // viewport widens past the breakpoint while the drawer is open, hide it
+    // even for the one frame before that listener's state update re-renders.
+    @media (min-width: ($nav-breakpoint + 1px)) {
+      display: none;
+    }
+  }
+
+  &__drawer-group {
+    display: flex;
+    flex-direction: column;
+    padding-left: var(--space-md);
+    border-left: 1px solid var(--color-border);
+    margin: var(--space-xs) 0;
+  }
+
+  &__drawer-label {
+    padding: var(--space-sm) 0 var(--space-xs);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
   }
 
   &__theme {
@@ -268,4 +410,34 @@
 
 .po-main {
   min-height: calc(100vh - 56px);
+}
+
+// ── Footer ─────────────────────────────────────────────────────────────────
+.po-footer {
+  border-top: 1px solid var(--color-border);
+
+  &__inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: var(--space-lg) var(--space-xl);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+  }
+
+  &__links {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+
+    a {
+      color: var(--color-text-muted);
+
+      &:hover { color: var(--color-accent); }
+    }
+  }
 }

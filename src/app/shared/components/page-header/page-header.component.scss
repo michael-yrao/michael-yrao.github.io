@@ -1,0 +1,78 @@
+:host {
+  display: block;
+  margin-bottom: var(--space-xl);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+
+  a {
+    color: var(--color-text-muted);
+
+    &:hover { color: var(--color-accent); }
+  }
+}
+
+.po-header {
+  &__row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+  }
+
+  &__title-area {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  &__icon {
+    font-size: var(--text-2xl);
+    line-height: 1;
+    color: var(--color-accent);
+  }
+
+  &__eyebrow {
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    margin: 0 0 var(--space-sm);
+  }
+
+  &__title {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-left: auto;
+
+    &:empty { display: none; }
+  }
+
+  &__sub {
+    margin-top: var(--space-md);
+    color: var(--color-text-muted);
+    line-height: 1.7;
+    max-width: 64ch;
+
+    &:empty { display: none; }
+
+    // strong/em styling for this projected content lives in src/styles.scss
+    // as global rules — under emulated encapsulation, a `strong`/`em` rule
+    // scoped here never matches content projected in from a parent template.
+  }
+}

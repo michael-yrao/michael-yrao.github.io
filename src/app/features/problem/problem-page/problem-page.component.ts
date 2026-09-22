@@ -17,17 +17,35 @@ import { GraphVisualizerComponent } from '../../../shared/visualizers/graph-visu
 import { ExplanationCardComponent } from '../../../shared/components/explanation-card/explanation-card.component';
 import { StepControlsComponent } from '../../../shared/components/step-controls/step-controls.component';
 import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
+import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
+
+const ALGORITHMS_ROOT_BREADCRUMB: BreadcrumbEntry[] = [
+  { label: 'Home', link: '/' },
+  { label: 'Algorithms', link: '/algorithms' },
+];
+
+/** Same shape the old `get breadcrumb()` returned — now called only where `problem` is
+ *  (re)assigned, so the OnPush header isn't re-checked on every step-driven CD pass. */
+function breadcrumbFor(problem: AlgorithmMeta | null): BreadcrumbEntry[] {
+  if (!problem) return ALGORITHMS_ROOT_BREADCRUMB;
+  return [
+    ...ALGORITHMS_ROOT_BREADCRUMB,
+    { label: CATEGORY_LABELS[problem.category], link: `/algorithms/${problem.category}` },
+    { label: problem.title },
+  ];
+}
 
 @Component({
     selector: 'app-problem-page',
     templateUrl: './problem-page.component.html',
     styleUrls: ['./problem-page.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink, NgClass, HintCardComponent, ArrayVisualizerComponent, GridVisualizerComponent, LinkedListVisualizerComponent, TreeVisualizerComponent, GraphVisualizerComponent, ExplanationCardComponent, StepControlsComponent, CodeViewerComponent]
+    imports: [RouterLink, NgClass, HintCardComponent, ArrayVisualizerComponent, GridVisualizerComponent, LinkedListVisualizerComponent, TreeVisualizerComponent, GraphVisualizerComponent, ExplanationCardComponent, StepControlsComponent, CodeViewerComponent, PageHeaderComponent]
 })
 export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly categoryLabels = CATEGORY_LABELS;
   problem: AlgorithmMeta | null = null;
+  breadcrumb: BreadcrumbEntry[] = breadcrumbFor(null);
   steps: Step[] = [];
   currentStepIndex = 0;
   activeSolutionIndex = 0;
@@ -142,6 +160,7 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
       const id = map.get('id') ?? '';
 
       this.problem = findAlgorithm(category, id) ?? null;
+      this.breadcrumb = breadcrumbFor(this.problem);
       if (!this.problem) {
         this.router.navigate(['/algorithms', category ?? '']);
         return;

@@ -120,6 +120,7 @@
   display: flex;
   gap: var(--space-sm);
   font-size: 0.75rem;
+  margin-left: auto;
   a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
 }
 

@@ -1,0 +1,36 @@
+<div class="po-header">
+  <nav class="breadcrumb">
+    @for (crumb of breadcrumb; track crumb.label; let isLast = $last) {
+      @if (crumb.link && !isLast) {
+        <a [routerLink]="crumb.link">{{ crumb.label }}</a>
+        <span>›</span>
+      } @else {
+        <span>{{ crumb.label }}</span>
+      }
+    }
+  </nav>
+
+  <div class="po-header__row">
+    @if (heading) {
+      <div class="po-header__title-area">
+        @if (icon) {
+          <span class="po-header__icon">{{ icon }}</span>
+        }
+        <div>
+          @if (eyebrow) {
+            <p class="po-header__eyebrow">{{ eyebrow }}</p>
+          }
+          <h1 class="po-header__title">{{ heading }}</h1>
+        </div>
+      </div>
+    }
+
+    <div class="po-header__meta">
+      <ng-content select="[po-meta]"></ng-content>
+    </div>
+  </div>
+
+  <div class="po-header__sub">
+    <ng-content></ng-content>
+  </div>
+</div>

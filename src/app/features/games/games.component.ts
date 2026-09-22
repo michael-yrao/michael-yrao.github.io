@@ -1,6 +1,8 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { GAMES, GAME_CATEGORY_LABELS, GameCategory, GameMeta } from '../../core/data/games.data';
 import { RouterLink } from '@angular/router';
+import { PageHeaderComponent, BreadcrumbEntry } from '../../shared/components/page-header/page-header.component';
+import { LibrarySubnavComponent } from '../../shared/components/library-subnav/library-subnav.component';
 
 interface GameSection {
   id: GameCategory;
@@ -11,14 +13,17 @@ interface GameSection {
 
 const CATEGORY_ORDER: GameCategory[] = ['recognition', 'graph-traversal', 'complexity'];
 
+const BREADCRUMB: BreadcrumbEntry[] = [{ label: 'Home', link: '/' }, { label: 'Games' }];
+
 @Component({
     selector: 'app-games',
     templateUrl: './games.component.html',
     styleUrls: ['./games.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink]
+    imports: [RouterLink, PageHeaderComponent, LibrarySubnavComponent]
 })
 export class GamesComponent {
+  readonly breadcrumb = BREADCRUMB;
   readonly sections: GameSection[] = CATEGORY_ORDER
     .map((id) => ({
       id,

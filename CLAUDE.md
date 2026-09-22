@@ -74,11 +74,35 @@ ever gets a chance to re-run.
 
 ## Deploy
 
-`main` is source. The live site (custom domain **progressiveoverflow.com**) is served from the
-**`gh-pages`** branch, published with `angular-cli-ghpages`. Deploys publish the **working tree**
-(uncommitted WIP included), so build from the working tree and preserve the CNAME:
+`main` is source and is deployed automatically by
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) on every push: GitHub Actions
+builds the app, then publishes it to GitHub Pages (Settings → Pages → Source: **GitHub Actions**).
+There is no working-tree/manual step — a push to `main` is the deploy. The custom domain
+(**progressiveoverflow.com**) is preserved because `src/CNAME` is copied into the build output via
+`angular.json` `assets`.
 
-```
-npx ng build --configuration production
-npx angular-cli-ghpages --dir=dist/progressive-overflow --cname=progressiveoverflow.com
-```
+## Progress feature
+
+The Progress page renders the honest-progress contract emitted by `cse-progress/scripts/gamify.py`:
+`dashboard/progress-summary.json` + `dashboard/progress.json` (older checkouts fall back to the
+repo-root `progress-summary.json`/`progress.json`). `ProgressService` (`core/services/progress.service.ts`)
+fetches each file from the GitHub Contents API (`Accept: application/vnd.github.raw`, cache
+max-age 60 so the Refresh button actually returns current data) and falls back to
+raw.githubusercontent.com only when the API 403s (its anonymous rate limit). `DEFAULT_REPO` in
+that same file is the site author's own `cse-progress` checkout, shown when the viewer supplies no
+`?repo=` query param. A viewer points the page at their own log with `?repo=owner/name`, optionally
+`@branch` (`ProgressService.parseRepo` validates the slug and rejects anything else).
+
+Tab order is fixed: **Overview · Mastery · Recognition · Problems · Activity**. On the Overview
+tab's schedule board (the today-board component), consecutive items with `kind: 'complexity'` are
+a single re-ask block and must render as **one** "Complexity gate" row, not one row per item —
+collapsing them is a rendering rule, not a contract change. (The Problems tab lists tracker
+problems, which never carry `kind`.) The muted `</>` glyph next to a problem's title is the
+learner's own solution walkthrough; it is never labelled "Visualize" (that language overstates
+what a personal practice write-up is).
+
+## Lint & test
+
+`npm run lint` (ESLint via `@angular-eslint`) and `npx ng test --watch=false` (vitest) both must
+pass; CI (`.github/workflows/deploy.yml`) runs both before `npm run build` on
+every push.

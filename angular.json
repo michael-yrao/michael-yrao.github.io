@@ -87,14 +87,28 @@
             "tsConfig": "tsconfig.spec.json",
             "buildTarget": "progressiveOverflow:build:development",
             "runner": "vitest",
-            "setupFiles": ["src/test-setup.ts"]
+            "setupFiles": [
+              "src/test-setup.ts"
+            ]
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
           }
         }
       }
     }
   },
   "cli": {
-    "analytics": "14961cd6-9388-48df-a5da-824459de968d"
+    "analytics": false,
+    "schematicCollections": [
+      "angular-eslint"
+    ]
   },
   "schematics": {
     "@schematics/angular:component": {

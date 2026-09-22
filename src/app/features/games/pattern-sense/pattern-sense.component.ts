@@ -3,6 +3,13 @@ import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
 import { AlgorithmMeta, Category, CATEGORY_LABELS } from '../../../core/models/algorithm.model';
 import { RouterLink } from '@angular/router';
 import { NgClass } from '@angular/common';
+import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
+
+const BREADCRUMB: BreadcrumbEntry[] = [
+  { label: 'Home', link: '/' },
+  { label: 'Games', link: '/games' },
+  { label: 'Pattern Sense' },
+];
 
 const BEST_STREAK_KEY = 'po-pattern-sense-best';
 
@@ -44,9 +51,10 @@ interface CategoryOption {
     templateUrl: './pattern-sense.component.html',
     styleUrls: ['./pattern-sense.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink, NgClass]
+    imports: [RouterLink, NgClass, PageHeaderComponent]
 })
 export class PatternSenseComponent {
+  readonly breadcrumb = BREADCRUMB;
   readonly categoryLabels = CATEGORY_LABELS;
   readonly options: CategoryOption[] = (Object.keys(CATEGORY_LABELS) as Category[]).map((id) => ({
     id,

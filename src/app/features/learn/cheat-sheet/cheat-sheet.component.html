@@ -1,20 +1,6 @@
 @if (sheet) {
   <div class="cs-page">
-    <div class="breadcrumb">
-      <a routerLink="/">Home</a>
-      <span>›</span>
-      <a routerLink="/learn">Learn</a>
-      <span>›</span>
-      <span>{{ label }}</span>
-    </div>
-    <!-- ── Header ──────────────────────────────────────────────── -->
-    <header class="cs-header">
-      <span class="cs-header__icon">{{ icon }}</span>
-      <div>
-        <p class="cs-header__eyebrow">Pattern Cheat Sheet</p>
-        <h1 class="cs-header__title">{{ label }}</h1>
-      </div>
-    </header>
+    <app-page-header [breadcrumb]="breadcrumb" eyebrow="Pattern Cheat Sheet" [heading]="label" [icon]="icon"></app-page-header>
     <!-- ── When to Use ─────────────────────────────────────────── -->
     <section class="cs-section">
       <h2 class="cs-section__title">When to Use</h2>

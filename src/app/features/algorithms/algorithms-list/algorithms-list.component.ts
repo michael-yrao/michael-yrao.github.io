@@ -6,6 +6,8 @@ import {
 } from '../../../core/data/algorithms.data';
 import { AlgorithmMeta, Category, CATEGORY_LABELS, CATEGORY_ICONS, Difficulty } from '../../../core/models/algorithm.model';
 import { NgClass } from '@angular/common';
+import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
+import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
 
 interface CategoryCard {
   id: Category;
@@ -22,7 +24,7 @@ type ViewMode = 'categories' | 'all';
     templateUrl: './algorithms-list.component.html',
     styleUrls: ['./algorithms-list.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink, NgClass]
+    imports: [RouterLink, NgClass, PageHeaderComponent, LibrarySubnavComponent]
 })
 export class AlgorithmsListComponent implements OnInit, OnDestroy {
   category: Category | null = null;
@@ -52,6 +54,12 @@ export class AlgorithmsListComponent implements OnInit, OnDestroy {
 
   get categoryLabel(): string {
     return this.category ? CATEGORY_LABELS[this.category] : 'All Algorithms';
+  }
+
+  get breadcrumb(): BreadcrumbEntry[] {
+    const home: BreadcrumbEntry = { label: 'Home', link: '/' };
+    if (!this.category) return [home, { label: 'Algorithms' }];
+    return [home, { label: 'Algorithms', link: '/algorithms' }, { label: this.categoryLabel }];
   }
 
   get filtered(): AlgorithmMeta[] {

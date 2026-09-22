@@ -1,23 +1,18 @@
 <div class="ll-page">
-  <div class="breadcrumb">
-    <a routerLink="/">Home</a>
-    <span>›</span>
-    <span>Learn</span>
-  </div>
-
-  <header class="ll-hero">
-    <p class="ll-hero__eyebrow">Pattern Reference</p>
-    <h1 class="ll-hero__title">Learn</h1>
-    <p class="ll-hero__sub">
-      One cheat sheet per pattern: when to reach for it, what signals point to it,
-      the canonical template, and the pitfalls to watch for.
-    </p>
-  </header>
+  <app-page-header
+    [breadcrumb]="[{ label: 'Home', link: '/' }, { label: 'Learn' }]"
+    eyebrow="Pattern Reference"
+    heading="Learn"
+  >
+    One cheat sheet per pattern: when to reach for it, what signals point to it,
+    the canonical template, and the pitfalls to watch for.
+  </app-page-header>
+  <app-library-subnav></app-library-subnav>
 
   <div class="ll-grid">
     @for (card of cards; track card) {
       <a
-        class="ll-card"
+        class="ll-card po-card po-card--link"
         [routerLink]="['/learn', card.category]"
         >
         <div class="ll-card__icon">{{ card.icon }}</div>

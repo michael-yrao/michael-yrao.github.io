@@ -4,44 +4,6 @@
   padding: var(--space-xl) var(--space-lg) var(--space-2xl);
 }
 
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-lg);
-
-  a { color: var(--color-text-muted); &:hover { color: var(--color-accent); } }
-  span:last-child { color: var(--color-text); }
-}
-
-// ── Header ──────────────────────────────────────────────────────
-.bo-header {
-  margin-bottom: var(--space-xl);
-
-  &__eyebrow {
-    font-size: 0.75rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-    font-weight: 600;
-    margin: 0 0 var(--space-xs);
-  }
-
-  &__title {
-    font-size: clamp(1.8rem, 1.4rem + 2vw, 2.6rem);
-    font-weight: 800;
-    margin: 0 0 var(--space-sm);
-  }
-
-  &__sub {
-    color: var(--color-text-muted);
-    max-width: 56ch;
-    margin: 0;
-  }
-}
-
 // ── Scoreboard ──────────────────────────────────────────────────
 .bo-stats {
   display: flex;

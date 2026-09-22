@@ -1,17 +1,12 @@
 <div class="games-page">
-  <div class="breadcrumb">
-    <a routerLink="/">Home</a>
-    <span>›</span>
-    <span>Games</span>
-  </div>
-
-  <header class="games-page__hero">
-    <p class="games-page__eyebrow">Interactive Challenges</p>
-    <h1 class="games-page__title">Games</h1>
-    <p class="games-page__sub">
-      Play your way to algorithmic intuition. Each game is wired directly to the algorithm it uses.
-    </p>
-  </header>
+  <app-page-header
+    [breadcrumb]="breadcrumb"
+    eyebrow="Interactive Challenges"
+    heading="Games"
+  >
+    Play your way to algorithmic intuition. Each game is wired directly to the algorithm it uses.
+  </app-page-header>
+  <app-library-subnav></app-library-subnav>
 
   @for (section of sections; track section) {
     <section
@@ -26,7 +21,7 @@
       <div class="games-grid">
         @for (game of section.games; track game) {
           <a
-            class="game-card"
+            class="game-card po-card"
             [class.game-card--available]="game.status === 'available'"
             [class.game-card--soon]="game.status === 'coming-soon'"
             [routerLink]="game.status === 'available' ? game.route : null"

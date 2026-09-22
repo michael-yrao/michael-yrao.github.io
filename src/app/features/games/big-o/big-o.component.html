@@ -1,20 +1,8 @@
 <div class="bo-page">
-  <div class="breadcrumb">
-    <a routerLink="/">Home</a>
-    <span>›</span>
-    <a routerLink="/games">Games</a>
-    <span>›</span>
-    <span>Big-O Trainer</span>
-  </div>
-
-  <header class="bo-header">
-    <p class="bo-header__eyebrow">Complexity Analysis</p>
-    <h1 class="bo-header__title">Big-O Trainer</h1>
-    <p class="bo-header__sub">
-      Read the code. <strong>Don't run it in your head</strong> — count the loops,
-      identify the data structures, and name the complexity.
-    </p>
-  </header>
+  <app-page-header [breadcrumb]="breadcrumb" eyebrow="Complexity Analysis" heading="Big-O Trainer">
+    Read the code. <strong>Don't run it in your head</strong> — count the loops,
+    identify the data structures, and name the complexity.
+  </app-page-header>
 
   <!-- ── Scoreboard ──────────────────────────────────────────── -->
   <div class="bo-stats" aria-live="polite">

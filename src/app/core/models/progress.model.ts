@@ -100,10 +100,15 @@ export interface Technique {
 
 /** One row of the current week's Daily Schedule table (cse-progress gamify.py's
  *  parse_current_week_schedule()) — the "what do I do today" drill. `lcNumber` is null for
- *  a 🆕 intake row not yet scaffolded to a local solution file (no Visualize/LeetCode deep
- *  link for that row); `startComfort` is null for a 🆕/🎯-tagged row (no prior comfort);
- *  `difficulty` is null when the number isn't in the tracker yet (joined by lcNumber — the
- *  schedule file itself carries no difficulty column). */
+ *  a 🆕 intake row not yet scaffolded to a local solution file (no solution-walkthrough/
+ *  LeetCode deep link for that row); `startComfort` is null for a 🆕/🎯-tagged row (no prior
+ *  comfort); `difficulty` is null when the number isn't in the tracker yet (joined by
+ *  lcNumber — the schedule file itself carries no difficulty column).
+ *
+ *  `tags` and `kind` (both optional — an older contract predating them still renders
+ *  identically) are the enriched-row markers: `tags` values are one or more of `protected,
+ *  backfill, new, probe, variant, primer, moved`; `kind` distinguishes a normal rep from a
+ *  🆕 intake row, a cold probe re-ask, a Sunday complexity-gate re-ask, or a primer. */
 export interface ScheduleItem {
   lcNumber: number | null;
   title: string;
@@ -112,6 +117,8 @@ export interface ScheduleItem {
   difficulty: 'Easy' | 'Medium' | 'Hard' | null;
   url?: string | null;
   done: boolean;
+  tags?: string[];
+  kind?: 'rep' | 'new' | 'probe' | 'complexity' | 'primer';
 }
 
 export interface ScheduleDay {

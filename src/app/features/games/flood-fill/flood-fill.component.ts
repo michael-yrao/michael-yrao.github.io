@@ -1,5 +1,12 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
+
+const BREADCRUMB: BreadcrumbEntry[] = [
+  { label: 'Home', link: '/' },
+  { label: 'Games', link: '/games' },
+  { label: 'Flood Fill' },
+];
 
 const GRID_SIZE = 12;
 const MOVE_BUFFER = 5;
@@ -13,9 +20,10 @@ export const COLORS = ['#06b6d4', '#f97316', '#22c55e', '#a855f7', '#ec4899', '#
     templateUrl: './flood-fill.component.html',
     styleUrls: ['./flood-fill.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink]
+    imports: [RouterLink, PageHeaderComponent]
 })
 export class FloodFillComponent implements OnInit {
+  readonly breadcrumb = BREADCRUMB;
   readonly gridSize = GRID_SIZE;
   readonly moveBuffer = MOVE_BUFFER;
   readonly colors = COLORS;

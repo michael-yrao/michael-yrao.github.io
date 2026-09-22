@@ -1,23 +1,13 @@
 <div class="flood-fill-page">
-  <div class="breadcrumb">
-    <a routerLink="/">Home</a>
-    <span>›</span>
-    <a routerLink="/games">Games</a>
-    <span>›</span>
-    <span>Flood Fill</span>
-  </div>
-
-  <header class="game-header">
-    <p class="game-header__eyebrow">Algorithm Game</p>
-    <h1 class="game-header__title">Flood Fill</h1>
-    <p class="game-header__sub">
+  <app-page-header [breadcrumb]="breadcrumb" eyebrow="Algorithm Game" heading="Flood Fill">
+    <p>
       Pick a color to flood the board outward from the top-left corner.
       Conquer the whole board in <strong>{{ maxMoves }}</strong> moves — par is <strong>{{ greedyBest }}</strong>.
     </p>
     <a routerLink="/algorithms/trees/binary-tree-level-order-traversal" class="algo-link">
       Uses BFS — each ripple is one level, see Level Order Traversal →
     </a>
-  </header>
+  </app-page-header>
 
   <div class="game-layout">
     <div class="game-column">

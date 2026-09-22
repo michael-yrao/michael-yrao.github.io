@@ -73,7 +73,7 @@ function createFixture(
   effortCeiling?: number,
   effortFloor?: number,
 ) {
-  // RouterLink (the Visualize link, rendered when a schedule item's lcNumber has a
+  // RouterLink (the solution-glyph link, rendered when a schedule item's lcNumber has a
   // visualizer route) needs an injectable ActivatedRoute the moment it's actually
   // instantiated in the DOM — an empty route config is enough, nothing navigates here.
   TestBed.configureTestingModule({
@@ -364,5 +364,257 @@ describe('TodayBoardComponent', () => {
     const fixture = createFixture(null, 8, 3);
 
     expect(fixture.nativeElement.querySelector('.today-board__info')).toBeFalsy();
+  });
+
+  // ── Round 5: the solution-glyph replaces "Visualize ▶" ──────────────────────────────
+  it('renders a muted </> solution-glyph link (not "Visualize ▶") right after the title, for a row with a registered viz route', () => {
+    const fixture = createFixture(makeSchedule()); // lcNumber 100 (Same Tree) has a real route
+
+    expect(fixture.nativeElement.textContent).not.toContain('Visualize');
+
+    const glyph: HTMLAnchorElement = fixture.nativeElement.querySelector('.solution-glyph');
+    expect(glyph).toBeTruthy();
+    expect(glyph.textContent).toContain('</>');
+    expect(glyph.title).toBe('Solution walkthrough');
+    expect(glyph.getAttribute('aria-label')).toBe('Solution walkthrough for #100');
+
+    const row = glyph.closest('.today-board__row')!;
+    const children = Array.from(row.children) as HTMLElement[];
+    const titleIndex = children.findIndex((el) => el.classList.contains('today-board__title'));
+    expect(children[titleIndex + 1]).toBe(glyph);
+
+    // LeetCode stays alone, never adjacent to the glyph.
+    const links = row.querySelector('.today-board__links')!;
+    expect(links.contains(glyph)).toBe(false);
+    expect(links.textContent).toContain('LeetCode ↗');
+  });
+
+  // ── Round 5: kind === 'new' / 'probe' chips, and the 'moved' tag's muted prefix ─────
+  it("renders a 'new' chip after the title for kind === 'new', with no difficulty tag when difficulty is null", () => {
+    // The real regenerated-contract row: url IS present for a 🆕 row (gamify.py reads the
+    // row's own [LC] link) — a missing url never means "untracked" for one of these.
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 39, title: 'Combination Sum', technique: null, startComfort: null,
+        difficulty: null, url: 'https://leetcode.com/problems/combination-sum/',
+        done: false, kind: 'new', tags: ['new'] },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    expect(fixture.nativeElement.querySelector('.tag--new')?.textContent).toContain('new');
+    expect(fixture.nativeElement.querySelector('.tag--easy, .tag--medium, .tag--hard')).toBeFalsy();
+    expect(fixture.nativeElement.textContent).toContain('#39');
+    expect(fixture.nativeElement.querySelector('.today-board__links')?.textContent).toContain('LeetCode ↗');
+  });
+
+  it("renders an ordinary row with no chips when tags are present but kind is absent (older/plain contract rows)", () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 42, title: 'Trapping Rain Water', technique: 'Two Pointers', startComfort: '🟢',
+        difficulty: 'Hard', done: false, tags: ['protected', 'backfill'] },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    expect(fixture.nativeElement.querySelector('.tag--new')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.tag--probe')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.today-board__moved')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.tag--hard')?.textContent).toContain('Hard');
+  });
+
+  it("renders a 'probe' chip for kind === 'probe', and a muted → prefix when tags include 'moved'", () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 200, title: 'Number of Islands', technique: 'Graph-DFS', startComfort: '🟡',
+        difficulty: 'Medium', done: false, kind: 'probe', tags: ['probe', 'moved'] },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    expect(fixture.nativeElement.querySelector('.tag--probe')?.textContent).toContain('probe');
+    expect(fixture.nativeElement.querySelector('.today-board__moved')?.textContent).toContain('→');
+  });
+
+  // ── Round 5: consecutive kind === 'complexity' items collapse into one gate row ─────
+  it("collapses 3 consecutive kind === 'complexity' items into one 'Complexity gate' row with a numbers-only subtitle", () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 226, title: 'Re-ask A', technique: 'Complexity', startComfort: null,
+        difficulty: null, done: true, kind: 'complexity', tags: ['probe'] },
+      { lcNumber: 211, title: 'Re-ask B', technique: 'Complexity', startComfort: null,
+        difficulty: null, done: false, kind: 'complexity', tags: ['probe'] },
+      { lcNumber: 778, title: 'Re-ask C', technique: 'Complexity', startComfort: null,
+        difficulty: null, done: false, kind: 'complexity', tags: ['probe'] },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const rows = fixture.nativeElement.querySelectorAll('.today-board__row');
+    expect(rows.length).toBe(1); // 3 items collapsed into ONE row
+
+    const gateRow = rows[0] as HTMLElement;
+    expect(gateRow.classList.contains('today-board__row--gate')).toBe(true);
+    expect(gateRow.querySelector('.today-board__title')?.textContent).toBe('Complexity gate');
+    expect(gateRow.querySelector('.today-board__gate-sub')?.textContent).toBe('3 re-asks · 226 · 211 · 778');
+    // No links on the gate row — the re-ask answers live off the board by design.
+    expect(gateRow.querySelector('.today-board__links')).toBeFalsy();
+    expect(gateRow.querySelector('a')).toBeFalsy();
+
+    // Not all done -> the gate itself reads not-done.
+    expect(gateRow.classList.contains('today-board__row--done')).toBe(false);
+    expect(gateRow.querySelector('.today-board__check')?.textContent).toBe('○');
+
+    // The gate counts as ONE item toward both doneCount and totalCount.
+    expect(fixture.nativeElement.querySelector('.today-board__count')?.textContent).toContain('0 of 1 done');
+  });
+
+  it("marks the collapsed gate row done only once every member item is done", () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 226, title: 'Re-ask A', technique: 'Complexity', startComfort: null,
+        difficulty: null, done: true, kind: 'complexity' },
+      { lcNumber: 211, title: 'Re-ask B', technique: 'Complexity', startComfort: null,
+        difficulty: null, done: true, kind: 'complexity' },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const gateRow = fixture.nativeElement.querySelector('.today-board__row--gate')!;
+    expect(gateRow.classList.contains('today-board__row--done')).toBe(true);
+    expect(gateRow.querySelector('.today-board__check')?.textContent).toBe('✓');
+    expect(fixture.nativeElement.querySelector('.today-board__count')?.textContent).toContain('1 of 1 done');
+  });
+
+  it("shows a partial 'N of M done' line on the gate row when some, but not all, members are done", () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      {
+        lcNumber: 226,
+        title: 'Re-ask A',
+        technique: 'Complexity',
+        startComfort: null,
+        difficulty: null,
+        done: true,
+        kind: 'complexity',
+      },
+      {
+        lcNumber: 211,
+        title: 'Re-ask B',
+        technique: 'Complexity',
+        startComfort: null,
+        difficulty: null,
+        done: false,
+        kind: 'complexity',
+      },
+      {
+        lcNumber: 778,
+        title: 'Re-ask C',
+        technique: 'Complexity',
+        startComfort: null,
+        difficulty: null,
+        done: false,
+        kind: 'complexity',
+      },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const gateRow = fixture.nativeElement.querySelector('.today-board__row--gate')!;
+    const progressLine = gateRow.querySelector('.today-board__gate-progress');
+    expect(progressLine).toBeTruthy();
+    expect(progressLine!.textContent).toContain('1 of 3 done');
+  });
+
+  it('shows no partial-progress line on the gate row when 0 members are done', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      {
+        lcNumber: 226,
+        title: 'Re-ask A',
+        technique: 'Complexity',
+        startComfort: null,
+        difficulty: null,
+        done: false,
+        kind: 'complexity',
+      },
+      {
+        lcNumber: 211,
+        title: 'Re-ask B',
+        technique: 'Complexity',
+        startComfort: null,
+        difficulty: null,
+        done: false,
+        kind: 'complexity',
+      },
+      {
+        lcNumber: 778,
+        title: 'Re-ask C',
+        technique: 'Complexity',
+        startComfort: null,
+        difficulty: null,
+        done: false,
+        kind: 'complexity',
+      },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const gateRow = fixture.nativeElement.querySelector('.today-board__row--gate')!;
+    expect(gateRow.querySelector('.today-board__gate-progress')).toBeFalsy();
+  });
+
+  it('shows no partial-progress line on the gate row when all members are done', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      {
+        lcNumber: 226,
+        title: 'Re-ask A',
+        technique: 'Complexity',
+        startComfort: null,
+        difficulty: null,
+        done: true,
+        kind: 'complexity',
+      },
+      {
+        lcNumber: 211,
+        title: 'Re-ask B',
+        technique: 'Complexity',
+        startComfort: null,
+        difficulty: null,
+        done: true,
+        kind: 'complexity',
+      },
+      {
+        lcNumber: 778,
+        title: 'Re-ask C',
+        technique: 'Complexity',
+        startComfort: null,
+        difficulty: null,
+        done: true,
+        kind: 'complexity',
+      },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const gateRow = fixture.nativeElement.querySelector('.today-board__row--gate')!;
+    expect(gateRow.querySelector('.today-board__gate-progress')).toBeFalsy();
+  });
+
+  it('does not collapse a lone (non-consecutive) complexity item — it renders as a normal row', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 226, title: 'Re-ask A', technique: 'Complexity', startComfort: null,
+        difficulty: null, done: false, kind: 'complexity' },
+      { lcNumber: 39, title: 'Combination Sum', technique: 'Backtracking', startComfort: '🔴',
+        difficulty: 'Medium', done: false },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    expect(fixture.nativeElement.querySelector('.today-board__row--gate')).toBeFalsy();
+    expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('Re-ask A');
   });
 });

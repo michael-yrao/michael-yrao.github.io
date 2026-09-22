@@ -9,14 +9,29 @@
     @if (item.lcNumber) {
       <span class="today-board__num">#{{ item.lcNumber }}</span>
     }
+    @if (hasMovedTag(item)) {
+      <span class="today-board__moved" aria-hidden="true">→</span>
+    }
     <span class="today-board__title">{{ item.title }}</span>
+    @if (vizRoute(item.lcNumber); as route) {
+      <a
+        [routerLink]="route"
+        class="solution-glyph"
+        title="Solution walkthrough"
+        [attr.aria-label]="'Solution walkthrough for #' + item.lcNumber"
+        >&lt;/&gt;</a
+      >
+    }
+    @if (item.kind === 'new') {
+      <span class="tag tag--new">new</span>
+    }
+    @if (item.kind === 'probe') {
+      <span class="tag tag--probe">probe</span>
+    }
     @if (item.difficulty) {
       <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
     }
     <span class="today-board__links">
-      @if (vizRoute(item.lcNumber); as route) {
-        <a [routerLink]="route">Visualize ▶</a>
-      }
       @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
         <a [href]="lc" target="_blank" rel="noopener">LeetCode ↗</a>
       }
@@ -24,13 +39,28 @@
   </li>
 </ng-template>
 
+<ng-template #gateRowTpl let-row>
+  <li class="today-board__row today-board__row--gate" [class.today-board__row--done]="row.done">
+    <span class="today-board__check" [attr.aria-label]="row.done ? 'done' : 'not done'">{{
+      row.done ? '✓' : '○'
+    }}</span>
+    <span class="today-board__title">{{ gateTitle }}</span>
+    <span class="today-board__gate-sub">{{ row.subtitle }}</span>
+    @if (row.doneCount > 0 && row.doneCount < row.totalCount) {
+      <span class="today-board__gate-progress"
+        >{{ row.doneCount }} of {{ row.totalCount }} done</span
+      >
+    }
+  </li>
+</ng-template>
+
 <ng-template #dayItemsTpl let-day>
   @if (day.items.length) {
     <ul class="today-board__list">
-      @for (item of day.items; track item.lcNumber + '-' + item.title) {
+      @for (row of rowsFor(day); track rowKey(row)) {
         <ng-container
-          [ngTemplateOutlet]="itemRowTpl"
-          [ngTemplateOutletContext]="{ $implicit: item }"
+          [ngTemplateOutlet]="isGateRow(row) ? gateRowTpl : itemRowTpl"
+          [ngTemplateOutletContext]="{ $implicit: row }"
         />
       }
     </ul>

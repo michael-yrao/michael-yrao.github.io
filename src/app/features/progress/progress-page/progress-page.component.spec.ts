@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { vi } from 'vitest';
 
@@ -9,6 +9,7 @@ import { ProgressPageComponent, ProgressTab } from './progress-page.component';
 import { ProgressService } from '../../../core/services/progress.service';
 import { ProgressSummary, ProblemProgress } from '../../../core/models/progress.model';
 import { todayLocalISO } from '../../../core/utils/local-date';
+import { SITE_LINKS } from '../../../core/data/site-links';
 
 // A minimal, valid summary — enough for the 'ready' branch of every tab, including the two
 // instant drills (techniques/studyDays ride the summary, no fetch) and the overview-first
@@ -88,6 +89,11 @@ function makeSummary(): ProgressSummary {
 // HTTP: loadSummary/loadDetails/refresh are spies that never populate `details` or change
 // `detailsStatus`, so the Problems tab's idle branch (and its manual "Explore problems"
 // button) stays visible throughout unless a test explicitly flips the stub's signals.
+// parseRepo is a pure method (it never touches the HttpClient the service is constructed
+// with), so a real instance built with a throwaway HttpClient is safe to call just for that
+// method — the stub below delegates to it instead of reimplementing its parsing rule.
+const realProgressService = new ProgressService({} as never);
+
 function makeProgressServiceStub() {
   return {
     status: signal<'idle' | 'loading' | 'ready' | 'error'>('ready'),
@@ -105,6 +111,11 @@ function makeProgressServiceStub() {
     loadSummary: vi.fn(),
     loadDetails: vi.fn(),
     refresh: vi.fn(),
+    // Delegates to the REAL ProgressService.parseRepo (a pure method — it never touches the
+    // HttpClient it's constructed with) rather than reimplementing its parsing rule here, so
+    // the repo-picker tests exercise the actual validation the component calls, not a copy
+    // of it that could drift out of sync.
+    parseRepo: (raw: string | null | undefined) => realProgressService.parseRepo(raw),
   };
 }
 
@@ -112,6 +123,13 @@ function makeActivatedRouteStub() {
   const paramMap = convertToParamMap({});
   return { queryParamMap: of(paramMap), snapshot: { queryParamMap: paramMap } };
 }
+
+// A trivial catch-all route target — every RouterLink this page renders (vizRoute links,
+// the solution-glyph, the "Get the coach" CTA) needs SOMETHING to resolve to, or a real
+// click on one throws an uncaught NG04002 ("cannot match any routes") that Vitest reports
+// as an unhandled error even though the assertions themselves still pass.
+@Component({ selector: 'app-blank-route-stub', template: '' })
+class BlankRouteStubComponent {}
 
 // Round 2 replaced the single "Full breakdown" toggle with a segmented tablist. Every test
 // below that touches pipeline/gauges/difficulty/techniques/activity/Explore needs this
@@ -135,6 +153,9 @@ describe('ProgressPageComponent', () => {
       providers: [
         { provide: ProgressService, useValue: progress },
         { provide: ActivatedRoute, useValue: makeActivatedRouteStub() },
+        // A real (empty) router — RouterLink (vizRoute links, the "Get the coach" CTA)
+        // needs a working Router, not just a navigate() stub.
+        provideRouter([{ path: '**', component: BlankRouteStubComponent }]),
       ],
     });
   });
@@ -194,39 +215,54 @@ describe('ProgressPageComponent', () => {
   });
 
   // ── Round 4: the pipeline, difficulty, and breadth bars all render through the ONE
-  // shared <app-segmented-bar> component instead of three bespoke markups. ──────────────
+  // shared <app-segmented-bar> component instead of three bespoke markups. Round 5: the
+  // breadth bar and the technique list now live in the SAME Mastery tab as the pipeline —
+  // three bars total, pipeline+difficulty sharing one card, breadth in its own. ──────────
   it('difficulty mix is folded into the Mastery pipeline card, sharing the segmented-bar component', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
     const bars = fixture.nativeElement.querySelectorAll('app-segmented-bar');
-    expect(bars.length).toBe(2); // pipeline + difficulty, both inside the same card
+    expect(bars.length).toBe(3); // pipeline + difficulty (same card) + breadth (own card)
     const pipelineCard = bars[0].closest('.card');
     expect(pipelineCard).toBeTruthy();
     expect(pipelineCard!.contains(bars[1])).toBe(true);
+    expect(pipelineCard!.contains(bars[2])).toBe(false);
     // No separate "Difficulty mix" h2 card heading — only the inline h3 inside the pipeline card.
     const h2s = Array.from(fixture.nativeElement.querySelectorAll('h2')) as HTMLElement[];
     expect(h2s.some((h) => h.textContent === 'Difficulty mix')).toBe(false);
   });
 
-  it('Mastery, Techniques, Activity, and Problems tabs reveal their content on selection', () => {
+  it('Mastery (with the technique list folded in), Activity, and Problems tabs reveal their content on selection', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
     clickTab(fixture, 'mastery');
     expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeTruthy();
-
-    clickTab(fixture, 'techniques');
     expect(fixture.nativeElement.querySelector('app-technique-list')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeTruthy();
 
     clickTab(fixture, 'activity');
     expect(fixture.nativeElement.querySelector('app-streak-calendar')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('.gauge')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-badge-grid')).toBeTruthy();
 
     clickTab(fixture, 'problems');
     expect(fixture.nativeElement.querySelector('.progress__explore')).toBeTruthy();
+  });
+
+  it('orders the Activity tab as calendar, gauge, Achievements, then Trophy case', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'activity');
+
+    const panel = fixture.nativeElement.querySelector('#panel-activity')!;
+    const order = ['app-streak-calendar', '.gauge', 'app-badge-grid', '.trophies'];
+    const indices = order.map((sel) =>
+      Array.from(panel.querySelectorAll('*')).findIndex((el) => (el as HTMLElement).matches(sel)),
+    );
+    expect(indices.every((i) => i >= 0)).toBe(true);
+    expect(indices).toEqual([...indices].sort((a, b) => a - b));
   });
 
   it('switching to the Problems tab fetches details automatically', () => {
@@ -281,11 +317,106 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(1);
   });
 
-  // ── Techniques tab: the technique list + the honest, tiered denominator ────────────
-  it('renders the technique list on the Techniques tab, with no details fetch', () => {
+  // ── Round 5: .problem__row is a role="button" div (an <a> can't nest inside a real
+  // <button>), so its Enter/Space keyboard activation is hand-rolled and needs its own
+  // regression coverage — a native <button> wouldn't need this. ──────────────────────
+  it('expands and collapses on Enter and Space, same as a native button would', () => {
+    const problem: ProblemProgress = {
+      lcNumber: 206,
+      title: 'Reverse Linked List',
+      url: 'https://leetcode.com/problems/reverse-linked-list/',
+      difficulty: 'Easy',
+      category: 'linked-list',
+      comfort: '🎓',
+      level: 3,
+      streak: 3,
+      nextReview: '2026-10-01',
+      repDates: ['2026-09-01'],
+      timeline: [{ date: '2026-09-01', comfort: '🎓', level: 3 }],
+    };
+    progress.detailsStatus.set('ready');
+    progress.details.set([problem]);
+
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'techniques');
+    clickTab(fixture, 'problems');
+
+    const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
+    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
+
+    row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(1);
+
+    row.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
+  });
+
+  it('an Enter keydown on the solution-glyph does not expand the row (stopPropagation)', () => {
+    const problem: ProblemProgress = {
+      lcNumber: 206,
+      title: 'Reverse Linked List',
+      url: 'https://leetcode.com/problems/reverse-linked-list/',
+      difficulty: 'Easy',
+      category: 'linked-list',
+      comfort: '🎓',
+      level: 3,
+      streak: 3,
+      nextReview: '2026-10-01',
+      repDates: ['2026-09-01'],
+      timeline: [{ date: '2026-09-01', comfort: '🎓', level: 3 }],
+    };
+    progress.detailsStatus.set('ready');
+    progress.details.set([problem]);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'problems');
+
+    const glyph: HTMLAnchorElement = fixture.nativeElement.querySelector('.solution-glyph');
+    expect(glyph).toBeTruthy();
+    glyph.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
+  });
+
+  it('clicking the solution-glyph inside the row does not toggle the row (stopPropagation)', () => {
+    const problem: ProblemProgress = {
+      lcNumber: 206,
+      title: 'Reverse Linked List',
+      url: 'https://leetcode.com/problems/reverse-linked-list/',
+      difficulty: 'Easy',
+      category: 'linked-list',
+      comfort: '🎓',
+      level: 3,
+      streak: 3,
+      nextReview: '2026-10-01',
+      repDates: ['2026-09-01'],
+      timeline: [{ date: '2026-09-01', comfort: '🎓', level: 3 }],
+    };
+    progress.detailsStatus.set('ready');
+    progress.details.set([problem]);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'problems');
+
+    const glyph: HTMLAnchorElement = fixture.nativeElement.querySelector('.solution-glyph');
+    expect(glyph).toBeTruthy();
+    glyph.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
+  });
+
+  // ── Mastery tab (round 5 — folded in from the removed Techniques tab): the technique
+  // list + the honest, tiered denominator live alongside the pipeline. ────────────────
+  it('renders the technique list on the Mastery tab, with no details fetch', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'mastery');
 
     expect(fixture.nativeElement.querySelectorAll('app-technique-list').length).toBe(1);
     expect(fixture.nativeElement.textContent).toContain('Bellman-Ford');
@@ -297,9 +428,10 @@ describe('ProgressPageComponent', () => {
     // 'tier3' (below the line) -> practiced=2, upcoming=1, horizon=1.
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'techniques');
+    clickTab(fixture, 'mastery');
 
-    const bar = fixture.nativeElement.querySelector('app-segmented-bar')!;
+    // Third bar in Mastery: pipeline, difficulty, then breadth.
+    const bar = fixture.nativeElement.querySelectorAll('app-segmented-bar')[2];
     expect(bar.textContent).toContain('Practiced (started)');
     expect(bar.textContent).toContain('2');
     expect(bar.textContent).toContain('Interview-upcoming');
@@ -309,9 +441,9 @@ describe('ProgressPageComponent', () => {
   it("the breadth bar shows a title and a caption explaining the interview-ROI split", () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'techniques');
+    clickTab(fixture, 'mastery');
 
-    const bar = fixture.nativeElement.querySelector('app-segmented-bar')!;
+    const bar = fixture.nativeElement.querySelectorAll('app-segmented-bar')[2];
     expect(bar.querySelector('.segbar__title')?.textContent).toContain('Roadmap coverage');
     expect(bar.querySelector('.segbar__caption')?.textContent).toContain('interview-ROI');
   });
@@ -388,10 +520,10 @@ describe('ProgressPageComponent', () => {
   });
 
   // ── 🏆 Retired never appears in details().problems[] (retired rows leave the tracker
-  // entirely), so it must not drill into a comfort facet. Now that the Trophy Case lives
-  // on the SAME (Mastery) tab as the pipeline funnel, clicking it is simply a no-op stay —
-  // no fetch, no facet, no tab switch, no scrollIntoView needed. ─────────────────────────
-  it('clicking the 🏆 Retired segment does NOT set a facet or fetch details, and stays on Mastery', () => {
+  // entirely), so it must not drill into a comfort facet. Round 5: the Trophy Case moved
+  // to the Activity tab, so clicking Retired now switches there instead of staying put —
+  // no fetch, no facet, just a tab switch. ────────────────────────────────────────────
+  it('clicking the 🏆 Retired segment does NOT set a facet or fetch details, and switches to Activity', () => {
     const withRetired: ProgressSummary = {
       ...makeSummary(),
       pipeline: { ...makeSummary().pipeline, retired: 1 },
@@ -413,7 +545,9 @@ describe('ProgressPageComponent', () => {
 
     expect(progress.loadDetails).not.toHaveBeenCalled();
     expect(fixture.componentInstance.listFilter()).toBeNull();
-    expect(fixture.nativeElement.querySelector('#tab-mastery').getAttribute('aria-selected')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#tab-activity').getAttribute('aria-selected')).toBe('true');
+    // The Trophy Case itself lives there now, retired row included.
+    expect(fixture.nativeElement.querySelector('.trophy--retired')?.textContent).toContain('Binary Search');
   });
 
   // ── Keyboard nav: the tablist is a real roving-tabindex control ─────────────────────
@@ -428,7 +562,7 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelector('#tab-mastery').getAttribute('aria-selected')).toBe('true');
   });
 
-  it('ArrowLeft on the first tab wraps to the last tab (Recognition, round 3)', () => {
+  it('ArrowLeft on the first tab wraps to the last tab (Activity, round 5)', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
@@ -436,21 +570,26 @@ describe('ProgressPageComponent', () => {
     overviewTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('#tab-recognition').getAttribute('aria-selected')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#tab-activity').getAttribute('aria-selected')).toBe('true');
   });
 
-  // ── Round 3: the 6th "Recognition" tab ──────────────────────────────────────────────
-  it('renders a 6th "Recognition" tab in the tablist, hidden until selected', () => {
+  // ── Round 5: exactly 5 tabs — Techniques folded into Mastery ────────────────────────
+  it('renders exactly 5 tabs in a fixed order, Recognition hidden until selected', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
     const tabs = fixture.nativeElement.querySelectorAll('[role="tab"]');
-    expect(tabs.length).toBe(6);
+    expect(tabs.length).toBe(5);
+    const ids = Array.from(tabs).map((t) => (t as HTMLElement).id);
+    expect(ids).toEqual(['tab-overview', 'tab-mastery', 'tab-recognition', 'tab-problems', 'tab-activity']);
+
     const recognitionTab: HTMLButtonElement = fixture.nativeElement.querySelector('#tab-recognition');
     expect(recognitionTab).toBeTruthy();
     expect(recognitionTab.textContent).toContain('Recognition');
     expect(recognitionTab.getAttribute('aria-selected')).toBe('false');
     expect(fixture.nativeElement.querySelector('app-recognition-panel')).toBeFalsy();
+
+    expect(fixture.nativeElement.querySelector('#tab-techniques')).toBeFalsy();
   });
 
   it('switching to Recognition renders app-recognition-panel wired to the summary\'s probes, no fetch', () => {
@@ -466,11 +605,12 @@ describe('ProgressPageComponent', () => {
     expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
-  // ── Round 3: technique minProblems + click-to-expand-problems wiring ────────────────
-  it('shows each technique\'s count/target ratio (problemCount/minProblems) on the Techniques tab', () => {
+  // ── Round 3: technique minProblems + click-to-expand-problems wiring (round 5: now on
+  // the Mastery tab) ───────────────────────────────────────────────────────────────────
+  it('shows each technique\'s count/target ratio (problemCount/minProblems) on the Mastery tab', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'techniques');
+    clickTab(fixture, 'mastery');
 
     const ratios = Array.from(fixture.nativeElement.querySelectorAll('.tech-row__ratio'))
       .map((el) => (el as HTMLElement).textContent);
@@ -481,7 +621,7 @@ describe('ProgressPageComponent', () => {
   it('expanding a technique row calls onTechniqueExpand, which fetches details via loadDetails()', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'techniques');
+    clickTab(fixture, 'mastery');
 
     const row: HTMLButtonElement = fixture.nativeElement.querySelector('.tech-row__toggle');
     expect(row).toBeTruthy();
@@ -489,6 +629,168 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     expect(progress.loadDetails).toHaveBeenCalled();
+  });
+
+  // ── Round 5: loading state is a skeleton, not text ──────────────────────────────────
+  it('shows a skeleton (2 tiles + 1 card) while loading, not the text "Loading progress…"', () => {
+    progress.status.set('loading');
+    progress.data.set(null);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Loading progress…');
+    expect(fixture.nativeElement.querySelectorAll('.skeleton__tile').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('.skeleton__card').length).toBe(1);
+  });
+
+  // ── Round 5: the generated-at line moved into the Refresh button ───────────────────
+  it('removes the standalone "Generated" line; generatedAt appears in the Refresh button instead', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.progress__gen')).toBeFalsy();
+    expect(fixture.nativeElement.textContent).not.toContain('Generated 2026-09-20');
+
+    const refreshBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.progress__refresh');
+    expect(refreshBtn.title).toContain('Data as of 2026-09-20');
+    expect(refreshBtn.title).toContain('pull the latest from GitHub');
+    // The accessible name still says "Refresh" — aria-label overrides visible text, so the
+    // freshness line alone would silently drop that word for assistive tech.
+    expect(refreshBtn.getAttribute('aria-label')).toContain('Refresh');
+    expect(refreshBtn.getAttribute('aria-label')).toContain('data as of 2026-09-20');
+  });
+
+  it('shows a visible "as of <date>" label beside the Refresh button, not just in its title', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const asOf = fixture.nativeElement.querySelector('.progress__asof');
+    expect(asOf).toBeTruthy();
+    expect(asOf!.textContent).toContain('as of 2026-09-20'); // makeSummary()'s generatedAt
+  });
+
+  // ── Round 5: default-repo notice + inline repo picker ───────────────────────────────
+  describe('default-repo notice + repo picker', () => {
+    it('shows the notice and the "Get the coach" CTA when no ?repo= param is given and the slug is the default', () => {
+      const fixture = TestBed.createComponent(ProgressPageComponent);
+      fixture.detectChanges();
+
+      const notice = fixture.nativeElement.querySelector('.progress__notice');
+      expect(notice).toBeTruthy();
+      expect(notice.textContent).toContain("Viewing the site author's practice log");
+
+      const cta: HTMLAnchorElement = fixture.nativeElement.querySelector('.progress__notice-cta');
+      expect(cta).toBeTruthy();
+      expect(cta.textContent).toContain('Get the coach');
+      expect(cta.getAttribute('href')).toBe(SITE_LINKS.coach);
+    });
+
+    it('hides the notice once a ?repo= param is present', () => {
+      TestBed.overrideProvider(ActivatedRoute, {
+        useValue: {
+          queryParamMap: of(convertToParamMap({ repo: 'someone/else' })),
+          snapshot: { queryParamMap: convertToParamMap({ repo: 'someone/else' }) },
+        },
+      });
+      const fixture = TestBed.createComponent(ProgressPageComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.progress__notice')).toBeFalsy();
+    });
+
+    it('submitting a valid "owner/name" navigates with the repo queryParam', () => {
+      const fixture = TestBed.createComponent(ProgressPageComponent);
+      const router = TestBed.inject(Router);
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+      fixture.detectChanges();
+
+      const input: HTMLInputElement = fixture.nativeElement.querySelector('.repo-picker__input');
+      input.value = 'someone/else';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const form: HTMLFormElement = fixture.nativeElement.querySelector('.repo-picker');
+      form.dispatchEvent(new Event('submit', { cancelable: true }));
+      fixture.detectChanges();
+
+      expect(navigateSpy).toHaveBeenCalledWith(
+        [],
+        expect.objectContaining({ queryParams: { repo: 'someone/else' } }),
+      );
+      expect(fixture.nativeElement.querySelector('.progress__hint')).toBeFalsy();
+    });
+
+    it('a malformed ?repo= renders the error state AND the repo picker (not just the hint)', () => {
+      progress.status.set('error');
+      progress.error.set("'nope' isn't a repo slug — use owner/name or owner/name@branch.");
+      progress.data.set(null);
+      progress.repoSlug.set(null);
+      TestBed.overrideProvider(ActivatedRoute, {
+        useValue: {
+          queryParamMap: of(convertToParamMap({ repo: 'nope' })),
+          snapshot: { queryParamMap: convertToParamMap({ repo: 'nope' }) },
+        },
+      });
+
+      const fixture = TestBed.createComponent(ProgressPageComponent);
+      fixture.detectChanges();
+
+      const errorBlock = fixture.nativeElement.querySelector('.progress__error');
+      expect(errorBlock).toBeTruthy();
+      expect(errorBlock.textContent).toContain("isn't a repo slug");
+      expect(errorBlock.querySelector('button')?.textContent).toContain('Retry');
+      expect(errorBlock.querySelector('.repo-picker__input')).toBeTruthy();
+      expect(errorBlock.querySelector('.repo-picker__submit')).toBeTruthy();
+    });
+
+    it('submitting an invalid entry from the error state shows exactly one hint, not two', () => {
+      progress.status.set('error');
+      progress.error.set("'nope' isn't a repo slug — use owner/name or owner/name@branch.");
+      progress.data.set(null);
+      progress.repoSlug.set(null);
+      TestBed.overrideProvider(ActivatedRoute, {
+        useValue: {
+          queryParamMap: of(convertToParamMap({ repo: 'nope' })),
+          snapshot: { queryParamMap: convertToParamMap({ repo: 'nope' }) },
+        },
+      });
+
+      const fixture = TestBed.createComponent(ProgressPageComponent);
+      fixture.detectChanges();
+
+      const errorBlock = fixture.nativeElement.querySelector('.progress__error');
+      const input: HTMLInputElement = errorBlock.querySelector('.repo-picker__input');
+      input.value = 'still-not-valid';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const form: HTMLFormElement = errorBlock.querySelector('.repo-picker');
+      form.dispatchEvent(new Event('submit', { cancelable: true }));
+      fixture.detectChanges();
+
+      expect(errorBlock.querySelectorAll('.progress__hint').length).toBe(1);
+    });
+
+    it('submitting an invalid entry shows the error hint and does not navigate', () => {
+      const fixture = TestBed.createComponent(ProgressPageComponent);
+      const router = TestBed.inject(Router);
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+      fixture.detectChanges();
+
+      const input: HTMLInputElement = fixture.nativeElement.querySelector('.repo-picker__input');
+      input.value = 'not-a-valid-slug';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const form: HTMLFormElement = fixture.nativeElement.querySelector('.repo-picker');
+      form.dispatchEvent(new Event('submit', { cancelable: true }));
+      fixture.detectChanges();
+
+      expect(navigateSpy).not.toHaveBeenCalled();
+      const hint = fixture.nativeElement.querySelector('.progress__hint');
+      expect(hint?.textContent).toContain('?repo=owner/name');
+    });
   });
 });
 
@@ -538,6 +840,7 @@ describe('ProgressPageComponent — effect loop regression (real ProgressService
         ProgressService,
         { provide: HttpClient, useValue: http },
         { provide: ActivatedRoute, useValue: makeActivatedRouteStub() },
+        provideRouter([{ path: '**', component: BlankRouteStubComponent }]),
       ],
     });
 
@@ -583,6 +886,7 @@ describe('ProgressPageComponent — smoke test (real ProgressService, resolving 
         ProgressService,
         { provide: HttpClient, useValue: http },
         { provide: ActivatedRoute, useValue: makeActivatedRouteStub() },
+        provideRouter([{ path: '**', component: BlankRouteStubComponent }]),
       ],
     });
 

@@ -1,20 +1,8 @@
 <div class="ps-page">
-  <div class="breadcrumb">
-    <a routerLink="/">Home</a>
-    <span>›</span>
-    <a routerLink="/games">Games</a>
-    <span>›</span>
-    <span>Pattern Sense</span>
-  </div>
-
-  <header class="ps-header">
-    <p class="ps-header__eyebrow">Recognition Trainer</p>
-    <h1 class="ps-header__title">Pattern Sense</h1>
-    <p class="ps-header__sub">
-      Read the problem. <strong>Don't solve it</strong> — just name the technique.
-      Recognizing the pattern is half the interview.
-    </p>
-  </header>
+  <app-page-header [breadcrumb]="breadcrumb" eyebrow="Recognition Trainer" heading="Pattern Sense">
+    Read the problem. <strong>Don't solve it</strong> — just name the technique.
+    Recognizing the pattern is half the interview.
+  </app-page-header>
 
   <!-- ── Scoreboard ──────────────────────────────────────────── -->
   <div class="ps-stats" aria-live="polite">

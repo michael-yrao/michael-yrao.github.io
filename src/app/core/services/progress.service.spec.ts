@@ -36,17 +36,52 @@ describe('ProgressService', () => {
   describe('parseRepo', () => {
     it('defaults to the owner repo when no repo is given', () => {
       const ref = service.parseRepo(null);
-      expect(`${ref.owner}/${ref.repo}`).toBe(DEFAULT_REPO);
-      expect(ref.branch).toBe(DEFAULT_BRANCH);
+      expect(ref).not.toBeNull();
+      expect(`${ref!.owner}/${ref!.repo}`).toBe(DEFAULT_REPO);
+      expect(ref!.branch).toBe(DEFAULT_BRANCH);
+    });
+
+    it('also defaults on undefined and on the empty string', () => {
+      expect(service.parseRepo(undefined)?.owner).toBe(DEFAULT_REPO.split('/')[0]);
+      expect(service.parseRepo('')?.owner).toBe(DEFAULT_REPO.split('/')[0]);
     });
 
     it('parses owner/name and owner/name@branch', () => {
-      expect(service.parseRepo('someone/their-repo').owner).toBe('someone');
-      expect(service.parseRepo('someone/their-repo@dev').branch).toBe('dev');
+      expect(service.parseRepo('someone/their-repo')?.owner).toBe('someone');
+      expect(service.parseRepo('someone/their-repo@dev')?.branch).toBe('dev');
     });
 
-    it('falls back to the default on a malformed slug', () => {
-      expect(`${service.parseRepo('nope').owner}/${service.parseRepo('nope').repo}`).toBe(DEFAULT_REPO);
+    it('returns null on a malformed slug instead of falling back to the default', () => {
+      expect(service.parseRepo('nope')).toBeNull(); // no '/'
+      expect(service.parseRepo('a/b/c')).toBeNull(); // extra '/'-part
+      expect(service.parseRepo('/name')).toBeNull(); // empty owner
+      expect(service.parseRepo('owner/')).toBeNull(); // empty name
+      expect(service.parseRepo('owner/name@')).toBeNull(); // empty branch after '@'
+      expect(service.parseRepo('owner/name@dev@extra')).toBeNull(); // more than one '@'
+    });
+  });
+
+  describe('loadSummary on a malformed slug', () => {
+    it('sets status/error and clears source, with no fetch attempted', () => {
+      service.loadSummary('not-a-valid-slug');
+
+      expect(service.status()).toBe('error');
+      expect(service.error()).toBe(
+        "'not-a-valid-slug' isn't a repo slug — use owner/name or owner/name@branch.",
+      );
+      expect(service.data()).toBeNull();
+      expect(service.source()).toBeNull();
+      expect(http.calls.length).toBe(0);
+    });
+
+    it('clears a previously-valid source so the header shows no stale slug', () => {
+      service.loadSummary(null); // valid: seeds `source` with the default repo
+      expect(service.source()).not.toBeNull();
+
+      service.loadSummary('nope/a/b');
+
+      expect(service.source()).toBeNull();
+      expect(service.status()).toBe('error');
     });
   });
 

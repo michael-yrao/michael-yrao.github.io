@@ -8,14 +8,16 @@ import {
   untracked,
   viewChildren,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 
-import { ProgressService } from '../../../core/services/progress.service';
+import { ProgressService, DEFAULT_REPO } from '../../../core/services/progress.service';
 import { Comfort, ProblemProgress } from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { todayLocalISO } from '../../../core/utils/local-date';
+import { SITE_LINKS } from '../../../core/data/site-links';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { BadgeGridComponent } from '../badge-grid/badge-grid.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
@@ -31,18 +33,17 @@ type Difficulty = 'Easy' | 'Medium' | 'Hard';
 // Segmented tabs (replaces round-1's single "Full breakdown" toggle — round-2 learner
 // feedback: the toggle "doesn't connect the top and bottom"). Overview is the default —
 // streak hero + Today's board, the at-a-glance landing. Everything else has a home tab;
-// all existing drill behavior keeps working inside them, just re-homed.
-export type ProgressTab = 'overview' | 'mastery' | 'techniques' | 'activity' | 'problems' | 'recognition';
-const TAB_ORDER: ProgressTab[] = [
-  'overview', 'mastery', 'techniques', 'activity', 'problems', 'recognition',
-];
+// all existing drill behavior keeps working inside them, just re-homed. Techniques (round 5)
+// folded into Mastery — the honest denominator and the technique list belong next to the
+// pipeline they both describe.
+export type ProgressTab = 'overview' | 'mastery' | 'recognition' | 'problems' | 'activity';
+const TAB_ORDER: ProgressTab[] = ['overview', 'mastery', 'recognition', 'problems', 'activity'];
 const TAB_LABEL: Record<ProgressTab, string> = {
   overview: 'Overview',
   mastery: 'Mastery',
-  techniques: 'Techniques',
-  activity: 'Activity',
-  problems: 'Problems',
   recognition: 'Recognition',
+  problems: 'Problems',
+  activity: 'Activity',
 };
 
 // The Explore list's unified filter facet. `null` = show everything. Each drill button on
@@ -64,6 +65,15 @@ function rowKey(p: ProblemProgress): string {
 // carrying an extra `comfort` field on each SegmentedBarSegment) so pipelineSegments() can
 // emit the exact same shape every other bar usage emits — the component itself only ever
 // needs to know key/label/value/cls.
+const MISSING_GENERATED_AT = '—';
+
+/** Shared tail of the Refresh button's title and aria-label — the freshness line, minus the
+ *  leading word each caller supplies ("Data " for the title; "Refresh — data " for the
+ *  aria-label, which overrides visible text so it must still say "Refresh"). */
+function asOfLine(generatedAt: string | undefined): string {
+  return `as of ${generatedAt ?? MISSING_GENERATED_AT} · pull the latest from GitHub`;
+}
+
 const PIPELINE_COMFORT: Record<string, Comfort> = {
   blank: '🔴',
   shaky: '🟡',
@@ -79,6 +89,7 @@ const PIPELINE_COMFORT: Record<string, Comfort> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterLink,
+    NgTemplateOutlet,
     ProblemTimelineComponent,
     BadgeGridComponent,
     TechniqueListComponent,
@@ -167,6 +178,16 @@ export class ProgressPageComponent {
     ).filter((s) => s.value > 0);
   });
 
+  // Refresh button's title/aria-label — hoisted from inline string concatenation (round 6):
+  // the OnPush button re-read `data()?.generatedAt` inline on every CD pass; these `computed`s
+  // only recompute when `data()` itself changes.
+  readonly refreshTitle = computed(() => `Data ${asOfLine(this.data()?.generatedAt)}`);
+  readonly refreshAriaLabel = computed(() => `Refresh — data ${asOfLine(this.data()?.generatedAt)}`);
+
+  // The always-visible counterpart to the Refresh button's hover-only freshness line — same
+  // MISSING_GENERATED_AT fallback, no "pull the latest…" tail (that belongs to the button).
+  readonly generatedAtLabel = computed(() => this.data()?.generatedAt ?? MISSING_GENERATED_AT);
+
   readonly onSchedulePct = computed(() => {
     const os = this.data()?.onSchedule;
     if (!os || !os.totalActive) return 100;
@@ -209,9 +230,20 @@ export class ProgressPageComponent {
 
   private readonly repoParam;
 
+  // ── Default-repo notice + inline repo picker ──────────────────────────────────────
+  readonly siteLinks = SITE_LINKS;
+  readonly repoInputValue = signal('');
+  readonly repoInputInvalid = signal(false);
+  // Shown only when the viewer hasn't pointed the page anywhere themselves — no ?repo= at
+  // all, and the resolved slug is the site author's own default checkout.
+  readonly showDefaultRepoNotice = computed(
+    () => this.repoParam() == null && this.repoSlug() === DEFAULT_REPO,
+  );
+
   constructor(
     private readonly progress: ProgressService,
-    route: ActivatedRoute,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
   ) {
     // React to ?repo=owner/name (the service supplies the default when it is null). Seed the
     // initial value from the route SNAPSHOT so the first effect run already has the real param
@@ -245,6 +277,36 @@ export class ProgressPageComponent {
 
   refresh(): void {
     this.progress.refresh();
+  }
+
+  onRepoInputChange(value: string): void {
+    this.repoInputValue.set(value);
+    if (this.repoInputInvalid()) this.repoInputInvalid.set(false);
+  }
+
+  /** Delegates the shape check to ProgressService.parseRepo itself — no separate regex to
+   *  drift out of sync. `parseRepo('')` resolves to the default repo rather than `null` (so
+   *  an EMPTY ?repo= still means "use the default"), but a blank picker submission must
+   *  still be rejected here, so blank is handled explicitly before asking parseRepo. */
+  private isValidRepoInput(raw: string): boolean {
+    if (!raw) return false;
+    return this.progress.parseRepo(raw) !== null;
+  }
+
+  /** Submits the inline repo-picker form: navigates to `?repo=` on a valid `owner/name[@branch]`,
+   *  otherwise leaves the URL alone and shows the same error hint the load-error state uses. */
+  submitRepoPicker(): void {
+    const raw = this.repoInputValue().trim();
+    if (!raw || !this.isValidRepoInput(raw)) {
+      this.repoInputInvalid.set(true);
+      return;
+    }
+    this.repoInputInvalid.set(false);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { repo: raw },
+      queryParamsHandling: 'merge',
+    });
   }
 
   /** Selects a tab; entering Problems for the first time fires loadDetails() (idempotent —
@@ -306,11 +368,10 @@ export class ProgressPageComponent {
   /** Pipeline segment click: every tier except 🏆 Retired drills into the Problems tab.
    *  Retired rows are never in details().problems[] (retired rows leave the tracker
    *  entirely — see cse-progress's parse_retired()), so that segment just switches to the
-   *  Mastery tab instead, where the Trophy Case already lists them — no fetch, no dead-end
-   *  facet. */
+   *  Activity tab instead, where the Trophy Case now lives — no fetch, no dead-end facet. */
   pipelineSegmentClick(seg: SegmentedBarSegment): void {
     if (seg.key === 'retired') {
-      this.selectTab('mastery');
+      this.selectTab('activity');
       return;
     }
     const comfort = PIPELINE_COMFORT[seg.key];

@@ -1,4 +1,4 @@
-@import 'node_modules/highlight.js/styles/atom-one-dark.css';
+@use 'highlight.js/styles/atom-one-dark.css';
 
 // ── Design Tokens ────────────────────────────────────────────────────────────
 :root {
@@ -27,6 +27,16 @@
   // Typography
   --font-ui:    'Inter', system-ui, -apple-system, sans-serif;
   --font-mono:  'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  // Type scale — a shared step system so headers/eyebrows/body text converge
+  // on the same sizes instead of each feature picking its own rem value.
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-md:   1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.5rem;
+  --text-2xl:  2rem;
+  --text-3xl:  3rem;
 
   // Spacing
   --space-xs:  0.25rem;
@@ -141,6 +151,54 @@ code, pre, .mono { font-family: var(--font-mono); }
 .badge-easy   { color: var(--color-easy);   background: rgba(74, 222, 128, 0.1); }
 .badge-medium { color: var(--color-medium); background: rgba(251, 146, 60, 0.1); }
 .badge-hard   { color: var(--color-hard);   background: rgba(248, 113, 113, 0.1); }
+
+// ── Card primitive ────────────────────────────────────────────────────────────
+// Shared surface for progress `.card`, `.section-card`, `.cat-card`, `.game-card`,
+// `.ll-card`, etc. Each still owns its own layout/content rules; this only fixes
+// the surface (background, border, radius, padding) so every card matches.
+.po-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+}
+
+// Hover lift is opt-in, for cards that are themselves a link (not for cards that
+// merely contain one).
+.po-card--link {
+  transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+
+  &:hover {
+    border-color: var(--color-accent);
+    background: var(--color-bg-raised);
+    transform: translateY(-3px);
+  }
+}
+
+// ── Solution-walkthrough glyph ─────────────────────────────────────────────────
+// Small muted anchor to the learner's own solution walkthrough — an internal
+// routerLink to this site's step-by-step visualizer for that problem. Rendered
+// right after a problem title on the today-board, technique-list, and problems
+// list. Tokens flip automatically under [data-theme='light'].
+.solution-glyph {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--color-accent);
+  }
+}
+
+// ── Page-header projected content ─────────────────────────────────────────────
+// Global (not in page-header.component.scss): under Angular's emulated view
+// encapsulation, a `strong`/`em` rule scoped to the component only matches
+// elements in that component's OWN template — never content projected in via
+// <ng-content> from a parent's template, which is what po-header__sub holds.
+.po-header__sub strong { color: var(--color-text); }
+.po-header__sub em { font-style: normal; color: var(--color-accent); }
 
 .difficulty-badge {
   display: inline-flex;

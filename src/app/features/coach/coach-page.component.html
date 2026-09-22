@@ -1,0 +1,62 @@
+<div class="coach-page">
+  <app-page-header [breadcrumb]="breadcrumb" eyebrow="Behind the Progress page" heading="The coach">
+    A spaced-repetition coach you talk to in Claude Code — not a spreadsheet you fill out by hand.
+  </app-page-header>
+
+  <section class="coach-section">
+    <h2 class="coach-section__title">What it is</h2>
+    <p>
+      Instead of maintaining a tracker yourself, you talk to it the way you'd talk to a mentor
+      sitting next to you: you say when you're starting a problem, ask it questions while you
+      work, and tell it honestly how the attempt went. It handles the scheduling, the spaced
+      repetition, and keeping you honest — your job is just to do the reps.
+    </p>
+  </section>
+
+  <section class="coach-section">
+    <h2 class="coach-section__title">Three moves, every problem</h2>
+    <table class="coach-moves">
+      <thead>
+        <tr>
+          <th>You say…</th>
+          <th>The coach does…</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (move of moves; track move.youSay) {
+          <tr>
+            <td class="coach-moves__you">{{ move.youSay }}</td>
+            <td>{{ move.coachDoes }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+
+  <section class="coach-section">
+    <h2 class="coach-section__title">What it keeps honest</h2>
+    <ul class="coach-honesty">
+      <li><strong>🟢 Clean means coding, not recalling.</strong> A grade of Clean requires an actual blank-page attempt — no rounding up.</li>
+      <li><strong>No spoilers.</strong> It answers clarifying questions freely, but won't hand you the approach unless you're truly stuck.</li>
+      <li><strong>An effort budget.</strong> Your day is capped so the schedule protects you from burnout instead of piling on.</li>
+    </ul>
+  </section>
+
+  <section class="coach-section coach-section--cta">
+    <p class="coach-see-live">
+      This site's default page — <a routerLink="/">Progress</a> — is the coach's own output.
+      <a routerLink="/" class="coach-see-live__link">See it live →</a>
+    </p>
+
+    @if (isRepoPublic) {
+      <a class="coach-cta" [href]="SITE_LINKS.coachRepo" target="_blank" rel="noopener noreferrer">
+        Get cse-coach ↗
+      </a>
+    } @else {
+      <a class="coach-cta" [href]="SITE_LINKS.coachAccess" target="_blank" rel="noopener noreferrer">
+        Request access ↗
+      </a>
+      <p class="coach-cta__note">cse-coach is invite-only while it settles; ask on GitHub.</p>
+    }
+  </section>
+</div>

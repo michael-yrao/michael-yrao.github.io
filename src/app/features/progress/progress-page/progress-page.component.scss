@@ -12,6 +12,75 @@
   cursor: pointer;
 }
 
+// Shared border/background/color/focus-ring for the several bordered pill controls on this
+// page (retry, repo-picker input+submit, Explore, comfort filters) — `@extend`ed rather than
+// repeated per rule so the compiled CSS carries the declaration once per shared property.
+%field-btn {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+}
+
+// Shared bordered-surface base for the page's NON-card bordered blocks that don't fit the
+// global .po-card primitive (see `.card`, below, which adopts .po-card directly instead):
+// `.tag` is a small inline chip, not a card; `.progress__notice` and `.progress__error` use
+// --radius-md and (for the error state) a --color-hard border, neither of which matches
+// .po-card's --radius-lg / --color-border. Forcing any of these onto .po-card would be the
+// wrong fit, so they keep this local, narrower placeholder instead.
+%card-surface {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+}
+
+// Shared padding override for the two .po-card adopters below (.card, .hero) — .po-card's
+// own padding is --space-xl; this page keeps its existing, tighter --space-lg on both.
+%card-padding-lg {
+  padding: var(--space-lg);
+}
+
+// Shared plain-text link (accent color, underline only on hover/focus) — the notice's CTA
+// and the per-row LeetCode link both read this way.
+%text-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover, &:focus-visible { text-decoration: underline; }
+}
+
+// Shared raised (--color-bg-raised), --radius-md-bordered surface — the tabbar and each
+// problem row share this exact chrome, just with different internal layout.
+%raised-md-surface {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+// Shared muted, small caption text — reused by several sub-labels/captions on this page.
+%muted-sm {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+// Shared focus ring (2px offset) for the two plain-content rows that need one.
+%focus-ring-2 {
+  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+}
+
+// Shared uppercase, tracked, muted micro-label styling (size/weight/margin stay per rule).
+%upper-label {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+// Shared "pointer cursor + accent border on hover" — the several plain retry/submit buttons
+// on this page all do at least this; some layer a background change on top.
+%pill-hover {
+  cursor: pointer;
+  &:hover { border-color: var(--color-accent); }
+}
+
 .progress {
   max-width: 960px;
   margin: 0 auto;
@@ -38,30 +107,38 @@
 }
 
 .progress__repo {
-  color: var(--color-text-muted);
+  @extend %muted-sm;
+  @extend %focus-ring-2;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
   text-decoration: none;
   border-radius: var(--radius-sm);
   &:hover { color: var(--color-accent); }
-  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+}
+
+// Always-visible counterpart to the Refresh button's hover-only title/aria-label freshness
+// line — the same "as of <date>" fact, just not gated behind a hover/focus. Shares %muted-sm's
+// `color` declaration via @extend (no separate copy of that property) and overrides its
+// font-size through the `font` shorthand, which also sets font-family in one declaration —
+// weight/style/variant/line-height all reset to their initial values, which is what this
+// line already rendered with either way, so nothing here looks visually different.
+.progress__asof {
+  @extend %muted-sm;
+  font: 0.75rem var(--font-mono);
+  white-space: nowrap;
 }
 
 .progress__refresh {
+  @extend %field-btn;
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
   padding: var(--space-xs) var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-card);
-  color: var(--color-text);
+  background: var(--color-bg-card); // overrides %field-btn's bg-raised
   font-size: 0.85rem;
   cursor: pointer;
   transition: border-color var(--transition-fast), background var(--transition-fast);
 
   &:hover:not(:disabled) { border-color: var(--color-accent); background: var(--color-accent-dim); }
-  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
   &:disabled { opacity: 0.7; cursor: default; }
 }
 
@@ -72,9 +149,9 @@
 }
 .progress__refresh-icon.spinning { animation: po-spin 0.8s linear infinite; }
 
+// No `from` frame: the implicit start is the element's own (unrotated) transform.
 @keyframes po-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to { transform: rotate(1turn); }
 }
 
 .progress__refresh-err {
@@ -83,48 +160,102 @@
   margin: 0;
 }
 
-.progress__msg,
-.progress__gen,
-.progress__warn {
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
-}
-.progress__warn { color: var(--color-medium); }
+.progress__msg { @extend %muted-sm; }
+.progress__warn { @extend %muted-sm; color: var(--color-medium); }
 
 .progress__error {
+  @extend %card-surface;
   padding: var(--space-lg);
-  border: 1px solid var(--color-hard);
+  border-color: var(--color-hard);
   border-radius: var(--radius-md);
-  background: var(--color-bg-card);
 
   button {
+    @extend %field-btn;
+    @extend %pill-hover;
     margin-top: var(--space-sm);
     padding: var(--space-xs) var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    background: var(--color-bg-raised);
-    color: var(--color-text);
-    cursor: pointer;
-    &:hover { border-color: var(--color-accent); }
-    &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
   }
-  .progress__hint { margin-top: var(--space-md); font-size: 0.8rem; color: var(--color-text-muted); }
   code { font-family: var(--font-mono); color: var(--color-accent); }
+}
+// Top-level (not nested under .progress__error) — the repo-picker's invalid-entry message
+// reuses this same hint styling outside the error state.
+.progress__hint { margin-top: var(--space-md); font-size: 0.8rem; color: var(--color-text-muted); }
+
+// ── Default-repo notice + inline repo picker ──────────────────────────────────
+.progress__notice {
+  @extend %card-surface;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+}
+.progress__notice-text {
+  @extend %muted-sm;
+  margin: 0 0 var(--space-sm);
+}
+.progress__notice-cta {
+  @extend %text-link;
+  margin-left: var(--space-sm);
+}
+.repo-picker,
+.trophies,
+.problems__head {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+.repo-picker__input {
+  @extend %field-btn;
+  flex: 1 1 240px;
+  padding: var(--space-xs) var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+.repo-picker__submit {
+  @extend %field-btn;
+  @extend %pill-hover;
+  padding: var(--space-xs) var(--space-md);
+}
+
+// ── Loading skeleton (replaces the "Loading progress…" text) ───────────────────
+$skeleton-tile-height: 5.5rem;
+$skeleton-card-height: 12rem;
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.skeleton__tile,
+.skeleton__card {
+  border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, var(--color-bg-card), var(--color-bg-raised), var(--color-bg-card));
+  background-size: 400% 100%;
+  animation: po-shimmer 1.4s ease infinite;
+}
+.skeleton__tile { height: $skeleton-tile-height; }
+.skeleton__card { height: $skeleton-card-height; }
+
+@keyframes po-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton * { animation: none; }
 }
 
 // ── Hero ─────────────────────────────────────────────────────────────────────
 // Flat, neutral chrome (round 3 polish) — the streak number carries the emphasis,
 // not the card background, so Overview reads calm rather than "featured banner."
+// Also adopts .po-card (border/background/border-radius via `class="hero po-card"`) — its
+// chrome genuinely matches (same --radius-lg bordered surface as the cards), so it gets the
+// same explicit --space-lg padding override as .card, plus its own border-top accent.
 .hero {
+  @extend %card-padding-lg;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-lg);
   flex-wrap: wrap;
-  padding: var(--space-lg);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
   border-top: 2px solid var(--color-accent-dim);
 }
 
@@ -141,45 +272,41 @@
 .tile {
   display: flex; flex-direction: column; align-items: center;
   b { font-size: 1.5rem; color: var(--color-text); }
-  span { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  span { @extend %upper-label; font-size: 0.75rem; }
 }
 
 // ── Cards ────────────────────────────────────────────────────────────────────
+// Adopts the global .po-card (border/background/border-radius — see the markup's
+// `class="card po-card"`) for its bordered-surface chrome. .po-card's own padding is
+// --space-xl; this page has always used the tighter --space-lg, so that one property is
+// kept as an explicit local override rather than silently taking .po-card's value — see
+// this slice's report for the flag.
 .card {
-  padding: var(--space-lg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-card);
+  @extend %card-padding-lg;
 
   h2 { margin: 0 0 var(--space-xs); font-size: 1.1rem; }
 }
-.card__sub { margin: 0 0 var(--space-md); color: var(--color-text-muted); font-size: 0.85rem; }
+.card__sub { @extend %muted-sm; margin: 0 0 var(--space-md); }
 
 // The lead tile — a slightly stronger border to read as the landing's main focus.
 .today-board-card { border-color: var(--color-accent-dim); }
 
 // ── Segmented tabs (round 2 — replaces the "Full breakdown" toggle) ───────────
 .tabbar {
+  @extend %raised-md-surface;
   display: flex;
   flex-wrap: wrap;
   gap: 2px;
   padding: 3px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-raised);
 }
 .tabbar__btn {
-  appearance: none;
+  @extend %btn-reset;
   flex: 1 1 auto;
-  border: none;
   border-radius: var(--radius-sm);
   padding: var(--space-sm) var(--space-md);
-  background: none;
   color: var(--color-text-muted);
-  font: inherit;
   font-size: 0.85rem;
   font-weight: 600;
-  cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
   &:hover { color: var(--color-text); }
   &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
@@ -201,12 +328,10 @@
 // only the section label + spacing live here.
 .difficulty-inline { margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border); }
 .difficulty-inline__label {
+  @extend %upper-label;
   margin: 0 0 var(--space-sm);
   font-size: 0.78rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
 }
 
 // ── Gauges ───────────────────────────────────────────────────────────────────
@@ -214,62 +339,52 @@
 .gauge__warn { color: var(--color-medium); }
 .gauge__drill {
   @extend %btn-reset;
+  @extend %text-link;
   display: inline-block;
   margin-top: var(--space-xs);
-  color: var(--color-accent); text-decoration: none;
-  &:hover, &:focus-visible { text-decoration: underline; outline: none; }
+  &:hover, &:focus-visible { outline: none; }
 }
 
 // ── Trophy case ──────────────────────────────────────────────────────────────
-.trophies { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+// (.trophies' flex/gap/wrap declared alongside .repo-picker above — identical values.)
 .trophy {
+  @extend %field-btn;
   padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-raised);
   font-size: 0.8rem;
 }
 .trophy--retired { border-color: #a78bfa; }
 
 // ── Problems ─────────────────────────────────────────────────────────────────
-.problems__head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-sm); }
+.problems__head { justify-content: space-between; align-items: center; }
 .filters { display: flex; gap: var(--space-xs); }
 .filters__btn {
+  @extend %field-btn;
+  @extend %pill-hover;
   padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-raised);
-  color: var(--color-text);
-  cursor: pointer;
   font-size: 0.85rem;
   transition: border-color var(--transition-fast), background var(--transition-fast);
-  &:hover { border-color: var(--color-accent); }
-  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
   &.active { border-color: var(--color-accent); background: var(--color-accent-dim); }
 }
 
 .progress__explore {
+  @extend %field-btn;
+  @extend %pill-hover;
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-raised);
-  color: var(--color-text);
-  cursor: pointer;
   font-size: 0.9rem;
-  &:hover { border-color: var(--color-accent); background: var(--color-accent-dim); }
-  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+  &:hover { background: var(--color-accent-dim); }
 }
 
 .problems { display: flex; flex-direction: column; gap: var(--space-sm); margin-top: var(--space-md); }
 .problem {
+  @extend %raised-md-surface;
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-raised);
 }
-// Compact row IS the expand toggle — a plain button reset so it reads like the rest of the row.
+// Compact row IS the expand toggle — a `role="button"` div (not a real <button>) because it
+// hosts a real <a> (the solution-glyph link right after the title), and an <a> nested inside
+// a <button> is invalid HTML. Keyboard support (Enter/Space) is wired in the template.
 .problem__row {
   @extend %btn-reset;
+  @extend %focus-ring-2;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -277,7 +392,6 @@
   width: 100%;
   text-align: left;
   border-radius: var(--radius-sm);
-  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 }
 .problem__comfort { font-size: 1.1rem; }
 .problem__num { font-family: var(--font-mono); color: var(--color-text-muted); }
@@ -289,14 +403,16 @@
   &.problem__caret--open { transform: rotate(90deg); }
 }
 .tag {
+  @extend %card-surface;
   font-size: 0.7rem; padding: 2px 6px; border-radius: var(--radius-sm);
-  background: var(--color-bg-card); color: var(--color-text-muted); border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
 }
 .tag--easy { color: var(--color-easy); }
 .tag--medium { color: var(--color-medium); }
 .tag--hard { color: var(--color-hard); }
-.problem__links { display: flex; gap: var(--space-md); font-size: 0.8rem; margin-top: var(--space-xs);
-  a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
+// LeetCode stays alone at the row's right edge, on its own line below the row's tags.
+.problem__links { display: flex; justify-content: flex-end; gap: var(--space-md); font-size: 0.8rem; margin-top: var(--space-xs);
+  a { @extend %text-link; }
 }
 // Full row width, not a fixed box — the chart's own viewBox grows with rep count, so it
 // needs the whole expanded row to keep per-point spacing legible.

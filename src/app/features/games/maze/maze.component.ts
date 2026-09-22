@@ -1,5 +1,12 @@
 import { Component, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
+
+const BREADCRUMB: BreadcrumbEntry[] = [
+  { label: 'Home', link: '/' },
+  { label: 'Games', link: '/games' },
+  { label: 'Maze Generator & Solver' },
+];
 
 type Phase = 'generating' | 'ready' | 'solving' | 'solved';
 type Solver = 'bfs' | 'dfs';
@@ -31,9 +38,10 @@ const PATH_TICK_MS = 24;
     templateUrl: './maze.component.html',
     styleUrls: ['./maze.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink]
+    imports: [RouterLink, PageHeaderComponent]
 })
 export class MazeComponent implements OnDestroy {
+  readonly breadcrumb = BREADCRUMB;
   readonly rows = ROWS;
   readonly cols = COLS;
   grid: MazeCell[][] = [];

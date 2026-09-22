@@ -1,17 +1,8 @@
 @if (problem) {
   <div class="problem-page">
     <!-- ── Breadcrumb · neighbor nav ────────────────────────────── -->
-    <div class="problem-page__topbar">
-      <nav class="breadcrumb">
-        <a routerLink="/">Home</a>
-        <span>›</span>
-        <a routerLink="/algorithms">Algorithms</a>
-        <span>›</span>
-        <a [routerLink]="['/algorithms', problem.category]">{{ categoryLabels[problem.category] }}</a>
-        <span>›</span>
-        <span>{{ problem.title }}</span>
-      </nav>
-      <div class="problem-page__neighbor-nav">
+    <app-page-header [breadcrumb]="breadcrumb">
+      <div po-meta class="problem-page__neighbor-nav">
         @if (prevProblem) {
           <a
             [routerLink]="['/algorithms', prevProblem.category, prevProblem.id]"
@@ -27,7 +18,7 @@
           >{{ nextProblem.lcNumber }} →</a>
         }
       </div>
-    </div>
+    </app-page-header>
     <!-- ── Title + meta ──────────────────────────────────────────── -->
     <div class="problem-page__header">
       <div class="problem-page__title-row">

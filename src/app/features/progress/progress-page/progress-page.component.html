@@ -1,3 +1,27 @@
+<!-- Repo-picker form — shared by the default-repo notice and the error state, so a viewer
+     can fix a bad ?repo= without leaving the error card. Its own invalid-entry hint is
+     gated by `showInvalidHint`: the error state already has an unconditional hint with the
+     same wording, so it passes `false` there to avoid showing that sentence twice. -->
+<ng-template #repoPickerTpl let-showInvalidHint="showInvalidHint">
+  <form class="repo-picker" (submit)="$event.preventDefault(); submitRepoPicker()">
+    <input
+      class="repo-picker__input"
+      type="text"
+      placeholder="owner/name[@branch]"
+      [value]="repoInputValue()"
+      (input)="onRepoInputChange($any($event.target).value)"
+      aria-label="Point the viewer at a cse-coach repo"
+    />
+    <button type="submit" class="repo-picker__submit">View</button>
+  </form>
+  @if (showInvalidHint && repoInputInvalid()) {
+    <p class="progress__hint">
+      Point the viewer at any public cse-coach repo with
+      <code>?repo=owner/name</code> in the URL.
+    </p>
+  }
+</ng-template>
+
 <section class="progress">
   <header class="progress__head">
     <h1>Progress</h1>
@@ -12,13 +36,14 @@
         >
       }
       @if (status() === 'ready') {
+        <span class="progress__asof">as of {{ generatedAtLabel() }}</span>
         <button
           type="button"
           class="progress__refresh"
           (click)="refresh()"
           [disabled]="refreshing()"
-          [attr.aria-label]="'Refresh progress data'"
-          [title]="'Pull the latest from GitHub'"
+          [attr.aria-label]="refreshAriaLabel()"
+          [title]="refreshTitle()"
         >
           <span class="progress__refresh-icon" [class.spinning]="refreshing()">↻</span>
           {{ refreshing() ? 'Refreshing…' : 'Refresh' }}
@@ -26,13 +51,37 @@
       }
     </div>
   </header>
+
+  <!-- Default-repo notice + inline repo picker — shown only when the viewer hasn't pointed
+       the page anywhere themselves (no ?repo= at all) and it fell back to the site author's
+       own checkout. -->
+  @if (showDefaultRepoNotice()) {
+    <div class="progress__notice">
+      <p class="progress__notice-text">
+        Viewing the site author's practice log — the default until you point the viewer at
+        your own cse-coach repo.
+        <a [routerLink]="siteLinks.coach" class="progress__notice-cta"
+          >Want this for your own practice? → Get the coach</a
+        >
+      </p>
+      <ng-container
+        [ngTemplateOutlet]="repoPickerTpl"
+        [ngTemplateOutletContext]="{ showInvalidHint: true }"
+      />
+    </div>
+  }
+
   @if (refreshError()) {
     <p class="progress__refresh-err">Couldn’t refresh: {{ refreshError() }}</p>
   }
 
   @switch (status()) {
     @case ('loading') {
-      <p class="progress__msg">Loading progress…</p>
+      <div class="skeleton" role="status" aria-label="Loading progress">
+        <div class="skeleton__tile"></div>
+        <div class="skeleton__tile"></div>
+        <div class="skeleton__card"></div>
+      </div>
     }
     @case ('error') {
       <div class="progress__error">
@@ -42,12 +91,16 @@
           Point the viewer at any public cse-coach repo with
           <code>?repo=owner/name</code> in the URL.
         </p>
+        <ng-container
+          [ngTemplateOutlet]="repoPickerTpl"
+          [ngTemplateOutletContext]="{ showInvalidHint: false }"
+        />
       </div>
     }
     @case ('ready') {
       @if (data(); as d) {
         <!-- Streak hero — compact identity/motivator, always visible above the tabs. -->
-        <div class="hero">
+        <div class="hero po-card">
           <div class="hero__streak">
             <span class="hero__flame">🔥</span>
             <span class="hero__num">{{ d.streak.current }}</span>
@@ -97,7 +150,7 @@
              summary); no fetch, ever. -->
         @if (isTabActive('overview')) {
           <div class="tabpanel" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview">
-            <div class="card today-board-card">
+            <div class="card po-card today-board-card">
               <h2>Schedule</h2>
               <app-today-board
                 [schedule]="d.schedule"
@@ -109,10 +162,11 @@
         }
 
         <!-- Mastery — the pipeline funnel (no legend — the glyph segments are self-evident)
-             with difficulty folded in, plus achievements and the trophy case. -->
+             with difficulty folded in, the honest technique-breadth denominator, and the
+             technique list itself (round 5 — techniques folded into Mastery). -->
         @if (isTabActive('mastery')) {
           <div class="tabpanel" role="tabpanel" id="panel-mastery" aria-labelledby="tab-mastery">
-            <div class="card">
+            <div class="card po-card">
               <h2>Mastery pipeline</h2>
               <p class="card__sub">Problems maturing 🔴 → 🟡 → 🟢 → 🎓 → 🏆. This, not a row count, is progress. Click a tier to see which problems.</p>
               <app-segmented-bar
@@ -133,37 +187,8 @@
               }
             </div>
 
-            <div class="card">
-              <h2>Achievements</h2>
-              <p class="card__sub">Every badge unlocks on a genuine event — never a raw count or a rating.</p>
-              <app-badge-grid [badges]="d.badges" />
-            </div>
-
-            @if (d.trophyCase; as tc) {
-              @if (tc.graduated.length || tc.retired.length) {
-                <div class="card">
-                  <h2>Trophy case</h2>
-                  <p class="card__sub">The accomplishment record — graduated 🎓 and retired 🏆.</p>
-                  <div class="trophies">
-                    @for (g of tc.graduated; track g.lcNumber) {
-                      <span class="trophy">🎓 {{ g.lcNumber }} · {{ g.title }}</span>
-                    }
-                    @for (r of tc.retired; track r.lcNumber) {
-                      <span class="trophy trophy--retired">🏆 {{ r.lcNumber }} · {{ r.title }}</span>
-                    }
-                  </div>
-                </div>
-              }
-            }
-          </div>
-        }
-
-        <!-- Techniques — the honest denominator (tiered by the interview-ROI line) + the
-             technique list grouped by tier. -->
-        @if (isTabActive('techniques')) {
-          <div class="tabpanel" role="tabpanel" id="panel-techniques" aria-labelledby="tab-techniques">
             @if (techniqueBreadth(); as tb) {
-              <div class="card">
+              <div class="card po-card">
                 <app-segmented-bar
                   [segments]="breadthSegments()"
                   title="Roadmap coverage"
@@ -178,7 +203,7 @@
               </div>
             }
             @if (d.techniques) {
-              <div class="card">
+              <div class="card po-card">
                 <app-technique-list
                   [techniques]="d.techniques"
                   [details]="details()"
@@ -189,40 +214,15 @@
           </div>
         }
 
-        <!-- Activity — the study-day calendar (with dates) + the on-schedule gauge. -->
-        @if (isTabActive('activity')) {
-          <div class="tabpanel" role="tabpanel" id="panel-activity" aria-labelledby="tab-activity">
-            @if (d.studyDays) {
-              <div class="card">
-                <h2>Study-day calendar</h2>
-                <p class="card__sub">When did I practice? A filled cell is a study day.</p>
-                <app-streak-calendar
-                  [studyDays]="d.studyDays"
-                  [current]="d.streak.current"
-                  [longest]="d.streak.longest"
-                />
-              </div>
-            }
-            @if (d.onSchedule; as os) {
-              <div class="card gauge">
-                <h2>On schedule</h2>
-                <div class="gauge__big" [class.gauge__warn]="onSchedulePct() < 90">
-                  {{ onSchedulePct() }}%
-                </div>
-                <p class="card__sub">
-                  {{ os.overdue }} overdue · {{ os.dueToday }} due today · {{ os.totalActive }} active
-                </p>
-                @if (os.overdue + os.dueToday > 0) {
-                  <button
-                    type="button"
-                    class="gauge__drill"
-                    (click)="drill({ kind: 'schedule', value: 'attention' })"
-                  >
-                    Needs attention ({{ os.overdue + os.dueToday }}) →
-                  </button>
-                }
-              </div>
-            }
+        <!-- Recognition — the Probe log (cold, label-stripped, disposable reps). Entirely
+             summary-derived; no fetch, ever. -->
+        @if (isTabActive('recognition')) {
+          <div class="tabpanel" role="tabpanel" id="panel-recognition" aria-labelledby="tab-recognition">
+            <div class="card po-card">
+              <h2>Recognition</h2>
+              <p class="card__sub">Does the practiced pool still teach recognition? The free diagnostic.</p>
+              <app-recognition-panel [probes]="d.probes" />
+            </div>
           </div>
         }
 
@@ -230,7 +230,7 @@
              tab is entered, and a chart mounts only for a row the learner expands. -->
         @if (isTabActive('problems')) {
           <div class="tabpanel" role="tabpanel" id="panel-problems" aria-labelledby="tab-problems">
-            <div class="card">
+            <div class="card po-card">
               <div class="problems__head">
                 <h2>Per-problem progression</h2>
                 @if (detailsStatus() === 'ready') {
@@ -270,26 +270,38 @@
                   <div class="problems">
                     @for (p of visibleProblems(); track p.lcNumber + '-' + p.title) {
                       <div class="problem">
-                        <button
-                          type="button"
+                        <div
                           class="problem__row"
+                          role="button"
+                          tabindex="0"
                           [attr.aria-expanded]="isExpanded(p)"
                           (click)="toggle(p)"
+                          (keydown.enter)="toggle(p)"
+                          (keydown.space)="$event.preventDefault(); toggle(p)"
                         >
                           <span class="problem__comfort">{{ p.comfort }}</span>
                           <span class="problem__num">{{ p.lcNumber }}</span>
                           <span class="problem__name">{{ p.title }}</span>
+                          @if (vizRoute(p.lcNumber); as route) {
+                            <a
+                              [routerLink]="route"
+                              class="solution-glyph"
+                              title="Solution walkthrough"
+                              [attr.aria-label]="'Solution walkthrough for #' + p.lcNumber"
+                              (click)="$event.stopPropagation()"
+                              (keydown.enter)="$event.stopPropagation()"
+                              (keydown.space)="$event.stopPropagation()"
+                              >&lt;/&gt;</a
+                            >
+                          }
                           @if (p.difficulty) {
                             <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
                           }
                           @if (p.category) { <span class="tag">{{ p.category }}</span> }
                           <span class="tag">{{ p.repDates.length }} reps</span>
                           <span class="problem__caret" [class.problem__caret--open]="isExpanded(p)">▸</span>
-                        </button>
+                        </div>
                         <div class="problem__links">
-                          @if (vizRoute(p.lcNumber); as route) {
-                            <a [routerLink]="route">Visualize ▶</a>
-                          }
                           @if (p.url) {
                             <a [href]="p.url" target="_blank" rel="noopener">LeetCode ↗</a>
                           }
@@ -308,15 +320,65 @@
           </div>
         }
 
-        <!-- Recognition — the Probe log (cold, label-stripped, disposable reps). Entirely
-             summary-derived; no fetch, ever. -->
-        @if (isTabActive('recognition')) {
-          <div class="tabpanel" role="tabpanel" id="panel-recognition" aria-labelledby="tab-recognition">
-            <div class="card">
-              <h2>Recognition</h2>
-              <p class="card__sub">Does the practiced pool still teach recognition? The free diagnostic.</p>
-              <app-recognition-panel [probes]="d.probes" />
+        <!-- Activity — the study-day calendar + the on-schedule gauge, then Achievements
+             and the Trophy case (round 5 — moved here from Mastery: retiring a problem is
+             an activity-history fact, and it's what the 🏆 pipeline segment now drills to). -->
+        @if (isTabActive('activity')) {
+          <div class="tabpanel" role="tabpanel" id="panel-activity" aria-labelledby="tab-activity">
+            @if (d.studyDays) {
+              <div class="card po-card">
+                <h2>Study-day calendar</h2>
+                <p class="card__sub">When did I practice? A filled cell is a study day.</p>
+                <app-streak-calendar
+                  [studyDays]="d.studyDays"
+                  [current]="d.streak.current"
+                  [longest]="d.streak.longest"
+                />
+              </div>
+            }
+            @if (d.onSchedule; as os) {
+              <div class="card po-card gauge">
+                <h2>On schedule</h2>
+                <div class="gauge__big" [class.gauge__warn]="onSchedulePct() < 90">
+                  {{ onSchedulePct() }}%
+                </div>
+                <p class="card__sub">
+                  {{ os.overdue }} overdue · {{ os.dueToday }} due today · {{ os.totalActive }} active
+                </p>
+                @if (os.overdue + os.dueToday > 0) {
+                  <button
+                    type="button"
+                    class="gauge__drill"
+                    (click)="drill({ kind: 'schedule', value: 'attention' })"
+                  >
+                    Needs attention ({{ os.overdue + os.dueToday }}) →
+                  </button>
+                }
+              </div>
+            }
+
+            <div class="card po-card">
+              <h2>Achievements</h2>
+              <p class="card__sub">Every badge unlocks on a genuine event — never a raw count or a rating.</p>
+              <app-badge-grid [badges]="d.badges" />
             </div>
+
+            @if (d.trophyCase; as tc) {
+              @if (tc.graduated.length || tc.retired.length) {
+                <div class="card po-card">
+                  <h2>Trophy case</h2>
+                  <p class="card__sub">The accomplishment record — graduated 🎓 and retired 🏆.</p>
+                  <div class="trophies">
+                    @for (g of tc.graduated; track g.lcNumber) {
+                      <span class="trophy">🎓 {{ g.lcNumber }} · {{ g.title }}</span>
+                    }
+                    @for (r of tc.retired; track r.lcNumber) {
+                      <span class="trophy trophy--retired">🏆 {{ r.lcNumber }} · {{ r.title }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            }
           </div>
         }
 
@@ -325,7 +387,6 @@
             Some inputs were partial: {{ d.warnings?.join('; ') }}
           </p>
         }
-        <p class="progress__gen">Generated {{ d.generatedAt }}</p>
       }
     }
   }

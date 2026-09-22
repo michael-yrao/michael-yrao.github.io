@@ -6,37 +6,12 @@
   flex-direction: column;
   gap: var(--space-xl);
 
-  &__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    flex-wrap: wrap;
-    gap: var(--space-md);
-  }
-
-  &__title {
-    font-size: 1.8rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    margin: var(--space-xs) 0 0;
-  }
-
   &__count {
     font-family: var(--font-mono);
     font-size: 0.8rem;
     color: var(--color-text-muted);
     white-space: nowrap;
   }
-}
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-
-  a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
 }
 
 // ── View toggle tabs ──────────────────────────────────────────────
@@ -190,17 +165,10 @@
   flex-direction: column;
   gap: var(--space-sm);
   padding: var(--space-lg);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
   text-decoration: none;
   color: var(--color-text);
-  transition: border-color var(--transition-fast), transform var(--transition-fast), background var(--transition-fast);
 
   &:hover {
-    border-color: var(--color-accent);
-    background: var(--color-bg-raised);
-    transform: translateY(-2px);
     text-decoration: none;
     color: var(--color-text);
   }

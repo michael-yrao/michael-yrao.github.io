@@ -47,17 +47,23 @@
                               <span class="tech-row__problem-comfort">{{ p.comfort }}</span>
                               <span class="tech-row__problem-num">#{{ p.lcNumber }}</span>
                               <span class="tech-row__problem-title">{{ p.title }}</span>
+                              @if (vizRoute(p.lcNumber); as route) {
+                                <a
+                                  [routerLink]="route"
+                                  class="solution-glyph"
+                                  title="Solution walkthrough"
+                                  [attr.aria-label]="'Solution walkthrough for #' + p.lcNumber"
+                                  >&lt;/&gt;</a
+                                >
+                              }
+                              @if (p.difficulty) {
+                                <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
+                              }
                               <span class="tech-row__problem-links">
-                                @if (vizRoute(p.lcNumber); as route) {
-                                  <a [routerLink]="route">Visualize ▶</a>
-                                }
                                 @if (p.url) {
                                   <a [href]="p.url" target="_blank" rel="noopener">LeetCode ↗</a>
                                 }
                               </span>
-                              @if (p.difficulty) {
-                                <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
-                              }
                             </li>
                           }
                         </ul>

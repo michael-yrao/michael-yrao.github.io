@@ -1,21 +1,9 @@
 <div class="maze-page">
-  <div class="breadcrumb">
-    <a routerLink="/">Home</a>
-    <span>›</span>
-    <a routerLink="/games">Games</a>
-    <span>›</span>
-    <span>Maze Generator &amp; Solver</span>
-  </div>
-
-  <header class="maze-header">
-    <p class="maze-header__eyebrow">Algorithm Game</p>
-    <h1 class="maze-header__title">Maze Generator &amp; Solver</h1>
-    <p class="maze-header__sub">
-      The maze is <strong>carved by randomized DFS</strong> (recursive backtracker),
-      then raced by two solvers: <strong>BFS</strong> finds the shortest path,
-      <strong>DFS</strong> finds <em>a</em> path. Watch how differently they explore.
-    </p>
-  </header>
+  <app-page-header [breadcrumb]="breadcrumb" eyebrow="Algorithm Game" heading="Maze Generator & Solver">
+    The maze is <strong>carved by randomized DFS</strong> (recursive backtracker),
+    then raced by two solvers: <strong>BFS</strong> finds the shortest path,
+    <strong>DFS</strong> finds <em>a</em> path. Watch how differently they explore.
+  </app-page-header>
 
   <div class="maze-layout">
     <div class="maze-column">
