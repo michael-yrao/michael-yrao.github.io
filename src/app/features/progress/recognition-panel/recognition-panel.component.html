@@ -18,9 +18,9 @@
             }
             <span class="recognition__title">{{ item.title }}</span>
             <span class="tag">{{ item.technique }}</span>
-            @if (item.lcNumber) {
+            @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
               <a
-                [href]="leetCodeUrl(item.lcNumber)"
+                [href]="lc"
                 target="_blank"
                 rel="noopener"
                 class="recognition__link"

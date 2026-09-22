@@ -2,7 +2,14 @@ import { Routes } from '@angular/router';
 
 export const routes: Routes = [
   {
+    // Progress is the landing page. Reuse the SAME lazy chunk as the '/progress' route below
+    // (both go through PROGRESS_ROUTES) so ProgressPageComponent is bundled once, not twice.
     path: '',
+    loadChildren: () =>
+      import('./features/progress/progress.routes').then((m) => m.PROGRESS_ROUTES),
+  },
+  {
+    path: 'explore',
     loadComponent: () =>
       import('./features/home/home.component').then((m) => m.HomeComponent),
   },

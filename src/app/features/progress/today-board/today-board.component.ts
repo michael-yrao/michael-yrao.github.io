@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 
 import { Schedule, ScheduleDay } from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
+import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import { todayLocalISO } from '../../../core/utils/local-date';
 
 type WorkloadBand = 'Light' | 'Moderate' | 'Heavy';
@@ -27,10 +28,11 @@ const HEAVY_THRESHOLD = 0.9;
  * Entirely derived from the summary (`schedule`/`effortCeiling`/`effortFloor` all ride it
  * whole); no fetch, ever — this is the instant overview, not a drill.
  *
- * ScheduleItem carries no canonical LeetCode URL (unlike ProblemProgress, whose url comes
- * from the tracker's markdown links) — a schedule row is just {lcNumber, title, ...}, no
- * slug. The LeetCode link falls back to the number-based search/redirect URL, which needs
- * no slug and always resolves to the right problem.
+ * ScheduleItem's `url` (round 5) carries the tracker's canonical LeetCode URL, joined by
+ * lcNumber server-side (cse-progress gamify.py's problem_urls()) — the site's own
+ * AlgorithmMeta.id is a shortened route slug, not the LC slug, so it can't build this link
+ * itself. leetCodeUrlFor() falls back to the number-based search/redirect URL only for a row
+ * with no tracker url (e.g. a number not yet in dsa_progress.md).
  */
 @Component({
   selector: 'app-today-board',
@@ -84,7 +86,5 @@ export class TodayBoardComponent {
     return vizRouteFor(lcNumber);
   }
 
-  leetCodeUrl(lcNumber: number): string {
-    return `https://leetcode.com/problemset/?search=${lcNumber}`;
-  }
+  protected readonly leetCodeUrlFor = leetCodeUrlFor;
 }

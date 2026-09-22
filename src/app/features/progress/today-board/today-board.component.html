@@ -56,8 +56,8 @@
               @if (vizRoute(item.lcNumber); as route) {
                 <a [routerLink]="route">Visualize ▶</a>
               }
-              @if (item.lcNumber) {
-                <a [href]="leetCodeUrl(item.lcNumber)" target="_blank" rel="noopener">LeetCode ↗</a>
+              @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
+                <a [href]="lc" target="_blank" rel="noopener">LeetCode ↗</a>
               }
             </span>
           </li>

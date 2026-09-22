@@ -21,6 +21,7 @@ import { BadgeGridComponent } from '../badge-grid/badge-grid.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
 import { StreakCalendarComponent } from '../streak-calendar/streak-calendar.component';
 import { TodayBoardComponent } from '../today-board/today-board.component';
+import { WeeklyBoardComponent } from '../weekly-board/weekly-board.component';
 import { RecognitionPanelComponent } from '../recognition-panel/recognition-panel.component';
 import { SegmentedBarComponent, SegmentedBarSegment } from '../segmented-bar/segmented-bar.component';
 import { Technique } from '../../../core/models/progress.model';
@@ -84,6 +85,7 @@ const PIPELINE_COMFORT: Record<string, Comfort> = {
     TechniqueListComponent,
     StreakCalendarComponent,
     TodayBoardComponent,
+    WeeklyBoardComponent,
     RecognitionPanelComponent,
     SegmentedBarComponent,
   ],

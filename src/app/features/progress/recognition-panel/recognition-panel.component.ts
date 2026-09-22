@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
 import { Probes } from '../../../core/models/progress.model';
+import { leetCodeUrlFor } from '../../../core/data/lc-url';
 
 const CLEAN_HIGH = 0.85;
 const CLEAN_LOW = 0.7;
@@ -41,7 +42,5 @@ export class RecognitionPanelComponent {
   // Most recent first.
   readonly recent = computed(() => [...(this.probes()?.items ?? [])].reverse());
 
-  leetCodeUrl(lcNumber: number): string {
-    return `https://leetcode.com/problemset/?search=${lcNumber}`;
-  }
+  protected readonly leetCodeUrlFor = leetCodeUrlFor;
 }

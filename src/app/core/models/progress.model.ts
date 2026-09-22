@@ -110,6 +110,7 @@ export interface ScheduleItem {
   technique: string | null;
   startComfort: Comfort | null;
   difficulty: 'Easy' | 'Medium' | 'Hard' | null;
+  url?: string | null;
   done: boolean;
 }
 
@@ -138,6 +139,7 @@ export interface Probe {
   title: string;
   technique: string;
   result: Comfort | null;
+  url?: string | null;
 }
 
 /** The Probe log's tally — the ONLY place a disposable, cold 🟢 probe is counted (it earns
