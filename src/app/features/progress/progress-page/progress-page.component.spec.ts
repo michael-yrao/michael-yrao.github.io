@@ -9,7 +9,6 @@ import { ProgressPageComponent, ProgressTab } from './progress-page.component';
 import { ProgressService } from '../../../core/services/progress.service';
 import { ProgressSummary, ProblemProgress } from '../../../core/models/progress.model';
 import { todayLocalISO } from '../../../core/utils/local-date';
-import { SITE_LINKS } from '../../../core/data/site-links';
 
 // A minimal, valid summary — enough for the 'ready' branch of every tab, including the two
 // instant drills (techniques/studyDays ride the summary, no fetch) and the overview-first
@@ -125,9 +124,9 @@ function makeActivatedRouteStub() {
 }
 
 // A trivial catch-all route target — every RouterLink this page renders (vizRoute links,
-// the solution-glyph, the "Get the coach" CTA) needs SOMETHING to resolve to, or a real
-// click on one throws an uncaught NG04002 ("cannot match any routes") that Vitest reports
-// as an unhandled error even though the assertions themselves still pass.
+// the solution-glyph) needs SOMETHING to resolve to, or a real click on one throws an
+// uncaught NG04002 ("cannot match any routes") that Vitest reports as an unhandled error
+// even though the assertions themselves still pass.
 @Component({ selector: 'app-blank-route-stub', template: '' })
 class BlankRouteStubComponent {}
 
@@ -153,8 +152,8 @@ describe('ProgressPageComponent', () => {
       providers: [
         { provide: ProgressService, useValue: progress },
         { provide: ActivatedRoute, useValue: makeActivatedRouteStub() },
-        // A real (empty) router — RouterLink (vizRoute links, the "Get the coach" CTA)
-        // needs a working Router, not just a navigate() stub.
+        // A real (empty) router — RouterLink (vizRoute links) needs a working Router, not
+        // just a navigate() stub.
         provideRouter([{ path: '**', component: BlankRouteStubComponent }]),
       ],
     });
@@ -670,39 +669,53 @@ describe('ProgressPageComponent', () => {
     expect(asOf!.textContent).toContain('as of 2026-09-20'); // makeSummary()'s generatedAt
   });
 
-  // ── Round 5: default-repo notice + inline repo picker ───────────────────────────────
+  // ── Round 6: header "change" control + inline repo picker ──────────────────────────
   describe('default-repo notice + repo picker', () => {
-    it('shows the notice and the "Get the coach" CTA when no ?repo= param is given and the slug is the default', () => {
-      const fixture = TestBed.createComponent(ProgressPageComponent);
-      fixture.detectChanges();
-
-      const notice = fixture.nativeElement.querySelector('.progress__notice');
-      expect(notice).toBeTruthy();
-      expect(notice.textContent).toContain("Viewing the site author's practice log");
-
-      const cta: HTMLAnchorElement = fixture.nativeElement.querySelector('.progress__notice-cta');
-      expect(cta).toBeTruthy();
-      expect(cta.textContent).toContain('Get the coach');
-      expect(cta.getAttribute('href')).toBe(SITE_LINKS.coach);
-    });
-
-    it('hides the notice once a ?repo= param is present', () => {
-      TestBed.overrideProvider(ActivatedRoute, {
-        useValue: {
-          queryParamMap: of(convertToParamMap({ repo: 'someone/else' })),
-          snapshot: { queryParamMap: convertToParamMap({ repo: 'someone/else' }) },
-        },
-      });
+    it('renders neither the removed default-repo notice nor a "Get the coach" link anywhere', () => {
       const fixture = TestBed.createComponent(ProgressPageComponent);
       fixture.detectChanges();
 
       expect(fixture.nativeElement.querySelector('.progress__notice')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('a[href="/coach"]')).toBeFalsy();
+    });
+
+    it('the header "change" control reveals the picker, and a second click hides it', () => {
+      const fixture = TestBed.createComponent(ProgressPageComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.progress__picker-row')).toBeFalsy();
+
+      const change: HTMLButtonElement =
+        fixture.nativeElement.querySelector('.progress__repo-change');
+      expect(change).toBeTruthy();
+      change.click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.progress__picker-row')).toBeTruthy();
+
+      change.click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.progress__picker-row')).toBeFalsy();
+    });
+
+    it('the "change" control is absent while the page is in the error state', () => {
+      const fixture = TestBed.createComponent(ProgressPageComponent);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.progress__repo-change')).toBeTruthy();
+
+      progress.status.set('error');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.progress__repo-change')).toBeFalsy();
     });
 
     it('submitting a valid "owner/name" navigates with the repo queryParam', () => {
       const fixture = TestBed.createComponent(ProgressPageComponent);
       const router = TestBed.inject(Router);
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+      fixture.detectChanges();
+
+      const change: HTMLButtonElement =
+        fixture.nativeElement.querySelector('.progress__repo-change');
+      change.click();
       fixture.detectChanges();
 
       const input: HTMLInputElement = fixture.nativeElement.querySelector('.repo-picker__input');
@@ -719,6 +732,8 @@ describe('ProgressPageComponent', () => {
         expect.objectContaining({ queryParams: { repo: 'someone/else' } }),
       );
       expect(fixture.nativeElement.querySelector('.progress__hint')).toBeFalsy();
+      // A successful submit also closes the picker it was opened from.
+      expect(fixture.nativeElement.querySelector('.progress__picker-row')).toBeFalsy();
     });
 
     it('a malformed ?repo= renders the error state AND the repo picker (not just the hint)', () => {
@@ -776,6 +791,11 @@ describe('ProgressPageComponent', () => {
       const fixture = TestBed.createComponent(ProgressPageComponent);
       const router = TestBed.inject(Router);
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+      fixture.detectChanges();
+
+      const change: HTMLButtonElement =
+        fixture.nativeElement.querySelector('.progress__repo-change');
+      change.click();
       fixture.detectChanges();
 
       const input: HTMLInputElement = fixture.nativeElement.querySelector('.repo-picker__input');

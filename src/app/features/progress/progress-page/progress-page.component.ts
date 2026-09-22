@@ -13,11 +13,10 @@ import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 
-import { ProgressService, DEFAULT_REPO } from '../../../core/services/progress.service';
+import { ProgressService } from '../../../core/services/progress.service';
 import { Comfort, ProblemProgress } from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { todayLocalISO } from '../../../core/utils/local-date';
-import { SITE_LINKS } from '../../../core/data/site-links';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { BadgeGridComponent } from '../badge-grid/badge-grid.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
@@ -230,15 +229,12 @@ export class ProgressPageComponent {
 
   private readonly repoParam;
 
-  // ── Default-repo notice + inline repo picker ──────────────────────────────────────
-  readonly siteLinks = SITE_LINKS;
+  // ── Inline repo picker ──────────────────────────────────────────────────────────────
   readonly repoInputValue = signal('');
   readonly repoInputInvalid = signal(false);
-  // Shown only when the viewer hasn't pointed the page anywhere themselves — no ?repo= at
-  // all, and the resolved slug is the site author's own default checkout.
-  readonly showDefaultRepoNotice = computed(
-    () => this.repoParam() == null && this.repoSlug() === DEFAULT_REPO,
-  );
+  // Toggled by the header slug link's "change" control; the error state's own picker
+  // outlet is unconditional and doesn't read this signal at all.
+  readonly isRepoPickerOpen = signal(false);
 
   constructor(
     private readonly progress: ProgressService,
@@ -284,6 +280,11 @@ export class ProgressPageComponent {
     if (this.repoInputInvalid()) this.repoInputInvalid.set(false);
   }
 
+  /** The header slug link's "change" control — reveals/hides the inline `?repo=` picker. */
+  toggleRepoPicker(): void {
+    this.isRepoPickerOpen.set(!this.isRepoPickerOpen());
+  }
+
   /** Delegates the shape check to ProgressService.parseRepo itself — no separate regex to
    *  drift out of sync. `parseRepo('')` resolves to the default repo rather than `null` (so
    *  an EMPTY ?repo= still means "use the default"), but a blank picker submission must
@@ -302,6 +303,7 @@ export class ProgressPageComponent {
       return;
     }
     this.repoInputInvalid.set(false);
+    this.isRepoPickerOpen.set(false);
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { repo: raw },

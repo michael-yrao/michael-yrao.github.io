@@ -91,7 +91,8 @@ max-age 60 so the Refresh button actually returns current data) and falls back t
 raw.githubusercontent.com only when the API 403s (its anonymous rate limit). `DEFAULT_REPO` in
 that same file is the site author's own `cse-progress` checkout, shown when the viewer supplies no
 `?repo=` query param. A viewer points the page at their own log with `?repo=owner/name`, optionally
-`@branch` (`ProgressService.parseRepo` validates the slug and rejects anything else).
+`@branch` (`ProgressService.parseRepo` validates the slug and rejects anything else). The
+header slug link has a *change* control that reveals the `?repo=` picker.
 
 Tab order is fixed: **Overview · Mastery · Recognition · Problems · Activity**. On the Overview
 tab's schedule board (the today-board component), consecutive items with `kind: 'complexity'` are

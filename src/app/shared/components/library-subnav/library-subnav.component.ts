@@ -1,16 +1,6 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-
-interface SubnavLink {
-  label: string;
-  path: string;
-}
-
-const SUBNAV_LINKS: SubnavLink[] = [
-  { label: 'Algorithms', path: '/algorithms' },
-  { label: 'Patterns', path: '/learn' },
-  { label: 'Games', path: '/games' },
-];
+import { LIBRARY_SECTIONS } from '../../../core/data/library-sections';
 
 @Component({
   selector: 'app-library-subnav',
@@ -20,5 +10,5 @@ const SUBNAV_LINKS: SubnavLink[] = [
   imports: [RouterLink, RouterLinkActive],
 })
 export class LibrarySubnavComponent {
-  readonly links = SUBNAV_LINKS;
+  readonly links = LIBRARY_SECTIONS;
 }

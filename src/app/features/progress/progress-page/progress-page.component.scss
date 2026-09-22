@@ -25,10 +25,10 @@
 
 // Shared bordered-surface base for the page's NON-card bordered blocks that don't fit the
 // global .po-card primitive (see `.card`, below, which adopts .po-card directly instead):
-// `.tag` is a small inline chip, not a card; `.progress__notice` and `.progress__error` use
-// --radius-md and (for the error state) a --color-hard border, neither of which matches
-// .po-card's --radius-lg / --color-border. Forcing any of these onto .po-card would be the
-// wrong fit, so they keep this local, narrower placeholder instead.
+// `.tag` is a small inline chip, not a card; `.progress__error` uses --radius-md and a
+// --color-hard border, neither of which matches .po-card's --radius-lg / --color-border.
+// Forcing it onto .po-card would be the wrong fit, so it keeps this local, narrower
+// placeholder instead.
 %card-surface {
   border: 1px solid var(--color-border);
   background: var(--color-bg-card);
@@ -181,19 +181,18 @@
 // reuses this same hint styling outside the error state.
 .progress__hint { margin-top: var(--space-md); font-size: 0.8rem; color: var(--color-text-muted); }
 
-// ── Default-repo notice + inline repo picker ──────────────────────────────────
-.progress__notice {
-  @extend %card-surface;
-  padding: var(--space-md) var(--space-lg);
-  border-radius: var(--radius-md);
-}
-.progress__notice-text {
+// ── Inline repo picker ───────────────────────────────────────────────────────
+.progress__repo-change {
+  @extend %btn-reset;
   @extend %muted-sm;
-  margin: 0 0 var(--space-sm);
+  @extend %focus-ring-2;
+  border-radius: var(--radius-sm);
+  &:hover {
+    text-decoration: underline;
+  }
 }
-.progress__notice-cta {
-  @extend %text-link;
-  margin-left: var(--space-sm);
+.progress__picker-row {
+  margin: var(--space-sm) 0 var(--space-md);
 }
 .repo-picker,
 .trophies,

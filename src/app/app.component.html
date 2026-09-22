@@ -1,5 +1,15 @@
 <nav class="po-nav">
   <div class="po-nav__inner">
+    <button
+      class="po-nav__hamburger"
+      [attr.aria-expanded]="isDrawerOpen()"
+      [attr.aria-label]="isDrawerOpen() ? 'Close menu' : 'Open menu'"
+      aria-controls="po-nav-menu"
+      (click)="toggleDrawer($event)"
+    >
+      ☰
+    </button>
+
     <a class="po-nav__brand" routerLink="/">
       <span class="po-nav__logo">PO</span>
       <span class="po-nav__title">Progressive Overflow</span>
@@ -18,44 +28,43 @@
       </button>
     }
 
-    <div class="po-nav__links">
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }">Progress</a>
+    <!-- Menu drawer: flat primary links, then a muted secondary group -->
+    @if (isDrawerOpen()) {
+      <div class="po-nav__drawer" id="po-nav-menu">
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }" (click)="closeAll()">Progress</a>
+        <div class="po-nav__drawer-group">
+          <a
+            class="po-nav__drawer-label"
+            routerLink="/library"
+            routerLinkActive="active"
+            (click)="closeAll()"
+            >Library</a
+          >
+          @for (s of librarySections; track s.path) {
+            <a [routerLink]="s.path" routerLinkActive="active" (click)="closeAll()">{{ s.label }}</a>
+          }
+        </div>
+        <a routerLink="/about" routerLinkActive="active" (click)="closeAll()">Human</a>
 
-      <div class="po-nav__dropdown" (mouseenter)="onLibraryEnter()" (mouseleave)="onLibraryLeave()">
-        <a routerLink="/library" routerLinkActive="active">Library</a>
-        <button
-          class="po-nav__dropdown-toggle"
-          [attr.aria-expanded]="isLibraryOpen()"
-          aria-label="Toggle library menu"
-          (click)="toggleLibrary($event)"
-        >⌄</button>
-        @if (isLibraryOpen()) {
-          <div class="po-nav__dropdown-panel">
-            <a routerLink="/algorithms" routerLinkActive="active" (click)="closeLibrary()">Algorithms</a>
-            <a routerLink="/learn" routerLinkActive="active" (click)="closeLibrary()">Patterns</a>
-            <a routerLink="/games" routerLinkActive="active" (click)="closeLibrary()">Games</a>
-          </div>
-        }
+        <div class="po-nav__drawer-secondary">
+          <a [routerLink]="SITE_LINKS.coach" (click)="closeAll()">Get the coach</a>
+          <a
+            [href]="SITE_LINKS.siteRepo"
+            target="_blank"
+            rel="noopener noreferrer"
+            (click)="closeAll()"
+            >GitHub ↗</a
+          >
+        </div>
       </div>
+    }
 
-      <a routerLink="/about" routerLinkActive="active">Human</a>
-    </div>
-
-    <div class="po-nav__actions">
-      <button
-        class="po-nav__theme"
-        (click)="themeService.toggle()"
-        [attr.aria-label]="themeService.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-        [title]="themeService.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-      >{{ themeService.theme === 'dark' ? '☀' : '☾' }}</button>
-
-      <button
-        class="po-nav__hamburger"
-        [attr.aria-expanded]="isDrawerOpen()"
-        aria-label="Toggle menu"
-        (click)="toggleDrawer($event)"
-      >☰</button>
-    </div>
+    <button
+      class="po-nav__theme"
+      (click)="themeService.toggle()"
+      [attr.aria-label]="themeService.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+      [title]="themeService.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+    >{{ themeService.theme === 'dark' ? '☀' : '☾' }}</button>
   </div>
 
   <!-- Description popover, anchored below the nav -->
@@ -98,23 +107,9 @@
       </div>
     }
   }
-
-  <!-- Mobile drawer: all links flat, shown at <= the nav breakpoint -->
-  @if (isDrawerOpen()) {
-    <div class="po-nav__drawer">
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }" (click)="closeAll()">Progress</a>
-      <div class="po-nav__drawer-group">
-        <span class="po-nav__drawer-label">Library</span>
-        <a routerLink="/algorithms" routerLinkActive="active" (click)="closeAll()">Algorithms</a>
-        <a routerLink="/learn" routerLinkActive="active" (click)="closeAll()">Patterns</a>
-        <a routerLink="/games" routerLinkActive="active" (click)="closeAll()">Games</a>
-      </div>
-      <a routerLink="/about" routerLinkActive="active" (click)="closeAll()">Human</a>
-    </div>
-  }
 </nav>
 
-<!-- Backdrop: closes popover/dropdown/drawer on outside click -->
+<!-- Backdrop: closes popover/drawer on outside click -->
 @if (isBackdropVisible()) {
   <div class="po-nav__backdrop" (click)="closeAll()"></div>
 }
@@ -126,10 +121,6 @@
 <footer class="po-footer">
   <div class="po-footer__inner">
     <span class="po-footer__line">Built by a human, with Claude in the loop.</span>
-    <div class="po-footer__links">
-      <a [href]="SITE_LINKS.siteRepo" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
-      <a [routerLink]="SITE_LINKS.coach">Get the coach</a>
-    </div>
     <span class="po-footer__copy">© {{ year }}</span>
   </div>
 </footer>

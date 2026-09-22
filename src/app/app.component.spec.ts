@@ -1,13 +1,24 @@
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
 import { NavContextService, NavContextEntry } from './core/services/nav-context.service';
+import { SITE_LINKS } from './core/data/site-links';
 
 // Standard fixture for the nav-context popover tests below — only the fields
 // the popover template and isDescriptionOpen actually read need real values.
 function makeCtx(num: number): NavContextEntry {
   return { num, title: `Problem ${num}`, description: 'desc', examples: [], constraints: [] };
 }
+
+// A minimal routed target so clicking a real nav link (routerLink, not a
+// synthetic call) resolves instead of throwing NG04002 for an unmatched URL.
+@Component({
+  selector: 'app-test-blank',
+  template: '',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class BlankComponent {}
 
 describe('AppComponent', () => {
   let fixture: ComponentFixture<AppComponent>;
@@ -16,7 +27,7 @@ describe('AppComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [provideRouter([])],
+      providers: [provideRouter([{ path: '**', component: BlankComponent }])],
     });
     fixture = TestBed.createComponent(AppComponent);
     navCtx = TestBed.inject(NavContextService);
@@ -33,102 +44,134 @@ describe('AppComponent', () => {
     expect(compiled.querySelector('.po-nav__title')?.textContent).toContain('Progressive Overflow');
   });
 
-  it('renders exactly Progress · Library · Human in the top-level nav links', () => {
+  it('renders the hamburger as the first child of the nav bar, before the brand', () => {
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    const topLevelLinks = compiled.querySelectorAll(
-      '.po-nav__links > a, .po-nav__links > .po-nav__dropdown > a',
+    const inner = fixture.nativeElement.querySelector('.po-nav__inner') as HTMLElement;
+    const children = Array.from(inner.children);
+    expect(children[0]?.classList.contains('po-nav__hamburger')).toBe(true);
+    expect(children.findIndex((el) => el.classList.contains('po-nav__hamburger'))).toBeLessThan(
+      children.findIndex((el) => el.classList.contains('po-nav__brand')),
     );
-    const linkText = Array.from(topLevelLinks).map((a) => a.textContent?.trim());
-    expect(linkText).toEqual(['Progress', 'Library', 'Human']);
   });
 
-  it('renders the footer with the exact wording and links', () => {
+  it('renders the footer with exactly the human line and copyright, and no anchors', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    const footer = compiled.querySelector('.po-footer');
-    expect(footer?.textContent).toContain('Built by a human, with Claude in the loop.');
-    expect(footer?.querySelector('a[href="https://github.com/michael-yrao/michael-yrao.github.io"]')?.textContent)
-      .toContain('GitHub ↗');
-    expect(footer?.textContent).toContain('Get the coach');
-    expect(footer?.textContent).toContain(`© ${new Date().getFullYear()}`);
+    const footer = compiled.querySelector('.po-footer') as HTMLElement;
+    expect(footer.textContent?.trim()).toBe(
+      `Built by a human, with Claude in the loop.© ${new Date().getFullYear()}`,
+    );
+    expect(footer.querySelectorAll('a').length).toBe(0);
   });
 
-  describe('Library dropdown', () => {
-    it('opens on click and sets aria-expanded, closes again on a second click', () => {
+  describe('Menu drawer', () => {
+    it('opens on hamburger click, flipping aria-expanded and aria-label, and closes again on a second click', () => {
       fixture.detectChanges();
-      const toggle = fixture.nativeElement.querySelector('.po-nav__dropdown-toggle') as HTMLButtonElement;
+      const hamburger = fixture.nativeElement.querySelector(
+        '.po-nav__hamburger',
+      ) as HTMLButtonElement;
 
-      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      expect(hamburger.getAttribute('aria-expanded')).toBe('false');
+      expect(hamburger.getAttribute('aria-label')).toBe('Open menu');
 
-      toggle.click();
+      hamburger.click();
       fixture.detectChanges();
-      expect(toggle.getAttribute('aria-expanded')).toBe('true');
-      expect(fixture.nativeElement.querySelector('.po-nav__dropdown-panel')).toBeTruthy();
+      expect(hamburger.getAttribute('aria-expanded')).toBe('true');
+      expect(hamburger.getAttribute('aria-label')).toBe('Close menu');
+      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeTruthy();
 
-      toggle.click();
+      hamburger.click();
       fixture.detectChanges();
-      expect(toggle.getAttribute('aria-expanded')).toBe('false');
-      expect(fixture.nativeElement.querySelector('.po-nav__dropdown-panel')).toBeFalsy();
+      expect(hamburger.getAttribute('aria-expanded')).toBe('false');
+      expect(hamburger.getAttribute('aria-label')).toBe('Open menu');
+      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
     });
 
-    it('opens on hover', () => {
+    it('lists exactly Progress, Library, Algorithms, Patterns, Games, Human in order with the right routerLinks', () => {
       fixture.detectChanges();
-      const wrapper = fixture.nativeElement.querySelector('.po-nav__dropdown') as HTMLElement;
+      const hamburger = fixture.nativeElement.querySelector(
+        '.po-nav__hamburger',
+      ) as HTMLButtonElement;
+      hamburger.click();
+      fixture.detectChanges();
 
-      wrapper.dispatchEvent(new MouseEvent('mouseenter'));
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__dropdown-panel')).toBeTruthy();
+      const drawer = fixture.nativeElement.querySelector('.po-nav__drawer') as HTMLElement;
+      const links = Array.from(drawer.querySelectorAll('a')).filter(
+        (a) => !a.closest('.po-nav__drawer-secondary'),
+      );
 
-      wrapper.dispatchEvent(new MouseEvent('mouseleave'));
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__dropdown-panel')).toBeFalsy();
+      expect(links.map((a) => a.textContent?.trim())).toEqual([
+        'Progress',
+        'Library',
+        'Algorithms',
+        'Patterns',
+        'Games',
+        'Human',
+      ]);
+      expect(links.map((a) => a.getAttribute('href'))).toEqual([
+        '/',
+        '/library',
+        '/algorithms',
+        '/learn',
+        '/games',
+        '/about',
+      ]);
+      const libraryLink = links.find((a) => a.textContent?.trim() === 'Library');
+      expect(libraryLink?.classList.contains('po-nav__drawer-label')).toBe(true);
     });
 
-    it('closes on Escape', () => {
+    it('closes on a link click, on Escape, and on the backdrop', () => {
       fixture.detectChanges();
-      const toggle = fixture.nativeElement.querySelector('.po-nav__dropdown-toggle') as HTMLButtonElement;
-      toggle.click();
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__dropdown-panel')).toBeTruthy();
+      const hamburger = fixture.nativeElement.querySelector(
+        '.po-nav__hamburger',
+      ) as HTMLButtonElement;
 
+      hamburger.click();
+      fixture.detectChanges();
+      const humanLink = Array.from(
+        fixture.nativeElement.querySelectorAll('.po-nav__drawer a'),
+      ).find((a) => (a as HTMLElement).textContent?.trim() === 'Human') as HTMLElement;
+      humanLink.click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
+
+      hamburger.click();
+      fixture.detectChanges();
       fixture.componentInstance.onEscape();
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__dropdown-panel')).toBeFalsy();
-    });
+      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
 
-    it('closes on outside click (the backdrop)', () => {
+      hamburger.click();
       fixture.detectChanges();
-      const toggle = fixture.nativeElement.querySelector('.po-nav__dropdown-toggle') as HTMLButtonElement;
-      toggle.click();
-      fixture.detectChanges();
-
       const backdrop = fixture.nativeElement.querySelector('.po-nav__backdrop') as HTMLElement;
       expect(backdrop).toBeTruthy();
       backdrop.click();
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__dropdown-panel')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
     });
 
-    it('⌄ click while hovered-open closes the panel outright, not just unpins it', () => {
+    it('has a secondary group with "Get the coach" and "GitHub ↗"', () => {
       fixture.detectChanges();
-      const wrapper = fixture.nativeElement.querySelector('.po-nav__dropdown') as HTMLElement;
-      const toggle = fixture.nativeElement.querySelector('.po-nav__dropdown-toggle') as HTMLButtonElement;
+      const hamburger = fixture.nativeElement.querySelector(
+        '.po-nav__hamburger',
+      ) as HTMLButtonElement;
+      hamburger.click();
+      fixture.detectChanges();
 
-      wrapper.dispatchEvent(new MouseEvent('mouseenter'));
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__dropdown-panel')).toBeTruthy();
+      const secondary = fixture.nativeElement.querySelector(
+        '.po-nav__drawer-secondary',
+      ) as HTMLElement;
+      expect(secondary).toBeTruthy();
 
-      // Previously this only flipped isLibraryPinned, so isLibraryHovered stayed
-      // true and the panel (hovered || pinned) never actually closed.
-      toggle.click();
-      fixture.detectChanges();
-      expect(toggle.getAttribute('aria-expanded')).toBe('false');
-      expect(fixture.nativeElement.querySelector('.po-nav__dropdown-panel')).toBeFalsy();
+      const coachLink = Array.from(secondary.querySelectorAll('a')).find(
+        (a) => a.textContent?.trim() === 'Get the coach',
+      ) as HTMLAnchorElement;
+      expect(coachLink?.getAttribute('href')).toBe(SITE_LINKS.coach);
 
-      wrapper.dispatchEvent(new MouseEvent('mouseenter'));
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__dropdown-panel')).toBeTruthy();
+      const githubLink = secondary.querySelector(
+        `a[href="${SITE_LINKS.siteRepo}"]`,
+      ) as HTMLAnchorElement;
+      expect(githubLink?.textContent?.trim()).toBe('GitHub ↗');
     });
   });
 
@@ -163,51 +206,6 @@ describe('AppComponent', () => {
       contextButton.click();
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('.po-nav__popover')).toBeFalsy();
-    });
-  });
-
-  describe('Mobile drawer', () => {
-    it('opens the drawer on hamburger click and lists all links flat', () => {
-      fixture.detectChanges();
-      const hamburger = fixture.nativeElement.querySelector('.po-nav__hamburger') as HTMLButtonElement;
-
-      expect(hamburger.getAttribute('aria-expanded')).toBe('false');
-      hamburger.click();
-      fixture.detectChanges();
-
-      expect(hamburger.getAttribute('aria-expanded')).toBe('true');
-      const drawer = fixture.nativeElement.querySelector('.po-nav__drawer') as HTMLElement;
-      const drawerText = drawer.textContent ?? '';
-      expect(drawerText).toContain('Progress');
-      expect(drawerText).toContain('Algorithms');
-      expect(drawerText).toContain('Patterns');
-      expect(drawerText).toContain('Games');
-      expect(drawerText).toContain('Human');
-    });
-
-    it('closes the drawer again on a second hamburger click', () => {
-      fixture.detectChanges();
-      const hamburger = fixture.nativeElement.querySelector('.po-nav__hamburger') as HTMLButtonElement;
-      hamburger.click();
-      fixture.detectChanges();
-      hamburger.click();
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
-    });
-
-    it('closes on resize above the nav breakpoint', () => {
-      fixture.detectChanges();
-      const hamburger = fixture.nativeElement.querySelector('.po-nav__hamburger') as HTMLButtonElement;
-      hamburger.click();
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeTruthy();
-
-      const ABOVE_BREAKPOINT_PX = 1024;
-      Object.defineProperty(window, 'innerWidth', { configurable: true, value: ABOVE_BREAKPOINT_PX });
-      window.dispatchEvent(new Event('resize'));
-      fixture.detectChanges();
-
-      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
     });
   });
 });

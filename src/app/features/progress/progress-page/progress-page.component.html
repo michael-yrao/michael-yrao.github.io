@@ -1,5 +1,5 @@
-<!-- Repo-picker form — shared by the default-repo notice and the error state, so a viewer
-     can fix a bad ?repo= without leaving the error card. Its own invalid-entry hint is
+<!-- Repo-picker form — shared by the header's "change" control and the error state, so a
+     viewer can fix a bad ?repo= without leaving the error card. Its own invalid-entry hint is
      gated by `showInvalidHint`: the error state already has an unconditional hint with the
      same wording, so it passes `false` there to avoid showing that sentence twice. -->
 <ng-template #repoPickerTpl let-showInvalidHint="showInvalidHint">
@@ -34,6 +34,16 @@
           rel="noopener"
           >{{ repoSlug() }} ↗</a
         >
+        @if (status() !== 'error') {
+          <button
+            type="button"
+            class="progress__repo-change"
+            (click)="toggleRepoPicker()"
+            [attr.aria-expanded]="isRepoPickerOpen()"
+          >
+            change
+          </button>
+        }
       }
       @if (status() === 'ready') {
         <span class="progress__asof">as of {{ generatedAtLabel() }}</span>
@@ -52,18 +62,10 @@
     </div>
   </header>
 
-  <!-- Default-repo notice + inline repo picker — shown only when the viewer hasn't pointed
-       the page anywhere themselves (no ?repo= at all) and it fell back to the site author's
-       own checkout. -->
-  @if (showDefaultRepoNotice()) {
-    <div class="progress__notice">
-      <p class="progress__notice-text">
-        Viewing the site author's practice log — the default until you point the viewer at
-        your own cse-coach repo.
-        <a [routerLink]="siteLinks.coach" class="progress__notice-cta"
-          >Want this for your own practice? → Get the coach</a
-        >
-      </p>
+  <!-- Inline repo picker — revealed by the header slug link's "change" control. The
+       error-state outlet below is unconditional and separate from this one. -->
+  @if (isRepoPickerOpen()) {
+    <div class="progress__picker-row">
       <ng-container
         [ngTemplateOutlet]="repoPickerTpl"
         [ngTemplateOutletContext]="{ showInvalidHint: true }"
