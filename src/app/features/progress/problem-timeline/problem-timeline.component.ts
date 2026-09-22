@@ -35,25 +35,38 @@ const COMFORT_COLOR: Record<number, string> = {
 export class ProblemTimelineComponent {
   readonly problem = input.required<ProblemProgress>();
 
-  // Fixed viewBox; the SVG scales responsively to its container width.
-  readonly W = 320;
-  readonly H = 96;
-  readonly padX = 14;
-  readonly padY = 14;
+  // The chart spans the full width of its container (progress-page's expanded problem
+  // row). W grows with the rep count so many-rep timelines keep a legible minimum
+  // per-point budget for the rotated date label below each point, instead of crowding
+  // into a fixed box. H is fixed: padTop+plotH is the comfort ladder (gridlines/points,
+  // unchanged from the original 320x96 proportions), plus dedicated room below the
+  // baseline for the rotated labels.
+  readonly padX = 30;
+  readonly padTop = 14;
+  readonly plotH = 70;
+  readonly baselineY = this.padTop + this.plotH;
+  readonly labelY = this.baselineY + 10;
+  readonly H = 132;
+  private readonly MIN_W = 640;
+  private readonly POINT_SPACING = 56; // viewBox units per point, floor for label legibility
+
+  readonly W = computed(() => {
+    const n = this.problem().timeline.length;
+    return Math.max(this.MIN_W, this.padX * 2 + this.POINT_SPACING * Math.max(n - 1, 0));
+  });
 
   readonly points = computed<PlotPoint[]>(() => {
     const tl = this.problem().timeline;
     if (!tl.length) return [];
     const n = tl.length;
-    const usableW = this.W - this.padX * 2;
-    const usableH = this.H - this.padY * 2;
+    const usableW = this.W() - this.padX * 2;
     return tl.map((pt: TimelinePoint, i: number) => {
       const x = this.padX + (n === 1 ? usableW / 2 : (usableW * i) / (n - 1));
       const level = pt.level;
       const known = level !== null && level !== undefined;
       const y = known
-        ? this.padY + usableH - (usableH * (level as number)) / (LEVELS - 1)
-        : this.H - this.padY; // unknown -> baseline activity dot
+        ? this.padTop + this.plotH - (this.plotH * (level as number)) / (LEVELS - 1)
+        : this.baselineY; // unknown -> baseline activity dot
       return { x, y, date: pt.date, comfort: pt.comfort, known };
     });
   });
@@ -70,5 +83,14 @@ export class ProblemTimelineComponent {
     const tl = this.problem().timeline.find((t) => t.date === p.date);
     const lvl = tl?.level;
     return lvl !== null && lvl !== undefined ? COMFORT_COLOR[lvl] : 'var(--color-text-muted)';
+  }
+
+  // ISO "2026-09-21" -> "26-09-21", the compact per-point axis label.
+  formatLabel(isoDate: string): string {
+    return isoDate.slice(2);
+  }
+
+  labelTransform(p: PlotPoint): string {
+    return `rotate(-45 ${p.x} ${this.labelY})`;
   }
 }

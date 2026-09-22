@@ -1,7 +1,7 @@
 @if (points().length) {
   <svg
     class="timeline"
-    [attr.viewBox]="'0 0 ' + W + ' ' + H"
+    [attr.viewBox]="'0 0 ' + W() + ' ' + H"
     preserveAspectRatio="xMidYMid meet"
     role="img"
     [attr.aria-label]="'Comfort progression for problem ' + problem().lcNumber"
@@ -11,9 +11,9 @@
       <line
         class="grid"
         [attr.x1]="padX"
-        [attr.x2]="W - padX"
-        [attr.y1]="padY + (H - padY * 2) - ((H - padY * 2) * g) / 4"
-        [attr.y2]="padY + (H - padY * 2) - ((H - padY * 2) * g) / 4"
+        [attr.x2]="W() - padX"
+        [attr.y1]="padTop + plotH - (plotH * g) / 4"
+        [attr.y2]="padTop + plotH - (plotH * g) / 4"
       />
     }
 
@@ -33,6 +33,17 @@
       >
         <title>{{ p.date }}{{ p.comfort ? ' · ' + p.comfort : ' · (pre-archive rep)' }}</title>
       </circle>
+    }
+
+    <!-- per-point date labels (YY-MM-DD), rotated to stay legible as rep count grows -->
+    @for (p of points(); track p.date + '-label') {
+      <text
+        class="timeline__label"
+        [attr.x]="p.x"
+        [attr.y]="labelY"
+        [attr.transform]="labelTransform(p)"
+        text-anchor="end"
+      >{{ formatLabel(p.date) }}</text>
     }
   </svg>
 } @else {

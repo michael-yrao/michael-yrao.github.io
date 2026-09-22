@@ -28,6 +28,12 @@ circle.unknown {
   opacity: 0.7;
 }
 
+.timeline__label {
+  fill: var(--color-text-muted);
+  font-size: 7px;
+  font-family: var(--font-mono, monospace);
+}
+
 .timeline-empty {
   color: var(--color-text-muted);
   font-size: 0.85rem;
