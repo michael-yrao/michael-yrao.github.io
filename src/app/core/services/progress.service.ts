@@ -26,8 +26,14 @@ interface RepoRef {
 // Landing fetches SUMMARY_FILE only (a few KB, no `problems[]`) — instant, cheap, no
 // per-problem components. DETAILS_FILE (the full 144 KB contract) is fetched only when the
 // learner opts into "Explore problems".
-const SUMMARY_FILE = 'progress-summary.json';
-const DETAILS_FILE = 'progress.json';
+//
+// The contract files moved from the repo root into `dashboard/` on 2026-09-21. We prefer
+// the new location and fall back to the legacy root path on a 404 (see fetchFile$), so an
+// older cse-progress checkout — or a ?repo= adopter that hasn't relocated — still renders.
+const SUMMARY_FILE = 'dashboard/progress-summary.json';
+const DETAILS_FILE = 'dashboard/progress.json';
+const LEGACY_SUMMARY_FILE = 'progress-summary.json';
+const LEGACY_DETAILS_FILE = 'progress.json';
 
 /** Derive the lightweight summary from a full contract — the client-side mirror of
  *  cse-progress's `gamify.py::summary_of()`. Used when `progress-summary.json` 404s (an
@@ -141,6 +147,19 @@ export class ProgressService {
     );
   }
 
+  /** Fetch a logical contract file, preferring its `dashboard/` location and falling back
+   *  to the legacy repo-root path ONLY on a genuine 404 (the files moved into `dashboard/`
+   *  on 2026-09-21). A non-404 from the primary — a 403 rate-limit, offline, etc. —
+   *  propagates unchanged rather than masquerading as "not found", so the caller's own
+   *  404 handling (summary → full-contract derivation) stays correct. */
+  private fetchFile$<T>(ref: RepoRef, primary: string, legacy: string, bust: boolean): Observable<T> {
+    return this.fetch$<T>(ref, primary, bust).pipe(
+      catchError((err) =>
+        err?.status === 404 ? this.fetch$<T>(ref, legacy, bust) : throwError(() => err),
+      ),
+    );
+  }
+
   /** Re-fetch the repo currently shown, bypassing caches. Used by the Refresh button.
    *  Always re-loads the summary; re-loads details too, but only if they were opened. */
   refresh(): void {
@@ -185,15 +204,16 @@ export class ProgressService {
       this.error.set(null);
     }
 
-    this.fetch$<ProgressSummary>(ref, SUMMARY_FILE, force)
+    this.fetchFile$<ProgressSummary>(ref, SUMMARY_FILE, LEGACY_SUMMARY_FILE, force)
       .pipe(
         catchError((err) => {
-          // A genuine 404 on the summary alone (not "the whole repo is unreachable") means
-          // this repo hasn't regenerated progress-summary.json yet — fall back to the full
-          // contract and derive the aggregates client-side, so the landing still works.
-          // Any other failure (403 rate-limit, network, etc.) keeps the normal error path.
+          // A genuine 404 on the summary in BOTH locations (not "the whole repo is
+          // unreachable") means this repo hasn't regenerated progress-summary.json yet —
+          // fall back to the full contract and derive the aggregates client-side, so the
+          // landing still works. Any other failure (403 rate-limit, network, etc.) keeps
+          // the normal error path.
           if (err?.status !== 404) return of(this.toError(err));
-          return this.fetch$<ProgressData>(ref, DETAILS_FILE, force).pipe(
+          return this.fetchFile$<ProgressData>(ref, DETAILS_FILE, LEGACY_DETAILS_FILE, force).pipe(
             map((full) => summaryFromFull(full)),
             catchError((fallbackErr) => of(this.toError(fallbackErr))),
           );
@@ -247,7 +267,7 @@ export class ProgressService {
       this.detailsError.set(null);
     }
 
-    this.fetch$<ProgressData>(ref, DETAILS_FILE, force)
+    this.fetchFile$<ProgressData>(ref, DETAILS_FILE, LEGACY_DETAILS_FILE, force)
       .pipe(catchError((err) => of(this.toError(err))))
       .subscribe((result) => {
         if (mine !== this.detailsSeq) return; // a newer loadDetails() superseded this response

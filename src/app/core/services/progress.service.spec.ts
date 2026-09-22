@@ -55,7 +55,7 @@ describe('ProgressService', () => {
       service.loadSummary(null);
       const call = http.calls[0];
       expect(call.url).toContain('api.github.com/repos/');
-      expect(call.url).toContain('/contents/progress-summary.json?ref=main');
+      expect(call.url).toContain('/contents/dashboard/progress-summary.json?ref=main');
       expect(call.opts.headers.get('Accept')).toBe('application/vnd.github.raw');
       expect(service.status()).toBe('ready');
     });
@@ -89,7 +89,7 @@ describe('ProgressService', () => {
       service.loadSummary(null);
       service.loadDetails();
       const call = http.calls[http.calls.length - 1];
-      expect(call.url).toContain('/contents/progress.json?ref=main');
+      expect(call.url).toContain('/contents/dashboard/progress.json?ref=main');
       expect(service.detailsStatus()).toBe('ready');
       expect(service.details()).toEqual([]);
     });
@@ -179,7 +179,7 @@ describe('ProgressService — missing progress-summary.json', () => {
     ]);
     // Both the summary attempt and the details fallback were requested.
     expect(http.calls.some((c) => c.url.includes('progress-summary.json'))).toBe(true);
-    expect(http.calls.some((c) => c.url.includes('/contents/progress.json'))).toBe(true);
+    expect(http.calls.some((c) => c.url.includes('/contents/dashboard/progress.json'))).toBe(true);
   });
 
   it('a non-404 summary error does NOT fall back to progress.json', () => {
@@ -198,6 +198,6 @@ describe('ProgressService — missing progress-summary.json', () => {
     service.loadSummary(null);
 
     expect(service.status()).toBe('error');
-    expect(calls.some((c) => c.url.includes('/contents/progress.json'))).toBe(false);
+    expect(calls.some((c) => c.url.includes('/contents/dashboard/progress.json'))).toBe(false);
   });
 });
