@@ -163,7 +163,7 @@ describe('ProgressPageComponent', () => {
 
     const board = fixture.nativeElement.querySelector('app-today-board');
     expect(board).toBeTruthy();
-    expect(board!.textContent).toContain('1 of 2 done today');
+    expect(board!.textContent).toContain('1 of 2 done');
     expect(board!.textContent).toContain('Generate Parentheses');
     expect(board!.textContent).toContain('Same Tree');
     expect(progress.loadDetails).not.toHaveBeenCalled();

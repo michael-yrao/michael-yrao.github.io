@@ -1,76 +1,116 @@
-<div class="today-board">
-  @if (today(); as day) {
-    @if (workload(); as w) {
-      <div class="today-board__workload">
-        <div class="today-board__workload-bar">
-          <span
-            class="today-board__workload-fill"
-            [class]="'today-board__workload-fill--' + w.band.toLowerCase()"
-            [style.width.%]="w.pct"
-          ></span>
-        </div>
-        <span class="today-board__workload-label">
-          today: {{ w.units }} / {{ w.ceiling }} units · {{ w.band }}
-          <span class="today-board__info-wrap" [class.today-board__info-wrap--open]="infoOpen()">
-            <button
-              type="button"
-              class="today-board__info"
-              aria-label="What are units?"
-              aria-describedby="today-board-units-info"
-              (click)="toggleInfo()"
-            >ⓘ</button>
-            <span class="today-board__info-bubble" id="today-board-units-info" role="tooltip">
-              Units = today's effort load; harder or less-familiar problems cost more. Bar = today vs your daily ceiling.
-            </span>
-          </span>
-        </span>
-      </div>
+<ng-template #itemRowTpl let-item>
+  <li class="today-board__row" [class.today-board__row--done]="item.done">
+    <span class="today-board__check" [attr.aria-label]="item.done ? 'done' : 'not done'">{{
+      item.done ? '✓' : '○'
+    }}</span>
+    @if (item.startComfort) {
+      <span class="today-board__comfort">{{ item.startComfort }}</span>
     }
-    @if (day.items.length) {
-      <div class="today-board__head">
-        <span class="today-board__count">{{ doneCount() }} of {{ totalCount() }} done today</span>
-        @if (day.label) {
-          <span class="today-board__label">{{ day.label }}</span>
-        }
-      </div>
-      <ul class="today-board__list">
-        @for (item of day.items; track item.lcNumber + '-' + item.title) {
-          <li class="today-board__row" [class.today-board__row--done]="item.done">
-            <span class="today-board__check" [attr.aria-label]="item.done ? 'done' : 'not done'">{{
-              item.done ? '✓' : '○'
-            }}</span>
-            @if (item.startComfort) {
-              <span class="today-board__comfort">{{ item.startComfort }}</span>
-            }
-            @if (item.lcNumber) {
-              <span class="today-board__num">#{{ item.lcNumber }}</span>
-            }
-            <span class="today-board__title">{{ item.title }}</span>
-            @if (item.difficulty) {
-              <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
-            }
-            @if (item.technique) {
-              <span class="tag">{{ item.technique }}</span>
-            }
-            <span class="today-board__links">
-              @if (vizRoute(item.lcNumber); as route) {
-                <a [routerLink]="route">Visualize ▶</a>
-              }
-              @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
-                <a [href]="lc" target="_blank" rel="noopener">LeetCode ↗</a>
-              }
-            </span>
-          </li>
-        }
-      </ul>
-    } @else {
-      <p class="today-board__hint">
-        No board scheduled for today — enjoy the rest, or open Full breakdown.
-      </p>
+    @if (item.lcNumber) {
+      <span class="today-board__num">#{{ item.lcNumber }}</span>
     }
+    <span class="today-board__title">{{ item.title }}</span>
+    @if (item.difficulty) {
+      <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
+    }
+    <span class="today-board__links">
+      @if (vizRoute(item.lcNumber); as route) {
+        <a [routerLink]="route">Visualize ▶</a>
+      }
+      @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
+        <a [href]="lc" target="_blank" rel="noopener">LeetCode ↗</a>
+      }
+    </span>
+  </li>
+</ng-template>
+
+<ng-template #dayItemsTpl let-day>
+  @if (day.items.length) {
+    <ul class="today-board__list">
+      @for (item of day.items; track item.lcNumber + '-' + item.title) {
+        <ng-container
+          [ngTemplateOutlet]="itemRowTpl"
+          [ngTemplateOutletContext]="{ $implicit: item }"
+        />
+      }
+    </ul>
   } @else {
-    <p class="today-board__hint">
-      No board scheduled for today — enjoy the rest, or open Full breakdown.
-    </p>
+    <p class="today-board__hint">Nothing scheduled.</p>
+  }
+</ng-template>
+
+<div class="today-board">
+  @if (!days().length) {
+    <p class="today-board__hint">No schedule loaded for this week.</p>
+  } @else {
+    <div class="today-board__strip" role="group" aria-label="Select a day">
+      @for (day of days(); track day.date) {
+        <button
+          type="button"
+          class="today-board__day-btn"
+          [class.today-board__day-btn--today]="day.date === todayISO()"
+          [class.today-board__day-btn--active]="day.date === effectiveDate()"
+          [attr.aria-pressed]="day.date === effectiveDate()"
+          (click)="selectDay(day.date)"
+        >{{ dayButtonLabel(day) }}</button>
+      }
+      <button type="button" class="today-board__expand-toggle" (click)="toggleExpanded()">
+        {{ expanded() ? 'Collapse' : 'Expand week' }}
+      </button>
+    </div>
+
+    @if (!expanded()) {
+      @if (selectedDay(); as day) {
+        @if (workload(); as w) {
+          <div class="today-board__workload">
+            <div class="today-board__workload-bar">
+              <span
+                class="today-board__workload-fill"
+                [class]="'today-board__workload-fill--' + w.band.toLowerCase()"
+                [style.width.%]="w.pct"
+              ></span>
+            </div>
+            <span class="today-board__workload-label">
+              {{ w.units }} / {{ w.ceiling }} units · {{ w.band }}
+              <span class="today-board__info-wrap" [class.today-board__info-wrap--open]="infoOpen()">
+                <button
+                  type="button"
+                  class="today-board__info"
+                  aria-label="What are units?"
+                  aria-describedby="today-board-units-info"
+                  (click)="toggleInfo()"
+                >ⓘ</button>
+                <span class="today-board__info-bubble" id="today-board-units-info" role="tooltip">
+                  Units = a day's effort load; harder or less-familiar problems cost more. Bar = that day vs your daily ceiling.
+                </span>
+              </span>
+            </span>
+          </div>
+        }
+        <div class="today-board__head">
+          <span class="today-board__count">{{ doneCount() }} of {{ totalCount() }} done</span>
+          @if (day.label) {
+            <span class="today-board__label">{{ day.label }}</span>
+          }
+        </div>
+        <ng-container [ngTemplateOutlet]="dayItemsTpl" [ngTemplateOutletContext]="{ $implicit: day }" />
+      }
+    } @else {
+      @for (day of days(); track day.date) {
+        <div class="today-board__day" [class.today-board__day--today]="day.date === todayISO()">
+          <div class="today-board__day-head">
+            <span class="today-board__weekday">{{ day.weekday }}</span>
+            <span class="today-board__date">{{ day.date }}</span>
+            @if (day.date === todayISO()) {
+              <span class="today-board__badge">Today</span>
+            }
+            @if (day.label) {
+              <span class="today-board__day-label">{{ day.label }}</span>
+            }
+          </div>
+          <ng-container [ngTemplateOutlet]="dayItemsTpl" [ngTemplateOutletContext]="{ $implicit: day }" />
+        </div>
+      }
+    }
   }
 </div>

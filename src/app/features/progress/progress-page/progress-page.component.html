@@ -98,16 +98,12 @@
         @if (isTabActive('overview')) {
           <div class="tabpanel" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview">
             <div class="card today-board-card">
-              <h2>Today's board</h2>
+              <h2>Schedule</h2>
               <app-today-board
                 [schedule]="d.schedule"
                 [effortCeiling]="d.effortCeiling"
                 [effortFloor]="d.effortFloor"
               />
-            </div>
-            <div class="card">
-              <h2>This week</h2>
-              <app-weekly-board [schedule]="d.schedule" />
             </div>
           </div>
         }

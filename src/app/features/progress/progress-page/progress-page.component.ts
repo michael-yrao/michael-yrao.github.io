@@ -21,7 +21,6 @@ import { BadgeGridComponent } from '../badge-grid/badge-grid.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
 import { StreakCalendarComponent } from '../streak-calendar/streak-calendar.component';
 import { TodayBoardComponent } from '../today-board/today-board.component';
-import { WeeklyBoardComponent } from '../weekly-board/weekly-board.component';
 import { RecognitionPanelComponent } from '../recognition-panel/recognition-panel.component';
 import { SegmentedBarComponent, SegmentedBarSegment } from '../segmented-bar/segmented-bar.component';
 import { Technique } from '../../../core/models/progress.model';
@@ -85,7 +84,6 @@ const PIPELINE_COMFORT: Record<string, Comfort> = {
     TechniqueListComponent,
     StreakCalendarComponent,
     TodayBoardComponent,
-    WeeklyBoardComponent,
     RecognitionPanelComponent,
     SegmentedBarComponent,
   ],
@@ -145,11 +143,11 @@ export class ProgressPageComponent {
     const p = d.pipeline;
     return (
       [
-        { key: 'blank', label: '🔴 Blank', value: p.blank, cls: 'seg-blank' },
-        { key: 'shaky', label: '🟡 Shaky', value: p.shaky, cls: 'seg-shaky' },
-        { key: 'clean', label: '🟢 Clean', value: p.clean.total, cls: 'seg-clean' },
-        { key: 'grad', label: '🎓 Graduated', value: p.graduated, cls: 'seg-grad' },
-        { key: 'retired', label: '🏆 Retired', value: p.retired, cls: 'seg-retired' },
+        { key: 'blank', label: 'Blank', value: p.blank, cls: 'seg-blank' },
+        { key: 'shaky', label: 'Shaky', value: p.shaky, cls: 'seg-shaky' },
+        { key: 'clean', label: 'Clean', value: p.clean.total, cls: 'seg-clean' },
+        { key: 'grad', label: 'Graduated', value: p.graduated, cls: 'seg-grad' },
+        { key: 'retired', label: 'Retired', value: p.retired, cls: 'seg-retired' },
       ] satisfies SegmentedBarSegment[]
     ).filter((s) => s.value > 0);
   });

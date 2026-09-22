@@ -1,6 +1,64 @@
-.today-board__workload {
-  margin-bottom: var(--space-md);
+.today-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
 }
+
+// ── Day-selector strip ──────────────────────────────────────────────────────────────
+.today-board__strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.today-board__day-btn {
+  position: relative;
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+
+  &:hover, &:focus-visible { border-color: var(--color-accent); color: var(--color-text); outline: none; }
+}
+
+.today-board__day-btn--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.today-board__day-btn--today::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.today-board__expand-toggle {
+  appearance: none;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--color-accent);
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-left: auto;
+
+  &:hover, &:focus-visible { text-decoration: underline; outline: none; }
+}
+
+// ── Workload bar ─────────────────────────────────────────────────────────────────────
 .today-board__workload-bar {
   height: 8px;
   border-radius: var(--radius-sm);
@@ -72,13 +130,13 @@
   visibility: visible;
 }
 
+// ── Collapsed-mode head ─────────────────────────────────────────────────────────────
 .today-board__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-sm);
-  margin-bottom: var(--space-md);
 }
 
 .today-board__count {
@@ -92,6 +150,42 @@
   color: var(--color-text-muted);
 }
 
+// ── Expanded-mode per-day stack (folded in from weekly-board) ───────────────────────
+.today-board__day {
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+
+  &:last-child { padding-bottom: 0; border-bottom: none; }
+}
+
+.today-board__day--today {
+  .today-board__weekday { color: var(--color-accent); }
+}
+
+.today-board__day-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.today-board__weekday { font-weight: 700; font-size: 0.9rem; color: var(--color-text); }
+.today-board__date { font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-text-muted); }
+.today-board__day-label { font-size: 0.78rem; color: var(--color-text-muted); }
+
+.today-board__badge {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+// ── Item list / row (shared by collapsed + expanded via dayItemsTpl) ────────────────
 .today-board__list {
   list-style: none;
   margin: 0;
