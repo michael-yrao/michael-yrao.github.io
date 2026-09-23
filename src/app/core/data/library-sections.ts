@@ -3,11 +3,12 @@
 //
 // These three counts are literals, not `ALL_ALGORITHMS.length` etc., on purpose: this file is
 // imported by the root AppComponent (for the nav drawer), so importing the data modules here
-// would pull the whole algorithm corpus — all 96 .steps files, plus the cheat-sheet code
-// strings — into the INITIAL bundle instead of a lazy chunk. `library-sections.spec.ts` guards
-// each one against drift by asserting it against the real data module's own count.
+// would pull the whole algorithm corpus — all 96 .steps files, plus the bundled cheat-sheets
+// JSON asset — into the INITIAL bundle instead of a lazy chunk. `library-sections.spec.ts`
+// guards each one against drift by asserting it against the real source's own count
+// (CHEAT_SHEET_COUNT against `src/assets/cheat-sheets.json`, imported only from that spec).
 export const ALGORITHM_WALKTHROUGH_COUNT = 96;
-export const CHEAT_SHEET_COUNT = 10;
+export const CHEAT_SHEET_COUNT = 18;
 export const PLAYABLE_GAME_COUNT = 4;
 
 export interface LibrarySection {

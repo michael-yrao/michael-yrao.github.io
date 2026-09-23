@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ALL_ALGORITHMS, countVisualized } from '../../core/data/algorithms.data';
 import { GAMES } from '../../core/data/games.data';
-import { CHEAT_SHEETS } from '../../core/data/cheat-sheets.data';
+import { CHEAT_SHEET_COUNT } from '../../core/data/library-sections';
 import { SITE_LINKS } from '../../core/data/site-links';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../shared/components/page-header/page-header.component';
 
@@ -23,6 +23,6 @@ export class LibraryHubComponent {
   readonly totalSolved = ALL_ALGORITHMS.length;
   readonly totalVisualized = countVisualized(ALL_ALGORITHMS);
   readonly totalGames = GAMES.filter((g) => g.status === 'available').length;
-  readonly CHEAT_SHEETS = CHEAT_SHEETS;
+  readonly cheatSheetCount = CHEAT_SHEET_COUNT;
   readonly SITE_LINKS = SITE_LINKS;
 }

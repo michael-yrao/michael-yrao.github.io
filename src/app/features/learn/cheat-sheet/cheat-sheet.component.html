@@ -1,81 +1,137 @@
-@if (sheet) {
-  <div class="cs-page">
-    <app-page-header [breadcrumb]="breadcrumb" eyebrow="Pattern Cheat Sheet" [heading]="label" [icon]="icon"></app-page-header>
-    <!-- ── When to Use ─────────────────────────────────────────── -->
-    <section class="cs-section">
-      <h2 class="cs-section__title">When to Use</h2>
-      <p class="cs-when">{{ sheet.whenToUse }}</p>
-    </section>
-    <!-- ── Recognition Signals ─────────────────────────────────── -->
-    <section class="cs-section">
-      <h2 class="cs-section__title">Recognition Signals</h2>
-      <ul class="cs-signals">
-        @for (signal of sheet.signals; track signal) {
-          <li>
-            <span class="cs-signal__dot">▸</span>
-            <span>{{ signal }}</span>
-          </li>
+@switch (status()) {
+  @case ('loading') {
+    <p class="cs-status" role="status">Loading the technique cheat sheets…</p>
+  }
+  @case ('error') {
+    <div class="cs-status cs-status--error">
+      <p>{{ error() }}</p>
+      <button type="button" (click)="retry()">Retry</button>
+    </div>
+  }
+  @case ('ready') {
+    @if (technique(); as sheet) {
+      <div class="cs-page">
+        <app-page-header [breadcrumb]="breadcrumb()" eyebrow="Pattern Cheat Sheet" [heading]="sheet.name"></app-page-header>
+
+        <p class="cs-notice">{{ notice }}</p>
+
+        <!-- ── When to Use ─────────────────────────────────────────── -->
+        <section class="cs-section">
+          <h2 class="cs-section__title">When to Use</h2>
+          <p class="cs-when">{{ sheet.whenToUse }}</p>
+        </section>
+
+        <!-- ── Recognition Signals ─────────────────────────────────── -->
+        @if (sheet.signals.length > 0) {
+          <section class="cs-section">
+            <h2 class="cs-section__title">Recognition Signals</h2>
+            <ul class="cs-signals">
+              @for (signal of sheet.signals; track $index) {
+                <li>
+                  <span class="cs-signal__dot">▸</span>
+                  <span>{{ signal }}</span>
+                </li>
+              }
+            </ul>
+          </section>
         }
-      </ul>
-    </section>
-    <!-- ── Templates ───────────────────────────────────────────── -->
-    @for (template of sheet.templates; track template) {
-      <section class="cs-section">
-        <h2 class="cs-section__title">Template: {{ template.title }}</h2>
-        <div class="cs-code">
-          <app-code-viewer [code]="template.code"></app-code-viewer>
-        </div>
-      </section>
-    }
-    <!-- ── Common Pitfalls ─────────────────────────────────────── -->
-    <section class="cs-section">
-      <h2 class="cs-section__title">Common Pitfalls</h2>
-      <ul class="cs-pitfalls">
-        @for (pitfall of sheet.pitfalls; track pitfall) {
-          <li>
-            <span class="cs-pitfall__icon">⚠</span>
-            <span>{{ pitfall }}</span>
-          </li>
+
+        <!-- ── Picking Feature ───────────────────────────────────────── -->
+        <section class="cs-section">
+          <h2 class="cs-section__title">Picking Feature</h2>
+          <p class="cs-feature">{{ sheet.picking.feature }}</p>
+          @if (notWhen().length > 0) {
+            <ul class="cs-not-when">
+              @for (entry of notWhen(); track $index) {
+                <li>
+                  <span class="cs-not-when__name">
+                    Not
+                    @if (entry.route) {
+                      <a [routerLink]="entry.route">{{ entry.label }}</a>
+                    } @else {
+                      {{ entry.label }}
+                    }
+                  </span>
+                  <span class="cs-not-when__because">{{ entry.because }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+
+        <!-- ── Templates (one section per variant) ──────────────────── -->
+        @for (variant of sheet.variants; track $index) {
+          <section class="cs-section">
+            <h2 class="cs-section__title">Template: {{ variant.title }}</h2>
+            @if (variant.when) {
+              <p class="cs-variant__when">When: {{ variant.when }}</p>
+            }
+            <div class="cs-code">
+              <app-code-viewer [code]="variant.code"></app-code-viewer>
+            </div>
+            <p class="cs-complexity">
+              Time {{ variant.complexity.time }} · Space {{ variant.complexity.space }} — {{ variant.complexity.why }}
+            </p>
+          </section>
         }
-      </ul>
-    </section>
-    <!-- ── Key Problems ────────────────────────────────────────── -->
-    <section class="cs-section">
-      <h2 class="cs-section__title">Key Problems</h2>
-      <p class="cs-problems__hint">Step through these problems to see the pattern in action.</p>
-      <div class="cs-problems">
-        @for (p of sheet.keyProblems; track p) {
-          <a
-            class="cs-problem"
-            [routerLink]="['/algorithms', p.category, p.id]"
-            >
-            <span class="cs-problem__num">#{{ p.lcNumber }}</span>
-            <span class="cs-problem__title">{{ p.title }}</span>
-            <span class="cs-problem__arrow">→</span>
-          </a>
+
+        <!-- ── Common Pitfalls ─────────────────────────────────────── -->
+        @if (sheet.pitfalls.length > 0) {
+          <section class="cs-section">
+            <h2 class="cs-section__title">Common Pitfalls</h2>
+            <ul class="cs-pitfalls">
+              @for (pitfall of sheet.pitfalls; track $index) {
+                <li>
+                  <span class="cs-pitfall__icon">⚠</span>
+                  <span>{{ pitfall }}</span>
+                </li>
+              }
+            </ul>
+          </section>
         }
+
+        <!-- ── Key Problems ────────────────────────────────────────── -->
+        @if (keyProblems().length > 0) {
+          <section class="cs-section">
+            <h2 class="cs-section__title">Key Problems</h2>
+            <div class="cs-problems">
+              @for (p of keyProblems(); track $index) {
+                @if (p.link.kind === 'internal') {
+                  <a class="cs-problem" [routerLink]="p.link.commands">
+                    <span class="cs-problem__num">#{{ p.lcNumber }}</span>
+                    <span class="cs-problem__title">{{ p.title }}</span>
+                    <span class="cs-problem__arrow">→</span>
+                  </a>
+                } @else {
+                  <a class="cs-problem" [href]="p.link.url" target="_blank" rel="noopener">
+                    <span class="cs-problem__num">#{{ p.lcNumber }}</span>
+                    <span class="cs-problem__title">{{ p.title }}</span>
+                    <span class="cs-problem__arrow">↗</span>
+                  </a>
+                }
+              }
+            </div>
+          </section>
+        }
+
+        <!-- ── Full doc ─────────────────────────────────────────────── -->
+        <p class="cs-doc-link">
+          <a [href]="sheet.docUrl" target="_blank" rel="noopener">Full doc on GitHub ↗</a>
+        </p>
+
+        <!-- ── Prev / Next navigation ──────────────────────────────── -->
+        <nav class="cs-nav">
+          @if (prevTechnique(); as prev) {
+            <a class="cs-nav__btn cs-nav__btn--prev" [routerLink]="['/learn', prev.id]">← {{ prev.name }}</a>
+          } @else {
+            <span></span>
+          }
+          <a class="cs-nav__all" routerLink="/learn">All patterns</a>
+          @if (nextTechnique(); as next) {
+            <a class="cs-nav__btn cs-nav__btn--next" [routerLink]="['/learn', next.id]">{{ next.name }} →</a>
+          }
+        </nav>
       </div>
-    </section>
-    <!-- ── Prev / Next navigation ──────────────────────────────── -->
-    <nav class="cs-nav">
-      @if (prevCategory) {
-        <a
-          class="cs-nav__btn cs-nav__btn--prev"
-          [routerLink]="['/learn', prevCategory]"
-        >← {{ labelFor(prevCategory) }}</a>
-      } @else {
-        <span></span>
-      }
-      <a
-        class="cs-nav__all"
-        routerLink="/learn"
-      >All patterns</a>
-      @if (nextCategory) {
-        <a
-          class="cs-nav__btn cs-nav__btn--next"
-          [routerLink]="['/learn', nextCategory]"
-        >{{ labelFor(nextCategory) }} →</a>
-      }
-    </nav>
-  </div>
+    }
+  }
 }

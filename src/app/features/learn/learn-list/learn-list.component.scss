@@ -4,6 +4,83 @@
   padding: var(--space-xl) var(--space-lg) var(--space-2xl);
 }
 
+// ── Notice ──────────────────────────────────────────────────────
+.ll-notice {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin: 0 0 var(--space-lg);
+}
+
+// ── Status (loading / error) ───────────────────────────────────
+.ll-status {
+  padding: var(--space-lg);
+  color: var(--color-text-muted);
+
+  &--error {
+    color: var(--color-text);
+
+    button {
+      margin-top: var(--space-sm);
+    }
+  }
+}
+
+// ── Signals table ───────────────────────────────────────────────
+.ll-table-scroll {
+  overflow-x: auto;
+  margin-bottom: var(--space-2xl);
+}
+
+.ll-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+
+  th,
+  td {
+    text-align: left;
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: top;
+  }
+
+  th {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    font-weight: 700;
+  }
+
+  a {
+    color: var(--color-accent);
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// ── Family sections ─────────────────────────────────────────────
+.ll-family {
+  margin-bottom: var(--space-2xl);
+
+  &__title {
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    font-weight: 700;
+    margin: 0 0 var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+
 // ── Grid ────────────────────────────────────────────────────────
 .ll-grid {
   display: grid;
@@ -14,21 +91,12 @@
 // ── Card ────────────────────────────────────────────────────────
 .ll-card {
   display: flex;
-  gap: var(--space-md);
   padding: var(--space-lg);
   text-decoration: none;
   color: inherit;
 
   &:hover {
     text-decoration: none;
-  }
-
-  &__icon {
-    font-size: 1.5rem;
-    flex-shrink: 0;
-    width: 2.5rem;
-    text-align: center;
-    padding-top: 2px;
   }
 
   &__body {

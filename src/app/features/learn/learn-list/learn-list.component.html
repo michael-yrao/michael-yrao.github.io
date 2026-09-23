@@ -4,24 +4,67 @@
     eyebrow="Pattern Reference"
     heading="Learn"
   >
-    One cheat sheet per pattern: when to reach for it, what signals point to it,
-    the canonical template, and the pitfalls to watch for.
+    One cheat sheet per technique: when to reach for it, the signal that picks it over its
+    nearest neighbour, the canonical template, and the pitfalls to watch for.
   </app-page-header>
   <app-library-subnav></app-library-subnav>
 
-  <div class="ll-grid">
-    @for (card of cards; track card) {
-      <a
-        class="ll-card po-card po-card--link"
-        [routerLink]="['/learn', card.category]"
-        >
-        <div class="ll-card__icon">{{ card.icon }}</div>
-        <div class="ll-card__body">
-          <h2 class="ll-card__title">{{ card.label }}</h2>
-          <p class="ll-card__when">{{ card.whenToUse }}</p>
-          <span class="ll-card__count">{{ card.problemCount }} problems on this site →</span>
-        </div>
-      </a>
+  <p class="ll-notice">{{ notice }}</p>
+
+  @switch (status()) {
+    @case ('loading') {
+      <p class="ll-status" role="status">Loading the technique cheat sheets…</p>
     }
-  </div>
+    @case ('error') {
+      <div class="ll-status ll-status--error">
+        <p>{{ error() }}</p>
+        <button type="button" (click)="retry()">Retry</button>
+      </div>
+    }
+    @case ('ready') {
+      <div class="ll-table-scroll">
+        <table class="ll-table">
+          <thead>
+            <tr>
+              <th>What you see</th>
+              <th>Reach for</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of signalRows(); track $index) {
+              <tr>
+                <td>{{ row.see }}</td>
+                <td>
+                  @if (row.techniqueRoute) {
+                    <a [routerLink]="row.techniqueRoute">{{ row.reachLabel }}</a>
+                  } @else {
+                    {{ row.reachLabel }}
+                  }
+                </td>
+                <td>{{ row.note }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @for (section of familySections(); track section.family) {
+        <section class="ll-family">
+          <h2 class="ll-family__title">{{ section.label }}</h2>
+          <div class="ll-grid">
+            @for (technique of section.techniques; track technique.id) {
+              <a class="ll-card po-card po-card--link" [routerLink]="['/learn', technique.id]">
+                <div class="ll-card__body">
+                  <h3 class="ll-card__title">{{ technique.name }}</h3>
+                  <p class="ll-card__when">{{ technique.whenToUse }}</p>
+                  <span class="ll-card__count">{{ technique.keyProblems.length }} key problems →</span>
+                </div>
+              </a>
+            }
+          </div>
+        </section>
+      }
+    }
+  }
 </div>

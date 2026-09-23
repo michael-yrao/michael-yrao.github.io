@@ -1,5 +1,5 @@
 import { ALL_ALGORITHMS } from './algorithms.data';
-import { CHEAT_SHEETS } from './cheat-sheets.data';
+import cheatSheetsAsset from '../../../assets/cheat-sheets.json';
 import { GAMES } from './games.data';
 import {
   ALGORITHM_WALKTHROUGH_COUNT,
@@ -10,8 +10,8 @@ import {
 
 // library-sections.ts hardcodes these three counts (see its own comment) so the root nav
 // doesn't drag the whole algorithm corpus into the initial bundle. This spec is what keeps
-// them honest: it imports the real, heavy data modules — something only a spec should do —
-// and asserts each literal still matches its data module's own count.
+// them honest: it imports the real, heavy sources — something only a spec should do — and
+// asserts each literal still matches that source's own count.
 describe('library-sections counts', () => {
   const availableGameCount = GAMES.filter((game) => game.status === 'available').length;
 
@@ -19,8 +19,8 @@ describe('library-sections counts', () => {
     expect(ALGORITHM_WALKTHROUGH_COUNT).toBe(ALL_ALGORITHMS.length);
   });
 
-  it('keeps CHEAT_SHEET_COUNT in sync with CHEAT_SHEETS.length', () => {
-    expect(CHEAT_SHEET_COUNT).toBe(CHEAT_SHEETS.length);
+  it('keeps CHEAT_SHEET_COUNT in sync with the bundled cheat-sheets.json technique count', () => {
+    expect(CHEAT_SHEET_COUNT).toBe(cheatSheetsAsset.techniques.length);
   });
 
   it("keeps PLAYABLE_GAME_COUNT in sync with the hub's own available-games count", () => {
