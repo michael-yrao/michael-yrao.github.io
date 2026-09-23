@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router';
 
 import { TodayBoardComponent } from './today-board.component';
 import { Schedule } from '../../../core/models/progress.model';
-import { todayLocalISO } from '../../../core/utils/local-date';
+import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
 
 // Reuses the SAME local-date function the component uses (not a hand-rolled
 // `toISOString()`, which is UTC and can be off by a day) so "today" in the fixture always
@@ -408,7 +408,9 @@ describe('TodayBoardComponent', () => {
     // LeetCode stays alone, never adjacent to the glyph.
     const links = row.querySelector('.today-board__links')!;
     expect(links.contains(glyph)).toBe(false);
-    expect(links.textContent).toContain('LeetCode ↗');
+    const lcLink: HTMLAnchorElement = links.querySelector('a')!;
+    expect(lcLink.textContent?.trim()).toBe('↗');
+    expect(lcLink.getAttribute('aria-label')).toContain('LeetCode');
   });
 
   // ── Round 5: kind === 'new' / 'probe' chips, and the 'moved' tag's muted prefix ─────
@@ -427,7 +429,9 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.tag--new')?.textContent).toContain('new');
     expect(fixture.nativeElement.querySelector('.tag--easy, .tag--medium, .tag--hard')).toBeFalsy();
     expect(fixture.nativeElement.textContent).toContain('#39');
-    expect(fixture.nativeElement.querySelector('.today-board__links')?.textContent).toContain('LeetCode ↗');
+    const lcLink: HTMLAnchorElement = fixture.nativeElement.querySelector('.today-board__links a');
+    expect(lcLink.textContent?.trim()).toBe('↗');
+    expect(lcLink.getAttribute('aria-label')).toContain('LeetCode');
   });
 
   it("renders an ordinary row with no chips when tags are present but kind is absent (older/plain contract rows)", () => {
@@ -625,7 +629,7 @@ describe('TodayBoardComponent', () => {
   });
 
   // ── The rep's earned outcome (endComfort/endNote/nextReview) ───────────────────────
-  it("shows the earned outcome (start→end glyph pair, note, next-rep tag) on a done row, with no plain comfort span", () => {
+  it("shows the earned outcome (start→end glyph pair, note) as a BUTTON with a next-review popover bubble, on a done row with a nextReview, with no plain comfort span and no .tag--next", () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
       { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
@@ -634,14 +638,135 @@ describe('TodayBoardComponent', () => {
 
     const fixture = createFixture(schedule);
 
-    const outcome = fixture.nativeElement.querySelector('.today-board__outcome');
+    const outcome: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__outcome');
     expect(outcome).toBeTruthy();
+    expect(outcome.tagName).toBe('BUTTON');
     expect(outcome.textContent).toContain('🔴→🟢');
     expect(outcome.textContent).toContain('s2');
     expect(fixture.nativeElement.querySelector('.today-board__comfort')).toBeFalsy();
 
-    const nextTag = fixture.nativeElement.querySelector('.tag--next');
-    expect(nextTag?.textContent).toContain('next 2026-10-21');
+    const bubble = fixture.nativeElement.querySelector('.today-board__outcome-bubble');
+    expect(bubble).toBeTruthy();
+    expect(bubble.textContent).toContain('next Oct 21');
+    expect(outcome.getAttribute('aria-describedby')).toBe(bubble.id);
+    // The fixture's own title ("Same Tree") carries a space — the id must not, or
+    // aria-describedby (a whitespace-separated id list) points at nothing.
+    expect(bubble.id).not.toMatch(/\s/);
+
+    expect(fixture.nativeElement.querySelector('.tag--next')).toBeFalsy();
+  });
+
+  it('toggles the outcome popover open/closed on click (tap support — no hover on touch)', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
+        difficulty: 'Easy', done: true, endComfort: '🟢', endNote: 's2', nextReview: '2026-10-21' },
+    ];
+
+    const fixture = createFixture(schedule);
+    const outcome: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__outcome');
+    const wrap = () => fixture.nativeElement.querySelector('.today-board__outcome-wrap');
+
+    expect(wrap()?.classList.contains('today-board__outcome-wrap--open')).toBe(false);
+
+    outcome.click();
+    fixture.detectChanges();
+    expect(wrap()?.classList.contains('today-board__outcome-wrap--open')).toBe(true);
+
+    outcome.click();
+    fixture.detectChanges();
+    expect(wrap()?.classList.contains('today-board__outcome-wrap--open')).toBe(false);
+  });
+
+  it('opening a second row\'s outcome popover closes the first (one open at a time)', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
+        difficulty: 'Easy', done: true, endComfort: '🟢', endNote: 's2', nextReview: '2026-10-21' },
+      { lcNumber: 101, title: 'Same Tree Two', technique: 'Tree-DFS', startComfort: '🔴',
+        difficulty: 'Easy', done: true, endComfort: '🟢', endNote: 's2', nextReview: '2026-11-03' },
+    ];
+
+    const fixture = createFixture(schedule);
+    const buttons: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.today-board__outcome'),
+    );
+    const wraps = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('.today-board__outcome-wrap')) as HTMLElement[];
+
+    buttons[0].click();
+    fixture.detectChanges();
+    expect(wraps()[0].classList.contains('today-board__outcome-wrap--open')).toBe(true);
+    expect(wraps()[1].classList.contains('today-board__outcome-wrap--open')).toBe(false);
+
+    buttons[1].click();
+    fixture.detectChanges();
+    expect(wraps()[0].classList.contains('today-board__outcome-wrap--open')).toBe(false);
+    expect(wraps()[1].classList.contains('today-board__outcome-wrap--open')).toBe(true);
+  });
+
+  it('keys the outcome popover by day + row: the same problem done on two different days gets distinct bubble ids, and opening one does not open the other (expanded week view)', () => {
+    const schedule = makeSchedule({
+      days: [
+        {
+          date: '2020-01-06',
+          weekday: 'Monday',
+          label: null,
+          units: 1,
+          items: [
+            { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
+              difficulty: 'Easy', done: true, endComfort: '🟢', endNote: 's2', nextReview: '2026-10-21' },
+          ],
+        },
+        {
+          date: '2020-01-13',
+          weekday: 'Monday',
+          label: null,
+          units: 1,
+          items: [
+            { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
+              difficulty: 'Easy', done: true, endComfort: '🟢', endNote: 's2', nextReview: '2026-11-04' },
+          ],
+        },
+      ],
+    });
+
+    const fixture = createFixture(schedule);
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__expand-toggle');
+    toggle.click();
+    fixture.detectChanges();
+
+    const bubbles: HTMLElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.today-board__outcome-bubble'),
+    );
+    expect(bubbles.length).toBe(2);
+    expect(bubbles[0].id).not.toBe(bubbles[1].id);
+
+    const buttons: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.today-board__outcome'),
+    );
+    const wraps = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('.today-board__outcome-wrap')) as HTMLElement[];
+
+    buttons[0].click();
+    fixture.detectChanges();
+    expect(wraps()[0].classList.contains('today-board__outcome-wrap--open')).toBe(true);
+    expect(wraps()[1].classList.contains('today-board__outcome-wrap--open')).toBe(false);
+  });
+
+  it('renders the outcome as a plain SPAN, with no wrap or bubble, when endComfort is set but nextReview is null', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
+        difficulty: 'Easy', done: true, endComfort: '🟢', endNote: 's2', nextReview: null },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const outcome: HTMLElement = fixture.nativeElement.querySelector('.today-board__outcome');
+    expect(outcome.tagName).toBe('SPAN');
+    expect(fixture.nativeElement.querySelector('.today-board__outcome-wrap')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.today-board__outcome-bubble')).toBeFalsy();
   });
 
   it('renders as today (plain comfort span, no outcome, no next tag) for a done row carrying none of the new outcome fields (older contract)', () => {
@@ -701,5 +826,22 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.today-board__row--gate')).toBeFalsy();
     expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('Re-ask A');
+  });
+});
+
+// No `core/utils/local-date.spec.ts` file exists yet, so `shortMonthDay` is tested here
+// alongside its one caller.
+describe('shortMonthDay', () => {
+  it('renders a two-digit day unchanged', () => {
+    expect(shortMonthDay('2026-10-21')).toBe('Oct 21');
+  });
+
+  it('strips a leading zero from a single-digit day', () => {
+    expect(shortMonthDay('2026-01-05')).toBe('Jan 5');
+  });
+
+  it('returns non-matching input unchanged (fail-visible, not silent)', () => {
+    expect(shortMonthDay('not-a-date')).toBe('not-a-date');
+    expect(shortMonthDay('')).toBe('');
   });
 });

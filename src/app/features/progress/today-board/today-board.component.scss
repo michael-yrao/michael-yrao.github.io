@@ -99,13 +99,12 @@
   padding: 0;
   &:hover, &:focus-visible { border-color: var(--color-accent); color: var(--color-accent); outline: none; }
 }
-// Instant custom popover (round 4 item 2) — no native `title` delay, and it toggles on
-// tap/click (`--open`) for touch, where there is no hover to trigger it.
-.today-board__info-bubble {
+// Shared popover-bubble chrome (position/size/surface/typography/reveal-transition) for both
+// the workload ⓘ popover and the outcome popover below — `@extend`ed so the two bubbles never
+// drift apart, only their anchor edge differs.
+%popover-bubble {
   position: absolute;
   bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
   width: max-content;
   max-width: 220px;
   padding: var(--space-xs) var(--space-sm);
@@ -123,9 +122,30 @@
   transition: opacity var(--transition-fast);
   z-index: 5;
 }
+// Instant custom popover (round 4 item 2) — no native `title` delay, and it toggles on
+// tap/click (`--open`) for touch, where there is no hover to trigger it. Centered under the
+// ⓘ glyph, which sits well clear of both viewport edges.
+.today-board__info-bubble {
+  @extend %popover-bubble;
+  left: 50%;
+  transform: translateX(-50%);
+}
 .today-board__info-wrap:hover .today-board__info-bubble,
 .today-board__info-wrap:focus-within .today-board__info-bubble,
 .today-board__info-wrap--open .today-board__info-bubble {
+  opacity: 1;
+  visibility: visible;
+}
+// Left-anchored, not centered like the ⓘ bubble: the outcome sits at the row's far left, so a
+// centered bubble would clip off the viewport's left edge on narrow (phone-width) screens.
+.today-board__outcome-bubble {
+  @extend %popover-bubble;
+  left: 0;
+  transform: none;
+}
+.today-board__outcome-wrap:hover .today-board__outcome-bubble,
+.today-board__outcome-wrap:focus-within .today-board__outcome-bubble,
+.today-board__outcome-wrap--open .today-board__outcome-bubble {
   opacity: 1;
   visibility: visible;
 }
@@ -230,6 +250,31 @@
 
   small { font-size: 0.7rem; color: var(--color-text-muted); }
 }
+// A done row with a `nextReview` wraps the outcome in this popover — reveals `next <date>`
+// on hover/focus/tap instead of sitting inline as a chip (round 6). Own class names, never
+// shared with the workload ⓘ popover's `.today-board__info-*` (the spec queries that
+// popover by its own first-match selectors).
+.today-board__outcome-wrap {
+  position: relative;
+  display: inline-flex;
+}
+// Button reset — the outcome glyph pair must still read as plain content, not a button,
+// once it becomes one.
+.today-board__outcome-wrap .today-board__outcome {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  // `font-family`/`line-height` only, not the `font` shorthand — that shorthand also resets
+  // `font-size`, and this selector's higher specificity would then beat the base rule's own
+  // 1rem, shrinking the glyph pair on every dated row.
+  font-family: inherit;
+  line-height: inherit;
+  color: inherit;
+  cursor: pointer;
+
+  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+}
 .today-board__num { font-family: var(--font-mono); color: var(--color-text-muted); }
 .today-board__title { font-weight: 600; flex: 1 1 auto; }
 // A rescheduled ("moved") row gets a muted arrow ahead of its title — no color beyond the
@@ -250,8 +295,6 @@
 // A 🆕 intake row's chip — accent-dim so it reads as "new" without a new color.
 .tag--new { background: var(--color-accent-dim); color: var(--color-accent); border-color: transparent; }
 .tag--probe { font-style: italic; }
-// Matches .today-board__date's mono treatment — the Next-rep date is a date, not a label.
-.tag--next { font-family: var(--font-mono); }
 
 // LeetCode stays alone at the row's right edge — pushed there by the flex row's own wrap,
 // never adjacent to the solution glyph (which sits up by the title instead).

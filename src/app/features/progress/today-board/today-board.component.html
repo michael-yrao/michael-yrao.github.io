@@ -1,15 +1,39 @@
-<ng-template #itemRowTpl let-item>
+<ng-template #outcomeGlyphTpl let-item>
+  {{ item.startComfort ? item.startComfort + '→' + item.endComfort : item.endComfort }}
+  @if (item.endNote) {
+    <small>{{ item.endNote }}</small>
+  }
+</ng-template>
+
+<ng-template #itemRowTpl let-item let-date="date">
   <li class="today-board__row" [class.today-board__row--done]="item.done">
     <span class="today-board__check" [attr.aria-label]="item.done ? 'done' : 'not done'">{{
       item.done ? '✓' : '○'
     }}</span>
     @if (item.endComfort) {
-      <span class="today-board__outcome" [attr.aria-label]="'earned ' + item.endComfort + (item.endNote ? ' ' + item.endNote : '')">
-        {{ item.startComfort ? item.startComfort + '→' + item.endComfort : item.endComfort }}
-        @if (item.endNote) {
-          <small>{{ item.endNote }}</small>
-        }
-      </span>
+      @if (item.nextReview) {
+        <span
+          class="today-board__outcome-wrap"
+          [class.today-board__outcome-wrap--open]="isOutcomeOpen(item, date)"
+        >
+          <button
+            type="button"
+            class="today-board__outcome"
+            [attr.aria-label]="outcomeAriaLabel(item)"
+            [attr.aria-describedby]="outcomeBubbleId(item, date)"
+            (click)="toggleOutcome(outcomeKey(item, date))"
+          >
+            <ng-container [ngTemplateOutlet]="outcomeGlyphTpl" [ngTemplateOutletContext]="{ $implicit: item }" />
+          </button>
+          <span class="today-board__outcome-bubble" role="tooltip" [id]="outcomeBubbleId(item, date)">
+            next {{ shortMonthDay(item.nextReview) }}
+          </span>
+        </span>
+      } @else {
+        <span class="today-board__outcome" [attr.aria-label]="outcomeAriaLabel(item)">
+          <ng-container [ngTemplateOutlet]="outcomeGlyphTpl" [ngTemplateOutletContext]="{ $implicit: item }" />
+        </span>
+      }
     } @else if (item.startComfort) {
       <span class="today-board__comfort">{{ item.startComfort }}</span>
     }
@@ -38,12 +62,9 @@
     @if (item.difficulty) {
       <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
     }
-    @if (item.nextReview) {
-      <span class="tag tag--next">next {{ item.nextReview }}</span>
-    }
     <span class="today-board__links">
       @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
-        <a [href]="lc" target="_blank" rel="noopener">LeetCode ↗</a>
+        <a [href]="lc" target="_blank" rel="noopener" aria-label="Open on LeetCode" title="LeetCode">↗</a>
       }
     </span>
   </li>
@@ -70,7 +91,7 @@
       @for (row of rowsFor(day); track rowKey(row)) {
         <ng-container
           [ngTemplateOutlet]="isGateRow(row) ? gateRowTpl : itemRowTpl"
-          [ngTemplateOutletContext]="{ $implicit: row }"
+          [ngTemplateOutletContext]="{ $implicit: row, date: day.date }"
         />
       }
     </ul>

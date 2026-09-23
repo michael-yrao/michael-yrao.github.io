@@ -5,7 +5,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { Schedule, ScheduleDay, ScheduleItem } from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
-import { todayLocalISO } from '../../../core/utils/local-date';
+import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
 
 type WorkloadBand = 'Light' | 'Moderate' | 'Heavy';
 
@@ -187,6 +187,42 @@ export class TodayBoardComponent {
     this.infoOpen.update((v) => !v);
   }
 
+  // The done-row outcome popover — replaces the inline `next <date>` chip: the next-review
+  // date is hidden until hover/focus/tap on the outcome glyph pair. Keyed by day date + row
+  // (see outcomeKey()), not row alone, so at most one row's bubble is open at a time even in
+  // the expanded week view, where the same problem can appear done on two different days.
+  readonly openOutcomeKey = signal<string | null>(null);
+
+  toggleOutcome(key: string): void {
+    this.openOutcomeKey.update((current) => (current === key ? null : key));
+  }
+
+  isOutcomeOpen(item: ScheduleItem, date: string): boolean {
+    return this.openOutcomeKey() === this.outcomeKey(item, date);
+  }
+
+  /** A per-(day, row) key for the outcome popover's open state and bubble id: `rowKey()`
+   *  alone collides when the same problem is done on two different days (expanded week
+   *  view), so the day's own date is folded in too. Whitespace (`rowKey()` embeds the item's
+   *  title) is collapsed to a hyphen — required for a valid element id, and so
+   *  `aria-describedby`'s id list doesn't split on it. */
+  outcomeKey(item: ScheduleItem, date: string): string {
+    return `${date}-${this.rowKey(item)}`.replace(/\s+/g, '-');
+  }
+
+  outcomeBubbleId(item: ScheduleItem, date: string): string {
+    return `outcome-${this.outcomeKey(item, date)}`;
+  }
+
+  /** The outcome button's aria-label — "earned 🟢 s2" plus ", next review Oct 21" once a
+   *  `nextReview` is present. Only ever called once `item.endComfort` is already known truthy
+   *  (the template's own `@if`). */
+  outcomeAriaLabel(item: ScheduleItem): string {
+    const note = item.endNote ? ` ${item.endNote}` : '';
+    const base = `earned ${item.endComfort}${note}`;
+    return item.nextReview ? `${base}, next review ${shortMonthDay(item.nextReview)}` : base;
+  }
+
   selectDay(date: string): void {
     this.selectedDate.set(date);
   }
@@ -223,6 +259,7 @@ export class TodayBoardComponent {
   }
 
   protected readonly leetCodeUrlFor = leetCodeUrlFor;
+  protected readonly shortMonthDay = shortMonthDay;
   protected readonly isGateRow = isGateRow;
   protected readonly gateTitle = COMPLEXITY_GATE_TITLE;
 }
