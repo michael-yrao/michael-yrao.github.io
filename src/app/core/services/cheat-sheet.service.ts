@@ -2,10 +2,13 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
 
-import { CheatSheetsData, Technique, CHEAT_SHEETS_SCHEMA_VERSION } from '../models/cheat-sheet.model';
+import {
+  CheatSheetsData,
+  Technique,
+  CHEAT_SHEETS_SCHEMA_VERSION,
+} from '../models/cheat-sheet.model';
 import { ALL_ALGORITHMS } from '../data/algorithms.data';
-import { RepoRef, fetchRepoFile$, repoRefFromQuery } from './github-contents';
-import { DEFAULT_REPO, DEFAULT_BRANCH } from './progress.service';
+import { GitHubFileService, RepoRef, parseRepoSlug } from './github-file.service';
 
 export type CheatSheetLoadStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -19,8 +22,7 @@ const CHEAT_SHEETS_ASSET = 'assets/cheat-sheets.json';
 const CHEAT_SHEETS_FILE = 'dashboard/cheat-sheets.json';
 
 export type ProblemLink =
-  | { kind: 'internal'; commands: string[] }
-  | { kind: 'external'; url: string };
+  { kind: 'internal'; commands: string[] } | { kind: 'external'; url: string };
 
 /** A family with its techniques, in the order the family first appears in the JSON —
  *  matches `techniquesByFamily()`'s grouping and drives `learn-list`'s section order and the
@@ -39,6 +41,7 @@ export interface FamilyGroup {
 @Injectable({ providedIn: 'root' })
 export class CheatSheetService {
   private readonly http = inject(HttpClient);
+  private readonly github = inject(GitHubFileService);
 
   readonly status = signal<CheatSheetLoadStatus>('idle');
   readonly error = signal<string | null>(null);
@@ -101,14 +104,15 @@ export class CheatSheetService {
     this.source.set(null);
     this.repoRef.set(null);
 
-    const ref = repoRefFromQuery(repoOverride, DEFAULT_REPO, DEFAULT_BRANCH);
+    const ref = parseRepoSlug(repoOverride);
     if (!ref) {
       console.warn(`'${repoOverride}' isn't a repo slug; using the bundled cheat sheets.`);
       this.loadBundled();
       return;
     }
 
-    fetchRepoFile$<CheatSheetsData>(this.http, ref, CHEAT_SHEETS_FILE, false)
+    this.github
+      .fetch$<CheatSheetsData>(ref, CHEAT_SHEETS_FILE, false)
       .pipe(catchError(() => of(null)))
       .subscribe((result) => {
         const invalid = result ? this.invalidReason(result, CHEAT_SHEETS_FILE) : null;
