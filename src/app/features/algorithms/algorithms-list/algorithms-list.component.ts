@@ -8,6 +8,7 @@ import { AlgorithmMeta, Category, CATEGORY_LABELS, CATEGORY_ICONS, Difficulty } 
 import { NgClass } from '@angular/common';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
+import { GroundednessMeterComponent } from '../../../shared/components/groundedness-meter/groundedness-meter.component';
 
 interface CategoryCard {
   id: Category;
@@ -24,7 +25,7 @@ type ViewMode = 'categories' | 'all';
     templateUrl: './algorithms-list.component.html',
     styleUrls: ['./algorithms-list.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink, NgClass, PageHeaderComponent, LibrarySubnavComponent]
+    imports: [RouterLink, NgClass, PageHeaderComponent, LibrarySubnavComponent, GroundednessMeterComponent]
 })
 export class AlgorithmsListComponent implements OnInit, OnDestroy {
   category: Category | null = null;

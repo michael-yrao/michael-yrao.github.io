@@ -1,37 +1,9 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-progress: dsa/leetcode/heap/973_k_closest_points_to_origin.py
-const PYTHON_CODE = `import heapq
-import math
-
-class Solution:
-    def kClosest(self, points: List[List[int]], k: int) -> List[List[int]]:
-
-        def euclideanDistance(origin, destination):
-            x1, y1 = origin[0], origin[1]
-            x2, y2 = destination[0], destination[1]
-
-            return math.sqrt(((x2 - x1)**2 + (y2 - y1)**2))
-
-        # we want the kth smallest so that means we should have a max heap
-        # a max heap of size k
-        # we need to store distance -> (x,y) in the heap
-
-        maxHeap = []
-
-        for x, y in points:
-            dist = euclideanDistance((x,y),(0,0))
-            heapq.heappush(maxHeap, (-dist,(x,y)))
-            while len(maxHeap) > k:
-                heapq.heappop(maxHeap)
-
-        result = []
-
-        while maxHeap:
-            currentCoordinate = heapq.heappop(maxHeap)[1]
-            result.append((currentCoordinate[0],currentCoordinate[1]))
-
-        return result`;
+// Traces cse-progress's kClosest_20260703 verbatim: euclideanDistance(x, y) takes the raw
+// coordinates directly (not two points), the heap variable is named `heap` (not `maxHeap`),
+// and eviction is a `while len(heap) > k` guard run once per point pushed — since the heap
+// grows by exactly 1 per iteration, it always pops at most once here.
 
 function generateSteps(): Step[] {
   const points: [number, number][] = [[3, 3], [5, -1], [-2, 4]];
@@ -55,13 +27,13 @@ function generateSteps(): Step[] {
     pointers: activeIdx !== null ? [{ index: activeIdx, label: 'point' }] : [],
     counters: [
       { label: 'k', value: k },
-      { label: 'maxHeap (farthest on top)', value: heapStr() },
+      { label: 'heap (farthest on top)', value: heapStr() },
     ],
   });
 
   steps.push({
-    explanation: `Keep a MAX-heap of size k, keyed by distance from the origin. The farthest of the current k sits on top, so when a closer point arrives we evict the farthest. What survives is the k closest. (Python pushes (−dist, point) into a min-heap to mimic a max-heap.)`,
-    highlightLine: 13,
+    explanation: `Keep a size-k heap, keyed by distance from the origin. euclideanDistance(x, y) takes the coordinates directly. The farthest of the current k sits on top, so when a closer point arrives we evict the farthest. What survives is the k closest. (Python pushes (−distance, (x,y)) into a min-heap to mimic a max-heap.)`,
+    anchor: { match: 'heap = []' },
     state: snap(null),
     variables: [{ name: 'k', value: k }, { name: 'points', value: points.map(ptStr).join(', ') }],
   });
@@ -71,12 +43,12 @@ function generateSteps(): Step[] {
     heap.push(p);
     heap.sort((a, b) => d2(b) - d2(a));
     steps.push({
-      explanation: `Point ${ptStr(p)}: distance = √(${p[0]}² + ${p[1]}²) = ${dist(p)}. Push it onto the heap (size ${heap.length}).`,
-      highlightLine: 21,
+      explanation: `Point ${ptStr(p)}: distance = euclideanDistance(${p[0]}, ${p[1]}) = ${dist(p)}. Push (−distance, (x,y)) onto the heap (size ${heap.length}).`,
+      anchor: { match: 'heapq.heappush(heap,(-distance, (x,y)))' },
       state: snap(i),
       variables: [
         { name: 'point', value: ptStr(p), highlight: true },
-        { name: 'dist', value: dist(p) },
+        { name: 'distance', value: dist(p) },
         { name: 'heap size', value: heap.length },
       ],
     });
@@ -84,8 +56,8 @@ function generateSteps(): Step[] {
       const evicted = heap[0];
       heap = heap.slice(1);
       steps.push({
-        explanation: `Heap size ${heap.length + 1} > k=${k} → pop the farthest: ${ptStr(evicted)} (d=${dist(evicted)}). It can't be among the ${k} closest, so discard it.`,
-        highlightLine: 23,
+        explanation: `while len(heap) > k: len(heap)=${heap.length + 1} > k=${k} → pop the farthest: ${ptStr(evicted)} (d=${dist(evicted)}). It can't be among the ${k} closest, so discard it. (The heap only ever grows by 1 per point, so this while loop pops at most once here.)`,
+        anchor: { match: 'while len(heap) > k:' },
         state: snap(null),
         variables: [
           { name: 'evicted', value: ptStr(evicted), highlight: true },
@@ -98,7 +70,7 @@ function generateSteps(): Step[] {
   const result = heap.map(ptStr);
   steps.push({
     explanation: `Heap now holds the ${k} closest points: ${heap.map((p) => `${ptStr(p)}(d=${dist(p)})`).join(', ')}. Pop them into the result → [${result.join(', ')}]. O(n log k) time, O(k) space.`,
-    highlightLine: 31,
+    anchor: { match: 'while heap:', to: { match: 'result.append([x,y])' } },
     state: {
       type: 'array',
       cells: points.map((p) => ({ value: ptStr(p), state: inHeap(p) ? ('found' as const) : ('eliminated' as const) })),
@@ -113,7 +85,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Max-Heap (size k)',
-  pythonCode: PYTHON_CODE,
+  variant: 'max-heap-k',
   generateSteps,
   timeComplexity: 'O(n log k)',
   spaceComplexity: 'O(k)',

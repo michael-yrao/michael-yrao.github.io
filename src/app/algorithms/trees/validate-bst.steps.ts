@@ -1,44 +1,9 @@
-import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from collections import deque
-import math
-from typing import Optional
-
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-class Solution:
-    def isValidBST(self, root: Optional[TreeNode]) -> bool:
-        # valid BST means we need to compare current node's value to it's children or vice versa
-        # let's do this with iterative DFS
-        # we should keep track of what is allowed in current node
-        # from the root, we allow everything, so lower bound of -inf and upper bound of inf
-        # when we go left, the upper bound changes to root
-        # when we go right, the lower bound changes to root
-
-        stack = deque()
-        stack.append([root,-math.inf, math.inf])
-
-        while stack:
-            currentNode, low, high = stack.pop()
-            if not currentNode:
-                continue
-
-            # if current node not within bounds, return false
-            # currentNode.val must be greater than low
-            # currentNode.val must be less than high
-            if currentNode.val <= low or currentNode.val >= high:
-                return False
-
-            # current node is valid, update boundaries to children and add to stack
-            if currentNode.left:
-                stack.append([currentNode.left, low, currentNode.val])
-            if currentNode.right:
-                stack.append([currentNode.right, currentNode.val, high])
-        return True`;
+// Traces cse-progress's isValidBST_iterativeDFS verbatim: an explicit stack of
+// [node, low, high] frames, with `if not currentNode: continue` guarding every pop — always
+// False here since we only ever push real children onto the stack — same control flow as the
+// earlier hand simulation, only anchors change.
 
 // BST: [5, 3, 6, 2, 4, null, 7]
 const NODES: Omit<TreeNode, 'state'>[] = [
@@ -68,7 +33,7 @@ function generateSteps(): Step[] {
 
   const push = (
     explanation: string,
-    line: number,
+    anchor: StepAnchor,
     opts: {
       current?: string | null;
       vars?: { name: string; value: string | number; highlight?: boolean }[];
@@ -76,7 +41,7 @@ function generateSteps(): Step[] {
   ) => {
     steps.push({
       explanation,
-      highlightLine: line,
+      anchor,
       state: {
         type: 'tree',
         nodes: makeNodes(),
@@ -88,8 +53,8 @@ function generateSteps(): Step[] {
   };
 
   push(
-    'A BST is valid if every node sits inside an allowed range. The trick: carry a (low, high) bound down the tree. Going LEFT tightens the upper bound to the parent; going RIGHT tightens the lower bound to the parent. We do this iteratively with a stack of (node, low, high). Push the root with the widest range (−∞, +∞).',
-    21,
+    'A BST is valid if every node sits inside an allowed range. The trick: carry a (low, high) bound down the tree. Going LEFT tightens the upper bound to the parent; going RIGHT tightens the lower bound to the parent. We do this iteratively with a stack of [node, low, high]. stack.append([root,-math.inf, math.inf]) pushes the root with the widest range.',
+    { match: 'stack = deque()', to: { match: 'stack.append([root,-math.inf, math.inf])' } },
     { vars: [{ name: 'stack', value: '[(5: −∞<x<+∞)]' }] }
   );
 
@@ -101,10 +66,12 @@ function generateSteps(): Step[] {
 
     const inBounds = v > low && v < high;
     push(
-      `Pop node ${v} with allowed range (${fmt(low)}, ${fmt(high)}). Check ${fmt(low)} < ${v} < ${fmt(high)}? ${
+      `currentNode, low, high = stack.pop() → node ${v}, range (${fmt(low)}, ${fmt(high)}). if not currentNode: continue — False, it's a real node (we only ever pushed real children). Check ${fmt(low)} < ${v} < ${fmt(high)}? ${
         inBounds ? 'Yes ✓ — this node is valid so far.' : `No ✗ — ${v} violates its range, the tree is NOT a valid BST, return False.`
       }`,
-      inBounds ? 31 : 32,
+      inBounds
+        ? { match: 'currentNode, low, high = stack.pop()', to: { match: 'if currentNode.val <= low or currentNode.val >= high:' } }
+        : { match: 'if currentNode.val <= low or currentNode.val >= high:', to: { match: 'return False' } },
       {
         current: id,
         vars: [
@@ -136,7 +103,7 @@ function generateSteps(): Step[] {
     if (pushed.length) {
       push(
         `Node ${v} valid. Push its children with tightened bounds: ${pushed.join('; ')}. Stack is now ${stackStr()}.`,
-        node.rightId ? 38 : 36,
+        { match: 'if currentNode.left:', to: { match: 'stack.append([currentNode.right, currentNode.val, high])' } },
         { current: id, vars: pushed.map((p, i) => ({ name: `push ${i + 1}`, value: p })) }
       );
     }
@@ -146,7 +113,7 @@ function generateSteps(): Step[] {
     NODES.forEach((n) => (colour[n.id] = 'found'));
     push(
       'Stack is empty and no node ever broke its range — the tree is a valid BST, return True.',
-      39,
+      { match: 'return True' },
       { vars: [{ name: 'result', value: 'True', highlight: true }] }
     );
   }
@@ -179,7 +146,7 @@ export const validateBstMeta: AlgorithmMeta = {
   solutions: [
     {
       label: 'Iterative DFS with Bounds',
-      pythonCode: PYTHON_CODE,
+      variant: 'iterative-bounds',
       generateSteps,
     },
   ],

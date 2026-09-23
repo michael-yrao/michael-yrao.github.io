@@ -1,105 +1,10 @@
 import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solutions + comments sourced verbatim from cse-progress:
-// dsa/leetcode/graphs/261_graph_valid_tree.py  (validTree = DFS, validTree_20260619_UnionFind = Union Find)
-
-const PYTHON_CODE_DFS = `def validTree(self, n: int, edges: List[List[int]]) -> bool:
-    # so we basically need to return whether or not this has a cycle
-    # [[0,1],[1,2],[2,0]] would be invalid because 2 leads back to 0
-    # so we can have a visited set and do adjacency map based on the input
-    # we also need to verify all nodes are traversed since a disconnected node also means not a tree
-
-    # visited means we have already gone this route
-    # so we need to dfs on currentNode, parentNode
-    # this way we know which direction we went
-    visited = set()
-
-    adjMap = collections.defaultdict(list)
-
-    # notice that this is bidirectional
-    # so we have to do adjMap both ways
-    for firstNode, secondNode in edges:
-        adjMap[firstNode].append(secondNode)
-        adjMap[secondNode].append(firstNode)
-
-    def dfs(currentNode, parentNode):
-        # if we have seen this node, we are in a cycle thus return False
-        if currentNode in visited:
-            return False
-
-        # if we haven't seen this node yet
-        # let's add it to visited
-        visited.add(currentNode)
-
-        # now let's take a look at its neighbors
-        for neighbor in adjMap[currentNode]:
-            # neighbor will always have the same pair the opposite way
-            # so we need to ignore that one
-            if neighbor == parentNode:
-                continue
-            if not dfs(neighbor, currentNode):
-                return False
-        return True
-
-    return dfs(0,-1) and len(visited) == n`;
-
-const PYTHON_CODE_UF = `def validTree(self, n: int, edges: List[List[int]]) -> bool:
-    # a tree is non-cyclic and is connected to every node
-    # so we need to make sure we traversed through all nodes
-    # so we should have a counter for how many nodes we've visited
-    # we can actually use union find here
-    # so we need parent map and rank map
-    # from graph theory, we know that given n nodes
-    # there will always be n - 1 edges
-
-    if len(edges) != n - 1:
-        return False
-
-    parentMap = {}
-    rankMap = {}
-
-    # initialization phase
-    # set parent to self
-    # set rank to 0
-    for i in range(n):
-        parentMap[i] = i
-        rankMap[i] = 0
-
-    # find the root of node
-    # this is path compression
-    def find(node):
-        # base case
-        if parentMap[node] == node:
-            return parentMap[node]
-        # if we have an actual parent, let's find the root parent
-        parentMap[node] = find(parentMap[node])
-        return parentMap[node]
-
-    # see if we can merge two nodes without making a cycle
-    def union(node1, node2):
-        # we first find the root parent of both nodes
-        node1Root = find(node1)
-        node2Root = find(node2)
-        # if the root parents are the same, we are in a cycle
-        if node1Root == node2Root:
-            return False
-        # otherwise, we check the rank of each and merge them
-
-        if rankMap[node1Root] > rankMap[node2Root]:
-            parentMap[node2Root] = node1Root
-        elif rankMap[node2Root] > rankMap[node1Root]:
-            parentMap[node1Root] = node2Root
-        else:
-            # if equal rank, then pick a random one to be parent and promote rank
-            parentMap[node2Root] = node1Root
-            rankMap[node1Root] += 1
-        return True
-
-    for node1, node2 in edges:
-        if not union(node1, node2):
-            return False
-
-    return True`;
+// Traces cse-progress's two attempts verbatim:
+// - DFS variant → validTree_20260617: same structure as an earlier draft, just the
+//   parent parameter renamed parentNode → priorNode, and adjMap built before visited.
+// - Union Find variant → validTree_20260619_UnionFind: identical to the code already
+//   traced below (parentMap/rankMap/find/union/node1Root/node2Root) — only anchors change.
 
 const N = 5;
 const EDGE_LIST: [number, number][] = [[0, 1], [0, 2], [0, 3], [1, 4]];
@@ -149,8 +54,8 @@ function generateStepsDFS(): Step[] {
 
   steps.push({
     explanation:
-      "DFS approach: a graph is a valid tree iff it has no cycle AND every node is reachable. Build a bidirectional adjacency map, then DFS from node 0 while remembering the parent we came from. If we ever reach an already-visited node that isn't the parent, that's a cycle. At the end, len(visited) == n confirms everything is connected.",
-    highlightLine: 16,
+      "DFS approach: a graph is a valid tree iff it has no cycle AND every node is reachable. Build a bidirectional adjMap, then DFS from node 0 while remembering priorNode (the node we came from). If we ever reach an already-visited node that isn't priorNode, that's a cycle. At the end, len(visited) == n confirms everything is connected.",
+    anchor: { match: 'for node1, node2 in edges:', to: { match: 'adjMap[node2].append(node1)' } },
     state: mkState(null),
     variables: [
       { name: 'n', value: N },
@@ -165,8 +70,8 @@ function generateStepsDFS(): Step[] {
 
     if (visited.has(node)) {
       steps.push({
-        explanation: `dfs(${node}, parent=${parent}): node ${node} is ALREADY in visited, and we didn't get here via its parent — that means a cycle. Return False.`,
-        highlightLine: 22,
+        explanation: `dfs(${node}, priorNode=${parent}): node ${node} is ALREADY in visited, and we didn't get here via priorNode — that means a cycle. Return False.`,
+        anchor: { match: 'if currentNode in visited:' },
         state: mkState(node),
         variables: [
           { name: 'currentNode', value: node },
@@ -179,12 +84,12 @@ function generateStepsDFS(): Step[] {
 
     visited.add(node);
     steps.push({
-      explanation: `Call dfs(${node}, parent=${parent}) — push on the call stack (depth ${depth}). ${node} isn't in visited, so add it → visited = {${[...visited].sort((a, b) => a - b).join(', ')}}. Now look at ${node}'s neighbors: [${adj[node].join(', ')}].`,
-      highlightLine: 27,
+      explanation: `Call dfs(${node}, priorNode=${parent}) — push on the call stack (depth ${depth}). ${node} isn't in visited, so add it → visited = {${[...visited].sort((a, b) => a - b).join(', ')}}. Now look at adjMap[${node}]: [${adj[node].join(', ')}].`,
+      anchor: { match: 'visited.add(currentNode)' },
       state: mkState(node),
       variables: [
         { name: 'currentNode', value: node, highlight: true },
-        { name: 'parentNode', value: parent },
+        { name: 'priorNode', value: parent },
         { name: 'len(visited)', value: visited.size },
       ],
     });
@@ -192,8 +97,8 @@ function generateStepsDFS(): Step[] {
     for (const nb of adj[node]) {
       if (nb === parent) {
         steps.push({
-          explanation: `Neighbor ${nb} == parentNode ${parent} → skip it. This is just the undirected edge we arrived on, not a new path.`,
-          highlightLine: 33,
+          explanation: `Neighbor ${nb} == priorNode ${parent} → skip it. This is just the undirected edge we arrived on, not a new path.`,
+          anchor: { match: 'if neighbor == priorNode:' },
           state: mkState(node),
           variables: [
             { name: 'neighbor', value: nb },
@@ -205,8 +110,8 @@ function generateStepsDFS(): Step[] {
       const ei = edgeIdx(node, nb);
       es[ei] = 'active';
       steps.push({
-        explanation: `Neighbor ${nb} ≠ parentNode ${parent} → recurse into dfs(${nb}, ${node}).`,
-        highlightLine: 35,
+        explanation: `Neighbor ${nb} ≠ priorNode ${parent} → recurse into dfs(${nb}, ${node}).`,
+        anchor: { match: 'if not dfs(neighbor, currentNode):' },
         state: mkState(node),
         variables: [
           { name: 'currentNode', value: node },
@@ -218,7 +123,7 @@ function generateStepsDFS(): Step[] {
       if (!ok) { depth--; callStack.pop(); return false; }
       steps.push({
         explanation: `Back at node ${node}: dfs(${nb}) returned True (no cycle down that branch). Continue with ${node}'s remaining neighbors.`,
-        highlightLine: 35,
+        anchor: { match: 'if not dfs(neighbor, currentNode):' },
         state: mkState(node),
         variables: [{ name: 'back at', value: node, highlight: true }],
       });
@@ -227,7 +132,7 @@ function generateStepsDFS(): Step[] {
     depth--; callStack.pop();
     steps.push({
       explanation: `Node ${node} fully explored — no cycle among its neighbors. Return True and pop it off the call stack (depth now ${depth}).`,
-      highlightLine: 37,
+      anchor: { match: 'return True' },
       state: mkState(node),
       variables: [
         { name: 'return', value: 'True', highlight: true },
@@ -243,7 +148,7 @@ function generateStepsDFS(): Step[] {
     explanation: valid
       ? `dfs(0, -1) returned True (no cycle) AND len(visited) = ${visited.size} == n = ${N} (every node was reached → connected). Both conditions hold → it IS a valid tree. Return True.`
       : `Result fails: no-cycle=${ok}, len(visited)=${visited.size} vs n=${N}. Not a valid tree.`,
-    highlightLine: 39,
+    anchor: { match: 'return dfs(0,-1) and len(visited) == n' },
     state: mkState(null, valid),
     variables: [
       { name: 'no cycle', value: String(ok) },
@@ -279,7 +184,7 @@ function generateStepsUF(): Step[] {
 
   steps.push({
     explanation: 'A valid tree with n nodes must have exactly n−1 edges. len(edges)=4, n−1=4 → check passes, continue.',
-    highlightLine: 10,
+    anchor: { match: 'if len(edges) != n - 1:' },
     state: mkState(''),
     variables: [
       { name: 'n', value: 5 },
@@ -291,7 +196,7 @@ function generateStepsUF(): Step[] {
 
   steps.push({
     explanation: 'Initialize Union Find. parentMap[i]=i, rankMap[i]=0 — every node is its own root.',
-    highlightLine: 19,
+    anchor: { match: 'for i in range(n):', to: { match: 'rankMap[i] = 0' } },
     state: mkState(''),
     variables: [
       { name: 'parent', value: '[0,1,2,3,4]' },
@@ -302,7 +207,7 @@ function generateStepsUF(): Step[] {
   ns[0] = 'active'; ns[1] = 'active'; es[0] = 'active';
   steps.push({
     explanation: 'Edge [0,1]: find(0)=0, find(1)=1. Different roots → no cycle, safe to union.',
-    highlightLine: 36,
+    anchor: { match: 'node1Root = find(node1)', to: { match: 'node2Root = find(node2)' } },
     state: mkState('[0, 1]'),
     variables: [
       { name: 'node1Root', value: 0 },
@@ -313,8 +218,9 @@ function generateStepsUF(): Step[] {
   parent[1] = 0; rank[0] = 1;
   ns[0] = 'visited'; ns[1] = 'found'; es[0] = 'visited';
   steps.push({
-    explanation: 'Ranks equal → parentMap[1]=0, rankMap[0]→1. Node 1 is a child of root 0.',
-    highlightLine: 49,
+    explanation: 'Ranks equal → else branch: parentMap[1]=0, rankMap[0]→1. Node 1 is a child of root 0.',
+    // nth 2: the 1st 'parentMap[node2Root] = node1Root' is the if-branch's line, used below.
+    anchor: { match: 'parentMap[node2Root] = node1Root', nth: 2, to: { match: 'rankMap[node1Root] += 1' } },
     state: mkState('[0, 1]'),
     variables: [
       { name: 'parent[1]', value: 0, highlight: true },
@@ -325,7 +231,7 @@ function generateStepsUF(): Step[] {
   ns[2] = 'active'; es[1] = 'active';
   steps.push({
     explanation: 'Edge [0,2]: find(0)=0, find(2)=2. Different roots → no cycle.',
-    highlightLine: 36,
+    anchor: { match: 'node1Root = find(node1)', to: { match: 'node2Root = find(node2)' } },
     state: mkState('[0, 2]'),
     variables: [
       { name: 'node1Root', value: 0 },
@@ -336,8 +242,9 @@ function generateStepsUF(): Step[] {
   parent[2] = 0;
   ns[2] = 'found'; es[1] = 'visited';
   steps.push({
-    explanation: 'rank[0]=1 > rank[2]=0 → parentMap[2]=0. Component: {0,1,2} under root 0.',
-    highlightLine: 44,
+    explanation: 'rank[0]=1 > rank[2]=0 → if branch (the first check): parentMap[2]=0. Component: {0,1,2} under root 0.',
+    // nth 1: the if-branch's line; the 2nd hit is the else-branch (equal ranks).
+    anchor: { match: 'parentMap[node2Root] = node1Root', nth: 1 },
     state: mkState('[0, 2]'),
     variables: [{ name: 'parent[2]', value: 0, highlight: true }],
   });
@@ -345,7 +252,7 @@ function generateStepsUF(): Step[] {
   ns[3] = 'active'; es[2] = 'active';
   steps.push({
     explanation: 'Edge [0,3]: find(0)=0, find(3)=3. Different roots → no cycle.',
-    highlightLine: 36,
+    anchor: { match: 'node1Root = find(node1)', to: { match: 'node2Root = find(node2)' } },
     state: mkState('[0, 3]'),
     variables: [
       { name: 'node1Root', value: 0 },
@@ -356,8 +263,9 @@ function generateStepsUF(): Step[] {
   parent[3] = 0;
   ns[3] = 'found'; es[2] = 'visited';
   steps.push({
-    explanation: 'rank[0]=1 > rank[3]=0 → parentMap[3]=0. Component: {0,1,2,3} under root 0.',
-    highlightLine: 44,
+    explanation: 'rank[0]=1 > rank[3]=0 → if branch (the first check): parentMap[3]=0. Component: {0,1,2,3} under root 0.',
+    // nth 1: the if-branch's line; the 2nd hit is the else-branch (equal ranks).
+    anchor: { match: 'parentMap[node2Root] = node1Root', nth: 1 },
     state: mkState('[0, 3]'),
     variables: [{ name: 'parent[3]', value: 0, highlight: true }],
   });
@@ -365,7 +273,7 @@ function generateStepsUF(): Step[] {
   ns[1] = 'active'; ns[4] = 'active'; es[3] = 'active';
   steps.push({
     explanation: 'Edge [1,4]: find(1) → parentMap[1]=0 → parentMap[0]=0, and it compresses the path. find(4)=4. Roots 0 vs 4 → no cycle.',
-    highlightLine: 30,
+    anchor: { match: 'node1Root = find(node1)', to: { match: 'node2Root = find(node2)' } },
     state: mkState('[1, 4]'),
     variables: [
       { name: 'node1Root', value: '0 (path compression)' },
@@ -376,15 +284,17 @@ function generateStepsUF(): Step[] {
   parent[4] = 0;
   ns[1] = 'found'; ns[4] = 'found'; es[3] = 'visited';
   steps.push({
-    explanation: 'rank[0]=1 > rank[4]=0 → parentMap[4]=0. All 5 nodes share root 0.',
-    highlightLine: 44,
+    explanation: 'rank[0]=1 > rank[4]=0 → if branch (the first check): parentMap[4]=0. All 5 nodes share root 0.',
+    // nth 1: the if-branch's line; the 2nd hit is the else-branch (equal ranks).
+    anchor: { match: 'parentMap[node2Root] = node1Root', nth: 1 },
     state: mkState('[1, 4]'),
     variables: [{ name: 'parent[4]', value: 0, highlight: true }],
   });
 
   steps.push({
     explanation: 'All edges processed with no union ever hitting the same root — no cycle. With exactly n−1 edges and no cycle, the graph is connected. Return True.',
-    highlightLine: 57,
+    // nth 2: the 1st 'return True' is union()'s own return, used on a successful merge.
+    anchor: { match: 'return True', nth: 2 },
     state: mkState(''),
     variables: [{ name: 'result', value: 'True', highlight: true }],
   });
@@ -423,7 +333,7 @@ export const graphValidTreeMeta: AlgorithmMeta = {
   ],
   hint: 'A valid tree is connected with no cycles. DFS: walk from node 0 tracking the parent; revisiting a non-parent node means a cycle, and len(visited)==n proves connectivity. Union Find: exactly n−1 edges, and if any edge joins two nodes already in the same component there is a cycle.',
   solutions: [
-    { label: 'DFS', pythonCode: PYTHON_CODE_DFS, generateSteps: generateStepsDFS },
-    { label: 'Union Find', pythonCode: PYTHON_CODE_UF, generateSteps: generateStepsUF },
+    { label: 'DFS', variant: 'dfs', generateSteps: generateStepsDFS },
+    { label: 'Union Find', variant: 'union-find', generateSteps: generateStepsUF },
   ],
 };

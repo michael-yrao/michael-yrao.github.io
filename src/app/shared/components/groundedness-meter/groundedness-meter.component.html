@@ -1,0 +1,10 @@
+@if (status() === 'loading' || status() === 'idle') {
+  <span class="groundedness-meter groundedness-meter--loading" role="status"
+    >Checking groundedness…</span
+  >
+} @else if (status() === 'ready' && report()) {
+  <span class="groundedness-meter">
+    <strong>{{ report()!.grounded }}</strong> of <strong>{{ report()!.total }}</strong> walkthroughs
+    grounded in {{ repoSlug }} · {{ percent() }}%
+  </span>
+}

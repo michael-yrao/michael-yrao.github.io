@@ -1,59 +1,11 @@
 import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def reorderList(self, head: Optional[ListNode]) -> None:
-        # naive solution is to make a hashmap
-        # we can just loop through the list, construct hashmap of index -> node
-        # build new linked list with result
-        # L(0) -> L(n) -> L(1) -> L(n-1) -> L(2) -> L(n - 2)
-        # effectively we are merging L(n/2) with the reverse top half of L(n/2) interchangeably
-        # so first step is to find the middle of the linked list
-        # for this, we do floyd's cycle detection which puts slow at the middle
-        # then we reverse the second half of the linked list in place
-        # then we loop through with two pointers, one at beginning, one at middle and assign interchangeably
-        # also if we look at 1->2->3->4->5, we will notice that first half is 1,2,3 and second half is 4,5
-        # thus we can't use slow node from floyd's algorithm, we need slow.next for second half
-        # what an amazing problem!! floyd/reverse/merge all in one
-
-        # starting slow
-
-        slow = fast = head
-        while fast and fast.next:
-            slow = slow.next
-            fast = fast.next.next
-
-        # slow = middle of list
-        # slow.next = start of second half of list
-        current = slow.next
-        # split the two lists
-        slow.next = None
-        prev = None
-
-        while current:
-            temp = current.next
-            current.next = prev
-            prev = current
-            current = temp
-
-        # now that we have reversed, we just need to interchangeably swap the nodes
-        # current is null, prev is the actual new head of secondHalf
-
-        firstHalf, secondHalf = head, prev
-
-        # from 1,2,3,4,5, we know secondHalf is shorter
-        # thus we loop based on secondHalf
-
-        # 1,2,3
-        # 5,4
-        while secondHalf:
-            # like in all reordering problems, we store next for all lists we traverse
-            tmp1, tmp2 = firstHalf.next, secondHalf.next
-            # 1.next = 5
-            firstHalf.next = secondHalf
-            # 5.next = 2
-            secondHalf.next = tmp1
-            firstHalf = tmp1
-            secondHalf = tmp2`;
+// Traces cse-progress's reorderList_20260725 verbatim: phase 1 (find middle) is the same
+// slow/fast walk as the earlier hand simulation, but phase 2 renames current/temp to
+// traversal/nextNode and explicitly reassigns secondHead = prev after reversing, and phase 3
+// merges by mutating `head`/`secondHead` themselves (no separate firstHalf/secondHalf
+// variables) under `while head and secondHead:` — a condition that checks BOTH pointers,
+// not just secondHead.
 
 function generateSteps(): Step[] {
   const vals = [1, 2, 3, 4, 5];
@@ -75,7 +27,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Reorder [1→2→3→4→5] to [1→5→2→4→3]. Algorithm has 3 phases: (1) find the middle using slow/fast pointers, (2) reverse the second half in-place, (3) interleave-merge the two halves.',
-    highlightLine: 1,
+    anchor: { match: 'def reorderList_20260725(self, head: Optional[ListNode]) -> None:' },
     state: {
       type: 'linked-list',
       nodes: makeLinear(vals, {}),
@@ -87,8 +39,8 @@ function generateSteps(): Step[] {
   // ── Phase 1: Find Middle ───────────────────────────────────────────────────
   steps.push({
     explanation:
-      'Phase 1 — Find Middle. slow and fast start at head. slow advances 1 step, fast advances 2 steps per iteration. When fast reaches the end, slow is at the middle.',
-    highlightLine: 18,
+      'Phase 1 — Find Middle. slow, fast = head, head. slow advances 1 step, fast advances 2 steps per iteration. When fast (or fast.next) is None, slow is at the middle.',
+    anchor: { match: 'slow, fast = head, head' },
     state: {
       type: 'linked-list',
       nodes: makeLinear(vals, { 0: 'curr', }),
@@ -108,8 +60,8 @@ function generateSteps(): Step[] {
     fast += 2;
 
     steps.push({
-      explanation: `slow → ${vals[slow]}, fast → ${fast < vals.length ? vals[fast] : 'null'} (moved 2 steps). fast still has next — continue.`,
-      highlightLine: 19,
+      explanation: `slow = slow.next → ${vals[slow]}. fast = fast.next.next → ${fast < vals.length ? vals[fast] : 'null'} (moved 2 steps). fast and fast.next still truthy — continue.`,
+      anchor: { match: 'while fast and fast.next:', to: { match: 'fast = fast.next.next' } },
       state: {
         type: 'linked-list',
         nodes: makeLinear(vals, { [slow]: 'curr', [fast]: 'next-node' }),
@@ -126,8 +78,8 @@ function generateSteps(): Step[] {
   }
 
   steps.push({
-    explanation: `fast.next is null — slow is at the middle (node ${vals[slow]}). The second half starts at slow.next (node ${vals[slow + 1]}). We cut the list here: slow.next = None.`,
-    highlightLine: 23,
+    explanation: `fast (or fast.next) is None — slow is at the middle (node ${vals[slow]}). secondHead = slow.next (node ${vals[slow + 1]}), then slow.next = None cuts the two halves apart.`,
+    anchor: { match: 'secondHead = slow.next', to: { match: 'slow.next = None' } },
     state: {
       type: 'linked-list',
       nodes: makeLinear(vals, { [slow]: 'active' }),
@@ -147,8 +99,8 @@ function generateSteps(): Step[] {
   // ── Phase 2: Reverse Second Half ──────────────────────────────────────────
   steps.push({
     explanation:
-      `Phase 2 — Reverse second half [${secondHalfVals.join('→')}]. We reverse in-place using prev/current pointers. Result will be [${[...secondHalfVals].reverse().join('→')}].`,
-    highlightLine: 27,
+      `Phase 2 — Reverse second half [${secondHalfVals.join('→')}]. traversal = secondHead, prev = None; we reverse in-place using traversal/prev pointers. Result will be [${[...secondHalfVals].reverse().join('→')}].`,
+    anchor: { match: 'traversal = secondHead', to: { match: 'prev = None' } },
     state: {
       type: 'linked-list',
       nodes: [
@@ -166,12 +118,12 @@ function generateSteps(): Step[] {
         })),
       ],
       pointers: [
-        { nodeId: 's0', label: 'current' },
+        { nodeId: 's0', label: 'traversal' },
         { nodeId: null, label: 'prev' },
       ],
     },
     variables: [
-      { name: 'current.val', value: secondHalfVals[0] },
+      { name: 'traversal.val', value: secondHalfVals[0] },
       { name: 'prev', value: 'None' },
     ],
   });
@@ -179,7 +131,7 @@ function generateSteps(): Step[] {
   const reversedSecond = [...secondHalfVals].reverse(); // [5, 4]
 
   // Reverse the second half in-place, ONE step per iteration of the while loop
-  // (temp = current.next; current.next = prev; prev = current; current = temp).
+  // (nextNode = traversal.next; traversal.next = prev; prev = traversal; traversal = nextNode).
   const shIds = secondHalfVals.map((_, i) => `s${i}`); // s0=4, s1=5
   const shVal: Record<string, number> = {};
   const shNext: Record<string, string | null> = {};
@@ -220,20 +172,20 @@ function generateSteps(): Step[] {
       shNext[curId] = prevId; // reverse this node's pointer
       const curVal = shVal[curId];
       steps.push({
-        explanation: `Reverse iteration ${it}: temp = current.next = ${temp ? shVal[temp] : 'null'}. Point current (${curVal}).next back to prev (${prevId ? shVal[prevId] : 'None'}). Then advance: prev → ${curVal}, current → ${temp ? shVal[temp] : 'null'}.`,
-        highlightLine: 31,
+        explanation: `Reverse iteration ${it}: nextNode = traversal.next = ${temp ? shVal[temp] : 'null'}. Point traversal (${curVal}).next back to prev (${prevId ? shVal[prevId] : 'None'}). Then advance: prev → ${curVal}, traversal → ${temp ? shVal[temp] : 'null'}.`,
+        anchor: { match: 'while traversal:', to: { match: 'traversal = nextNode' } },
         state: {
           type: 'linked-list',
           nodes: [...firstHalfNodes(), ...renderReverse(curId, temp)],
           pointers: [
             { nodeId: curId, label: 'prev (new head)' },
-            { nodeId: temp, label: 'current' },
+            { nodeId: temp, label: 'traversal' },
           ],
         },
         variables: [
-          { name: 'current', value: curVal, highlight: true },
+          { name: 'traversal', value: curVal, highlight: true },
           { name: 'prev', value: prevId ? shVal[prevId] : 'None' },
-          { name: 'temp', value: temp ? shVal[temp] : 'null' },
+          { name: 'nextNode', value: temp ? shVal[temp] : 'null' },
         ],
       });
       prevId = curId;
@@ -241,19 +193,19 @@ function generateSteps(): Step[] {
     }
 
     steps.push({
-      explanation: `current is null — reversal done. prev (node ${shVal[prevId!]}) is the new head of the second half: [${reversedSecond.join('→')}].`,
-      highlightLine: 31,
+      explanation: `traversal is None — reversal done. secondHead = prev (node ${shVal[prevId!]}) becomes the new head of the second half: [${reversedSecond.join('→')}].`,
+      anchor: { match: 'secondHead = prev' },
       state: {
         type: 'linked-list',
         nodes: [...firstHalfNodes(), ...renderReverse(prevId, null)],
         pointers: [
           { nodeId: 'n0', label: 'head (firstHalf)' },
-          { nodeId: prevId, label: 'prev (secondHalf)' },
+          { nodeId: prevId, label: 'secondHead' },
         ],
       },
       variables: [
         { name: 'firstHalf', value: firstHalfVals.join('→') },
-        { name: 'secondHalf', value: reversedSecond.join('→'), highlight: true },
+        { name: 'secondHead', value: reversedSecond.join('→'), highlight: true },
       ],
     });
   }
@@ -261,8 +213,8 @@ function generateSteps(): Step[] {
   // ── Phase 3: Interleave Merge ──────────────────────────────────────────────
   steps.push({
     explanation:
-      'Phase 3 — Interleave merge. firstHalf = [1→2→3], secondHalf = [5→4]. We alternate: take one from firstHalf, then one from secondHalf, repeating until secondHalf is exhausted.',
-    highlightLine: 37,
+      'Phase 3 — Interleave merge. head = [1→2→3], secondHead = [5→4] — the SAME head pointer is reused, not a separate firstHalf variable. while head and secondHead: checks BOTH are still set (secondHead runs out first since it is never longer).',
+    anchor: { match: 'while head and secondHead:' },
     state: {
       type: 'linked-list',
       nodes: [
@@ -280,13 +232,13 @@ function generateSteps(): Step[] {
         })),
       ],
       pointers: [
-        { nodeId: 'n0', label: 'firstHalf' },
-        { nodeId: 'r0', label: 'secondHalf' },
+        { nodeId: 'n0', label: 'head' },
+        { nodeId: 'r0', label: 'secondHead' },
       ],
     },
     variables: [
-      { name: 'firstHalf', value: firstHalfVals.join('→') },
-      { name: 'secondHalf', value: reversedSecond.join('→') },
+      { name: 'head', value: firstHalfVals.join('→') },
+      { name: 'secondHead', value: reversedSecond.join('→') },
     ],
   });
 
@@ -294,18 +246,22 @@ function generateSteps(): Step[] {
   // merge: 1→5→2→4→3
   const mergeOrder = [1, 5, 2, 4, 3];
   const mergeSteps = [
-    { done: [1, 5], f: 2, s: 4, explanation: 'Place 1, then 5 after it (1→5). Advance firstHalf to 2, secondHalf to 4.' },
-    { done: [1, 5, 2, 4], f: 3, s: null, explanation: 'Place 2, then 4 after it (…→2→4). Advance firstHalf to 3, secondHalf exhausted.' },
-    { done: [1, 5, 2, 4, 3], f: null, s: null, explanation: 'secondHalf is null — loop ends. firstHalf (3) remains as the tail. Result: [1→5→2→4→3].' },
+    {
+      done: [1, 5], f: 2, s: 4,
+      explanation: 'head and secondHead both truthy → enter. headNext=2, secondHeadNext=4. head.next=secondHead (1→5), secondHead.next=headNext (5→2). head=headNext (2), secondHead=secondHeadNext (4).',
+    },
+    {
+      done: [1, 5, 2, 4], f: 3, s: null,
+      explanation: 'head and secondHead both truthy → enter. headNext=3, secondHeadNext=None. head.next=secondHead (2→4), secondHead.next=headNext (4→3). head=headNext (3), secondHead=secondHeadNext (None).',
+    },
   ];
 
   for (const ms of mergeSteps) {
-    const allVals = ms.done.concat(ms.f !== null ? [ms.f] : []).concat(ms.s !== null ? [ms.s] : []);
     const doneSet = new Set(ms.done);
 
     steps.push({
       explanation: ms.explanation,
-      highlightLine: 46,
+      anchor: { match: 'headNext = head.next', to: { match: 'secondHead = secondHeadNext' } },
       state: {
         type: 'linked-list',
         nodes: mergeOrder.map((v, i) => ({
@@ -321,23 +277,39 @@ function generateSteps(): Step[] {
             : ('default' as const),
         })),
         pointers: [
-          ...(ms.f !== null ? [{ nodeId: `m${mergeOrder.indexOf(ms.f)}`, label: 'firstHalf' }] : []),
-          ...(ms.s !== null ? [{ nodeId: `m${mergeOrder.indexOf(ms.s)}`, label: 'secondHalf' }] : []),
+          ...(ms.f !== null ? [{ nodeId: `m${mergeOrder.indexOf(ms.f)}`, label: 'head' }] : []),
+          ...(ms.s !== null ? [{ nodeId: `m${mergeOrder.indexOf(ms.s)}`, label: 'secondHead' }] : []),
         ],
       },
       variables: [
-        { name: 'firstHalf', value: ms.f ?? 'null' },
-        { name: 'secondHalf', value: ms.s ?? 'null' },
+        { name: 'head', value: ms.f ?? 'null' },
+        { name: 'secondHead', value: ms.s ?? 'null' },
       ],
     });
   }
+
+  steps.push({
+    explanation: 'head=3 is truthy but secondHead=None is falsy — while head and secondHead: fails, loop ends. head (3) remains as the tail, already linked from the last iteration. Result: [1→5→2→4→3]. No return statement — head is reordered in place.',
+    anchor: { match: 'while head and secondHead:' },
+    state: {
+      type: 'linked-list',
+      nodes: mergeOrder.map((v, i) => ({
+        id: `m${i}`,
+        value: v,
+        nextId: i < mergeOrder.length - 1 ? `m${i + 1}` : null,
+        state: 'done' as const,
+      })),
+      pointers: [],
+    },
+    variables: [{ name: 'result', value: mergeOrder.join('→'), highlight: true }],
+  });
 
   return steps;
 }
 
 const solution: SolutionVariant = {
   label: 'Find Middle + Reverse + Merge',
-  pythonCode: PYTHON_CODE,
+  variant: 'mid-reverse-merge',
   generateSteps,
 };
 

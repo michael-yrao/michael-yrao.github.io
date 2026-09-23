@@ -26,7 +26,7 @@
         <h1 class="problem-page__title">
           <a
             class="problem-page__title-link"
-            href="https://leetcode.com/problems/{{ problem.id }}/"
+            [href]="titleUrl"
             target="_blank"
             rel="noopener noreferrer"
             title="View on LeetCode"
@@ -235,15 +235,16 @@
           <!-- Code ────────────────────────────────────────────────────── -->
           @if (showCode) {
             <div class="problem-page__panel">
-              @if (activeSolution?.pythonCode) {
-                <section class="problem-page__section">
-                  <div class="section-label">{{ activeSolution!.label || 'Solution' }}</div>
-                  <app-code-viewer
-                    [code]="activeSolution!.pythonCode"
-                    [activeLine]="started ? currentStep?.highlightLine : undefined"
-                  ></app-code-viewer>
-                </section>
-              }
+              <app-grounded-code-panel
+                [status]="showcase.status()"
+                [error]="showcase.error()"
+                [entry]="entry"
+                [rows]="rows"
+                [activeRange]="started ? resolved[currentStepIndex]?.range : undefined"
+                [groundedness]="groundedness"
+                [label]="activeSolution!.label || 'Solution'"
+                (retry)="retryShowcase()"
+              ></app-grounded-code-panel>
             </div>
           }
         </div>

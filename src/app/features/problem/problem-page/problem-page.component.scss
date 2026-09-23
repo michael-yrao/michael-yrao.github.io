@@ -228,6 +228,27 @@
   color: var(--color-text-muted);
 }
 
+// ── Showcase (grounded solution code) — plan B5 ───────────────
+// Only the TRANSITIONAL legacy badge lives here — grounded/skeleton/error/retry/no-showcase
+// moved to <app-grounded-code-panel> on review (DRY + this file's style budget).
+.section-label-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.legacy-badge {
+  padding: 2px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: help;
+}
+
 // ── Viz stage: canvas + floating "?" explanation ──
 .viz-stage { position: relative; }
 

@@ -48,6 +48,16 @@ jobs:
       - name: Unit tests
         run: npx ng test --watch=false
 
+      # This URL is the workflow's one copy of GOLD_STANDARD_REPO
+      # (src/app/core/services/github-file.service.ts) — michael-yrao/cse-progress@main.
+      - name: Fetch showcase contract
+        run: curl -fsSL https://raw.githubusercontent.com/michael-yrao/cse-progress/main/dashboard/showcase.json -o "$RUNNER_TEMP/showcase.json"
+
+      - name: Groundedness check
+        run: npm run check:groundedness
+        env:
+          SHOWCASE_JSON: ${{ runner.temp }}/showcase.json
+
       - name: Build (production)
         run: npm run build
 

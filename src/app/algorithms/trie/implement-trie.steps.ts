@@ -1,46 +1,24 @@
-import { AlgorithmMeta, SolutionVariant, Step, GraphState, GraphNode, GraphEdge, StepVariable, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, GraphState, GraphNode, GraphEdge, StepVariable, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-progress: dsa/leetcode/trie/208_implement_trie_prefix_tree.py
-const PYTHON_CODE = `class TrieNode:
-    def __init__(self):
-        # char -> TrieNode map
-        self.children = {}
-        # does a word end here
-        self.isEnd = False
-
-class Trie:
-    def __init__(self):
-        self.root = TrieNode()
-
-    def insert(self, word: str) -> None:
-        inc = self.root
-        for char in word:
-            # if we haven't seen this char yet
-            # append to inc.children as a new child
-            if char not in inc.children:
-                inc.children[char] = TrieNode()
-            # when we are here, the char is guaranteed in the Trie so we go down the trie
-            inc = inc.children[char]
-        # when we finish, mark inc.isEnd as True
-        inc.isEnd = True
-
-    def search(self, word: str) -> bool:
-        inc = self.root
-        for char in word:
-            if char not in inc.children:
-                return False
-            # if it is, we step down the inc
-            inc = inc.children[char]
-        return inc.isEnd
-
-    def startsWith(self, prefix: str) -> bool:
-        inc = self.root
-        for char in prefix:
-            if char not in inc.children:
-                return False
-            # if it is, we step down the inc
-            inc = inc.children[char]
-        return True`;
+// Traces cse-progress's Trie + helper TrieNode verbatim (dsa/leetcode/trie/208_implement_trie_prefix_tree.py).
+// Anchors below reuse the same section for insert's create-vs-reuse branches (nth 1),
+// search's branch (nth 2) and startsWith's branch (nth 3) — the check-and-descend
+// lines are byte-identical across all three methods.
+const INSERT_CHECK_TO_DESCEND: StepAnchor = {
+  match: 'if char not in inc.children:',
+  nth: 1, // 1st hit: insert() (search has the 2nd, startsWith the 3rd)
+  to: { match: 'inc = inc.children[char]', nth: 1 },
+};
+const SEARCH_CHECK_TO_DESCEND: StepAnchor = {
+  match: 'if char not in inc.children:',
+  nth: 2, // 2nd hit: search() (insert has the 1st, startsWith the 3rd)
+  to: { match: 'inc = inc.children[char]', nth: 2 },
+};
+const STARTSWITH_CHECK_TO_DESCEND: StepAnchor = {
+  match: 'if char not in inc.children:',
+  nth: 3, // 3rd hit: startsWith() (insert has the 1st, search the 2nd)
+  to: { match: 'inc = inc.children[char]', nth: 3 },
+};
 
 // ── Static layout for the trie built during this walkthrough ─────────────────
 // We insert "apple", "app", "bad" — this branches at the root (a / b) and marks
@@ -80,7 +58,7 @@ function generateSteps(): Step[] {
 
   const mk = (
     explanation: string,
-    line: number,
+    anchor: StepAnchor,
     activeId: string,
     path: string[],
     result?: string,
@@ -107,7 +85,7 @@ function generateSteps(): Step[] {
       }));
     return {
       explanation,
-      highlightLine: line,
+      anchor,
       state: {
         type: 'graph',
         nodes,
@@ -125,7 +103,7 @@ function generateSteps(): Step[] {
   steps.push(
     mk(
       'A trie (prefix tree) stores words character by character. Every node is a TrieNode with a children map (char → node) and an isEnd flag marking where a word finishes. We start with just an empty root. Word-end nodes are drawn with a ✓.',
-      11,
+      { match: 'class TrieNode:', to: { match: 'self.isEnd = False' } },
       'root',
       [],
       undefined,
@@ -139,7 +117,7 @@ function generateSteps(): Step[] {
   // ── insert("apple") ─────────────────────────────────────────────────────────
   opLabel = 'insert("apple")';
   steps.push(
-    mk('insert("apple"): start the cursor inc at the root, then walk one character at a time.', 14, 'root', ['root'], undefined, [
+    mk('insert("apple"): start the cursor inc at the root, then walk one character at a time.', { match: 'def insert(self, word: str) -> None:' }, 'root', ['root'], undefined, [
       { name: 'word', value: '"apple"' },
       { name: 'inc', value: 'root' },
     ])
@@ -155,8 +133,8 @@ function generateSteps(): Step[] {
       walked.push(id);
       steps.push(
         mk(
-          `char '${ch}': '${ch}' is not in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → create a new TrieNode for it (line 18), then descend: inc = inc.children['${ch}'] (line 20).`,
-          18,
+          `char '${ch}': '${ch}' is not in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → create a new TrieNode for it, then descend: inc = inc.children['${ch}'].`,
+          INSERT_CHECK_TO_DESCEND,
           id,
           walked,
           undefined,
@@ -173,7 +151,7 @@ function generateSteps(): Step[] {
     steps.push(
       mk(
         'End of word: mark inc.isEnd = True. The node holding \'e\' now terminates the word "apple" (shown with ✓).',
-        22,
+        { match: 'inc.isEnd = True' },
         'apple',
         walked,
         undefined,
@@ -184,7 +162,7 @@ function generateSteps(): Step[] {
 
   // ── insert("app") — reuses existing nodes, marks an INTERNAL end ─────────────
   opLabel = 'insert("app")';
-  steps.push(mk('insert("app"): reset inc to root. Notice "app" shares the prefix we already built.', 14, 'root', ['root'], undefined, [
+  steps.push(mk('insert("app"): reset inc to root. Notice "app" shares the prefix we already built.', { match: 'def insert(self, word: str) -> None:' }, 'root', ['root'], undefined, [
     { name: 'word', value: '"app"' },
     { name: 'inc', value: 'root' },
   ]));
@@ -198,8 +176,8 @@ function generateSteps(): Step[] {
       walked.push(id); // already revealed — char in children, no new node
       steps.push(
         mk(
-          `char '${ch}': '${ch}' is already in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → skip the create (line 17 is false), just descend (line 20). No new node is added.`,
-          20,
+          `char '${ch}': '${ch}' is already in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → the check is false, so skip the create, just descend. No new node is added.`,
+          INSERT_CHECK_TO_DESCEND,
           id,
           walked,
           undefined,
@@ -216,7 +194,7 @@ function generateSteps(): Step[] {
     steps.push(
       mk(
         'Mark inc.isEnd = True on the second \'p\'. This is an INTERNAL node — it still has a child \'l\' leading to "apple" — proving a word can end in the middle of a longer path.',
-        22,
+        { match: 'inc.isEnd = True' },
         'app',
         walked,
         undefined,
@@ -227,7 +205,7 @@ function generateSteps(): Step[] {
 
   // ── insert("bad") — a second branch off the root ────────────────────────────
   opLabel = 'insert("bad")';
-  steps.push(mk('insert("bad"): reset inc to root. \'b\' is a brand-new branch off the root.', 14, 'root', ['root'], undefined, [
+  steps.push(mk('insert("bad"): reset inc to root. \'b\' is a brand-new branch off the root.', { match: 'def insert(self, word: str) -> None:' }, 'root', ['root'], undefined, [
     { name: 'word', value: '"bad"' },
     { name: 'inc', value: 'root' },
   ]));
@@ -242,8 +220,8 @@ function generateSteps(): Step[] {
       walked.push(id);
       steps.push(
         mk(
-          `char '${ch}': not in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → create a new TrieNode (line 18) and descend (line 20).`,
-          18,
+          `char '${ch}': not in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → create a new TrieNode and descend.`,
+          INSERT_CHECK_TO_DESCEND,
           id,
           walked,
           undefined,
@@ -258,7 +236,7 @@ function generateSteps(): Step[] {
     }
     ends.add('bad');
     steps.push(
-      mk('Mark inc.isEnd = True on \'d\'. "bad" is stored in its own branch, sharing nothing with the "app…" branch.', 22, 'bad', walked, undefined, [
+      mk('Mark inc.isEnd = True on \'d\'. "bad" is stored in its own branch, sharing nothing with the "app…" branch.', { match: 'inc.isEnd = True' }, 'bad', walked, undefined, [
         { name: 'inc.isEnd', value: 'True', highlight: true },
       ])
     );
@@ -266,7 +244,7 @@ function generateSteps(): Step[] {
 
   // ── search("app") → True ────────────────────────────────────────────────────
   opLabel = 'search("app")';
-  steps.push(mk('search("app"): reset inc to root and walk each character, checking it exists.', 25, 'root', ['root'], undefined, [
+  steps.push(mk('search("app"): reset inc to root and walk each character, checking it exists.', { match: 'def search(self, word: str) -> bool:' }, 'root', ['root'], undefined, [
     { name: 'word', value: '"app"' },
   ]));
   {
@@ -278,8 +256,8 @@ function generateSteps(): Step[] {
       walked.push(id);
       steps.push(
         mk(
-          `char '${ch}': '${ch}' is in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children (line 27 false) → step down (line 30).`,
-          30,
+          `char '${ch}': '${ch}' is in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → the not-in check is false → step down.`,
+          SEARCH_CHECK_TO_DESCEND,
           id,
           walked,
           undefined,
@@ -294,7 +272,7 @@ function generateSteps(): Step[] {
     steps.push(
       mk(
         'Reached the end of "app" at the second \'p\'. return inc.isEnd → True: we marked this node as a word-end during insert("app").',
-        31,
+        { match: 'return inc.isEnd' },
         'app',
         walked,
         'True',
@@ -305,7 +283,7 @@ function generateSteps(): Step[] {
 
   // ── search("ap") → False (node exists but isEnd is False) ───────────────────
   opLabel = 'search("ap")';
-  steps.push(mk('search("ap"): reset inc to root.', 25, 'root', ['root'], undefined, [{ name: 'word', value: '"ap"' }]));
+  steps.push(mk('search("ap"): reset inc to root.', { match: 'def search(self, word: str) -> bool:' }, 'root', ['root'], undefined, [{ name: 'word', value: '"ap"' }]));
   {
     const ids = PATH['app'].slice(0, 2); // a, ap
     const walked: string[] = ['root'];
@@ -314,7 +292,7 @@ function generateSteps(): Step[] {
       const ch = POS[id].char;
       walked.push(id);
       steps.push(
-        mk(`char '${ch}': found in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → step down (line 30).`, 30, id, walked, undefined, [
+        mk(`char '${ch}': found in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → step down.`, SEARCH_CHECK_TO_DESCEND, id, walked, undefined, [
           { name: 'char', value: `'${ch}'`, highlight: true },
           { name: 'inc', value: `'${ch}'` },
         ])
@@ -324,7 +302,7 @@ function generateSteps(): Step[] {
     steps.push(
       mk(
         'End of "ap" at the first \'p\'. return inc.isEnd → False: this node exists, but "ap" was only ever a prefix — never inserted as a whole word. search is strict about isEnd; startsWith is not.',
-        31,
+        { match: 'return inc.isEnd' },
         'ap',
         walked,
         'False',
@@ -335,7 +313,7 @@ function generateSteps(): Step[] {
 
   // ── search("bat") → False (missing child) ───────────────────────────────────
   opLabel = 'search("bat")';
-  steps.push(mk('search("bat"): reset inc to root.', 25, 'root', ['root'], undefined, [{ name: 'word', value: '"bat"' }]));
+  steps.push(mk('search("bat"): reset inc to root.', { match: 'def search(self, word: str) -> bool:' }, 'root', ['root'], undefined, [{ name: 'word', value: '"bat"' }]));
   {
     const walk: [string, string][] = [['b', 'b'], ['a', 'ba']]; // char, id
     const walked: string[] = ['root'];
@@ -343,7 +321,7 @@ function generateSteps(): Step[] {
     for (const [ch, id] of walk) {
       walked.push(id);
       steps.push(
-        mk(`char '${ch}': found in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → step down (line 30).`, 30, id, walked, undefined, [
+        mk(`char '${ch}': found in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → step down.`, SEARCH_CHECK_TO_DESCEND, id, walked, undefined, [
           { name: 'char', value: `'${ch}'`, highlight: true },
           { name: 'inc', value: `'${ch}'` },
         ])
@@ -352,8 +330,8 @@ function generateSteps(): Step[] {
     }
     steps.push(
       mk(
-        "char 't': node 'a' (in the \"ba…\" branch) has only one child, 'd'. 't' is not in inc.children → return False immediately (line 28). No point scanning further.",
-        28,
+        "char 't': node 'a' (in the \"ba…\" branch) has only one child, 'd'. 't' is not in inc.children → return False immediately. No point scanning further.",
+        { match: 'return False', nth: 1 }, // 1st hit: search() (startsWith has the 2nd)
         'ba',
         walked,
         'False',
@@ -367,7 +345,7 @@ function generateSteps(): Step[] {
 
   // ── startsWith("app") → True ────────────────────────────────────────────────
   opLabel = 'startsWith("app")';
-  steps.push(mk('startsWith("app"): reset inc to root. Same walk as search, but the ending rule differs.', 34, 'root', ['root'], undefined, [
+  steps.push(mk('startsWith("app"): reset inc to root. Same walk as search, but the ending rule differs.', { match: 'def startsWith(self, prefix: str) -> bool:' }, 'root', ['root'], undefined, [
     { name: 'prefix', value: '"app"' },
   ]));
   {
@@ -378,7 +356,7 @@ function generateSteps(): Step[] {
       const ch = POS[id].char;
       walked.push(id);
       steps.push(
-        mk(`char '${ch}': in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → step down (line 39).`, 39, id, walked, undefined, [
+        mk(`char '${ch}': in ${POS[prevId].char === '•' ? 'root' : `'${POS[prevId].char}'`}.children → step down.`, STARTSWITH_CHECK_TO_DESCEND, id, walked, undefined, [
           { name: 'char', value: `'${ch}'`, highlight: true },
           { name: 'inc', value: `'${ch}'` },
         ])
@@ -388,7 +366,7 @@ function generateSteps(): Step[] {
     steps.push(
       mk(
         'Every character of "app" matched an existing node. startsWith does NOT check isEnd — simply reaching the end of the prefix means some word has it as a prefix. return True.',
-        40,
+        { match: 'return True' },
         'app',
         walked,
         'True',
@@ -402,7 +380,7 @@ function generateSteps(): Step[] {
   steps.push(
     mk(
       'The finished trie stores "apple", "app", and "bad" with shared prefixes collapsed into shared paths. Each insert / search / startsWith walks exactly one node per character: O(L) per operation where L is the word length, independent of how many words are stored. Space is O(total characters inserted).',
-      42,
+      { match: 'class Trie:' },
       '',
       [],
       undefined,
@@ -415,7 +393,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'TrieNode (children map)',
-  pythonCode: PYTHON_CODE,
+  variant: 'children-map',
   generateSteps,
   timeComplexity: 'O(L) per op',
   spaceComplexity: 'O(total chars)',

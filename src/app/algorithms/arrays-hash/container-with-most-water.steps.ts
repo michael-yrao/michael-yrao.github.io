@@ -1,27 +1,10 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def maxArea(self, height: List[int]) -> int:
-        # height = min(height[l], height[r])
-        # width = r - l
-        # currentMaxArea = (r - l) * min(height[l], height[r])
-        # start l = 0, r = len(height) - 1
-        # increment min(height[l], height[r])
-        # update maxArea = max(maxArea, currentMaxArea) each iteration
-        # return maxArea
-        maxArea = 0
-        l = 0
-        r = len(height) - 1
-        while l < r:
-            areaHeight = min(height[l], height[r])
-            areaWidth = r - l
-            currentMaxArea = areaHeight * areaWidth
-            maxArea = max(maxArea, currentMaxArea)
-            if height[l] < height[r]:
-                l += 1
-            else:
-                r -= 1
-        return maxArea`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's maxArea verbatim: areaHeight/areaWidth/currentMaxArea
+// computed as separate named steps before folding into maxArea, then move the
+// shorter wall (`if height[l] < height[r]: l += 1 else: r -= 1`).
 
 function generateSteps(): Step[] {
   const height = [1, 8, 6, 2, 5, 4, 8, 3, 7];
@@ -45,43 +28,51 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Container width = r − l. Height is capped by the shorter wall: min(h[l], h[r]). Always move the shorter wall inward — moving the taller one can only shrink width while keeping the height cap the same or lower, so it can never help.',
-    highlightLine: 2,
+    anchor: { match: 'def maxArea(self, height: List[int]) -> int:' },
     state: {
       type: 'array',
       cells: height.map(v => ({ value: v, state: 'default' as const })),
       pointers: [],
-      counters: [{ label: 'maxWater', value: 0 }],
+      counters: [{ label: 'maxArea', value: 0 }],
     },
     variables: [{ name: 'height', value: `[${height.join(',')}]` }],
   });
 
   let l = 0;
   let r = height.length - 1;
-  let maxWater = 0;
+  let maxArea = 0;
   let bestL = 0;
   let bestR = height.length - 1;
 
   while (l < r) {
-    const water = Math.min(height[l], height[r]) * (r - l);
-    const improved = water > maxWater;
+    const areaHeight = Math.min(height[l], height[r]);
+    const areaWidth = r - l;
+    const currentMaxArea = areaHeight * areaWidth;
+    const previousMaxArea = maxArea;
+    const improved = currentMaxArea > previousMaxArea;
     if (improved) {
-      maxWater = water;
+      maxArea = currentMaxArea;
       bestL = l;
       bestR = r;
     }
 
     steps.push({
-      explanation: `l=${l}(h=${height[l]}), r=${r}(h=${height[r]}): water = min(${height[l]},${height[r]}) × ${r - l} = ${water}. maxWater = ${maxWater}${improved ? ' ← new best!' : ''}. Move ${height[l] < height[r] ? 'l (shorter wall)' : 'r (shorter or equal wall)'} inward.`,
-      highlightLine: height[l] < height[r] ? 8 : 10,
+      explanation: `l=${l}(h=${height[l]}), r=${r}(h=${height[r]}): areaHeight = min(${height[l]},${height[r]}) = ${areaHeight}. areaWidth = ${r} − ${l} = ${areaWidth}. currentMaxArea = ${areaHeight} × ${areaWidth} = ${currentMaxArea}. maxArea = max(${previousMaxArea}, ${currentMaxArea}) = ${maxArea}${improved ? ' ← new best!' : ''}. Move ${height[l] < height[r] ? 'l (shorter wall)' : 'r (shorter or equal wall)'} inward.`,
+      anchor: {
+        match: 'areaHeight = min(height[l], height[r])',
+        to: { match: height[l] < height[r] ? 'l += 1' : 'r -= 1' },
+      },
       state: {
         type: 'array',
         cells: snap(l, r, bestL, bestR),
         pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-        counters: [{ label: 'maxWater', value: maxWater }],
+        counters: [{ label: 'maxArea', value: maxArea }],
       },
       variables: [
-        { name: 'water', value: water, highlight: improved },
-        { name: 'maxWater', value: maxWater },
+        { name: 'areaHeight', value: areaHeight },
+        { name: 'areaWidth', value: areaWidth },
+        { name: 'currentMaxArea', value: currentMaxArea, highlight: improved },
+        { name: 'maxArea', value: maxArea },
       ],
     });
 
@@ -93,8 +84,9 @@ function generateSteps(): Step[] {
   }
 
   steps.push({
-    explanation: `l(${l}) met r(${r}). Best container: walls at indices ${bestL} and ${bestR} (heights ${height[bestL]}, ${height[bestR]}), water = ${maxWater}. O(n) time, O(1) space.`,
-    highlightLine: 11,
+    explanation: `l(${l}) met r(${r}). Best container: walls at indices ${bestL} and ${bestR} (heights ${height[bestL]}, ${height[bestR]}), maxArea = ${maxArea}. O(n) time, O(1) space.`,
+    // nth: 2 — hit 1 is the leading "# return maxArea" plan comment; hit 2 is the actual `return maxArea` statement.
+    anchor: { match: 'return maxArea', nth: 2 },
     state: {
       type: 'array',
       cells: height.map((v, i) => ({
@@ -102,9 +94,9 @@ function generateSteps(): Step[] {
         state: i === bestL || i === bestR ? ('found' as const) : ('eliminated' as const),
       })),
       pointers: [],
-      counters: [{ label: 'maxWater', value: maxWater }],
+      counters: [{ label: 'maxArea', value: maxArea }],
     },
-    variables: [{ name: 'return', value: maxWater, highlight: true }],
+    variables: [{ name: 'return', value: maxArea, highlight: true }],
   });
 
   return steps;
@@ -112,7 +104,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Two Pointers',
-  pythonCode: PYTHON_CODE,
+  variant: 'two-pointers',
   generateSteps,
 };
 

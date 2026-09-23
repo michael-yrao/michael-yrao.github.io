@@ -1,58 +1,10 @@
-// Solution + comments sourced from cse-progress: dsa/leetcode/graphs/1584_min_cost_to_connect_all_points.py
+// Traces cse-progress's two attempts verbatim:
+// - heapVariant → minCostConnectPoints (2026-07-16): Prim's with a min-heap.
+// - arrayVariant → minCostConnectPoints_20260811 (2026-08-11): O(n²) Prim's via
+//   getCandidate()/relax(). This attempt has NO "candidate not found" sentinel branch —
+//   getCandidate() always returns a real index for this connected input, so the array
+//   variant below does not break out of its main loop.
 import { AlgorithmMeta, SolutionVariant, Step, GraphNode, GraphEdge, ProblemExample } from '../../core/models/algorithm.model';
-
-const HEAP_PYTHON = `class Solution:
-    def minCostConnectPoints(self, points: List[List[int]]) -> int:
-        # Prim's MST via a min-heap of (edge cost, node); complete graph, no adj map
-        numberOfNodes = len(points)
-        totalCost = 0
-        visited = set()
-
-        def manhattanDistance(a, b):
-            return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
-        minHeap = []
-        heapq.heappush(minHeap, (0, 0))       # start at node 0, cost 0
-
-        while len(visited) < numberOfNodes:
-            cost, node = heapq.heappop(minHeap)
-            if node in visited:               # already in the tree — skip
-                continue
-            totalCost += cost
-            visited.add(node)
-            for neighbor in range(numberOfNodes):
-                if neighbor not in visited:
-                    distance = manhattanDistance(points[node], points[neighbor])
-                    heapq.heappush(minHeap, (distance, neighbor))
-        return totalCost`;
-
-const ARRAY_PYTHON = `class Solution:
-    # O(n^2) Prim's — no heap; scan for the closest unvisited node each round
-    def minCostConnectPoints(self, points: List[List[int]]) -> int:
-        visited = set()
-        distance = [math.inf] * len(points)
-        distance[0] = 0
-
-        def getClosestNode():
-            closestDistance, closestNode = math.inf, -1
-            for i in range(len(points)):
-                if i not in visited and distance[i] < closestDistance:
-                    closestDistance, closestNode = distance[i], i
-            return closestNode
-
-        def relax(index):
-            for i in range(len(points)):
-                if i not in visited and i != index:
-                    manhattan = abs(points[i][0] - points[index][0]) + abs(points[i][1] - points[index][1])
-                    distance[i] = min(distance[i], manhattan)
-
-        while len(visited) < len(points):
-            nextNode = getClosestNode()
-            if nextNode == -1:
-                return -1
-            relax(nextNode)
-            visited.add(nextNode)
-        return sum(distance)`;
 
 const POINTS: [number, number][] = [
   [0, 0],
@@ -99,7 +51,7 @@ function generateHeapSteps(): Step[] {
   steps.push({
     explanation:
       "Prim's MST with a min-heap. The graph is complete (every pair of points is an edge with Manhattan-distance cost), so no adjacency map — we generate edges on the fly. Start by pushing (0, node 0). Each round pop the cheapest edge that reaches a NEW node.",
-    highlightLine: 12,
+    anchor: { match: 'heapq.heappush(minHeap,(0,0))' },
     state: {
       type: 'graph',
       nodes: nodeList(visited, null),
@@ -116,7 +68,7 @@ function generateHeapSteps(): Step[] {
     if (visited.has(node)) {
       steps.push({
         explanation: `Pop (${cost}, ${node}): node ${node} is already in the tree → skip (a cheaper edge already connected it).`,
-        highlightLine: 17,
+        anchor: { match: 'if node in visited:' },
         state: {
           type: 'graph',
           nodes: nodeList(visited, node),
@@ -135,7 +87,7 @@ function generateHeapSteps(): Step[] {
     if (activeEdge) treeEdges.push(activeEdge);
     steps.push({
       explanation: `Pop (${cost}, ${node}): node ${node} is new → add it to the tree via edge ${parent >= 0 ? `${parent}–${node}` : '(root)'} of cost ${cost}. totalCost = ${totalCost}.`,
-      highlightLine: 20,
+      anchor: { match: 'totalCost+=cost', to: { match: 'visited.add(node)' } },
       state: {
         type: 'graph',
         nodes: nodeList(visited, node),
@@ -158,7 +110,7 @@ function generateHeapSteps(): Step[] {
     if (pushed.length > 0) {
       steps.push({
         explanation: `From node ${node}, push an edge to every unvisited node: ${pushed.map((p) => `→${p.split(':')[0]} cost ${p.split(':')[1]}`).join(', ')}. The heap keeps the globally cheapest frontier edge on top.`,
-        highlightLine: 24,
+        anchor: { match: 'heapq.heappush(minHeap, (distance, neighbor))' },
         state: {
           type: 'graph',
           nodes: nodeList(visited, node),
@@ -174,7 +126,7 @@ function generateHeapSteps(): Step[] {
 
   steps.push({
     explanation: `All ${N} points connected → return totalCost = ${totalCost}. The MST edges are highlighted.`,
-    highlightLine: 25,
+    anchor: { match: 'return totalCost' },
     state: {
       type: 'graph',
       nodes: nodeList(visited, null),
@@ -205,8 +157,8 @@ function generateArraySteps(): Step[] {
 
   steps.push({
     explanation:
-      "Same Prim's MST, but O(n²) with no heap. distance[i] = cheapest edge from the current tree to node i (∞ until reachable, 0 for the start). Each round: scan for the closest unvisited node, add it, and relax every other node's distance against it.",
-    highlightLine: 6,
+      "Same Prim's MST, but O(n²) with no heap. distance[i] = cheapest edge from the current tree to node i (∞ until reachable, 0 for the start). Each round: getCandidate() scans for the closest unvisited node, add it, and relax() every other node's distance against it.",
+    anchor: { match: 'distance = [math.inf] * len(points)', to: { match: 'distance[0] = 0' } },
     state: {
       type: 'graph',
       nodes: nodeList(visited, null),
@@ -219,22 +171,24 @@ function generateArraySteps(): Step[] {
   });
 
   while (visited.size < N) {
-    // getClosestNode
+    // getCandidate(): no "not found" sentinel — this attempt trusts a candidate is
+    // always found for a connected input, so there is no early-exit branch here.
     let closest = -1;
     let closestDist = Infinity;
     for (let i = 0; i < N; i++) {
-      if (!visited.has(i) && distance[i] < closestDist) {
-        closestDist = distance[i];
-        closest = i;
+      if (!visited.has(i)) {
+        if (distance[i] < closestDist) {
+          closest = i;
+          closestDist = distance[i];
+        }
       }
     }
-    if (closest === -1) break;
     const activeEdge: [number, number] | null = parent[closest] >= 0 ? [parent[closest], closest] : null;
     if (activeEdge) treeEdges.push(activeEdge);
     visited.add(closest);
     steps.push({
-      explanation: `getClosestNode → node ${closest} (distance ${closestDist}${activeEdge ? `, via edge ${activeEdge[0]}–${activeEdge[1]}` : ' — the start'}). Add it to the tree.`,
-      highlightLine: 9,
+      explanation: `getCandidate() → candidate ${closest} (candidateValue ${closestDist}${activeEdge ? `, via edge ${activeEdge[0]}–${activeEdge[1]}` : ' — the start'}). Add it to visited.`,
+      anchor: { match: 'def getCandidate():', to: { match: 'return candidate' } },
       state: {
         type: 'graph',
         nodes: nodeList(visited, closest),
@@ -243,13 +197,14 @@ function generateArraySteps(): Step[] {
         hashmapLabel: 'distance[]',
         counters: [{ label: 'in tree', value: `${visited.size} / ${N}` }, { label: 'added', value: closest }],
       },
-      variables: [{ name: 'nextNode', value: closest, highlight: true }, { name: 'cost', value: closestDist }],
+      variables: [{ name: 'candidate', value: closest, highlight: true }, { name: 'candidateValue', value: closestDist }],
     });
 
-    // relax
+    // relax(candidate): only checks "i not in visited" — candidate was just added to
+    // visited above, so it's already excluded without a separate "i != candidate" check.
     const updates: string[] = [];
     for (let i = 0; i < N; i++) {
-      if (!visited.has(i) && i !== closest) {
+      if (!visited.has(i)) {
         const d = manhattan(POINTS[i], POINTS[closest]);
         if (d < distance[i]) {
           distance[i] = d;
@@ -259,8 +214,8 @@ function generateArraySteps(): Step[] {
       }
     }
     steps.push({
-      explanation: `relax(${closest}): for each unvisited node, distance[i] = min(distance[i], manhattan(i, ${closest})). ${updates.length > 0 ? `Improved: ${updates.join(', ')}.` : 'No improvements this round.'}`,
-      highlightLine: 15,
+      explanation: `relax(${closest}): for each i not in visited, distance[i] = min(distance[i], manhattanDistance(${closest}, i)). ${updates.length > 0 ? `Improved: ${updates.join(', ')}.` : 'No improvements this round.'}`,
+      anchor: { match: 'def relax(candidate):', to: { match: 'distance[i] = min(distance[i], manhattanDistance)' } },
       state: {
         type: 'graph',
         nodes: nodeList(visited, closest),
@@ -276,7 +231,7 @@ function generateArraySteps(): Step[] {
   const total = distance.reduce((a, b) => a + (b === Infinity ? 0 : b), 0);
   steps.push({
     explanation: `All nodes visited → return sum(distance) = ${total}. Each entry is the edge cost that first connected that node to the tree, so the sum is the MST weight.`,
-    highlightLine: 25,
+    anchor: { match: 'return sum(distance)' },
     state: {
       type: 'graph',
       nodes: nodeList(visited, null),
@@ -293,7 +248,7 @@ function generateArraySteps(): Step[] {
 
 const heapVariant: SolutionVariant = {
   label: "Prim's — Min-Heap",
-  pythonCode: HEAP_PYTHON,
+  variant: 'prims-heap',
   generateSteps: generateHeapSteps,
   timeComplexity: 'O(n² log n)',
   spaceComplexity: 'O(n²)',
@@ -301,7 +256,7 @@ const heapVariant: SolutionVariant = {
 
 const arrayVariant: SolutionVariant = {
   label: "Prim's — O(n²) array",
-  pythonCode: ARRAY_PYTHON,
+  variant: 'prims-array',
   generateSteps: generateArraySteps,
   timeComplexity: 'O(n²)',
   spaceComplexity: 'O(n)',

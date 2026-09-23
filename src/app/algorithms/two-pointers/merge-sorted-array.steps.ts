@@ -1,70 +1,46 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def merge(self, nums1: List[int], m: int, nums2: List[int], n: int) -> None:
-        # fill from the back so we write into the spare zeros without overwriting unprocessed values
-        # leftIterator and rightIterator point to the current tail of nums1 and nums2
-        # arrIterator tracks the next write position (starting at m + n - 1)
-        arrIterator = m + n - 1
-        leftIterator = m - 1
-        rightIterator = n - 1
-        # place the larger of the two current tails, then retreat that pointer
-        while leftIterator >= 0 and rightIterator >= 0:
-            if nums1[leftIterator] > nums2[rightIterator]:
-                nums1[arrIterator] = nums1[leftIterator]
-                leftIterator -= 1
-            else:
-                nums1[arrIterator] = nums2[rightIterator]
-                rightIterator -= 1
-            arrIterator -= 1
-        # one array is exhausted; the remaining elements in the other are already sorted and in place
-        while leftIterator >= 0:
-            nums1[arrIterator] = nums1[leftIterator]
-            leftIterator -= 1
-            arrIterator -= 1
-        while rightIterator >= 0:
-            nums1[arrIterator] = nums2[rightIterator]
-            rightIterator -= 1
-            arrIterator -= 1`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's merge verbatim: nums1Ptr, nums2Ptr = m-1, n-1; iterator = m+n-1;
+// a SINGLE `while nums2Ptr >= 0` loop (not "while both remain") — the loop only needs to
+// exhaust nums2, because whatever's left at the front of nums1 is already sorted and never
+// needs to move. Each iteration: if nums1Ptr>=0 AND nums1[nums1Ptr] > nums2[nums2Ptr], take
+// from nums1; otherwise (nums1 exhausted OR nums2's tail wins) take from nums2. iterator
+// always decrements, regardless of branch.
+
+type CellVisualState = 'default' | 'active' | 'found' | 'min-ptr';
 
 function generateSteps(): Step[] {
-  const nums1 = [1, 2, 3, 0, 0, 0];
+  const nums1Start = [1, 2, 3, 0, 0, 0];
   const nums2 = [2, 5, 6];
   const m = 3;
   const n = 3;
+  const nums1 = [...nums1Start];
   const steps: Step[] = [];
 
-  const snap = (a: number, b: number, i: number) =>
+  const snap = (nums1Ptr: number, iterator: number) =>
     nums1.map((v, idx) => ({
       value: v,
-      state:
-        idx === i
-          ? ('active' as const)
-          : idx < m && idx === a
-          ? ('min-ptr' as const)
-          : idx >= m && idx < i
-          ? ('found' as const)
-          : idx < m && idx > a
-          ? ('found' as const)
-          : idx >= m && v === 0 && idx > i
-          ? ('default' as const)
-          : ('default' as const),
+      state: (idx === iterator
+        ? 'active'
+        : idx === nums1Ptr && idx < m
+        ? 'min-ptr'
+        : idx > iterator
+        ? 'found'
+        : 'default') as CellVisualState,
     }));
 
   steps.push({
-    explanation:
-      'nums1 has m=3 real values followed by n=3 zeros (spare space). nums2 has n=3 values. Key insight: fill nums1 from the back — compare from the largest end of each array into the empty tail. This avoids overwriting unprocessed elements.',
-    highlightLine: 2,
+    explanation: `nums1=[${nums1.join(', ')}] holds m=${m} real values then spare zeros; nums2=[${nums2.join(', ')}] has n=${n} values. nums1Ptr, nums2Ptr = m-1, n-1 → ${m - 1}, ${n - 1}. iterator = m+n-1 = ${m + n - 1}. The loop below only runs while nums2Ptr >= 0 — once nums2 is used up, whatever's left at the front of nums1 is already sorted in place.`,
+    anchor: { match: 'nums1Ptr, nums2Ptr = m - 1, n - 1', to: { match: 'iterator = m + n - 1' } },
     state: {
       type: 'array',
-      cells: nums1.map((v, i) => ({
-        value: v,
-        state: i < m ? ('active' as const) : ('default' as const),
-      })),
-      pointers: [{ index: m - 1, label: 'a' }],
+      cells: nums1.map((v, i) => ({ value: v, state: (i < m ? 'active' : 'default') as CellVisualState })),
+      pointers: [{ index: m - 1, label: 'nums1Ptr' }],
       counters: [
         { label: 'nums2', value: `[${nums2.join(', ')}]` },
-        { label: 'b → nums2[b]', value: `${n - 1} → ${nums2[n - 1]}` },
+        { label: 'nums2Ptr', value: n - 1 },
       ],
     },
     variables: [
@@ -73,98 +49,81 @@ function generateSteps(): Step[] {
     ],
   });
 
-  let a = m - 1;
-  let b = n - 1;
+  let nums1Ptr = m - 1;
+  let nums2Ptr = n - 1;
+  let iterator = m + n - 1;
 
-  for (let i = m + n - 1; i >= 0; i--) {
-    let placed: number;
-    let fromNums2 = false;
+  while (nums2Ptr >= 0) {
+    const takeFromNums1 = nums1Ptr >= 0 && nums1[nums1Ptr] > nums2[nums2Ptr];
 
-    if (a >= 0 && b >= 0) {
-      if (nums1[a] > nums2[b]) {
-        placed = nums1[a];
-        steps.push({
-          explanation: `i=${i}: nums1[a=${a}]=${nums1[a]} > nums2[b=${b}]=${nums2[b]} → place ${nums1[a]} at i=${i}. Decrement a.`,
-          highlightLine: 6,
-          state: {
-            type: 'array',
-            cells: snap(a, b, i),
-            pointers: [{ index: i, label: 'i' }, { index: a, label: 'a' }],
-            counters: [
-              { label: 'nums2', value: `[${nums2.join(', ')}]` },
-              { label: `b=${b}`, value: `nums2[${b}]=${nums2[b]}` },
-            ],
-          },
-          variables: [
-            { name: 'place', value: nums1[a], highlight: true },
-            { name: 'from', value: 'nums1' },
-          ],
-        });
-        nums1[i] = nums1[a];
-        a--;
-      } else {
-        placed = nums2[b];
-        fromNums2 = true;
-        steps.push({
-          explanation: `i=${i}: nums2[b=${b}]=${nums2[b]} ≥ nums1[a=${a}]=${nums1[a]} → place ${nums2[b]} at i=${i}. Decrement b.`,
-          highlightLine: 9,
-          state: {
-            type: 'array',
-            cells: snap(a, b, i),
-            pointers: [{ index: i, label: 'i' }, { index: a, label: 'a' }],
-            counters: [
-              { label: 'nums2', value: `[${nums2.join(', ')}]` },
-              { label: `b=${b}`, value: `nums2[${b}]=${nums2[b]}` },
-            ],
-          },
-          variables: [
-            { name: 'place', value: nums2[b], highlight: true },
-            { name: 'from', value: 'nums2' },
-          ],
-        });
-        nums1[i] = nums2[b];
-        b--;
-      }
-    } else if (a >= 0) {
+    if (takeFromNums1) {
       steps.push({
-        explanation: `i=${i}: nums2 exhausted (b<0). Copy nums1[a=${a}]=${nums1[a]} to i=${i}.`,
-        highlightLine: 11,
+        explanation: `iterator=${iterator}: nums1Ptr=${nums1Ptr} ≥ 0 and nums1[nums1Ptr]=${nums1[nums1Ptr]} > nums2[nums2Ptr]=${nums2[nums2Ptr]} → nums1[iterator]=nums1[nums1Ptr]=${nums1[nums1Ptr]}. nums1Ptr-=1.`,
+        anchor: { match: 'if nums1Ptr >= 0 and nums1[nums1Ptr] > nums2[nums2Ptr]:', to: { match: 'nums1Ptr-=1' } },
         state: {
           type: 'array',
-          cells: snap(a, b, i),
-          pointers: [{ index: i, label: 'i' }, { index: a, label: 'a' }],
-          counters: [{ label: 'nums2', value: 'exhausted' }],
-        },
-        variables: [{ name: 'place', value: nums1[a], highlight: true }],
-      });
-      nums1[i] = nums1[a];
-      a--;
-    } else if (b >= 0) {
-      steps.push({
-        explanation: `i=${i}: nums1 exhausted (a<0). Copy nums2[b=${b}]=${nums2[b]} to i=${i}.`,
-        highlightLine: 13,
-        state: {
-          type: 'array',
-          cells: snap(a, b, i),
-          pointers: [{ index: i, label: 'i' }],
+          cells: snap(nums1Ptr, iterator),
+          pointers: [{ index: iterator, label: 'iterator' }, { index: nums1Ptr, label: 'nums1Ptr' }],
           counters: [
             { label: 'nums2', value: `[${nums2.join(', ')}]` },
-            { label: `b=${b}`, value: `nums2[${b}]=${nums2[b]}` },
+            { label: 'nums2Ptr', value: nums2Ptr },
           ],
         },
-        variables: [{ name: 'place', value: nums2[b], highlight: true }],
+        variables: [
+          { name: 'nums1Ptr', value: nums1Ptr },
+          { name: 'nums2Ptr', value: nums2Ptr },
+          { name: 'place', value: nums1[nums1Ptr], highlight: true },
+        ],
       });
-      nums1[i] = nums2[b];
-      b--;
+      nums1[iterator] = nums1[nums1Ptr];
+      nums1Ptr -= 1;
+    } else {
+      const reason =
+        nums1Ptr < 0
+          ? `nums1Ptr=${nums1Ptr} < 0 (nums1 exhausted, short-circuits before indexing nums1)`
+          : `nums1[nums1Ptr]=${nums1[nums1Ptr]} ≤ nums2[nums2Ptr]=${nums2[nums2Ptr]}`;
+      steps.push({
+        explanation: `iterator=${iterator}: ${reason} → falls to else. nums1[iterator]=nums2[nums2Ptr]=${nums2[nums2Ptr]}. nums2Ptr-=1.`,
+        anchor: { match: 'else:', to: { match: 'nums2Ptr-=1' } },
+        state: {
+          type: 'array',
+          cells: snap(nums1Ptr, iterator),
+          pointers: [{ index: iterator, label: 'iterator' }, ...(nums1Ptr >= 0 ? [{ index: nums1Ptr, label: 'nums1Ptr' }] : [])],
+          counters: [
+            { label: 'nums2', value: `[${nums2.join(', ')}]` },
+            { label: 'nums2Ptr', value: nums2Ptr },
+          ],
+        },
+        variables: [
+          { name: 'nums1Ptr', value: nums1Ptr },
+          { name: 'nums2Ptr', value: nums2Ptr },
+          { name: 'place', value: nums2[nums2Ptr], highlight: true },
+        ],
+      });
+      nums1[iterator] = nums2[nums2Ptr];
+      nums2Ptr -= 1;
     }
+
+    steps.push({
+      explanation: `iterator-=1 → ${iterator - 1}.`,
+      anchor: { match: 'iterator-=1' },
+      state: {
+        type: 'array',
+        cells: snap(nums1Ptr, iterator - 1),
+        pointers: [{ index: iterator - 1, label: 'iterator' }],
+        counters: [{ label: 'nums2Ptr', value: nums2Ptr }],
+      },
+      variables: [{ name: 'iterator', value: iterator - 1, highlight: true }],
+    });
+    iterator -= 1;
   }
 
   steps.push({
-    explanation: `Merged in-place: [${nums1.join(', ')}]. O(m+n) time, O(1) space — filling backwards avoids any element being overwritten before it's read.`,
-    highlightLine: 15,
+    explanation: `nums2Ptr=${nums2Ptr} < 0 → loop ends. nums1[0..${nums1Ptr}] were never touched — already sorted and correctly placed. Result: [${nums1.join(', ')}]. O(m+n) time, O(1) space.`,
+    anchor: { match: 'while nums2Ptr >= 0:' },
     state: {
       type: 'array',
-      cells: nums1.map(v => ({ value: v, state: 'found' as const })),
+      cells: nums1.map((v) => ({ value: v, state: 'found' as const })),
       pointers: [],
       counters: [{ label: 'nums2', value: 'exhausted' }],
     },
@@ -176,7 +135,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Merge from Back',
-  pythonCode: PYTHON_CODE,
+  variant: 'merge-from-back',
   generateSteps,
 };
 
@@ -208,6 +167,6 @@ export const mergeSortedArrayMeta: AlgorithmMeta = {
     '0 ≤ m, n ≤ 200',
     '-10⁹ ≤ nums1[i], nums2[j] ≤ 10⁹',
   ],
-  hint: 'Fill nums1 from the back (index m+n−1 down to 0). Keep pointer a at the end of nums1\'s real values and b at the end of nums2. Place the larger of the two and decrement the corresponding pointer. When one array is exhausted, copy the rest of the other.',
+  hint: 'Fill nums1 from the back. Keep nums1Ptr at the end of nums1\'s real values and nums2Ptr at the end of nums2. Loop only while nums2Ptr >= 0 — place the larger of nums1[nums1Ptr] and nums2[nums2Ptr] (guarding nums1Ptr < 0), decrement the pointer you took from, and always decrement iterator. Whatever is left at the front of nums1 when nums2 runs out is already sorted.',
   solutions: [solution],
 };

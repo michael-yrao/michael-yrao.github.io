@@ -1,22 +1,7 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def findMin(self, nums: List[int]) -> int:
-        # similar to searching for an element in a rotated array
-        # we use l < r instead of l <= r like in normal binary search
-        # when we did find an element in rotated array, we found where the array was rotated then binary searched on the 2 halves
-        # this problem is just the first part of that
-        # index l will be start of original array and that's our answer
-        l, r = 0, len(nums) - 1
-
-        while l < r:
-            mid = (l + r) // 2
-            # if mid > r, then l = m + 1
-            if nums[mid] > nums[r]:
-                l = mid + 1
-            else:
-                r = mid
-        return nums[l]`;
+// Traces cse-progress's findMin verbatim: l, r = 0, len(nums)-1; while l < r; mid = (l+r)//2;
+// if nums[mid] > nums[r]: l = mid+1 else r = mid; return nums[l].
 
 function generateSteps(): Step[] {
   const nums = [3, 4, 5, 1, 2];
@@ -40,7 +25,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Find the minimum in a rotated sorted array [3,4,5,1,2] in O(log n). Key insight: compare nums[mid] vs nums[r]. If nums[mid] > nums[r], the minimum must be to the right of mid (left half is ascending and larger). Otherwise the minimum is at mid or to the left.',
-    highlightLine: 8,
+    anchor: { match: 'def findMin(self, nums: List[int]) -> int:' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),
@@ -54,7 +39,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Initialize l=${l}, r=${r}. We use l < r (not l ≤ r) because we want to converge on the minimum without overshooting — when l === r, that index is the answer.`,
-    highlightLine: 8,
+    anchor: { match: 'l, r = 0, len(nums) - 1' },
     state: {
       type: 'array',
       cells: snap(l, r, null, null),
@@ -69,7 +54,9 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `l=${l}, r=${r}, mid=${mid}: nums[mid]=${nums[mid]} ${goRight ? '>' : '≤'} nums[r]=${nums[r]}. ${goRight ? 'The left half [l..mid] is ascending and all > nums[r], so the minimum is right of mid → l = mid+1.' : 'The minimum could be at mid or to the left → r = mid (keep mid as candidate).'}`,
-      highlightLine: goRight ? 13 : 15,
+      anchor: goRight
+        ? { match: 'if nums[mid] > nums[r]:' }
+        : { match: 'r = mid' },
       state: {
         type: 'array',
         cells: snap(l, r, mid, null),
@@ -94,7 +81,7 @@ function generateSteps(): Step[] {
   // l === r, found the minimum
   steps.push({
     explanation: `l === r === ${l}. Converged! nums[${l}] = ${nums[l]} is the minimum. It's the start of the original sorted array before rotation. O(log n) time, O(1) space.`,
-    highlightLine: 16,
+    anchor: { match: 'return nums[l]' },
     state: {
       type: 'array',
       cells: snap(l, r, null, l),
@@ -111,7 +98,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Binary Search on Minimum',
-  pythonCode: PYTHON_CODE,
+  variant: 'min-boundary',
   generateSteps,
 };
 

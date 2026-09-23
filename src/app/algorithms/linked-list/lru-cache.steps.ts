@@ -1,51 +1,8 @@
-// Solution + comments sourced from cse-progress: dsa/leetcode/linked_list/146_lru_cache.py
+// Traces cse-progress's LRUCache + helper Node_20260704 verbatim: put() removes an
+// existing key's node then always creates and inserts a NEW node, and evicts with a
+// while loop while over capacity. Control flow is unchanged from the earlier hand
+// simulation below; only the class/helper naming changed.
 import { AlgorithmMeta, SolutionVariant, Step, GraphNode, GraphEdge, ProblemExample } from '../../core/models/algorithm.model';
-
-const PYTHON_CODE = `class Node:
-    def __init__(self, key, val, prev=None, next=None):
-        self.key = key; self.val = val
-        self.prev = prev; self.next = next
-
-class LRUCache:
-    def __init__(self, capacity: int):
-        self.cache = {}                 # key -> Node
-        self.capacity = capacity
-        self.head = Node(-1, -1)        # dummy MRU end
-        self.tail = Node(-1, -1)        # dummy LRU end
-        self.head.next = self.tail
-        self.tail.prev = self.head
-
-    def remove(self, node) -> None:
-        prevNode = node.prev
-        nextNode = node.next
-        prevNode.next = nextNode
-        nextNode.prev = prevNode
-
-    def insert(self, node) -> None:     # insert right after head (MRU)
-        headNext = self.head.next
-        self.head.next = node
-        node.prev = self.head
-        node.next = headNext
-        headNext.prev = node
-
-    def get(self, key: int) -> int:
-        if key in self.cache:
-            node = self.cache[key]
-            self.remove(node)           # move to MRU
-            self.insert(node)
-            return node.val
-        return -1
-
-    def put(self, key: int, value: int) -> None:
-        if key in self.cache:
-            self.remove(self.cache[key])
-        newNode = Node(key, value)
-        self.insert(newNode)
-        self.cache[key] = newNode
-        while len(self.cache) > self.capacity:
-            lru = self.tail.prev        # node just before dummy tail
-            self.remove(lru)
-            del self.cache[lru.key]`;
 
 type Op = { kind: 'put'; key: number; value: number } | { kind: 'get'; key: number };
 const CAPACITY = 2;
@@ -104,7 +61,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'LRUCache(2). A doubly linked list (dummy head = MRU end, dummy tail = LRU end) gives O(1) move-to-front and O(1) eviction of the least-recently-used node; a hashmap key→Node gives O(1) lookup. Nodes are shown head→…→tail (most→least recently used).',
-    highlightLine: 6,
+    anchor: { match: 'class LRUCache:' },
     state: buildState(null, [{ label: 'capacity', value: CAPACITY }, { label: 'size', value: 0 }]),
     variables: [],
   });
@@ -125,7 +82,7 @@ function generateSteps(): Step[] {
         moveToFront(op.key);
         steps.push({
           explanation: `get(${op.key}): key is in cache → remove it and re-insert at head (now MRU). Return ${val}.`,
-          highlightLine: 31,
+          anchor: { match: 'if key in self.cache:', nth: 1 }, // 1st hit: get()'s branch (put() has the 2nd, identical line)
           state: buildState(op.key, [
             { label: `op #${opIdx + 1}`, value: `get(${op.key})` },
             { label: 'return', value: val },
@@ -136,7 +93,7 @@ function generateSteps(): Step[] {
       } else {
         steps.push({
           explanation: `get(${op.key}): key not in cache → return -1. List unchanged.`,
-          highlightLine: 36,
+          anchor: { match: 'return -1' },
           state: buildState(null, [
             { label: `op #${opIdx + 1}`, value: `get(${op.key})` },
             { label: 'return', value: -1 },
@@ -154,7 +111,7 @@ function generateSteps(): Step[] {
       order = order.filter((e) => e.key !== op.key);
       steps.push({
         explanation: `put(${op.key}, ${op.value}): key already in cache → remove the old node first (it will be re-inserted at MRU with the new value).`,
-        highlightLine: 40,
+        anchor: { match: 'if key in self.cache:', nth: 2 }, // 2nd hit: put()'s branch
         state: buildState(null, [
           { label: `op #${opIdx + 1}`, value: `put(${op.key},${op.value})` },
           { label: 'size', value: order.length },
@@ -165,7 +122,7 @@ function generateSteps(): Step[] {
     order.unshift({ key: op.key, value: op.value });
     steps.push({
       explanation: `put(${op.key}, ${op.value}): create a fresh node, insert right after head (MRU), and record cache[${op.key}] = node.`,
-      highlightLine: 43,
+      anchor: { match: 'newNode = Node_20260704(key,value)' },
       state: buildState(op.key, [
         { label: `op #${opIdx + 1}`, value: `put(${op.key},${op.value})` },
         { label: 'size', value: order.length },
@@ -179,7 +136,7 @@ function generateSteps(): Step[] {
       order = order.slice(0, -1);
       steps.push({
         explanation: `size ${order.length + 1} > capacity ${CAPACITY} → evict LRU. lru = tail.prev = node ${lru.key} (nearest the tail). remove it and del cache[${lru.key}].`,
-        highlightLine: 46,
+        anchor: { match: 'lru = self.tail.prev' },
         state: buildState(null, [
           { label: `op #${opIdx + 1}`, value: `put(${op.key},${op.value})` },
           { label: 'evicted', value: lru.key },
@@ -193,7 +150,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'All operations complete. Every get and put touched only O(1) nodes: the hashmap finds the node instantly, and the dummy-headed doubly linked list makes unlinking and re-inserting at the MRU end constant-time.',
-    highlightLine: 43,
+    anchor: { match: 'newNode = Node_20260704(key,value)' },
     state: buildState(null, [{ label: 'final size', value: order.length }]),
     variables: [],
   });
@@ -203,7 +160,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'HashMap + Doubly Linked List',
-  pythonCode: PYTHON_CODE,
+  variant: 'hashmap-dll',
   generateSteps,
   timeComplexity: 'O(1) per get/put',
   spaceComplexity: 'O(capacity)',

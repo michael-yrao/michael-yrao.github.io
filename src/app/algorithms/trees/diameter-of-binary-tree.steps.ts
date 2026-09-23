@@ -1,39 +1,9 @@
-import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from typing import Optional
-
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-class Solution:
-    def diameterOfBinaryTree(self, root: Optional[TreeNode]) -> int:
-        # so what it looks like if we have to get max of both sides of the subtree and add it
-        # in the example, we get depth of 2 on left and depth of 1 and the right
-        # thus we return 3
-        # thus this is postorder dfs
-        # issue is we need to keep track of the max diameter as well as max of left and right
-        # so we need to have a helper function
-
-        maxDiameter = 0
-
-        def dfs(root):
-            nonlocal maxDiameter
-
-            if not root:
-                return 0
-
-            left = dfs(root.left)
-            right = dfs(root.right)
-            maxDiameter = max(maxDiameter, left + right)
-
-            # return the max depth to caller
-            return 1 + max(left, right)
-
-        dfs(root)
-        return maxDiameter`;
+// Traces cse-progress's diameterOfBinaryTree_20260614 verbatim: postorder DFS with a nonlocal
+// maxDiameter — same control flow as the earlier hand simulation, but this attempt names its
+// locals leftSize/rightSize (not left/right), so the explanations and variables panel below
+// use those names.
 
 // Tree: [1, 2, 3, 4, 5]
 const NODES: Omit<TreeNode, 'state'>[] = [
@@ -58,7 +28,7 @@ function generateSteps(): Step[] {
 
   const push = (
     explanation: string,
-    line: number,
+    anchor: StepAnchor,
     opts: {
       current?: string | null;
       vars?: { name: string; value: string | number; highlight?: boolean }[];
@@ -66,7 +36,7 @@ function generateSteps(): Step[] {
   ) => {
     steps.push({
       explanation,
-      highlightLine: line,
+      anchor,
       state: {
         type: 'tree',
         nodes: makeNodes(),
@@ -81,8 +51,8 @@ function generateSteps(): Step[] {
   };
 
   push(
-    'Diameter = longest path (counted in edges) between any two nodes. Key insight: the longest path that bends at a given node = leftDepth + rightDepth of that node. So we run a postorder DFS that returns each subtree’s depth, and at every node we update a shared maxDiameter with left+right. Start maxDiameter = 0.',
-    18,
+    'Diameter = longest path (counted in edges) between any two nodes. Key insight: the longest path that bends at a given node = leftSize + rightSize of that node. So we run a postorder DFS that returns each subtree’s depth, and at every node we update a shared maxDiameter with leftSize+rightSize. Start maxDiameter = 0.',
+    { match: 'maxDiameter = 0' },
     { vars: [{ name: 'maxDiameter', value: 0 }] }
   );
 
@@ -90,7 +60,7 @@ function generateSteps(): Step[] {
     if (id === null) {
       push(
         `${side} is null → base case "return 0". A missing subtree has depth 0.`,
-        24,
+        { match: 'if not node:', to: { match: 'return 0' } },
         { current: parentId, vars: [{ name: 'node', value: 'null' }, { name: 'returns', value: 0, highlight: true }] }
       );
       return 0;
@@ -101,7 +71,7 @@ function generateSteps(): Step[] {
     colour[id] = 'active';
     push(
       `Call dfs(node ${v}) — push on the call stack (depth now ${stackDepth}). Recurse LEFT first.`,
-      26,
+      { match: 'def dfs(node):' },
       { current: id, vars: [{ name: 'node', value: v }] }
     );
 
@@ -109,9 +79,9 @@ function generateSteps(): Step[] {
 
     colour[id] = 'active';
     push(
-      `Back at node ${v}. Left depth = ${left}. Now recurse RIGHT.`,
-      27,
-      { current: id, vars: [{ name: 'node', value: v }, { name: 'left', value: left, highlight: true }] }
+      `Back at node ${v}. leftSize = ${left}. Now recurse RIGHT.`,
+      { match: 'rightSize = dfs(node.right)' },
+      { current: id, vars: [{ name: 'node', value: v }, { name: 'leftSize', value: left, highlight: true }] }
     );
 
     const right = dfs(nodeMap.get(id)!.rightId, `Right child of ${v}`, id);
@@ -123,15 +93,15 @@ function generateSteps(): Step[] {
     colour[id] = 'visited';
     stackDepth--;
     push(
-      `Node ${v}: leftDepth=${left}, rightDepth=${right}. Longest path bending at ${v} = ${left}+${right} = ${through}. maxDiameter = max(${prev}, ${through}) = ${maxDiameter}. Then return this subtree’s depth = 1 + max(${left}, ${right}) = ${depth} to the parent.`,
-      28,
+      `Node ${v}: leftSize=${left}, rightSize=${right}. Longest path bending at ${v} = ${left}+${right} = ${through}. maxDiameter = max(${prev}, ${through}) = ${maxDiameter}. Then return this subtree’s depth = 1 + max(${left}, ${right}) = ${depth} to the parent.`,
+      { match: 'maxDiameter = max(maxDiameter, leftSize + rightSize)', to: { match: 'return 1 + max(leftSize, rightSize)' } },
       {
         current: id,
         vars: [
           { name: 'node', value: v },
-          { name: 'left', value: left },
-          { name: 'right', value: right },
-          { name: 'left+right', value: through, highlight: maxDiameter === through && through > prev },
+          { name: 'leftSize', value: left },
+          { name: 'rightSize', value: right },
+          { name: 'leftSize+rightSize', value: through, highlight: maxDiameter === through && through > prev },
           { name: 'return', value: depth, highlight: true },
         ],
       }
@@ -143,8 +113,8 @@ function generateSteps(): Step[] {
 
   NODES.forEach((n) => (colour[n.id] = 'found'));
   push(
-    `Recursion finished. The largest left+right seen at any node was ${maxDiameter}, so the diameter is ${maxDiameter} (path 4 → 2 → 1 → 3).`,
-    34,
+    `Recursion finished. The largest leftSize+rightSize seen at any node was ${maxDiameter}, so the diameter is ${maxDiameter} (path 4 → 2 → 1 → 3).`,
+    { match: 'return maxDiameter' },
     { vars: [{ name: 'maxDiameter', value: maxDiameter, highlight: true }] }
   );
 
@@ -172,11 +142,11 @@ export const diameterOfBinaryTreeMeta: AlgorithmMeta = {
     'The number of nodes in the tree is in the range [1, 10^4].',
     '-100 <= Node.val <= 100',
   ],
-  hint: 'At each node, the diameter through it equals leftDepth + rightDepth. Use postorder DFS, track maxDiameter as a non-local variable, and return 1 + max(left, right) to the caller.',
+  hint: 'At each node, the diameter through it equals leftSize + rightSize. Use postorder DFS, track maxDiameter as a non-local variable, and return 1 + max(leftSize, rightSize) to the caller.',
   solutions: [
     {
       label: 'Postorder DFS',
-      pythonCode: PYTHON_CODE,
+      variant: 'postorder',
       generateSteps,
     },
   ],

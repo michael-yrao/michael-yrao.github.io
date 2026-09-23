@@ -1,0 +1,41 @@
+name: Groundedness re-check
+
+# Re-runs the groundedness gate against cse-progress's CURRENT main on a schedule, so a
+# rename/delete of a manifest-selected symbol over there is caught even with no site push.
+#
+# NOTE: GitHub disables a scheduled workflow after 60 days with no repository activity.
+# A manual "Run workflow" (workflow_dispatch) re-arms the schedule.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # This URL is the workflow's one copy of GOLD_STANDARD_REPO
+      # (src/app/core/services/github-file.service.ts) — michael-yrao/cse-progress@main.
+      - name: Fetch showcase contract
+        run: curl -fsSL https://raw.githubusercontent.com/michael-yrao/cse-progress/main/dashboard/showcase.json -o "$RUNNER_TEMP/showcase.json"
+
+      - name: Groundedness check
+        run: npm run check:groundedness
+        env:
+          SHOWCASE_JSON: ${{ runner.temp }}/showcase.json

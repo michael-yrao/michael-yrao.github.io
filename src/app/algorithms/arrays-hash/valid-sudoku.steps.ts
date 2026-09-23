@@ -1,82 +1,21 @@
 import { AlgorithmMeta, SolutionVariant, Step, GridState, ProblemExample } from '../../core/models/algorithm.model';
 
 // ── Solution 1: Multi-pass (row, col, box) ────────────────────────────────────
-
-const MULTI_PASS_CODE = `from collections import defaultdict
-from typing import List
-
-class Solution:
-    def isValidSudoku(self, board: List[List[str]]) -> bool:
-        # 3 validations
-        # 1. check row
-        # 2. check column
-        # 3. check 3x3
-        # #1 and #2 can be solved by a set + double for loop
-        # #3 we need to use (i/3, j/3) as key and a set as value where we then do a double for loop
-
-        for row in range(9):
-            columnSet = set()
-            for column in range(9):
-                if board[row][column] == '.':
-                    # wildcard, skip
-                    continue
-                elif board[row][column] in columnSet:
-                    return False
-                else:
-                    columnSet.add(board[row][column])
-
-        for column in range(9):
-            rowSet = set()
-            for row in range(9):
-                if board[row][column] == '.':
-                    # wildcard, skip
-                    continue
-                elif board[row][column] in rowSet:
-                    return False
-                else:
-                    rowSet.add(board[row][column])
-
-        seenMap = defaultdict(set)
-
-        for row in range(9):
-            for column in range(9):
-                if board[row][column] == '.':
-                    # wildcard, skip
-                    continue
-                elif board[row][column] in seenMap[(row//3), (column//3)]:
-                    return False
-                else:
-                    seenMap[(row//3), (column//3)].add(board[row][column])
-
-        return True`;
+//
+// Traces cse-progress's isValidSudoku verbatim: three separate double-loop
+// passes (row, then column, then box). Variable names (columnSet in the row
+// pass, rowSet in the column pass, seenMap in the box pass) are exactly as the
+// attempt names them, despite reading backwards. "if ... == '.':" / "continue"
+// / "return False" are IDENTICAL text repeated once per pass — anchored with
+// nth per pass, since no phase-specific substring exists for them.
 
 // ── Solution 2: Single-loop ────────────────────────────────────────────────────
-
-const SINGLE_LOOP_CODE = `from collections import defaultdict
-from typing import List
-
-class Solution:
-    def isValidSudokuSingleLoop(self, board: List[List[str]]) -> bool:
-        # Can do this in single loop by using 3 maps
-        # each map keeping track of one criteria we are checking for
-        rowMap = defaultdict(set)
-        columnMap = defaultdict(set)
-        squareMap = defaultdict(set)
-        for row in range(9):
-            for column in range(9):
-                if board[row][column] == '.':
-                    # wildcard, skip
-                    continue
-                if ( board[row][column] in rowMap[row]
-                    or board[row][column] in columnMap[column]
-                    or board[row][column] in squareMap[(row//3),(column//3)]
-                    ):
-                    return False
-                else:
-                    rowMap[row].add(board[row][column])
-                    columnMap[column].add(board[row][column])
-                    squareMap[(row//3),(column//3)].add(board[row][column])
-        return True`;
+//
+// Traces cse-progress's isValidSudoku_20260821 verbatim: rowMap/colMap/gridMap
+// (this attempt names it colMap, not columnMap), and each row/col/box check is
+// its own separate `if ...: return False` (three sequential ifs, NOT one
+// condition chained by `or`), so a duplicate returns False from whichever of
+// the three individual checks fires first.
 
 // LeetCode Example 1 board
 const BOARD: string[][] = [
@@ -117,7 +56,7 @@ function generateMultiPassSteps(): Step[] {
   steps.push({
     explanation:
       'Given a 9x9 Sudoku board (partially filled). We validate three rules: (1) each row has no duplicate digits, (2) each column has no duplicate digits, (3) each 3x3 sub-box has no duplicate digits. Empty cells "." are wildcards and are skipped. We run three separate passes.',
-    highlightLine: 5,
+    anchor: { match: 'def isValidSudoku(self, board: List[List[str]]) -> bool:' },
     state: {
       type: 'grid',
       grid: makeBaseGrid(),
@@ -146,8 +85,8 @@ function generateMultiPassSteps(): Step[] {
     }
 
     steps.push({
-      explanation: `Row check — scanning row ${row}. Using a set to detect duplicate digits. Empty cells "." are skipped (wildcard). If we see the same digit twice in this row, the board is invalid.`,
-      highlightLine: 14,
+      explanation: `Row check — scanning row ${row}. Using columnSet to detect duplicate digits. Empty cells "." are skipped (wildcard). If we see the same digit twice in this row, the board is invalid.`,
+      anchor: { match: 'columnSet = set()' },
       state: {
         type: 'grid',
         grid: beforeGrid,
@@ -167,7 +106,8 @@ function generateMultiPassSteps(): Step[] {
       if (val === '.') {
         steps.push({
           explanation: `Row ${row}, col ${col}: value is "." — wildcard, skip.`,
-          highlightLine: 17,
+          // nth:1 selects pass 1 (row check); this exact check/continue text repeats identically in passes 2 and 3.
+          anchor: { match: "if board[row][column] == '.':", nth: 1, to: { match: 'continue', nth: 1 } },
           state: {
             type: 'grid',
             grid: g,
@@ -183,7 +123,8 @@ function generateMultiPassSteps(): Step[] {
         dupFound = true;
         steps.push({
           explanation: `Row ${row}, col ${col}: value "${val}" already in seen set! Duplicate found — board is INVALID. Return false.`,
-          highlightLine: 19,
+          // 'return False' is identical text in all 3 passes; nth:1 selects pass 1's.
+          anchor: { match: 'elif board[row][column] in columnSet:', to: { match: 'return False', nth: 1 } },
           state: {
             type: 'grid',
             grid: g,
@@ -200,7 +141,7 @@ function generateMultiPassSteps(): Step[] {
         beforeGrid[row][col].state = 'visited' as GridCellState;
         steps.push({
           explanation: `Row ${row}, col ${col}: value "${val}" is new — add to seen set. seen=${JSON.stringify([...seen])}.`,
-          highlightLine: 21,
+          anchor: { match: 'columnSet.add(board[row][column])' },
           state: {
             type: 'grid',
             grid: g,
@@ -228,7 +169,8 @@ function generateMultiPassSteps(): Step[] {
   steps.push({
     explanation:
       'All 9 rows checked — no duplicate digits found in any row. Phase 1 (row validation) passed. Moving on to Phase 2: column checks.',
-    highlightLine: 23,
+    // nth:2 skips pass 1's inner 'for column in range(9):' (hit 1) and lands on pass 2's outer loop (hit 2).
+    anchor: { match: 'for column in range(9):', nth: 2 },
     state: {
       type: 'grid',
       grid: (() => {
@@ -253,8 +195,8 @@ function generateMultiPassSteps(): Step[] {
     const g = cloneGrid(colCheckGrid);
 
     steps.push({
-      explanation: `Column check — scanning column ${col}. A fresh set tracks digits seen so far in this column. Duplicates → return false.`,
-      highlightLine: 26,
+      explanation: `Column check — scanning column ${col}. A fresh rowSet tracks digits seen so far in this column (named rowSet despite scanning a column). Duplicates → return false.`,
+      anchor: { match: 'rowSet = set()' },
       state: {
         type: 'grid',
         grid: g,
@@ -274,8 +216,8 @@ function generateMultiPassSteps(): Step[] {
       if (val !== '.') {
         seen.add(val);
         steps.push({
-          explanation: `Col ${col}, row ${row}: "${val}" — added to seen. seen=${JSON.stringify([...seen])}.`,
-          highlightLine: val === '.' ? 28 : 33,
+          explanation: `Col ${col}, row ${row}: "${val}" — added to rowSet. rowSet=${JSON.stringify([...seen])}.`,
+          anchor: { match: 'rowSet.add(board[row][column])' },
           state: {
             type: 'grid',
             grid: cg,
@@ -294,7 +236,7 @@ function generateMultiPassSteps(): Step[] {
   steps.push({
     explanation:
       'All 9 columns checked — no duplicate digits in any column. Phase 2 (column validation) passed. Moving on to Phase 3: 3x3 box checks.',
-    highlightLine: 35,
+    anchor: { match: 'seenMap = defaultdict(set)' },
     state: {
       type: 'grid',
       grid: (() => {
@@ -329,7 +271,10 @@ function generateMultiPassSteps(): Step[] {
 
     steps.push({
       explanation: `3x3 box check — box (${boxRow},${boxCol}) covers rows [${boxRow * 3}..${boxRow * 3 + 2}], cols [${boxCol * 3}..${boxCol * 3 + 2}]. Key is (row//3, col//3) = (${boxRow},${boxCol}). Digits in this box: ${JSON.stringify([...seen])}. No duplicates found.`,
-      highlightLine: 41,
+      anchor: {
+        match: 'elif board[row][column] in seenMap[(row//3), (column//3)]:',
+        to: { match: 'seenMap[(row//3), (column//3)].add(board[row][column])' },
+      },
       state: {
         type: 'grid',
         grid: boxGrid,
@@ -346,7 +291,7 @@ function generateMultiPassSteps(): Step[] {
   steps.push({
     explanation:
       'All three phases complete — rows, columns, and 3x3 boxes all contain no duplicates. The board is VALID. Return true. Time O(1) (fixed 9x9 board), Space O(1) (fixed-size sets).',
-    highlightLine: 44,
+    anchor: { match: 'return True' },
     state: {
       type: 'grid',
       grid: (() => {
@@ -373,24 +318,24 @@ function generateSingleLoopSteps(): Step[] {
 
   steps.push({
     explanation:
-      'Optimized single-pass approach: use 3 defaultdict(set) maps — rowMap[row], columnMap[col], squareMap[(row//3, col//3)]. In one double for-loop, check all 3 constraints simultaneously for each filled cell. This avoids 3 separate passes.',
-    highlightLine: 5,
+      'Optimized single-pass approach: use 3 defaultdict(set) maps — rowMap[row], colMap[col], gridMap[(row//3, col//3)]. In one double for-loop, check all 3 constraints simultaneously for each filled cell — each check is its OWN separate if, not one condition chained by or. This avoids 3 separate passes.',
+    anchor: { match: 'rows, cols = len(board), len(board[0])', to: { match: 'gridMap = collections.defaultdict(set)' } },
     state: {
       type: 'grid',
       grid: makeBaseGrid(),
       counters: [
         { label: 'rowMap', value: '{}' },
-        { label: 'columnMap', value: '{}' },
-        { label: 'squareMap', value: '{}' },
+        { label: 'colMap', value: '{}' },
+        { label: 'gridMap', value: '{}' },
       ],
     } as GridState,
   });
 
   const rowMap: Record<number, Set<string>> = {};
-  const columnMap: Record<number, Set<string>> = {};
-  const squareMap: Record<string, Set<string>> = {};
-  for (let i = 0; i < 9; i++) { rowMap[i] = new Set(); columnMap[i] = new Set(); }
-  for (let br = 0; br < 3; br++) for (let bc = 0; bc < 3; bc++) squareMap[`${br},${bc}`] = new Set();
+  const colMap: Record<number, Set<string>> = {};
+  const gridMap: Record<string, Set<string>> = {};
+  for (let i = 0; i < 9; i++) { rowMap[i] = new Set(); colMap[i] = new Set(); }
+  for (let br = 0; br < 3; br++) for (let bc = 0; bc < 3; bc++) gridMap[`${br},${bc}`] = new Set();
 
   // Traverse the full 9x9 board, one cell per step — every iteration of the
   // double for-loop is shown. Filled cells from earlier in the scan are marked
@@ -410,7 +355,7 @@ function generateSingleLoopSteps(): Step[] {
       if (val === '.') {
         steps.push({
           explanation: `Cell (row ${row}, col ${col}) = "." — an empty cell, the "continue" branch. Sudoku rules only constrain filled cells, so skip it and move on. All three maps unchanged.`,
-          highlightLine: 13,
+          anchor: { match: "if board[row][col] == '.':", to: { match: 'continue' } },
           state: {
             type: 'grid',
             grid: g,
@@ -424,16 +369,18 @@ function generateSingleLoopSteps(): Step[] {
       } else {
         const boxKey = `${Math.floor(row / 3)},${Math.floor(col / 3)}`;
         const dupInRow = rowMap[row].has(val);
-        const dupInCol = columnMap[col].has(val);
-        const dupInBox = squareMap[boxKey].has(val);
+        const dupInCol = colMap[col].has(val);
+        const dupInBox = gridMap[boxKey].has(val);
         const isDup = dupInRow || dupInCol || dupInBox;
 
         if (isDup) {
           g[row][col].state = 'rotten' as GridCellState;
           const where = dupInRow ? `row ${row}` : dupInCol ? `column ${col}` : `box (${boxKey})`;
           steps.push({
-            explanation: `Cell (${row}, ${col}) = "${val}": "${val}" is ALREADY in ${where}. That's a duplicate → the board is invalid, return False immediately.`,
-            highlightLine: 17,
+            explanation: `Cell (${row}, ${col}) = "${val}": "${val}" is ALREADY in ${where}. That's a duplicate → whichever of the 3 separate ifs matches returns False immediately.`,
+            // Whichever of the 3 separate if-checks fires; this fixed board never triggers this branch.
+            // nth:3 (the gridMap check's return) covers the whole 3-check block as one range.
+            anchor: { match: 'if board[row][col] in rowMap[row]:', to: { match: 'return False', nth: 3 } },
             state: {
               type: 'grid',
               grid: g,
@@ -447,20 +394,23 @@ function generateSingleLoopSteps(): Step[] {
           duplicate = true;
         } else {
           rowMap[row].add(val);
-          columnMap[col].add(val);
-          squareMap[boxKey].add(val);
+          colMap[col].add(val);
+          gridMap[boxKey].add(val);
           visited.push([row, col]);
           steps.push({
-            explanation: `Cell (${row}, ${col}) = "${val}": check rowMap[${row}], columnMap[${col}], and squareMap[(${boxKey})] all at once. "${val}" is in none of them — valid so far, so add it to all three. One pass enforces all three rules together.`,
-            highlightLine: 17,
+            explanation: `Cell (${row}, ${col}) = "${val}": check rowMap[${row}], colMap[${col}], and gridMap[(${boxKey})] as 3 separate ifs. "${val}" is in none of them — valid so far, so add it to all three. One pass enforces all three rules together.`,
+            anchor: {
+              match: 'rowMap[row].add(board[row][col])',
+              to: { match: 'gridMap[(row//3, col//3)].add(board[row][col])' },
+            },
             state: {
               type: 'grid',
               grid: g,
               counters: [
                 { label: 'cell', value: `(${row},${col}) = "${val}"` },
                 { label: `rowMap[${row}]`, value: JSON.stringify([...rowMap[row]]) },
-                { label: `colMap[${col}]`, value: JSON.stringify([...columnMap[col]]) },
-                { label: `boxMap[(${boxKey})]`, value: JSON.stringify([...squareMap[boxKey]]) },
+                { label: `colMap[${col}]`, value: JSON.stringify([...colMap[col]]) },
+                { label: `gridMap[(${boxKey})]`, value: JSON.stringify([...gridMap[boxKey]]) },
               ],
             } as GridState,
           });
@@ -474,7 +424,7 @@ function generateSingleLoopSteps(): Step[] {
   steps.push({
     explanation:
       'Single-loop completes in O(1) time (fixed 9x9 board). Three maps track row, column, and 3x3 box constraints simultaneously. No duplicate found → return true. Space O(1) for 3 fixed-size maps.',
-    highlightLine: 21,
+    anchor: { match: 'return True' },
     state: {
       type: 'grid',
       grid: (() => {
@@ -495,13 +445,13 @@ function generateSingleLoopSteps(): Step[] {
 
 const multiPassSolution: SolutionVariant = {
   label: 'Multi-Pass (Row → Col → Box)',
-  pythonCode: MULTI_PASS_CODE,
+  variant: 'multi-pass',
   generateSteps: generateMultiPassSteps,
 };
 
 const singleLoopSolution: SolutionVariant = {
   label: 'Single-Loop with 3 Maps',
-  pythonCode: SINGLE_LOOP_CODE,
+  variant: 'single-loop',
   generateSteps: generateSingleLoopSteps,
 };
 

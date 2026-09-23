@@ -1,27 +1,9 @@
-// Solution + comments sourced from cse-progress: dsa/leetcode/trees/124_binary_tree_maximum_path_sum.py
 import { AlgorithmMeta, SolutionVariant, Step, TreeNode, TreeNodeState, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def maxPathSum(self, root: Optional[TreeNode]) -> int:
-        # DFS: at each node the best "split" path is node.val + leftPath + rightPath,
-        # but we can only RETURN one side up (a path can't fork through the parent)
-        maxPath = -math.inf
-
-        def dfs(node):
-            nonlocal maxPath
-            if not node:
-                return 0
-
-            # clamp negatives to 0 — a negative branch is better dropped
-            leftPath = max(dfs(node.left), 0)
-            rightPath = max(dfs(node.right), 0)
-
-            maxPath = max(maxPath, node.val + leftPath + rightPath)
-
-            return node.val + max(leftPath, rightPath)
-
-        dfs(root)
-        return maxPath`;
+// Traces cse-progress's maxPathSum verbatim: postorder DFS with a nonlocal maxPath, clamping
+// each side to 0 before computing the through-node candidate, same control flow as the
+// earlier hand simulation — only anchors and the odd `leftPath = max(dfs(node.left),0)`
+// (no space before the 0) spacing change here.
 
 type NodeDef = { val: number; left: string | null; right: string | null };
 const NODES: Record<string, NodeDef> = {
@@ -60,7 +42,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Maximum path sum — a path is any node-to-node route (need not pass the root). Postorder DFS: each node computes the best downward path from its left and right (clamping negatives to 0). It updates a global max with node.val + left + right (a path that "peaks" here), but only returns node.val + max(left, right) up, since a parent can extend just one side.',
-    highlightLine: 5,
+    anchor: { match: 'maxPath = -math.inf' },
     state: buildState([{ label: 'maxPath', value: fmtMax() }]),
     variables: [],
   });
@@ -69,7 +51,7 @@ function generateSteps(): Step[] {
     if (id === null) {
       steps.push({
         explanation: `${label}: null child → return 0 (contributes nothing).`,
-        highlightLine: 10,
+        anchor: { match: 'if not node:', to: { match: 'return 0' } },
         state: buildState([{ label: 'maxPath', value: fmtMax() }]),
         variables: [{ name: 'return', value: 0 }],
       });
@@ -80,7 +62,7 @@ function generateSteps(): Step[] {
     stateMap[id] = 'active';
     steps.push({
       explanation: `${label}: enter node ${d.val}. Recurse left, then right (postorder — children before parent).`,
-      highlightLine: 8,
+      anchor: { match: 'def dfs(node):' },
       state: buildState([{ label: 'maxPath', value: fmtMax() }, { label: 'at node', value: d.val }]),
       variables: [{ name: 'node.val', value: d.val, highlight: true }],
     });
@@ -99,7 +81,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `${label}: leftPath = max(${rawLeft}, 0) = ${leftPath}, rightPath = max(${rawRight}, 0) = ${rightPath}. Split candidate = ${d.val} + ${leftPath} + ${rightPath} = ${candidate}. maxPath = max(${prevMax === -Infinity ? '-∞' : prevMax}, ${candidate}) = ${fmtMax()}. Return ${d.val} + max(${leftPath}, ${rightPath}) = ${ret} (only one side goes up).`,
-      highlightLine: 17,
+      anchor: { match: 'leftPath = max(dfs(node.left),0)', to: { match: 'return node.val + max(leftPath, rightPath)' } },
       state: buildState([
         { label: 'maxPath', value: fmtMax() },
         { label: 'candidate', value: candidate },
@@ -122,7 +104,7 @@ function generateSteps(): Step[] {
   Object.keys(NODES).forEach((id) => (stateMap[id] = BEST_PATH.has(id) ? 'found' : 'visited'));
   steps.push({
     explanation: `DFS complete. maxPath = ${fmtMax()}, achieved by the highlighted path 15 → 20 → 7 (peaking at node 20: 15 + 20 + 7 = 42). Return ${fmtMax()}.`,
-    highlightLine: 21,
+    anchor: { match: 'return maxPath # type: ignore' },
     state: buildState([{ label: 'answer', value: fmtMax() }]),
     variables: [{ name: 'return', value: maxPath, highlight: true }],
   });
@@ -132,7 +114,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Postorder DFS (global max)',
-  pythonCode: PYTHON_CODE,
+  variant: 'postorder',
   generateSteps,
   timeComplexity: 'O(n)',
   spaceComplexity: 'O(h)',

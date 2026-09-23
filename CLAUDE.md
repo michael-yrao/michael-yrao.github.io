@@ -2,7 +2,9 @@
 
 Angular app that renders step-by-step LeetCode algorithm visualizers. Each problem lives in
 `src/app/algorithms/<category>/<name>.steps.ts` and exports an `AlgorithmMeta` with one or more
-`SolutionVariant`s. Every variant has `pythonCode`, a `generateSteps()` function, and complexity labels.
+`SolutionVariant`s. Every variant has a `variant` id, a `generateSteps()` function, and complexity
+labels — a variant's code is never stored here; it is fetched at runtime from cse-progress (see
+below).
 
 The brand kit lives in `src/assets/brand/` and the nav mark is `LogoMarkComponent`, drawn from theme
 tokens.
@@ -19,10 +21,26 @@ machine-specific (e.g. `C:\Users\<user>\Documents\Software_Development\cse-progr
 <cse-progress>/dsa/leetcode/<category>/<number>_<name>.py
 ```
 
+A variant's code is never pasted or stored in this repo. It is fetched at runtime from
+cse-progress's `dashboard/showcase.json` (the gold-standard repo is hardcoded as
+`GOLD_STANDARD_REPO`; `ShowcaseService` fetches it), and joined to a `SolutionVariant` by
+`${lcNumber}:${variant}`. A step references source lines by content anchors —
+`anchor: { match, nth?, to? }` — resolved against the fetched contract at load time, so the
+visualizer always traces the live source rather than a copy that can drift out of sync. The
+**pick** of which attempt/segment a showcase `key` maps to lives in cse-progress's
+`dashboard/showcase.yml`, not here. (Earlier revisions of this repo stored a verbatim
+`pythonCode` string per variant instead; that was retired at the Phase 2 cutover in favor of
+the anchor mechanism above.)
+
 When adding or reconstructing a visualizer:
 
-- **Take the `pythonCode` and its comments verbatim from cse-progress.** Do not invent, paraphrase,
-  or strip the comments — the comments capture the intended reasoning and must be preserved.
+- **Write anchors, not pasted code.** Do not invent, paraphrase, or hand-copy source into a
+  `.steps.ts` file — the trace must be *derived* from the real cse-progress lines via
+  `match`/`nth`/`to` anchors, and the `explanation` text must preserve the reasoning those
+  comments capture. Verify every anchor resolves with (PowerShell):
+  `$env:SHOWCASE_JSON = '<path to a fetched dashboard/showcase.json>'; npm run check:groundedness`.
+  CI fetches the live contract and runs the same check on every push; a daily workflow
+  re-checks it independently, since cse-progress can change out from under this repo.
 - **If cse-progress has multiple solution methods for a problem, the visualizer must offer the
   corresponding multiple `SolutionVariant`s** (e.g. 261 Graph Valid Tree has both a DFS and a
   Union Find method, so its meta should expose both). Dated re-practice methods

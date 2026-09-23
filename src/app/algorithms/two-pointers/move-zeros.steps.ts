@@ -1,24 +1,9 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from typing import List
-
-
-class Solution:
-    def moveZeroes(self, nums: List[int]) -> None:
-        # two pointers both start at the left to preserve relative order of non-zeros
-        # left = next write slot for a non-zero value; right = current element being examined
-        # (opposite-end pointers would not preserve order)
-        def swap(l, r):
-            temp = nums[l]
-            nums[l] = nums[r]
-            nums[r] = temp
-
-        left = right = 0
-        while right < len(nums):
-            if nums[right] != 0:
-                swap(left, right)
-                left += 1
-            right += 1`;
+// Traces cse-progress's moveZeroes_20260919 verbatim: both pointers start at 0, left is the
+// next write slot for a non-zero, right scans every element. No helper function — the swap is
+// inlined via a tmp variable (tmp = nums[left]; nums[left] = nums[right]; nums[right] = tmp).
+// There is no else branch for a zero — the if simply doesn't fire, and right+=1 always runs.
 
 function generateSteps(): Step[] {
   const arr = [0, 1, 0, 3, 12];
@@ -47,7 +32,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Move all 0s to the end while preserving the order of non-zeros. Two pointers: left is the next write slot for a non-zero; right scans every element.',
-    highlightLine: 6,
+    anchor: { match: 'left = right = 0' },
     state: { type: 'array', cells: snap(0, 0), pointers: ptrs(0, 0) },
     variables: [
       { name: 'left', value: 0 },
@@ -60,7 +45,7 @@ function generateSteps(): Step[] {
     if (arr[right] !== 0) {
       steps.push({
         explanation: `nums[${right}] = ${arr[right]} is non-zero. Swap it into position left=${left}.`,
-        highlightLine: 9,
+        anchor: { match: 'if nums[right] != 0:' },
         state: { type: 'array', cells: snap(left, right), pointers: ptrs(left, right) },
         variables: [
           { name: 'left', value: left },
@@ -73,8 +58,8 @@ function generateSteps(): Step[] {
       left++;
 
       steps.push({
-        explanation: `Swapped. ${arr[left - 1]} is now locked at index ${left - 1}. left advances to ${left}.`,
-        highlightLine: 10,
+        explanation: `Swapped via tmp (tmp = nums[left]; nums[left] = nums[right]; nums[right] = tmp). ${arr[left - 1]} is now locked at index ${left - 1}. left advances to ${left}.`,
+        anchor: { match: 'tmp = nums[left]', to: { match: 'left+=1' } },
         state: { type: 'array', cells: snap(left, right), pointers: ptrs(left, right) },
         variables: [
           { name: 'left', value: left, highlight: true },
@@ -83,8 +68,8 @@ function generateSteps(): Step[] {
       });
     } else {
       steps.push({
-        explanation: `nums[${right}] = 0. Nothing to write — left stays at ${left}, right advances.`,
-        highlightLine: 8,
+        explanation: `nums[${right}] = 0. The if doesn't fire — left stays at ${left}, right advances.`,
+        anchor: { match: 'if nums[right] != 0:' },
         state: { type: 'array', cells: snap(left, right), pointers: ptrs(left, right) },
         variables: [
           { name: 'left', value: left },
@@ -97,7 +82,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Done. [${arr.join(', ')}] — all non-zeros in original order, zeros at the end. O(n) time, O(1) space.`,
-    highlightLine: 11,
+    anchor: { match: 'while right < len(nums):' },
     state: {
       type: 'array',
       cells: arr.map(v => ({ value: v, state: v === 0 ? ('eliminated' as const) : ('found' as const) })),
@@ -114,7 +99,7 @@ function generateSteps(): Step[] {
 
 const twoPointerSolution: SolutionVariant = {
   label: 'Two Pointers',
-  pythonCode: PYTHON_CODE,
+  variant: 'two-pointers',
   generateSteps,
 };
 

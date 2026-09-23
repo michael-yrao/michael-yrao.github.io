@@ -1,21 +1,10 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def plusOneSolution1(self, digits: List[int]) -> List[int]:
-        # iterate from last number in list
-        # if digit is 9, set to 0 and continue
-        # otherwise, add 1 and return
-        # if we are out of loop without returning, it means it was all 9s
-        # thus we add 1 in front of list
-
-        # range(start, end, increment)
-        for i in range(len(digits)-1,-1,-1):
-            if digits[i] != 9:
-                digits[i] += 1
-                return digits
-            digits[i] = 0
-
-        return [1] + digits`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's plusOne_20260622 verbatim: `for i in
+// range(len(digits)-1,-1,-1): if digits[i] != 9: digits[i]+=1; return digits`,
+// else `digits[i] = 0` and continue left; after the loop, `return [1] + digits`.
 
 function generateSteps(): Step[] {
   const digits = [1, 2, 9];
@@ -24,7 +13,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Plus One on [1,2,9]: add 1 to the integer represented as an array of digits. Walk from the rightmost digit. If it\'s 9, set it to 0 (carry) and continue left. Otherwise add 1 and return. If all digits were 9, prepend a 1.',
-    highlightLine: 10,
+    anchor: { match: 'for i in range(len(digits)-1,-1,-1):' },
     state: {
       type: 'array',
       cells: digits.map(v => ({ value: v, state: 'default' as const })),
@@ -40,7 +29,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `i=${i}: digits[${i}]=${cur}. ${cur !== 9 ? `Not 9 → increment to ${cur + 1} and return.` : `It's 9 → set to 0 (carry over), continue left.`}`,
-      highlightLine: cur !== 9 ? 10 : 12,
+      anchor: { match: 'if digits[i] != 9:' },
       state: {
         type: 'array',
         cells: digits.map((v, idx) => ({
@@ -65,7 +54,7 @@ function generateSteps(): Step[] {
       digits[i] += 1;
       steps.push({
         explanation: `digits[${i}] incremented to ${digits[i]}. Result: [${digits.join(',')}]. Return.`,
-        highlightLine: 11,
+        anchor: { match: 'digits[i]+=1', to: { match: 'return digits' } },
         state: {
           type: 'array',
           cells: digits.map((v, idx) => ({
@@ -83,7 +72,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `Set digits[${i}] = 0. Carry propagates left.`,
-      highlightLine: 13,
+      anchor: { match: 'digits[i] = 0' },
       state: {
         type: 'array',
         cells: digits.map((v, idx) => ({
@@ -110,7 +99,7 @@ function generateSteps(): Step[] {
   const result = [1, ...digits];
   steps.push({
     explanation: `All digits were 9 and set to 0. Prepend 1 → [${result.join(',')}].`,
-    highlightLine: 16,
+    anchor: { match: 'return [1] + digits' },
     state: {
       type: 'array',
       cells: result.map(v => ({ value: v, state: 'found' as const })),
@@ -124,7 +113,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Carry Propagation',
-  pythonCode: PYTHON_CODE,
+  variant: 'carry',
   generateSteps,
 };
 

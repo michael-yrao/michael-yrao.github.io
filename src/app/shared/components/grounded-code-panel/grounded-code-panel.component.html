@@ -1,0 +1,46 @@
+@switch (status()) {
+  @case ('error') {
+    <div class="showcase-error">
+      <p>{{ error() }}</p>
+      <button type="button" class="showcase-retry-btn" (click)="onRetry()">Retry</button>
+    </div>
+  }
+  @case ('ready') {
+    @if (entry(); as e) {
+      <section class="grounded-code-panel__section">
+        <div class="section-label-row">
+          <div class="section-label">{{ label() }}</div>
+          @if (groundedness()?.isGrounded) {
+            <a
+              class="groundedness-badge groundedness-badge--grounded"
+              [href]="attemptBlobUrl()"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Grounded ✓ · {{ goldStandardSlug }}</a
+            >
+          } @else {
+            <span
+              class="groundedness-badge groundedness-badge--ungrounded"
+              [title]="groundednessFailureText()"
+              >Ungrounded</span
+            >
+          }
+          @if (e.attemptDate) {
+            <span class="showcase-meta">{{ e.attemptDate }}</span>
+          }
+          <span class="showcase-meta showcase-meta--symbol">{{ e.symbol }}</span>
+        </div>
+        <app-code-viewer [rows]="rows()" [activeRange]="activeRange()"></app-code-viewer>
+      </section>
+    } @else {
+      <div class="no-showcase">This variant isn't published from cse-progress yet.</div>
+    }
+  }
+  @default {
+    <div class="showcase-skeleton" aria-hidden="true">
+      @for (i of skeletonRows; track i) {
+        <div class="showcase-skeleton__line"></div>
+      }
+    </div>
+  }
+}

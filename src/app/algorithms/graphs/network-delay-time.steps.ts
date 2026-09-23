@@ -1,34 +1,8 @@
-// Solution + comments sourced from cse-progress: dsa/leetcode/graphs/743_network_delay_time.py
+// Traces cse-progress's networkDelayTime_20260715 verbatim: Dijkstra with a min-heap of
+// (cumulative time, node); a node is marked visited at POP time (skip a repeat pop), and
+// minTime is folded as max(minTime, currentCumulativeTime) — the heap's sorted pop order
+// makes that equivalent to always taking the latest pop, but the attempt writes it as max().
 import { AlgorithmMeta, SolutionVariant, Step, GraphNode, GraphEdge, ProblemExample } from '../../core/models/algorithm.model';
-
-const PYTHON_CODE = `class Solution:
-    def networkDelayTime(self, times: List[List[int]], n: int, k: int) -> int:
-        # Dijkstra = BFS with a min-heap instead of a queue (weighted edges)
-        adjMap = collections.defaultdict(list)
-        hasShortest = set()
-        minTime = 0
-
-        for source, target, weight in times:
-            adjMap[source].append((target, weight))
-
-        minHeap = []
-        heapq.heappush(minHeap, (0, k))   # 0 time to reach start k
-
-        while minHeap:
-            cumulativeWeightToNode, node = heapq.heappop(minHeap)
-            if node in hasShortest:        # already finalized — skip
-                continue
-            hasShortest.add(node)
-            # popped in increasing order, so this is the shortest to 'node'
-            minTime = cumulativeWeightToNode
-
-            for neighborNode, neighborWeight in adjMap[node]:
-                if neighborNode not in hasShortest:
-                    heapq.heappush(minHeap, (neighborWeight + cumulativeWeightToNode, neighborNode))
-
-        if len(hasShortest) == n:
-            return minTime
-        return -1`;
 
 const TIMES: [number, number, number][] = [
   [2, 1, 1],
@@ -47,16 +21,16 @@ const POS: Record<number, { x: number; y: number }> = {
 
 function generateSteps(): Step[] {
   const steps: Step[] = [];
-  const adj: Record<number, [number, number][]> = {};
-  for (const [s, t, w] of TIMES) (adj[s] ??= []).push([t, w]);
+  const adjMap: Record<number, [number, number][]> = {};
+  for (const [source, target, time] of TIMES) (adjMap[source] ??= []).push([target, time]);
 
-  const hasShortest = new Set<number>();
+  const visited = new Set<number>();
   let minTime = 0;
-  const heap: [number, number][] = []; // (dist, node), kept sorted ascending
+  const minHeap: [number, number][] = []; // (currentCumulativeTime, node), kept sorted ascending
 
-  const pushHeap = (d: number, node: number) => {
-    heap.push([d, node]);
-    heap.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const pushHeap = (cumulativeTime: number, node: number): void => {
+    minHeap.push([cumulativeTime, node]);
+    minHeap.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   };
 
   const nodes = (active: number | null): GraphNode[] =>
@@ -64,7 +38,7 @@ function generateSteps(): Step[] {
       id,
       x: POS[id].x,
       y: POS[id].y,
-      state: (id === active ? 'active' : hasShortest.has(id) ? 'found' : 'default') as GraphNode['state'],
+      state: (id === active ? 'active' : visited.has(id) ? 'found' : 'default') as GraphNode['state'],
       label: `${id}`,
     }));
 
@@ -72,16 +46,16 @@ function generateSteps(): Step[] {
     TIMES.map(([s, t]) => ({
       from: s,
       to: t,
-      state: (s === activeFrom && t === activeTo ? 'active' : hasShortest.has(s) && hasShortest.has(t) ? 'found' : 'default') as GraphEdge['state'],
+      state: (s === activeFrom && t === activeTo ? 'active' : visited.has(s) && visited.has(t) ? 'found' : 'default') as GraphEdge['state'],
     }));
 
-  const heapItems = (): (string | number)[] => heap.map(([d, node]) => `(${d}, n${node})`);
+  const heapItems = (): (string | number)[] => minHeap.map(([time, node]) => `(${time}, n${node})`);
 
   pushHeap(0, K);
   steps.push({
     explanation:
-      `Dijkstra from k=${K}. Build adjacency map from times, then push (0, ${K}) — it costs 0 to reach the start. We pop the smallest cumulative time each step; because edge weights are non-negative, the first time we pop a node it is via its shortest path. minTime tracks the largest such time (the slowest node to hear the signal).`,
-    highlightLine: 13,
+      `Dijkstra from k=${K}. Build adjMap from times, then push (0, ${K}) — it costs 0 to reach the start. Edges are always positive, so cumulative distance only increases as we pop; minTime tracks the largest cumulative time seen so far (the slowest node to hear the signal).`,
+    anchor: { match: 'heapq.heappush(minHeap,(0,k))' },
     state: {
       type: 'graph',
       directed: true,
@@ -94,70 +68,71 @@ function generateSteps(): Step[] {
     variables: [],
   });
 
-  while (heap.length > 0) {
-    const [dist, node] = heap.shift()!;
-    if (hasShortest.has(node)) {
+  while (minHeap.length > 0) {
+    const [currentCumulativeTime, currentNode] = minHeap.shift()!;
+    if (visited.has(currentNode)) {
       steps.push({
-        explanation: `Pop (${dist}, ${node}): node ${node} is already settled → skip (a shorter path to it was popped earlier).`,
-        highlightLine: 18,
+        explanation: `Pop (${currentCumulativeTime}, ${currentNode}): currentNode ${currentNode} is already visited → skip (we already calculated the shortest way here).`,
+        anchor: { match: 'if currentNode in visited:' },
         state: {
           type: 'graph',
           directed: true,
-          nodes: nodes(node),
+          nodes: nodes(currentNode),
           edges: edges(null, null),
           stackItems: heapItems(),
           stackLabel: 'minHeap (time, node)',
-          counters: [{ label: 'minTime', value: minTime }, { label: 'settled', value: `${hasShortest.size} / ${N}` }],
+          counters: [{ label: 'minTime', value: minTime }, { label: 'settled', value: `${visited.size} / ${N}` }],
         },
-        variables: [{ name: 'popped', value: `(${dist}, ${node})` }, { name: 'action', value: 'skip' }],
+        variables: [{ name: 'currentNode', value: currentNode }, { name: 'currentCumulativeTime', value: currentCumulativeTime }],
       });
       continue;
     }
-    hasShortest.add(node);
-    minTime = dist;
+    visited.add(currentNode);
+    minTime = Math.max(minTime, currentCumulativeTime);
     steps.push({
-      explanation: `Pop (${dist}, ${node}): first time settling node ${node} → this is its shortest arrival time. Set minTime = ${dist}. Now relax its outgoing edges.`,
-      highlightLine: 21,
+      explanation: `Pop (${currentCumulativeTime}, ${currentNode}): mark currentNode ${currentNode} visited. minTime = max(minTime, ${currentCumulativeTime}) = ${minTime} — problem says minimum but since values only increase, minTime ends up holding the largest value we've popped. Now relax its neighbors.`,
+      anchor: { match: 'visited.add(currentNode)', to: { match: 'minTime = max(minTime, currentCumulativeTime)' } },
       state: {
         type: 'graph',
         directed: true,
-        nodes: nodes(node),
+        nodes: nodes(currentNode),
         edges: edges(null, null),
         stackItems: heapItems(),
         stackLabel: 'minHeap (time, node)',
-        counters: [{ label: 'minTime', value: minTime }, { label: 'settled', value: `${hasShortest.size} / ${N}` }],
+        counters: [{ label: 'minTime', value: minTime }, { label: 'settled', value: `${visited.size} / ${N}` }],
       },
-      variables: [{ name: 'node', value: node, highlight: true }, { name: 'minTime', value: minTime, highlight: true }],
+      variables: [{ name: 'currentNode', value: currentNode, highlight: true }, { name: 'minTime', value: minTime, highlight: true }],
     });
 
-    for (const [nb, w] of adj[node] ?? []) {
-      if (!hasShortest.has(nb)) {
-        pushHeap(dist + w, nb);
+    for (const [neighborNode, neighborTime] of adjMap[currentNode] ?? []) {
+      if (!visited.has(neighborNode)) {
+        const neighborCumulativeTime = currentCumulativeTime + neighborTime;
+        pushHeap(neighborCumulativeTime, neighborNode);
         steps.push({
-          explanation: `Edge ${node}→${nb} (weight ${w}): push (${dist} + ${w} = ${dist + w}, ${nb}) onto the heap. It will only settle ${nb} if nothing cheaper reaches it first.`,
-          highlightLine: 25,
+          explanation: `Edge ${currentNode}→${neighborNode} (weight ${neighborTime}): neighborNode not yet visited → push (${currentCumulativeTime} + ${neighborTime} = ${neighborCumulativeTime}, ${neighborNode}) onto minHeap.`,
+          anchor: { match: 'if neighborNode not in visited:', to: { match: 'heapq.heappush(minHeap, (neighborCumulativeTime, neighborNode))' } },
           state: {
             type: 'graph',
             directed: true,
-            nodes: nodes(node),
-            edges: edges(node, nb),
+            nodes: nodes(currentNode),
+            edges: edges(currentNode, neighborNode),
             stackItems: heapItems(),
             stackLabel: 'minHeap (time, node)',
-            counters: [{ label: 'minTime', value: minTime }, { label: 'settled', value: `${hasShortest.size} / ${N}` }],
+            counters: [{ label: 'minTime', value: minTime }, { label: 'settled', value: `${visited.size} / ${N}` }],
           },
-          variables: [{ name: 'neighbor', value: nb }, { name: 'new dist', value: dist + w, highlight: true }],
+          variables: [{ name: 'neighborNode', value: neighborNode }, { name: 'neighborCumulativeTime', value: neighborCumulativeTime, highlight: true }],
         });
       }
     }
   }
 
-  const answer = hasShortest.size === N ? minTime : -1;
+  const answer = visited.size === N ? minTime : -1;
   steps.push({
     explanation:
       answer === -1
-        ? `Heap empty but only ${hasShortest.size}/${N} nodes were reached → some node never gets the signal. Return -1.`
-        : `Heap empty and all ${N} nodes settled → every node received the signal. The slowest arrival is minTime = ${minTime}. Return ${minTime}.`,
-    highlightLine: answer === -1 ? 30 : 29,
+        ? `minHeap empty but len(visited) = ${visited.size} ≠ n = ${N} → some node never gets the signal. Return -1.`
+        : `minHeap empty and len(visited) = ${N} == n → every node received the signal. Return minTime = ${minTime}.`,
+    anchor: answer === -1 ? { match: 'return -1' } : { match: 'return minTime' },
     state: {
       type: 'graph',
       directed: true,
@@ -174,7 +149,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Dijkstra (min-heap)',
-  pythonCode: PYTHON_CODE,
+  variant: 'dijkstra',
   generateSteps,
   timeComplexity: 'O(E log V)',
   spaceComplexity: 'O(V + E)',

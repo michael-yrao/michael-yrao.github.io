@@ -1,28 +1,13 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def validPalindrome(self, s: str) -> bool:
-        # two pointers converge inward; on a mismatch we get one deletion attempt
-        # try skipping the left character or skipping the right — either may yield a palindrome
-        l, r = 0, len(s) - 1
-
-        def skippable(l, r) -> bool:
-            while l < r:
-                if s[l] == s[r]:
-                    l += 1
-                    r -= 1
-                else:
-                    return False
-            return True
-
-        while l < r:
-            if s[l] == s[r]:
-                l += 1
-                r -= 1
-            else:
-                return skippable(l+1, r) or skippable(l, r-1)
-
-        return True`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's validPalindromeVariation verbatim: the skippable(l, r) helper is
+// defined FIRST, then l, r = 0, len(s)-1. The outer `while l < r` loop and skippable's own
+// `while l < r` loop share the identical body (if s[l]==s[r]: l+=1, r-=1; else: ...) — the
+// only difference is the else branch: the outer one calls
+// `skippable(l+1, r) or skippable(l,r-1)` (Python `or` short-circuits — skippable(l,r-1)
+// only runs if skippable(l+1,r) is falsy); skippable's own else just returns False.
 
 function generateSteps(): Step[] {
   // "eccer" → true (delete 'r', leaving "ecce" which is a palindrome)
@@ -33,7 +18,7 @@ function generateSteps(): Step[] {
   const snap = (
     l: number,
     r: number,
-    overrides: Record<number, 'active' | 'found' | 'visited' | 'eliminated' | 'default'> = {}
+    overrides: Record<number, 'active' | 'found' | 'visited' | 'eliminated' | 'default'> = {},
   ) =>
     chars.map((c, i) => ({
       value: c,
@@ -47,12 +32,11 @@ function generateSteps(): Step[] {
     }));
 
   steps.push({
-    explanation:
-      'Two pointers approach with one allowed deletion. Start with l at the left and r at the right. Advance both as long as characters match. On a mismatch, try skipping either side and check if the remaining substring is a palindrome.',
-    highlightLine: 11,
+    explanation: `def skippable(l,r): checks whether s[l..r] is a plain palindrome (two pointers, no further deletion). Then l, r = 0, len(s)-1 → l=0, r=${chars.length - 1}. The outer loop advances while characters match; on a mismatch it tries skipping the left char or the right char.`,
+    anchor: { match: 'def skippable(l,r):', to: { match: 'l, r = 0, len(s)-1' } },
     state: {
       type: 'array',
-      cells: chars.map(c => ({ value: c, state: 'default' as const })),
+      cells: chars.map((c) => ({ value: c, state: 'default' as const })),
       pointers: [{ index: 0, label: 'l' }, { index: chars.length - 1, label: 'r' }],
     },
     variables: [
@@ -62,13 +46,14 @@ function generateSteps(): Step[] {
     ],
   });
 
-  // l=0, r=4: s[0]='e' vs s[4]='r'
-  let l = 0;
-  let r = chars.length - 1;
+  const l = 0;
+  const r = chars.length - 1;
 
   steps.push({
-    explanation: `s[${l}]='${chars[l]}' != s[${r}]='${chars[r]}': mismatch on first comparison! Try skipping the left (check s[${l + 1}..${r}]) OR skipping the right (check s[${l}..${r - 1}]).`,
-    highlightLine: 16,
+    explanation: `Outer loop: s[${l}]='${chars[l]}' != s[${r}]='${chars[r]}' → the if doesn't fire. return skippable(l+1, r) or skippable(l, r-1) — try skipping the left char first; skippable(l,r-1) only runs if that's falsy.`,
+    // nth 2: hit 1 is skippable()'s own 'if s[l] == s[r]:' inside the helper; this is the outer
+    // function's check.
+    anchor: { match: 'if s[l] == s[r]:', nth: 2, to: { match: 'return skippable(l+1, r) or skippable(l,r-1)' } },
     state: {
       type: 'array',
       cells: snap(l, r),
@@ -77,18 +62,19 @@ function generateSteps(): Step[] {
     variables: [
       { name: 'l', value: l, highlight: true },
       { name: 'r', value: r, highlight: true },
-      { name: `s[l]`, value: chars[l] },
-      { name: `s[r]`, value: chars[r] },
+      { name: 's[l]', value: chars[l] },
+      { name: 's[r]', value: chars[r] },
     ],
   });
 
-  // Branch A: skip left, check s[1..4] = "ccer"
+  // Branch A: skippable(l+1, r) → checks s[1..4] = "ccer"
   {
     const bl = l + 1;
     const br = r;
     steps.push({
-      explanation: `Branch A: skip left → check s[${bl}..${br}] = "${s.slice(bl, br + 1)}". s[${bl}]='${chars[bl]}' vs s[${br}]='${chars[br]}' — mismatch. Branch A fails.`,
-      highlightLine: 4,
+      explanation: `skippable(${bl}, ${br}): while l<r → s[${bl}]='${chars[bl]}' vs s[${br}]='${chars[br]}' — the if doesn't match, so the else fires: return False. skippable(l+1, r) is falsy.`,
+      // nth 1: skippable()'s own check; hit 2 is the outer function's 'if s[l] == s[r]:'.
+      anchor: { match: 'if s[l] == s[r]:', nth: 1, to: { match: 'return False' } },
       state: {
         type: 'array',
         cells: chars.map((c, i) => ({
@@ -102,10 +88,10 @@ function generateSteps(): Step[] {
               ? ('default' as const)
               : ('visited' as const),
         })),
-        pointers: [{ index: bl, label: 'l+1' }, { index: br, label: 'r' }],
+        pointers: [{ index: bl, label: 'l' }, { index: br, label: 'r' }],
       },
       variables: [
-        { name: 'branch', value: 'skip left' },
+        { name: 'branch', value: 'skippable(l+1, r)' },
         { name: `s[${bl}]`, value: chars[bl] },
         { name: `s[${br}]`, value: chars[br] },
         { name: 'match', value: 'false' },
@@ -113,40 +99,16 @@ function generateSteps(): Step[] {
     });
   }
 
-  // Branch B: skip right, check s[0..3] = "ecce"
+  // Branch B: `or` falls through to skippable(l, r-1) → checks s[0..3] = "ecce"
   {
-    const bl = l;
+    let bl = l;
     let br = r - 1;
 
     steps.push({
-      explanation: `Branch B: skip right → check s[${bl}..${br}] = "${s.slice(bl, br + 1)}". Begin inner check.`,
-      highlightLine: 4,
-      state: {
-        type: 'array',
-        cells: chars.map((c, i) => ({
-          value: c,
-          state:
-            i === r
-              ? ('eliminated' as const)
-              : i === bl || i === br
-              ? ('active' as const)
-              : i > bl && i < br
-              ? ('default' as const)
-              : ('visited' as const),
-        })),
-        pointers: [{ index: bl, label: 'l' }, { index: br, label: 'r-1' }],
-      },
-      variables: [
-        { name: 'branch', value: 'skip right' },
-        { name: `s[${bl}]`, value: chars[bl] },
-        { name: `s[${br}]`, value: chars[br] },
-      ],
-    });
-
-    // s[0]='e' == s[3]='e'
-    steps.push({
-      explanation: `s[${bl}]='${chars[bl]}' == s[${br}]='${chars[br]}' ✓ — advance inward.`,
-      highlightLine: 5,
+      explanation: `skippable(l+1, r) was falsy, so the \`or\` evaluates skippable(${bl}, ${br}): while l<r → s[${bl}]='${chars[bl]}' == s[${br}]='${chars[br]}' → the if fires: l+=1, r-=1.`,
+      // nth 1/1: skippable()'s own 'if' and its own 'r-=1'; hit 2 of each belongs to the outer
+      // function's identical-looking lines.
+      anchor: { match: 'if s[l] == s[r]:', nth: 1, to: { match: 'r-=1', nth: 1 } },
       state: {
         type: 'array',
         cells: chars.map((c, i) => ({
@@ -163,43 +125,44 @@ function generateSteps(): Step[] {
         pointers: [{ index: bl, label: 'l' }, { index: br, label: 'r' }],
       },
       variables: [
+        { name: 'branch', value: 'skippable(l, r-1)' },
         { name: `s[${bl}]`, value: chars[bl] },
         { name: `s[${br}]`, value: chars[br] },
         { name: 'match', value: 'true' },
       ],
     });
 
-    // Advance: bl=1, br=2
-    const bl2 = bl + 1;
-    br = br - 1;
+    bl += 1;
+    br -= 1;
 
     steps.push({
-      explanation: `s[${bl2}]='${chars[bl2]}' == s[${br}]='${chars[br]}' ✓ — advance inward again.`,
-      highlightLine: 18,
+      explanation: `while l<r (${bl}<${br}): s[${bl}]='${chars[bl]}' == s[${br}]='${chars[br]}' → the if fires again: l+=1, r-=1.`,
+      // nth 1/1: skippable()'s own 'if' and its own 'r-=1'; hit 2 of each belongs to the outer
+      // function's identical-looking lines.
+      anchor: { match: 'if s[l] == s[r]:', nth: 1, to: { match: 'r-=1', nth: 1 } },
       state: {
         type: 'array',
         cells: chars.map((c, i) => ({
           value: c,
-          state:
-            i === r || i === bl || i === br + 1
-              ? ('visited' as const)
-              : i === bl2 || i === br
-              ? ('found' as const)
-              : ('visited' as const),
+          state: i === r || i === l ? ('visited' as const) : i === bl || i === br ? ('found' as const) : ('visited' as const),
         })),
-        pointers: [{ index: bl2, label: 'l' }, { index: br, label: 'r' }],
+        pointers: [{ index: bl, label: 'l' }, { index: br, label: 'r' }],
       },
       variables: [
-        { name: `s[${bl2}]`, value: chars[bl2] },
+        { name: `s[${bl}]`, value: chars[bl] },
         { name: `s[${br}]`, value: chars[br] },
         { name: 'match', value: 'true' },
       ],
     });
 
-    // bl2=1+1=2, br=br-1: now l >= r → exit
+    bl += 1;
+    br -= 1;
+
     steps.push({
-      explanation: `l(${bl2 + 1}) >= r(${br - 1}): inner loop exits. Substring "${s.slice(bl, r)}" is a palindrome — we can delete '${chars[r]}' at index ${r}. Return true.`,
-      highlightLine: 9,
+      explanation: `while l<r (${bl}<${br}): false — skippable's loop exits, return True. skippable(l, r-1) is True, so the \`or\` evaluates to True and the outer function returns it. Substring "${s.slice(l, r)}" reads as a palindrome once '${chars[r]}' at index ${r} is deleted. Outer function returns True.`,
+      // nth 1: skippable()'s own 'return True'; hit 2 is the outer function's (unreachable in
+      // this trace — we return via skippable(l,r-1) truthy, not the outer 'return True').
+      anchor: { match: 'return True', nth: 1 },
       state: {
         type: 'array',
         cells: chars.map((c, i) => ({
@@ -209,8 +172,8 @@ function generateSteps(): Step[] {
         pointers: [],
       },
       variables: [
-        { name: 'skippable', value: 'true', highlight: true },
-        { name: 'return', value: 'true', highlight: true },
+        { name: 'skippable(l, r-1)', value: 'True', highlight: true },
+        { name: 'return', value: 'True', highlight: true },
       ],
     });
   }
@@ -219,8 +182,8 @@ function generateSteps(): Step[] {
 }
 
 const solution: SolutionVariant = {
-  label: 'Two Pointers',
-  pythonCode: PYTHON_CODE,
+  label: 'Two Pointers + Skip Check',
+  variant: 'skip-check',
   generateSteps,
 };
 

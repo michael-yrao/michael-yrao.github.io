@@ -1,17 +1,8 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def removeDuplicates(self, nums: List[int]) -> int:
-        # left = write cursor, right = read cursor; index 0 is always valid so both start at 1
-        # write nums[right] to nums[left] only when it differs from nums[left-1] (the last confirmed unique value)
-        left = right = counter = 1
-        while right < len(nums):
-            if nums[right] != nums[left - 1]:
-                nums[left] = nums[right]
-                left += 1
-                counter += 1
-            right += 1
-        return counter`;
+// Traces cse-progress's removeDuplicates_20260805 verbatim: l is the write cursor, r is the
+// read cursor; index 0 is always valid so both start at 1. There is no separate counter — the
+// function returns l itself, since l always sits one past the last confirmed-unique slot.
 
 function generateSteps(): Step[] {
   const nums = [1, 1, 2, 3, 3];
@@ -30,10 +21,26 @@ function generateSteps(): Step[] {
           : ('default' as const),
     }));
 
+  function emit(explanation: string, anchor: StepAnchor, l: number, r: number, highlightL = false): void {
+    steps.push({
+      explanation,
+      anchor,
+      state: {
+        type: 'array',
+        cells: snap(l, r),
+        pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
+      },
+      variables: [
+        { name: 'l', value: l, highlight: highlightL },
+        { name: 'r', value: r },
+      ],
+    });
+  }
+
   steps.push({
     explanation:
-      'Two-pointer in-place dedup: left marks the next write slot, right scans forward. Index 0 is always valid, so both start at 1. Write nums[right] to nums[left] only when it differs from nums[left−1].',
-    highlightLine: 2,
+      'Two-pointer in-place dedup: l marks the next write slot, r scans forward. Index 0 is always valid, so both start at 1. Write nums[r] to nums[l] only when it differs from nums[l-1].',
+    anchor: { match: 'l = r = 1' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),
@@ -42,60 +49,54 @@ function generateSteps(): Step[] {
     variables: [{ name: 'nums', value: `[${nums.join(', ')}]` }],
   });
 
-  let left = 1;
-  let right = 1;
+  let l = 1;
+  let r = 1;
 
-  while (right < nums.length) {
-    const differs = nums[right] !== nums[left - 1];
+  while (r < nums.length) {
+    const differs = nums[r] !== nums[l - 1];
 
     steps.push({
-      explanation: `right=${right}: nums[right]=${nums[right]} vs nums[left−1]=${nums[left - 1]} → ${differs ? 'different — write & advance left' : 'duplicate — skip'}.`,
-      highlightLine: 4,
+      explanation: `r=${r}: nums[r]=${nums[r]} vs nums[l-1]=${nums[l - 1]} → ${differs ? 'different — write & advance l' : 'duplicate — skip'}.`,
+      anchor: { match: 'if nums[r] != nums[l-1]:' },
       state: {
         type: 'array',
-        cells: snap(left, right),
-        pointers: [{ index: left, label: 'left' }, { index: right, label: 'right' }],
+        cells: snap(l, r),
+        pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
       },
       variables: [
-        { name: 'left', value: left },
-        { name: 'right', value: right },
+        { name: 'l', value: l },
+        { name: 'r', value: r },
         { name: 'differs', value: String(differs), highlight: true },
       ],
     });
 
     if (differs) {
-      nums[left] = nums[right];
-      left++;
-      steps.push({
-        explanation: `Wrote ${nums[left - 1]} at left=${left - 1}. Advance left to ${left}.`,
-        highlightLine: 6,
-        state: {
-          type: 'array',
-          cells: snap(left, right),
-          pointers: [{ index: left, label: 'left' }, { index: right, label: 'right' }],
-        },
-        variables: [
-          { name: 'left', value: left, highlight: true },
-          { name: 'right', value: right },
-        ],
-      });
+      nums[l] = nums[r];
+      l++;
+      emit(
+        `Wrote ${nums[l - 1]} at l=${l - 1}. Advance l to ${l}.`,
+        { match: 'nums[l] = nums[r]', to: { match: 'l+=1' } },
+        l,
+        r,
+        true,
+      );
     }
 
-    right++;
+    r++;
   }
 
   steps.push({
-    explanation: `Done. First ${left} elements are the unique sorted values. Return ${left}. O(n) time, O(1) space.`,
-    highlightLine: 9,
+    explanation: `Done. First ${l} elements are the unique sorted values. Return ${l}. O(n) time, O(1) space.`,
+    anchor: { match: 'return l' },
     state: {
       type: 'array',
       cells: nums.map((v, i) => ({
         value: v,
-        state: i < left ? ('found' as const) : ('eliminated' as const),
+        state: i < l ? ('found' as const) : ('eliminated' as const),
       })),
       pointers: [],
     },
-    variables: [{ name: 'return', value: left, highlight: true }],
+    variables: [{ name: 'return', value: l, highlight: true }],
   });
 
   return steps;
@@ -103,7 +104,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Two Pointers',
-  pythonCode: PYTHON_CODE,
+  variant: 'two-pointers',
   generateSteps,
 };
 

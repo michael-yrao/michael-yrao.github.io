@@ -1,52 +1,35 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from typing import List
+// Placeholder for a `result` slot not yet appended — result starts empty and
+// grows one `.append()` at a time, so an unfilled slot is never really a 0.
+const UNFILLED_SLOT = '·';
 
-
-class Solution:
-    def productExceptSelf(self, nums: List[int]) -> List[int]:
-        # prefix and suffix product arrays
-        # then loop through and just do result[i] = prefix[i] * suffix[i]
-        # [1,2,3,4]
-        # prefix: [1,1,2,6]
-        # suffix: [24,12,4,1]
-        # result = [24,12,8,6]
-
-        prefix = [1] * len(nums)
-        suffix = [1] * len(nums)
-        result = [1] * len(nums)
-
-        for i in range(1, len(nums)):
-            prefix[i] = prefix[i - 1] * nums[i - 1]
-
-        for i in range(len(nums) - 2, -1, -1):
-            suffix[i] = suffix[i + 1] * nums[i + 1]
-
-        for i in range(len(nums)):
-            result[i] = prefix[i] * suffix[i]
-
-        return result`;
+// ── Solution 1: Prefix & Suffix ──────────────────────────────────────────────
+//
+// Traces cse-progress's productExceptSelf_20260724 verbatim: lenNums,
+// prefixProduct, postfixProduct (not prefix/suffix), and result STARTS EMPTY
+// and is built with `.append(product)` in the final loop — not a preallocated
+// array written by index.
 
 function generateSteps(): Step[] {
   const nums = [1, 2, 3, 4];
   const n = nums.length;
-  const prefix = Array(n).fill(1);
-  const suffix = Array(n).fill(1);
-  const result = Array(n).fill(1);
+  const prefixProduct = Array(n).fill(1);
+  const postfixProduct = Array(n).fill(1);
   const steps: Step[] = [];
 
   // ── Intro ──────────────────────────────────────────────────────
   steps.push({
     explanation:
-      'No division allowed. Key insight: result[i] = (product of everything to the left of i) × (product of everything to the right of i). Build a prefix-product array and a suffix-product array, then multiply them.',
-    highlightLine: 6,
+      'No division allowed. Key insight: result[i] = (product of everything to the left of i) × (product of everything to the right of i). Build prefixProduct and postfixProduct arrays, then multiply them into result.',
+    anchor: { match: 'lenNums = len(nums)', to: { match: 'postfixProduct = [1] * lenNums' } },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),
       pointers: [],
       counters: [
-        { label: 'prefix', value: '[1, 1, 1, 1]' },
-        { label: 'suffix', value: '[1, 1, 1, 1]' },
+        { label: 'prefixProduct', value: '[1, 1, 1, 1]' },
+        { label: 'postfixProduct', value: '[1, 1, 1, 1]' },
       ],
     },
     variables: [
@@ -54,79 +37,81 @@ function generateSteps(): Step[] {
     ],
   });
 
-  // ── Build prefix ───────────────────────────────────────────────
+  // ── Build prefixProduct ───────────────────────────────────────────────
   for (let i = 1; i < n; i++) {
-    prefix[i] = prefix[i - 1] * nums[i - 1];
+    prefixProduct[i] = prefixProduct[i - 1] * nums[i - 1];
     steps.push({
-      explanation: `prefix[${i}] = prefix[${i - 1}] × nums[${i - 1}] = ${prefix[i - 1]} × ${nums[i - 1]} = ${prefix[i]}. This is the product of all elements strictly to the LEFT of index ${i}.`,
-      highlightLine: 11,
+      explanation: `prefixProduct[${i}] = prefixProduct[${i - 1}] × nums[${i - 1}] = ${prefixProduct[i - 1]} × ${nums[i - 1]} = ${prefixProduct[i]}. This is the product of all elements strictly to the LEFT of index ${i}.`,
+      anchor: { match: 'prefixProduct[i] = prefixProduct[i-1] * nums[i-1]' },
       state: {
         type: 'array',
-        cells: prefix.map((v, j) => ({
+        cells: prefixProduct.map((v, j) => ({
           value: v,
           state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
         })),
         pointers: [{ index: i, label: 'i' }],
         counters: [
           { label: 'nums', value: `[${nums.join(', ')}]` },
-          { label: 'suffix', value: '[1, 1, 1, 1]' },
+          { label: 'postfixProduct', value: '[1, 1, 1, 1]' },
         ],
       },
       variables: [
         { name: 'i', value: i, highlight: true },
-        { name: `prefix[${i}]`, value: prefix[i], highlight: true },
+        { name: `prefixProduct[${i}]`, value: prefixProduct[i], highlight: true },
       ],
     });
   }
 
-  // ── Build suffix ───────────────────────────────────────────────
+  // ── Build postfixProduct ───────────────────────────────────────────────
   for (let i = n - 2; i >= 0; i--) {
-    suffix[i] = suffix[i + 1] * nums[i + 1];
+    postfixProduct[i] = postfixProduct[i + 1] * nums[i + 1];
     steps.push({
-      explanation: `suffix[${i}] = suffix[${i + 1}] × nums[${i + 1}] = ${suffix[i + 1]} × ${nums[i + 1]} = ${suffix[i]}. This is the product of all elements strictly to the RIGHT of index ${i}.`,
-      highlightLine: 14,
+      explanation: `postfixProduct[${i}] = postfixProduct[${i + 1}] × nums[${i + 1}] = ${postfixProduct[i + 1]} × ${nums[i + 1]} = ${postfixProduct[i]}. This is the product of all elements strictly to the RIGHT of index ${i}.`,
+      anchor: { match: 'postfixProduct[i] = postfixProduct[i+1] * nums[i+1]' },
       state: {
         type: 'array',
-        cells: suffix.map((v, j) => ({
+        cells: postfixProduct.map((v, j) => ({
           value: v,
           state: j === i ? ('active' as const) : j > i ? ('visited' as const) : ('default' as const),
         })),
         pointers: [{ index: i, label: 'i' }],
         counters: [
           { label: 'nums', value: `[${nums.join(', ')}]` },
-          { label: 'prefix', value: `[${prefix.join(', ')}]` },
+          { label: 'prefixProduct', value: `[${prefixProduct.join(', ')}]` },
         ],
       },
       variables: [
         { name: 'i', value: i, highlight: true },
-        { name: `suffix[${i}]`, value: suffix[i], highlight: true },
+        { name: `postfixProduct[${i}]`, value: postfixProduct[i], highlight: true },
       ],
     });
   }
 
-  // ── Build result ───────────────────────────────────────────────
+  // ── Build result (starts empty, appended to) ────────────────────────────
+  const result: number[] = [];
   for (let i = 0; i < n; i++) {
-    result[i] = prefix[i] * suffix[i];
+    const product = prefixProduct[i] * postfixProduct[i];
+    result.push(product);
     steps.push({
-      explanation: `result[${i}] = prefix[${i}] × suffix[${i}] = ${prefix[i]} × ${suffix[i]} = ${result[i]}.`,
-      highlightLine: 17,
+      explanation: `product = prefixProduct[${i}] × postfixProduct[${i}] = ${prefixProduct[i]} × ${postfixProduct[i]} = ${product}. result.append(product) → [${result.join(', ')}].`,
+      anchor: { match: 'product = prefixProduct[i] * postfixProduct[i]', to: { match: 'result.append(product)' } },
       state: {
         type: 'array',
-        cells: result.map((v, j) => ({
-          value: v,
+        cells: nums.map((_, j) => ({
+          value: j < result.length ? result[j] : UNFILLED_SLOT,
           state: j === i ? ('active' as const) : j < i ? ('found' as const) : ('default' as const),
         })),
         pointers: [{ index: i, label: 'i' }],
         counters: [
-          { label: 'prefix', value: `[${prefix.join(', ')}]` },
-          { label: 'suffix', value: `[${suffix.join(', ')}]` },
+          { label: 'prefixProduct', value: `[${prefixProduct.join(', ')}]` },
+          { label: 'postfixProduct', value: `[${postfixProduct.join(', ')}]` },
         ],
       },
       variables: [
         { name: 'i', value: i, highlight: true },
-        { name: `prefix[${i}]`, value: prefix[i] },
-        { name: `suffix[${i}]`, value: suffix[i] },
-        { name: `result[${i}]`, value: result[i], highlight: true },
+        { name: `prefixProduct[${i}]`, value: prefixProduct[i] },
+        { name: `postfixProduct[${i}]`, value: postfixProduct[i] },
+        { name: 'product', value: product, highlight: true },
       ],
     });
   }
@@ -134,14 +119,14 @@ function generateSteps(): Step[] {
   // ── Final ──────────────────────────────────────────────────────
   steps.push({
     explanation: `Result: [${result.join(', ')}]. Each value is the product of every other element, computed in O(n) time with no division.`,
-    highlightLine: 26,
+    anchor: { match: 'return result' },
     state: {
       type: 'array',
       cells: result.map(v => ({ value: v, state: 'found' as const })),
       pointers: [],
       counters: [
-        { label: 'prefix', value: `[${prefix.join(', ')}]` },
-        { label: 'suffix', value: `[${suffix.join(', ')}]` },
+        { label: 'prefixProduct', value: `[${prefixProduct.join(', ')}]` },
+        { label: 'postfixProduct', value: `[${postfixProduct.join(', ')}]` },
       ],
     },
     variables: [
@@ -154,33 +139,16 @@ function generateSteps(): Step[] {
 
 const prefixSuffixSolution: SolutionVariant = {
   label: 'Prefix & Suffix',
-  pythonCode: PYTHON_CODE,
+  variant: 'prefix-suffix',
   generateSteps,
   timeComplexity: 'O(n)',
   spaceComplexity: 'O(n)',
 };
 
 // ── Solution 2: O(1) extra space (store prefix in result, then multiply suffix) ──
-
-const PYTHON_CODE_EFFICIENT = `class Solution:
-    def productExceptSelf(self, nums: List[int]) -> List[int]:
-        # take advantage of the fact that result does not count towards space complexity
-        # store prefix in result, using a variable to help
-        # then loop through again multiplying by suffix, using another variable to help
-
-        result = [1] * len(nums)
-
-        prefix = suffix = 1
-
-        for i in range(len(nums)):
-            result[i] = prefix
-            prefix *= nums[i]
-
-        for i in range(len(nums)-1,-1,-1):
-            result[i] *= suffix
-            suffix *= nums[i]
-
-        return result`;
+//
+// Traces cse-progress's productExceptSelfPrefixSumEfficient verbatim:
+// result, prefix, suffix — identical variable names, two passes.
 
 function generateStepsEfficient(): Step[] {
   const nums = [1, 2, 3, 4];
@@ -206,7 +174,7 @@ function generateStepsEfficient(): Step[] {
   steps.push({
     explanation:
       "Follow-up: O(1) extra space. The output array doesn't count, so we reuse it. Pass 1 fills result[i] with the product of everything to the LEFT (a running prefix). Pass 2 multiplies in the product of everything to the RIGHT (a running suffix). Just two scalar variables — no prefix/suffix arrays.",
-    highlightLine: 3,
+    anchor: { match: 'result = [1] * len(nums)', to: { match: 'prefix = suffix = 1' } },
     state: snap(null, () => false),
     variables: [
       { name: 'result', value: `[${result.join(', ')}]` },
@@ -221,7 +189,7 @@ function generateStepsEfficient(): Step[] {
     prefix *= nums[i];
     steps.push({
       explanation: `Pass 1, i=${i}: result[${i}] = prefix = ${old} (product of everything left of index ${i}). Then prefix ×= nums[${i}]=${nums[i]} → ${prefix}.`,
-      highlightLine: 12,
+      anchor: { match: 'result[i] = prefix', to: { match: 'prefix *= nums[i]' } },
       state: snap(i, (j) => j < i),
       variables: [
         { name: 'i', value: i },
@@ -233,7 +201,7 @@ function generateStepsEfficient(): Step[] {
 
   steps.push({
     explanation: `After pass 1, result = [${result.join(', ')}] — each cell holds its left-product. Now scan right-to-left with a running suffix starting at 1.`,
-    highlightLine: 15,
+    anchor: { match: 'for i in range(len(nums)-1,-1,-1):' },
     state: snap(null, () => true),
     variables: [
       { name: 'result', value: `[${result.join(', ')}]` },
@@ -247,7 +215,7 @@ function generateStepsEfficient(): Step[] {
     suffix *= nums[i];
     steps.push({
       explanation: `Pass 2, i=${i}: result[${i}] ×= suffix = ${old} → ${result[i]} (now folds in the right-product too). Then suffix ×= nums[${i}]=${nums[i]} → ${suffix}.`,
-      highlightLine: 16,
+      anchor: { match: 'result[i] *= suffix', to: { match: 'suffix *= nums[i]' } },
       state: snap(i, (j) => j > i),
       variables: [
         { name: 'i', value: i },
@@ -259,7 +227,7 @@ function generateStepsEfficient(): Step[] {
 
   steps.push({
     explanation: `Done. result = [${result.join(', ')}]. O(n) time and O(1) extra space — no auxiliary arrays, just the prefix and suffix scalars.`,
-    highlightLine: 19,
+    anchor: { match: 'return result' },
     state: {
       type: 'array',
       cells: result.map((v) => ({ value: v, state: 'found' as const })),
@@ -277,7 +245,7 @@ function generateStepsEfficient(): Step[] {
 
 const efficientSolution: SolutionVariant = {
   label: 'O(1) Space (prefix then suffix)',
-  pythonCode: PYTHON_CODE_EFFICIENT,
+  variant: 'o1-space',
   generateSteps: generateStepsEfficient,
   timeComplexity: 'O(n)',
   spaceComplexity: 'O(1)',

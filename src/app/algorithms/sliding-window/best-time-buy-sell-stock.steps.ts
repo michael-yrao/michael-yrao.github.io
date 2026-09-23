@@ -1,24 +1,10 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from typing import List
-
-class Solution:
-    def maxProfit(self, prices: List[int]) -> int:
-        # l = buy day, r = sell day; profit = prices[r] - prices[l]
-        # if prices[r] < prices[l], buying at r is strictly better — move l there
-        # this keeps l at the lowest price seen so far without needing a separate min variable
-        currentMaxProfit = 0
-
-        l, r = 0, 1
-
-        while r < len(prices):
-            currentMaxProfit = max(currentMaxProfit, prices[r] - prices[l])
-
-            if prices[r] < prices[l]:
-                l = r
-            r += 1
-
-        return currentMaxProfit`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's maxProfit verbatim: currentMaxProfit = max(...) is UNCONDITIONAL every
+// iteration (not gated behind an if) — l, r = 0, 1; while r < len(prices); then a separate if
+// moves l when a lower price is seen.
 
 function generateSteps(): Step[] {
   const prices = [7, 1, 5, 3, 6, 4];
@@ -48,8 +34,8 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation:
-      'L points to our buy day, R to our sell day. We slide R rightward. The key insight: if we see a price lower than L, it\'s always better to buy there instead — so we move L to R.',
-    highlightLine: 12,
+      'currentMaxProfit = 0. l, r = 0, 1 — L points to our buy day, R to our sell day. We slide R rightward. The key insight: if we see a price lower than L, it\'s always better to buy there instead — so we move L to R.',
+    anchor: { match: 'currentMaxProfit = 0', to: { match: 'l, r = 0, 1' } },
     state: makeState(l, r, maxProfit),
     variables: [
       { name: 'l', value: l },
@@ -64,8 +50,9 @@ function generateSteps(): Step[] {
 
     if (profit > maxProfit) {
       steps.push({
-        explanation: `prices[R]=${prices[r]} − prices[L]=${prices[l]} = ${profit}. New best profit! We update maxProfit to ${profit}.`,
-        highlightLine: 16,
+        explanation: `currentMaxProfit = max(currentMaxProfit, prices[r]-prices[l]) — unconditional every iteration. prices[R]=${prices[r]} − prices[L]=${prices[l]} = ${profit}. New best profit! currentMaxProfit becomes ${profit}.`,
+        // Skips nth=1 — a comment line above with this exact same text.
+        anchor: { match: 'currentMaxProfit = max(currentMaxProfit, prices[r] - prices[l])', nth: 2 },
         state: makeState(l, r, newMax),
         variables: [
           { name: 'l', value: l },
@@ -78,8 +65,9 @@ function generateSteps(): Step[] {
       });
     } else {
       steps.push({
-        explanation: `prices[R]=${prices[r]} − prices[L]=${prices[l]} = ${profit}. Not better than current max ${maxProfit}. Keep going.`,
-        highlightLine: 16,
+        explanation: `currentMaxProfit = max(currentMaxProfit, prices[r]-prices[l]) — unconditional every iteration. prices[R]=${prices[r]} − prices[L]=${prices[l]} = ${profit}. Not better than current max ${maxProfit}; max() keeps it unchanged.`,
+        // Skips nth=1 — a comment line above with this exact same text.
+        anchor: { match: 'currentMaxProfit = max(currentMaxProfit, prices[r] - prices[l])', nth: 2 },
         state: makeState(l, r, newMax),
         variables: [
           { name: 'l', value: l },
@@ -96,8 +84,8 @@ function generateSteps(): Step[] {
 
     if (prices[r] < prices[l]) {
       steps.push({
-        explanation: `prices[R]=${prices[r]} < prices[L]=${prices[l]}. This is a lower buy price. Move L here — buying later at a lower price can only improve future profit. R keeps advancing.`,
-        highlightLine: 16,
+        explanation: `if prices[r] < prices[l]: prices[R]=${prices[r]} < prices[L]=${prices[l]}. This is a lower buy price. l = r — R keeps advancing.`,
+        anchor: { match: 'if prices[r] < prices[l]:', to: { match: 'l = r' } },
         state: {
           type: 'array',
           cells: prices.map((v, i) => ({
@@ -128,8 +116,8 @@ function generateSteps(): Step[] {
   }
 
   steps.push({
-    explanation: `R has passed the end. The best profit we found was ${maxProfit} (buy low, sell high).`,
-    highlightLine: 19,
+    explanation: `R has passed the end. return currentMaxProfit = ${maxProfit} (buy low, sell high).`,
+    anchor: { match: 'return currentMaxProfit' },
     state: makeState(l, prices.length - 1, maxProfit),
     variables: [
       { name: 'maxProfit', value: maxProfit, highlight: true },
@@ -141,7 +129,7 @@ function generateSteps(): Step[] {
 
 const slidingWindowSolution: SolutionVariant = {
   label: 'Sliding Window',
-  pythonCode: PYTHON_CODE,
+  variant: 'two-pointers',
   generateSteps,
 };
 

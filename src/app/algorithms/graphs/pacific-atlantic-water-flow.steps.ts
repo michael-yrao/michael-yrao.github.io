@@ -1,69 +1,9 @@
-import { AlgorithmMeta, Step, GridState, GridCellState, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, GridState, GridCellState, ProblemExample } from '../../core/models/algorithm.model';
 
-// ── Python source ─────────────────────────────────────────────────────────────
-
-const PYTHON_CODE = `class Solution:
-    def pacificAtlantic(self, heights: List[List[int]]) -> List[List[int]]:
-        # the question is really confusing
-        # it is just asking to return a list of cells that can flow to both oceans
-        # basically then we are doing DFS on every single cell and seeing if it can reach two of the 4 surfaces
-        # preorder DFS as well since we need to make decision on current node
-        # what we should do is start from each ocean instead and mark nodes as (canReachPacific, canReachAtlantic)
-        # so we have a list of pacific nodes and a list of atlantic nodes
-        # DFS on neighbors that are bigger, since we are starting from the end and then mark those nodes with (canReachPacific, canReachAtlantic)
-        # we can't use a tuple because tuples are immutable, so we'll just do two sets
-
-        canReachPacific = set()
-        canReachAtlantic = set()
-
-        rows = len(heights)
-        cols = len(heights[0])
-
-        # remember we are coming from outside
-        # so previousHeight should be smaller than height we are going to
-        def dfs(row, col, visitedSet, previousHeight):
-            # this dfs is responsible for adding node to visited
-
-            # typical base case first of going out of bounds or is already visited
-            if (row,col) in visitedSet or row < 0 or row >= rows or col < 0 or col >= cols:
-                return
-
-            # if height is smaller than previousHeight, we don't continue as well
-            if heights[row][col] < previousHeight:
-                return
-
-            # if valid, we will start with adding to visited
-            visitedSet.add((row,col))
-
-            # now let's go to the neighbors that have more height
-            dfs(row+1, col, visitedSet, heights[row][col])
-            dfs(row-1, col, visitedSet, heights[row][col])
-            dfs(row, col+1, visitedSet, heights[row][col])
-            dfs(row, col-1, visitedSet, heights[row][col])
-
-        for row in range(rows):
-            # we actually need to pass the set since we have two sets here
-            # we actually also need to pass the previous height otherwise we can't tell if it can flow down or not
-            # dfs starting from the left most column, which is pacific
-            dfs(row, 0, canReachPacific, heights[row][0])
-            # dfs starting from the top row, which is the atlantic
-            dfs(row, cols - 1, canReachAtlantic, heights[row][cols-1])
-
-        for col in range(cols):
-            # first row, which is pacific ocean
-            dfs(0, col, canReachPacific, heights[0][col])
-            # last row, which is the atlantic ocean
-            dfs(rows - 1, col, canReachAtlantic, heights[rows-1][col])
-
-        result = []
-
-        # now we go through and get everything that is in both sets
-        for row in range(rows):
-            for col in range(cols):
-                if (row,col) in canReachAtlantic and (row,col) in canReachPacific:
-                    result.append([row,col])
-
-        return result`;
+// Traces cse-progress's pacificAtlantic_20260611 verbatim: reverse-DFS with
+// canVisitPacific / canVisitAtlantic sets and dfs's base case split into three
+// separate ifs (out-of-bounds, already-visited, then priorHeight) — same net effect
+// as a combined check, since neither branch indexes heights before it fires.
 
 // ── Grid setup ────────────────────────────────────────────────────────────────
 
@@ -132,41 +72,42 @@ function generateDfsSteps(): Step[] {
   interface VarSnapshot {
     row?: number;
     col?: number;
-    previousHeight?: number;
+    priorHeight?: number;
     setName?: string;            // visitedSet currently bound in dfs()
     highlightSet?: boolean;      // highlight the set that just changed
     extra?: { name: string; value: string | number; highlight?: boolean }[];
   }
 
-  function emit(explanation: string, highlightLine: number, activeKey: string | undefined, v: VarSnapshot): void {
+  function emit(explanation: string, anchor: StepAnchor, activeKey: string | undefined, v: VarSnapshot): void {
     steps.push({
       explanation,
-      highlightLine,
+      anchor,
       state: render(activeKey),
       variables: [
         { name: 'row', value: v.row ?? '—' },
         { name: 'col', value: v.col ?? '—' },
-        { name: 'previousHeight', value: v.previousHeight ?? '—' },
+        { name: 'priorHeight', value: v.priorHeight ?? '—' },
         { name: 'visitedSet', value: v.setName ?? '—' },
-        { name: 'canReachPacific.size', value: canReachPacific.size, highlight: v.highlightSet && v.setName === 'canReachPacific' },
-        { name: 'canReachAtlantic.size', value: canReachAtlantic.size, highlight: v.highlightSet && v.setName === 'canReachAtlantic' },
+        { name: 'canVisitPacific.size', value: canReachPacific.size, highlight: v.highlightSet && v.setName === 'canVisitPacific' },
+        { name: 'canVisitAtlantic.size', value: canReachAtlantic.size, highlight: v.highlightSet && v.setName === 'canVisitAtlantic' },
         ...(v.extra ?? []),
       ],
     });
   }
 
   // Exact port of the Python dfs(): emits one step per cell added to the set.
-  function dfs(row: number, col: number, set: Set<string>, setName: string, previousHeight: number): void {
+  function dfs(row: number, col: number, set: Set<string>, setName: string, priorHeight: number): void {
     const key = toKey(row, col);
-    if (set.has(key) || row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
-    if (HEIGHTS[row][col] < previousHeight) return;
+    if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
+    if (set.has(key)) return;
+    if (HEIGHTS[row][col] < priorHeight) return;
 
     set.add(key);
     emit(
-      `dfs(${row}, ${col}) — height ${HEIGHTS[row][col]} ≥ previousHeight ${previousHeight}, so water can flow back the way we came. Add (${row},${col}) to ${setName}, then recurse down, up, right, left.`,
-      32,
+      `dfs(${row}, ${col}) — height ${HEIGHTS[row][col]} ≥ priorHeight ${priorHeight}, so water can flow back the way we came. Add (${row},${col}) to ${setName}, then recurse down, up, right, left.`,
+      { match: 'visitedSet.add((row,col))' },
       key,
-      { row, col, previousHeight, setName, highlightSet: true },
+      { row, col, priorHeight, setName, highlightSet: true },
     );
 
     dfs(row + 1, col, set, setName, HEIGHTS[row][col]);
@@ -177,48 +118,48 @@ function generateDfsSteps(): Step[] {
 
   // Seed call wrapper: shows each top-level dfs() call from the two for-loops,
   // including the ones that return immediately because the cell is already visited.
-  function seed(row: number, col: number, set: Set<string>, setName: string, ocean: string, line: number): void {
+  function seed(row: number, col: number, set: Set<string>, setName: string, ocean: string, callAnchor: StepAnchor): void {
     const key = toKey(row, col);
-    const previousHeight = HEIGHTS[row][col];
+    const priorHeight = HEIGHTS[row][col];
     if (set.has(key)) {
       emit(
         `dfs(${row}, ${col}) for ${ocean}: (${row},${col}) is already in ${setName}, so the base case returns immediately.`,
-        24,
+        { match: 'if (row,col) in visitedSet:' },
         key,
-        { row, col, previousHeight, setName },
+        { row, col, priorHeight, setName },
       );
       return;
     }
     emit(
-      `Seed ${ocean}: call dfs(${row}, ${col}, ${setName}, heights[${row}][${col}]=${previousHeight}). This border cell touches the ${ocean}, so anything we can climb to from here drains into it.`,
-      line,
+      `Seed ${ocean}: call dfs(${row}, ${col}, ${setName}, heights[${row}][${col}]=${priorHeight}). This border cell touches the ${ocean}, so anything we can climb to from here drains into it.`,
+      callAnchor,
       key,
       {
-        row, col, previousHeight, setName,
+        row, col, priorHeight, setName,
         extra: [{ name: 'phase', value: `${ocean} seed`, highlight: true }],
       },
     );
-    dfs(row, col, set, setName, previousHeight);
+    dfs(row, col, set, setName, priorHeight);
   }
 
   // ── Intro ──────────────────────────────────────────────────────────────────
   emit(
     'Pacific Ocean borders the top row and left column; Atlantic borders the bottom row and right column. Instead of DFS from every cell, we DFS from the ocean edges and climb UPHILL — any cell we reach can drain back to that ocean. Two sets track reachability; we seed them by walking the borders, alternating one Pacific call and one Atlantic call per loop iteration. The legend below the grid shows what each color means.',
-    12,
+    { match: 'canVisitPacific = set()', to: { match: 'canVisitAtlantic = set()' } },
     undefined,
     { extra: [{ name: 'rows', value: ROWS }, { name: 'cols', value: COLS }] },
   );
 
   // ── for row in range(rows): one Pacific seed (left col), one Atlantic seed (right col) ──
   for (let row = 0; row < ROWS; row++) {
-    seed(row, 0, canReachPacific, 'canReachPacific', 'Pacific', 44);
-    seed(row, COLS - 1, canReachAtlantic, 'canReachAtlantic', 'Atlantic', 46);
+    seed(row, 0, canReachPacific, 'canVisitPacific', 'Pacific', { match: 'dfs(row, 0, canVisitPacific, heights[row][0])' });
+    seed(row, COLS - 1, canReachAtlantic, 'canVisitAtlantic', 'Atlantic', { match: 'dfs(row, cols-1, canVisitAtlantic, heights[row][cols-1])' });
   }
 
   // ── for col in range(cols): one Pacific seed (top row), one Atlantic seed (bottom row) ──
   for (let col = 0; col < COLS; col++) {
-    seed(0, col, canReachPacific, 'canReachPacific', 'Pacific', 50);
-    seed(ROWS - 1, col, canReachAtlantic, 'canReachAtlantic', 'Atlantic', 52);
+    seed(0, col, canReachPacific, 'canVisitPacific', 'Pacific', { match: 'dfs(0, col, canVisitPacific,heights[0][col])' });
+    seed(ROWS - 1, col, canReachAtlantic, 'canVisitAtlantic', 'Atlantic', { match: 'dfs(rows-1, col, canVisitAtlantic,heights[rows-1][col])' });
   }
 
   // ── Final scan: collect cells present in both sets ─────────────────────────
@@ -231,15 +172,16 @@ function generateDfsSteps(): Step[] {
   }
 
   emit(
-    'Both for-loops are done. Now scan every cell row by row and collect those present in BOTH canReachPacific and canReachAtlantic — the gold cells.',
-    57,
+    'Both for-loops are done. Now scan every cell row by row and collect those present in BOTH canVisitPacific and canVisitAtlantic — the gold cells.',
+    // nth 2: the 1st 'for row in range(rows):' is the Pacific/Atlantic seeding loop above.
+    { match: 'for row in range(rows):', nth: 2, to: { match: 'result.append([row,col])' } },
     undefined,
     { extra: [{ name: 'result', value: '[]' }] },
   );
 
   emit(
     `Result: ${result.join(', ')} — the gold "Both = answer" cells, which can drain to both oceans.`,
-    62,
+    { match: 'return result' },
     undefined,
     { extra: [{ name: 'result', value: result.join(' '), highlight: true }] },
   );
@@ -282,7 +224,7 @@ export const pacificAtlanticWaterFlowMeta: AlgorithmMeta = {
   solutions: [
     {
       label: 'DFS (Reverse)',
-      pythonCode: PYTHON_CODE,
+      variant: 'reverse-dfs',
       generateSteps: generateDfsSteps,
     },
   ],

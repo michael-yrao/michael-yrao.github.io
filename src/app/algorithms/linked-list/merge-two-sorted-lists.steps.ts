@@ -1,61 +1,10 @@
 import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, ProblemExample } from '../../core/models/algorithm.model';
 
-const ITERATIVE_CODE = `class Solution:
-    def mergeTwoLists(self, list1, list2):
-        # creating new linked list
-        # thus we should use a dummy node to keep track of new head
-
-        # value is irrelevant, using -101 since constraint says node.val >= -100
-        dummy = ListNode(-101)
-
-        # now we need a cursor to actually traverse the list
-        # we initialize it to dummy so we keep references to it
-        current = dummy
-
-        # while both of the lists are not null
-        # we want to compare and provide lowest to current
-
-        while list1 and list2:
-            if list1.val < list2.val:
-                current.next = list1
-                list1 = list1.next
-            else:
-                current.next = list2
-                list2 = list2.next
-            current = current.next
-
-        # when we are here, we know one of the list is null
-
-        if list1:
-            current.next = list1
-        else:
-            current.next = list2
-
-        return dummy.next`;
-
-const RECURSIVE_CODE = `class Solution:
-    def mergeTwoListsRecursive(self, list1, list2):
-        # since we are merging, we have to do forward-order
-        # meaning we have to make our decision on our way down the call stack
-
-        # if either side is empty, we just set next to the rest of the other list
-        if not list1:
-            return list2
-
-        if not list2:
-            return list1
-
-        # knowing neither is None here, we check value
-        # if list1.val is smaller, we want to increment list1
-        # otherwise increment list2
-        if list1.val < list2.val:
-            list1.next = self.mergeTwoListsRecursive(list1.next, list2)
-            # forward traversal, thus since list1 is set in stone, we return it
-            return list1
-        else:
-            list2.next = self.mergeTwoListsRecursive(list1, list2.next)
-            # forward traversal, thus since list2 is set in stone, we return it
-            return list2`;
+// Traces cse-progress's mergeTwoLists and mergeTwoListsRecursive verbatim. Both use a
+// STRICT `list1.val < list2.val` comparison — on a tie, list2's node is taken, never
+// list1's (the earlier site version used `<=`, which took list1 on a tie; that flips
+// which node comes first whenever the two lists share a value, as they do here: both
+// start with 1).
 
 // list1: 1→2→4, list2: 1→3→4
 const L1 = [1, 2, 4];
@@ -101,6 +50,8 @@ function makeResult(vals: number[]): LinkedListNode[] {
   }));
 }
 
+// ── Solution 1: Iterative ─────────────────────────────────────────────────────
+
 function generateIterativeSteps(): Step[] {
   const steps: Step[] = [];
   const result: number[] = [];
@@ -109,14 +60,14 @@ function generateIterativeSteps(): Step[] {
 
   steps.push({
     explanation:
-      'Iterative merge: create a dummy head to simplify edge cases. p1 and p2 scan list1 and list2. At each step pick the smaller head, attach it to the result, and advance that pointer.',
-    highlightLine: 3,
+      'dummy = ListNode(-101), then current = dummy. The dummy node simplifies the empty-result edge case. list1 and list2 are the two cursors, shown below. At each step, if list1.val < list2.val take list1\'s node; otherwise (including a tie) take list2\'s.',
+    anchor: { match: 'dummy = ListNode(-101)', to: { match: 'current = dummy' } },
     state: {
       type: 'linked-list',
       nodes: makeInputNodes(0, 0),
       pointers: [
-        { nodeId: 'a0', label: 'p1' },
-        { nodeId: 'b0', label: 'p2' },
+        { nodeId: 'a0', label: 'list1' },
+        { nodeId: 'b0', label: 'list2' },
       ],
       result: [],
     },
@@ -126,47 +77,47 @@ function generateIterativeSteps(): Step[] {
     const v1 = L1[p1];
     const v2 = L2[p2];
 
-    if (v1 <= v2) {
+    if (v1 < v2) {
       result.push(v1);
-      const old = p1;
       p1++;
       steps.push({
-        explanation: `p1.val=${v1} ≤ p2.val=${v2}. Take ${v1} from list1 into result. Advance p1.`,
-        highlightLine: 7,
+        explanation: `list1.val=${v1} < list2.val=${v2}: current.next = list1, list1 = list1.next, current = current.next. ${v1} joins the result from list1.`,
+        // nth 1: the in-loop assignment; the 2nd hit is the post-loop tail attach under 'if list1:'
+        anchor: { match: 'current.next = list1', nth: 1, to: { match: 'current = current.next' } },
         state: {
           type: 'linked-list',
           nodes: makeInputNodes(p1 < L1.length ? p1 : null, p2),
           pointers: [
-            ...(p1 < L1.length ? [{ nodeId: `a${p1}`, label: 'p1' }] : [{ nodeId: null, label: 'p1=null' }]),
-            { nodeId: `b${p2}`, label: 'p2' },
+            ...(p1 < L1.length ? [{ nodeId: `a${p1}`, label: 'list1' }] : [{ nodeId: null, label: 'list1=null' }]),
+            { nodeId: `b${p2}`, label: 'list2' },
           ],
           result: makeResult(result),
         },
         variables: [
           { name: 'took', value: v1, highlight: true },
-          { name: 'p1', value: p1 < L1.length ? `list1[${p1}]=${L1[p1]}` : 'null' },
+          { name: 'list1', value: p1 < L1.length ? `list1[${p1}]=${L1[p1]}` : 'null' },
           { name: 'result', value: `[${result.join(',')}]` },
         ],
       });
     } else {
       result.push(v2);
-      const old = p2;
       p2++;
       steps.push({
-        explanation: `p1.val=${v1} > p2.val=${v2}. Take ${v2} from list2 into result. Advance p2.`,
-        highlightLine: 11,
+        explanation: `list1.val=${v1} < list2.val=${v2} is False (${v1 === v2 ? 'tie' : `${v1} > ${v2}`}): current.next = list2, list2 = list2.next, current = current.next. ${v2} joins the result from list2.`,
+        // nth 1: the in-loop assignment; the 2nd hit is the post-loop tail attach under 'else:'
+        anchor: { match: 'current.next = list2', nth: 1, to: { match: 'current = current.next' } },
         state: {
           type: 'linked-list',
           nodes: makeInputNodes(p1, p2 < L2.length ? p2 : null),
           pointers: [
-            { nodeId: `a${p1}`, label: 'p1' },
-            ...(p2 < L2.length ? [{ nodeId: `b${p2}`, label: 'p2' }] : [{ nodeId: null, label: 'p2=null' }]),
+            { nodeId: `a${p1}`, label: 'list1' },
+            ...(p2 < L2.length ? [{ nodeId: `b${p2}`, label: 'list2' }] : [{ nodeId: null, label: 'list2=null' }]),
           ],
           result: makeResult(result),
         },
         variables: [
           { name: 'took', value: v2, highlight: true },
-          { name: 'p2', value: p2 < L2.length ? `list2[${p2}]=${L2[p2]}` : 'null' },
+          { name: 'list2', value: p2 < L2.length ? `list2[${p2}]=${L2[p2]}` : 'null' },
           { name: 'result', value: `[${result.join(',')}]` },
         ],
       });
@@ -178,12 +129,12 @@ function generateIterativeSteps(): Step[] {
   while (p2 < L2.length) { result.push(L2[p2++]); }
 
   steps.push({
-    explanation: `One list exhausted. Append the remaining tail: [${(p1 < L1.length ? L1.slice(p1) : L2.slice(p2)).join('→')}]. Done — merged list: 1→1→2→3→4→4. O(m+n) time, O(1) extra space.`,
-    highlightLine: 14,
+    explanation: `One list exhausted — the while loop exits. if list1: current.next = list1, else: current.next = list2 attaches whichever tail remains. return dummy.next. Merged list: ${result.join('→')}. O(m+n) time, O(1) extra space.`,
+    anchor: { match: 'if list1:', to: { match: 'return dummy.next' } },
     state: {
       type: 'linked-list',
       nodes: makeInputNodes(null, null),
-      pointers: [{ nodeId: null, label: 'p1' }, { nodeId: null, label: 'p2' }],
+      pointers: [{ nodeId: null, label: 'list1' }, { nodeId: null, label: 'list2' }],
       result: makeResult(result),
     },
     variables: [
@@ -194,25 +145,36 @@ function generateIterativeSteps(): Step[] {
   return steps;
 }
 
+// ── Solution 2: Recursive ─────────────────────────────────────────────────────
+
+interface RecursiveFrame {
+  desc: string;
+  l1: string;
+  l2: string;
+  action: string;
+  returns: string;
+  usesList1Branch: boolean;
+}
+
 function generateRecursiveSteps(): Step[] {
   const steps: Step[] = [];
 
-  // Show recursion conceptually through frames
-  const frames: { desc: string; l1: string; l2: string; action: string; returns: string }[] = [
-    { desc: 'Call 1', l1: '1→2→4', l2: '1→3→4', action: '1 ≤ 1 → list1.next = recurse(2→4, 1→3→4)', returns: 'list1 (1)' },
-    { desc: 'Call 2', l1: '2→4', l2: '1→3→4', action: '2 > 1 → list2.next = recurse(2→4, 3→4)', returns: 'list2 (1)' },
-    { desc: 'Call 3', l1: '2→4', l2: '3→4', action: '2 ≤ 3 → list1.next = recurse(4, 3→4)', returns: 'list1 (2)' },
-    { desc: 'Call 4', l1: '4', l2: '3→4', action: '4 > 3 → list2.next = recurse(4, 4)', returns: 'list2 (3)' },
-    { desc: 'Call 5', l1: '4', l2: '4', action: '4 ≤ 4 → list1.next = recurse(null, 4)', returns: 'list1 (4)' },
-    { desc: 'Call 6', l1: 'null', l2: '4', action: 'list1 is null → base case, return list2', returns: 'list2 (4)' },
+  // Show recursion conceptually through frames — trace of mergeTwoListsRecursive
+  // with the actual strict `list1.val < list2.val` comparison. Both lists start
+  // with a 1, so Call 1 ties and takes the else branch (list2), not list1.
+  const frames: RecursiveFrame[] = [
+    { desc: 'Call 1', l1: '1→2→4', l2: '1→3→4', action: '1 < 1 is False (tie) → list2.next = recurse(1→2→4, 3→4)', returns: 'list2 (1)', usesList1Branch: false },
+    { desc: 'Call 2', l1: '1→2→4', l2: '3→4', action: '1 < 3 → list1.next = recurse(2→4, 3→4)', returns: 'list1 (1)', usesList1Branch: true },
+    { desc: 'Call 3', l1: '2→4', l2: '3→4', action: '2 < 3 → list1.next = recurse(4, 3→4)', returns: 'list1 (2)', usesList1Branch: true },
+    { desc: 'Call 4', l1: '4', l2: '3→4', action: '4 < 3 is False → list2.next = recurse(4, 4)', returns: 'list2 (3)', usesList1Branch: false },
+    { desc: 'Call 5', l1: '4', l2: '4', action: '4 < 4 is False (tie) → list2.next = recurse(4, null)', returns: 'list2 (4)', usesList1Branch: false },
+    { desc: 'Call 6', l1: '4', l2: 'null', action: 'not list2 → base case, return list1', returns: 'list1 (4)', usesList1Branch: false },
   ];
-
-  const resultsSoFar = ['', '', '', '', '1→', '1→1→', '1→1→2→', '1→1→2→3→', '1→1→2→3→4→', '1→1→2→3→4→4'];
 
   steps.push({
     explanation:
-      'Recursive merge: at each call, compare the heads. Attach the smaller one and recurse on the rest. The call stack unwinds returning each head in order, building the merged list bottom-up.',
-    highlightLine: 3,
+      'Recursive merge: at each call, compare the heads with list1.val < list2.val. Attach the smaller (list2 wins ties) and recurse on the rest. The call stack unwinds, returning each head in order to build the merged list bottom-up.',
+    anchor: { match: 'def mergeTwoListsRecursive(self, list1: Optional[ListNode], list2: Optional[ListNode]) -> Optional[ListNode]:' },
     state: {
       type: 'linked-list',
       nodes: makeInputNodes(0, 0),
@@ -224,9 +186,16 @@ function generateRecursiveSteps(): Step[] {
   });
 
   frames.forEach((f, idx) => {
+    const isBaseCase = f.l2 === 'null';
+    const anchor = isBaseCase
+      ? { match: 'if not list2:', to: { match: 'return list1', nth: 1 } } // 1st hit: the not-list2 base case (the list1-branch's own "return list1" is the 2nd hit)
+      : f.usesList1Branch
+      ? { match: 'list1.next = self.mergeTwoListsRecursive(list1.next, list2)', to: { match: 'return list1', nth: 2 } } // 2nd hit: the comparison branch (the not-list2 base case has the 1st)
+      : { match: 'list2.next = self.mergeTwoListsRecursive(list1, list2.next)', to: { match: 'return list2', nth: 2 } }; // 2nd hit: the else branch (the not-list1 base case has the 1st)
+
     steps.push({
       explanation: `${f.desc}: list1=[${f.l1}], list2=[${f.l2}]. ${f.action} → return ${f.returns}.`,
-      highlightLine: f.l1 === 'null' ? 3 : f.l2 === 'null' ? 5 : 7,
+      anchor,
       state: {
         type: 'linked-list',
         nodes: makeInputNodes(
@@ -247,8 +216,8 @@ function generateRecursiveSteps(): Step[] {
   });
 
   steps.push({
-    explanation: 'All 6 calls return. The linked chain built during the unwind is: 1→1→2→3→4→4. O(m+n) time, O(m+n) space for the call stack.',
-    highlightLine: 11,
+    explanation: 'All 6 calls return. The linked chain built during the unwind is: 1→1→2→3→4→4 — the tie at the head resolved to list2\'s node first, per the strict < comparison. O(m+n) time, O(m+n) space for the call stack.',
+    anchor: { match: 'def mergeTwoListsRecursive(self, list1: Optional[ListNode], list2: Optional[ListNode]) -> Optional[ListNode]:' },
     state: {
       type: 'linked-list',
       nodes: makeInputNodes(null, null),
@@ -263,13 +232,13 @@ function generateRecursiveSteps(): Step[] {
 
 const iterativeSolution: SolutionVariant = {
   label: 'Iterative',
-  pythonCode: ITERATIVE_CODE,
+  variant: 'iterative',
   generateSteps: generateIterativeSteps,
 };
 
 const recursiveSolution: SolutionVariant = {
   label: 'Recursive',
-  pythonCode: RECURSIVE_CODE,
+  variant: 'recursive',
   generateSteps: generateRecursiveSteps,
 };
 

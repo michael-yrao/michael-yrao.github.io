@@ -9,7 +9,8 @@
     "test": "ng test",
     "lint": "ng lint",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "check:groundedness": "vitest run --config vitest.groundedness.config.ts"
   },
   "private": true,
   "dependencies": {

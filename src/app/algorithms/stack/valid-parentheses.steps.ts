@@ -1,64 +1,117 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def isValid(self, s: str) -> bool:
-        # basically a bunch of if else statements
-        # we can insert into stack on opening bracket
-        # pop on ending if it matches, return False if not match
-        # so one thing we can do is just do an open to close map
+// ── Solution 1: Stack (close → open map) ─────────────────────────────────────
+//
+// Traces cse-progress's isValid_20260808 verbatim — a DIFFERENT shape than the
+// "Stack + Set" variant below: bracketMap maps CLOSE → OPEN (not open → close),
+// and the branch is `if char not in bracketMap: push` / `else: pop and
+// compare`. There is no separate open-bracket membership check — anything not
+// a key of bracketMap is assumed to be an opener and pushed. Final check is
+// `return len(stack) == 0`.
 
-        openToCloseMap = {'(' : ')', '{' : '}', '[' : ']'}
+function generateSteps(): Step[] {
+  const s = '([{}])';
+  const steps: Step[] = [];
+  const bracketMap: Record<string, string> = { '}': '{', ']': '[', ')': '(' };
+  const stack: string[] = [];
 
-        stack = deque()
+  steps.push({
+    explanation:
+      `Input: "${s}". bracketMap maps each CLOSING bracket to the opener it must match: {'}':'{', ']':'[', ')':'('}. For each char: if it's NOT a key of bracketMap, it's an opener — push it. If it IS a key, it's a closer — pop and compare against bracketMap[char].`,
+    anchor: { match: "bracketMap = {'}':'{', ']':'[', ')':'('}", to: { match: 'stack = []' } },
+    state: {
+      type: 'array',
+      cells: s.split('').map((c) => ({ value: c, state: 'default' })),
+      pointers: [],
+      stackItems: [],
+    },
+    variables: [{ name: 'stack', value: '[]' }],
+  });
 
-        for char in s:
-            # check first if it is a closing bracket
-            if char in openToCloseMap.values():
-                # if stack is empty and we see an closing bracket, return false
-                # if map[peek] != char, also return false
-                if not stack or openToCloseMap.get(stack[-1],None) != char:
-                    return False
-                # otherwise we got a match, pop out opening bracket
-                stack.pop()
-            if char in openToCloseMap:
-                stack.append(char)
-        return not stack`;
+  for (let i = 0; i < s.length; i++) {
+    const char = s[i];
+    const isCloser = char in bracketMap;
 
-const PYTHON_CODE_ALT = `class Solution:
-    def isValidSet(self, s: str) -> bool:
-        # basically a bunch of if else statements
-        # we can insert into stack on opening bracket
-        # pop on ending if it matches, return False if not match
-        # so one thing we can do is just do an open to close map
+    const cells = s.split('').map((c, idx) => ({
+      value: c,
+      state: idx === i ? ('active' as const) : idx < i ? ('visited' as const) : ('default' as const),
+    }));
 
-        openToCloseMap = {'(' : ')', '{' : '}', '[' : ']'}
+    if (!isCloser) {
+      steps.push({
+        explanation: `'${char}' not in bracketMap → it's an opener. stack.append('${char}').`,
+        anchor: { match: 'if char not in bracketMap:', to: { match: 'stack.append(char)' } },
+        state: {
+          type: 'array',
+          cells,
+          pointers: [{ index: i, label: 'i' }],
+          stackItems: [...stack, char],
+        },
+        variables: [
+          { name: 'char', value: char, highlight: true },
+          { name: 'stack[-1]', value: char, highlight: true },
+        ],
+      });
+      stack.push(char);
+      continue;
+    }
 
-        closeBrackets = set(openToCloseMap.values())
+    // isCloser: this fixed example never hits an empty stack here, so only
+    // the pop-and-compare path (always a match) is ever actually traced.
+    const prevNode = stack.pop()!;
+    steps.push({
+      explanation: `'${char}' in bracketMap → it's a closer. prevNode = stack.pop() = '${prevNode}'. bracketMap['${char}'] = '${bracketMap[char]}' == prevNode → match, keep going.`,
+      anchor: { match: 'prevNode = stack.pop()', to: { match: 'if bracketMap[char] != prevNode:' } },
+      state: {
+        type: 'array',
+        cells: cells.map((c, idx) => ({ ...c, state: idx === i ? ('found' as const) : c.state })),
+        pointers: [{ index: i, label: 'i' }],
+        stackItems: [...stack],
+      },
+      variables: [
+        { name: 'char', value: char, highlight: true },
+        { name: 'prevNode', value: prevNode },
+        { name: 'bracketMap[char]', value: bracketMap[char] },
+        { name: 'match', value: 'yes', highlight: true },
+      ],
+    });
+  }
 
-        stack = deque()
+  steps.push({
+    explanation: `All characters processed. len(stack) == 0 is ${stack.length === 0}. Return ${stack.length === 0}.`,
+    anchor: { match: 'return len(stack) == 0' },
+    state: {
+      type: 'array',
+      cells: s.split('').map((c) => ({ value: c, state: 'visited' })),
+      pointers: [],
+      stackItems: [...stack],
+      counters: [{ label: 'result', value: stack.length === 0 ? 'true' : 'false' }],
+    },
+    variables: [
+      { name: 'stack', value: stack.length === 0 ? 'empty' : `[${stack.join(', ')}]` },
+      { name: 'result', value: String(stack.length === 0), highlight: true },
+    ],
+  });
 
-        for char in s:
-            # check first if it is a closing bracket
-            if char in closeBrackets:
-                # if stack is empty and we see an closing bracket, return false
-                # if map[peek] != char, also return false
-                if not stack or openToCloseMap.get(stack[-1],None) != char:
-                    return False
-                # otherwise we got a match, pop out opening bracket
-                stack.pop()
-            if char in openToCloseMap:
-                stack.append(char)
-        return not stack`;
-
-interface ParenLines {
-  intro: number;
-  push: number;
-  pop: number;
-  mismatch: number;
-  final: number;
+  return steps;
 }
 
-function buildParenSteps(intro: string, L: ParenLines): Step[] {
+// ── Solution 2: Stack + Set (open → close map) ───────────────────────────────
+//
+// Traces cse-progress's isValidSet verbatim: openToCloseMap (open → close),
+// closeBrackets = set(openToCloseMap.values()) precomputed once, and TWO
+// separate `if` checks per char (not if/elif) — a char could in principle hit
+// neither, though every bracket here hits exactly one.
+
+interface ParenAnchor {
+  intro: StepAnchor;
+  push: StepAnchor;
+  pop: StepAnchor;
+  mismatch: StepAnchor;
+  final: StepAnchor;
+}
+
+function buildParenSteps(intro: string, A: ParenAnchor): Step[] {
   const s = '([{}])';
   const steps: Step[] = [];
   const openToClose: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
@@ -67,7 +120,7 @@ function buildParenSteps(intro: string, L: ParenLines): Step[] {
 
   steps.push({
     explanation: intro,
-    highlightLine: L.intro,
+    anchor: A.intro,
     state: {
       type: 'array',
       cells: s.split('').map((c) => ({ value: c, state: 'default' })),
@@ -96,8 +149,8 @@ function buildParenSteps(intro: string, L: ParenLines): Step[] {
 
       if (matches) {
         steps.push({
-          explanation: `'${char}' is a closing bracket. Top of stack is '${topOfStack}', whose expected closer is '${expected}'. They match! Pop '${topOfStack}' off the stack.`,
-          highlightLine: L.pop,
+          explanation: `'${char}' is in closeBrackets. Top of stack is '${topOfStack}', whose expected closer is '${expected}'. They match! Pop '${topOfStack}' off the stack.`,
+          anchor: A.pop,
           state: {
             type: 'array',
             cells: cells.map((c, idx) => ({
@@ -117,8 +170,8 @@ function buildParenSteps(intro: string, L: ParenLines): Step[] {
         stack.pop();
       } else {
         steps.push({
-          explanation: `'${char}' is a closing bracket but ${topOfStack ? `top of stack '${topOfStack}' expects '${expected}', not '${char}'` : 'the stack is empty'}. Mismatch — return false.`,
-          highlightLine: L.mismatch,
+          explanation: `'${char}' is in closeBrackets but ${topOfStack ? `top of stack '${topOfStack}' expects '${expected}', not '${char}'` : 'the stack is empty'}. Mismatch — return false.`,
+          anchor: A.mismatch,
           state: {
             type: 'array',
             cells: cells.map((c, idx) => ({
@@ -142,8 +195,8 @@ function buildParenSteps(intro: string, L: ParenLines): Step[] {
     // same character is never both; openers fall straight through to here.
     if (isOpen) {
       steps.push({
-        explanation: `'${char}' is an opening bracket. Push it onto the stack. We'll match it when we see its partner '${openToClose[char]}'. Stack is LIFO — last in, first out.`,
-        highlightLine: L.push,
+        explanation: `'${char}' is in openToCloseMap. Push it onto the stack. We'll match it when we see its partner '${openToClose[char]}'. Stack is LIFO — last in, first out.`,
+        anchor: A.push,
         state: {
           type: 'array',
           cells,
@@ -162,7 +215,7 @@ function buildParenSteps(intro: string, L: ParenLines): Step[] {
 
   steps.push({
     explanation: `All characters processed. Stack is ${stack.length === 0 ? 'empty — every opener was matched' : 'not empty — some openers were never closed'}. Return ${stack.length === 0}.`,
-    highlightLine: L.final,
+    anchor: A.final,
     state: {
       type: 'array',
       cells: s.split('').map((c) => ({ value: c, state: 'visited' })),
@@ -179,29 +232,29 @@ function buildParenSteps(intro: string, L: ParenLines): Step[] {
   return steps;
 }
 
-function generateSteps(): Step[] {
-  return buildParenSteps(
-    `Input: "([{}])". A stack is perfect here because brackets must be closed in LIFO order — the most recently opened bracket must be the next one closed. We map each opener to its expected closer.`,
-    { intro: 8, push: 22, pop: 20, mismatch: 18, final: 23 }
-  );
-}
-
 function generateSetSteps(): Step[] {
   return buildParenSteps(
-    `Same stack logic, one micro-optimization: we pre-build closeBrackets = set(openToCloseMap.values()). Checking "is this char a closing bracket?" against a set is O(1), whereas "char in openToCloseMap.values()" rebuilds and scans the values list every time — O(k) per check. Identical steps, slightly faster closing-bracket test.`,
-    { intro: 10, push: 24, pop: 22, mismatch: 20, final: 25 }
+    `Input: "([{}])". openToCloseMap maps each OPENING bracket to its closer. closeBrackets = set(openToCloseMap.values()) is precomputed once so "is this char a closing bracket?" is an O(1) set lookup instead of scanning .values() on every char.`,
+    {
+      intro: { match: 'openToCloseMap = {' + "'(' : ')', '{' : '}', '[' : ']'}", to: { match: 'closeBrackets = set(openToCloseMap.values())' } },
+      push: { match: 'stack.append(char)' },
+      pop: { match: 'if char in closeBrackets:', to: { match: 'stack.pop()' } },
+      // nth:2 skips the banner comment "# pop on ending if it matches, return False if not match" (hit 1).
+      mismatch: { match: 'if char in closeBrackets:', to: { match: 'return False', nth: 2 } },
+      final: { match: 'return not stack' },
+    },
   );
 }
 
 const stackSolution: SolutionVariant = {
   label: 'Stack',
-  pythonCode: PYTHON_CODE,
+  variant: 'stack',
   generateSteps,
 };
 
 const stackSetSolution: SolutionVariant = {
   label: 'Stack + Set',
-  pythonCode: PYTHON_CODE_ALT,
+  variant: 'stack-set',
   generateSteps: generateSetSteps,
 };
 

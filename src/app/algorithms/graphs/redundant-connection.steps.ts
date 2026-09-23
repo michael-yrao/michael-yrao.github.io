@@ -1,77 +1,9 @@
 import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced verbatim from cse-progress:
-// dsa/leetcode/graphs/684_redundant_connection.py (findRedundantConnection = Union Find)
-
-const PYTHON_CODE = `def findRedundantConnection(self, edges: List[List[int]]) -> List[int]:
-    # trees are connected and have no cycles
-    # so we are trying to find an edge to remove that makes this graph a tree
-    # if multiple are found, we found the latest in the list
-    # we are basically just doing cycle finding and then remove last edge that causes the cycle
-    # disjoint sets / union find to find cycles in a graph
-    # since we know we started with a tree with n edges, we know we started with n - 1 nodes
-    # we added one edge to make a cycle, so we know this problem has n edges and n nodes
-    # union find: for all the nodes, we connect the nodes to the root parent
-    # (union by rank and path compression) - Time complexity of O(α(n)), inverse Ackerman function
-    # Union by Rank and Path Compression both aim to compress the linked list from naive union find
-    # Union by Rank - pre-emptively attacks the linked list problem
-    # Path Compression - reacts to the linked list problem after the fact
-
-    numberOfNodes = len(edges)
-
-    # node -> parent mapping
-    # start by setting the current node's parent to itself
-    # base case for union find before we go through each edge
-    # the node is its own isolated component
-    parentMap = {}
-    rankMap = {}
-
-    # 1 -> numberOfNodes + 1 since the problem starts with node 1 and not node 0
-    for i in range(1,numberOfNodes+1):
-        parentMap[i] = i
-
-    # union by rank, start with a rank of 0 for everything
-    # node -> rank mapping
-    for i in range(1,numberOfNodes+1):
-        rankMap[i] = 0
-
-    # find the root of node
-    def find(node):
-        # if node is its own parent
-        # we return parent node, this is base case of union find
-        if node == parentMap[node]:
-            return parentMap[node]
-        # otherwise, we find the root of this node until we get to the starting root
-        parentMap[node] = find(parentMap[node])
-        return parentMap[node]
-
-    # merges two nodes together
-    # returns True for successful merge
-    # returns False for bad merge, e.g. cycle found
-    def union(node1, node2):
-        node1Root = find(node1)
-        node2Root = find(node2)
-        if node1Root == node2Root:
-            return False
-
-        # if either ranks higher, we will compress by
-        # setting the parent of the lower rank to the higher rank
-        if rankMap[node1Root] < rankMap[node2Root]:
-            parentMap[node1Root] = node2Root
-        elif rankMap[node2Root] < rankMap[node1Root]:
-            parentMap[node2Root] = node1Root
-        else:
-            # same level, we'll just preemptively set one higher rank
-            parentMap[node2Root] = node1Root
-            rankMap[node1Root] += 1
-        return True
-
-    for node1, node2 in edges:
-        # if union was unsuccessful
-        if not union(node1, node2):
-            return [node1, node2]
-
-    return []`;
+// Traces cse-progress's findRedundantConnection_20260622 verbatim: parentMap and rankMap
+// are initialized together in ONE loop, the root-finder is named findParent, and the
+// rank-compare branch order is "if node1Root's rank is HIGHER" first, then the elif for
+// node1Root's rank being lower, then the equal-rank else.
 
 function generateSteps(): Step[] {
   // 1-indexed nodes: 1, 2, 3
@@ -105,21 +37,20 @@ function generateSteps(): Step[] {
 
   // Step 1: init
   steps.push({
-    explanation: 'numberOfNodes=3. Initialize parentMap[i]=i (each node is its own root) and rankMap[i]=0. Nodes are 1-indexed, so we range from 1 to numberOfNodes.',
-    highlightLine: 25,
+    explanation: 'parentMap[i]=i (each node is its own root) and rankMap[i]=0 are set together in one loop over 1..len(edges). Nodes are 1-indexed.',
+    anchor: { match: 'for i in range(1,len(edges)+1):', to: { match: 'rankMap[i] = 0' } },
     state: mkState(''),
     variables: [
-      { name: 'numberOfNodes', value: 3 },
       { name: 'parentMap', value: '{1:1, 2:2, 3:3}' },
       { name: 'rankMap', value: '{1:0, 2:0, 3:0}' },
     ],
   });
 
-  // Edge [1,2]: find
+  // Edge [1,2]: findParent
   ns[0] = 'active'; ns[1] = 'active'; es[0] = 'active';
   steps.push({
-    explanation: 'Edge [1,2]: find(1)=1, find(2)=2. Different roots → no cycle, safe to union.',
-    highlightLine: 47,
+    explanation: 'Edge [1,2]: findParent(1)=1, findParent(2)=2. Different roots → no cycle, safe to union.',
+    anchor: { match: 'node1Root = findParent(node1)', to: { match: 'node2Root = findParent(node2)' } },
     state: mkState('[1, 2]'),
     variables: [
       { name: 'node1Root', value: 1 },
@@ -127,12 +58,13 @@ function generateSteps(): Step[] {
     ],
   });
 
-  // Edge [1,2]: union — equal ranks
+  // Edge [1,2]: union — equal ranks → else branch
   parent[2] = 1; rank[1] = 1;
   ns[0] = 'visited'; ns[1] = 'found'; es[0] = 'visited';
   steps.push({
     explanation: 'Ranks equal → else branch: parentMap[2]=1, rankMap[1]→1. Node 2 is now a child of root 1.',
-    highlightLine: 60,
+    // nth 2: the 1st 'parentMap[node2Root] = node1Root' is the if-branch's line, used below.
+    anchor: { match: 'parentMap[node2Root] = node1Root', nth: 2, to: { match: 'rankMap[node1Root]+=1' } },
     state: mkState('[1, 2]'),
     variables: [
       { name: 'parentMap[2]', value: 1, highlight: true },
@@ -140,11 +72,11 @@ function generateSteps(): Step[] {
     ],
   });
 
-  // Edge [1,3]: find
+  // Edge [1,3]: findParent
   ns[2] = 'active'; es[1] = 'active';
   steps.push({
-    explanation: 'Edge [1,3]: find(1)=1, find(3)=3. Different roots → no cycle.',
-    highlightLine: 47,
+    explanation: 'Edge [1,3]: findParent(1)=1, findParent(3)=3. Different roots → no cycle.',
+    anchor: { match: 'node1Root = findParent(node1)', to: { match: 'node2Root = findParent(node2)' } },
     state: mkState('[1, 3]'),
     variables: [
       { name: 'node1Root', value: 1 },
@@ -152,27 +84,28 @@ function generateSteps(): Step[] {
     ],
   });
 
-  // Edge [1,3]: union — rank[3]=0 < rank[1]=1 → elif branch
+  // Edge [1,3]: union — rank[1]=1 > rank[3]=0 → if branch (first check in this attempt)
   parent[3] = 1;
   ns[2] = 'found'; es[1] = 'visited';
   steps.push({
-    explanation: 'rankMap[3]=0 < rankMap[1]=1 → elif branch: parentMap[3]=1. All nodes {1,2,3} under root 1.',
-    highlightLine: 57,
+    explanation: 'rankMap[node1Root]=1 > rankMap[node2Root]=0 → if branch (the first check): parentMap[3]=1. All nodes {1,2,3} under root 1.',
+    // nth 1: the if-branch's line; the 2nd hit is the else-branch (equal ranks).
+    anchor: { match: 'parentMap[node2Root] = node1Root', nth: 1 },
     state: mkState('[1, 3]'),
     variables: [
       { name: 'parentMap[3]', value: 1, highlight: true },
     ],
   });
 
-  // Edge [2,3]: find — same root
+  // Edge [2,3]: findParent — same root
   ns[1] = 'active'; ns[2] = 'active'; es[2] = 'active';
   steps.push({
-    explanation: 'Edge [2,3]: find(2)→parentMap[2]=1. find(3)→parentMap[3]=1. Same root (1) — adding [2,3] would create a cycle.',
-    highlightLine: 49,
+    explanation: 'Edge [2,3]: findParent(2)→parentMap[2]=1. findParent(3)→parentMap[3]=1. Same root (1) — adding [2,3] would create a cycle.',
+    anchor: { match: 'if node1Root == node2Root:' },
     state: mkState('[2, 3]'),
     variables: [
-      { name: 'find(2)', value: '1 (path compression)' },
-      { name: 'find(3)', value: '1 (path compression)' },
+      { name: 'findParent(2)', value: '1 (path compression)' },
+      { name: 'findParent(3)', value: '1 (path compression)' },
       { name: 'node1Root === node2Root', value: 'True', highlight: true },
     ],
   });
@@ -180,7 +113,7 @@ function generateSteps(): Step[] {
   // Return redundant edge
   steps.push({
     explanation: 'union(2,3) returns False — same root means [2,3] closes a cycle. Return [2,3] as the redundant edge. O(n·α(n)) time, O(n) space.',
-    highlightLine: 67,
+    anchor: { match: 'return [node1, node2]' },
     state: mkState('[2, 3]'),
     variables: [
       { name: 'result', value: '[2, 3]', highlight: true },
@@ -222,6 +155,6 @@ export const redundantConnectionMeta: AlgorithmMeta = {
   ],
   hint: "Process edges one by one with Union Find. The first edge whose two endpoints share the same root creates the cycle — that's the redundant edge.",
   solutions: [
-    { label: 'Union Find', pythonCode: PYTHON_CODE, generateSteps },
+    { label: 'Union Find', variant: 'union-find', generateSteps },
   ],
 };

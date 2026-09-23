@@ -43,7 +43,6 @@ import { findPeakElementMeta } from '../../algorithms/binary-search/find-peak-el
 import { searchA2DMatrixMeta } from '../../algorithms/binary-search/search-a-2d-matrix.steps';
 import { longestRepeatingCharReplacementMeta } from '../../algorithms/sliding-window/longest-repeating-char-replacement.steps';
 import { fourSumMeta } from '../../algorithms/two-pointers/four-sum.steps';
-import { minimumWindowSubstringMeta } from '../../algorithms/sliding-window/minimum-window-substring.steps';
 import { kokoEatingBananasMeta } from '../../algorithms/binary-search/koko-eating-bananas.steps';
 import { singleElementSortedArrayMeta } from '../../algorithms/binary-search/single-element-in-sorted-array.steps';
 import { cloneGraphMeta } from '../../algorithms/graphs/clone-graph.steps';
@@ -118,7 +117,7 @@ const stub = (
   examples: [] as ProblemExample[],
   constraints: [],
   hint: 'Visualization coming soon.',
-  solutions: [{ label: '', pythonCode: '', generateSteps: () => [] }],
+  solutions: [{ label: '', variant: 'stub', generateSteps: () => [] }],
 });
 
 export const ALL_ALGORITHMS: AlgorithmMeta[] = [
@@ -164,7 +163,6 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   containsDuplicateIIMeta,
   permutationInStringMeta,
   longestRepeatingCharReplacementMeta,
-  minimumWindowSubstringMeta,
 
   // ── Binary Search ─────────────────────────────────────────────────────────
   binarySearchMeta,

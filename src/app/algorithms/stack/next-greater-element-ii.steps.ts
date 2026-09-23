@@ -1,120 +1,128 @@
-// Solution + comments sourced from cse-progress: dsa/leetcode/stack/503_next_greater_element_ii.py
-import { AlgorithmMeta, SolutionVariant, Step, ArrayCell, ProblemExample } from '../../core/models/algorithm.model';
-
-const PYTHON_CODE = `class Solution:
-    def nextGreaterElements(self, nums: List[int]) -> List[int]:
-        # circular array — simulate two passes with i in range(len*2)
-        # and modular arithmetic i % len to map back into nums
-        # monotonic decreasing stack of INDICES; when we see a greater
-        # number, it is the next greater for everything smaller on the stack
-        result = [-1] * len(nums)
-        decreasingStack = []
-        numSize = len(nums)
-
-        for i in range(2 * numSize):
-            currentNumberIndex = i % numSize
-            while decreasingStack and nums[currentNumberIndex] > nums[decreasingStack[-1]]:
-                priorNumberIndex = decreasingStack.pop()
-                if result[priorNumberIndex] == -1:
-                    result[priorNumberIndex] = nums[currentNumberIndex]
-            decreasingStack.append(currentNumberIndex)
-
-        return result`;
+// Traces cse-progress's nextGreaterElements_20260731 verbatim: the "unset" sentinel is
+// -math.inf (NOT -1) throughout the whole 2n-pass main loop, and stays -inf for any index
+// the loop never resolves. Only a SEPARATE post-loop pass (for i in range(len(greater)))
+// converts any leftover -inf entries to -1. Names: actualIndex, currentNumber, prevNode,
+// greater (not currentNumberIndex/priorNumberIndex/result — those never appear in the code).
+import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, ArrayCell, ProblemExample } from '../../core/models/algorithm.model';
 
 const NUMS = [1, 2, 3, 4, 3];
+const UNSET = -Infinity;
 
 function generateSteps(): Step[] {
   const steps: Step[] = [];
   const n = NUMS.length;
-  const result: number[] = new Array(n).fill(-1);
+  const greater: number[] = new Array(n).fill(UNSET);
   const stack: number[] = []; // indices
 
   const cells = (curIdx: number): ArrayCell[] =>
     NUMS.map((v, i) => ({
       value: v,
       state:
-        i === curIdx ? 'active' : stack.includes(i) ? 'window' : result[i] !== -1 ? 'found' : 'default',
+        i === curIdx ? 'active' : stack.includes(i) ? 'window' : greater[i] !== UNSET ? 'found' : 'default',
     }));
 
   const stackItems = (): (string | number)[] => stack.map((i) => `i${i}(${NUMS[i]})`);
 
-  const resultStr = () => `[${result.join(', ')}]`;
+  const fmt = (v: number): string => (v === UNSET ? '−∞' : String(v));
+  const greaterStr = () => `[${greater.map(fmt).join(', ')}]`;
 
-  steps.push({
-    explanation:
-      'Next greater element in a CIRCULAR array. Trick: iterate i from 0 to 2·n − 1 and use idx = i % n, so every element gets a second scan that "wraps around". Keep a monotonic decreasing stack of indices — when the current value exceeds the value at the stack top, the current value is that index\'s next-greater.',
-    highlightLine: 6,
-    state: {
-      type: 'array',
-      cells: cells(-1),
-      pointers: [],
-      stackItems: [],
-      counters: [{ label: 'result', value: resultStr() }],
-    },
-    variables: [],
-  });
-
-  for (let i = 0; i < 2 * n; i++) {
-    const idx = i % n;
-    const pass = i < n ? 1 : 2;
-
-    while (stack.length > 0 && NUMS[idx] > NUMS[stack[stack.length - 1]]) {
-      const prior = stack[stack.length - 1];
-      stack.pop();
-      const already = result[prior] !== -1;
-      if (!already) result[prior] = NUMS[idx];
-      steps.push({
-        explanation: `i=${i} (pass ${pass}, idx=${idx}, value ${NUMS[idx]}): value ${NUMS[idx]} > nums[top=${prior}]=${NUMS[prior]} → pop index ${prior}. ${already ? `result[${prior}] already set — skip.` : `Set result[${prior}] = ${NUMS[idx]}.`}`,
-        highlightLine: 15,
-        state: {
-          type: 'array',
-          cells: cells(idx),
-          pointers: [{ index: idx, label: `i%n` }],
-          stackItems: stackItems(),
-          counters: [
-            { label: 'i', value: `${i} (pass ${pass})` },
-            { label: 'popped idx', value: prior },
-            { label: 'result', value: resultStr() },
-          ],
-        },
-        variables: [
-          { name: 'nums[idx]', value: NUMS[idx], highlight: true },
-          { name: 'priorNumberIndex', value: prior },
-          { name: `result[${prior}]`, value: result[prior] },
-        ],
-      });
-    }
-
-    stack.push(idx);
+  function emit(explanation: string, anchor: StepAnchor, curIdx: number, extraVars: { name: string; value: string | number; highlight?: boolean }[]): void {
     steps.push({
-      explanation: `i=${i} (pass ${pass}, idx=${idx}): stack top is now ≥ ${NUMS[idx]} (or empty) — push index ${idx} onto the decreasing stack.${pass === 2 ? ' (2nd pass only resolves elements that wrap around; it never sets a result twice.)' : ''}`,
-      highlightLine: 18,
+      explanation,
+      anchor,
       state: {
         type: 'array',
-        cells: cells(idx),
-        pointers: [{ index: idx, label: `i%n` }],
+        cells: cells(curIdx),
+        pointers: curIdx >= 0 ? [{ index: curIdx, label: 'actualIndex' }] : [],
         stackItems: stackItems(),
-        counters: [
-          { label: 'i', value: `${i} (pass ${pass})` },
-          { label: 'stack', value: `[${stack.join(',')}]` },
-          { label: 'result', value: resultStr() },
-        ],
+        counters: [{ label: 'greater', value: greaterStr() }],
       },
-      variables: [{ name: 'pushed idx', value: idx, highlight: true }],
+      variables: extraVars,
+    });
+  }
+
+  emit(
+    'Next greater element in a CIRCULAR array. Trick: iterate i from 0 to 2·n − 1 and use actualIndex = i % len(nums), so every element gets a second scan that "wraps around". Keep a monotonic decreasing stack of indices. The "unset" sentinel is -math.inf, not -1 — a leftover -inf only becomes -1 in a separate cleanup pass after the main loop.',
+    { match: 'def nextGreaterElements_20260731(self, nums: List[int]) -> List[int]:' },
+    -1,
+    [],
+  );
+
+  emit(
+    'Initialize decreasingStack = [] and greater = [-math.inf] * len(nums) — every slot starts unset.',
+    { match: 'decreasingStack = []', to: { match: 'greater = [-math.inf] * len(nums)' } },
+    -1,
+    [],
+  );
+
+  for (let i = 0; i < 2 * n; i++) {
+    const actualIndex = i % n;
+    const currentNumber = NUMS[actualIndex];
+    const pass = i < n ? 1 : 2;
+
+    while (stack.length > 0 && currentNumber > NUMS[stack[stack.length - 1]]) {
+      const prevNode = stack[stack.length - 1];
+      stack.pop();
+      const alreadySet = greater[prevNode] !== UNSET;
+      if (!alreadySet) greater[prevNode] = currentNumber;
+      emit(
+        `i=${i} (pass ${pass}, actualIndex=${actualIndex}, currentNumber=${currentNumber}): currentNumber ${currentNumber} > nums[top=${prevNode}]=${NUMS[prevNode]} → pop prevNode=${prevNode}. ${alreadySet ? `greater[${prevNode}] is already ${fmt(greater[prevNode])} (not -inf) — skip.` : `greater[${prevNode}] == -inf → set greater[${prevNode}] = ${currentNumber}.`}`,
+        alreadySet
+          ? { match: 'prevNode = decreasingStack.pop()', to: { match: 'if greater[prevNode] == -math.inf:' } }
+          : { match: 'prevNode = decreasingStack.pop()', to: { match: 'greater[prevNode] = currentNumber' } },
+        actualIndex,
+        [
+          { name: 'currentNumber', value: currentNumber, highlight: true },
+          { name: 'prevNode', value: prevNode },
+          { name: `greater[${prevNode}]`, value: fmt(greater[prevNode]) },
+        ],
+      );
+    }
+
+    stack.push(actualIndex);
+    emit(
+      `i=${i} (pass ${pass}, actualIndex=${actualIndex}): stack top is now ≥ ${currentNumber} (or empty) — push actualIndex ${actualIndex} onto the decreasing stack.${pass === 2 ? ' (2nd pass only resolves elements that wrap around; it never overwrites an already-set result.)' : ''}`,
+      { match: 'decreasingStack.append(actualIndex)' },
+      actualIndex,
+      [{ name: 'pushed actualIndex', value: actualIndex, highlight: true }],
+    );
+  }
+
+  emit(
+    `Both passes done. greater = ${greaterStr()}. Any index still -inf never found a greater element in either pass — that's handled next, in the cleanup loop: for i in range(len(greater)).`,
+    { match: 'for i in range(len(greater)):' },
+    -1,
+    [],
+  );
+
+  for (let i = 0; i < n; i++) {
+    const isUnset = greater[i] === UNSET;
+    if (isUnset) greater[i] = -1;
+    steps.push({
+      explanation: `Cleanup pass: greater[${i}] = ${fmt(isUnset ? UNSET : greater[i])}. ${isUnset ? `Still -inf → no greater element was ever found → set greater[${i}] = -1.` : `Already a real value — leave it.`}`,
+      anchor: isUnset ? { match: 'greater[i] = -1' } : { match: 'if greater[i] == -math.inf:' },
+      state: {
+        type: 'array',
+        cells: NUMS.map((v, idx) => ({ value: v, state: idx === i ? 'active' : greater[idx] !== UNSET ? 'found' : 'default' })),
+        pointers: [{ index: i, label: 'i' }],
+        stackItems: [],
+        counters: [{ label: 'greater', value: greaterStr() }],
+      },
+      variables: [{ name: `greater[${i}]`, value: fmt(greater[i]), highlight: isUnset }],
     });
   }
 
   steps.push({
-    explanation: `Both passes done. Indices still on the stack never found a greater element, so they keep result −1. Final: ${resultStr()}.`,
-    highlightLine: 20,
+    explanation: `Cleanup done. Final: ${greaterStr()}.`,
+    anchor: { match: 'return greater' },
     state: {
       type: 'array',
-      cells: NUMS.map((v, i) => ({ value: v, state: result[i] !== -1 ? 'found' : 'eliminated' })),
+      cells: NUMS.map((v, i) => ({ value: v, state: greater[i] !== -1 ? 'found' : 'eliminated' })),
       pointers: [],
-      stackItems: stackItems(),
-      counters: [{ label: 'result', value: resultStr() }],
+      stackItems: [],
+      counters: [{ label: 'greater', value: greaterStr() }],
     },
-    variables: [{ name: 'return', value: resultStr(), highlight: true }],
+    variables: [{ name: 'return', value: greaterStr(), highlight: true }],
   });
 
   return steps;
@@ -122,7 +130,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Circular Monotonic Stack (2·n pass)',
-  pythonCode: PYTHON_CODE,
+  variant: 'circular-stack',
   generateSteps,
   timeComplexity: 'O(n)',
   spaceComplexity: 'O(n)',

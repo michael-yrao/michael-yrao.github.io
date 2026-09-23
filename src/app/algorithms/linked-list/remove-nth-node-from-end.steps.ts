@@ -1,38 +1,13 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample, LinkedListNode } from '../../core/models/algorithm.model';
 
-// Solutions sourced from cse-progress: dsa/leetcode/linked_list/19_remove_nth_node_from_end_of_list.py
-// (removeNthFromEndTwoIteration = Two-Pass, removeNthFromEnd = One-Pass Two-Pointer, removeNthFromEndRecursion = Recursion)
-
-const PYTHON_CODE = `class Solution:
-    def removeNthFromEnd(self, head, n):
-        # nth node from the end is length - n node from the front
-        # so we want to point node at length - n - 1 to node at length - n + 1
-        # since we are removing, we might be removing head, so let's create a dummy node to keep track
-
-        length = 0
-        dummy = ListNode(0)
-        dummy.next = head
-        ptr = dummy
-
-        # [1,2,3,4,5]; n = 2; index = 3 -> length - n to be removed
-        # [0,1,2,3,4,5]; n = 2; index = 4 -> length - n to be removed
-
-        while ptr:
-            length += 1
-            ptr = ptr.next
-
-        indexToRepoint = length - n - 1
-
-        # now we traverse again until we get to indexToRepoint
-
-        ptr = dummy
-
-        for i in range(indexToRepoint + 1):
-            if i == indexToRepoint:
-                ptr.next = ptr.next.next
-            ptr = ptr.next
-
-        return dummy.next`;
+// Traces cse-progress's three attempts verbatim:
+//   removeNthFromEndTwoIteration — NO dummy node; pass 1 counts listLength; an explicit
+//     `if indexToRemove == 0` edge case for removing the head; pass 2 walks a `for` loop
+//     that breaks as soon as it relinks.
+//   removeNthFromEnd            — dummy node + two pointers n apart (unchanged control flow
+//     from the earlier hand simulation, only anchors change).
+//   removeNthFromEndRecursion   — dummy node + a nested recursive helper that relinks on
+//     the way back up when `counter == n` (unchanged control flow, only anchors change).
 
 function makeNodes(
   vals: number[],
@@ -52,87 +27,104 @@ function makeNodes(
   }));
 }
 
+// ── Solution 1: Two-Pass (no dummy node) ──────────────────────────────────────
+
 function generateSteps(): Step[] {
   const vals = [1, 2, 3, 4, 5];
   const n = 2;
-  const dummyVals = [0, ...vals];
   const steps: Step[] = [];
+  const listLength = vals.length;
+  const indexToRemove = listLength - n;
 
   steps.push({
-    explanation: `Remove the ${n}nd node from the end of [${vals.join('→')}]. Prepend a dummy node (0) so removing the head is handled the same as any other removal.`,
-    highlightLine: 2,
-    state: {
-      type: 'linked-list',
-      nodes: makeNodes(dummyVals, 0, null),
-      pointers: [],
-    },
-    variables: [
-      { name: 'n', value: n },
-      { name: 'dummy', value: '0 → head' },
-    ],
+    explanation: `Two full passes, and NO dummy node this time. Pass 1 counts listLength; pass 2 walks to index indexToRemove − 1 and relinks there. n=${n}.`,
+    anchor: { match: 'def removeNthFromEndTwoIteration(self, head: Optional[ListNode], n: int) -> Optional[ListNode]:' },
+    state: { type: 'linked-list', nodes: makeNodes(vals, 0, null), pointers: [{ nodeId: 'n0', label: 'current' }] },
+    variables: [{ name: 'n', value: n }],
   });
 
-  // Phase 1: count length
-  let length = 0;
-  for (let i = 0; i < dummyVals.length; i++) {
-    length++;
+  // Pass 1: count length
+  for (let i = 0; i < listLength; i++) {
+    const lengthSoFar = i + 1;
+    const nextIdx = i + 1 < listLength ? i + 1 : null;
     steps.push({
-      explanation: `Pass 1 — ptr at index ${i} (val=${dummyVals[i]}). length = ${length}.`,
-      highlightLine: 5,
+      explanation: `Pass 1 — current at index ${i} (val=${vals[i]}): advance current = current.next; listLength += 1 → ${lengthSoFar}.`,
+      // nth 1: pass-1's advance inside the while loop; the 2nd hit is pass-2's advance in the for-loop's fallthrough
+      anchor: { match: 'current = current.next', nth: 1, to: { match: 'listLength += 1' } },
       state: {
         type: 'linked-list',
-        nodes: makeNodes(dummyVals, i, null),
-        pointers: [{ nodeId: `n${i}`, label: 'ptr' }],
+        nodes: makeNodes(vals, nextIdx, null),
+        pointers: nextIdx !== null ? [{ nodeId: `n${nextIdx}`, label: 'current' }] : [{ nodeId: null, label: 'current=None' }],
       },
-      variables: [
-        { name: 'ptr', value: `index ${i}` },
-        { name: 'length', value: length },
-      ],
+      variables: [{ name: 'listLength', value: lengthSoFar, highlight: true }],
     });
   }
 
-  const idx = length - n - 1;
-
   steps.push({
-    explanation: `Pass 1 done. length=${length} (includes dummy). Repoint index = ${length} − ${n} − 1 = ${idx}. Node to remove is at index ${idx + 1} (val=${dummyVals[idx + 1]}).`,
-    highlightLine: 9,
-    state: {
-      type: 'linked-list',
-      nodes: makeNodes(dummyVals, null, null),
-      pointers: [],
-    },
+    explanation: `current is None — while current exits. indexToRemove = listLength − n = ${listLength} − ${n} = ${indexToRemove}.`,
+    anchor: { match: 'indexToRemove = listLength - n' },
+    state: { type: 'linked-list', nodes: makeNodes(vals, null, null), pointers: [] },
     variables: [
-      { name: 'length', value: length },
-      { name: 'repoint idx', value: idx, highlight: true },
-      { name: 'remove val', value: dummyVals[idx + 1] },
+      { name: 'listLength', value: listLength },
+      { name: 'indexToRemove', value: indexToRemove, highlight: true },
     ],
   });
 
-  // Phase 2: traverse to idx
-  for (let i = 0; i <= idx; i++) {
-    const atTarget = i === idx;
+  if (indexToRemove === 0) {
     steps.push({
-      explanation: atTarget
-        ? `i=${i}: at repoint node (val=${dummyVals[i]}). Set ptr.next = ptr.next.next → skips val=${dummyVals[i + 1]}.`
-        : `Pass 2 — i=${i}: advancing ptr to index ${i} (val=${dummyVals[i]}).`,
-      highlightLine: atTarget ? 12 : 11,
-      state: {
-        type: 'linked-list',
-        nodes: makeNodes(dummyVals, i, atTarget ? i + 1 : null),
-        pointers: [{ nodeId: `n${i}`, label: 'ptr' }],
-      },
-      variables: [
-        { name: 'i', value: i },
-        { name: 'ptr val', value: dummyVals[i], highlight: atTarget },
-      ],
+      explanation: 'indexToRemove == 0 → the head itself is being removed. Return head.next directly — pass 2 never runs.',
+      anchor: { match: 'if indexToRemove == 0:', to: { match: 'return head.next' } },
+      state: { type: 'linked-list', nodes: makeNodes(vals, null, 0), pointers: [] },
+      variables: [{ name: 'return', value: vals.slice(1).join('→'), highlight: true }],
+    });
+    return steps;
+  }
+
+  steps.push({
+    explanation: `indexToRemove (${indexToRemove}) ≠ 0 — the if branch is skipped, no early return. Fall through into pass 2.`,
+    anchor: { match: 'if indexToRemove == 0:' },
+    state: { type: 'linked-list', nodes: makeNodes(vals, null, null), pointers: [] },
+    variables: [{ name: 'indexToRemove', value: indexToRemove }],
+  });
+
+  steps.push({
+    explanation: `Reset current = head for pass 2 — walk to index indexToRemove − 1 = ${indexToRemove - 1} and relink there.`,
+    // nth 2: the pass-2 reset before the for loop; the 1st hit is pass-1's init before the while loop
+    anchor: { match: 'current = head', nth: 2 },
+    state: { type: 'linked-list', nodes: makeNodes(vals, 0, null), pointers: [{ nodeId: 'n0', label: 'current' }] },
+    variables: [{ name: 'current', value: `val ${vals[0]}` }],
+  });
+
+  const target = indexToRemove - 1;
+  let removedIdx: number | null = null;
+  for (let i = 0; i < listLength - 1; i++) {
+    if (i === target) {
+      removedIdx = i + 1;
+      steps.push({
+        explanation: `i=${i} == indexToRemove − 1 (${target}) → current.next = current.next.next: unlink val=${vals[i + 1]}. break exits the loop — i=${i + 1} never runs.`,
+        anchor: { match: 'current.next = current.next.next', to: { match: 'break' } },
+        state: { type: 'linked-list', nodes: makeNodes(vals, i, i + 1), pointers: [{ nodeId: `n${i}`, label: 'current' }] },
+        variables: [
+          { name: 'i', value: i, highlight: true },
+          { name: 'removed', value: vals[i + 1], highlight: true },
+        ],
+      });
+      break;
+    }
+    steps.push({
+      explanation: `i=${i} ≠ indexToRemove − 1 (${target}) → advance current = current.next to val=${vals[i + 1]}.`,
+      // nth 2: pass-2's advance in the for-loop's fallthrough; the 1st hit is pass-1's advance inside the while loop
+      anchor: { match: 'current = current.next', nth: 2 },
+      state: { type: 'linked-list', nodes: makeNodes(vals, i + 1, null), pointers: [{ nodeId: `n${i + 1}`, label: 'current' }] },
+      variables: [{ name: 'i', value: i }],
     });
   }
 
-  // Final result
-  const resultVals = dummyVals.filter((_, i) => i !== idx + 1).slice(1);
+  const resultVals = vals.filter((_, i) => i !== removedIdx);
   steps.push({
-    explanation: `val=${dummyVals[idx + 1]} removed. Return dummy.next → [${resultVals.join('→')}]. O(n) time, O(1) space — two passes.`,
-    highlightLine: 30,
+    explanation: `Pass 2 complete. Return head (still val=${vals[0]}, an unchanged reference) → [${resultVals.join('→')}]. O(n) time, O(1) space — two full passes, no dummy.`,
+    // nth 2: the bare final return; the 1st hit is the earlier edge-case's "return head.next"
+    anchor: { match: 'return head', nth: 2 },
     state: {
       type: 'linked-list',
       nodes: resultVals.map((v, i) => ({
@@ -150,34 +142,6 @@ function generateSteps(): Step[] {
 }
 
 // ── Solution 2: One-Pass Two-Pointer ──────────────────────────────────────────
-
-const PYTHON_CODE_ONEPASS = `class Solution:
-    def removeNthFromEnd(self, head, n):
-        # so we know from our previous implementation that we want to remove len - n node from the start
-        # we can use a two pointer approach where l and r are n apart
-        # l will be the element to remove when r becomes None
-        # so we want to re-link when r.next is None since we are removing l
-        # since we are removing a node, we should use a dummy node
-
-        dummy = ListNode(0)
-        dummy.next = head
-
-        l = dummy
-        r = head
-
-        # move r to l + n
-        while n > 0 and r:
-            r = r.next
-            n-=1
-
-        # now we just move l and r together
-        while r:
-            l = l.next
-            r = r.next
-
-        l.next = l.next.next
-
-        return dummy.next`;
 
 function generateStepsOnePass(): Step[] {
   const vals = [1, 2, 3, 4, 5];
@@ -205,7 +169,7 @@ function generateStepsOnePass(): Step[] {
 
   steps.push({
     explanation: `One pass: hold two pointers l and r exactly n=${n} apart. When r runs off the end, l will be sitting just before the node to remove. The dummy(0) makes head-removal uniform.`,
-    highlightLine: 9,
+    anchor: { match: 'dummy = ListNode(0)', to: { match: 'r = head' } },
     state: mk(0, 1),
     variables: [{ name: 'l', value: 'dummy(0)' }, { name: 'r', value: 'head(1)' }, { name: 'n', value: n }],
   });
@@ -215,7 +179,7 @@ function generateStepsOnePass(): Step[] {
     r++;
     steps.push({
       explanation: `Open the gap: advance r by 1 → val=${dummyVals[r]}. ${n - 1 - k} more step(s) so r is n=${n} ahead of l.`,
-      highlightLine: 16,
+      anchor: { match: 'while n > 0 and r:', to: { match: 'n-=1' } },
       state: mk(0, r),
       variables: [{ name: 'r', value: `val ${dummyVals[r]}`, highlight: true }, { name: 'gap', value: k + 1 }],
     });
@@ -229,7 +193,8 @@ function generateStepsOnePass(): Step[] {
       explanation: rNull
         ? `Move both: l→val=${dummyVals[l]}, r→None. r reached the end, so l is exactly one node before the target.`
         : `Move both forward together (gap stays ${n}): l→val=${dummyVals[l]}, r→val=${dummyVals[r]}.`,
-      highlightLine: 21,
+      // nth 2: the second while loop's advance; the 1st hit is the first while loop's `r = r.next`
+      anchor: { match: 'while r:', to: { match: 'r = r.next', nth: 2 } },
       state: mk(l, rNull ? null : r),
       variables: [
         { name: 'l', value: `val ${dummyVals[l]}`, highlight: rNull },
@@ -241,7 +206,7 @@ function generateStepsOnePass(): Step[] {
   const removeIdx = l + 1;
   steps.push({
     explanation: `l is at val=${dummyVals[l]} (just before the target). Set l.next = l.next.next → drop val=${dummyVals[removeIdx]} (the ${n}nd from the end).`,
-    highlightLine: 24,
+    anchor: { match: 'l.next = l.next.next' },
     state: mk(l, null, removeIdx),
     variables: [{ name: 'remove', value: dummyVals[removeIdx], highlight: true }],
   });
@@ -249,7 +214,7 @@ function generateStepsOnePass(): Step[] {
   const resultVals = dummyVals.filter((_, i) => i !== removeIdx).slice(1);
   steps.push({
     explanation: `Removed val=${dummyVals[removeIdx]} in a single pass. Return dummy.next → [${resultVals.join('→')}]. O(n) time, O(1) space — and only one traversal.`,
-    highlightLine: 26,
+    anchor: { match: 'return dummy.next' },
     state: {
       type: 'linked-list',
       nodes: resultVals.map((v, i) => ({ id: `r${i}`, value: v, nextId: i < resultVals.length - 1 ? `r${i + 1}` : null, state: 'done' as const })),
@@ -262,35 +227,6 @@ function generateStepsOnePass(): Step[] {
 }
 
 // ── Solution 3: Recursion ─────────────────────────────────────────────────────
-
-const PYTHON_CODE_RECURSION = `class Solution:
-    def removeNthFromEnd(self, head, n):
-        # we still need a dummy node in case of head removal
-        dummy = ListNode(0)
-        dummy.next = head
-
-        # since it is recursion, we start at end of the list
-        # when we are at nth node from the end
-        # we want the return to be current.next so we remove reference
-        # keep track of current node # from the end
-        counter = 0
-        def removeNthNode(head):
-            nonlocal counter
-            if not head:
-                return None
-
-            # set caller's next to return
-            head.next = removeNthNode(head.next)
-            counter+=1
-
-            # if counter is at n, return next instead of current
-            if counter == n:
-                return head.next
-
-            return head
-
-        removeNthNode(dummy)
-        return dummy.next`;
 
 function generateStepsRecursion(): Step[] {
   const vals = [1, 2, 3, 4, 5];
@@ -315,7 +251,7 @@ function generateStepsRecursion(): Step[] {
 
   steps.push({
     explanation: `Recursion: dive all the way to the end first, then count nodes as the calls unwind. The moment counter == n, return head.next so that node is dropped. Dummy(0) guards against removing the real head.`,
-    highlightLine: 11,
+    anchor: { match: 'dummy = ListNode(0)', to: { match: 'dummy.next = head' } },
     state: mk(0, null, new Set()),
     variables: [{ name: 'counter', value: 0 }, { name: 'n', value: n }],
   });
@@ -326,7 +262,7 @@ function generateStepsRecursion(): Step[] {
     depth++;
     steps.push({
       explanation: `Descend: removeNthNode(val=${dummyVals[i]}) recurses into .next BEFORE doing anything (call-stack depth ${depth}).`,
-      highlightLine: 18,
+      anchor: { match: 'head.next = removeNthNode(head.next)' },
       state: mk(i, null, new Set()),
       variables: [{ name: 'head', value: dummyVals[i] }, { name: 'call depth', value: depth }],
     });
@@ -335,7 +271,7 @@ function generateStepsRecursion(): Step[] {
   depth++;
   steps.push({
     explanation: `removeNthNode(None): base case, return None. Now the stack unwinds, counting from the end.`,
-    highlightLine: 14,
+    anchor: { match: 'if not head:', to: { match: 'return None' } },
     state: mk(null, null, new Set()),
     variables: [{ name: 'head', value: 'None' }, { name: 'return', value: 'None' }],
   });
@@ -351,14 +287,15 @@ function generateStepsRecursion(): Step[] {
       removeIdx = i;
       steps.push({
         explanation: `Unwind to val=${dummyVals[i]}: counter → ${counter} == n=${n}! Return head.next instead of head — this node (val=${dummyVals[i]}) is dropped, so its caller links past it.`,
-        highlightLine: 22,
+        anchor: { match: 'if counter == n:', to: { match: 'return head.next' } },
         state: mk(i, i, done),
         variables: [{ name: 'counter', value: counter, highlight: true }, { name: 'drop', value: dummyVals[i], highlight: true }],
       });
     } else {
       steps.push({
         explanation: `Unwind to val=${dummyVals[i]}: counter → ${counter} (≠ ${n}). Return this node unchanged.`,
-        highlightLine: 24,
+        // nth 2: the bare else-branch return; the 1st hit is 'return head.next' in the if-branch above
+        anchor: { match: 'return head', nth: 2 },
         state: mk(i, null, done),
         variables: [{ name: 'counter', value: counter }, { name: 'return', value: `val ${dummyVals[i]}` }],
       });
@@ -369,7 +306,7 @@ function generateStepsRecursion(): Step[] {
   const resultVals = dummyVals.filter((_, i) => i !== removeIdx).slice(1);
   steps.push({
     explanation: `Recursion complete — the counter==n node was dropped on the way up. Return dummy.next → [${resultVals.join('→')}]. O(n) time, O(n) call-stack space.`,
-    highlightLine: 27,
+    anchor: { match: 'return dummy.next' },
     state: {
       type: 'linked-list',
       nodes: resultVals.map((v, i) => ({ id: `r${i}`, value: v, nextId: i < resultVals.length - 1 ? `r${i + 1}` : null, state: 'done' as const })),
@@ -383,19 +320,19 @@ function generateStepsRecursion(): Step[] {
 
 const twoPassSolution: SolutionVariant = {
   label: 'Two-Pass',
-  pythonCode: PYTHON_CODE,
+  variant: 'two-pass',
   generateSteps,
 };
 
 const onePassSolution: SolutionVariant = {
   label: 'One-Pass Two-Pointer',
-  pythonCode: PYTHON_CODE_ONEPASS,
+  variant: 'one-pass',
   generateSteps: generateStepsOnePass,
 };
 
 const recursionSolution: SolutionVariant = {
   label: 'Recursion',
-  pythonCode: PYTHON_CODE_RECURSION,
+  variant: 'recursion',
   generateSteps: generateStepsRecursion,
 };
 
@@ -431,6 +368,6 @@ export const removeNthFromEndMeta: AlgorithmMeta = {
     '0 ≤ Node.val ≤ 100',
     '1 ≤ n ≤ sz',
   ],
-  hint: 'Prepend a dummy node so removing the real head is no different from removing any other node. Two-pass: count length, then walk to (length − n − 1). One pass: keep two pointers n apart so the lead hits the end exactly when the trailing one is before the target. Recursion: count from the end as the stack unwinds.',
+  hint: 'Two-pass, no dummy: count length, then walk to (listLength − n − 1) and relink, with an explicit edge case when the head itself must be removed. One-pass with a dummy: keep two pointers n apart so the lead hits the end exactly when the trailing one is before the target. Recursion, also with a dummy: count from the end as the stack unwinds.',
   solutions: [twoPassSolution, onePassSolution, recursionSolution],
 };

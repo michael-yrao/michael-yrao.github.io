@@ -1,33 +1,11 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-progress: dsa/leetcode/heap/1046_last_stone_weight.py
-const PYTHON_CODE = `import heapq
-
-class Solution:
-    def lastStoneWeight(self, stones: List[int]) -> int:
-        # go through the list and heapify the array as a max heap
-        # pop twice to smash, if diff is not zero, insert diff into heap
-        # continue until we are left with heap of size 1 or less
-
-        maxHeap = []
-
-        for stone in stones:
-            # must push negative since python heap is minHeap by default
-            heapq.heappush(maxHeap, -stone)
-
-        # we want to stop the loop when we only have 1 stone or 0 stone left
-        while len(maxHeap) > 1:
-            firstStone = -heapq.heappop(maxHeap)
-            secondStone = 0
-            if len(maxHeap) > 0:
-                secondStone = -heapq.heappop(maxHeap)
-            diff = firstStone - secondStone
-            if diff != 0:
-                heapq.heappush(maxHeap, -diff)
-
-        if len(maxHeap) == 1:
-            return -maxHeap[0]
-        return 0`;
+// Traces cse-progress's lastStoneWeight_20260726 verbatim: both pops are unconditional
+// (the loop condition `len(maxHeap) > 1` already guarantees a second element, so there's
+// no separate empty-heap guard), the diff is `abs(firstStone - secondStone)` (both popped
+// values are still negative — heapq.heappop returns the raw negated entries, no `-` at pop
+// time), and the final check is `if not maxHeap: return 0` else `return -heapq.heappop(maxHeap)`
+// — a pop, not a peek.
 
 function generateSteps(): Step[] {
   const stones = [2, 7, 4, 1, 8, 1];
@@ -47,8 +25,8 @@ function generateSteps(): Step[] {
   });
 
   steps.push({
-    explanation: `Heapify the stones into a max-heap so the two heaviest are always on top. (Python's heapq is a min-heap, so it pushes −stone; we show the conceptual max-heap as a descending list.) maxHeap = [${heap.join(', ')}].`,
-    highlightLine: 10,
+    explanation: `Push −stone for every stone, so heapq's min-heap holds the negated weights and the heaviest stone is always at index 0. maxHeap = [${heap.join(', ')}] (shown here as the positive weights).`,
+    anchor: { match: 'heapq.heappush(maxHeap, -stone)' },
     state: snap([]),
     variables: [{ name: 'stones', value: `[${stones.join(', ')}]` }, { name: 'maxHeap', value: `[${heap.join(', ')}]` }],
   });
@@ -57,40 +35,45 @@ function generateSteps(): Step[] {
     const first = heap[0];
     const second = heap[1];
     steps.push({
-      explanation: `Pop the two heaviest stones: y=${first} and x=${second}. Smash them together.`,
-      highlightLine: 17,
+      explanation: `The loop condition already guarantees a second element, so both pops are unconditional: firstStone=${first}, secondStone=${second} (heapq.heappop returns the raw negated entries — internally −${first} and −${second}).`,
+      anchor: { match: 'firstStone = heapq.heappop(maxHeap)', to: { match: 'secondStone = heapq.heappop(maxHeap)' } },
       state: snap([0, 1]),
       variables: [
-        { name: 'firstStone (y)', value: first, highlight: true },
-        { name: 'secondStone (x)', value: second, highlight: true },
+        { name: 'firstStone', value: first, highlight: true },
+        { name: 'secondStone', value: second, highlight: true },
       ],
     });
 
     heap = heap.slice(2);
-    const diff = first - second;
+    const diff = Math.abs(first - second);
     if (diff !== 0) {
       heap.push(diff);
       heap.sort((a, b) => b - a);
       steps.push({
-        explanation: `${first} − ${second} = ${diff} ≠ 0 → the heavier stone survives with weight ${diff}. Push ${diff} back into the heap → [${heap.join(', ')}].`,
-        highlightLine: 23,
+        explanation: `abs(firstStone − secondStone) = abs(${first} − ${second}) = ${diff} ≠ 0 → push −${diff} back onto the heap (shown here as ${diff}) → [${heap.join(', ')}].`,
+        anchor: { match: 'abs(firstStone - secondStone) != 0', to: { match: 'heapq.heappush(maxHeap, -abs(firstStone - secondStone))' } },
         state: snap([heap.indexOf(diff)]),
-        variables: [{ name: 'diff', value: diff, highlight: true }, { name: 'maxHeap', value: `[${heap.join(', ')}]` }],
+        variables: [{ name: 'diff (abs)', value: diff, highlight: true }, { name: 'maxHeap', value: `[${heap.join(', ')}]` }],
       });
     } else {
       steps.push({
-        explanation: `${first} − ${second} = 0 → equal weights, both stones are destroyed. Nothing pushed back → [${heap.join(', ')}].`,
-        highlightLine: 22,
+        explanation: `abs(firstStone − secondStone) = 0 → equal weights, both stones are destroyed. The if is false, so nothing is pushed back → [${heap.join(', ')}].`,
+        anchor: { match: 'abs(firstStone - secondStone) != 0' },
         state: snap([]),
-        variables: [{ name: 'diff', value: 0 }, { name: 'maxHeap', value: `[${heap.join(', ')}]` }],
+        variables: [{ name: 'diff (abs)', value: 0 }, { name: 'maxHeap', value: `[${heap.join(', ')}]` }],
       });
     }
   }
 
-  const result = heap.length === 1 ? heap[0] : 0;
+  const isEmpty = heap.length === 0;
+  const result = isEmpty ? 0 : heap[0];
   steps.push({
-    explanation: `Heap has ${heap.length} stone(s) left. Return ${result}. Each smash is O(log n) (heap push/pop) and there are O(n) smashes → O(n log n).`,
-    highlightLine: heap.length === 1 ? 26 : 27,
+    explanation: isEmpty
+      ? `maxHeap is empty → return 0.`
+      : `maxHeap still holds 1 stone → return −heapq.heappop(maxHeap) = ${result}. This pops the last entry (not a peek). Each smash is O(log n) and there are O(n) smashes → O(n log n).`,
+    anchor: isEmpty
+      ? { match: 'if not maxHeap:', to: { match: 'return 0' } }
+      : { match: 'return -heapq.heappop(maxHeap)' },
     state: {
       type: 'array',
       cells: heap.map((v) => ({ value: v, state: 'found' as const })),
@@ -105,7 +88,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Max-Heap',
-  pythonCode: PYTHON_CODE,
+  variant: 'max-heap',
   generateSteps,
   timeComplexity: 'O(n log n)',
   spaceComplexity: 'O(n)',

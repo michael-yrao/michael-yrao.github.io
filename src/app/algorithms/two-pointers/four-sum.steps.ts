@@ -1,229 +1,187 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def fourSum(self, nums: List[int], target: int) -> List[List[int]]:
-        resultSet = set()
-        nums.sort()
-        for a in range(len(nums)):
-            # skip a index to avoid duplicates
-            currentTarget = target - nums[a]
-            for b in range(a+1,len(nums),1):
-                twoSumTarget = currentTarget - nums[b]
-                c, d = b+1, len(nums) - 1
-                while c < d:
-                    if nums[c] + nums[d] == twoSumTarget:
-                        result = (nums[a], nums[b], nums[c], nums[d])
-                        resultSet.add(result)
-                        c+=1
-                        d-=1
-                    elif nums[c] + nums[d] < twoSumTarget:
-                        c+=1
-                    else:
-                        d-=1
-        return list(resultSet)`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's fourSum_20260727 verbatim: nums.sort(), lenNums = len(nums),
+// resultSet = set(). For each i, j: k, l = j+1, len(nums)-1 is set FIRST, then
+// runningTarget = target - nums[i] - nums[j] is computed from that combined subtraction (not
+// two separate per-i/per-j subtractions). The two-pointer branch order is equal → elif GREATER
+// (l-=1) → else (k+=1) — the "too small" case has no explicit condition, it's just whatever's
+// left. Deduplication is via resultSet (a Python set of tuples), then unpacked into a list.
 
 function generateSteps(): Step[] {
   const original = [1, 0, -1, 0, -2, 2];
   const target = 0;
   const nums = [...original].sort((a, b) => a - b); // [-2,-1,0,0,1,2]
-  const n = nums.length;
+  const lenNums = nums.length;
   const steps: Step[] = [];
-  const found: string[] = [];
+  const resultSet = new Set<string>();
 
-  const snap = (aIdx: number, bIdx: number, cIdx: number, dIdx: number) =>
+  const snap = (iIdx: number, jIdx: number, kIdx: number, lIdx: number) =>
     nums.map((v, idx) => ({
       value: v,
       state:
-        idx === aIdx
+        idx === iIdx || idx === jIdx
           ? ('active' as const)
-          : idx === bIdx
-          ? ('active' as const)
-          : idx >= cIdx && idx <= dIdx && cIdx <= dIdx
+          : idx >= kIdx && idx <= lIdx && kIdx <= lIdx
           ? ('window' as const)
-          : idx < aIdx
+          : idx < iIdx
           ? ('visited' as const)
           : ('default' as const),
     }));
 
-  // Intro / sort step
   steps.push({
-    explanation: `Sort first: [${original.join(', ')}] → [${nums.join(', ')}]. Sorting enables two-pointer searches. Fix outer indices a and b, then use two-pointer c/d on the remaining subarray to find pairs that sum to target - nums[a] - nums[b].`,
-    highlightLine: 4,
+    explanation: `nums.sort(): [${original.join(', ')}] → [${nums.join(', ')}]. lenNums = ${lenNums}. resultSet = set() — dedup happens via the set, there's no explicit duplicate-index skip.`,
+    anchor: { match: 'nums.sort()', to: { match: 'resultSet = set()' } },
     state: {
       type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
+      cells: nums.map((v) => ({ value: v, state: 'default' as const })),
       pointers: [],
       counters: [{ label: 'target', value: target }],
     },
     variables: [
-      { name: 'sorted', value: `[${nums.join(', ')}]` },
+      { name: 'nums', value: `[${nums.join(', ')}]` },
       { name: 'target', value: target },
     ],
   });
 
-  for (let a = 0; a < n - 3; a++) {
-    const currentTarget = target - nums[a];
-
+  for (let i = 0; i < lenNums - 3; i++) {
     steps.push({
-      explanation: `a=${a}: nums[a]=${nums[a]}. currentTarget = target - nums[a] = ${target} - ${nums[a]} = ${currentTarget}. Fix this element and search for three more that sum to ${currentTarget}.`,
-      highlightLine: 6,
+      explanation: `for i in range(lenNums-3): i=${i}, nums[i]=${nums[i]}.`,
+      anchor: { match: 'for i in range(lenNums-3):', to: { match: 'for j in range(i+1, lenNums-2):' } },
       state: {
         type: 'array',
         cells: nums.map((v, idx) => ({
           value: v,
-          state:
-            idx === a
-              ? ('active' as const)
-              : idx < a
-              ? ('visited' as const)
-              : ('default' as const),
+          state: (idx === i ? 'active' : idx < i ? 'visited' : 'default') as 'active' | 'visited' | 'default',
         })),
-        pointers: [{ index: a, label: 'a' }],
-        counters: [
-          { label: 'target', value: target },
-          { label: 'currentTarget', value: currentTarget },
-          { label: 'found', value: found.length },
-        ],
+        pointers: [{ index: i, label: 'i' }],
       },
-      variables: [
-        { name: 'a', value: a },
-        { name: 'nums[a]', value: nums[a] },
-        { name: 'currentTarget', value: currentTarget },
-      ],
+      variables: [{ name: 'i', value: i }, { name: 'nums[i]', value: nums[i] }],
     });
 
-    for (let b = a + 1; b < n - 2; b++) {
-      const twoSumTarget = currentTarget - nums[b];
-      let c = b + 1;
-      let d = n - 1;
+    for (let j = i + 1; j < lenNums - 2; j++) {
+      let k = j + 1;
+      let l = lenNums - 1;
+      const runningTarget = target - nums[i] - nums[j];
 
       steps.push({
-        explanation: `  b=${b}: nums[b]=${nums[b]}. twoSumTarget = ${currentTarget} - ${nums[b]} = ${twoSumTarget}. Set c=${c}, d=${d}. Looking for nums[c]+nums[d]=${twoSumTarget}.`,
-        highlightLine: 9,
+        explanation: `for j in range(i+1, lenNums-2): j=${j}, nums[j]=${nums[j]}. k, l = j+1, len(nums)-1 → k=${k}, l=${l}. runningTarget = target - nums[i] - nums[j] = ${target} - ${nums[i]} - ${nums[j]} = ${runningTarget}.`,
+        anchor: { match: 'for j in range(i+1, lenNums-2):', to: { match: 'runningTarget = target - nums[i] - nums[j]' } },
         state: {
           type: 'array',
-          cells: snap(a, b, c, d),
+          cells: snap(i, j, k, l),
           pointers: [
-            { index: a, label: 'a' },
-            { index: b, label: 'b' },
-            { index: c, label: 'c' },
-            { index: d, label: 'd' },
-          ],
-          counters: [
-            { label: 'twoSumTarget', value: twoSumTarget },
-            { label: 'found', value: found.length },
+            { index: i, label: 'i' },
+            { index: j, label: 'j' },
+            { index: k, label: 'k' },
+            { index: l, label: 'l' },
           ],
         },
         variables: [
-          { name: 'b', value: b },
-          { name: 'nums[b]', value: nums[b] },
-          { name: 'twoSumTarget', value: twoSumTarget },
-          { name: 'c', value: c },
-          { name: 'd', value: d },
+          { name: 'j', value: j },
+          { name: 'nums[j]', value: nums[j] },
+          { name: 'runningTarget', value: runningTarget },
         ],
       });
 
-      while (c < d) {
-        const pairSum = nums[c] + nums[d];
+      while (k < l) {
+        const pairSum = nums[k] + nums[l];
 
-        if (pairSum === twoSumTarget) {
-          const quad = `[${nums[a]},${nums[b]},${nums[c]},${nums[d]}]`;
-          found.push(quad);
+        if (pairSum === runningTarget) {
+          const quadKey = `(${nums[i]}, ${nums[j]}, ${nums[k]}, ${nums[l]})`;
+          resultSet.add(quadKey);
           steps.push({
-            explanation: `nums[c]+nums[d] = ${nums[c]}+${nums[d]} = ${pairSum} == ${twoSumTarget} ✓ Found quadruplet ${quad}! Add to result set, then advance both c and d.`,
-            highlightLine: 12,
+            explanation: `nums[k]+nums[l] = ${nums[k]}+${nums[l]} = ${pairSum} == runningTarget ${runningTarget} → resultSet.add(${quadKey}). k+=1, l-=1.`,
+            // nth 1: this if-branch's own 'l-=1'; hit 2 is the else-branch's 'l-=1' further down.
+            anchor: { match: 'if nums[k] + nums[l] == runningTarget:', to: { match: 'l-=1', nth: 1 } },
             state: {
               type: 'array',
               cells: nums.map((v, idx) => ({
                 value: v,
-                state:
-                  idx === a || idx === b || idx === c || idx === d
-                    ? ('found' as const)
-                    : idx < a
-                    ? ('visited' as const)
-                    : ('default' as const),
+                state: (idx === i || idx === j || idx === k || idx === l
+                  ? 'found'
+                  : idx < i
+                  ? 'visited'
+                  : 'default') as 'found' | 'visited' | 'default',
               })),
               pointers: [
-                { index: a, label: 'a' },
-                { index: b, label: 'b' },
-                { index: c, label: 'c' },
-                { index: d, label: 'd' },
+                { index: i, label: 'i' },
+                { index: j, label: 'j' },
+                { index: k, label: 'k' },
+                { index: l, label: 'l' },
               ],
-              counters: [
-                { label: 'pairSum', value: pairSum },
-                { label: 'found', value: found.length },
-              ],
+              counters: [{ label: 'resultSet', value: `{${[...resultSet].join(', ')}}` }],
             },
             variables: [
-              { name: 'sum', value: pairSum, highlight: true },
-              { name: 'quad', value: quad, highlight: true },
+              { name: 'pairSum', value: pairSum, highlight: true },
+              { name: 'resultSet', value: `{${[...resultSet].join(', ')}}`, highlight: true },
             ],
           });
-          c++;
-          d--;
-        } else if (pairSum < twoSumTarget) {
+          k += 1;
+          l -= 1;
+        } else if (pairSum > runningTarget) {
           steps.push({
-            explanation: `nums[c]+nums[d] = ${nums[c]}+${nums[d]} = ${pairSum} < ${twoSumTarget}. Too small — move c right to increase sum.`,
-            highlightLine: 18,
+            explanation: `nums[k]+nums[l] = ${nums[k]}+${nums[l]} = ${pairSum} > runningTarget ${runningTarget} → l-=1.`,
+            // nth 2: hit 1 is the if-branch's own 'l-=1' above; this elif-branch's is the second.
+            anchor: { match: 'elif nums[k] + nums[l] > runningTarget:', to: { match: 'l-=1', nth: 2 } },
             state: {
               type: 'array',
-              cells: snap(a, b, c, d),
+              cells: snap(i, j, k, l),
               pointers: [
-                { index: a, label: 'a' },
-                { index: b, label: 'b' },
-                { index: c, label: 'c' },
-                { index: d, label: 'd' },
-              ],
-              counters: [
-                { label: 'pairSum', value: pairSum },
-                { label: 'found', value: found.length },
+                { index: i, label: 'i' },
+                { index: j, label: 'j' },
+                { index: k, label: 'k' },
+                { index: l, label: 'l' },
               ],
             },
             variables: [
-              { name: 'sum', value: pairSum, highlight: true },
-              { name: 'action', value: 'c++' },
+              { name: 'pairSum', value: pairSum, highlight: true },
+              { name: 'action', value: 'l-=1' },
             ],
           });
-          c++;
+          l -= 1;
         } else {
           steps.push({
-            explanation: `nums[c]+nums[d] = ${nums[c]}+${nums[d]} = ${pairSum} > ${twoSumTarget}. Too large — move d left to decrease sum.`,
-            highlightLine: 20,
+            explanation: `nums[k]+nums[l] = ${nums[k]}+${nums[l]} = ${pairSum}. Not equal, not greater → falls to else: k+=1.`,
+            // nth 2: hit 1 is the if-branch's own 'k+=1' above; this else-branch's is the second.
+            anchor: { match: 'else:', to: { match: 'k+=1', nth: 2 } },
             state: {
               type: 'array',
-              cells: snap(a, b, c, d),
+              cells: snap(i, j, k, l),
               pointers: [
-                { index: a, label: 'a' },
-                { index: b, label: 'b' },
-                { index: c, label: 'c' },
-                { index: d, label: 'd' },
-              ],
-              counters: [
-                { label: 'pairSum', value: pairSum },
-                { label: 'found', value: found.length },
+                { index: i, label: 'i' },
+                { index: j, label: 'j' },
+                { index: k, label: 'k' },
+                { index: l, label: 'l' },
               ],
             },
             variables: [
-              { name: 'sum', value: pairSum, highlight: true },
-              { name: 'action', value: 'd--' },
+              { name: 'pairSum', value: pairSum, highlight: true },
+              { name: 'action', value: 'k+=1' },
             ],
           });
-          d--;
+          k += 1;
         }
       }
     }
   }
 
+  // The attempt does `for a,b,c,d in resultSet:` — CPython set iteration order is NOT
+  // insertion order in general. Verified for this exact input via
+  // `python -c "print(list({(-2,-1,1,2),(-1,0,0,1),(-2,0,0,2)}))"` → the CPython order IS
+  // [(-2,-1,1,2), (-1,0,0,1), (-2,0,0,2)], which matches this simulation's insertion order,
+  // so no reordering is needed here.
   steps.push({
-    explanation: `All (a, b) pairs processed. Result set: ${found.join(', ')}. O(n³) time (two outer loops + two-pointer inner scan), O(n) space for output.`,
-    highlightLine: 21,
+    explanation: `All (i, j) pairs processed. result = []; for a,b,c,d in resultSet: result.append([a,b,c,d]) — unpack the set into a list. Result: [${[...resultSet].join(', ')}]. O(n³) time (two outer loops + a two-pointer inner scan), O(n) space for output.`,
+    anchor: { match: 'result = []', to: { match: 'return result' } },
     state: {
       type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'visited' as const })),
+      cells: nums.map((v) => ({ value: v, state: 'visited' as const })),
       pointers: [],
-      counters: [{ label: 'result', value: found.join(', ') }],
+      counters: [{ label: 'result', value: [...resultSet].join(', ') }],
     },
-    variables: [{ name: 'return', value: found.join(', '), highlight: true }],
+    variables: [{ name: 'return', value: [...resultSet].join(', '), highlight: true }],
   });
 
   return steps;
@@ -231,7 +189,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Sort + Two Nested Loops + Two Pointers',
-  pythonCode: PYTHON_CODE,
+  variant: 'sort-two-pointers',
   generateSteps,
 };
 
@@ -261,6 +219,6 @@ export const fourSumMeta: AlgorithmMeta = {
     '-10⁹ ≤ nums[i] ≤ 10⁹',
     '-10⁹ ≤ target ≤ 10⁹',
   ],
-  hint: 'Sort the array. Fix two outer indices a and b (O(n²)), then run a two-pointer search with c and d on the remaining subarray to find pairs that complete the quadruplet. Use a result set to automatically deduplicate.',
+  hint: 'Sort the array. Fix two outer indices i and j (O(n²)), then run a two-pointer search with k and l on the remaining subarray to find pairs that complete the quadruplet. Use a result set to automatically deduplicate.',
   solutions: [solution],
 };

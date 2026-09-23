@@ -1,41 +1,13 @@
 import { AlgorithmMeta, SolutionVariant, Step, ArrayCell, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-progress: dsa/leetcode/arrays_and_hash/271_encode_and_decode_string.py
-// (the two-pointer decode variant, Solution_20260703)
-const PYTHON_CODE = `class Solution:
-    # this problem is the basis of Length Prefix Framing for transmitting over networks
-    # we provide a length and a delimiter in front of the string so we don't read the string itself
-    # and just provide based on the length in front
-
-    def encode(self, strs: List[str]) -> str:
-        transmissionString = ""
-        for string in strs:
-            lenPrefix = len(string)
-            lenPrefixFrame = str(lenPrefix) + "#" + string
-            transmissionString+=lenPrefixFrame
-        return transmissionString
-
-    def decode(self, s: str) -> List[str]:
-        # to decode, we want to read the len in front and then take that length into result
-        # first thought is to do a split on # and get the first part of the split
-        # but doing this for the entire string would give us O(n^2)
-        # so we will do it manually using pointers
-        # need two pointers, one to track start, one to track end of word
-        result = []
-
-        i = 0
-
-        while i < len(s):
-            j = i
-            while s[j] != '#':
-                j+=1
-            # now we know i -> j is the length
-            lenStr = int(s[i:j])
-            # now the word is from j+1 -> j+1+lenStr
-            word = s[j+1:j+1+lenStr]
-            result.append(word)
-            i=j+1+lenStr
-        return result`;
+// ── Solution: Length Prefix (two-pointer decode) ─────────────────────────────
+//
+// Traces cse-progress's Solution_20260802 verbatim (a whole dated class, no
+// separate `class Solution` line). Encode builds a LIST of parts — three
+// separate `result.append(...)` calls per string (length, "#", string) — then
+// joins with "".join(result), rather than concatenating one string in place.
+// Decode's inner scan starts at `j = i + 1` (not `j = i`) before checking for
+// '#'.
 
 const STRS = ['Hello', 'World'];
 
@@ -45,8 +17,8 @@ function generateSteps(): Step[] {
   // ── Intro ──────────────────────────────────────────────────────────────────
   steps.push({
     explanation:
-      'The hard part is separating strings when any character (including "#" or digits) may appear inside them. Solution: length-prefix framing. Prefix each string with its length and a "#". On decode we read the number, then take exactly that many characters — a "#" inside the body can never confuse us.',
-    highlightLine: 6,
+      'The hard part is separating strings when any character (including "#" or digits) may appear inside them. Solution: length-prefix framing. encode builds result as a LIST of parts (length, "#", string) per string, then joins them. decode reads the number, then takes exactly that many characters — a "#" inside the body can never confuse us.',
+    anchor: { match: 'for string in strs:' },
     state: {
       type: 'array',
       cells: [],
@@ -55,19 +27,20 @@ function generateSteps(): Step[] {
     },
     variables: [
       { name: 'strs', value: '["Hello", "World"]' },
-      { name: 'transmissionString', value: '""' },
+      { name: 'result', value: '[]' },
     ],
   });
 
-  // ── Encode: one step per string in strs ────────────────────────────────────
+  // ── Encode: one step per string in strs — 3 appends each ────────────────────
   let encoded = '';
-  for (const string of STRS) {
-    const frame = `${string.length}#${string}`;
+  for (const str of STRS) {
+    const lenString = str.length;
     const before = encoded.length;
-    encoded += frame;
+    encoded += `${lenString}#${str}`;
     steps.push({
-      explanation: `Encode "${string}": lenPrefix = len("${string}") = ${string.length}, so lenPrefixFrame = "${string.length}#${string}". Append it. The "${string.length}#" prefix tells the decoder exactly how many characters of body follow.`,
-      highlightLine: 11,
+      explanation: `Encode "${str}": lenString = len("${str}") = ${lenString}. Three separate appends: result.append(str(${lenString})), result.append("#"), result.append("${str}").`,
+      // nth:1 selects encode's append (decode has its own identical "result.append(string)" line later).
+      anchor: { match: 'result.append(str(lenString))', to: { match: 'result.append(string)', nth: 1 } },
       state: {
         type: 'array',
         cells: encoded.split('').map((c, idx) => ({
@@ -75,19 +48,19 @@ function generateSteps(): Step[] {
           state: idx >= before ? ('found' as const) : ('visited' as const),
         })),
         pointers: [],
-        arrayLabel: 'transmissionString (building)',
+        arrayLabel: 'result parts (joined so far)',
       },
       variables: [
-        { name: 'string', value: `"${string}"`, highlight: true },
-        { name: 'lenPrefixFrame', value: `"${frame}"`, highlight: true },
-        { name: 'transmissionString', value: `"${encoded}"` },
+        { name: 'string', value: `"${str}"`, highlight: true },
+        { name: 'lenString', value: lenString, highlight: true },
+        { name: 'result (joined)', value: `"${encoded}"` },
       ],
     });
   }
 
   steps.push({
-    explanation: `Encoding done: "${encoded}". This single string is sent over the wire; the receiver decodes it back into ["Hello", "World"] using two pointers — i marks the start of a frame, j scans to its "#".`,
-    highlightLine: 13,
+    explanation: `Encoding done: "".join(result) = "${encoded}". This single string is sent over the wire; the receiver decodes it back into ["Hello", "World"] using two pointers — i marks the start of a frame, j scans to its "#".`,
+    anchor: { match: 'return "".join(result)' },
     state: {
       type: 'array',
       cells: encoded.split('').map((c) => ({ value: c, state: 'default' as const })),
@@ -112,17 +85,29 @@ function generateSteps(): Step[] {
     });
 
   let i = 0;
+  steps.push({
+    explanation: 'decode: result = [], i = 0. i will mark the start of each frame.',
+    anchor: { match: 'i = 0' },
+    state: {
+      type: 'array',
+      cells: decodeCells(0, 0, -1, -1),
+      pointers: [{ index: 0, label: 'i' }],
+      arrayLabel: 'transmissionString (decoding)',
+    },
+    variables: [{ name: 'i', value: i }, { name: 'result', value: '[]' }],
+  });
+
   while (i < chars.length) {
-    let j = i;
+    let j = i + 1;
     while (chars[j] !== '#') j++;
-    const lenStr = parseInt(encoded.slice(i, j), 10);
+    const lenString = parseInt(encoded.slice(i, j), 10);
     const wordStart = j + 1;
-    const wordEnd = j + 1 + lenStr;
-    const word = encoded.slice(wordStart, wordEnd);
+    const wordEnd = j + 1 + lenString;
+    const string = encoded.slice(wordStart, wordEnd);
 
     steps.push({
-      explanation: `i=${i}: set j=i and advance j while s[j] != "#". It stops at index ${j} (the "#"). The digits between i and j spell "${encoded.slice(i, j)}", so lenStr = int(s[${i}:${j}]) = ${lenStr}.`,
-      highlightLine: 28,
+      explanation: `i=${i}: j = i + 1 = ${i + 1}, then advance j while s[j] != "#". It stops at index ${j} (the "#"). The digits between i and j spell "${encoded.slice(i, j)}", so lenString = int(s[${i}:${j}]) = ${lenString}.`,
+      anchor: { match: 'j = i + 1', to: { match: 'j+=1' } },
       state: {
         type: 'array',
         cells: decodeCells(i, j, -1, -1),
@@ -135,14 +120,14 @@ function generateSteps(): Step[] {
       variables: [
         { name: 'i', value: i, highlight: true },
         { name: 'j', value: j, highlight: true },
-        { name: 'lenStr', value: lenStr, highlight: true },
+        { name: 'lenString', value: lenString, highlight: true },
       ],
     });
 
-    result.push(word);
+    result.push(string);
     steps.push({
-      explanation: `The word is the ${lenStr} characters after "#": word = s[${wordStart}:${wordEnd}] = "${word}". Append it to result, then jump i to j+1+lenStr = ${wordEnd} to start the next frame.`,
-      highlightLine: 34,
+      explanation: `string = s[${wordStart}:${wordEnd}] = "${string}" (the ${lenString} characters after "#"). result.append(string). Then i = j+1+lenString = ${wordEnd} to start the next frame.`,
+      anchor: { match: 'lenString = int(s[i:j])', to: { match: 'i = j+1+lenString' } },
       state: {
         type: 'array',
         cells: decodeCells(i, j, wordStart, wordEnd),
@@ -153,7 +138,7 @@ function generateSteps(): Step[] {
         arrayLabel: 'transmissionString (decoding)',
       },
       variables: [
-        { name: 'word', value: `"${word}"`, highlight: true },
+        { name: 'string', value: `"${string}"`, highlight: true },
         { name: 'result', value: `[${result.map((w) => `"${w}"`).join(', ')}]` },
         { name: 'next i', value: wordEnd },
       ],
@@ -164,7 +149,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `i reached the end of the string — the while loop ends. Return [${result.map((w) => `"${w}"`).join(', ')}], exactly the original list. Both encode and decode are O(total length): each character is touched a constant number of times (the two-pointer scan avoids the O(n²) of repeated split()).`,
-    highlightLine: 36,
+    anchor: { match: 'return result' },
     state: {
       type: 'array',
       cells: chars.map((c) => ({ value: c, state: 'visited' as const })),
@@ -182,7 +167,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Length Prefix (two-pointer decode)',
-  pythonCode: PYTHON_CODE,
+  variant: 'length-prefix',
   generateSteps,
   timeComplexity: 'O(n)',
   spaceComplexity: 'O(n)',

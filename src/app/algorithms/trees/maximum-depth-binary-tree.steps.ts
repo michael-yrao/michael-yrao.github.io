@@ -1,27 +1,10 @@
-import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from typing import Optional
-
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-class Solution:
-    def maxDepth(self, root: Optional[TreeNode]) -> int:
-        # max depth = dfs
-        # how do we think about this? is this postorder/preorder/inorder
-        # we can go as deep as possible and when we get to null children, we return 0
-        # then go backwards, so this would mean postorder
-        # since we want max depth, we would return max of either directions
-
-        if not root:
-            return 0
-
-        # these 2 returns are the same
-        # return max(1+self.maxDepth(root.left),1+self.maxDepth(root.right))
-        return 1+max(self.maxDepth(root.left),self.maxDepth(root.right))`;
+// Traces cse-progress's maxDepth verbatim: this attempt has NO separate nested `dfs` helper —
+// `self.maxDepth` recurses directly, and both children plus the max()+1 combine all happen
+// INLINE in one return statement, so there is no distinct source line for "left is back, now
+// go right" — that step is dropped and both the entry and the resolved-depth narration anchor
+// to the two lines that actually exist: the def line and the one return line.
 
 // Tree: [3,9,20,null,null,15,7]
 const NODES: Omit<TreeNode, 'state'>[] = [
@@ -47,7 +30,7 @@ function generateSteps(): Step[] {
 
   const push = (
     explanation: string,
-    line: number,
+    anchor: StepAnchor,
     opts: {
       current?: string | null;
       vars?: { name: string; value: string | number; highlight?: boolean }[];
@@ -56,7 +39,7 @@ function generateSteps(): Step[] {
   ) => {
     steps.push({
       explanation,
-      highlightLine: line,
+      anchor,
       state: {
         type: 'tree',
         nodes: makeNodes(),
@@ -68,8 +51,8 @@ function generateSteps(): Step[] {
   };
 
   push(
-    'Goal: max depth = the number of nodes on the longest root→leaf path. Strategy: postorder DFS — to know a node’s depth we must FIRST know both children’s depths, so we dive all the way down, then build the answer back up. A null (missing) child counts as depth 0. Watch the "call stack depth" counter grow as we dive and shrink as we return.',
-    11,
+    'Goal: max depth = the number of nodes on the longest root→leaf path. This attempt has no separate helper — self.maxDepth recurses directly, and both children plus 1+max(...) are combined INLINE in one return statement (left evaluates fully before right starts, since Python evaluates call arguments left to right). A null (missing) child counts as depth 0. Watch the "call stack depth" counter grow as we dive and shrink as we return.',
+    { match: 'def maxDepth(self, root: Optional[TreeNode]) -> int:' },
     { vars: [{ name: 'root', value: 3 }] }
   );
 
@@ -78,7 +61,8 @@ function generateSteps(): Step[] {
     if (id === null) {
       push(
         `${side} is null → base case "if not root: return 0". A missing node has depth 0, so we return 0 right away without recursing deeper.`,
-        18,
+        // nth 2: the actual return-0 statement; the 1st hit is a comment above ("...we return 0")
+        { match: 'if not root:', to: { match: 'return 0', nth: 2 } },
         { current: parentId, vars: [{ name: 'node', value: 'null' }, { name: 'returns', value: 0, highlight: true }] }
       );
       return 0;
@@ -88,29 +72,20 @@ function generateSteps(): Step[] {
     const v = valueOf(id);
     colour[id] = 'active';
     push(
-      `Call maxDepth(node ${v}) — push it on the call stack (depth now ${stackDepth}). We can’t compute its depth yet; first recurse into its LEFT child.`,
-      22,
+      `Call maxDepth(node ${v}) — push it on the call stack (depth now ${stackDepth}). Everything from here happens inline in one return: self.maxDepth(root.left) is evaluated first.`,
+      { match: 'def maxDepth(self, root: Optional[TreeNode]) -> int:' },
       { current: id, vars: [{ name: 'node', value: v }] }
     );
 
     const left = dfs(nodeMap.get(id)!.leftId, `Left child of ${v}`, id);
-
-    // Left subtree resolved; come back to this node before going right.
-    colour[id] = 'active';
-    push(
-      `Back at node ${v}. Its left subtree returned depth ${left}. Now recurse into the RIGHT child.`,
-      22,
-      { current: id, vars: [{ name: 'node', value: v }, { name: 'left', value: left, highlight: true }] }
-    );
-
     const right = dfs(nodeMap.get(id)!.rightId, `Right child of ${v}`, id);
 
     const depth = 1 + Math.max(left, right);
     colour[id] = 'visited';
     stackDepth--;
     push(
-      `Node ${v} is done: left=${left}, right=${right} → maxDepth(${v}) = 1 + max(${left}, ${right}) = ${depth}. Pop it off the stack and return ${depth} up to its parent (depth now ${stackDepth}).`,
-      22,
+      `Both nested calls for node ${v} have returned: self.maxDepth(root.left)=${left}, self.maxDepth(root.right)=${right}. return 1+max(${left},${right}) = ${depth}. Pop it off the stack (depth now ${stackDepth}).`,
+      { match: 'return 1+max(self.maxDepth(root.left),self.maxDepth(root.right))' },
       {
         current: id,
         vars: [
@@ -129,7 +104,7 @@ function generateSteps(): Step[] {
   NODES.forEach((n) => (colour[n.id] = 'found'));
   push(
     `Every node has been visited and the recursion has fully unwound. The root returned ${answer}, so the maximum depth is ${answer} — the longest path 3 → 20 → 15 (or 7).`,
-    22,
+    { match: 'return 1+max(self.maxDepth(root.left),self.maxDepth(root.right))' },
     { vars: [{ name: 'maxDepth', value: answer, highlight: true }] }
   );
 
@@ -161,7 +136,7 @@ export const maximumDepthBinaryTreeMeta: AlgorithmMeta = {
   solutions: [
     {
       label: 'Postorder DFS (Recursive)',
-      pythonCode: PYTHON_CODE,
+      variant: 'postorder',
       generateSteps,
     },
   ],

@@ -1,53 +1,25 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def isPalindrome(self, s: str) -> bool:
-        # clean string to alphabet only
-        # also make it lowercase
-        regex = re.compile('[^a-zA-Z]')
-        cleanString = regex.sub('', s).lower()
-
-        l,r=0,len(cleanString)-1
-        while r>=l:
-            if cleanString[l] != cleanString[r]:
-                return False
-            l+=1
-            r-=1
-        return True`;
-
-const PYTHON_CODE_ALT = `class Solution:
-    def isPalindromeNoCleaning(self, s: str) -> bool:
-
-        def alphaNumeric(character):
-            return ((ord('A') <= ord(character) <= ord('Z')) or
-                    (ord('a') <= ord(character) <= ord('z')) or
-                    (ord('0') <= ord(character) <= ord('9'))
-                    )
-
-        l, r = 0, len(s) - 1
-
-        while r >= l:
-            # get to alphanumeric for both l and r
-            while l < r and not alphaNumeric(s[l]):
-                l+=1
-            while r > l and not alphaNumeric(s[r]):
-                r-=1
-            if s[r].lower() != s[l].lower():
-                return False
-            r-=1
-            l+=1
-        return True`;
+// ── Step generators ──────────────────────────────────────────────────────────
+//
+// clean-then-scan traces cse-progress's isPalindrome verbatim: regex = re.compile('[^a-zA-Z]')
+// strips anything that ISN'T a letter — digits included, not just punctuation/spaces — then
+// .lower(). The loop is `while r>=l` (not `r>l`): it still runs the l===r middle-character
+// case (a trivial self-match) before l crosses r.
+//
+// no-cleaning traces isPalindromeNoCleaning verbatim: a nested alphaNumeric() helper, then the
+// same `while r>=l` shape, with two inner skip-loops (l past non-alnum, then r past non-alnum)
+// before each comparison.
 
 function generateSteps(): Step[] {
-  // Visualise with a pre-filtered example so the two-pointer dance is clear.
-  // "A man a plan a canal Panama" → filtered: "amanaplanacanalpanama"
-  // For a concise animation we use "racecar" (already lowercase alnum).
-  const original = 'racecar';
-  const filtered = original.split('');
+  // regex.sub('[^a-zA-Z]', '') strips anything that isn't a letter — including digits — so a
+  // digit disappears here rather than surviving as itself; the input is chosen to show that.
+  const original = 'Race1car!';
+  const cleanString = original.replace(/[^a-zA-Z]/g, '').toLowerCase();
   const steps: Step[] = [];
 
   const snap = (l: number, r: number, found = false) =>
-    filtered.map((c, i) => ({
+    cleanString.split('').map((c, i) => ({
       value: c,
       state: found
         ? ('found' as const)
@@ -59,63 +31,65 @@ function generateSteps(): Step[] {
     }));
 
   steps.push({
-    explanation:
-      'Filter out non-alphanumeric characters and lowercase everything. For "racecar" the filtered array is the string itself. Then place two pointers: l at the left end, r at the right end.',
-    highlightLine: 3,
+    explanation: `regex = re.compile('[^a-zA-Z]'); cleanString = regex.sub('', s).lower(). s="${original}" → every non-letter (the digit '1' and the '!') is stripped, not just punctuation/spaces → cleanString="${cleanString}".`,
+    anchor: { match: "regex = re.compile('[^a-zA-Z]')", to: { match: "cleanString = regex.sub('', s).lower()" } },
     state: {
       type: 'array',
-      cells: filtered.map(c => ({ value: c, state: 'default' as const })),
-      pointers: [{ index: 0, label: 'l' }, { index: filtered.length - 1, label: 'r' }],
+      cells: cleanString.split('').map((c) => ({ value: c, state: 'default' as const })),
+      pointers: [],
     },
-    variables: [
-      { name: 'l', value: 0 },
-      { name: 'r', value: filtered.length - 1 },
-    ],
+    variables: [{ name: 'cleanString', value: cleanString }],
   });
 
   let l = 0;
-  let r = filtered.length - 1;
-
-  while (l < r) {
-    const match = filtered[l] === filtered[r];
-
-    steps.push({
-      explanation: match
-        ? `filtered[${l}] = '${filtered[l]}' and filtered[${r}] = '${filtered[r]}' match. Shrink the window: l++, r--.`
-        : `filtered[${l}] = '${filtered[l]}' and filtered[${r}] = '${filtered[r]}' do NOT match. Return false immediately.`,
-      highlightLine: match ? 8 : 7,
-      state: {
-        type: 'array',
-        cells: snap(l, r, !match),
-        pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-      },
-      variables: [
-        { name: 'l', value: l, highlight: true },
-        { name: 'r', value: r, highlight: true },
-        { name: 'filtered[l]', value: filtered[l] },
-        { name: 'filtered[r]', value: filtered[r] },
-        { name: 'match', value: match ? 'yes' : 'NO → false', highlight: !match },
-      ],
-    });
-
-    if (!match) return steps;
-    l++;
-    r--;
-  }
+  let r = cleanString.length - 1;
 
   steps.push({
-    explanation: `l (${l}) ≥ r (${r}) — every pair matched. Return true. "racecar" is a palindrome.`,
-    highlightLine: 10,
-    state: {
-      type: 'array',
-      cells: filtered.map(c => ({ value: c, state: 'found' as const })),
-      pointers: [{ index: l, label: 'l=r' }],
-    },
+    explanation: `l,r=0,len(cleanString)-1 → l=${l}, r=${r}.`,
+    anchor: { match: 'l,r=0,len(cleanString)-1' },
+    state: { type: 'array', cells: snap(l, r), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }] },
     variables: [
       { name: 'l', value: l },
       { name: 'r', value: r },
-      { name: 'result', value: 'true', highlight: true },
     ],
+  });
+
+  while (r >= l) {
+    const match = cleanString[l] === cleanString[r];
+
+    if (!match) {
+      steps.push({
+        explanation: `while r>=l (${r}>=${l}): cleanString[l]='${cleanString[l]}' != cleanString[r]='${cleanString[r]}' → return False.`,
+        anchor: { match: 'if cleanString[l] != cleanString[r]:', to: { match: 'return False' } },
+        state: { type: 'array', cells: snap(l, r), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }] },
+        variables: [
+          { name: 'l', value: l, highlight: true },
+          { name: 'r', value: r, highlight: true },
+          { name: 'match', value: 'NO → False', highlight: true },
+        ],
+      });
+      return steps;
+    }
+
+    steps.push({
+      explanation: `while r>=l (${r}>=${l}): cleanString[l]='${cleanString[l]}' == cleanString[r]='${cleanString[r]}' → the if doesn't fire. l+=1, r-=1.`,
+      anchor: { match: 'l+=1', to: { match: 'r-=1' } },
+      state: { type: 'array', cells: snap(l, r), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }] },
+      variables: [
+        { name: 'l', value: l },
+        { name: 'r', value: r },
+        { name: 'match', value: 'yes' },
+      ],
+    });
+    l += 1;
+    r -= 1;
+  }
+
+  steps.push({
+    explanation: `r (${r}) < l (${l}) — every pair (including the middle self-match, if any) checked out. Return True. "${cleanString}" is a palindrome.`,
+    anchor: { match: 'return True' },
+    state: { type: 'array', cells: cleanString.split('').map((c) => ({ value: c, state: 'found' as const })), pointers: [] },
+    variables: [{ name: 'result', value: 'True', highlight: true }],
   });
 
   return steps;
@@ -123,9 +97,9 @@ function generateSteps(): Step[] {
 
 function generateNoCleaningSteps(): Step[] {
   // No pre-filtering: pointers skip non-alphanumeric chars in place.
-  const s = 'Race, car'.split(''); // R a c e ,   c a r  → "racecar"
+  const s = 'Race, car'.split(''); // R a c e ,   c a r  → alphanumerics spell "Racecar"
   const steps: Step[] = [];
-  const isAlnum = (c: string) => /[a-z0-9]/i.test(c);
+  const isAlnum = (c: string) => /[a-zA-Z0-9]/.test(c);
 
   const matched = new Set<number>();
   const skipped = new Set<number>();
@@ -148,25 +122,35 @@ function generateNoCleaningSteps(): Step[] {
 
   steps.push({
     explanation:
-      'This version never builds a cleaned copy of the string — it saves that O(n) extra space by skipping non-alphanumeric characters on the fly. Two pointers start at the ends; before each comparison we slide each pointer inward past any punctuation or spaces.',
-    highlightLine: 10,
-    state: { type: 'array', cells: snap(0, s.length - 1), pointers: [{ index: 0, label: 'l' }, { index: s.length - 1, label: 'r' }] },
-    variables: [{ name: 'l', value: 0 }, { name: 'r', value: s.length - 1 }],
+      "def alphaNumeric(character) checks ord() ranges for 'A'-'Z', 'a'-'z', '0'-'9' — a character is alphanumeric only if one of those three ranges holds. This version never builds a cleaned copy of the string; it saves that O(n) space by skipping non-alphanumeric characters on the fly.",
+    anchor: { match: 'def alphaNumeric(character):', to: { match: "(ord('0') <= ord(character) <= ord('9'))" } },
+    state: { type: 'array', cells: snap(0, s.length - 1), pointers: [] },
+    variables: [{ name: 's', value: s.join('') }],
   });
 
   let l = 0;
   let r = s.length - 1;
-  let result = true;
+
+  steps.push({
+    explanation: `l, r = 0, len(s) - 1 → l=${l}, r=${r}.`,
+    anchor: { match: 'l, r = 0, len(s) - 1' },
+    state: { type: 'array', cells: snap(l, r), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }] },
+    variables: [
+      { name: 'l', value: l },
+      { name: 'r', value: r },
+    ],
+  });
 
   while (r >= l) {
     // Inner loop: advance l past non-alphanumeric characters.
     while (l < r && !isAlnum(s[l])) {
       skipped.add(l);
       steps.push({
-        explanation: `Left pointer: s[${l}] = '${s[l]}' is NOT alphanumeric, so skip it (l++). We don't compare punctuation.`,
-        highlightLine: 15,
+        explanation: `while l < r and not alphaNumeric(s[l]): s[${l}]='${s[l]}' is NOT alphanumeric, so skip it (l+=1). We don't compare punctuation.`,
+        // nth 1: this loop's own 'l+=1'; hit 2 is the final match-advance's 'l+=1' further down.
+        anchor: { match: 'while l < r and not alphaNumeric(s[l]):', to: { match: 'l+=1', nth: 1 } },
         state: { type: 'array', cells: snap(l, r), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }] },
-        variables: [{ name: 'l', value: l, highlight: true }, { name: `s[l]`, value: `'${s[l]}'` }, { name: 'alphanumeric?', value: 'no → skip' }],
+        variables: [{ name: 'l', value: l, highlight: true }, { name: 's[l]', value: `'${s[l]}'` }],
       });
       l++;
     }
@@ -174,10 +158,11 @@ function generateNoCleaningSteps(): Step[] {
     while (r > l && !isAlnum(s[r])) {
       skipped.add(r);
       steps.push({
-        explanation: `Right pointer: s[${r}] = '${s[r]}' is NOT alphanumeric, so skip it (r--).`,
-        highlightLine: 17,
+        explanation: `while r > l and not alphaNumeric(s[r]): s[${r}]='${s[r]}' is NOT alphanumeric, so skip it (r-=1).`,
+        // nth 1: this loop's own 'r-=1'; hit 2 is the final match-advance's 'r-=1' further down.
+        anchor: { match: 'while r > l and not alphaNumeric(s[r]):', to: { match: 'r-=1', nth: 1 } },
         state: { type: 'array', cells: snap(l, r), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }] },
-        variables: [{ name: 'r', value: r, highlight: true }, { name: `s[r]`, value: `'${s[r]}'` }, { name: 'alphanumeric?', value: 'no → skip' }],
+        variables: [{ name: 'r', value: r, highlight: true }, { name: 's[r]', value: `'${s[r]}'` }],
       });
       r--;
     }
@@ -185,46 +170,57 @@ function generateNoCleaningSteps(): Step[] {
     const a = s[l].toLowerCase();
     const b = s[r].toLowerCase();
     const match = a === b;
+
+    if (!match) {
+      steps.push({
+        explanation: `if s[r].lower() != s[l].lower(): s[${r}]→'${b}' vs s[${l}]→'${a}' — do NOT match. Return False.`,
+        anchor: { match: 'if s[r].lower() != s[l].lower():', to: { match: 'return False' } },
+        state: { type: 'array', cells: snap(l, r), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }] },
+        variables: [
+          { name: 's[r].lower()', value: `'${b}'` },
+          { name: 's[l].lower()', value: `'${a}'` },
+          { name: 'match', value: 'NO → False', highlight: true },
+        ],
+      });
+      return steps;
+    }
+
     steps.push({
-      explanation: match
-        ? `Both alphanumeric now. Compare s[${l}]→'${a}' vs s[${r}]→'${b}' (lowercased): they match. Move both pointers inward (l++, r--).`
-        : `Compare s[${l}]→'${a}' vs s[${r}]→'${b}' (lowercased): they do NOT match. Return False immediately.`,
-      highlightLine: match ? 21 : 19,
+      explanation: `if s[r].lower() != s[l].lower(): s[${r}]→'${b}' vs s[${l}]→'${a}' — they match, so the if doesn't fire. r-=1, l+=1.`,
+      // nth 2: hit 1 is the left skip-loop's 'l+=1' above; this is the final match-advance's own.
+      anchor: { match: 'if s[r].lower() != s[l].lower():', to: { match: 'l+=1', nth: 2 } },
       state: { type: 'array', cells: snap(l, r), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }] },
       variables: [
-        { name: 'l', value: l }, { name: 'r', value: r },
-        { name: "s[l].lower()", value: `'${a}'` }, { name: "s[r].lower()", value: `'${b}'` },
-        { name: 'match', value: match ? 'yes' : 'NO → False', highlight: true },
+        { name: 's[r].lower()', value: `'${b}'` },
+        { name: 's[l].lower()', value: `'${a}'` },
+        { name: 'match', value: 'yes' },
       ],
     });
 
-    if (!match) { result = false; break; }
     if (l !== r) { matched.add(l); matched.add(r); }
-    l++;
     r--;
+    l++;
   }
 
   steps.push({
-    explanation: result
-      ? `r (${r}) < l (${l}) — the pointers crossed and every alphanumeric pair matched. Return True. Same answer as the cleaning version, but O(1) extra space.`
-      : `Returned False above — not a palindrome.`,
-    highlightLine: 22,
-    state: { type: 'array', cells: snap(l, r, result), pointers: [] },
-    variables: [{ name: 'result', value: String(result), highlight: true }],
+    explanation: `r (${r}) < l (${l}) — the pointers crossed and every alphanumeric pair matched. Return True. Same answer as the cleaning version, but O(1) extra space.`,
+    anchor: { match: 'return True' },
+    state: { type: 'array', cells: snap(l, r, true), pointers: [] },
+    variables: [{ name: 'result', value: 'True', highlight: true }],
   });
 
   return steps;
 }
 
 const twoPointerSolution: SolutionVariant = {
-  label: 'Two Pointers',
-  pythonCode: PYTHON_CODE,
+  label: 'Clean Then Scan',
+  variant: 'clean-then-scan',
   generateSteps,
 };
 
 const noCleaningSolution: SolutionVariant = {
   label: 'No Cleaning',
-  pythonCode: PYTHON_CODE_ALT,
+  variant: 'no-cleaning',
   generateSteps: generateNoCleaningSteps,
 };
 

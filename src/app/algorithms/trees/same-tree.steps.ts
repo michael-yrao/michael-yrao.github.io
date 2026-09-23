@@ -1,26 +1,10 @@
-import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from typing import Optional
-
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-class Solution:
-    def isSameTree(self, p: Optional[TreeNode], q: Optional[TreeNode]) -> bool:
-        # we return false if at any point, these two are not the same
-        # we check parent first, so this is preorder dfs
-
-        # base case
-        if not p and not q:
-            return True
-        # if current node is good, we check the rest
-        if p and q and p.val == q.val:
-            return self.isSameTree(p.left, q.left) and self.isSameTree(p.right, q.right)
-        else:
-            return False`;
+// Traces cse-progress's isSameTree verbatim: no separate nested helper — self.isSameTree
+// recurses directly, and both children are chained in ONE return with `and` (short-circuit:
+// the right call only runs if the left one returned True). Same control flow as the earlier
+// hand simulation; the "back at node, now recurse right" step is dropped since there's no
+// distinct source line for it — everything happens inline in the one return statement.
 
 // p = [1,2,3], q = [1,2,3] — identical, so we render one shared shape and
 // compare p.val vs q.val at each position.
@@ -43,7 +27,7 @@ function generateSteps(): Step[] {
 
   const push = (
     explanation: string,
-    line: number,
+    anchor: StepAnchor,
     opts: {
       current?: string | null;
       vars?: { name: string; value: string | number; highlight?: boolean }[];
@@ -51,7 +35,7 @@ function generateSteps(): Step[] {
   ) => {
     steps.push({
       explanation,
-      highlightLine: line,
+      anchor,
       state: {
         type: 'tree',
         nodes: makeNodes(),
@@ -63,8 +47,8 @@ function generateSteps(): Step[] {
   };
 
   push(
-    'Two trees are "the same" if they have identical structure AND identical values. We walk both at once with PREorder DFS (check the node first, then its children). Here p = [1,2,3] and q = [1,2,3]. We compare position by position; the first mismatch (value differs, or one side has a node where the other has null) returns False.',
-    11,
+    'Two trees are "the same" if they have identical structure AND identical values. We walk both at once with PREorder DFS (check the node first, then its children). Here p = [1,2,3] and q = [1,2,3]. self.isSameTree(p.left,q.left) and self.isSameTree(p.right,q.right) — the AND short-circuits, so right is only evaluated if left comes back True. We compare position by position; the first mismatch returns False.',
+    { match: 'def isSameTree(self, p: Optional[TreeNode], q: Optional[TreeNode]) -> bool:' },
     { vars: [{ name: 'p', value: '[1,2,3]' }, { name: 'q', value: '[1,2,3]' }] }
   );
 
@@ -74,7 +58,7 @@ function generateSteps(): Step[] {
     if (id === null) {
       push(
         `${side}: p and q are BOTH null → base case "if not p and not q: return True". Two empty subtrees are trivially identical.`,
-        16,
+        { match: 'if not p and not q:', to: { match: 'return True' } },
         { current: parentId, vars: [{ name: 'p', value: 'null' }, { name: 'q', value: 'null' }, { name: 'returns', value: 'True', highlight: true }] }
       );
       return true;
@@ -84,28 +68,20 @@ function generateSteps(): Step[] {
     const v = valueOf(id);
     colour[id] = 'active';
     push(
-      `Compare ${side}: p.val = ${v} and q.val = ${v} → equal ✓. Values match, so recurse into BOTH left children next (call stack depth now ${stackDepth}).`,
-      18,
+      `Compare ${side}: p.val = ${v} and q.val = ${v} → equal ✓. if p and q and p.val == q.val: True → return self.isSameTree(p.left,q.left) and self.isSameTree(p.right,q.right) — left is evaluated first (call stack depth now ${stackDepth}).`,
+      { match: 'if p and q and p.val == q.val:', to: { match: 'return self.isSameTree(p.left, q.left) and self.isSameTree(p.right, q.right)' } },
       { current: id, vars: [{ name: 'p.val', value: v }, { name: 'q.val', value: v }, { name: 'match', value: 'True', highlight: true }] }
     );
 
     const leftSame = dfs(nodeMap.get(id)!.leftId, `Left children of ${v}`, id);
-
-    colour[id] = 'active';
-    push(
-      `Back at node ${v}. Left children matched (${String(leftSame)}). Now recurse into BOTH right children.`,
-      19,
-      { current: id, vars: [{ name: 'node', value: v }, { name: 'leftSame', value: String(leftSame), highlight: true }] }
-    );
-
     const rightSame = dfs(nodeMap.get(id)!.rightId, `Right children of ${v}`, id);
 
     const same = leftSame && rightSame;
     colour[id] = 'visited';
     stackDepth--;
     push(
-      `Node ${v} fully checked: value matched, leftSame=${String(leftSame)}, rightSame=${String(rightSame)}. Return ${String(leftSame)} AND ${String(rightSame)} = ${String(same)} up to the caller.`,
-      19,
+      `Both nested calls for node ${v} have returned: leftSame=${String(leftSame)}, rightSame=${String(rightSame)} (evaluated because leftSame was True — AND short-circuits otherwise). Return ${String(leftSame)} and ${String(rightSame)} = ${String(same)} up to the caller.`,
+      { match: 'return self.isSameTree(p.left, q.left) and self.isSameTree(p.right, q.right)' },
       { current: id, vars: [{ name: 'node', value: v }, { name: 'return', value: String(same), highlight: true }] }
     );
     return same;
@@ -116,7 +92,7 @@ function generateSteps(): Step[] {
   NODES.forEach((n) => (colour[n.id] = result ? 'found' : 'visited'));
   push(
     `Every position matched and the recursion returned ${String(result)} all the way to the root, so the trees are identical → isSameTree returns ${String(result)}.`,
-    18,
+    { match: 'return self.isSameTree(p.left, q.left) and self.isSameTree(p.right, q.right)' },
     { vars: [{ name: 'result', value: String(result), highlight: true }] }
   );
 
@@ -153,7 +129,7 @@ export const sameTreeMeta: AlgorithmMeta = {
   solutions: [
     {
       label: 'Preorder DFS (Recursive)',
-      pythonCode: PYTHON_CODE,
+      variant: 'preorder',
       generateSteps,
     },
   ],

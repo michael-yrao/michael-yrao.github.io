@@ -1,59 +1,11 @@
-import { AlgorithmMeta, SolutionVariant, Step, GridState, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, GridState, ProblemExample } from '../../core/models/algorithm.model';
 
 // ── Solution 1: BFS ───────────────────────────────────────────────────────────
-
-const BFS_CODE = `class Solution:
-    def numIslands(self, grid: List[List[str]]) -> int:
-        # so this is clearly a bfs question
-        # So how do we determine we have an island
-        # And how do we know when to continue looking
-        # how do know the 1s are part of the same island
-
-        if not grid:
-            return 0
-
-        rows, cols = len(grid), len(grid[0])
-        visited = set()
-        islandCount = 0
-
-        def bfs(row,col):
-            queue = collections.deque()
-            currentCoordinate = (row,col)
-            visited.add(currentCoordinate)
-            queue.append(currentCoordinate)
-
-            while queue:
-                r, c = queue.popleft()
-                # check the 4 neighbors of this coordinate
-                # east, west, north, south
-                directions = [[1,0], [-1,0], [0,1], [0,-1]]
-
-                for dr, dc in directions:
-                    # if neighbor is a valid unvisited land
-                    # mark it as visited
-                    neighourCoordinate = (r+dr, c+dc)
-                    if (r + dr in range(rows)
-                        and c + dc in range(cols)
-                        and grid[r+dr][c+dc] == '1'
-                        and neighourCoordinate not in visited):
-                        queue.append(neighourCoordinate)
-                        visited.add(neighourCoordinate)
-
-        for r in range(rows):
-            for c in range(cols):
-                # when we see an unvisited island
-                # we perform bfs on it to mark all land connected to it
-                if grid[r][c] == '1' and (r,c) not in visited:
-                    bfs(r,c)
-                    islandCount+=1
-
-        return islandCount`;
+//
+// Traces cse-progress's numIslands verbatim: BFS marks a coordinate visited at
+// ENQUEUE time (both the seed cell and every neighbor), never at dequeue.
 
 type Cell = { state: import('../../core/models/algorithm.model').GridCellState };
-
-function cloneGrid(g: Cell[][]): Cell[][] {
-  return g.map((row) => row.map((c) => ({ ...c })));
-}
 
 function generateBfsSteps(): Step[] {
   const rawGrid = [
@@ -87,7 +39,7 @@ function generateBfsSteps(): Step[] {
   steps.push({
     explanation:
       "We scan the grid cell by cell. When we find unvisited land ('1'), we BFS to mark all connected land as part of the same island — so we never count a cell twice.",
-    highlightLine: 38,
+    anchor: { match: 'for r in range(rows):' },
     state: makeGrid(new Map()),
     variables: [
       { name: 'rows', value: rows },
@@ -105,8 +57,8 @@ function generateBfsSteps(): Step[] {
         islandCount++;
 
         steps.push({
-          explanation: `Found unvisited land at (${r},${c}). This starts island #${islandCount}. We launch BFS from here to find all land cells connected to this island.`,
-          highlightLine: 42,
+          explanation: `Found unvisited land at (${r},${c}). This starts island #${islandCount}. bfs(${r},${c}) seeds the queue with (${r},${c}) and marks it visited right here, at enqueue time — not when it's later dequeued.`,
+          anchor: { match: 'def bfs(row,col):', to: { match: 'queue.append(currentCoordinate)' } },
           state: makeGrid(new Map([[toKey(r, c), 'queued']])),
           variables: [
             { name: 'r', value: r, highlight: true },
@@ -148,8 +100,8 @@ function generateBfsSteps(): Step[] {
             ? `[${queue.map(([a, b]) => `(${a},${b})`).join(', ')}]`
             : `${queue.length} items`;
           steps.push({
-            explanation: `BFS: processing (${cr},${cc}). Mark it visited. Enqueue unvisited land neighbors (shown in orange). BFS ensures we explore the whole island level by level.`,
-            highlightLine: 22,
+            explanation: `Dequeue (${cr},${cc}) — it was already marked visited back when it was enqueued. Check its 4 neighbors: any unvisited land neighbor is marked visited AND enqueued right here (shown in orange), so it can never be enqueued twice. BFS ensures we explore the whole island level by level.`,
+            anchor: { match: 'r, c = queue.popleft()' },
             state: makeGrid(overrides),
             variables: [
               { name: 'r', value: cr, highlight: true },
@@ -166,7 +118,7 @@ function generateBfsSteps(): Step[] {
 
   steps.push({
     explanation: `Scan complete. We found ${islandCount} island(s). BFS guaranteed every connected land group was counted exactly once, regardless of island shape.`,
-    highlightLine: 46,
+    anchor: { match: 'return islandCount' },
     state: makeGrid(new Map()),
     variables: [
       { name: 'islandCount', value: islandCount, highlight: true },
@@ -178,48 +130,9 @@ function generateBfsSteps(): Step[] {
 }
 
 // ── Solution 2: DFS ───────────────────────────────────────────────────────────
-
-const DFS_CODE = `class Solution:
-    def numIslandsDFS(self, grid: List[List[str]]) -> int:
-        # so we can do DFS as well to traverse the island
-        # we will traverse if node is land
-        # check all neighbors and mark all land neighbors as visited
-        # when we return, we will add 1 to island count
-
-        visited = set()
-        result = 0
-
-        rows, cols = len(grid), len(grid[0])
-
-        def dfs(row, col):
-            # base case to stop is if we find water
-            # if we are out of bounds, return 0
-            if row < 0 or row >= rows or col < 0 or col >= cols:
-                return 0
-
-            # if we find water, return 0
-            if grid[row][col] == '0':
-                return 0
-
-            # if we already visited, return 0
-            if (row, col) in visited:
-                return 0
-
-            # mark current node as visited
-            visited.add((row, col))
-            # now we go as deep as possible in all 4 directions
-            dfs(row+1,col)
-            dfs(row-1,col)
-            dfs(row,col+1)
-            dfs(row,col-1)
-
-            return 1
-
-        for row in range(rows):
-            for col in range(cols):
-                if grid[row][col] == '1' and (row,col) not in visited:
-                    result+=dfs(row,col)
-        return result`;
+//
+// Traces cse-progress's numIslandsDFS verbatim: base-case order is out-of-bounds,
+// then water, then already-visited — matched exactly below.
 
 function generateDfsSteps(): Step[] {
   const rawGrid = [
@@ -254,7 +167,7 @@ function generateDfsSteps(): Step[] {
   steps.push({
     explanation:
       'DFS explores as deeply as possible before backtracking. No explicit queue — DFS uses the call stack itself. When we find unvisited land, we mark it and immediately recurse into every neighbor.',
-    highlightLine: 13,
+    anchor: { match: 'def dfs(row, col):' },
     state: makeGrid(null),
     variables: [
       { name: 'rows', value: rows },
@@ -272,7 +185,7 @@ function generateDfsSteps(): Step[] {
 
     steps.push({
       explanation: `DFS at (${r},${c}): land and unvisited. Mark visited (now green). Recurse down → up → right → left — going as deep as possible before backtracking.`,
-      highlightLine: 28,
+      anchor: { match: 'visited.add((row, col))' },
       state: makeGrid([r, c]),
       variables: [
         { name: 'row', value: r, highlight: true },
@@ -293,7 +206,7 @@ function generateDfsSteps(): Step[] {
         islandCount++;
         steps.push({
           explanation: `Outer loop found unvisited land at (${r},${c}). Starting DFS to mark all connected land as island #${islandCount}.`,
-          highlightLine: 39,
+          anchor: { match: "if grid[row][col] == '1' and (row,col) not in visited:" },
           state: makeGrid([r, c]),
           variables: [
             { name: 'row', value: r, highlight: true },
@@ -308,7 +221,7 @@ function generateDfsSteps(): Step[] {
 
   steps.push({
     explanation: `DFS complete. Found ${islandCount} island(s). DFS and BFS both visit each cell once — O(m×n). DFS uses O(m×n) call-stack space in the worst case vs BFS's explicit queue.`,
-    highlightLine: 41,
+    anchor: { match: 'return result' },
     state: makeGrid(null),
     variables: [
       { name: 'result', value: islandCount, highlight: true },
@@ -347,7 +260,7 @@ export const numberOfIslandsMeta: AlgorithmMeta = {
   constraints: ['m == grid.length', 'n == grid[i].length', '1 ≤ m, n ≤ 300', 'grid[i][j] is \'0\' or \'1\''],
   hint: 'When you find a land cell, how do you make sure you count its entire island as one? Think about marking cells so you never visit the same land twice.',
   solutions: [
-    { label: 'BFS', pythonCode: BFS_CODE, generateSteps: generateBfsSteps },
-    { label: 'DFS', pythonCode: DFS_CODE, generateSteps: generateDfsSteps },
+    { label: 'BFS', variant: 'bfs', generateSteps: generateBfsSteps },
+    { label: 'DFS', variant: 'dfs', generateSteps: generateDfsSteps },
   ],
 };

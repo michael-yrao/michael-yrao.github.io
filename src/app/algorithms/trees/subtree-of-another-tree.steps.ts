@@ -1,54 +1,9 @@
-import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from collections import deque
-from typing import Optional
-
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-class Solution:
-    def isSubtree(self, root: Optional[TreeNode], subRoot: Optional[TreeNode]) -> bool:
-        # so this is like a combo problem
-        # we want to find if the root of subRoot is in root
-        # then we want to run isSameTree from there
-        # so we can start with a bfs to find the subroot node
-        # then we do preorder dfs to check isSameTree
-
-        # bfs is queue based, so we go through the root tree
-        # and populate the queue until we find the node we are looking for
-        # then we run preorder dfs to find subRoot
-
-        def dfs(p,q):
-            if not p and not q:
-                return True
-
-            if p and q and p.val == q.val:
-                return dfs(p.left,q.left) and dfs(p.right,q.right)
-            else:
-                return False
-
-        queue = deque([root])
-
-        while queue:
-            # deque is both a queue and a stack
-            # popleft is equivalent to queue.pop()
-            # popright is equivalent to stack.pop()
-            currentNode = queue.popleft()
-
-            if currentNode.val == subRoot.val:
-                # if found, we just return True
-                # if not found, we continue to search
-                if dfs(currentNode, subRoot):
-                    return True
-            if currentNode.left:
-                queue.append(currentNode.left)
-            if currentNode.right:
-                queue.append(currentNode.right)
-
-        return False`;
+// Traces cse-progress's isSubtree verbatim: a nested dfs(p,q) helper (matching isSameTree's
+// three-way null/match/mismatch logic) plus an outer BFS that calls dfs whenever a node's
+// value equals subRoot.val — same control flow as the earlier hand simulation, only anchors
+// change.
 
 // Root tree: [3, 4, 5, 1, 2]   subRoot = [4, 1, 2]
 const NODES: Omit<TreeNode, 'state'>[] = [
@@ -82,7 +37,7 @@ function generateSteps(): Step[] {
 
   const push = (
     explanation: string,
-    line: number,
+    anchor: StepAnchor,
     opts: {
       current?: string | null;
       queueShown?: string;
@@ -91,7 +46,7 @@ function generateSteps(): Step[] {
   ) => {
     steps.push({
       explanation,
-      highlightLine: line,
+      anchor,
       state: {
         type: 'tree',
         nodes: makeNodes(),
@@ -103,8 +58,8 @@ function generateSteps(): Step[] {
   };
 
   push(
-    'Plan (two phases): (1) BFS through the big tree to find any node whose value equals subRoot.val = 4; (2) from each such candidate, run isSameTree to check the WHOLE subtree matches. Start BFS with the root in the queue.',
-    31,
+    'Plan (two phases): (1) BFS through the big tree to find any node whose value equals subRoot.val = 4; (2) from each such candidate, run the nested dfs(p,q) helper to check the WHOLE subtree matches. Start BFS: queue = deque([root]).',
+    { match: 'queue = deque([root])' },
     { vars: [{ name: 'subRoot.val', value: subVal }, { name: 'queue', value: '[3]' }] }
   );
 
@@ -113,16 +68,18 @@ function generateSteps(): Step[] {
     const sub = sId ? SUB[sId] : null;
     if (id === null && sub === null) {
       push(
-        `isSameTree — ${side}: both sides are null → base case "return True". Two empty spots match.`,
-        24,
+        `dfs — ${side}: both sides are null → base case "if not p and not q: return True". Two empty spots match.`,
+        // nth 1: dfs's own base-case return True; the 2nd hit is a comment, the 3rd the outer BFS's return on a full match
+        { match: 'if not p and not q:', to: { match: 'return True', nth: 1 } },
         { current: parentId, vars: [{ name: 'p', value: 'null' }, { name: 'q', value: 'null' }, { name: 'match', value: 'True', highlight: true }] }
       );
       return true;
     }
     if (id === null || sub === null) {
       push(
-        `isSameTree — ${side}: one side has a node and the other is null → structures differ, return False.`,
-        29,
+        `dfs — ${side}: one side has a node and the other is null → "if p and q and p.val == q.val:" is False (p and q isn't both truthy) → else: return False.`,
+        // nth 1: dfs's own else-branch return False; the 2nd hit is the outer function's final "return False"
+        { match: 'if p and q and p.val == q.val:', to: { match: 'return False', nth: 1 } },
         { current: parentId, vars: [{ name: 'match', value: 'False', highlight: true }] }
       );
       return false;
@@ -130,8 +87,10 @@ function generateSteps(): Step[] {
     const v = valueOf(id);
     colour[id] = 'comparing';
     push(
-      `isSameTree — ${side}: compare ${v} (big tree) vs ${sub.val} (subRoot) → ${v === sub.val ? 'equal ✓, recurse into both left children.' : 'differ ✗, return False.'}`,
-      v === sub.val ? 27 : 29,
+      `dfs — ${side}: compare ${v} (big tree) vs ${sub.val} (subRoot) → ${v === sub.val ? 'equal ✓, if p and q and p.val == q.val: True → recurse into both left and right (dfs(p.left,q.left) and dfs(p.right,q.right)).' : 'differ ✗, condition False → else: return False.'}`,
+      v === sub.val
+        ? { match: 'if p and q and p.val == q.val:', to: { match: 'return dfs(p.left,q.left) and dfs(p.right,q.right)' } }
+        : { match: 'if p and q and p.val == q.val:', to: { match: 'return False', nth: 1 } },
       { current: id, vars: [{ name: 'p.val', value: v }, { name: 'q.val', value: sub.val }, { name: 'match', value: v === sub.val ? 'True' : 'False', highlight: true }] }
     );
     if (v !== sub.val) return false;
@@ -147,8 +106,8 @@ function generateSteps(): Step[] {
     const isMatch = v === subVal;
 
     push(
-      `Dequeue node ${v} (front of queue). Compare its value to subRoot.val ${subVal}: ${isMatch ? `equal — this is a candidate, launch isSameTree from here.` : `not equal, it can't be the subtree root; we'll just enqueue its children and move on.`}`,
-      isMatch ? 39 : 37,
+      `currentNode = queue.popleft() → node ${v}. if currentNode.val == subRoot.val: ${isMatch ? `True (${v} == ${subVal}) — this is a candidate, launch dfs(currentNode, subRoot).` : `False (${v} != ${subVal}), it can't be the subtree root; we'll just enqueue its children and move on.`}`,
+      { match: 'currentNode = queue.popleft()', to: { match: 'if currentNode.val == subRoot.val:' } },
       { current: id, queueShown: queueStr(), vars: [{ name: 'currentNode.val', value: v }, { name: 'subRoot.val', value: subVal }] }
     );
 
@@ -159,8 +118,10 @@ function generateSteps(): Step[] {
           if (n.id === 'n1' || n.id === 'n3' || n.id === 'n4') colour[n.id] = 'found';
         });
         push(
-          `isSameTree returned True — the subtree rooted at node ${v} matches subRoot [4,1,2] exactly. isSubtree returns True; we can stop searching.`,
-          43,
+          `dfs(currentNode, subRoot) returned True — the subtree rooted at node ${v} matches subRoot [4,1,2] exactly. if dfs(...): True → return True; we can stop searching.`,
+          // nth 3: the outer function's "return True" on a full match; the 1st hit is dfs's own
+          // base-case return True, the 2nd is a comment above ("...we just return True")
+          { match: 'if dfs(currentNode, subRoot):', to: { match: 'return True', nth: 3 } },
           { current: id, vars: [{ name: 'result', value: 'True', highlight: true }] }
         );
         found = true;
@@ -174,8 +135,8 @@ function generateSteps(): Step[] {
     if (node.rightId) queue.push(node.rightId);
     if (!isMatch) {
       push(
-        `Enqueue node ${v}'s children. Queue is now ${queueStr()}, loop again.`,
-        45,
+        `Not a candidate. if currentNode.left: queue.append(currentNode.left); if currentNode.right: queue.append(currentNode.right). Queue is now ${queueStr()}, loop again.`,
+        { match: 'if currentNode.left:', to: { match: 'queue.append(currentNode.right)' } },
         { vars: [{ name: 'queue', value: queueStr() }] }
       );
     }
@@ -210,7 +171,7 @@ export const subtreeOfAnotherTreeMeta: AlgorithmMeta = {
   solutions: [
     {
       label: 'BFS + DFS',
-      pythonCode: PYTHON_CODE,
+      variant: 'bfs-dfs',
       generateSteps,
     },
   ],

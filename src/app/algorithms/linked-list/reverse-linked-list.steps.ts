@@ -1,30 +1,10 @@
-import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, LinkedListNode } from '../../core/models/algorithm.model';
+
+// Traces cse-progress's reverseListIterative and reverseListRecursion verbatim —
+// both already match this walkthrough's variable names (prev/current/temp,
+// head/returnNode), so only the anchors change here, not the control flow.
 
 // ── Solution 1: Iterative ─────────────────────────────────────────────────────
-
-const ITERATIVE_CODE = `from typing import Optional
-
-class ListNode:
-    def __init__(self, val=0, next=None):
-        self.val = val
-        self.next = next
-
-class Solution:
-    def reverseListIterative(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        # prev starts as None so the new tail correctly points to null
-        # temp saves current.next before we overwrite it — without it we'd lose our forward reference
-        prev, current = None, head
-
-        while current is not None:
-            # put current.next in temp variable
-            temp = current.next
-            # change what current points to
-            current.next = prev
-            # prev should now be current
-            prev = current
-            # current is now next
-            current = temp
-        return prev`;
 
 function generateIterativeSteps(): Step[] {
   const vals = [1, 2, 3, 4, 5];
@@ -51,14 +31,14 @@ function generateIterativeSteps(): Step[] {
 
   steps.push({
     explanation:
-      'We need three pointers to reverse in-place without losing our position. prev starts at null (the new tail\'s next will be null). current starts at head. We\'ll move one step at a time, redirecting each node\'s next pointer.',
-    highlightLine: 12,
+      "prev, current = None, head — one assignment, two pointers. prev starts at None (the new tail's next will be None). current starts at head. We'll move one step at a time, redirecting each node's next pointer.",
+    anchor: { match: 'prev, current = None, head' },
     state: {
       type: 'linked-list',
       nodes: makeNodes(null, 0, 0),
       pointers: [
         { nodeId: null, label: 'prev' },
-        { nodeId: 'n0', label: 'curr' },
+        { nodeId: 'n0', label: 'current' },
       ],
     },
     variables: [
@@ -75,14 +55,14 @@ function generateIterativeSteps(): Step[] {
     const next = curr + 1 < vals.length ? curr + 1 : null;
 
     steps.push({
-      explanation: `Save temp = current.next (node ${next !== null ? vals[next] : 'null'}) before we overwrite it. Without this, we'd lose our forward reference after redirecting current's next.`,
-      highlightLine: 16,
+      explanation: `temp = current.next (node ${next !== null ? vals[next] : 'null'}) — saved before we overwrite current.next, or we'd lose our forward reference.`,
+      anchor: { match: 'temp = current.next' },
       state: {
         type: 'linked-list',
         nodes: makeNodes(prev, curr, reversed),
         pointers: [
           { nodeId: prev !== null ? `n${prev}` : null, label: 'prev' },
-          { nodeId: `n${curr}`, label: 'curr' },
+          { nodeId: `n${curr}`, label: 'current' },
           { nodeId: next !== null ? `n${next}` : null, label: 'temp' },
         ],
       },
@@ -94,8 +74,8 @@ function generateIterativeSteps(): Step[] {
     });
 
     steps.push({
-      explanation: `Point current.next → prev. Node ${vals[curr]} now points backward. This is the reversal step — we're flipping one arrow at a time.`,
-      highlightLine: 18,
+      explanation: `current.next = prev — node ${vals[curr]} now points backward. This is the reversal: one arrow flipped at a time.`,
+      anchor: { match: 'current.next = prev' },
       state: {
         type: 'linked-list',
         nodes: vals.map((v, i) => ({
@@ -113,7 +93,7 @@ function generateIterativeSteps(): Step[] {
         })),
         pointers: [
           { nodeId: prev !== null ? `n${prev}` : null, label: 'prev' },
-          { nodeId: `n${curr}`, label: 'curr' },
+          { nodeId: `n${curr}`, label: 'current' },
         ],
       },
       variables: [
@@ -124,14 +104,14 @@ function generateIterativeSteps(): Step[] {
     });
 
     steps.push({
-      explanation: `Advance: prev = current, current = temp. We've committed this reversal. Move the window one step forward.`,
-      highlightLine: 20,
+      explanation: `prev = current, then current = temp. This reversal is committed — the window moves one step forward.`,
+      anchor: { match: 'prev = current', to: { match: 'current = temp' } },
       state: {
         type: 'linked-list',
         nodes: makeNodes(curr, next, curr + 1),
         pointers: [
           { nodeId: `n${curr}`, label: 'prev' },
-          { nodeId: next !== null ? `n${next}` : null, label: 'curr' },
+          { nodeId: next !== null ? `n${next}` : null, label: 'current' },
         ],
       },
       variables: [
@@ -146,8 +126,8 @@ function generateIterativeSteps(): Step[] {
   }
 
   steps.push({
-    explanation: `current is null — we've processed every node. prev now points to the new head (${vals[vals.length - 1]}). The list is fully reversed with O(1) space.`,
-    highlightLine: 23,
+    explanation: `current is None — while current is not None exits. return prev, which now points to the new head (${vals[vals.length - 1]}). The list is fully reversed with O(1) space.`,
+    anchor: { match: 'return prev' },
     state: {
       type: 'linked-list',
       nodes: vals.map((v, i) => ({
@@ -168,31 +148,6 @@ function generateIterativeSteps(): Step[] {
 }
 
 // ── Solution 2: Recursive ─────────────────────────────────────────────────────
-
-const RECURSIVE_CODE = `from typing import Optional
-
-class ListNode:
-    def __init__(self, val=0, next=None):
-        self.val = val
-        self.next = next
-
-class Solution:
-    def reverseListRecursion(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        # base case to stop at the last node
-        if head is None or head.next is None:
-            return head
-
-        # if we have 3 -> 4 -> 5 -> None only
-        # returnNode would be 5 and head would be 4
-        returnNode = self.reverseListRecursion(head.next)
-        # since we passed head.next to the recursive call
-        # we need to change its next
-        # 4 is head in this case, 4.next is 5
-        head.next.next = head
-        # 4.next would be None
-        head.next = None
-        # return the base case node
-        return returnNode`;
 
 function generateRecursiveSteps(): Step[] {
   const vals = [1, 2, 3, 4, 5];
@@ -215,8 +170,8 @@ function generateRecursiveSteps(): Step[] {
   // ── Intro ──────────────────────────────────────────────────────
   steps.push({
     explanation:
-      "Recursive approach: dive to the end of the list first, then reverse pointers on the way back. Two key lines: head.next.next = head (flip the arrow) and head.next = None (sever the forward link).",
-    highlightLine: 9,
+      "Recursive approach: dive to the end of the list first, then reverse pointers on the way back. Two key lines on unwind: head.next.next = head (flip the arrow) and head.next = None (sever the forward link).",
+    anchor: { match: 'def reverseListRecursion(self, head: Optional[ListNode]) -> Optional[ListNode]:' },
     state: {
       type: 'linked-list',
       nodes: makeNodes({}),
@@ -229,8 +184,8 @@ function generateRecursiveSteps(): Step[] {
 
   // ── Recursive descent ─────────────────────────────────────────
   steps.push({
-    explanation: `Recursion dives right: reverseList(1) → reverseList(2) → … → reverseList(5). Node 5 has head.next == None — base case. Return node 5 as the new head. No work done on the way in, only on the way back.`,
-    highlightLine: 11,
+    explanation: `Recursion dives right: reverseListRecursion(1) → reverseListRecursion(2) → … → reverseListRecursion(5). Node 5 has head.next is None — base case: if head is None or head.next is None: return head. Return node 5 as returnNode. No work done on the way in, only on the way back.`,
+    anchor: { match: 'if head is None or head.next is None:', to: { match: 'return head' } },
     state: {
       type: 'linked-list',
       nodes: makeNodes({ 0: 'active', 1: 'active', 2: 'active', 3: 'active', 4: 'curr' }),
@@ -263,8 +218,8 @@ function generateRecursiveSteps(): Step[] {
     for (let i = headIdx + 1; i < n; i++) stateMap[i] = 'done';
 
     steps.push({
-      explanation: `Returning with head=${oldHead}: ${oldNext}.next = ${oldHead} (arrow flipped). ${oldHead}.next = None (forward link severed). Reversed so far: ${vals.slice(headIdx).reverse().join('→')}.`,
-      highlightLine: headIdx === n - 2 ? 20 : 22,
+      explanation: `Returning with head=${oldHead}: head.next.next = head → ${oldNext}.next = ${oldHead} (arrow flipped). head.next = None → ${oldHead}.next = None (forward link severed). Reversed so far: ${vals.slice(headIdx).reverse().join('→')}.`,
+      anchor: { match: 'head.next.next = head', to: { match: 'head.next = None' } },
       state: {
         type: 'linked-list',
         nodes: makeNodes(stateMap),
@@ -285,7 +240,7 @@ function generateRecursiveSteps(): Step[] {
   // ── Final ──────────────────────────────────────────────────────
   steps.push({
     explanation: `All pointers reversed. returnNode (${vals[n - 1]}) bubbles up through every stack frame as the new head. O(n) time, O(n) space for the call stack (one frame per node).`,
-    highlightLine: 24,
+    anchor: { match: 'return returnNode' },
     state: {
       type: 'linked-list',
       nodes: vals.map((v, i) => ({
@@ -327,7 +282,7 @@ export const reverseLinkedListMeta: AlgorithmMeta = {
   ],
   hint: 'To reverse a node\'s pointer, you need to know both where it currently points AND what was behind it. How many pointers do you need to track those things?',
   solutions: [
-    { label: 'Iterative', pythonCode: ITERATIVE_CODE, generateSteps: generateIterativeSteps },
-    { label: 'Recursive', pythonCode: RECURSIVE_CODE, generateSteps: generateRecursiveSteps },
+    { label: 'Iterative', variant: 'iterative', generateSteps: generateIterativeSteps },
+    { label: 'Recursive', variant: 'recursive', generateSteps: generateRecursiveSteps },
   ],
 };

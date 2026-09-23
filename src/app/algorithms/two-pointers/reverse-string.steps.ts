@@ -1,12 +1,7 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def reverseString(self, s: List[str]) -> None:
-        l, r = 0, len(s) - 1
-        while r>l:
-            s[l], s[r] = s[r], s[l]
-            r-=1
-            l+=1`;
+// Traces cse-progress's reverseString verbatim: loop condition is `while r>l:`, and after the
+// swap the pointers move r-=1 BEFORE l+=1.
 
 function generateSteps(): Step[] {
   const s = ['h', 'e', 'l', 'l', 'o'];
@@ -29,7 +24,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Reverse string ["h","e","l","l","o"] in-place using two pointers. l starts at the left end, r at the right end. Each step swaps s[l] and s[r] then moves both pointers inward. O(n) time, O(1) space.',
-    highlightLine: 2,
+    anchor: { match: 'l, r = 0, len(s) - 1' },
     state: {
       type: 'array',
       cells: s.map(v => ({ value: v, state: 'default' as const })),
@@ -43,7 +38,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Initialize l=${l}, r=${r}. Two pointers face inward — we swap while r > l.`,
-    highlightLine: 2,
+    anchor: { match: 'l, r = 0, len(s) - 1' },
     state: {
       type: 'array',
       cells: snap(l, r, swapped, false),
@@ -58,7 +53,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `r=${r} > l=${l}: swap s[${l}]='${lVal}' and s[${r}]='${rVal}'.`,
-      highlightLine: 3,
+      anchor: { match: 's[l], s[r] = s[r], s[l]' },
       state: {
         type: 'array',
         cells: snap(l, r, swapped, false),
@@ -81,8 +76,8 @@ function generateSteps(): Step[] {
     l++;
 
     steps.push({
-      explanation: `Swapped → s[${l - 1}]='${s[l - 1]}', s[${r + 1}]='${s[r + 1]}'. Move l→${l}, r→${r}.`,
-      highlightLine: 4,
+      explanation: `Swapped → s[${l - 1}]='${s[l - 1]}', s[${r + 1}]='${s[r + 1]}'. Move r→${r} first, then l→${l}.`,
+      anchor: { match: 'r-=1', to: { match: 'l+=1' } },
       state: {
         type: 'array',
         cells: snap(l, r, swapped, false),
@@ -99,7 +94,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `r=${r} ≤ l=${l}: done. Reversed string is ["${s.join('","')}"].`,
-    highlightLine: 6,
+    anchor: { match: 'while r>l:' },
     state: {
       type: 'array',
       cells: snap(l, r, swapped, true),
@@ -113,7 +108,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Two Pointers',
-  pythonCode: PYTHON_CODE,
+  variant: 'two-pointers',
   generateSteps,
 };
 

@@ -1,23 +1,8 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def twoSum(self, numbers: List[int], target: int) -> List[int]:
-        # Since we know it's sorted
-        # we can just use two pointers, one starting from left
-        # one starting from right
-        # if l + r > target, move r left
-        # if l + r < target, move l right
-        # if equal return l and r
-
-        l, r = 0, len(numbers) - 1
-
-        while l < r:
-            if numbers[l] + numbers[r] == target:
-                return [l+1,r+1]
-            if numbers[l] + numbers[r] > target:
-                r-=1
-            else:
-                l+=1`;
+// Traces cse-progress's twoSum (167_two_sum_2.py) verbatim: each iteration checks equality
+// first (return on match), THEN checks greater-than (retreat r), and only falls to the plain
+// else (advance l) when neither if matched. This order matters for the anchor on each branch.
 
 function generateSteps(): Step[] {
   const nums = [2, 7, 11, 15];
@@ -41,8 +26,8 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation:
-      `Two Sum II uses the sorted property. Start with l=0 (smallest) and r=n−1 (largest). Their sum tells us exactly which direction to move: too small → advance l; too large → retreat r. No hash map needed — O(1) space.`,
-    highlightLine: 2,
+      `Two Sum II uses the sorted property. Start with l=0 (smallest) and r=n−1 (largest). Each iteration checks equality first — if numbers[l]+numbers[r] == target, return. Otherwise, if the sum is too large, retreat r; else (sum too small) advance l. No hash map needed — O(1) space.`,
+    anchor: { match: 'l, r = 0, len(numbers) - 1' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),
@@ -57,30 +42,25 @@ function generateSteps(): Step[] {
   while (l < r) {
     const s = nums[l] + nums[r];
 
-    steps.push({
-      explanation: `l=${l}, r=${r}: nums[l]+nums[r] = ${nums[l]}+${nums[r]} = ${s}. ${
-        s === target ? `Equals target ${target}!` :
-        s < target ? `${s} < ${target} → sum too small, advance l.` :
-                     `${s} > ${target} → sum too large, retreat r.`
-      }`,
-      highlightLine: s === target ? 6 : s < target ? 8 : 10,
-      state: {
-        type: 'array',
-        cells: snap(l, r, s === target),
-        pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-      },
-      variables: [
-        { name: 'l', value: l },
-        { name: 'r', value: r },
-        { name: 'sum', value: s, highlight: true },
-        { name: 'target', value: target },
-      ],
-    });
-
     if (s === target) {
       steps.push({
+        explanation: `l=${l}, r=${r}: numbers[l]+numbers[r] = ${nums[l]}+${nums[r]} = ${s} == target ${target} → equal! Return.`,
+        anchor: { match: 'if numbers[l] + numbers[r] == target:' },
+        state: {
+          type: 'array',
+          cells: snap(l, r, false),
+          pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
+        },
+        variables: [
+          { name: 'l', value: l },
+          { name: 'r', value: r },
+          { name: 'sum', value: s, highlight: true },
+          { name: 'target', value: target },
+        ],
+      });
+      steps.push({
         explanation: `Found: indices [${l + 1}, ${r + 1}] (1-indexed). O(n) time, O(1) space.`,
-        highlightLine: 7,
+        anchor: { match: 'return [l+1,r+1]' },
         state: {
           type: 'array',
           cells: snap(l, r, true),
@@ -89,10 +69,40 @@ function generateSteps(): Step[] {
         variables: [{ name: 'return', value: `[${l + 1}, ${r + 1}]`, highlight: true }],
       });
       break;
-    } else if (s < target) {
-      l++;
-    } else {
+    } else if (s > target) {
+      steps.push({
+        explanation: `l=${l}, r=${r}: numbers[l]+numbers[r] = ${nums[l]}+${nums[r]} = ${s}. Not equal to target ${target}; ${s} > ${target} → sum too large, retreat r.`,
+        anchor: { match: 'if numbers[l] + numbers[r] > target:', to: { match: 'r-=1' } },
+        state: {
+          type: 'array',
+          cells: snap(l, r, false),
+          pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
+        },
+        variables: [
+          { name: 'l', value: l },
+          { name: 'r', value: r },
+          { name: 'sum', value: s, highlight: true },
+          { name: 'target', value: target },
+        ],
+      });
       r--;
+    } else {
+      steps.push({
+        explanation: `l=${l}, r=${r}: numbers[l]+numbers[r] = ${nums[l]}+${nums[r]} = ${s}. Not equal to target ${target}, and not greater — falls to else: sum too small, advance l.`,
+        anchor: { match: 'l+=1' },
+        state: {
+          type: 'array',
+          cells: snap(l, r, false),
+          pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
+        },
+        variables: [
+          { name: 'l', value: l },
+          { name: 'r', value: r },
+          { name: 'sum', value: s, highlight: true },
+          { name: 'target', value: target },
+        ],
+      });
+      l++;
     }
   }
 
@@ -101,7 +111,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Two Pointers',
-  pythonCode: PYTHON_CODE,
+  variant: 'two-pointers',
   generateSteps,
 };
 

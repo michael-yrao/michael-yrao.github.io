@@ -1,70 +1,50 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const FREQ_MAP_CODE = `class Solution:
-    def majorityElement(self, nums: List[int]) -> int:
-        # build a frequency map and track the running majority in one pass
-        # avoids a second scan by updating the best candidate whenever a count exceeds the current max
-        majorityValuePair = (None, 0)
-        freqMap = {}
-        for num in nums:
-            freqMap[num] = 1 + freqMap.get(num, 0)
-            if freqMap[num] > majorityValuePair[1]:
-                majorityValuePair = num, freqMap[num]
-        return majorityValuePair[0]`;
-
-const BOYER_MOORE_CODE = `class Solution:
-    def majorityElement(self, nums: List[int]) -> int:
-        # Boyer-Moore voting: the majority element (> n/2) can never be fully cancelled
-        # keep a candidate and a count — increment when we see the candidate, decrement otherwise
-        # when count drops to 0, the candidate has been cancelled; replace it with the current element
-        maxValue = nums[0]
-        maxCounter = 0
-        for num in nums:
-            if num == maxValue:
-                maxCounter += 1
-            else:
-                maxCounter -= 1
-                if maxCounter < 0:
-                    maxValue = num
-                    maxCounter = 1
-        return maxValue`;
+// ── Solution 1: Frequency map ────────────────────────────────────────────────
+//
+// Traces cse-progress's majorityElement verbatim: freqMap and (result, maxCount)
+// initialized separately, then a single loop that updates freqMap, sets result
+// via a ternary (`result = n if freqMap[n] > maxCount else result`), and
+// UNCONDITIONALLY updates maxCount = max(maxCount, freqMap[n]) every iteration
+// — not only when result changes.
 
 function generateFreqMapSteps(): Step[] {
   const nums = [2, 2, 1, 1, 1, 2, 2];
   const steps: Step[] = [];
-  const freq: Record<number, number> = {};
-  let majNum = nums[0];
-  let majFreq = 0;
+  const freqMap: Record<number, number> = {};
+  let result = 0;
+  let maxCount = 0;
 
   steps.push({
     explanation:
-      'Build a frequency map in one pass. Keep a running majority: whenever freq[num] exceeds the current maximum, update the majority candidate immediately. No second pass needed.',
-    highlightLine: 3,
+      'Build a frequency map in one pass. Keep a running result: whenever freqMap[n] exceeds the current maxCount, result becomes n. maxCount is then refreshed to the larger of itself and freqMap[n] every iteration, whether or not result just changed.',
+    anchor: { match: 'freqMap = {}', to: { match: 'result, maxCount = 0, 0' } },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),
       pointers: [],
       hashmap: {},
-      counters: [{ label: 'majority', value: 'None' }],
+      counters: [{ label: 'result', value: 0 }, { label: 'maxCount', value: 0 }],
     },
     variables: [{ name: 'nums', value: `[${nums.join(', ')}]` }],
   });
 
   for (let i = 0; i < nums.length; i++) {
-    const num = nums[i];
-    freq[num] = (freq[num] ?? 0) + 1;
-    const prevMaj = majNum;
-    if (freq[num] > majFreq) {
-      majNum = num;
-      majFreq = freq[num];
-    }
-    const switched = majNum !== prevMaj;
+    const n = nums[i];
+    freqMap[n] = (freqMap[n] ?? 0) + 1;
+    const prevMaxCount = maxCount;
+    const switched = freqMap[n] > prevMaxCount;
+    if (switched) result = n;
+    maxCount = Math.max(prevMaxCount, freqMap[n]);
 
     steps.push({
       explanation: switched
-        ? `num=${num}: freq[${num}]=${freq[num]} > prev majority freq ${majFreq - 1}. New majority → ${num}.`
-        : `num=${num}: freq[${num}]=${freq[num]}. Does not beat current majority (${majNum}, freq=${majFreq}).`,
-      highlightLine: freq[num] > (majFreq - (switched ? 1 : 0)) ? 8 : 6,
+        ? `n=${n}: freqMap[${n}]=${freqMap[n]} > maxCount ${prevMaxCount}. result becomes ${n}. maxCount = max(maxCount, freqMap[n]) → ${maxCount}.`
+        : `n=${n}: freqMap[${n}]=${freqMap[n]}. Does not exceed maxCount=${prevMaxCount}, so result stays ${result}. maxCount = max(maxCount, freqMap[n]) → ${maxCount} (unchanged).`,
+      anchor: {
+        match: 'freqMap[n] = 1 + freqMap.get(n,0)',
+        to: { match: 'maxCount = max(maxCount, freqMap[n])' },
+      },
       state: {
         type: 'array',
         cells: nums.map((v, j) => ({
@@ -72,89 +52,98 @@ function generateFreqMapSteps(): Step[] {
           state: j < i ? ('visited' as const) : j === i ? ('active' as const) : ('default' as const),
         })),
         pointers: [{ index: i, label: 'i' }],
-        hashmap: { ...freq } as Record<string | number, number>,
-        counters: [{ label: 'majority', value: `(${majNum}, freq=${majFreq})` }],
+        hashmap: { ...freqMap } as Record<string | number, number>,
+        counters: [{ label: 'result', value: result }, { label: 'maxCount', value: maxCount }],
       },
       variables: [
-        { name: 'num', value: num, highlight: true },
-        { name: `freq[${num}]`, value: freq[num], highlight: true },
-        { name: 'majority', value: majNum, highlight: switched },
+        { name: 'n', value: n, highlight: true },
+        { name: `freqMap[${n}]`, value: freqMap[n], highlight: true },
+        { name: 'result', value: result, highlight: switched },
+        { name: 'maxCount', value: maxCount },
       ],
     });
   }
 
   steps.push({
-    explanation: `All elements processed. majority = ${majNum} with frequency ${majFreq} (> n/2 = ${Math.floor(nums.length / 2)}). O(n) time, O(n) space.`,
-    highlightLine: 9,
+    explanation: `All elements processed. result = ${result} with frequency ${maxCount} (> n/2 = ${Math.floor(nums.length / 2)}). O(n) time, O(n) space.`,
+    anchor: { match: 'return result' },
     state: {
       type: 'array',
       cells: nums.map(v => ({
         value: v,
-        state: v === majNum ? ('found' as const) : ('eliminated' as const),
+        state: v === result ? ('found' as const) : ('eliminated' as const),
       })),
       pointers: [],
-      hashmap: { ...freq } as Record<string | number, number>,
-      counters: [{ label: 'majority', value: majNum }],
+      hashmap: { ...freqMap } as Record<string | number, number>,
+      counters: [{ label: 'result', value: result }],
     },
-    variables: [{ name: 'return', value: majNum, highlight: true }],
+    variables: [{ name: 'return', value: result, highlight: true }],
   });
 
   return steps;
 }
 
+// ── Solution 2: Boyer-Moore ──────────────────────────────────────────────────
+//
+// Traces cse-progress's majorityElementBoyerMoore verbatim: maxElement/counter
+// initialized from nums[0], then on a mismatch counter is decremented and
+// swapped THE MOMENT IT HITS 0 (not below 0 — the swap check is `if counter ==
+// 0:`, nested inside the same else branch as the decrement).
+
 function generateBoyerMooreSteps(): Step[] {
   const nums = [2, 2, 1, 1, 1, 2, 2];
   const steps: Step[] = [];
-  let candidate = nums[0];
-  let count = 0;
+  let maxElement = nums[0];
+  let counter = 0;
 
   steps.push({
     explanation:
-      'Boyer-Moore Voting: the majority element (> n/2 occurrences) can "outlast" all other values combined. Maintain a candidate and a count. When the count drops below zero the candidate has been cancelled — swap to the current element and restart.',
-    highlightLine: 3,
+      'Boyer-Moore Voting: the majority element (> n/2 occurrences) can "outlast" all other values combined. Maintain maxElement and counter, seeded from nums[0]. When counter reaches 0 after a mismatch, the current candidate has been cancelled — swap to the current element and restart.',
+    anchor: { match: 'maxElement, counter = nums[0], 0' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),
       pointers: [],
       counters: [
-        { label: 'candidate', value: candidate },
-        { label: 'count', value: count },
+        { label: 'maxElement', value: maxElement },
+        { label: 'counter', value: counter },
       ],
     },
     variables: [
-      { name: 'candidate', value: candidate },
-      { name: 'count', value: count },
+      { name: 'maxElement', value: maxElement },
+      { name: 'counter', value: counter },
     ],
   });
 
   for (let i = 0; i < nums.length; i++) {
-    const num = nums[i];
-    const prevCandidate = candidate;
+    const n = nums[i];
+    const prevMaxElement = maxElement;
     let explanation: string;
-    let hl: number;
+    let anchor: Step['anchor'];
 
-    if (num === candidate) {
-      count++;
-      explanation = `num=${num} matches candidate. count → ${count}.`;
-      hl = 7;
+    if (maxElement === n) {
+      counter++;
+      explanation = `n=${n} matches maxElement. counter → ${counter}.`;
+      anchor = { match: 'if maxElement == n:', to: { match: 'counter += 1' } };
     } else {
-      count--;
-      if (count < 0) {
-        candidate = num;
-        count = 1;
-        explanation = `num=${num} != candidate ${prevCandidate}. count → -1: candidate cancelled! Swap to ${candidate}, count=1.`;
-        hl = 11;
+      counter--;
+      if (counter === 0) {
+        maxElement = n;
+        counter = 1;
+        explanation = `n=${n} != maxElement ${prevMaxElement}. counter → 0: cancelled! Swap to ${maxElement}, counter=1.`;
+        // nth:2 skips the comment "# also set counter = 1" (hit 1) and lands on the real statement (hit 2).
+        anchor = { match: 'counter -=1', to: { match: 'counter = 1', nth: 2 } };
       } else {
-        explanation = `num=${num} != candidate ${prevCandidate}. count → ${count}.`;
-        hl = 9;
+        explanation = `n=${n} != maxElement ${prevMaxElement}. counter → ${counter}.`;
+        anchor = { match: 'counter -=1', to: { match: 'if counter == 0:' } };
       }
     }
 
-    const switched = candidate !== prevCandidate;
+    const switched = maxElement !== prevMaxElement;
 
     steps.push({
       explanation,
-      highlightLine: hl,
+      anchor,
       state: {
         type: 'array',
         cells: nums.map((v, j) => ({
@@ -163,34 +152,34 @@ function generateBoyerMooreSteps(): Step[] {
         })),
         pointers: [{ index: i, label: 'i' }],
         counters: [
-          { label: 'candidate', value: candidate },
-          { label: 'count', value: count },
+          { label: 'maxElement', value: maxElement },
+          { label: 'counter', value: counter },
         ],
       },
       variables: [
-        { name: 'num', value: num, highlight: true },
-        { name: 'candidate', value: candidate, highlight: switched },
-        { name: 'count', value: count, highlight: true },
+        { name: 'n', value: n, highlight: true },
+        { name: 'maxElement', value: maxElement, highlight: switched },
+        { name: 'counter', value: counter, highlight: true },
       ],
     });
   }
 
   steps.push({
-    explanation: `Done. candidate = ${candidate}. Every non-majority element has been cancelled out at least once. O(n) time, O(1) space.`,
-    highlightLine: 13,
+    explanation: `Done. maxElement = ${maxElement}. Every non-majority element has been cancelled out at least once. O(n) time, O(1) space.`,
+    anchor: { match: 'return maxElement' },
     state: {
       type: 'array',
       cells: nums.map(v => ({
         value: v,
-        state: v === candidate ? ('found' as const) : ('eliminated' as const),
+        state: v === maxElement ? ('found' as const) : ('eliminated' as const),
       })),
       pointers: [],
       counters: [
-        { label: 'candidate', value: candidate },
-        { label: 'count', value: count },
+        { label: 'maxElement', value: maxElement },
+        { label: 'counter', value: counter },
       ],
     },
-    variables: [{ name: 'return', value: candidate, highlight: true }],
+    variables: [{ name: 'return', value: maxElement, highlight: true }],
   });
 
   return steps;
@@ -198,13 +187,13 @@ function generateBoyerMooreSteps(): Step[] {
 
 const freqMapSolution: SolutionVariant = {
   label: 'Frequency Map',
-  pythonCode: FREQ_MAP_CODE,
+  variant: 'freq-map',
   generateSteps: generateFreqMapSteps,
 };
 
 const boyerMooreSolution: SolutionVariant = {
   label: 'Boyer-Moore',
-  pythonCode: BOYER_MOORE_CODE,
+  variant: 'boyer-moore',
   generateSteps: generateBoyerMooreSteps,
 };
 

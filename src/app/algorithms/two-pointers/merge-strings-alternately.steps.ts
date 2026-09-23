@@ -1,17 +1,10 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def mergeAlternately(self, word1: str, word2: str) -> str:
-        result = ""
-        p1 = p2 = 0
-        while p1 < len(word1) and p2 < len(word2):
-            result += word1[p1]
-            result += word2[p2]
-            p1+=1
-            p2+=1
-        result += word1[p1:]
-        result += word2[p2:]
-        return result`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's mergeAlternately verbatim: while both pointers are in bounds,
+// append word1[p1] then word2[p2] and advance both together; then append whichever
+// tail (word1[p1:] or word2[p2:]) is left over.
 
 function generateSteps(): Step[] {
   const word1 = 'ace';
@@ -51,7 +44,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       `Merge Strings Alternately: word1="${word1}", word2="${word2}". Use two pointers p1 and p2. Each iteration take word1[p1] then word2[p2] and append to result. When one string is exhausted, append the remaining of the other.`,
-    highlightLine: 3,
+    anchor: { match: 'result = ""', to: { match: 'p1 = p2 = 0' } },
     state: {
       type: 'array',
       cells: buildCells(null, null),
@@ -76,7 +69,7 @@ function generateSteps(): Step[] {
     // Taking from word1
     steps.push({
       explanation: `p1=${p1}, p2=${p2}: take word1[${p1}]='${ch1}', append to result. result="${result}${ch1}".`,
-      highlightLine: 5,
+      anchor: { match: 'result += word1[p1]' },
       state: {
         type: 'array',
         cells: buildCells(p1, null),
@@ -101,8 +94,8 @@ function generateSteps(): Step[] {
 
     // Taking from word2
     steps.push({
-      explanation: `p1=${p1}, p2=${p2}: take word2[${p2}]='${ch2}', append to result. result="${result}${ch2}".`,
-      highlightLine: 6,
+      explanation: `p1=${p1}, p2=${p2}: take word2[${p2}]='${ch2}', append to result. result="${result}${ch2}". Then p1+=1, p2+=1.`,
+      anchor: { match: 'result += word2[p2]', to: { match: 'p2+=1' } },
       state: {
         type: 'array',
         cells: buildCells(null, p2),
@@ -133,7 +126,7 @@ function generateSteps(): Step[] {
     const remainder = word1.slice(p1);
     steps.push({
       explanation: `word2 exhausted (p2=${p2}). Append remaining word1[${p1}:]="${remainder}" to result. result="${result}${remainder}".`,
-      highlightLine: 9,
+      anchor: { match: 'result += word1[p1:]' },
       state: {
         type: 'array',
         cells: buildCells(null, null),
@@ -161,7 +154,7 @@ function generateSteps(): Step[] {
     const remainder = word2.slice(p2);
     steps.push({
       explanation: `word1 exhausted (p1=${p1}). Append remaining word2[${p2}:]="${remainder}" to result. result="${result}${remainder}".`,
-      highlightLine: 10,
+      anchor: { match: 'result += word2[p2:]' },
       state: {
         type: 'array',
         cells: buildCells(null, null),
@@ -185,7 +178,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Done. Merged result="${result}". All characters from both words interleaved, with the longer word's tail appended. Return "${result}".`,
-    highlightLine: 11,
+    anchor: { match: 'return result' },
     state: {
       type: 'array',
       cells: [
@@ -204,7 +197,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Two Pointer Alternating Merge',
-  pythonCode: PYTHON_CODE,
+  variant: 'alternating',
   generateSteps,
 };
 

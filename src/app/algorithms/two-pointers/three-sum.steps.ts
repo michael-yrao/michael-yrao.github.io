@@ -1,88 +1,60 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def threeSum(self, nums: list[int]) -> list[list[int]]:
-        # sort first so we can use two pointers for the inner pair
-        # fix nums[i] as the anchor; then find j and k in the remaining subarray such that nums[j] + nums[k] = -nums[i]
-        threeSumSet = set()
-        nums.sort()
-        for i in range(len(nums)):
-            j = i + 1
-            k = len(nums) - 1
-            while j < k:
-                # sorted array lets us steer: sum > 0 → move k left (reduce); sum < 0 → move j right (increase)
-                if nums[i] + nums[j] + nums[k] == 0:
-                    solution = (nums[i], nums[j], nums[k])
-                    threeSumSet.add(solution)
-                    # advance both pointers — this pair is consumed, look for the next distinct pair
-                    j += 1
-                    k -= 1
-                elif nums[i] + nums[j] + nums[k] > 0:
-                    k -= 1
-                else:
-                    j += 1
-        return list(threeSumSet)`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's threeSumSet verbatim: `nums.sort()`, then `solutionSet = set()`,
+// then `for i in range(len(nums))` — the FULL range, no early stop and no duplicate-i skip.
+// Duplicate triplets collapse because solutionSet is a Python set — solutionSet.add() on an
+// already-present triplet is a silent no-op, not a guarded branch.
+
+type CellVisualState = 'default' | 'active' | 'visited' | 'found' | 'min-ptr';
 
 function generateSteps(): Step[] {
   const original = [-1, 0, 1, 2, -1, -4];
   const nums = [...original].sort((a, b) => a - b); // [-4,-1,-1,0,1,2]
   const n = nums.length;
   const steps: Step[] = [];
-  const found: string[] = [];
+  const solutionSet = new Set<string>();
 
   const snap = (iIdx: number, jIdx: number, kIdx: number) =>
     nums.map((v, idx) => ({
       value: v,
-      state:
-        idx === iIdx
-          ? ('found' as const)
-          : idx === jIdx
-          ? ('active' as const)
-          : idx === kIdx
-          ? ('min-ptr' as const)
-          : idx < iIdx
-          ? ('visited' as const)
-          : ('default' as const),
+      state: (idx === iIdx
+        ? 'found'
+        : idx === jIdx
+        ? 'active'
+        : idx === kIdx
+        ? 'min-ptr'
+        : idx < iIdx
+        ? 'visited'
+        : 'default') as CellVisualState,
     }));
 
-  // Intro
+  const setLabel = (): string => `{${[...solutionSet].join(', ')}}`;
+
   steps.push({
-    explanation: `Sort first: [${original.join(', ')}] → [${nums.join(', ')}]. Sorting lets us use a two-pointer search for the inner pair. Fix i (outer element), then use j (left) and k (right) to find two elements that sum to -nums[i].`,
-    highlightLine: 3,
+    explanation: `nums.sort(): [${original.join(', ')}] → [${nums.join(', ')}]. solutionSet = set() — a Python set, so duplicate triplets collapse on their own; there's no explicit duplicate-skip check anywhere in this attempt.`,
+    anchor: { match: 'nums.sort()', to: { match: 'solutionSet = set()' } },
     state: {
       type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
+      cells: nums.map((v) => ({ value: v, state: 'default' as const })),
       pointers: [],
     },
-    variables: [{ name: 'sorted', value: `[${nums.join(', ')}]` }],
+    variables: [
+      { name: 'nums', value: `[${nums.join(', ')}]` },
+      { name: 'solutionSet', value: 'set()' },
+    ],
   });
 
-  for (let i = 0; i < n - 2; i++) {
-    // Skip duplicate i (but always show the first occurrence)
-    if (i > 0 && nums[i] === nums[i - 1]) {
-      steps.push({
-        explanation: `i=${i}: nums[${i}]=${nums[i]} is the same as nums[${i - 1}]=${nums[i - 1]}. Skip to avoid duplicate triplets.`,
-        highlightLine: 5,
-        state: {
-          type: 'array',
-          cells: nums.map((v, idx) => ({
-            value: v,
-            state: idx <= i ? ('visited' as const) : ('default' as const),
-          })),
-          pointers: [{ index: i, label: 'i (skip)' }],
-          counters: found.length > 0 ? [{ label: 'found', value: found.join(', ') }] : [],
-        },
-        variables: [{ name: 'i', value: i }, { name: 'skip duplicate', value: nums[i] }],
-      });
-      continue;
-    }
-
-    let j = i + 1;
-    let k = n - 1;
+  for (let i = 0; i < n; i++) {
+    const j0 = i + 1;
+    const k0 = n - 1;
+    let j = j0;
+    let k = k0;
 
     steps.push({
-      explanation: `i=${i}: nums[i]=${nums[i]}. Set j=${j} (left of remaining) and k=${k} (right). Looking for nums[j]+nums[k] = ${-nums[i]}.`,
-      highlightLine: 6,
+      explanation: `for i in range(len(nums)): i=${i}, nums[i]=${nums[i]}. j, k = i+1, len(nums)-1 → j=${j}, k=${k}.`,
+      anchor: { match: 'for i in range(len(nums)):', to: { match: 'j, k = i+1, len(nums) - 1' } },
       state: {
         type: 'array',
         cells: snap(i, j, k),
@@ -91,53 +63,52 @@ function generateSteps(): Step[] {
           { index: j, label: 'j' },
           { index: k, label: 'k' },
         ],
-        counters: found.length > 0 ? [{ label: 'found', value: found.join(', ') }] : [],
+        counters: solutionSet.size ? [{ label: 'solutionSet', value: setLabel() }] : [],
       },
       variables: [
         { name: 'i', value: i },
-        { name: 'nums[i]', value: nums[i] },
-        { name: 'target', value: -nums[i] },
+        { name: 'j', value: j },
+        { name: 'k', value: k },
       ],
     });
 
     while (j < k) {
-      const sum = nums[i] + nums[j] + nums[k];
+      const total = nums[i] + nums[j] + nums[k];
 
-      if (sum === 0) {
-        const triplet = `[${nums[i]},${nums[j]},${nums[k]}]`;
-        found.push(triplet);
+      if (total === 0) {
+        const triplet = `(${nums[i]}, ${nums[j]}, ${nums[k]})`;
+        const isNew = !solutionSet.has(triplet);
+        solutionSet.add(triplet);
+
         steps.push({
-          explanation: `nums[${i}]+nums[${j}]+nums[${k}] = ${nums[i]}+${nums[j]}+${nums[k]} = 0 ✓ Found triplet ${triplet}! Advance both j and k.`,
-          highlightLine: 9,
+          explanation: `total = ${nums[i]}+${nums[j]}+${nums[k]} = 0. solutionSet.add(${triplet}) — ${isNew ? 'new, so the set grows.' : 'already in the set, so add() is a silent no-op.'} Both pointers used up: j+=1, k-=1.`,
+          // nth 1: this if-branch's own 'k-=1'; hit 2 is the elif-branch's 'k-=1' further down.
+          anchor: { match: 'if total == 0:', to: { match: 'k-=1', nth: 1 } },
           state: {
             type: 'array',
             cells: nums.map((v, idx) => ({
               value: v,
-              state:
-                idx === i || idx === j || idx === k
-                  ? ('found' as const)
-                  : idx < i
-                  ? ('visited' as const)
-                  : ('default' as const),
+              state: (idx === i || idx === j || idx === k ? 'found' : idx < i ? 'visited' : 'default') as CellVisualState,
             })),
             pointers: [
               { index: i, label: 'i' },
               { index: j, label: 'j' },
               { index: k, label: 'k' },
             ],
-            counters: [{ label: 'found', value: found.join(', ') }],
+            counters: [{ label: 'solutionSet', value: setLabel() }],
           },
           variables: [
-            { name: 'sum', value: sum, highlight: true },
-            { name: 'triplet', value: triplet, highlight: true },
+            { name: 'total', value: total, highlight: true },
+            { name: 'solutionSet', value: setLabel(), highlight: true },
           ],
         });
-        j++;
-        k--;
-      } else if (sum > 0) {
+        j += 1;
+        k -= 1;
+      } else if (total > 0) {
         steps.push({
-          explanation: `sum=${sum} > 0. Too large — move k left to reduce the sum.`,
-          highlightLine: 13,
+          explanation: `total = ${total} > 0 — too high. k-=1.`,
+          // Skips nth=1's 'k-=1' — that's the if-branch's line above (total == 0 case).
+          anchor: { match: 'elif total > 0:', to: { match: 'k-=1', nth: 2 } },
           state: {
             type: 'array',
             cells: snap(i, j, k),
@@ -146,18 +117,19 @@ function generateSteps(): Step[] {
               { index: j, label: 'j' },
               { index: k, label: 'k' },
             ],
-            counters: found.length > 0 ? [{ label: 'found', value: found.join(', ') }] : [],
+            counters: solutionSet.size ? [{ label: 'solutionSet', value: setLabel() }] : [],
           },
           variables: [
-            { name: 'sum', value: sum, highlight: true },
-            { name: 'action', value: 'k--' },
+            { name: 'total', value: total, highlight: true },
+            { name: 'action', value: 'k-=1' },
           ],
         });
-        k--;
+        k -= 1;
       } else {
         steps.push({
-          explanation: `sum=${sum} < 0. Too small — move j right to increase the sum.`,
-          highlightLine: 15,
+          explanation: `total = ${total} < 0 — too low. j+=1.`,
+          // Skips nth=1's 'j+=1' — that's the if-branch's line above (total == 0 case).
+          anchor: { match: 'else:', to: { match: 'j+=1', nth: 2 } },
           state: {
             type: 'array',
             cells: snap(i, j, k),
@@ -166,28 +138,28 @@ function generateSteps(): Step[] {
               { index: j, label: 'j' },
               { index: k, label: 'k' },
             ],
-            counters: found.length > 0 ? [{ label: 'found', value: found.join(', ') }] : [],
+            counters: solutionSet.size ? [{ label: 'solutionSet', value: setLabel() }] : [],
           },
           variables: [
-            { name: 'sum', value: sum, highlight: true },
-            { name: 'action', value: 'j++' },
+            { name: 'total', value: total, highlight: true },
+            { name: 'action', value: 'j+=1' },
           ],
         });
-        j++;
+        j += 1;
       }
     }
   }
 
   steps.push({
-    explanation: `All outer values processed. Result: ${found.join(', ')}. O(n²) time (sorting + two-pointer scan per outer element), O(n) space for output.`,
-    highlightLine: 16,
+    explanation: `Outer loop exhausted. return list(solutionSet) = [${[...solutionSet].join(', ')}]. O(n²) time (sort + a two-pointer scan per i), O(n) extra space for the set.`,
+    anchor: { match: 'return list(solutionSet)' },
     state: {
       type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'visited' as const })),
+      cells: nums.map((v) => ({ value: v, state: 'visited' as const })),
       pointers: [],
-      counters: [{ label: 'result', value: found.join(', ') }],
+      counters: [{ label: 'solutionSet', value: setLabel() }],
     },
-    variables: [{ name: 'return', value: found.join(', '), highlight: true }],
+    variables: [{ name: 'return', value: `list(solutionSet)`, highlight: true }],
   });
 
   return steps;
@@ -195,7 +167,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Sort + Two Pointers',
-  pythonCode: PYTHON_CODE,
+  variant: 'sort-two-pointers',
   generateSteps,
 };
 

@@ -1,37 +1,8 @@
 import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-progress: dsa/leetcode/linked_list/2_add_two_numbers.py
-// (the elegant single-loop variant, addTwoNumbers_20260705_elegant)
-const PYTHON_CODE = `class Solution:
-    def addTwoNumbers(self, l1: Optional[ListNode], l2: Optional[ListNode]) -> Optional[ListNode]:
-        # slightly cleaner version of linked list arithmetic
-        # since the above literally just does 3 loops with the same code
-        l1t = l1
-        l2t = l2
-        carryover = 0
-        dummyResultNode = ListNode(-1)
-        dummyTraversal = dummyResultNode
-
-        while l1t or l2t or carryover:
-            l1tVal = l2tVal = 0
-            if l1t:
-                l1tVal = l1t.val
-            if l2t:
-                l2tVal = l2t.val
-            digitSum = l1tVal + l2tVal + carryover
-            if digitSum >= 10:
-                carryover = 1
-            else:
-                carryover = 0
-            resultNode = ListNode(digitSum%10)
-            dummyTraversal.next = resultNode
-            dummyTraversal = dummyTraversal.next
-            if l1t:
-                l1t = l1t.next
-            if l2t:
-                l2t = l2t.next
-
-        return dummyResultNode.next`;
+// Traces cse-progress's addTwoNumbers_20260705_elegant verbatim: a single while loop that
+// runs while either list has a node left OR a carry remains, computing l1tVal/l2tVal/digitSum
+// and appending to a dummy-headed result list each iteration.
 
 const L1 = [2, 4, 3]; // represents 342 (digits stored reversed)
 const L2 = [5, 6, 4]; // represents 465
@@ -71,7 +42,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Add 342 + 465 = 807. Digits are stored least-significant-first (2→4→3 is 342), which is exactly the order we add by hand: rightmost digit first, carrying overflow left. A dummy head simplifies building the result, and the loop runs while either list has nodes left OR a carry remains.',
-    highlightLine: 9,
+    anchor: { match: 'while l1t or l2t or carryover:' },
     state: {
       type: 'linked-list',
       nodes: makeInputNodes(0, 0),
@@ -101,7 +72,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `l1tVal=${v1}, l2tVal=${v2}, carryover=${prevCarry}. digitSum = ${v1} + ${v2} + ${prevCarry} = ${digitSum}. Append ListNode(digitSum % 10) = ${digit} to the result.${carryNote}`,
-      highlightLine: 23,
+      anchor: { match: 'l1tVal = l2tVal = 0', to: { match: 'l2t = l2t.next' } },
       state: {
         type: 'linked-list',
         nodes: makeInputNodes(p1 + 1 < L1.length ? p1 + 1 : null, p2 + 1 < L2.length ? p2 + 1 : null),
@@ -127,7 +98,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Both lists are exhausted and carryover is 0 — the loop condition fails and we return dummyResultNode.next. Result list ${result.join('→')} reads as 807 (again least-significant-first). Each node is visited once: O(max(m, n)) time, O(max(m, n)) for the result list.`,
-    highlightLine: 30,
+    anchor: { match: 'return dummyResultNode.next' },
     state: {
       type: 'linked-list',
       nodes: makeInputNodes(null, null),
@@ -147,7 +118,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Elementary Addition',
-  pythonCode: PYTHON_CODE,
+  variant: 'elementary-add',
   generateSteps,
   timeComplexity: 'O(max(m, n))',
   spaceComplexity: 'O(max(m, n))',

@@ -1,46 +1,8 @@
 import { AlgorithmMeta, SolutionVariant, Step, GridState, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def maxAreaOfIsland(self, grid: List[List[int]]) -> int:
-        # ok so this is pretty much identical to number of islands
-        # but difference is that we need to keep track of how many nodes are part of the island
-        # so let's try for a DFS approach first
-        # What DFS/BFS means is that it will look at every node in this current island
-        # thus what we should be returning from DFS is +1 from each traversal if it hits
-        # we need a visited
-
-        visited = set()
-        maxArea = 0
-
-        rows, cols = len(grid), len(grid[0])
-
-        def dfs(row,col):
-            # base cases
-
-            # if out of bound, 0
-            if row < 0 or row >= rows or col < 0 or col >= cols:
-                return 0
-
-            # if water, 0
-            if grid[row][col] == 0:
-                return 0
-
-            # if visited, 0
-            if (row,col) in visited:
-                return 0
-
-            # if not, then new node
-            # we add it to visited and increment size of our current island
-            visited.add((row,col))
-            return 1+dfs(row+1,col)+dfs(row-1,col)+dfs(row,col+1)+dfs(row,col-1)
-
-        for row in range(rows):
-            for col in range(cols):
-                # if we found land, we will get its size and compare to maxArea
-                if grid[row][col] == 1 and (row,col) not in visited:
-                    maxArea = max(maxArea, dfs(row,col))
-
-        return maxArea`;
+// Traces cse-progress's maxAreaOfIsland_20260617 verbatim: dfs's base cases check in
+// the order out-of-bounds → visited → not-land, and the outer loop's guard checks
+// "not in visited" before the land check — both matched exactly below.
 
 // 5×5 grid with two islands: small island (area 2) and large island (area 5)
 const RAW_GRID = [
@@ -88,7 +50,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Max Area of Island: scan each cell. When unvisited land is found, DFS to count all connected land cells. Track the maximum area seen. Grid has two islands — the left-side island (area 3) and the right-side island (area 4).',
-    highlightLine: 10,
+    anchor: { match: 'visited = set()' },
     state: buildGrid(visited, new Set(), new Set()),
     variables: [
       { name: 'maxArea', value: 0 },
@@ -97,17 +59,17 @@ function generateSteps(): Step[] {
   });
 
   function dfs(r: number, c: number, islandCells: Set<string>): number {
-    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return 0;
-    if (RAW_GRID[r][c] === 0) return 0;
     const key = toKey(r, c);
+    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return 0;
     if (visited.has(key)) return 0;
+    if (RAW_GRID[r][c] !== 1) return 0;
 
     visited.add(key);
     islandCells.add(key);
 
     steps.push({
       explanation: `DFS at (${r},${c}) = land, unvisited. Add to visited. Current island size so far: ${islandCells.size}.`,
-      highlightLine: 32,
+      anchor: { match: 'visited.add((row,col))' },
       state: buildGrid(visited, islandCells, new Set()),
       variables: [
         { name: 'row', value: r, highlight: true },
@@ -129,12 +91,12 @@ function generateSteps(): Step[] {
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const key = toKey(r, c);
-      if (RAW_GRID[r][c] === 1 && !visited.has(key)) {
+      if (!visited.has(key) && RAW_GRID[r][c] === 1) {
         const islandCells = new Set<string>();
 
         steps.push({
           explanation: `Outer scan found unvisited land at (${r},${c}). Starting DFS to measure this island.`,
-          highlightLine: 38,
+          anchor: { match: 'if (row,col) not in visited and grid[row][col] == 1:' },
           state: buildGrid(visited, new Set([key]), new Set()),
           variables: [
             { name: 'row', value: r, highlight: true },
@@ -153,7 +115,7 @@ function generateSteps(): Step[] {
 
         steps.push({
           explanation: `Island at (${r},${c}) has area ${area}. ${isNewMax ? `New maximum! maxArea updated to ${area}.` : `maxArea stays at ${maxArea}.`} Max island cells highlighted in orange.`,
-          highlightLine: 39,
+          anchor: { match: 'maxArea = max(maxArea, dfs(row,col))' },
           state: buildGrid(visited, new Set(), new Set(maxCells)),
           variables: [
             { name: 'area', value: area, highlight: true },
@@ -166,7 +128,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Scan complete. Maximum island area = ${maxArea}. The orange cells show the largest island. DFS visited each cell at most once → O(m×n) time and O(m×n) space for the visited set.`,
-    highlightLine: 41,
+    anchor: { match: 'return maxArea' },
     state: buildGrid(visited, new Set(), maxCells),
     variables: [
       { name: 'maxArea', value: maxArea, highlight: true },
@@ -179,7 +141,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'DFS with Visited Set',
-  pythonCode: PYTHON_CODE,
+  variant: 'dfs-visited',
   generateSteps,
 };
 

@@ -43,6 +43,22 @@
     padding-left: calc(var(--space-md) - 2px);
   }
 
+  &--range-start {
+    border-top: 1px solid var(--color-accent);
+  }
+
+  &--range-end {
+    border-bottom: 1px solid var(--color-accent);
+  }
+
+  // Non-contiguous source: the gap between two showcase segments. Dimmed and centered, no
+  // line number — it marks a real elision, not a line of code.
+  &--gap {
+    opacity: 0.4;
+    font-style: italic;
+    justify-content: center;
+  }
+
   &__num {
     min-width: 2.5rem;
     color: #4b5263;

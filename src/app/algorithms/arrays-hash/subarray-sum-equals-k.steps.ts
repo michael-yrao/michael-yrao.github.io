@@ -1,41 +1,16 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-progress: dsa/leetcode/arrays_and_hash/560_subarray_sum_equals_k.py
-const PYTHON_CODE = `class Solution:
-    def subarraySum(self, nums: List[int], k: int) -> int:
-        # first thing that comes to mind for subarray sum is prefixSum
-        # we are looking for # of times prefix[j] - prefix[i] = k
-        # but if we go through the prefixSum looking for i and j, we will end up with O(n^2)
-        # so what can we do reduce the time complexity
-        # we can take an approach like two sum
-        # prefix[i] = prefix[j] - k
-        # prefix[i] is sum we already calculated before
-        # prefix[j] is current sum
-        # so if prefix[i] is in the map, we increment our solution counter
-
-        # map to store number of times prefix[i] appeared
-        # we do need to consider if prefix[j] = k, then prefix[i] = 0
-        # so we need to store it in the map first. e.g. nums = [3], k = 3
-        prefixSumMap = {}
-        prefixSumMap[0] = 1
-        result = 0
-        runningSum = 0
-
-        for j in range(len(nums)):
-            runningSum += nums[j]
-            prefix_i = runningSum - k
-            if prefix_i in prefixSumMap:
-                result+=prefixSumMap[prefix_i]
-            # since we just saw runningSum, we store it in the map
-            prefixSumMap[runningSum] = prefixSumMap.get(runningSum,0) + 1
-
-        return result`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's subarraySum_20260628 verbatim: a value-based `for n in
+// nums:` (no index variable), `diffMap` (defaultdict) seeded with {0: 1}, and
+// `diff = runningSum - k` as the two-sum-style lookup key.
 
 function generateSteps(): Step[] {
   const nums = [1, 2, 3];
   const k = 3;
   const steps: Step[] = [];
-  const map: Record<number, number> = { 0: 1 };
+  const diffMap: Record<number, number> = { 0: 1 };
   let result = 0;
   let runningSum = 0;
 
@@ -45,9 +20,9 @@ function generateSteps(): Step[] {
       value: v,
       state: i === active ? ('active' as const) : i < (active ?? 0) ? ('visited' as const) : ('default' as const),
     })),
-    pointers: active !== null ? [{ index: active, label: 'j' }] : [],
-    hashmap: { ...map },
-    hashmapLabel: 'prefixSumMap (sum→count)',
+    pointers: active !== null ? [{ index: active, label: 'n' }] : [],
+    hashmap: { ...diffMap },
+    hashmapLabel: 'diffMap (sum→count)',
     counters: [
       { label: 'runningSum', value: runningSum },
       { label: 'result', value: result },
@@ -56,54 +31,57 @@ function generateSteps(): Step[] {
   });
 
   steps.push({
-    explanation: `Count subarrays summing to k=${k}. Trick (like Two Sum on prefix sums): a subarray (i, j] sums to k iff runningSum[j] − runningSum[i] = k, i.e. runningSum − k was a prefix we've seen. Store counts of each prefix sum in a map; seed it with {0: 1} so a prefix that itself equals k is counted.`,
-    highlightLine: 16,
+    explanation: `Count subarrays summing to k=${k}. Trick (like Two Sum on prefix sums): a subarray (i, j] sums to k iff runningSum[j] − runningSum[i] = k, i.e. runningSum − k was a prefix we've seen. Store counts of each prefix sum in diffMap; seed it with {0: 1} so a prefix that itself equals k is counted.`,
+    anchor: { match: 'diffMap[0] = 1' },
     state: snap(null),
     variables: [
-      { name: 'prefixSumMap', value: '{0: 1}' },
+      { name: 'diffMap', value: '{0: 1}' },
       { name: 'result', value: 0 },
       { name: 'runningSum', value: 0 },
     ],
   });
 
-  for (let j = 0; j < nums.length; j++) {
-    runningSum += nums[j];
-    const need = runningSum - k;
-    const found = map[need] || 0;
+  nums.forEach((n, idx) => {
+    runningSum += n;
+    const diff = runningSum - k;
+    const found = diffMap[diff] || 0;
     if (found) result += found;
     steps.push({
-      explanation: `j=${j}: runningSum += ${nums[j]} → ${runningSum}. We need a prior prefix of runningSum − k = ${runningSum} − ${k} = ${need}. ${found ? `prefixSumMap has ${need} (×${found}) → result += ${found} → ${result}.` : `${need} not in the map → no new subarray here.`}`,
-      highlightLine: found ? 25 : 24,
-      state: snap(j),
+      explanation: `n=${n}: runningSum += ${n} → ${runningSum}. diff = runningSum − k = ${runningSum} − ${k} = ${diff}. ${found ? `diffMap has ${diff} (×${found}) → result += ${found} → ${result}.` : `${diff} not in diffMap → no new subarray here.`}`,
+      anchor: {
+        match: 'runningSum+=n',
+        to: found ? { match: 'result+=diffMap[diff]' } : { match: 'if diff in diffMap:' },
+      },
+      state: snap(idx),
       variables: [
-        { name: 'j', value: j },
+        { name: 'n', value: n },
         { name: 'runningSum', value: runningSum, highlight: true },
-        { name: 'prefix_i (need)', value: need, highlight: true },
+        { name: 'diff', value: diff, highlight: true },
         { name: 'found count', value: found, highlight: found > 0 },
         { name: 'result', value: result, highlight: found > 0 },
       ],
     });
 
-    map[runningSum] = (map[runningSum] || 0) + 1;
+    diffMap[runningSum] = (diffMap[runningSum] || 0) + 1;
     steps.push({
-      explanation: `Record this prefix: prefixSumMap[${runningSum}] → ${map[runningSum]}. A future index can now use it as its "prefix_i".`,
-      highlightLine: 27,
-      state: snap(j),
+      explanation: `Record this prefix: diffMap[${runningSum}] → ${diffMap[runningSum]}. A future element can now use it as its "diff".`,
+      anchor: { match: 'diffMap[runningSum]+=1' },
+      state: snap(idx),
       variables: [
-        { name: `prefixSumMap[${runningSum}]`, value: map[runningSum], highlight: true },
+        { name: `diffMap[${runningSum}]`, value: diffMap[runningSum], highlight: true },
       ],
     });
-  }
+  });
 
   steps.push({
-    explanation: `All indices processed. ${result} subarray(s) sum to ${k} ([1,2] and [3]). Return ${result}. One pass, O(n) time and O(n) space — the map turns the O(n²) prefix-pair search into O(1) lookups.`,
-    highlightLine: 29,
+    explanation: `All elements processed. ${result} subarray(s) sum to ${k} ([1,2] and [3]). Return ${result}. One pass, O(n) time and O(n) space — the map turns the O(n²) prefix-pair search into O(1) lookups.`,
+    anchor: { match: 'return result' },
     state: {
       type: 'array',
       cells: nums.map((v) => ({ value: v, state: 'found' as const })),
       pointers: [],
-      hashmap: { ...map },
-      hashmapLabel: 'prefixSumMap (sum→count)',
+      hashmap: { ...diffMap },
+      hashmapLabel: 'diffMap (sum→count)',
       counters: [{ label: 'result', value: result }],
     },
     variables: [{ name: 'return', value: result, highlight: true }],
@@ -114,7 +92,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Prefix Sum + Hash Map',
-  pythonCode: PYTHON_CODE,
+  variant: 'prefix-map',
   generateSteps,
   timeComplexity: 'O(n)',
   spaceComplexity: 'O(n)',

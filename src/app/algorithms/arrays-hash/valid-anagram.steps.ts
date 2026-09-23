@@ -1,25 +1,10 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def isAnagram(self, s: str, t: str) -> bool:
-        # anagrams are same length
-        # anagrams are the same if sorted
-        # anagrams also have the same # of each char, so hashmap
-        sMap, tMap = {}, {}
-
-        if len(s) != len(t):
-            return False
-
-        for i in range(len(s)):
-            sMap[s[i]] = 1 + sMap.get(s[i],0)
-            tMap[t[i]] = 1 + tMap.get(t[i],0)
-
-        return sMap == tMap`;
-
-const PYTHON_CODE_ALT = `class Solution:
-    def isAnagramPython(self, s: str, t: str) -> bool:
-        # anagrams are the same if sorted
-        return ''.join(sorted(s)) == ''.join(sorted(t))`;
+// ── Solution 1: Hash map ─────────────────────────────────────────────────────
+//
+// Traces cse-progress's isAnagram verbatim: sMap/tMap initialized together, an
+// early length check, then a single loop that updates BOTH maps on every
+// index (not conditionally on s[i] === t[i]), finishing with sMap == tMap.
 
 function generateSteps(): Step[] {
   const s = 'anagram';
@@ -39,8 +24,8 @@ function generateSteps(): Step[] {
     }));
 
   steps.push({
-    explanation: `Both strings are length ${s.length} — lengths match. Create two frequency maps: sMap for "${s}", tMap for "${t}". One pass builds both simultaneously.`,
-    highlightLine: 9,
+    explanation: `Create two empty frequency maps: sMap for "${s}", tMap for "${t}".`,
+    anchor: { match: 'sMap, tMap = {}, {}' },
     state: {
       type: 'array',
       cells: sChars.map(c => ({ value: c, state: 'default' as const })),
@@ -55,13 +40,28 @@ function generateSteps(): Step[] {
     ],
   });
 
+  steps.push({
+    explanation: `Check len(s) != len(t): ${s.length} != ${t.length} is false — lengths match, so no early return. One pass builds both maps simultaneously.`,
+    anchor: { match: 'if len(s) != len(t):' },
+    state: {
+      type: 'array',
+      cells: sChars.map(c => ({ value: c, state: 'default' as const })),
+      pointers: [],
+      hashmap: {},
+    },
+    variables: [
+      { name: 'len(s)', value: s.length },
+      { name: 'len(t)', value: t.length },
+    ],
+  });
+
   for (let i = 0; i < s.length; i++) {
     sMap[s[i]] = (sMap[s[i]] ?? 0) + 1;
     tMap[t[i]] = (tMap[t[i]] ?? 0) + 1;
 
     steps.push({
-      explanation: `i=${i}: sMap['${s[i]}'] → ${sMap[s[i]]}; tMap['${t[i]}'] → ${tMap[t[i]]}. Each char's frequency grows.`,
-      highlightLine: s[i] === t[i] ? 12 : 13,
+      explanation: `i=${i}: both maps update on this index — sMap['${s[i]}'] → ${sMap[s[i]]}; tMap['${t[i]}'] → ${tMap[t[i]]}.`,
+      anchor: { match: 'sMap[s[i]] = 1 + sMap.get(s[i],0)', to: { match: 'tMap[t[i]] = 1 + tMap.get(t[i],0)' } },
       state: {
         type: 'array',
         cells: sSnap(i),
@@ -87,7 +87,7 @@ function generateSteps(): Step[] {
     explanation: equal
       ? `sMap == tMap — every character appears the same number of times in both strings. Return true: "${s}" and "${t}" are anagrams.`
       : `sMap != tMap — at least one character frequency differs. Return false.`,
-    highlightLine: 15,
+    anchor: { match: 'return sMap == tMap' },
     state: {
       type: 'array',
       cells: sChars.map(c => ({ value: c, state: equal ? ('found' as const) : ('eliminated' as const) })),
@@ -104,6 +104,15 @@ function generateSteps(): Step[] {
   return steps;
 }
 
+// ── Solution 2: Sort ──────────────────────────────────────────────────────────
+//
+// Traces cse-progress's isAnagramPython verbatim: a single-line return
+// `''.join(sorted(s)) == ''.join(sorted(t))`. No separate lines exist for
+// sorting s vs sorting t, so every step anchors to that one return line while
+// narrating what the expression computes.
+
+const SORT_RETURN_LINE = "return ''.join(sorted(s)) == ''.join(sorted(t))";
+
 function generateSortedSteps(): Step[] {
   const s = 'anagram';
   const t = 'nagaram';
@@ -111,7 +120,7 @@ function generateSortedSteps(): Step[] {
 
   steps.push({
     explanation: `Sort both strings. If they produce the same sequence of characters, they are anagrams. s="${s}", t="${t}".`,
-    highlightLine: 2,
+    anchor: { match: SORT_RETURN_LINE },
     state: {
       type: 'array',
       cells: s.split('').map(c => ({ value: c, state: 'default' as const })),
@@ -124,7 +133,7 @@ function generateSortedSteps(): Step[] {
   const sortedS = s.split('').sort().join('');
   steps.push({
     explanation: `sorted(s) = "${sortedS}".`,
-    highlightLine: 2,
+    anchor: { match: SORT_RETURN_LINE },
     state: {
       type: 'array',
       cells: sortedS.split('').map(c => ({ value: c, state: 'visited' as const })),
@@ -137,7 +146,7 @@ function generateSortedSteps(): Step[] {
   const sortedT = t.split('').sort().join('');
   steps.push({
     explanation: `sorted(t) = "${sortedT}".`,
-    highlightLine: 2,
+    anchor: { match: SORT_RETURN_LINE },
     state: {
       type: 'array',
       cells: sortedT.split('').map(c => ({ value: c, state: 'visited' as const })),
@@ -150,7 +159,7 @@ function generateSortedSteps(): Step[] {
   const equal = sortedS === sortedT;
   steps.push({
     explanation: `sorted(s) "${sortedS}" ${equal ? '==' : '!='} sorted(t) "${sortedT}" → return ${equal}.`,
-    highlightLine: 2,
+    anchor: { match: SORT_RETURN_LINE },
     state: {
       type: 'array',
       cells: sortedS.split('').map((c, i) => ({
@@ -168,13 +177,13 @@ function generateSortedSteps(): Step[] {
 
 const hashMapSolution: SolutionVariant = {
   label: 'Hash Map',
-  pythonCode: PYTHON_CODE,
+  variant: 'hash-map',
   generateSteps,
 };
 
 const sortedSolution: SolutionVariant = {
   label: 'Sort',
-  pythonCode: PYTHON_CODE_ALT,
+  variant: 'sort',
   generateSteps: generateSortedSteps,
 };
 

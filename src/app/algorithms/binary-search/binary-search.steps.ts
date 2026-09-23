@@ -1,23 +1,9 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
 // ── Solution 1: Iterative ─────────────────────────────────────────────────────
-
-const ITERATIVE_CODE = `class Solution:
-    # loop method
-    def loopSearch(self, nums: List[int], target: int) -> int:
-        l, r = 0, len(nums)-1
-
-        while l <= r:
-            # l + (r - l) // 2 avoids integer overflow for very large indices (same value as (l+r)//2 otherwise)
-            mid = l + (r - l) // 2
-            if nums[mid] == target:
-                return mid
-            if nums[mid] > target:
-                r = mid - 1
-            else:
-                l = mid + 1
-
-        return -1`;
+//
+// Traces cse-progress's loopSearch verbatim: l, r = 0, len(nums)-1; while l <= r; mid = l +
+// (r - l) // 2; equal → return mid; greater → r = mid - 1; else → l = mid + 1.
 
 function generateIterativeSteps(): Step[] {
   const nums = [-1, 0, 3, 5, 9, 12];
@@ -46,8 +32,8 @@ function generateIterativeSteps(): Step[] {
   });
 
   steps.push({
-    explanation: `Array is sorted. L=0, R=${r}. Binary search cuts the search space in half each step — O(log n) instead of O(n). We can do this because sorted order gives us direction.`,
-    highlightLine: 6,
+    explanation: `Array is sorted. l, r = 0, len(nums)-1 → l=0, r=${r}. Binary search cuts the search space in half each step — O(log n) instead of O(n). We can do this because sorted order gives us direction.`,
+    anchor: { match: 'l, r = 0, len(nums)-1' },
     state: makeState(l, r, null),
     variables: [
       { name: 'l', value: l },
@@ -60,8 +46,8 @@ function generateIterativeSteps(): Step[] {
     const mid = l + Math.floor((r - l) / 2);
 
     steps.push({
-      explanation: `mid = L + (R−L)//2 = ${l} + (${r}−${l})//2 = ${mid}. nums[mid] = ${nums[mid]}. We use L+(R−L)//2 instead of (L+R)//2 to avoid integer overflow with large indices.`,
-      highlightLine: 13,
+      explanation: `mid = l + (r − l)//2 = ${l} + (${r}−${l})//2 = ${mid}. nums[mid] = ${nums[mid]}. This form (rather than (l+r)//2) avoids integer overflow with large indices.`,
+      anchor: { match: 'while l <= r:', to: { match: 'mid = l + (r - l) // 2' } },
       state: makeState(l, r, mid),
       variables: [
         { name: 'l', value: l },
@@ -75,7 +61,7 @@ function generateIterativeSteps(): Step[] {
     if (nums[mid] === target) {
       steps.push({
         explanation: `nums[${mid}] = ${nums[mid]} equals target ${target}. Found! Return ${mid}. We cut the search space from ${nums.length} to 1 in just ${steps.length} steps.`,
-        highlightLine: 14,
+        anchor: { match: 'if nums[mid] == target:', to: { match: 'return mid' } },
         state: {
           type: 'array',
           cells: nums.map((v, i) => ({
@@ -96,8 +82,8 @@ function generateIterativeSteps(): Step[] {
 
     if (nums[mid] > target) {
       steps.push({
-        explanation: `nums[${mid}]=${nums[mid]} > target ${target}. Everything at index ≥ ${mid} is ≥ ${nums[mid]} — all too large. Move R to mid−1=${mid - 1}. Eliminated ${r - mid + 1} element(s).`,
-        highlightLine: 16,
+        explanation: `nums[${mid}]=${nums[mid]} > target ${target}. Everything at index ≥ ${mid} is ≥ ${nums[mid]} — all too large. r = mid-1 = ${mid - 1}. Eliminated ${r - mid + 1} element(s).`,
+        anchor: { match: 'if nums[mid] > target:', to: { match: 'r = mid - 1' } },
         state: makeState(l, mid - 1, mid),
         variables: [
           { name: 'l', value: l },
@@ -110,8 +96,8 @@ function generateIterativeSteps(): Step[] {
       r = mid - 1;
     } else {
       steps.push({
-        explanation: `nums[${mid}]=${nums[mid]} < target ${target}. Everything at index ≤ ${mid} is ≤ ${nums[mid]} — all too small. Move L to mid+1=${mid + 1}. Eliminated ${mid - l + 1} element(s).`,
-        highlightLine: 14,
+        explanation: `nums[${mid}]=${nums[mid]} < target ${target}. Everything at index ≤ ${mid} is ≤ ${nums[mid]} — all too small. else: l = mid+1 = ${mid + 1}. Eliminated ${mid - l + 1} element(s).`,
+        anchor: { match: 'else:', to: { match: 'l = mid + 1' } },
         state: makeState(mid + 1, r, mid),
         variables: [
           { name: 'l', value: mid + 1, highlight: true },
@@ -129,22 +115,10 @@ function generateIterativeSteps(): Step[] {
 }
 
 // ── Solution 2: Recursive ─────────────────────────────────────────────────────
-
-const RECURSIVE_CODE = `class Solution:
-    # recursion method
-    def recursiveSearch(self, nums: List[int], target: int) -> int:
-        def search(l,r):
-            if l > r:
-                return -1
-            m = l + (r - l) // 2
-
-            if nums[m] == target:
-                return m
-            if nums[m] > target:
-                return search(l,m-1)
-            return search(m+1,r)
-
-        return search(0, len(nums)-1)`;
+//
+// Traces cse-progress's recursiveSearch verbatim: a nested search(l, r) — base case l > r
+// returns -1; equal → return m; greater → return search(l, m-1); otherwise (no explicit else)
+// → return search(m+1, r). Kicked off via return search(0, len(nums)-1).
 
 function generateRecursiveSteps(): Step[] {
   const nums = [-1, 0, 3, 5, 9, 12];
@@ -173,8 +147,8 @@ function generateRecursiveSteps(): Step[] {
   });
 
   steps.push({
-    explanation: `Same halving idea as the loop, but expressed with recursion: search(l, r) inspects the middle, then CALLS ITSELF on whichever half can still contain the target. The base case l > r means the window is empty → not found (return −1). We kick it off with search(0, ${nums.length - 1}).`,
-    highlightLine: 15,
+    explanation: `Same halving idea as the loop, but expressed with recursion: search(l, r) inspects the middle, then CALLS ITSELF on whichever half can still contain the target. The base case l > r means the window is empty → not found (return −1). return search(0, len(nums)-1) kicks it off with search(0, ${nums.length - 1}).`,
+    anchor: { match: 'return search(0, len(nums)-1)' },
     state: makeState(0, nums.length - 1, null, 0),
     variables: [{ name: 'target', value: target }],
   });
@@ -185,7 +159,7 @@ function generateRecursiveSteps(): Step[] {
     if (l > r) {
       steps.push({
         explanation: `search(${l}, ${r}): l > r, the window is empty. Base case → return −1 (target not present).`,
-        highlightLine: 5,
+        anchor: { match: 'if l > r:', to: { match: 'return -1' } },
         state: makeState(l, r, null, depth),
         variables: [{ name: 'l', value: l }, { name: 'r', value: r }, { name: 'return', value: -1, highlight: true }],
       });
@@ -196,7 +170,7 @@ function generateRecursiveSteps(): Step[] {
     if (nums[m] === target) {
       steps.push({
         explanation: `search(${l}, ${r}): m = ${m}, nums[${m}] = ${nums[m]} == target ${target}. Found! Return ${m} straight up the call stack.`,
-        highlightLine: 10,
+        anchor: { match: 'if nums[m] == target:', to: { match: 'return m' } },
         state: makeState(l, r, m, depth, m),
         variables: [{ name: 'l', value: l }, { name: 'r', value: r }, { name: 'm', value: m, highlight: true }, { name: 'nums[m]', value: nums[m] }, { name: 'return', value: m, highlight: true }],
       });
@@ -205,8 +179,8 @@ function generateRecursiveSteps(): Step[] {
     }
     if (nums[m] > target) {
       steps.push({
-        explanation: `search(${l}, ${r}): m = ${m}, nums[${m}] = ${nums[m]} > target ${target}. The target must be in the LEFT half. Recurse: search(${l}, ${m - 1}). Call stack grows to depth ${depth + 1}.`,
-        highlightLine: 12,
+        explanation: `search(${l}, ${r}): m = ${m}, nums[${m}] = ${nums[m]} > target ${target}. The target must be in the LEFT half. return search(${l}, ${m - 1}). Call stack grows to depth ${depth + 1}.`,
+        anchor: { match: 'if nums[m] > target:', to: { match: 'return search(l,m-1)' } },
         state: makeState(l, r, m, depth),
         variables: [{ name: 'l', value: l }, { name: 'r', value: r }, { name: 'm', value: m }, { name: 'nums[m]', value: nums[m], highlight: true }],
       });
@@ -215,8 +189,8 @@ function generateRecursiveSteps(): Step[] {
       return res;
     }
     steps.push({
-      explanation: `search(${l}, ${r}): m = ${m}, nums[${m}] = ${nums[m]} < target ${target}. The target must be in the RIGHT half. Recurse: search(${m + 1}, ${r}). Call stack grows to depth ${depth + 1}.`,
-      highlightLine: 13,
+      explanation: `search(${l}, ${r}): m = ${m}, nums[${m}] = ${nums[m]} < target ${target}. No explicit else — falls through: the target must be in the RIGHT half. return search(${m + 1}, ${r}). Call stack grows to depth ${depth + 1}.`,
+      anchor: { match: 'return search(m+1,r)' },
       state: makeState(l, r, m, depth),
       variables: [{ name: 'l', value: l }, { name: 'r', value: r }, { name: 'm', value: m }, { name: 'nums[m]', value: nums[m], highlight: true }],
     });
@@ -228,7 +202,7 @@ function generateRecursiveSteps(): Step[] {
   const answer = search(0, nums.length - 1);
   steps.push({
     explanation: `The found index ${answer} bubbles back through every pending recursive call unchanged. Final answer: ${answer}. Same O(log n) work as the loop, but O(log n) stack space instead of O(1).`,
-    highlightLine: 15,
+    anchor: { match: 'return search(0, len(nums)-1)' },
     state: makeState(answer, answer, answer, 0, answer),
     variables: [{ name: 'result', value: answer, highlight: true }],
   });
@@ -269,7 +243,7 @@ export const binarySearchMeta: AlgorithmMeta = {
   ],
   hint: 'The array is sorted. If the middle element is too big, where can the target possibly be? If it\'s too small, where can it be?',
   solutions: [
-    { label: 'Iterative', pythonCode: ITERATIVE_CODE, generateSteps: generateIterativeSteps },
-    { label: 'Recursive', pythonCode: RECURSIVE_CODE, generateSteps: generateRecursiveSteps },
+    { label: 'Iterative', variant: 'iterative', generateSteps: generateIterativeSteps },
+    { label: 'Recursive', variant: 'recursive', generateSteps: generateRecursiveSteps },
   ],
 };

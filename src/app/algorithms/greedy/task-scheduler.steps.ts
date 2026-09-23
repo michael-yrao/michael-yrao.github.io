@@ -1,138 +1,96 @@
-// Solution + comments sourced from cse-progress: dsa/leetcode/greedy/621_task_scheduler.py
 import { AlgorithmMeta, SolutionVariant, Step, ArrayCell, ProblemExample } from '../../core/models/algorithm.model';
 
-const SIM_PYTHON = `class Solution:
-    def leastInterval(self, tasks: List[str], n: int) -> int:
-        # tackle the most frequent task first (it is the bottleneck) → max heap
-        # each round we pop n + 1 tasks (that is the cooldown window)
-        # leftover tasks (still > 0) go back on the heap
-        freqMap = Counter(tasks)
-        maxHeap = []
-        result = 0
-
-        for key, value in freqMap.items():
-            heapq.heappush(maxHeap, (-value, key))
-
-        while maxHeap:
-            tasksLeftOver = set()
-            for _ in range(n + 1):
-                if maxHeap:
-                    currentTaskCounter, currentTask = heapq.heappop(maxHeap)
-                    currentTaskCounter += 1          # one instance done
-                    result += 1
-                    if currentTaskCounter < 0:
-                        tasksLeftOver.add((currentTaskCounter, currentTask))
-                else:
-                    if not tasksLeftOver:
-                        return result               # all done, no trailing idle
-                    result += 1                     # forced idle
-            for _ in range(len(tasksLeftOver)):
-                heapq.heappush(maxHeap, tasksLeftOver.pop())
-        return result`;
-
-const BULK_PYTHON = `class Solution:
-    # O(n) — no per-slot idle counting; add a whole cooldown window at once
-    def leastInterval(self, tasks: List[str], n: int) -> int:
-        freqMap = Counter(tasks)
-        maxHeap = []
-        for key, value in freqMap.items():
-            heapq.heappush(maxHeap, (-value, key))
-
-        interval = 0
-        maxTaskToDo = n + 1
-        while maxHeap:
-            sizeOfHeap = len(maxHeap)
-            tasksToQueue = min(maxTaskToDo, sizeOfHeap)
-            tasksToAddBack = set()
-            for _ in range(tasksToQueue):
-                currentCounter, currentTask = heapq.heappop(maxHeap)
-                currentCounter += 1
-                if currentCounter < 0:
-                    tasksToAddBack.add((currentCounter, currentTask))
-            for currentCounter, currentTask in tasksToAddBack:
-                heapq.heappush(maxHeap, (currentCounter, currentTask))
-            # full window needed only if tasks remain; else just what we did
-            if len(maxHeap) > 0:
-                interval += maxTaskToDo
-            else:
-                interval += tasksToQueue
-        return interval`;
+// Both variants below trace their cse-progress attempts (leastInterval, leastInterval_20260809)
+// with an EXPLICIT heap array, not a recomputed-each-slot `remaining` count: recomputing
+// "most frequent remaining" from scratch every slot let the same task be picked twice inside
+// one cooldown window, which the real heap (item removed on pop, only returned at round's end)
+// never allows. Heap entries are kept as [negCount, task] pairs, matching Python's
+// heapq.heappush(maxHeap, (-count, task)) convention.
 
 const TASKS = ['A', 'A', 'A', 'B', 'B', 'B'];
 const N = 2;
 
-// Render the max-heap (task → remaining count) as array cells, highlighting one.
-function heapCells(remaining: Record<string, number>, active: string | null): ArrayCell[] {
-  return Object.keys(remaining)
-    .filter((t) => remaining[t] > 0)
-    .sort((a, b) => remaining[b] - remaining[a] || a.localeCompare(b))
-    .map((t) => ({ value: `${t}×${remaining[t]}`, state: t === active ? 'active' : 'default' }));
+/** [negative count, task] — mirrors Python's (-value, key) heap tuples. */
+type HeapEntry = readonly [number, string];
+
+/** heapq pops the smallest tuple first: most-negative count first, ties broken by task letter
+ *  (heapq compares the tuple's 2nd element next). */
+function heapSort(entries: readonly HeapEntry[]): HeapEntry[] {
+  return [...entries].sort(([negA, taskA], [negB, taskB]) => negA - negB || taskA.localeCompare(taskB));
 }
 
-function heapItems(remaining: Record<string, number>): (string | number)[] {
-  return Object.keys(remaining)
-    .filter((t) => remaining[t] > 0)
-    .sort((a, b) => remaining[b] - remaining[a] || a.localeCompare(b))
-    .map((t) => `(-${remaining[t]}, ${t})`);
+function buildInitialHeap(tasks: readonly string[]): HeapEntry[] {
+  const freq = new Map<string, number>();
+  tasks.forEach((t) => freq.set(t, (freq.get(t) ?? 0) + 1));
+  const entries: HeapEntry[] = [...freq.entries()].map(([task, count]) => [-count, task]);
+  return heapSort(entries);
 }
 
-// ── Variant A: per-slot simulation counting idles ─────────────────────────────
+function heapCells(heap: readonly HeapEntry[], active: string | null): ArrayCell[] {
+  return heap.map(([negCount, task]) => ({
+    value: `${task}×${-negCount}`,
+    state: task === active ? ('active' as const) : ('default' as const),
+  }));
+}
+
+function heapItems(heap: readonly HeapEntry[]): (string | number)[] {
+  return heap.map(([negCount, task]) => `(${negCount}, ${task})`);
+}
+
+// ── Variant A: leastInterval — per-slot simulation counting idles ─────────────
 function generateSimSteps(): Step[] {
   const steps: Step[] = [];
-  const remaining: Record<string, number> = {};
-  TASKS.forEach((t) => (remaining[t] = (remaining[t] ?? 0) + 1));
+  let heap = buildInitialHeap(TASKS);
   let result = 0;
-  const timeline: string[] = [];
 
   steps.push({
     explanation:
-      'Count each task (A×3, B×3) and push onto a max-heap keyed by frequency. The most frequent task is the bottleneck, so we always schedule it first. n = 2 → each cooldown window holds n+1 = 3 slots.',
-    highlightLine: 6,
+      'Count each task (A×3, B×3) and push (−count, task) onto a heap — heapq pops the most negative first, i.e. the current highest count. n = 2 → each cooldown window holds n+1 = 3 slots.',
+    anchor: { match: 'for key, value in freqMap.items():', to: { match: 'heapq.heappush(maxHeap,(-value, key))' } },
     state: {
       type: 'array',
-      cells: heapCells(remaining, null),
+      cells: heapCells(heap, null),
       pointers: [],
-      stackItems: heapItems(remaining),
+      stackItems: heapItems(heap),
       counters: [{ label: 'result', value: 0 }, { label: 'n+1', value: N + 1 }],
     },
     variables: [],
   });
 
   let round = 0;
-  while (Object.values(remaining).some((c) => c > 0)) {
+  while (heap.length > 0) {
     round++;
-    const leftover: [string, number][] = [];
+    let tasksLeftOver: HeapEntry[] = [];
+
     steps.push({
-      explanation: `Round ${round}: open a fresh cooldown window of ${N + 1} slots. tasksLeftOver = {}. Pop up to ${N + 1} distinct tasks; anything still remaining after this round goes back on the heap.`,
-      highlightLine: 15,
+      explanation: `Round ${round}: tasksLeftOver = set(). Pop up to n+1=${N + 1} tasks off maxHeap this window; anything still negative after +1 goes into tasksLeftOver to push back at the end of the round.`,
+      anchor: { match: 'tasksLeftOver = set()' },
       state: {
         type: 'array',
-        cells: heapCells(remaining, null),
+        cells: heapCells(heap, null),
         pointers: [],
-        stackItems: heapItems(remaining),
+        stackItems: heapItems(heap),
         counters: [{ label: 'round', value: round }, { label: 'result', value: result }],
       },
-      variables: [{ name: 'timeline', value: timeline.join(' ') || '—' }],
+      variables: [],
     });
 
     for (let slot = 0; slot < N + 1; slot++) {
-      const avail = Object.keys(remaining)
-        .filter((t) => remaining[t] > 0)
-        .sort((a, b) => remaining[b] - remaining[a] || a.localeCompare(b));
-      if (avail.length > 0) {
-        const task = avail[0];
-        remaining[task]--;
+      if (heap.length > 0) {
+        const [negCount, task] = heap[0];
+        heap = heap.slice(1);
+        const currentTaskCounter = negCount + 1;
         result++;
-        timeline.push(task);
-        if (remaining[task] > 0) leftover.push([task, remaining[task]]);
+        if (currentTaskCounter < 0) tasksLeftOver = [...tasksLeftOver, [currentTaskCounter, task]];
+
         steps.push({
-          explanation: `Slot ${slot + 1}: pop the most frequent task ${task} and run it (result → ${result}). It now has ${remaining[task]} left${remaining[task] > 0 ? ' → set aside to re-add after the window' : ' → done, drops out'}.`,
-          highlightLine: 20,
+          explanation: `Slot ${slot + 1}: pop (${negCount}, ${task}) off maxHeap. currentTaskCounter = ${negCount} + 1 = ${currentTaskCounter}. result += 1 → ${result}. ${currentTaskCounter < 0 ? `Still negative → tasksLeftOver.add((${currentTaskCounter}, ${task})).` : `Reached 0 → ${task} drops out (not re-added).`}`,
+          anchor: { match: 'currentTaskCounter, currentTask = heapq.heappop(maxHeap)', to: { match: 'tasksLeftOver.add((currentTaskCounter, currentTask))' } },
           state: {
             type: 'array',
-            cells: heapCells(remaining, task),
+            cells: heapCells(heap, task),
             pointers: [],
-            stackItems: heapItems(remaining),
+            stackItems: heapItems(heap),
             counters: [
               { label: 'round', value: round },
               { label: 'slot', value: `${slot + 1}/${N + 1}` },
@@ -141,73 +99,71 @@ function generateSimSteps(): Step[] {
           },
           variables: [
             { name: 'currentTask', value: task, highlight: true },
+            { name: 'currentTaskCounter', value: currentTaskCounter },
             { name: 'result', value: result },
-            { name: 'timeline', value: timeline.join(' ') },
           ],
         });
-      } else {
-        // heap empty this slot
-        if (leftover.length === 0) {
-          steps.push({
-            explanation: `Slot ${slot + 1}: heap is empty AND nothing is set aside → every task is scheduled. Return result = ${result} with no trailing idle.`,
-            highlightLine: 24,
-            state: {
-              type: 'array',
-              cells: [],
-              pointers: [],
-              stackItems: [],
-              counters: [{ label: 'result (final)', value: result }],
-            },
-            variables: [
-              { name: 'return', value: result, highlight: true },
-              { name: 'timeline', value: timeline.join(' ') },
-            ],
-          });
-          return steps;
-        }
-        result++;
-        timeline.push('idle');
+      } else if (tasksLeftOver.length === 0) {
         steps.push({
-          explanation: `Slot ${slot + 1}: heap is empty but tasks are set aside for the next window → forced idle. result → ${result}.`,
-          highlightLine: 25,
+          explanation: `Slot ${slot + 1}: maxHeap is empty AND tasksLeftOver is empty → every task is scheduled. Return result = ${result} with no trailing idle.`,
+          // nth 1 hit: contract line 132 `return result` (the loop's early return).
+          // skips line 138, the loop's final `return result`.
+          anchor: { match: 'if not tasksLeftOver:', to: { match: 'return result', nth: 1 } },
           state: {
             type: 'array',
-            cells: heapCells(remaining, null),
+            cells: [],
             pointers: [],
-            stackItems: heapItems(remaining),
+            stackItems: [],
+            counters: [{ label: 'result (final)', value: result }],
+          },
+          variables: [{ name: 'return', value: result, highlight: true }],
+        });
+        return steps;
+      } else {
+        result++;
+        steps.push({
+          explanation: `Slot ${slot + 1}: maxHeap is empty but tasksLeftOver is non-empty → forced idle. result += 1 → ${result}.`,
+          // nth 2 hit: contract line 134 `result+=1` (the else/idle branch's increment).
+          // skips line 124, the pop branch's `result+=1`.
+          anchor: { match: 'else:', to: { match: 'result+=1', nth: 2 } },
+          state: {
+            type: 'array',
+            cells: heapCells(heap, null),
+            pointers: [],
+            stackItems: heapItems(heap),
             counters: [
               { label: 'round', value: round },
               { label: 'slot', value: `${slot + 1}/${N + 1} (idle)` },
               { label: 'result', value: result },
             ],
           },
-          variables: [
-            { name: 'idle', value: 'yes', highlight: true },
-            { name: 'timeline', value: timeline.join(' ') },
-          ],
+          variables: [{ name: 'idle', value: 'yes', highlight: true }],
         });
       }
     }
 
-    if (leftover.length > 0) {
+    if (tasksLeftOver.length > 0) {
+      heap = heapSort([...heap, ...tasksLeftOver]);
       steps.push({
-        explanation: `End of round ${round}: push the set-aside tasks back on the heap [${leftover.map(([t, c]) => `${t}×${c}`).join(', ')}] and start the next window.`,
-        highlightLine: 27,
+        explanation: `End of round ${round}: push tasksLeftOver [${tasksLeftOver.map(([c, t]) => `(${c}, ${t})`).join(', ')}] back onto maxHeap → [${heapItems(heap).join(', ')}].`,
+        anchor: { match: 'for _ in range(len(tasksLeftOver)):', to: { match: 'heapq.heappush(maxHeap, tasksLeftOver.pop())' } },
         state: {
           type: 'array',
-          cells: heapCells(remaining, null),
+          cells: heapCells(heap, null),
           pointers: [],
-          stackItems: heapItems(remaining),
+          stackItems: heapItems(heap),
           counters: [{ label: 'result', value: result }],
         },
-        variables: [{ name: 'timeline', value: timeline.join(' ') }],
+        variables: [],
       });
     }
   }
 
   steps.push({
-    explanation: `Heap empty → return result = ${result}. Timeline: ${timeline.join(' ')}.`,
-    highlightLine: 29,
+    explanation: `maxHeap is empty → return result = ${result}.`,
+    // nth 2 hit: contract line 138, the loop's final `return result`.
+    // skips line 132, the loop's early `return result`.
+    anchor: { match: 'return result', nth: 2 },
     state: {
       type: 'array',
       cells: [],
@@ -221,106 +177,128 @@ function generateSimSteps(): Step[] {
   return steps;
 }
 
-// ── Variant B: O(n) bulk-interval, no per-slot idle counting ──────────────────
+// ── Variant B: leastInterval_20260809 — O(n) bulk-interval, no per-slot idles ─
 function generateBulkSteps(): Step[] {
   const steps: Step[] = [];
-  const remaining: Record<string, number> = {};
-  TASKS.forEach((t) => (remaining[t] = (remaining[t] ?? 0) + 1));
-  let interval = 0;
-  const maxTaskToDo = N + 1;
+  let heap = buildInitialHeap(TASKS);
+  let intervals = 0;
+  const tasksPerCycle = N + 1;
 
   steps.push({
     explanation:
-      'Same max-heap, but never count idles one-by-one. Each round we process min(heapSize, n+1) tasks, then jump the clock: a full n+1 window if any tasks remain (the gap must be filled), otherwise just the tasks we actually did.',
-    highlightLine: 5,
+      'Same heap, built the same way, but never counts idle slots one-by-one. Each round pops min(numUniqueTasks, tasksPerCycle) tasks, then jumps the clock: a full tasksPerCycle window if any tasks remain (the gap must be filled), otherwise just the tasks actually done.',
+    anchor: { match: 'for task, freq in freqMap.items():', to: { match: 'heapq.heappush(maxHeap,(-freq, task))' } },
     state: {
       type: 'array',
-      cells: heapCells(remaining, null),
+      cells: heapCells(heap, null),
       pointers: [],
-      stackItems: heapItems(remaining),
-      counters: [{ label: 'interval', value: 0 }, { label: 'n+1', value: maxTaskToDo }],
+      stackItems: heapItems(heap),
+      counters: [{ label: 'intervals', value: 0 }, { label: 'tasksPerCycle', value: tasksPerCycle }],
     },
     variables: [],
   });
 
   let round = 0;
-  while (Object.values(remaining).some((c) => c > 0)) {
+  while (heap.length > 0) {
     round++;
-    const sizeOfHeap = Object.keys(remaining).filter((t) => remaining[t] > 0).length;
-    const tasksToQueue = Math.min(maxTaskToDo, sizeOfHeap);
+    const numUniqueTasks = heap.length;
+    const maxAllotedTasks = Math.min(tasksPerCycle, numUniqueTasks);
+    let tasksLeft: HeapEntry[] = [];
 
     steps.push({
-      explanation: `Round ${round}: heap has ${sizeOfHeap} distinct tasks. tasksToQueue = min(${maxTaskToDo}, ${sizeOfHeap}) = ${tasksToQueue}. Pop that many and decrement each.`,
-      highlightLine: 15,
+      explanation: `Round ${round}: numUniqueTasks = len(maxHeap) = ${numUniqueTasks}. maxAllotedTasks = min(tasksPerCycle, numUniqueTasks) = min(${tasksPerCycle}, ${numUniqueTasks}) = ${maxAllotedTasks}. Pop that many and increment each.`,
+      anchor: { match: 'numUniqueTasks = len(maxHeap)', to: { match: 'tasksLeft = []' } },
       state: {
         type: 'array',
-        cells: heapCells(remaining, null),
+        cells: heapCells(heap, null),
         pointers: [],
-        stackItems: heapItems(remaining),
+        stackItems: heapItems(heap),
         counters: [
           { label: 'round', value: round },
-          { label: 'tasksToQueue', value: tasksToQueue },
-          { label: 'interval', value: interval },
+          { label: 'maxAllotedTasks', value: maxAllotedTasks },
+          { label: 'intervals', value: intervals },
         ],
       },
-      variables: [{ name: 'sizeOfHeap', value: sizeOfHeap }],
+      variables: [{ name: 'numUniqueTasks', value: numUniqueTasks }],
     });
 
-    for (let i = 0; i < tasksToQueue; i++) {
-      const task = Object.keys(remaining)
-        .filter((t) => remaining[t] > 0)
-        .sort((a, b) => remaining[b] - remaining[a] || a.localeCompare(b))[0];
-      remaining[task]--;
+    for (let i = 0; i < maxAllotedTasks; i++) {
+      const [negFreq, task] = heap[0];
+      heap = heap.slice(1);
+      const currentTaskFreq = negFreq + 1;
+      if (currentTaskFreq !== 0) tasksLeft = [...tasksLeft, [currentTaskFreq, task]];
+
       steps.push({
-        explanation: `Pop ${task}, run one instance → ${remaining[task]} left${remaining[task] > 0 ? ' (re-added after the round)' : ' (done)'}.`,
-        highlightLine: 18,
+        explanation: `Pop (${negFreq}, ${task}) off maxHeap. currentTaskFreq = ${negFreq} + 1 = ${currentTaskFreq}. ${currentTaskFreq !== 0 ? `!= 0 → tasksLeft.append((${currentTaskFreq}, ${task})).` : `== 0 → ${task} is done, not re-added.`}`,
+        anchor: { match: 'currentTaskFreq, currentTask = heapq.heappop(maxHeap)', to: { match: 'tasksLeft.append((currentTaskFreq,currentTask))' } },
         state: {
           type: 'array',
-          cells: heapCells(remaining, task),
+          cells: heapCells(heap, task),
           pointers: [],
-          stackItems: heapItems(remaining),
+          stackItems: heapItems(heap),
           counters: [
             { label: 'round', value: round },
-            { label: 'popped', value: `${i + 1}/${tasksToQueue}` },
-            { label: 'interval', value: interval },
+            { label: 'popped', value: `${i + 1}/${maxAllotedTasks}` },
+            { label: 'intervals', value: intervals },
           ],
         },
-        variables: [{ name: 'currentTask', value: task, highlight: true }],
+        variables: [
+          { name: 'currentTask', value: task, highlight: true },
+          { name: 'currentTaskFreq', value: currentTaskFreq },
+        ],
       });
     }
 
-    const stillLeft = Object.values(remaining).some((c) => c > 0);
-    interval += stillLeft ? maxTaskToDo : tasksToQueue;
+    heap = heapSort([...heap, ...tasksLeft]);
+    if (tasksLeft.length > 0) {
+      steps.push({
+        explanation: `Push tasksLeft [${tasksLeft.map(([c, t]) => `(${c}, ${t})`).join(', ')}] back onto maxHeap → [${heapItems(heap).join(', ')}].`,
+        anchor: { match: 'for taskFreq, task in tasksLeft:', to: { match: 'heapq.heappush(maxHeap,(taskFreq,task))' } },
+        state: {
+          type: 'array',
+          cells: heapCells(heap, null),
+          pointers: [],
+          stackItems: heapItems(heap),
+          counters: [{ label: 'round', value: round }, { label: 'intervals', value: intervals }],
+        },
+        variables: [],
+      });
+    }
+
+    const stillLeft = heap.length > 0;
+    intervals += stillLeft ? tasksPerCycle : maxAllotedTasks;
     steps.push({
       explanation: stillLeft
-        ? `Tasks still remain → this window must be padded to the full ${maxTaskToDo}. interval += ${maxTaskToDo} → ${interval}.`
-        : `Heap is now empty → no trailing padding needed. interval += tasksToQueue (${tasksToQueue}) → ${interval}.`,
-      highlightLine: stillLeft ? 24 : 26,
+        ? `maxHeap is non-empty → this window must be padded to the full tasksPerCycle. intervals += ${tasksPerCycle} → ${intervals}.`
+        : `maxHeap is now empty → no trailing padding needed. intervals += maxAllotedTasks (${maxAllotedTasks}) → ${intervals}.`,
+      anchor: stillLeft
+        ? { match: 'if maxHeap:', to: { match: 'intervals+=tasksPerCycle' } }
+        : { match: 'else:', to: { match: 'intervals+=maxAllotedTasks' } },
       state: {
         type: 'array',
-        cells: heapCells(remaining, null),
+        cells: heapCells(heap, null),
         pointers: [],
-        stackItems: heapItems(remaining),
+        stackItems: heapItems(heap),
         counters: [
           { label: 'round', value: round },
-          { label: 'interval', value: interval, },
+          { label: 'intervals', value: intervals },
         ],
       },
-      variables: [{ name: 'interval', value: interval, highlight: true }],
+      variables: [{ name: 'intervals', value: intervals, highlight: true }],
     });
   }
 
   steps.push({
-    explanation: `Heap empty → return interval = ${interval}. Same answer as the per-slot simulation, computed without touching individual idle slots.`,
-    highlightLine: 27,
+    explanation: `maxHeap is empty → return intervals = ${intervals}. Same answer as the per-slot simulation, computed without touching individual idle slots.`,
+    anchor: { match: 'return intervals' },
     state: {
       type: 'array',
       cells: [],
       pointers: [],
       stackItems: [],
-      counters: [{ label: 'interval (final)', value: interval }],
+      counters: [{ label: 'intervals (final)', value: intervals }],
     },
-    variables: [{ name: 'return', value: interval, highlight: true }],
+    variables: [{ name: 'return', value: intervals, highlight: true }],
   });
 
   return steps;
@@ -328,7 +306,7 @@ function generateBulkSteps(): Step[] {
 
 const simVariant: SolutionVariant = {
   label: 'Max-Heap Simulation (count idles)',
-  pythonCode: SIM_PYTHON,
+  variant: 'heap-simulation',
   generateSteps: generateSimSteps,
   timeComplexity: 'O(total intervals)',
   spaceComplexity: 'O(1) — at most 26 tasks',
@@ -336,7 +314,7 @@ const simVariant: SolutionVariant = {
 
 const bulkVariant: SolutionVariant = {
   label: 'Max-Heap O(n) (bulk intervals)',
-  pythonCode: BULK_PYTHON,
+  variant: 'heap-bulk',
   generateSteps: generateBulkSteps,
   timeComplexity: 'O(n)',
   spaceComplexity: 'O(1) — at most 26 tasks',

@@ -1,19 +1,11 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def removeElementTwoPointer(self, nums: List[int], val: int) -> int:
-        # use counter to keep track of where the replacement should go
-        # iterate through the list
-        # if nums[i] == val, counter stays here
-        # if nums[i] != val, replace nums[counter] = nums[i], increment counter
-
-        counter = 0
-        for value in enumerate(nums):
-            if value != val:
-                nums[counter] = value
-                counter+=1
-
-        return counter`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's removeElement_20260626 verbatim: `l = r = 0`, then
+// `while r < len(nums): if nums[r] != val: nums[l] = nums[r]; l += 1; r += 1`
+// — l is the write pointer, r is the read pointer, r advances every
+// iteration regardless of the branch taken.
 
 function generateSteps(): Step[] {
   const numsOrig = [0, 1, 2, 2, 3, 0, 4, 2];
@@ -23,123 +15,123 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation:
-      `Remove Element on nums=[${numsOrig.join(',')}], val=${val}. Two-pointer approach: k is the write position. Walk i through the array; when nums[i] != val, write it to nums[k] and increment k. Elements at k and beyond after the loop are "don't care".`,
-    highlightLine: 9,
+      `Remove Element on nums=[${numsOrig.join(',')}], val=${val}. Two-pointer approach: l is the write position, r is the read position (l = r = 0). Walk r through the array; when nums[r] != val, write it to nums[l] and increment l. r advances every iteration either way. Elements at l and beyond after the loop are "don't care".`,
+    anchor: { match: 'l = r = 0' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [{ index: 0, label: 'k=0' }, { index: 0, label: 'i=0' }],
+      pointers: [{ index: 0, label: 'l=0' }, { index: 0, label: 'r=0' }],
       counters: [
-        { label: 'k (write ptr)', value: 0 },
-        { label: 'i (read ptr)', value: 0 },
+        { label: 'l (write ptr)', value: 0 },
+        { label: 'r (read ptr)', value: 0 },
         { label: 'val', value: val },
       ],
     },
     variables: [
       { name: 'nums', value: `[${numsOrig.join(',')}]` },
       { name: 'val', value: val },
-      { name: 'k', value: 0 },
+      { name: 'l', value: 0 },
     ],
   });
 
-  let k = 0;
+  let l = 0;
 
-  for (let i = 0; i < nums.length; i++) {
-    const cur = nums[i];
+  for (let r = 0; r < nums.length; r++) {
+    const cur = nums[r];
     const isVal = cur === val;
 
     steps.push({
-      explanation: `i=${i}: nums[i]=${cur}. ${isVal ? `Equal to val=${val} → skip (k stays at ${k}).` : `Not val → write nums[${k}] = ${cur}, increment k to ${k + 1}.`}`,
-      highlightLine: isVal ? 11 : 12,
+      explanation: `r=${r}: nums[r]=${cur}. ${isVal ? `Equal to val=${val} → skip (l stays at ${l}).` : `Not val → write nums[${l}] = ${cur}, increment l to ${l + 1}.`}`,
+      anchor: { match: 'if nums[r] != val:' },
       state: {
         type: 'array',
         cells: nums.map((v, idx) => ({
           value: v,
           state:
-            idx === i
+            idx === r
               ? ('active' as const)
-              : idx < k
+              : idx < l
               ? ('found' as const)
               : ('default' as const),
         })),
         pointers: [
-          { index: k, label: 'k' },
-          { index: i, label: 'i' },
+          { index: l, label: 'l' },
+          { index: r, label: 'r' },
         ],
         counters: [
-          { label: 'k (write ptr)', value: k },
-          { label: 'i (read ptr)', value: i },
-          { label: 'nums[i]', value: cur },
+          { label: 'l (write ptr)', value: l },
+          { label: 'r (read ptr)', value: r },
+          { label: 'nums[r]', value: cur },
           { label: 'is val?', value: isVal ? 'yes→skip' : 'no→write' },
         ],
       },
       variables: [
-        { name: 'i', value: i },
-        { name: 'nums[i]', value: cur, highlight: true },
-        { name: 'k', value: k },
+        { name: 'r', value: r },
+        { name: 'nums[r]', value: cur, highlight: true },
+        { name: 'l', value: l },
       ],
     });
 
     if (!isVal) {
-      nums[k] = cur;
-      k++;
+      nums[l] = cur;
+      l++;
 
       steps.push({
-        explanation: `Wrote ${cur} to position ${k - 1}. k is now ${k}. First ${k} element(s) in result: [${nums.slice(0, k).join(',')}].`,
-        highlightLine: 12,
+        explanation: `Wrote ${cur} to position ${l - 1}. l is now ${l}. First ${l} element(s) in result: [${nums.slice(0, l).join(',')}].`,
+        anchor: { match: 'nums[l] = nums[r]', to: { match: 'l+=1' } },
         state: {
           type: 'array',
           cells: nums.map((v, idx) => ({
             value: v,
             state:
-              idx < k
+              idx < l
                 ? ('found' as const)
-                : idx === i
+                : idx === r
                 ? ('visited' as const)
                 : ('default' as const),
           })),
           pointers: [
-            { index: k < nums.length ? k : nums.length - 1, label: 'k' },
-            { index: i, label: 'i' },
+            { index: l < nums.length ? l : nums.length - 1, label: 'l' },
+            { index: r, label: 'r' },
           ],
           counters: [
-            { label: 'k (write ptr)', value: k },
-            { label: 'i (read ptr)', value: i },
-            { label: 'result so far', value: `[${nums.slice(0, k).join(',')}]` },
+            { label: 'l (write ptr)', value: l },
+            { label: 'r (read ptr)', value: r },
+            { label: 'result so far', value: `[${nums.slice(0, l).join(',')}]` },
           ],
         },
         variables: [
-          { name: 'k', value: k, highlight: true },
-          { name: 'result', value: `[${nums.slice(0, k).join(',')}]` },
+          { name: 'l', value: l, highlight: true },
+          { name: 'result', value: `[${nums.slice(0, l).join(',')}]` },
         ],
       });
     } else {
       steps.push({
-        explanation: `nums[${i}]=${cur} equals val=${val} → eliminated (skip). k stays at ${k}.`,
-        highlightLine: 11,
+        explanation: `nums[${r}]=${cur} equals val=${val} → eliminated (skip). l stays at ${l}.`,
+        anchor: { match: 'if nums[r] != val:' },
         state: {
           type: 'array',
           cells: nums.map((v, idx) => ({
             value: v,
             state:
-              idx === i
+              idx === r
                 ? ('eliminated' as const)
-                : idx < k
+                : idx < l
                 ? ('found' as const)
                 : ('default' as const),
           })),
           pointers: [
-            { index: k < nums.length ? k : nums.length - 1, label: 'k' },
-            { index: i, label: 'i' },
+            { index: l < nums.length ? l : nums.length - 1, label: 'l' },
+            { index: r, label: 'r' },
           ],
           counters: [
-            { label: 'k (write ptr)', value: k },
-            { label: 'i (read ptr)', value: i },
+            { label: 'l (write ptr)', value: l },
+            { label: 'r (read ptr)', value: r },
             { label: 'skipped val', value: cur },
           ],
         },
         variables: [
-          { name: 'k', value: k },
+          { name: 'l', value: l },
           { name: 'skipped', value: cur, highlight: true },
         ],
       });
@@ -147,21 +139,21 @@ function generateSteps(): Step[] {
   }
 
   steps.push({
-    explanation: `Done. k=${k} elements remain. Result (first ${k} elements): [${nums.slice(0, k).join(',')}]. The remaining cells are "don't care". Return k=${k}.`,
-    highlightLine: 14,
+    explanation: `Done. l=${l} elements remain. Result (first ${l} elements): [${nums.slice(0, l).join(',')}]. The remaining cells are "don't care". Return l=${l}.`,
+    anchor: { match: 'return l' },
     state: {
       type: 'array',
       cells: nums.map((v, idx) => ({
         value: v,
-        state: idx < k ? ('found' as const) : ('eliminated' as const),
+        state: idx < l ? ('found' as const) : ('eliminated' as const),
       })),
       pointers: [],
       counters: [
-        { label: 'k (return)', value: k },
-        { label: 'result', value: `[${nums.slice(0, k).join(',')}]` },
+        { label: 'l (return)', value: l },
+        { label: 'result', value: `[${nums.slice(0, l).join(',')}]` },
       ],
     },
-    variables: [{ name: 'return k', value: k, highlight: true }],
+    variables: [{ name: 'return l', value: l, highlight: true }],
   });
 
   return steps;
@@ -169,7 +161,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Two Pointer (Write Position)',
-  pythonCode: PYTHON_CODE,
+  variant: 'write-pointer',
   generateSteps,
 };
 

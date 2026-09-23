@@ -1,58 +1,10 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE_BFS = `import collections
-from typing import List
-
-class Solution:
-    def findOrder(self, numCourses: int, prerequisites: List[List[int]]) -> List[int]:
-        # so same idea as course schedule 1
-        # we need to find starting nodes to go for
-        # so we once again need a way to indicate whether a course is takeable
-        # so we will use canTake = [0] * numCourses
-        # then we will have a map of prereq -> courses
-        # traverse through the neighbors and add to a result list as we take each course
-        # one thing we do need to consider is cycles
-        # so how do we detect cycles in a graph
-
-        canTake = [0] * numCourses
-
-        prereqMap = collections.defaultdict(list)
-
-        courseList = []
-
-        for row in prerequisites:
-            course = row[0]
-            prereq = row[1]
-            # increase requirement for this course
-            canTake[course]+=1
-            # append to prereq
-            prereqMap[prereq].append(course)
-
-        # now we go through the canTake array and put everything takeable now into the queue for BFS
-
-        courseQueue = collections.deque()
-
-        for i in range(len(canTake)):
-            if canTake[i] == 0:
-                courseQueue.append(i)
-
-        # with this initial list of takeable classes, we start BFS
-
-        while courseQueue:
-            currentCourse = courseQueue.popleft()
-            # we mark this as taken by adding to the result
-            courseList.append(currentCourse)
-            # now we check neighbors of this and add to the list if they are takeable
-            for neighbor in prereqMap[currentCourse]:
-                canTake[neighbor]-=1
-                # if takeable, add to queue
-                if canTake[neighbor] <= 0:
-                    courseQueue.append(neighbor)
-
-        if numCourses != len(courseList):
-            return []
-        else:
-            return courseList`;
+// Traces cse-progress's findOrder_20260822 verbatim: Kahn's BFS with numRequirements,
+// adjMap, queue and result, plus a takenCourses set that's populated but never read (dead
+// bookkeeping in the attempt — kept faithfully, not used for any decision below). The
+// enqueue check is numRequirements[neighbor] == 0 (not <= 0), same outcome for this input
+// since a count is only ever decremented once per prerequisite edge.
 
 // numCourses = 4, prerequisites = [[1,0],[2,0],[3,1],[3,2]]
 // Same BFS as 207 but we record the dequeue order → result = [0,1,2,3] or [0,2,1,3]
@@ -94,12 +46,13 @@ function generateStepsBFS(): Step[] {
   const visited = new Set<number>();
   const found = new Set<number>();
   const courseList: number[] = [];
+  const takenCourses = new Set<number>();
   const queue: number[] = [];
 
   // Step 0: Introduction
   steps.push({
-    explanation: `Course Schedule II: find the order to take all 4 courses given prerequisites [[1,0],[2,0],[3,1],[3,2]]. Same Kahn's BFS as Course Schedule I, but now we record each dequeued course into courseList to build the result ordering. Cell values show each course's current in-degree.`,
-    highlightLine: 15,
+    explanation: `Course Schedule II: find the order to take all 4 courses given prerequisites [[1,0],[2,0],[3,1],[3,2]]. Same Kahn's BFS as Course Schedule I, but now we record each dequeued course into result to build the ordering. Cell values show each course's current in-degree.`,
+    anchor: { match: 'numRequirements = [0] * numCourses' },
     state: {
       type: 'array',
       cells: [0, 1, 2, 3].map(i => ({ value: deg[i] as string | number, state: 'default' as const })),
@@ -123,8 +76,8 @@ function generateStepsBFS(): Step[] {
 
   // Step 1: Build canTake and prereqMap
   steps.push({
-    explanation: `Build canTake and prereqMap. For each [course, prereq]: canTake[course]++ and prereqMap[prereq].append(course). Result: canTake = [0,1,1,2], prereqMap = {0:[1,2], 1:[3], 2:[3]}. courseList starts empty — it will be filled as we take courses.`,
-    highlightLine: 21,
+    explanation: `Build numRequirements and adjMap. For each (course, prereq): adjMap[prereq].append(course), then numRequirements[course]++. Result: numRequirements = [0,1,1,2], adjMap = {0:[1,2], 1:[3], 2:[3]}. result starts empty — it will be filled as we take courses.`,
+    anchor: { match: 'for course, prereq in prerequisites:', to: { match: 'numRequirements[course]+=1' } },
     state: {
       type: 'array',
       cells: [0, 1, 2, 3].map(i => ({ value: deg[i] as string | number, state: 'default' as const })),
@@ -136,17 +89,17 @@ function generateStepsBFS(): Step[] {
       ],
     },
     variables: [
-      { name: 'canTake', value: '[0,1,1,2]' },
-      { name: 'prereqMap', value: '{0:[1,2], 1:[3], 2:[3]}' },
-      { name: 'courseList', value: '[]' },
+      { name: 'numRequirements', value: '[0,1,1,2]' },
+      { name: 'adjMap', value: '{0:[1,2], 1:[3], 2:[3]}' },
+      { name: 'result', value: '[]' },
     ],
   });
 
   // Step 2: Seed queue
   queue.push(0);
   steps.push({
-    explanation: `Seed BFS queue: scan canTake for all indices with value 0. Only course 0 has in-degree 0. courseQueue = [0]. These are the courses with no prerequisites — our BFS entry points.`,
-    highlightLine: 33,
+    explanation: `Seed BFS queue: scan numRequirements for all indices with value 0. Only course 0 has in-degree 0. queue = [0]. These are the courses with no prerequisites — our BFS entry points.`,
+    anchor: { match: 'for i in range(numCourses):', to: { match: 'queue.append(i)' } },
     state: {
       type: 'array',
       cells: makeCells(0, new Set(), new Set(), deg),
@@ -157,17 +110,18 @@ function generateStepsBFS(): Step[] {
         { label: 'result order', value: '[]' },
       ],
     },
-    variables: [{ name: 'courseQueue', value: '[0]' }],
+    variables: [{ name: 'queue', value: '[0]' }],
   });
 
   // BFS iteration 1: dequeue 0
   queue.shift();
+  takenCourses.add(0);
   courseList.push(0);
   visited.add(0);
 
   steps.push({
-    explanation: `BFS iteration 1: dequeue course 0. Append to courseList → courseList = [${courseList.join(', ')}]. Process neighbors [${adj[0].join(', ')}]: decrement their in-degrees since course 0 is now taken.`,
-    highlightLine: 42,
+    explanation: `BFS iteration 1: dequeue course 0. takenCourses.add(0); result.append(0) → result = [${courseList.join(', ')}]. Process adjMap[0] = [${adj[0].join(', ')}]: decrement their in-degrees since course 0 is now taken.`,
+    anchor: { match: 'currentCourse = queue.popleft()', to: { match: 'result.append(currentCourse)' } },
     state: {
       type: 'array',
       cells: makeCells(0, visited, found, deg),
@@ -180,7 +134,7 @@ function generateStepsBFS(): Step[] {
     },
     variables: [
       { name: 'currentCourse', value: 0 },
-      { name: 'courseList', value: `[${courseList.join(', ')}]` },
+      { name: 'result', value: `[${courseList.join(', ')}]` },
     ],
   });
 
@@ -189,8 +143,8 @@ function generateStepsBFS(): Step[] {
   queue.push(1, 2);
 
   steps.push({
-    explanation: `Decrement neighbors of course 0. canTake[1]: 1→0 (enqueue). canTake[2]: 1→0 (enqueue). Queue = [1, 2]. Both courses 1 and 2 are now available to take.`,
-    highlightLine: 45,
+    explanation: `Decrement neighbors of course 0. numRequirements[1]: 1→0 (enqueue). numRequirements[2]: 1→0 (enqueue). queue = [1, 2]. Both courses 1 and 2 are now available to take.`,
+    anchor: { match: 'for neighbor in adjMap[currentCourse]:', to: { match: 'queue.append(neighbor)' } },
     state: {
       type: 'array',
       cells: makeCells(null, visited, found, deg),
@@ -205,19 +159,20 @@ function generateStepsBFS(): Step[] {
       ],
     },
     variables: [
-      { name: 'canTake[1]', value: deg[1] },
-      { name: 'canTake[2]', value: deg[2] },
+      { name: 'numRequirements[1]', value: deg[1] },
+      { name: 'numRequirements[2]', value: deg[2] },
     ],
   });
 
   // BFS iteration 2: dequeue 1
   queue.shift();
+  takenCourses.add(1);
   courseList.push(1);
   visited.add(1);
 
   steps.push({
-    explanation: `BFS iteration 2: dequeue course 1. Append to courseList → courseList = [${courseList.join(', ')}]. Process neighbors [${adj[1].join(', ')}]: decrement canTake[3].`,
-    highlightLine: 42,
+    explanation: `BFS iteration 2: dequeue course 1. takenCourses.add(1); result.append(1) → result = [${courseList.join(', ')}]. Process adjMap[1] = [${adj[1].join(', ')}]: decrement numRequirements[3].`,
+    anchor: { match: 'currentCourse = queue.popleft()', to: { match: 'result.append(currentCourse)' } },
     state: {
       type: 'array',
       cells: makeCells(1, visited, found, deg),
@@ -230,15 +185,15 @@ function generateStepsBFS(): Step[] {
     },
     variables: [
       { name: 'currentCourse', value: 1 },
-      { name: 'courseList', value: `[${courseList.join(', ')}]` },
+      { name: 'result', value: `[${courseList.join(', ')}]` },
     ],
   });
 
   deg[3]--;
 
   steps.push({
-    explanation: `canTake[3]: 2→1. Course 3 still needs course 2 — not yet takeable. Continue BFS.`,
-    highlightLine: 45,
+    explanation: `numRequirements[3]: 2→1. Course 3 still needs course 2 — not yet takeable. Continue BFS.`,
+    anchor: { match: 'for neighbor in adjMap[currentCourse]:', to: { match: 'queue.append(neighbor)' } },
     state: {
       type: 'array',
       cells: makeCells(null, visited, found, deg),
@@ -249,17 +204,18 @@ function generateStepsBFS(): Step[] {
         { label: 'result order', value: `[${courseList.join(', ')}]` },
       ],
     },
-    variables: [{ name: 'canTake[3]', value: deg[3] }],
+    variables: [{ name: 'numRequirements[3]', value: deg[3] }],
   });
 
   // BFS iteration 3: dequeue 2
   queue.shift();
+  takenCourses.add(2);
   courseList.push(2);
   visited.add(2);
 
   steps.push({
-    explanation: `BFS iteration 3: dequeue course 2. Append to courseList → courseList = [${courseList.join(', ')}]. Process neighbors [${adj[2].join(', ')}]: decrement canTake[3].`,
-    highlightLine: 42,
+    explanation: `BFS iteration 3: dequeue course 2. takenCourses.add(2); result.append(2) → result = [${courseList.join(', ')}]. Process adjMap[2] = [${adj[2].join(', ')}]: decrement numRequirements[3].`,
+    anchor: { match: 'currentCourse = queue.popleft()', to: { match: 'result.append(currentCourse)' } },
     state: {
       type: 'array',
       cells: makeCells(2, visited, found, deg),
@@ -272,7 +228,7 @@ function generateStepsBFS(): Step[] {
     },
     variables: [
       { name: 'currentCourse', value: 2 },
-      { name: 'courseList', value: `[${courseList.join(', ')}]` },
+      { name: 'result', value: `[${courseList.join(', ')}]` },
     ],
   });
 
@@ -280,8 +236,8 @@ function generateStepsBFS(): Step[] {
   queue.push(3);
 
   steps.push({
-    explanation: `canTake[3]: 1→0 → enqueue course 3. Both prerequisites for course 3 (courses 1 and 2) are now satisfied. Queue = [3].`,
-    highlightLine: 48,
+    explanation: `numRequirements[3]: 1→0 → enqueue course 3. Both prerequisites for course 3 (courses 1 and 2) are now satisfied. queue = [3].`,
+    anchor: { match: 'for neighbor in adjMap[currentCourse]:', to: { match: 'queue.append(neighbor)' } },
     state: {
       type: 'array',
       cells: makeCells(null, visited, found, deg),
@@ -292,17 +248,18 @@ function generateStepsBFS(): Step[] {
         { label: 'result order', value: `[${courseList.join(', ')}]` },
       ],
     },
-    variables: [{ name: 'canTake[3]', value: deg[3] }],
+    variables: [{ name: 'numRequirements[3]', value: deg[3] }],
   });
 
   // BFS iteration 4: dequeue 3
   queue.shift();
+  takenCourses.add(3);
   courseList.push(3);
   found.add(3);
 
   steps.push({
-    explanation: `BFS iteration 4: dequeue course 3. Append to courseList → courseList = [${courseList.join(', ')}]. No neighbors. Queue empty — BFS complete.`,
-    highlightLine: 42,
+    explanation: `BFS iteration 4: dequeue course 3. takenCourses.add(3); result.append(3) → result = [${courseList.join(', ')}]. adjMap[3] is empty. queue empty — BFS complete.`,
+    anchor: { match: 'currentCourse = queue.popleft()', to: { match: 'result.append(currentCourse)' } },
     state: {
       type: 'array',
       cells: makeCells(3, visited, found, deg),
@@ -315,14 +272,14 @@ function generateStepsBFS(): Step[] {
     },
     variables: [
       { name: 'currentCourse', value: 3 },
-      { name: 'courseList', value: `[${courseList.join(', ')}]` },
+      { name: 'result', value: `[${courseList.join(', ')}]` },
     ],
   });
 
   // Final step
   steps.push({
-    explanation: `Result: len(courseList) = ${courseList.length} == numCourses (${numCourses}) → return [${courseList.join(', ')}]. This is a valid topological ordering. No cycle was detected. Another valid order would be [0,2,1,3]. If a cycle existed, courseList would be shorter than numCourses and we'd return []. O(V+E) time, O(V+E) space.`,
-    highlightLine: 53,
+    explanation: `Result: len(result) = ${courseList.length} != numCourses (${numCourses}) is false, so we fall through to return [${courseList.join(', ')}]. This is a valid topological ordering. No cycle was detected. Another valid order would be [0,2,1,3]. If a cycle existed, result would be shorter than numCourses and we'd return [] instead. O(V+E) time, O(V+E) space.`,
+    anchor: { match: 'return result' },
     state: {
       type: 'array',
       cells: [0, 1, 2, 3].map(i => ({
@@ -345,7 +302,7 @@ function generateStepsBFS(): Step[] {
 
 const solutionBFS: SolutionVariant = {
   label: "Kahn's BFS Topological Sort",
-  pythonCode: PYTHON_CODE_BFS,
+  variant: 'topological',
   generateSteps: generateStepsBFS,
 };
 

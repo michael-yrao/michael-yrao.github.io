@@ -1,20 +1,10 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
 // ── Solution 1: Set iteration ────────────────────────────────────────────────
-
-const SET_ITERATION_CODE = `class Solution:
-    def containsDuplicate(self, nums: List[int]) -> bool:
-        # a set gives O(1) membership checks — add each value and return True
-        # the moment we try to add something already present
-        numsSet = set()
-
-        for integer in nums:
-            if integer in numsSet:
-                return True
-            else:
-                numsSet.add(integer)
-
-        return False`;
+//
+// Traces cse-progress's containsDuplicate verbatim: an empty set, a for loop
+// over nums that returns True the moment a value is already in the set,
+// otherwise adds it, falling through to return False.
 
 function generateSetIterationSteps(): Step[] {
   const nums = [1, 2, 3, 1];
@@ -24,7 +14,7 @@ function generateSetIterationSteps(): Step[] {
   steps.push({
     explanation:
       'We initialize an empty set. A set gives us O(1) membership checks — much faster than scanning the array each time. We\'ll walk through nums and ask "have I seen this before?"',
-    highlightLine: 9,
+    anchor: { match: 'numsSet = set()' },
     state: {
       type: 'array',
       cells: nums.map((v) => ({ value: v, state: 'default' })),
@@ -55,7 +45,7 @@ function generateSetIterationSteps(): Step[] {
     if (inSet) {
       steps.push({
         explanation: `Index ${i}, value ${n}. Is ${n} in our set? YES! We've seen it before. Return true — duplicate found. The set caught this in O(1).`,
-        highlightLine: 9,
+        anchor: { match: 'return True' },
         state: {
           type: 'array',
           cells,
@@ -73,7 +63,7 @@ function generateSetIterationSteps(): Step[] {
 
     steps.push({
       explanation: `Index ${i}, value ${n}. Not in the set yet — no duplicate so far. Add ${n} to the set so we can detect it if it appears again.`,
-      highlightLine: 11,
+      anchor: { match: 'numsSet.add(integer)' },
       state: {
         type: 'array',
         cells,
@@ -94,17 +84,11 @@ function generateSetIterationSteps(): Step[] {
 }
 
 // ── Solution 2: Length comparison ────────────────────────────────────────────
-
-const LEN_COMPARISON_CODE = `class Solution:
-    def containsDuplicateAlternative(self, nums: List[int]) -> bool:
-        # since we only care about if it contains duplicates
-        # we can check if when we convert this list to a set
-        # whether or not the lengths are equal
-        # this solution is still O(n) in both space and time
-        # since python is still creating the set
-
-        # returns true if len of the set is shorter than the length of the original list
-        return len(set(nums)) < len(nums)`;
+//
+// Traces cse-progress's containsDuplicateAlternative verbatim: a single-line
+// return `len(set(nums)) < len(nums)`. The whole comparison lives on that one
+// line, so every step anchors there while narrating what building set(nums)
+// and comparing its length does under the hood.
 
 function generateLenComparisonSteps(): Step[] {
   const nums = [1, 2, 3, 1];
@@ -114,7 +98,7 @@ function generateLenComparisonSteps(): Step[] {
   steps.push({
     explanation:
       'Different idea: a set automatically discards duplicates. So if we drop the whole array into a set and it comes out SHORTER than the array, at least one value collapsed — meaning there was a duplicate. We\'ll build set(nums) one element at a time to watch it happen, then compare the two lengths.',
-    highlightLine: 10,
+    anchor: { match: 'return len(set(nums)) < len(nums)' },
     state: {
       type: 'array',
       cells: nums.map((v) => ({ value: v, state: 'default' })),
@@ -148,7 +132,7 @@ function generateLenComparisonSteps(): Step[] {
       explanation: already
         ? `set(nums) construction, index ${i}: value ${n} is ALREADY in the set, so adding it changes nothing — the set stays size ${seen.size}. This is the duplicate being silently dropped.`
         : `set(nums) construction, index ${i}: value ${n} is new, add it. Set grows to size ${seen.size}.`,
-      highlightLine: 10,
+      anchor: { match: 'return len(set(nums)) < len(nums)' },
       state: {
         type: 'array',
         cells,
@@ -166,7 +150,7 @@ function generateLenComparisonSteps(): Step[] {
   const dup = seen.size < nums.length;
   steps.push({
     explanation: `Set built. len(set(nums)) = ${seen.size}, len(nums) = ${nums.length}. Is ${seen.size} < ${nums.length}? ${dup ? 'Yes → the set is shorter, so a duplicate was dropped. Return True.' : 'No → same length, every value was unique. Return False.'}`,
-    highlightLine: 10,
+    anchor: { match: 'return len(set(nums)) < len(nums)' },
     state: {
       type: 'array',
       cells: nums.map((v) => ({ value: v, state: dup ? ('found' as const) : ('visited' as const) })),
@@ -203,7 +187,7 @@ export const containsDuplicateMeta: AlgorithmMeta = {
   constraints: ['1 ≤ nums.length ≤ 10⁵', '-10⁹ ≤ nums[i] ≤ 10⁹'],
   hint: 'You need to know if you\'ve seen a value before. What data structure lets you check membership in O(1)?',
   solutions: [
-    { label: 'Set Iteration', pythonCode: SET_ITERATION_CODE, generateSteps: generateSetIterationSteps },
-    { label: 'Length Check', pythonCode: LEN_COMPARISON_CODE, generateSteps: generateLenComparisonSteps },
+    { label: 'Set Iteration', variant: 'set-iteration', generateSteps: generateSetIterationSteps },
+    { label: 'Length Check', variant: 'length-check', generateSteps: generateLenComparisonSteps },
   ],
 };

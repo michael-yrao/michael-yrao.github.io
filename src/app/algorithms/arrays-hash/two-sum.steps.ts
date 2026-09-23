@@ -1,24 +1,10 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from typing import List
-
-
-class Solution:
-    def twoSum(self, nums: List[int], target: int) -> List[int]:
-        # for each number, the complement we need is target - number
-        # if that complement is already in the map, we found our pair
-        # otherwise store this number's index so a future number can find it
-
-        map = {}
-
-        for index, number in enumerate(nums):
-            diff = target - number
-            if diff in map:
-                return [map[diff], index]
-            # complement not found yet — store index for future lookups
-            map[number] = index
-
-        return`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's twoSumSolution1 verbatim: `for index, number in
+// enumerate(nums): diff = target - number; if diff in map: return
+// [map[diff], index]; map[number] = index`.
 
 function generateSteps(): Step[] {
   const nums = [2, 7, 11, 15];
@@ -31,7 +17,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'We need to find two indices where nums[i] + nums[j] = 9. A brute-force nested loop would be O(n²). Instead, we use a hash map so each lookup is O(1) — one pass, O(n) total.',
-    highlightLine: 13,
+    anchor: { match: 'map = {}' },
     state: {
       type: 'array',
       cells: baseState(),
@@ -57,7 +43,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `Index ${i}, value ${num}. Complement = ${target} − ${num} = ${diff}. Is ${diff} already in our map? ${diff in seen ? `YES — at index ${seen[diff]}!` : 'No — not yet.'}`,
-      highlightLine: 16,
+      anchor: { match: 'if diff in map:' },
       state: {
         type: 'array',
         cells: activeCells,
@@ -80,7 +66,7 @@ function generateSteps(): Step[] {
 
       steps.push({
         explanation: `Found it! map[${diff}] = ${seen[diff]}. We return [${seen[diff]}, ${i}]. The hash map made this O(1) lookup — no second scan needed.`,
-        highlightLine: 15,
+        anchor: { match: 'return [map[diff], index]' },
         state: {
           type: 'array',
           cells: foundCells,
@@ -104,7 +90,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `${diff} wasn't in the map. We store {${num}: ${i}} — "value ${num} is at index ${i}." Next time we need ${num} as someone's complement, we know exactly where it is.`,
-      highlightLine: 17,
+      anchor: { match: 'map[number] = index' },
       state: {
         type: 'array',
         cells: activeCells,
@@ -125,7 +111,7 @@ function generateSteps(): Step[] {
 
 const hashMapSolution: SolutionVariant = {
   label: 'Hash Map',
-  pythonCode: PYTHON_CODE,
+  variant: 'hash-map',
   generateSteps,
 };
 

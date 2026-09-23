@@ -1,37 +1,19 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from typing import List
+// Traces cse-progress's maxSubarrayKadaneV2 verbatim: maxSum = currentSum = nums[0] is the
+// only base case (the loop runs over nums[1:], starting at index 1, never revisiting index
+// 0), and there is no `if curMax < 0: reset` branch — every step is one line,
+// `currentSum = max(n, currentSum + n)`, which picks between starting fresh at n or
+// extending the run. The best-subarray window shading below is a derived visual only: the
+// attempt's own code never tracks start/end indices, just the running sums.
 
-
-class Solution:
-    def maxSubArrayKadane(self, nums: List[int]) -> int:
-        # constant space dynamic sliding window algorithm
-        # we can be greedy and not care for negative sums
-        # e.g. if current sum is negative, discard it, start back at 0 at current index
-
-        # start maxSum at first index
-        # it should not be 0 since we have negatives
-        # e.g. if result is negative and we start at 0, 0 will always be bigger and we will return 0 if we initialize to 0
-
-        maxSum = nums[0]
-        curMax = 0
-
-        for n in nums:
-            if curMax < 0:
-                curMax = 0
-            curMax += n
-            maxSum = max(maxSum, curMax)
-
-        return maxSum`;
-
-function generateSteps(): Step[] {
+function generateKadaneSteps(): Step[] {
   const nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4];
   const steps: Step[] = [];
 
-  // Track which indices make up the best subarray found so far
   let maxSum = nums[0];
-  let curMax = 0;
-  let windowStart = 0;   // start of current window
+  let currentSum = nums[0];
+  let windowStart = 0; // derived only, for the "found" window shading — not in the attempt's code
   let bestStart = 0;
   let bestEnd = 0;
 
@@ -49,68 +31,60 @@ function generateSteps(): Step[] {
     }));
 
   steps.push({
-    explanation:
-      "Kadane's algorithm: greedily extend the current subarray. If curMax ever goes negative, discard it — a negative prefix only drags down future sums. maxSum tracks the best seen so far.",
-    highlightLine: 6,
+    explanation: "Kadane's algorithm (V2): maxSum = currentSum = nums[0]. The loop below runs over nums[1:] — index 0 is only ever the base case.",
+    anchor: { match: 'maxSum = currentSum = nums[0]' },
     state: {
       type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
+      cells: nums.map((v, i) => ({ value: v, state: i === 0 ? ('active' as const) : ('default' as const) })),
+      pointers: [{ index: 0, label: 'n' }],
       counters: [
         { label: 'maxSum', value: maxSum },
-        { label: 'curMax', value: curMax },
+        { label: 'currentSum', value: currentSum },
       ],
     },
     variables: [
       { name: 'maxSum', value: maxSum },
-      { name: 'curMax', value: curMax },
+      { name: 'currentSum', value: currentSum },
     ],
   });
 
-  for (let i = 0; i < nums.length; i++) {
+  for (let i = 1; i < nums.length; i++) {
     const n = nums[i];
-    const reset = curMax < 0;
-
-    if (reset) {
-      windowStart = i;
-      curMax = 0;
-    }
-
-    curMax += n;
-    const improved = curMax > maxSum;
+    const prevSum = currentSum;
+    const extended = prevSum + n;
+    const startsFresh = n >= extended; // max(n, extended) picks n whenever it's the larger (or tied) option
+    currentSum = startsFresh ? n : extended;
+    if (startsFresh) windowStart = i;
+    const improved = currentSum > maxSum;
     if (improved) {
-      maxSum = curMax;
+      maxSum = currentSum;
       bestStart = windowStart;
       bestEnd = i;
-    } else {
-      maxSum = Math.max(maxSum, curMax);
     }
 
     steps.push({
-      explanation: reset
-        ? `curMax was negative → reset to 0. Now add n=${n}: curMax = ${curMax}. ${improved ? `New best: maxSum = ${maxSum} (subarray ends at index ${i}).` : `maxSum stays ${maxSum}.`}`
-        : `Add n=${n} to curMax: ${curMax - n < 0 ? '0' : curMax - n} + ${n} = ${curMax}. ${improved ? `New best! maxSum = ${maxSum}.` : `maxSum stays ${maxSum}.`}`,
-      highlightLine: reset ? 11 : 12,
+      explanation: `currentSum = max(n, currentSum + n) = max(${n}, ${prevSum} + ${n}) = ${currentSum} → ${startsFresh ? `starts fresh at n=${n} (extending would only give ${extended})` : `extends the run: ${prevSum} + ${n}`}. maxSum = max(maxSum, currentSum) = ${maxSum}${improved ? ' — new best!' : ''}.`,
+      anchor: { match: 'currentSum = max(n, currentSum + n)', to: { match: 'maxSum = max(maxSum, currentSum)' } },
       state: {
         type: 'array',
         cells: snap(i, windowStart, bestStart, bestEnd),
         pointers: [{ index: i, label: 'n' }],
         counters: [
           { label: 'maxSum', value: maxSum },
-          { label: 'curMax', value: curMax },
+          { label: 'currentSum', value: currentSum },
         ],
       },
       variables: [
         { name: 'n', value: n, highlight: true },
-        { name: 'curMax', value: curMax, highlight: true },
+        { name: 'currentSum', value: currentSum, highlight: true },
         { name: 'maxSum', value: maxSum, highlight: improved },
       ],
     });
   }
 
   steps.push({
-    explanation: `Maximum subarray sum is ${maxSum}, from index ${bestStart} to ${bestEnd}: [${nums.slice(bestStart, bestEnd + 1).join(', ')}].`,
-    highlightLine: 15,
+    explanation: `Loop over nums[1:] is done. Return maxSum = ${maxSum}. (Shown for reference: the subarray [${nums.slice(bestStart, bestEnd + 1).join(', ')}], indices ${bestStart}–${bestEnd}, achieves it — the code itself only ever tracked the sum, not the indices.)`,
+    anchor: { match: 'return maxSum' },
     state: {
       type: 'array',
       cells: nums.map((v, i) => ({
@@ -120,7 +94,7 @@ function generateSteps(): Step[] {
       pointers: [],
       counters: [
         { label: 'maxSum', value: maxSum },
-        { label: 'curMax', value: curMax },
+        { label: 'currentSum', value: currentSum },
       ],
     },
     variables: [
@@ -133,87 +107,57 @@ function generateSteps(): Step[] {
 
 const kadaneSolution: SolutionVariant = {
   label: "Kadane's",
-  pythonCode: PYTHON_CODE,
-  generateSteps,
+  variant: 'kadane',
+  generateSteps: generateKadaneSteps,
   timeComplexity: 'O(n)',
   spaceComplexity: 'O(1)',
 };
 
 // ── Solution 2: Prefix Sum ────────────────────────────────────────────────────
-
-const PYTHON_CODE_PREFIX = `from typing import List
-import math
-
-
-class Solution:
-    def maxSubArrayPrefixSum(self, nums: List[int]) -> int:
-        # finding subarray with largest sum
-        # sliding window problem with dynamic window size
-        # one approach is prefix sum
-        # create prefixSum array
-        # prefixSum[j] - prefixSum[i] = sum of subarray between i and j, exclusive of i
-        # so we can keep track of a maximum sum
-        # keep track of the smallest prefixSum[i] we can find
-        # this way we maximize prefixSum[j] and minimize prefixSum[i]
-        prefixSum = []
-        for i in range(len(nums)):
-            if i == 0:
-                prefixSum.append(nums[i])
-            else:
-                prefixSum.append(nums[i] + prefixSum[i - 1])
-
-        # needs to be 0 to calc subarray of size 1, e.g. [1]
-        minPrefixSum = 0
-        maxSum = -math.inf
-
-        # nums = [-2,1,-3,4,-1,2,1,-5,4]
-        # prefixSum = [-2, -1, -4, 0, -1, 1, 2, -3, 1]
-
-        for curSum in prefixSum:
-            maxSum = max(maxSum, curSum - minPrefixSum)
-            minPrefixSum = min(minPrefixSum, curSum)
-        return maxSum`;
+//
+// Traces cse-progress's maxSubArray_20260820 verbatim: prefixSum is preallocated as
+// `[0] * (len(nums)+1)` — a size-(n+1) array with a leading sentinel prefixSum[0] = 0 —
+// and BOTH loops run `for i in range(1, len(prefixSum))`, i.e. i = 1..n, indexing
+// prefixSum[i] and nums[i-1] directly. There's no `if i == 0` base case; the sentinel
+// already covers it. The scan variable is `minPrefix` (not `minPrefixSum`), and there's
+// no `curSum` — it reads `prefixSum[i]` directly.
 
 function generatePrefixSumSteps(): Step[] {
   const nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4];
   const n = nums.length;
   const steps: Step[] = [];
 
-  // Pre-compute full array so every step can display all n cells
-  const prefixSum: number[] = [];
-  for (let i = 0; i < n; i++) {
-    prefixSum.push(i === 0 ? nums[i] : nums[i] + prefixSum[i - 1]);
+  // prefixSum[0] = 0 (sentinel); prefixSum[i] = nums[i-1] + prefixSum[i-1] for i = 1..n.
+  const prefixSum: number[] = new Array(n + 1).fill(0);
+  for (let i = 1; i <= n; i++) {
+    prefixSum[i] = nums[i - 1] + prefixSum[i - 1];
   }
 
   // ── Intro ──────────────────────────────────────────────────────
   steps.push({
     explanation:
-      'Prefix sum approach: build prefixSum[i] = nums[0]+…+nums[i]. The best subarray ending at index i = prefixSum[i] − (min prefix seen before i). Track a running minimum to find this in one pass.',
-    highlightLine: 6,
+      'prefixSum = [0] * (len(nums)+1) — a size-(n+1) array with a leading sentinel prefixSum[0] = 0, so a subarray starting at nums[0] can be expressed as prefixSum[i] − prefixSum[0] like any other.',
+    anchor: { match: 'prefixSum = [0] * (len(nums)+1)' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),
       pointers: [],
       counters: [
-        { label: 'minPrefixSum', value: 0 },
+        { label: 'minPrefix', value: 0 },
         { label: 'maxSum', value: '-∞' },
       ],
     },
     variables: [
       { name: 'nums', value: `[${nums.join(', ')}]` },
-      { name: 'prefixSum', value: '[]' },
+      { name: 'prefixSum', value: `[${prefixSum.join(', ')}]` },
     ],
   });
 
-  // ── Phase 1: Build prefixSum ─────────────────────────────────
-  for (let i = 0; i < n; i++) {
-    const explanation = i === 0
-      ? `i=0: prefixSum[0] = nums[0] = ${prefixSum[0]}. Base case.`
-      : `i=${i}: prefixSum[${i}] = nums[${i}] + prefixSum[${i - 1}] = ${nums[i]} + ${prefixSum[i - 1]} = ${prefixSum[i]}.`;
-
+  // ── Phase 1: Build prefixSum, i = 1..n ────────────────────────
+  for (let i = 1; i <= n; i++) {
     steps.push({
-      explanation,
-      highlightLine: i === 0 ? 9 : 11,
+      explanation: `i=${i}: prefixSum[${i}] = nums[${i - 1}] + prefixSum[${i - 1}] = ${nums[i - 1]} + ${prefixSum[i - 1]} = ${prefixSum[i]}.`,
+      anchor: { match: 'prefixSum[i] = nums[i-1] + prefixSum[i-1]' },
       state: {
         type: 'array',
         cells: prefixSum.map((v, j) => ({
@@ -230,41 +174,41 @@ function generatePrefixSumSteps(): Step[] {
     });
   }
 
-  // ── Transition to scan phase ──────────────────────────────────
-  let minPrefixSum = 0;
+  // ── Transition to scan phase, i = 1..n again ──────────────────
+  let minPrefix = 0;
   let maxSum = -Infinity;
 
   steps.push({
-    explanation: `prefixSum = [${prefixSum.join(', ')}]. Now scan it: for each value, candidate subarray sum = curSum − minPrefixSum (minimum prefix so far, starting at 0 to allow subarrays starting at index 0).`,
-    highlightLine: 14,
+    explanation: `prefixSum = [${prefixSum.join(', ')}]. Now scan i=1..${n}: candidate = prefixSum[i] − minPrefix (the smallest prefix seen so far).`,
+    anchor: { match: 'minPrefix = 0', to: { match: 'maxSum = -math.inf' } },
     state: {
       type: 'array',
       cells: prefixSum.map(v => ({ value: v, state: 'default' as const })),
       pointers: [],
       counters: [
-        { label: 'minPrefixSum', value: minPrefixSum },
+        { label: 'minPrefix', value: minPrefix },
         { label: 'maxSum', value: '-∞' },
       ],
     },
     variables: [
-      { name: 'minPrefixSum', value: 0 },
+      { name: 'minPrefix', value: 0 },
       { name: 'maxSum', value: '-∞' },
     ],
   });
 
-  // ── Phase 2: Scan for maxSum ─────────────────────────────────
-  for (let i = 0; i < n; i++) {
-    const curSum = prefixSum[i];
-    const oldMin = minPrefixSum;
-    const candidate = curSum - oldMin;
+  // ── Phase 2: Scan for maxSum, i = 1..n ────────────────────────
+  for (let i = 1; i <= n; i++) {
+    const curVal = prefixSum[i];
+    const oldMin = minPrefix;
+    const candidate = curVal - oldMin;
     const improved = candidate > maxSum;
     if (improved) maxSum = candidate;
-    minPrefixSum = Math.min(minPrefixSum, curSum);
-    const minChanged = minPrefixSum < oldMin;
+    minPrefix = Math.min(minPrefix, curVal);
+    const minChanged = minPrefix < oldMin;
 
     steps.push({
-      explanation: `curSum=${curSum}: candidate = ${curSum} − ${oldMin} = ${candidate}. ${improved ? `New maxSum = ${maxSum}!` : `maxSum stays ${maxSum}.`}${minChanged ? ` minPrefixSum → ${minPrefixSum}.` : ''}`,
-      highlightLine: 18,
+      explanation: `candidate = prefixSum[${i}] − minPrefix = ${curVal} − ${oldMin} = ${candidate}. maxSum = max(maxSum, candidate) = ${maxSum}.${improved ? ' New best!' : ''} minPrefix = min(minPrefix, prefixSum[${i}])${minChanged ? ` → ${minPrefix}.` : ` stays ${minPrefix}.`}`,
+      anchor: { match: 'maxSum = max(maxSum, prefixSum[i] - minPrefix)', to: { match: 'minPrefix = min(minPrefix, prefixSum[i])' } },
       state: {
         type: 'array',
         cells: prefixSum.map((v, j) => ({
@@ -273,29 +217,29 @@ function generatePrefixSumSteps(): Step[] {
         })),
         pointers: [{ index: i, label: 'i' }],
         counters: [
-          { label: 'minPrefixSum', value: minPrefixSum },
+          { label: 'minPrefix', value: minPrefix },
           { label: 'maxSum', value: maxSum },
         ],
       },
       variables: [
-        { name: 'curSum', value: curSum, highlight: true },
+        { name: `prefixSum[${i}]`, value: curVal, highlight: true },
         { name: 'candidate', value: candidate, highlight: true },
         { name: 'maxSum', value: maxSum, highlight: improved },
-        { name: 'minPrefixSum', value: minPrefixSum, highlight: minChanged },
+        { name: 'minPrefix', value: minPrefix, highlight: minChanged },
       ],
     });
   }
 
   // ── Final ──────────────────────────────────────────────────────
   steps.push({
-    explanation: `maxSum = ${maxSum}. Prefix sum uses O(n) space for the prefix array vs Kadane's O(1), but both are O(n) time. The prefix-sum pattern generalises to arbitrary subarray range queries.`,
-    highlightLine: 21,
+    explanation: `Return maxSum = ${maxSum}. Both loops here run i=1..n over the size-(n+1) prefixSum array (the leading sentinel covers the index-0 base case) — O(n) time, O(n) space.`,
+    anchor: { match: 'return maxSum # type: ignore' },
     state: {
       type: 'array',
       cells: prefixSum.map(v => ({ value: v, state: 'found' as const })),
       pointers: [],
       counters: [
-        { label: 'minPrefixSum', value: minPrefixSum },
+        { label: 'minPrefix', value: minPrefix },
         { label: 'maxSum', value: maxSum },
       ],
     },
@@ -309,7 +253,7 @@ function generatePrefixSumSteps(): Step[] {
 
 const prefixSumSolution: SolutionVariant = {
   label: 'Prefix Sum',
-  pythonCode: PYTHON_CODE_PREFIX,
+  variant: 'prefix-min',
   generateSteps: generatePrefixSumSteps,
   timeComplexity: 'O(n)',
   spaceComplexity: 'O(n)',

@@ -1,24 +1,8 @@
-// Solution + comments sourced from cse-progress: dsa/leetcode/trees/105_construct_binary_tree_from_preorder_and_inorder_traversal.py
 import { AlgorithmMeta, SolutionVariant, Step, TreeNode, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def buildTree(self, preorder: List[int], inorder: List[int]) -> Optional[TreeNode]:
-        # preorder = root, left, right
-        # inorder = left, root, right
-        # preorder[0] is the root
-        if not preorder:
-            return None
-
-        root = TreeNode(preorder[0])
-        mid = inorder.index(preorder[0])
-        # left : we want inorder items before mid
-        # from preorder, we want node 1 to node mid because we know there are mid number of left nodes
-        root.left = self.buildTree(preorder[1:mid+1], inorder[:mid])
-        # right : we want inorder items after mid
-        # from preorder, we want everythign after the mid node since those are right nodes
-        root.right = self.buildTree(preorder[1+mid:], inorder[1+mid:])
-
-        return root`;
+// Traces cse-progress's buildTree verbatim: preorder[0] is the root, inorder.index finds its
+// split point, and root.left/root.right recurse on the sliced preorder/inorder halves —
+// same control flow as the earlier hand simulation, only anchors change.
 
 const PREORDER = [3, 9, 20, 15, 7];
 const INORDER = [9, 3, 15, 20, 7];
@@ -59,7 +43,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Rebuild the tree from preorder [root, left…, right…] and inorder [left…, root, right…]. Key insight: preorder[0] is always the current root; its position in inorder splits the remaining values into the left subtree (before it) and right subtree (after it). Recurse on each side.',
-    highlightLine: 5,
+    anchor: { match: 'def buildTree(self, preorder: List[int], inorder: List[int]) -> Optional[TreeNode]:' },
     state: buildTreeState(null),
     variables: [],
   });
@@ -69,7 +53,7 @@ function generateSteps(): Step[] {
     if (pre.length === 0) {
       steps.push({
         explanation: `${side}: preorder slice is empty → return None (no node here).`,
-        highlightLine: 8,
+        anchor: { match: 'if not preorder:', to: { match: 'return None' } },
         state: buildTreeState(null),
         variables: [{ name: 'preorder', value: '[]' }, { name: 'return', value: 'None' }],
       });
@@ -87,7 +71,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `${side}: root = preorder[0] = ${rootVal}. Find ${rootVal} in inorder at index ${mid}. Everything left of it in inorder ([${leftIn.join(',')}]) is the left subtree; everything right ([${rightIn.join(',')}]) is the right subtree.`,
-      highlightLine: 11,
+      anchor: { match: 'root = TreeNode(preorder[0])', to: { match: 'mid = inorder.index(preorder[0])' } },
       state: buildTreeState(rootVal),
       variables: [
         { name: 'root', value: rootVal, highlight: true },
@@ -102,7 +86,7 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `${side}: both children of ${rootVal} attached — return node ${rootVal} up to its parent.`,
-      highlightLine: 20,
+      anchor: { match: 'return root' },
       state: buildTreeState(rootVal),
       variables: [{ name: 'return', value: rootVal, highlight: true }],
     });
@@ -113,7 +97,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Recursion complete — the whole tree is reconstructed. Each value is created once and inorder.index is scanned per node, giving O(n²) worst case (a hashmap of value→inorder-index would make it O(n)).',
-    highlightLine: 20,
+    anchor: { match: 'return root' },
     state: buildTreeState(null),
     variables: [],
   });
@@ -123,7 +107,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Recursive Preorder/Inorder Split',
-  pythonCode: PYTHON_CODE,
+  variant: 'recursive-split',
   generateSteps,
   timeComplexity: 'O(n²) (O(n) with an index map)',
   spaceComplexity: 'O(n)',

@@ -1,29 +1,8 @@
-import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class TreeNode:
-    def __init__(self, x):
-        self.val = x
-        self.left = None
-        self.right = None
-
-class Solution:
-    def lowestCommonAncestor(self, root: 'TreeNode', p: 'TreeNode', q: 'TreeNode') -> 'TreeNode':
-        # While we can generate the BST with inorder DFS
-        # it isn't the right way to find the answer
-        # this is preorder DFS since the direction we go depends on the currentNode.val
-        # since we are making a decision based on currentNode to go left or right, this is preorder
-        currentNode = root
-
-        while currentNode:
-            # if both are smaller, we go left
-            if p.val < currentNode.val and q.val < currentNode.val:
-                currentNode = currentNode.left
-            # if both are bigger, we go right
-            elif p.val > currentNode.val and q.val > currentNode.val:
-                currentNode = currentNode.right
-            # if in separate sub-trees, it's currentNode
-            else:
-                return currentNode`;
+// Traces cse-progress's lowestCommonAncestor_20260612 verbatim: iterative preorder BST
+// traversal with currentNode, deciding left/right by comparing p.val and q.val against
+// currentNode.val — same control flow as the earlier hand simulation, only anchors change.
 
 // BST: [6, 2, 8, 0, 4, 7, 9], find LCA of p=2, q=4
 const NODES: Omit<TreeNode, 'state'>[] = [
@@ -51,12 +30,12 @@ function generateSteps(): Step[] {
 
   const push = (
     explanation: string,
-    line: number,
+    anchor: StepAnchor,
     opts: { current?: string | null; vars?: { name: string; value: string | number; highlight?: boolean }[] } = {}
   ) => {
     steps.push({
       explanation,
-      highlightLine: line,
+      anchor,
       state: {
         type: 'tree',
         nodes: makeNodes(),
@@ -68,8 +47,8 @@ function generateSteps(): Step[] {
   };
 
   push(
-    `We want the lowest common ancestor of p=${p} and q=${q}. We exploit the BST ordering instead of searching blindly: from the current node, if BOTH targets are smaller we go left, if BOTH are larger we go right. The instant they fall on different sides (or one equals the current node) we have found the split point — that node is the LCA. Start at the root.`,
-    13,
+    `We want the lowest common ancestor of p=${p} and q=${q}. We exploit the BST ordering instead of searching blindly: from the current node, if BOTH targets are smaller we go left, if BOTH are larger we go right. The instant they fall on different sides (or one equals the current node) we have found the split point — that node is the LCA. Start currentNode = root.`,
+    { match: 'currentNode = root' },
     { vars: [{ name: 'p.val', value: p }, { name: 'q.val', value: q }] }
   );
 
@@ -86,7 +65,7 @@ function generateSteps(): Step[] {
     if (bothSmaller) {
       push(
         `At node ${v}: is p (${p}) < ${v} AND q (${q}) < ${v}? Yes — both targets are in the LEFT subtree, so move left.`,
-        18,
+        { match: 'if p.val < currentNode.val and q.val < currentNode.val:', to: { match: 'currentNode = currentNode.left' } },
         { current: cur, vars: [{ name: 'currentNode.val', value: v }, { name: 'p<node', value: 'True' }, { name: 'q<node', value: 'True', highlight: true }] }
       );
       if (colour[cur] === 'active') colour[cur] = 'visited';
@@ -94,7 +73,7 @@ function generateSteps(): Step[] {
     } else if (bothBigger) {
       push(
         `At node ${v}: both smaller? No. Is p (${p}) > ${v} AND q (${q}) > ${v}? Yes — both targets are in the RIGHT subtree, so move right.`,
-        21,
+        { match: 'elif p.val > currentNode.val and q.val > currentNode.val:', to: { match: 'currentNode = currentNode.right' } },
         { current: cur, vars: [{ name: 'currentNode.val', value: v }, { name: 'p>node', value: 'True' }, { name: 'q>node', value: 'True', highlight: true }] }
       );
       if (colour[cur] === 'active') colour[cur] = 'visited';
@@ -103,7 +82,7 @@ function generateSteps(): Step[] {
       colour[cur] = 'found';
       push(
         `At node ${v}: both smaller? No (p=${p} is not < ${v}). Both bigger? No. So p and q split here — one is on each side, or one equals this node. Node ${v} is the LCA. Return it.`,
-        24,
+        { match: 'else:', to: { match: 'return currentNode' } },
         { current: cur, vars: [{ name: 'currentNode.val', value: v }, { name: 'LCA', value: v, highlight: true }] }
       );
       break;
@@ -140,7 +119,7 @@ export const lowestCommonAncestorBstMeta: AlgorithmMeta = {
   solutions: [
     {
       label: 'Iterative BST Traversal',
-      pythonCode: PYTHON_CODE,
+      variant: 'iterative',
       generateSteps,
     },
   ],

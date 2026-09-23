@@ -1,41 +1,8 @@
-import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from typing import Optional
-
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-class Solution:
-    def isBalanced(self, root: Optional[TreeNode]) -> bool:
-        # another dfs question since we want to check difference in depth
-        # how do we know if a tree is height balanced?
-        # it is height balanced if absolute depth of left - right > 1
-        # we are checking after we return from both left and right side, so postorder dfs
-        # I want to just do depth comparison, so basically just do max depth and check the formula above for if it is balanced
-        # but maxdepth returns integer, so we need to keep track of the boolean somehow
-        # so we will have a global boolean that we can set
-
-        isBalanced = True
-
-        def dfs(root):
-            nonlocal isBalanced
-            if not root:
-                return 0
-
-            left=dfs(root.left)
-            right=dfs(root.right)
-
-            if abs(left - right) > 1:
-                isBalanced = False
-
-            # left and right are max depth of each side
-            return 1 + max(left,right)
-
-        dfs(root)
-        return isBalanced`;
+// Traces cse-progress's isBalanced verbatim: postorder DFS with a nonlocal isBalanced flag,
+// left=dfs(root.left) then right=dfs(root.right), and the |left-right| > 1 check flips the
+// flag but the recursion still runs to completion (no early exit) and always returns depth.
 
 // Tree: [3, 9, 20, null, null, 15, 7]
 const NODES: Omit<TreeNode, 'state'>[] = [
@@ -60,7 +27,7 @@ function generateSteps(): Step[] {
 
   const push = (
     explanation: string,
-    line: number,
+    anchor: StepAnchor,
     opts: {
       current?: string | null;
       vars?: { name: string; value: string | number; highlight?: boolean }[];
@@ -68,7 +35,7 @@ function generateSteps(): Step[] {
   ) => {
     steps.push({
       explanation,
-      highlightLine: line,
+      anchor,
       state: {
         type: 'tree',
         nodes: makeNodes(),
@@ -84,7 +51,7 @@ function generateSteps(): Step[] {
 
   push(
     'A tree is height-balanced if at EVERY node |leftDepth − rightDepth| ≤ 1. We reuse the max-depth idea: postorder DFS returns each subtree’s depth, and along the way we flip a shared isBalanced flag to False the moment any node breaks the rule. Start with isBalanced = True.',
-    19,
+    { match: 'isBalanced = True' },
     { vars: [{ name: 'isBalanced', value: 'True' }] }
   );
 
@@ -92,7 +59,7 @@ function generateSteps(): Step[] {
     if (id === null) {
       push(
         `${side} is null → base case "return 0". A missing subtree has depth 0.`,
-        24,
+        { match: 'if not root:', to: { match: 'return 0' } },
         { current: parentId, vars: [{ name: 'node', value: 'null' }, { name: 'returns', value: 0, highlight: true }] }
       );
       return 0;
@@ -103,7 +70,7 @@ function generateSteps(): Step[] {
     colour[id] = 'active';
     push(
       `Call dfs(node ${v}) — push on the call stack (depth now ${stackDepth}). Recurse LEFT first to get its left subtree’s depth.`,
-      26,
+      { match: 'def dfs(root):' },
       { current: id, vars: [{ name: 'node', value: v }] }
     );
 
@@ -112,7 +79,7 @@ function generateSteps(): Step[] {
     colour[id] = 'active';
     push(
       `Back at node ${v}. Left depth = ${left}. Now recurse RIGHT.`,
-      27,
+      { match: 'right=dfs(root.right)' },
       { current: id, vars: [{ name: 'node', value: v }, { name: 'left', value: left, highlight: true }] }
     );
 
@@ -128,7 +95,7 @@ function generateSteps(): Step[] {
       `Node ${v}: left=${left}, right=${right}. |${left} − ${right}| = ${diff} ${
         broke ? '> 1 → this node is UNBALANCED, set isBalanced = False.' : '≤ 1 → still balanced here.'
       } Return depth = 1 + max(${left}, ${right}) = ${depth}.`,
-      broke ? 30 : 29,
+      { match: 'if abs(left - right) > 1:', to: { match: 'return 1 + max(left,right)' } },
       {
         current: id,
         vars: [
@@ -148,7 +115,7 @@ function generateSteps(): Step[] {
   NODES.forEach((n) => (colour[n.id] = isBalanced ? 'found' : 'visited'));
   push(
     `Recursion finished. No node ever broke the rule, so isBalanced is still ${String(isBalanced)} — the tree IS height-balanced.`,
-    36,
+    { match: 'return isBalanced' },
     { vars: [{ name: 'isBalanced', value: String(isBalanced), highlight: true }] }
   );
 
@@ -180,7 +147,7 @@ export const balancedBinaryTreeMeta: AlgorithmMeta = {
   solutions: [
     {
       label: 'Postorder DFS',
-      pythonCode: PYTHON_CODE,
+      variant: 'postorder',
       generateSteps,
     },
   ],

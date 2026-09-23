@@ -1,23 +1,6 @@
-// Solution + comments sourced from cse-progress: dsa/leetcode/stack/901_online_stock_span.py
+// Traces cse-progress's StockSpanner_20260823 verbatim — same monotonic-decreasing-stack
+// algorithm as the earlier hand simulation below; only the class name and comments changed.
 import { AlgorithmMeta, SolutionVariant, Step, ArrayCell, ProblemExample } from '../../core/models/algorithm.model';
-
-const PYTHON_CODE = `class StockSpanner:
-    # [7,2,1,2,4]
-    # [1,1,1,3,4]
-    # we increment if prior value is smaller
-    # so while stack[-1] <= current: pop
-    # since we are popping out of the stack, we need to keep track at each point
-    # so (value, span) for the decreasing stack
-    def __init__(self):
-        self.decreasingStack = []
-
-    def next(self, price: int) -> int:
-        currentSpan = 1
-        while self.decreasingStack and price >= self.decreasingStack[-1][0]:
-            priorValue, priorSpan = self.decreasingStack.pop()
-            currentSpan += priorSpan
-        self.decreasingStack.append((price, currentSpan))
-        return currentSpan`;
 
 function generateSteps(): Step[] {
   const prices = [100, 80, 60, 70, 60, 75, 85];
@@ -39,7 +22,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'StockSpanner.next(price) returns how many consecutive prior days (including today) had price ≤ today. We keep a monotonic decreasing stack of (price, span) pairs: each entry already absorbs the span of every smaller day it swallowed.',
-    highlightLine: 1,
+    anchor: { match: 'class StockSpanner_20260823:' },
     state: {
       type: 'array',
       cells: renderCells(-1),
@@ -57,7 +40,7 @@ function generateSteps(): Step[] {
     let currentSpan = 1;
     steps.push({
       explanation: `next(${price}) — call #${i + 1}. currentSpan starts at 1 (today counts). Now pop every stacked day whose price ≤ ${price}, folding its span in.`,
-      highlightLine: 12,
+      anchor: { match: 'currentSpan = 1' },
       state: {
         type: 'array',
         cells: renderCells(i),
@@ -82,7 +65,7 @@ function generateSteps(): Step[] {
       stack.pop();
       steps.push({
         explanation: `Top of stack is (${top.value}, ${top.span}) and ${top.value} ≤ ${price}, so it is engulfed: pop it and add its span ${top.span} → currentSpan = ${currentSpan}.`,
-        highlightLine: 14,
+        anchor: { match: 'priorValue, priorSpan = self.decreasingStack.pop()' },
         state: {
           type: 'array',
           cells: renderCells(i),
@@ -111,7 +94,7 @@ function generateSteps(): Step[] {
         : `top (${stack[stack.length - 2].value}) > ${price}, so the while loop stops`;
     steps.push({
       explanation: `Push (${price}, ${currentSpan}) — ${stopReason}. return ${currentSpan}. This is the span for day ${i + 1}.`,
-      highlightLine: 16,
+      anchor: { match: 'self.decreasingStack.append((price, currentSpan))' },
       state: {
         type: 'array',
         cells: prices.map((p, idx) => ({
@@ -134,7 +117,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `All calls done. Spans returned in order: [${results.join(', ')}]. Each next() is amortized O(1): every price is pushed once and popped at most once across all calls.`,
-    highlightLine: 17,
+    anchor: { match: 'return currentSpan' },
     state: {
       type: 'array',
       cells: prices.map((p) => ({ value: p, state: 'found' as const })),
@@ -150,7 +133,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Monotonic Decreasing Stack',
-  pythonCode: PYTHON_CODE,
+  variant: 'monotonic-stack',
   generateSteps,
   timeComplexity: 'O(1) amortized per next()',
   spaceComplexity: 'O(n)',

@@ -1,63 +1,9 @@
 import { AlgorithmMeta, SolutionVariant, Step, GridState, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def orangesRotting(self, grid: List[List[int]]) -> int:
-        # so this is clearly a bfs problem
-        # what happens is when we hit a rotten orange, we perform a bfs on it to mark its neighbors as rotten
-        # The above is wrong, we need to do a pre-scan to find all rotten oranges
-        # because otherwise we will not be able to scan in real time
-        # but one thing we have to keep notice is what if the orange there is already rotten
-        # then we need to do a bfs on that so we should have a bfs helper function
-        # we also need to check at the end if there are leftovers non-rotten oranges
-        # The above here is also wrong, we should instead keep track of a starting count of fresh oranges
-        # and decrement every time we mark one as rotten and if the number is not 0 at the end, we return false
-        # we don't actually need a visited set like usual since when we rot the oranges, we mark the node as 2
-        # which is equivalent of rotten here
-
-        minute = 0
-
-        neighbors = [[1,0], [-1,0], [0,1], [0,-1]]
-
-        rottenQueue = collections.deque()
-        freshOrangeCounter = 0
-
-        rows, cols = len(grid), len(grid[0])
-
-        # initial scan for rotten oranges and fresh oranges
-        for row in range(rows):
-            for col in range(cols):
-                if grid[row][col] == 1:
-                    freshOrangeCounter+=1
-                elif grid[row][col] == 2:
-                    rottenQueue.append((row,col))
-
-        # now we spread the rot to neighbors
-        # we also need to make sure there are fresh oranges to spread to
-        while rottenQueue and freshOrangeCounter > 0:
-            # we actually need to keep track of how many rotten oranges we have to start
-            # this way we accurately depict how much time has passed
-            numberOfRottenOranges = len(rottenQueue)
-            for _ in range(numberOfRottenOranges):
-                currentRow, currentCol = rottenQueue.popleft()
-                for rowIncrement, colIncrement in neighbors:
-                    # if 0, we don't do anything
-                    # if 1, we rotten them by adding them to visited and rottenQueue
-                    neighborRow = currentRow + rowIncrement
-                    neighborCol = currentCol + colIncrement
-                    if neighborRow >= 0 and neighborRow < rows and neighborCol >= 0 and neighborCol < cols and grid[neighborRow][neighborCol] == 1:
-                        # change it to rotten
-                        grid[neighborRow][neighborCol] = 2
-                        # add to queue
-                        rottenQueue.append((neighborRow, neighborCol))
-                        # decrement fresh counter
-                        freshOrangeCounter-=1
-                # with this breadth over, we will increment time
-            minute+=1
-
-        if freshOrangeCounter > 0:
-            return -1
-        else:
-            return minute`;
+// Traces cse-progress's orangesRotting_20260625 verbatim: multi-source BFS with timer,
+// freshOranges, rottenQueue and currentLevel (the batch-size snapshot). Per neighbor: rot
+// the cell, decrement freshOranges, THEN append to rottenQueue — that order, not enqueue
+// then decrement.
 
 type CellVal = 0 | 1 | 2;
 
@@ -114,12 +60,12 @@ function generateSteps(): Step[] {
   }
 
   steps.push({
-    explanation: `Initial grid: ${queue.length} rotten orange(s) (☠) and ${fresh} fresh orange(s) (◉). Pre-scan collects all rotten oranges into the BFS queue — multi-source BFS means rotting spreads from ALL of them simultaneously, not one at a time.`,
-    highlightLine: 25,
+    explanation: `Initial grid: ${queue.length} rotten orange(s) (☠) and ${fresh} fresh orange(s) (◉). Pre-scan collects all rotten oranges into rottenQueue — multi-source BFS means rotting spreads from ALL of them simultaneously, not one at a time.`,
+    anchor: { match: 'for row in range(rows):', to: { match: 'rottenQueue.append((row,col))' } },
     state: toGridState(0, fresh),
     variables: [
-      { name: 'minute', value: 0 },
-      { name: 'freshOrangeCounter', value: fresh, highlight: true },
+      { name: 'timer', value: 0 },
+      { name: 'freshOranges', value: fresh, highlight: true },
       { name: 'rottenQueue', value: queue.length, highlight: true },
     ],
   });
@@ -132,13 +78,13 @@ function generateSteps(): Step[] {
     const newlyRotten: [number, number][] = [];
 
     steps.push({
-      explanation: `Minute ${minute + 1} begins: snapshot numberOfRottenOranges = ${batchSize} (the oranges already rotten at the start of this minute). We'll pop exactly these ${batchSize} and let each infect its neighbors. Processing one whole BFS level = one minute passing.`,
-      highlightLine: 37,
+      explanation: `Minute ${minute + 1} begins: snapshot currentLevel = ${batchSize} (the oranges already rotten at the start of this minute). We'll pop exactly these ${batchSize} and let each infect its neighbors. Processing one whole BFS level = one minute passing.`,
+      anchor: { match: 'currentLevel = len(rottenQueue)' },
       state: toGridState(minute, fresh, { queued: queue.slice(0, batchSize) }),
       variables: [
-        { name: 'minute', value: minute + 1, highlight: true },
-        { name: 'freshOrangeCounter', value: fresh },
-        { name: 'numberOfRottenOranges', value: batchSize, highlight: true },
+        { name: 'timer', value: minute + 1, highlight: true },
+        { name: 'freshOranges', value: fresh },
+        { name: 'currentLevel', value: batchSize, highlight: true },
       ],
     });
 
@@ -150,25 +96,25 @@ function generateSteps(): Step[] {
         const nc = c + dc;
         if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc] === 1) {
           grid[nr][nc] = 2;
-          queue.push([nr, nc]);
           fresh--;
+          queue.push([nr, nc]);
           rottedThisPop.push([nr, nc]);
           newlyRotten.push([nr, nc]);
         }
       }
 
       steps.push({
-        explanation: `Minute ${minute + 1}, pop ${i + 1}/${batchSize}: take rotten orange (${r},${c}) off the queue and check its 4 neighbors. ${
+        explanation: `Minute ${minute + 1}, pop ${i + 1}/${batchSize}: take rotten orange (${r},${c}) off rottenQueue and check its 4 neighbors. ${
           rottedThisPop.length
-            ? `Fresh orange(s) at ${rottedThisPop.map(([rr, cc]) => `(${rr},${cc})`).join(', ')} become rotten — mark them 2, push to queue, decrement fresh.`
+            ? `Fresh orange(s) at ${rottedThisPop.map(([rr, cc]) => `(${rr},${cc})`).join(', ')} become rotten — mark them 2, decrement freshOranges, THEN append to rottenQueue.`
             : `No fresh neighbor (each is out of bounds, empty, or already rotten) — nothing to rot.`
         } fresh left: ${fresh}.`,
-        highlightLine: rottedThisPop.length ? 49 : 47,
+        anchor: { match: 'rottenRow, rottenCol = rottenQueue.popleft()', to: { match: 'rottenQueue.append((nr,nc))' } },
         state: toGridState(minute, fresh, { queued: queue.slice(), newlyRotten: rottedThisPop, active: [r, c] }),
         variables: [
           { name: 'pop', value: `(${r},${c})`, highlight: true },
           { name: 'rotted this pop', value: rottedThisPop.length },
-          { name: 'freshOrangeCounter', value: fresh, highlight: rottedThisPop.length > 0 },
+          { name: 'freshOranges', value: fresh, highlight: rottedThisPop.length > 0 },
           { name: 'rottenQueue', value: queue.length },
         ],
       });
@@ -178,11 +124,11 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `Minute ${minute} complete: all ${batchSize} orange(s) from this level processed, ${newlyRotten.length} new orange(s) rotted in total this minute. ${fresh} fresh remain. The newly-rotten oranges form the next BFS level.`,
-      highlightLine: 53,
+      anchor: { match: 'timer+=1' },
       state: toGridState(minute, fresh, { queued: queue.slice(), newlyRotten }),
       variables: [
-        { name: 'minute', value: minute, highlight: true },
-        { name: 'freshOrangeCounter', value: fresh, highlight: true },
+        { name: 'timer', value: minute, highlight: true },
+        { name: 'freshOranges', value: fresh, highlight: true },
         { name: 'newly rotted', value: newlyRotten.length },
         { name: 'rottenQueue', value: queue.length },
       ],
@@ -195,12 +141,12 @@ function generateSteps(): Step[] {
       fresh > 0
         ? `${fresh} fresh orange(s) are unreachable — isolated by empty cells. Return -1.`
         : `All oranges rotten after ${minute} minute(s). Multi-source BFS naturally gives us the minimum time because it spreads optimally from all sources in parallel.`,
-    highlightLine: 58,
+    anchor: fresh > 0 ? { match: 'return -1' } : { match: 'return timer' },
     state: toGridState(minute, fresh),
     variables: [
       { name: 'result', value: result, highlight: true },
-      { name: 'freshOrangeCounter', value: fresh },
-      { name: 'minute', value: minute },
+      { name: 'freshOranges', value: fresh },
+      { name: 'timer', value: minute },
     ],
   });
 
@@ -209,7 +155,7 @@ function generateSteps(): Step[] {
 
 const bfsSolution: SolutionVariant = {
   label: 'Multi-Source BFS',
-  pythonCode: PYTHON_CODE,
+  variant: 'multi-source-bfs',
   generateSteps,
 };
 

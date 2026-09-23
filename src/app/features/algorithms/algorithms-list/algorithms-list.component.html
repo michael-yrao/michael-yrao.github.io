@@ -3,6 +3,7 @@
   <div class="list-page">
     <app-page-header [breadcrumb]="breadcrumb" heading="Algorithms">
       <span po-meta class="list-page__count">{{ totalVisualized }} visualized · {{ totalProblems }} total</span>
+      <app-groundedness-meter po-meta></app-groundedness-meter>
     </app-page-header>
     <app-library-subnav></app-library-subnav>
     <!-- View toggle tabs -->
@@ -110,6 +111,7 @@
   <div class="list-page">
     <app-page-header [breadcrumb]="breadcrumb" [heading]="categoryLabel">
       <span po-meta class="list-page__count">{{ filtered.length }} of {{ allProblems.length }}</span>
+      <app-groundedness-meter po-meta></app-groundedness-meter>
     </app-page-header>
     <app-library-subnav></app-library-subnav>
     <div class="filters">

@@ -1,40 +1,9 @@
-import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from collections import deque
-
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-class Solution:
-    def goodNodes(self, root: TreeNode) -> int:
-        # first thing that comes to mind is monotonic stack since we want all non-decreasing nodes
-        # so we can do an iterative postorder dfs
-        # then we can just use the stack and specifically just use that as a monotonic stack
-        # However, monotonic stack is used normally for next biggest/smallest element
-        # This also overcomplicates things. What we can do instead is use a tuple like in iterative max depth
-        # this would keep track of node.val, currentMax
-        # we need to keep track of currentMax to ensure we are still non-decreasing
-
-        currentMax = root.val
-        result = 0
-        stack = deque()
-        stack.append([root, currentMax])
-
-        while stack:
-            # if currentNode is not null, check if it is non-decreasing compared to the currentMax
-            currentNode, currentMax = stack.pop()
-            if currentNode:
-                if currentNode.val >= currentMax:
-                    result+=1
-                    currentMax = max(currentMax, currentNode.val)
-                # if smaller, we just don't include it and move on to the children
-                stack.append([currentNode.left,currentMax])
-                stack.append([currentNode.right,currentMax])
-
-        return result`;
+// Traces cse-progress's goodNodes verbatim: an explicit stack of [node, currentMax] pairs
+// (both children pushed even when null), popped with `currentNode, currentMax = stack.pop()`,
+// then an `if currentNode:` guard before comparing — same control flow as the earlier hand
+// simulation, only anchors change.
 
 // Tree: [3, 1, 4, 3, null, 1, 5]
 const NODES: Omit<TreeNode, 'state'>[] = [
@@ -70,7 +39,7 @@ function generateSteps(): Step[] {
 
   const push = (
     explanation: string,
-    line: number,
+    anchor: StepAnchor,
     opts: {
       current?: string | null;
       vars?: { name: string; value: string | number; highlight?: boolean }[];
@@ -78,7 +47,7 @@ function generateSteps(): Step[] {
   ) => {
     steps.push({
       explanation,
-      highlightLine: line,
+      anchor,
       state: {
         type: 'tree',
         nodes: makeNodes(),
@@ -94,7 +63,7 @@ function generateSteps(): Step[] {
 
   push(
     'A node is "good" if no node on the path from the root to it is larger than it — i.e. its value ≥ the max value seen so far on that path. We do an iterative DFS with an explicit stack holding (node, currentMax) pairs. currentMax travels DOWN each path so every node knows the biggest ancestor above it. Start by pushing (root 3, max 3).',
-    22,
+    { match: 'currentMax = root.val', to: { match: 'stack.append([root, currentMax])' } },
     { vars: [{ name: 'result', value: 0 }, { name: 'stack', value: '[(3,max3)]' }] }
   );
 
@@ -106,7 +75,7 @@ function generateSteps(): Step[] {
       `Pop (${id ? valueOf(id) : 'null'}, max ${cm}) off the stack. ${
         id ? 'Node is non-null, so process it.' : 'Node is null → the "if currentNode" check is False, skip it entirely and loop again.'
       }`,
-      id ? 27 : 27,
+      { match: 'currentNode, currentMax = stack.pop()', to: { match: 'if currentNode:' } },
       {
         current: id,
         vars: [
@@ -126,7 +95,9 @@ function generateSteps(): Step[] {
 
     push(
       `Node ${v} vs currentMax ${cm}: ${v} ${good ? `≥ ${cm} → GOOD node, result becomes ${result} and currentMax updates to ${newMax} for this node's children.` : `< ${cm} → NOT good (an ancestor was bigger). result stays ${result}.`}`,
-      good ? 29 : 31,
+      good
+        ? { match: 'if currentNode.val >= currentMax:', to: { match: 'currentMax = max(currentMax, currentNode.val)' } }
+        : { match: 'if currentNode.val >= currentMax:' },
       {
         current: id,
         vars: [
@@ -146,7 +117,7 @@ function generateSteps(): Step[] {
     const rightLabel = node.rightId ? valueOf(node.rightId) : 'null';
     push(
       `Push ${v}'s children with the updated max ${newMax}: left=${leftLabel}, right=${rightLabel}. (We push even null children — that's why each pop starts with an "is it null?" check.) Stack is now ${stackStr()}.`,
-      33,
+      { match: 'stack.append([currentNode.left,currentMax])', to: { match: 'stack.append([currentNode.right,currentMax])' } },
       {
         current: id,
         vars: [
@@ -159,7 +130,7 @@ function generateSteps(): Step[] {
 
   push(
     `Stack is empty — every node has been processed. Good nodes found: root 3, node 4, node 5, and the leaf 3 (path 3→1→3, max 3, 3 ≥ 3). Total result = ${result}.`,
-    35,
+    { match: 'return result' },
     { vars: [{ name: 'result', value: result, highlight: true }] }
   );
 
@@ -191,7 +162,7 @@ export const countGoodNodesMeta: AlgorithmMeta = {
   solutions: [
     {
       label: 'Iterative DFS',
-      pythonCode: PYTHON_CODE,
+      variant: 'iterative-dfs',
       generateSteps,
     },
   ],

@@ -1,12 +1,19 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef, effect } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   AlgorithmMeta, Category, Step, SolutionVariant,
   ArrayState, GridState, LinkedListState, TreeState, CATEGORY_LABELS,
 } from '../../../core/models/algorithm.model';
+import { ShowcaseEntry } from '../../../core/models/showcase.model';
 import { findAlgorithm, getCategoryNeighbors } from '../../../core/data/algorithms.data';
+import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import { NavContextService } from '../../../core/services/nav-context.service';
+import { ShowcaseService } from '../../../core/services/showcase.service';
+import { showcaseKey } from '../../../core/showcase/showcase-key';
+import { DisplayRow, buildDisplay } from '../../../core/showcase/display';
+import { ResolvedStep, resolveSteps } from '../../../core/showcase/anchor-resolver';
+import { VariantGroundedness, groundednessOf } from '../../../core/showcase/groundedness';
 import { NgClass } from '@angular/common';
 import { HintCardComponent } from '../../../shared/components/hint-card/hint-card.component';
 import { ArrayVisualizerComponent } from '../../../shared/visualizers/array-visualizer/array-visualizer.component';
@@ -16,7 +23,7 @@ import { TreeVisualizerComponent } from '../../../shared/visualizers/tree-visual
 import { GraphVisualizerComponent } from '../../../shared/visualizers/graph-visualizer/graph-visualizer.component';
 import { ExplanationCardComponent } from '../../../shared/components/explanation-card/explanation-card.component';
 import { StepControlsComponent } from '../../../shared/components/step-controls/step-controls.component';
-import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
+import { GroundedCodePanelComponent } from '../../../shared/components/grounded-code-panel/grounded-code-panel.component';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 
 const ALGORITHMS_ROOT_BREADCRUMB: BreadcrumbEntry[] = [
@@ -40,7 +47,7 @@ function breadcrumbFor(problem: AlgorithmMeta | null): BreadcrumbEntry[] {
     templateUrl: './problem-page.component.html',
     styleUrls: ['./problem-page.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink, NgClass, HintCardComponent, ArrayVisualizerComponent, GridVisualizerComponent, LinkedListVisualizerComponent, TreeVisualizerComponent, GraphVisualizerComponent, ExplanationCardComponent, StepControlsComponent, CodeViewerComponent, PageHeaderComponent]
+    imports: [RouterLink, NgClass, HintCardComponent, ArrayVisualizerComponent, GridVisualizerComponent, LinkedListVisualizerComponent, TreeVisualizerComponent, GraphVisualizerComponent, ExplanationCardComponent, StepControlsComponent, GroundedCodePanelComponent, PageHeaderComponent]
 })
 export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly categoryLabels = CATEGORY_LABELS;
@@ -58,12 +65,25 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
   showWhy = true;
   private readonly WHY_KEY = 'po-show-why';
 
+  // ── Showcase (grounded solution code) view state — plan B5 ─────────────
+  // Plain fields, not signals: recomputed imperatively by refreshShowcaseView() (called from
+  // ngOnInit, selectSolution, and the constructor effect below) rather than derived via
+  // `computed()`, since they depend on the imperatively-driven `problem`/`steps` fields too.
+  entry: ShowcaseEntry | null = null;
+  rows: DisplayRow[] = [];
+  resolved: ResolvedStep[] = [];
+  groundedness: VariantGroundedness | null = null;
+
   @ViewChild('descSentinel') private descSentinel!: ElementRef<HTMLElement>;
   private stickyObs?: IntersectionObserver;
   private routeSub?: Subscription;
 
   get activeSolution(): SolutionVariant | null {
     return this.problem?.solutions[this.activeSolutionIndex] ?? null;
+  }
+
+  get titleUrl(): string | null {
+    return leetCodeUrlFor(this.entry?.url, this.problem?.lcNumber);
   }
 
   get hasMultipleSolutions(): boolean {
@@ -112,11 +132,22 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
     private router: Router,
     private cdr: ChangeDetectorRef,
     private navCtx: NavContextService,
+    readonly showcase: ShowcaseService,
   ) {
     try {
       const pref = localStorage.getItem(this.WHY_KEY);
       if (pref !== null) this.showWhy = pref === '1';
     } catch { /* localStorage unavailable — keep default */ }
+
+    // Recompute the showcase view whenever the fetched contract changes (first load, a
+    // Retry, or a background refresh). Reads/writes plain fields, not signals, so OnPush
+    // needs the explicit markForCheck() the template's `showcase.status()`/`showcase.error()`
+    // reads (signals) don't need on their own.
+    effect(() => {
+      this.showcase.data();
+      this.refreshShowcaseView();
+      this.cdr.markForCheck();
+    });
   }
 
   ngAfterViewInit(): void {
@@ -153,6 +184,11 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Gold-standard only — this page never reads `?repo=` (plan B5/Decision 2: a step
+    // generator is a hand-written trace of one specific attempt, so it cannot follow anyone
+    // else's code). A no-op if already loaded/loading this session.
+    this.showcase.load();
+
     // The :category/:id params live on this component's own route (it is loaded
     // directly via loadComponent), so read them from this.route — not the parent.
     this.routeSub = this.route.paramMap.subscribe(map => {
@@ -170,6 +206,7 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
       this.steps = this.problem.solutions[0]?.generateSteps() ?? [];
       this.currentStepIndex = 0;
       this.started = false;
+      this.refreshShowcaseView();
 
       const neighbors = getCategoryNeighbors(category, id);
       this.prevProblem = neighbors.prev;
@@ -196,7 +233,12 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.steps = this.problem!.solutions[index].generateSteps();
     this.currentStepIndex = 0;
     this.started = false;
+    this.refreshShowcaseView();
     this.cdr.markForCheck();
+  }
+
+  retryShowcase(): void {
+    this.showcase.load(true);
   }
 
   startViz(): void {
@@ -213,5 +255,25 @@ export class ProblemPageComponent implements OnInit, AfterViewInit, OnDestroy {
   onReset(): void {
     this.currentStepIndex = 0;
     this.cdr.markForCheck();
+  }
+
+  /** Recomputes `entry`/`rows`/`resolved`/`groundedness` for the currently active variant
+   *  against whatever the showcase contract currently holds — called on route change, on
+   *  selectSolution, and (via the constructor effect) whenever the fetch resolves. */
+  private refreshShowcaseView(): void {
+    const problem = this.problem;
+    const variant = this.activeSolution;
+    const data = this.showcase.data();
+    if (!problem || !variant || !data) {
+      this.entry = null;
+      this.rows = [];
+      this.resolved = [];
+      this.groundedness = null;
+      return;
+    }
+    this.entry = this.showcase.entryFor(showcaseKey(problem, variant));
+    this.rows = this.entry ? buildDisplay(this.entry) : [];
+    this.resolved = resolveSteps(this.rows, this.steps);
+    this.groundedness = groundednessOf(problem, variant, data);
   }
 }

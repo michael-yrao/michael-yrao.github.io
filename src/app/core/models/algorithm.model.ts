@@ -120,9 +120,15 @@ export interface StepVariable {
   highlight?: boolean;
 }
 
+export interface StepAnchor {
+  match: string;
+  nth?: number;
+  to?: { match: string; nth?: number };
+}
+
 export interface Step {
   explanation: string;
-  highlightLine?: number;
+  anchor?: StepAnchor;
   state: VisualizerState;
   variables?: StepVariable[];
 }
@@ -135,7 +141,8 @@ export interface ProblemExample {
 
 export interface SolutionVariant {
   label: string;
-  pythonCode: string;
+  /** Kebab-case approach id; joins to the showcase entry via `${lcNumber}:${variant}`. */
+  variant: string;
   generateSteps: () => Step[];
   timeComplexity?: string;
   spaceComplexity?: string;

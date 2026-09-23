@@ -1,46 +1,12 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def searchMatrix(self, matrix: List[List[int]], target: int) -> bool:
-        # we can actually just do this one dimension at a time
-        # if we go down the matrix
-        # we can easily tell which row should be at
-        # then we do the same thing in the row
-        # so binary search the column, then binary search the row
-        # matrix[i][0] gets us the first element of each row
-        # we want to find i where matrix[i][0] < target and matrix[i+1][0] > target
-        # after which, we just want to do a normal binary search on the row
-
-        rowCount = len(matrix)
-        l, r = 0, rowCount - 1
-
-        # we are doing a range, so not exactly sure what we are looking for
-        # thus we will use l < r
-        while l < r:
-            # since we are looking for the maximum row, we want to bias towards right
-            mid = (l + r + 1) // 2
-            if matrix[mid][0] > target:
-                r = mid - 1
-            else:
-                l = mid
-
-        # now we have l at the row we need
-
-        resultRow = l
-
-        columnCount = len(matrix[0])
-
-        l, r = 0, columnCount - 1
-
-        while l <= r:
-            mid = (l + r) // 2
-            if matrix[resultRow][mid] == target:
-                return True
-            if matrix[resultRow][mid] > target:
-                r = mid - 1
-            else:
-                l = mid + 1
-        return False`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's searchMatrix_20260826 verbatim: Phase 1 finds the row via a
+// right-biased binary search (l, r, m reused — not renamed per phase): `while l < r`, m = (l+r+1)//2,
+// matrix[m][0] > target → r = m-1, else l = m. Then rowNumber = l. Phase 2 re-declares l, r for
+// the row and runs a standard binary search: equal → return True; elif matrix[rowNumber][m] <
+// target → l = m+1; else → r = m-1.
 
 function generateSteps(): Step[] {
   const matrix = [
@@ -54,7 +20,6 @@ function generateSteps(): Step[] {
   const flat = matrix.flat(); // length = rows * cols = 12
   const steps: Step[] = [];
 
-  // Helper: state for each flat cell given a window [lo, hi] and active mid and found index
   const snap = (lo: number, hi: number, mid: number | null, foundIdx: number | null) =>
     flat.map((v, i) => ({
       value: v,
@@ -78,136 +43,118 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation:
-      'Search a 2D matrix [[1,3,5,7],[10,11,16,20],[23,30,34,60]] for target=3. The matrix is fully sorted (each row sorted, first element of each row > last of previous), so we can treat it as one flat sorted array of length m*n and run a single binary search.',
-    highlightLine: 10,
+      'Search a 2D matrix [[1,3,5,7],[10,11,16,20],[23,30,34,60]] for target=3. Phase 1 finds the row that could hold target (comparing only matrix[m][0], the first element of each row); Phase 2 binary-searches within that row.',
+    anchor: { match: 'l, r = 0, len(matrix) - 1', to: { match: 'while l < r:' } },
     state: {
       type: 'array',
-      cells: flat.map(v => ({ value: v, state: 'default' as const })),
+      cells: flat.map((v) => ({ value: v, state: 'default' as const })),
       pointers: [],
     },
     variables: [
       { name: 'target', value: target },
-      { name: 'rows × cols', value: `${rows} × ${cols} = ${rows * cols}` },
+      { name: 'l', value: 0 },
+      { name: 'r', value: rows - 1 },
     ],
   });
 
-  // ── Phase 1: find the correct row ─────────────────────────────────────────
-  steps.push({
-    explanation:
-      'Phase 1 — find the correct row. Binary search on row indices (0..2). We want the largest row whose first element ≤ target. Use the right-biased mid = (l+r+1)//2 to avoid infinite loop when l+1 == r.',
-    highlightLine: 12,
-    state: {
-      type: 'array',
-      cells: flat.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
-    },
-    variables: [{ name: 'rowCount', value: rows }],
-  });
+  let l = 0;
+  let r = rows - 1;
 
-  let lRow = 0;
-  let rRow = rows - 1;
+  while (l < r) {
+    const m = Math.floor((l + r + 1) / 2);
+    const firstOfM = matrix[m][0];
+    const goLeft = firstOfM > target;
 
-  steps.push({
-    explanation: `Row search: l=${lRow}, r=${rRow}.`,
-    highlightLine: 12,
-    state: {
-      type: 'array',
-      cells: flat.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
-    },
-    variables: [{ name: 'l (row)', value: lRow }, { name: 'r (row)', value: rRow }],
-  });
-
-  while (lRow < rRow) {
-    const midRow = Math.floor((lRow + rRow + 1) / 2);
-    const firstOfMid = matrix[midRow][0];
-    const goLeft = firstOfMid > target;
-
-    steps.push({
-      explanation: `Row search: l=${lRow}, r=${rRow}, mid=${midRow}. matrix[${midRow}][0]=${firstOfMid} ${goLeft ? '>' : '≤'} target=${target}. ${goLeft ? `First element of row ${midRow} exceeds target → search upper rows → r = ${midRow - 1}.` : `Row ${midRow} could contain target → keep mid as candidate → l = ${midRow}.`}`,
-      highlightLine: goLeft ? 17 : 19,
-      state: {
-        type: 'array',
-        cells: flat.map(v => ({ value: v, state: 'default' as const })),
-        pointers: [],
-      },
-      variables: [
-        { name: 'midRow', value: midRow },
-        { name: 'matrix[mid][0]', value: firstOfMid },
-        { name: goLeft ? 'r →' : 'l →', value: goLeft ? midRow - 1 : midRow, highlight: true },
-      ],
-    });
-
-    if (goLeft) rRow = midRow - 1;
-    else lRow = midRow;
+    if (goLeft) {
+      steps.push({
+        explanation: `while l < r (${l}<${r}): m = (l+r+1)//2 = ${m}. matrix[m][0]=${firstOfM} > target=${target} → r = m-1 = ${m - 1}.`,
+        // nth 1: row-phase's own 'r = m - 1'; hit 2 is col-phase's 'r = m - 1' further down.
+        anchor: { match: 'if matrix[m][0] > target:', to: { match: 'r = m - 1', nth: 1 } },
+        state: { type: 'array', cells: flat.map((v) => ({ value: v, state: 'default' as const })), pointers: [] },
+        variables: [
+          { name: 'm', value: m },
+          { name: 'matrix[m][0]', value: firstOfM },
+          { name: 'r', value: m - 1, highlight: true },
+        ],
+      });
+      r = m - 1;
+    } else {
+      steps.push({
+        explanation: `while l < r (${l}<${r}): m = (l+r+1)//2 = ${m}. matrix[m][0]=${firstOfM} ≤ target=${target} → the if doesn't fire, else: l = m = ${m}.`,
+        // Skips nth=1's 'l = m' — no, this IS nth=1 (row phase). Note 'l = m' is a substring of
+        // the col-phase's 'l = m + 1' too, so nth pins this to the row-phase occurrence.
+        anchor: { match: 'else:', nth: 1, to: { match: 'l = m', nth: 1 } },
+        state: { type: 'array', cells: flat.map((v) => ({ value: v, state: 'default' as const })), pointers: [] },
+        variables: [
+          { name: 'm', value: m },
+          { name: 'matrix[m][0]', value: firstOfM },
+          { name: 'l', value: m, highlight: true },
+        ],
+      });
+      l = m;
+    }
   }
 
-  const resultRow = lRow;
+  const rowNumber = l;
 
   steps.push({
-    explanation: `Row search converged: resultRow=${resultRow}. Row ${resultRow} is [${matrix[resultRow].join(',')}]. Now binary search within this row.`,
-    highlightLine: 20,
+    explanation: `Row search converged: rowNumber = l = ${rowNumber}. Row ${rowNumber} is [${matrix[rowNumber].join(',')}]. Now binary search within this row.`,
+    anchor: { match: 'rowNumber = l' },
     state: {
       type: 'array',
       cells: flat.map((v, i) => ({
         value: v,
-        state:
-          Math.floor(i / cols) === resultRow
-            ? ('window' as const)
-            : ('eliminated' as const),
+        state: Math.floor(i / cols) === rowNumber ? ('window' as const) : ('eliminated' as const),
       })),
       pointers: [],
     },
     variables: [
-      { name: 'resultRow', value: resultRow, highlight: true },
-      { name: 'row values', value: `[${matrix[resultRow].join(',')}]` },
+      { name: 'rowNumber', value: rowNumber, highlight: true },
+      { name: 'row values', value: `[${matrix[rowNumber].join(',')}]` },
     ],
   });
 
-  // ── Phase 2: binary search within the row ────────────────────────────────
-  let lCol = 0;
-  let rCol = cols - 1;
+  // Phase 2 re-declares l, r for the row.
+  l = 0;
+  r = matrix[rowNumber].length - 1;
   let foundFlatIdx: number | null = null;
 
   steps.push({
-    explanation: `Phase 2 — binary search within row ${resultRow}. l=${lCol}, r=${rCol}.`,
-    highlightLine: 23,
+    explanation: `l, r = 0, len(matrix[rowNumber])-1 → l=${l}, r=${r}.`,
+    anchor: { match: 'l, r = 0, len(matrix[rowNumber]) - 1', to: { match: 'while l <= r:' } },
     state: {
       type: 'array',
       cells: flat.map((v, i) => ({
         value: v,
-        state:
-          Math.floor(i / cols) === resultRow && i % cols >= lCol && i % cols <= rCol
-            ? ('window' as const)
-            : ('eliminated' as const),
+        state: Math.floor(i / cols) === rowNumber && i % cols >= l && i % cols <= r ? ('window' as const) : ('eliminated' as const),
       })),
       pointers: [
-        { index: resultRow * cols + lCol, label: 'l' },
-        { index: resultRow * cols + rCol, label: 'r' },
+        { index: rowNumber * cols + l, label: 'l' },
+        { index: rowNumber * cols + r, label: 'r' },
       ],
     },
-    variables: [{ name: 'l (col)', value: lCol }, { name: 'r (col)', value: rCol }],
+    variables: [{ name: 'l', value: l }, { name: 'r', value: r }],
   });
 
-  while (lCol <= rCol) {
-    const midCol = Math.floor((lCol + rCol) / 2);
-    const midFlatIdx = resultRow * cols + midCol;
-    const midVal = matrix[resultRow][midCol];
+  while (l <= r) {
+    const m = Math.floor((l + r) / 2);
+    const flatIdx = rowNumber * cols + m;
+    const midVal = matrix[rowNumber][m];
 
     if (midVal === target) {
-      foundFlatIdx = midFlatIdx;
+      foundFlatIdx = flatIdx;
       steps.push({
-        explanation: `l=${lCol}, r=${rCol}, mid=${midCol}: matrix[${resultRow}][${midCol}]=${midVal} === target=${target}! Found at flat index ${midFlatIdx} (${flatLabel(midFlatIdx)}).`,
-        highlightLine: 35,
+        explanation: `while l <= r (${l}<=${r}): m=${m}. matrix[rowNumber][m]=${midVal} == target=${target} → return True. Found at ${flatLabel(flatIdx)}.`,
+        anchor: { match: 'if matrix[rowNumber][m] == target:', to: { match: 'return True' } },
         state: {
           type: 'array',
-          cells: snap(resultRow * cols + lCol, resultRow * cols + rCol, midFlatIdx, foundFlatIdx),
-          pointers: [{ index: midFlatIdx, label: 'found' }],
+          cells: snap(rowNumber * cols + l, rowNumber * cols + r, flatIdx, foundFlatIdx),
+          pointers: [{ index: flatIdx, label: 'found' }],
         },
         variables: [
-          { name: 'mid (col)', value: midCol },
-          { name: 'matrix[row][mid]', value: midVal, highlight: true },
-          { name: 'return', value: 'true', highlight: true },
+          { name: 'm', value: m },
+          { name: 'matrix[rowNumber][m]', value: midVal, highlight: true },
+          { name: 'return', value: 'True', highlight: true },
         ],
       });
       break;
@@ -215,44 +162,60 @@ function generateSteps(): Step[] {
 
     const goRight = midVal < target;
 
-    steps.push({
-      explanation: `l=${lCol}, r=${rCol}, mid=${midCol}: matrix[${resultRow}][${midCol}]=${midVal} ${goRight ? '<' : '>'} target=${target}. ${goRight ? `Target is right → l = ${midCol + 1}.` : `Target is left → r = ${midCol - 1}.`}`,
-      highlightLine: goRight ? 30 : 28,
-      state: {
-        type: 'array',
-        cells: snap(
-          resultRow * cols + lCol,
-          resultRow * cols + rCol,
-          midFlatIdx,
-          null
-        ),
-        pointers: [
-          { index: resultRow * cols + lCol, label: 'l' },
-          { index: midFlatIdx, label: 'mid' },
-          { index: resultRow * cols + rCol, label: 'r' },
+    if (goRight) {
+      steps.push({
+        explanation: `while l <= r (${l}<=${r}): m=${m}. matrix[rowNumber][m]=${midVal} < target=${target} → elif fires: l = m+1 = ${m + 1}.`,
+        anchor: { match: 'elif matrix[rowNumber][m] < target:', to: { match: 'l = m + 1' } },
+        state: {
+          type: 'array',
+          cells: snap(rowNumber * cols + l, rowNumber * cols + r, flatIdx, null),
+          pointers: [
+            { index: rowNumber * cols + l, label: 'l' },
+            { index: flatIdx, label: 'm' },
+            { index: rowNumber * cols + r, label: 'r' },
+          ],
+        },
+        variables: [
+          { name: 'm', value: m },
+          { name: 'matrix[rowNumber][m]', value: midVal },
+          { name: 'l', value: m + 1, highlight: true },
         ],
-      },
-      variables: [
-        { name: 'mid (col)', value: midCol },
-        { name: 'matrix[row][mid]', value: midVal },
-        { name: goRight ? 'l →' : 'r →', value: goRight ? midCol + 1 : midCol - 1, highlight: true },
-      ],
-    });
-
-    if (goRight) lCol = midCol + 1;
-    else rCol = midCol - 1;
+      });
+      l = m + 1;
+    } else {
+      steps.push({
+        explanation: `while l <= r (${l}<=${r}): m=${m}. matrix[rowNumber][m]=${midVal} ≥ target=${target}, not <, not == → else: r = m-1 = ${m - 1}.`,
+        // nth 2/2: hit 1 of each is row-phase's own 'else:'/'r = m - 1' above; this is col-phase's.
+        anchor: { match: 'else:', nth: 2, to: { match: 'r = m - 1', nth: 2 } },
+        state: {
+          type: 'array',
+          cells: snap(rowNumber * cols + l, rowNumber * cols + r, flatIdx, null),
+          pointers: [
+            { index: rowNumber * cols + l, label: 'l' },
+            { index: flatIdx, label: 'm' },
+            { index: rowNumber * cols + r, label: 'r' },
+          ],
+        },
+        variables: [
+          { name: 'm', value: m },
+          { name: 'matrix[rowNumber][m]', value: midVal },
+          { name: 'r', value: m - 1, highlight: true },
+        ],
+      });
+      r = m - 1;
+    }
   }
 
   if (foundFlatIdx === null) {
     steps.push({
-      explanation: `l > r: search exhausted. target=${target} not found → return false.`,
-      highlightLine: 31,
+      explanation: `l > r: search exhausted. target=${target} not found → return False.`,
+      anchor: { match: 'return False' },
       state: {
         type: 'array',
-        cells: flat.map(v => ({ value: v, state: 'eliminated' as const })),
+        cells: flat.map((v) => ({ value: v, state: 'eliminated' as const })),
         pointers: [],
       },
-      variables: [{ name: 'return', value: 'false', highlight: true }],
+      variables: [{ name: 'return', value: 'False', highlight: true }],
     });
   }
 
@@ -261,7 +224,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Two-Phase Binary Search',
-  pythonCode: PYTHON_CODE,
+  variant: 'two-phase',
   generateSteps,
 };
 

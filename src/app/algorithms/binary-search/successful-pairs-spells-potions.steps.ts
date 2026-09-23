@@ -1,59 +1,31 @@
 import { AlgorithmMeta, SolutionVariant, Step, ArrayState, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from typing import List
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's successfulPairs_20260619 verbatim: potions.sort() happens BEFORE
+// result = [0] * len(spells) is allocated. For each spell i: l, r = 0, len(potions)-1; a
+// min-boundary binary search using spells[i] * potions[m] >= success (spell first, potion
+// second — not the reverse). After the loop, a separate check on potions[l] decides result[i]:
+// 0 if it still fails, else len(potions) - l.
 
-class Solution:
-    # time complexity: O(nlogm + mlogm) ; mlogm to sort the potion ; nlogm to find min boundary
-    def successfulPairs(self, spells: List[int], potions: List[int], success: int) -> List[int]:
-        # ok so first thing to notice is that size of output = len(spells)
-        # brute force solution is to just iterate over both, check spells[i]*potions[j]>success and increment output[i]
-        # this would be a O(n*m) solution
-        # so note that we are keeping track of numbers of success, so ordering doesn't matter much, so we can sort potions
-        # if we can sort potions, we can find the minimum potion strength such that it is successful
-        # so what this becomes is a min boundary binary search problem
-        # condition that we found the min is that if potions[mid] * spells[i] >= success and potions[right] * spells[i] >= success
-        # that means we definitely want to go to the left
-
-        successRate = [0] * len(spells)
-
-        potions.sort()
-
-        for i in range(len(spells)):
-            l, r = 0, len(potions) - 1
-            while l < r:
-                mid = (l + r) // 2
-                if potions[mid] * spells[i] >= success:
-                    r = mid
-                else:
-                    l = mid + 1
-
-            # if min boundary is < success, then assign 0
-            if potions[l] * spells[i] < success:
-                successRate[i] = 0
-            else:
-                successRate[i] = len(potions) - l
-
-        return successRate`;
-
-// Input: spells=[5,1,3], potions=[1,2,3,4,5], success=7
-// After sorting potions: [1,2,3,4,5] (already sorted)
-// spell=5: 5*p >= 7 → p >= 7/5=1.4 → min potion=2 (index 1) → pairs=5-1=4
-// spell=1: 1*p >= 7 → p >= 7  → none → pairs=0
-// spell=3: 3*p >= 7 → p >= 7/3=2.33 → min potion=3 (index 2) → pairs=5-2=3
+// Input: spells=[5,1,3], potions=[1,2,3,4,5], success=7 (potions already sorted)
 
 function generateSteps(): Step[] {
   const steps: Step[] = [];
   const spells = [5, 1, 3];
   const potions = [1, 2, 3, 4, 5]; // already sorted
   const success = 7;
-  const successRate = [0, 0, 0];
+  const result = [0, 0, 0];
+
+  const potionCells = (overrides: Record<number, 'window' | 'active' | 'eliminated' | 'found'>) =>
+    potions.map((v, i) => ({ value: v, state: overrides[i] ?? ('default' as const) }));
 
   // ── Setup ─────────────────────────────────────────────────────────────────
 
   steps.push({
     explanation:
-      'spells=[5,1,3], potions=[1,2,3,4,5], success=7. Output size = len(spells) = 3. Brute force O(n*m) checks every pair. Optimization: since ordering of potions does not affect count, sort potions first, then binary search to find the minimum potion index where spell*potion >= success.',
-    highlightLine: 4,
+      'spells=[5,1,3], potions=[1,2,3,4,5], success=7. Output size = len(spells) = 3. Brute force O(n*m) checks every pair. Optimization: since ordering of potions does not affect the count, sort potions first, then binary search per spell for the minimum potion index where spells[i]*potions[m] >= success.',
+    anchor: { match: 'def successfulPairs_20260619(self, spells: List[int], potions: List[int], success: int) -> List[int]:' },
     state: {
       type: 'array',
       cells: potions.map((v) => ({ value: v, state: 'default' as const })),
@@ -61,253 +33,204 @@ function generateSteps(): Step[] {
       counters: [
         { label: 'spells', value: '[5,1,3]' },
         { label: 'success', value: success },
-        { label: 'pairs so far', value: '[0,0,0]' },
+        { label: 'result so far', value: '[0,0,0]' },
       ],
     } as ArrayState,
   });
 
   steps.push({
     explanation:
-      'potions.sort(): sort potions ascending. Result: [1,2,3,4,5] (already sorted in this case). Sorting costs O(m log m). Now binary search on sorted potions for each spell: find leftmost index where potions[mid]*spell >= success.',
-    highlightLine: 17,
+      'potions.sort(): [1,2,3,4,5] (already sorted). result = [0]*len(spells) is allocated AFTER sorting. Now binary search on sorted potions for each spell: find leftmost index where spells[i]*potions[m] >= success.',
+    anchor: { match: 'potions.sort()', to: { match: 'result = [0] * len(spells)' } },
     state: {
       type: 'array',
       cells: potions.map((v) => ({ value: v, state: 'visited' as const })),
       pointers: [],
       counters: [
         { label: 'sorted potions', value: '[1,2,3,4,5]' },
-        { label: 'sort cost', value: 'O(m log m)' },
+        { label: 'result', value: '[0,0,0]' },
       ],
     } as ArrayState,
   });
 
-  // ── Spell 0: strength=5, success=7, need potion >= ceil(7/5)=2 ───────────
+  // ── Spell 0: strength=5, success=7 ────────────────────────────────────────
 
   steps.push({
-    explanation:
-      'Spell 0: strength=5. We need potions[mid]*5 >= 7, i.e. potions[mid] >= 1.4, so min potion=2 (index 1). Binary search on [1,2,3,4,5] with l=0, r=4.',
-    highlightLine: 19,
+    explanation: 'Spell 0: spells[0]=5. l, r = 0, len(potions)-1 → l=0, r=4.',
+    anchor: { match: 'for i in range(len(spells)):', to: { match: 'l, r = 0, len(potions) - 1' } },
     state: {
       type: 'array',
-      cells: potions.map((v) => ({ value: v, state: 'window' as const })),
-      pointers: [
-        { index: 0, label: 'l' },
-        { index: 4, label: 'r' },
-      ],
-      counters: [
-        { label: 'spell', value: 5 },
-        { label: 'success threshold', value: success },
-        { label: 'need potion >=', value: '7/5=1.4' },
-        { label: 'pairs so far', value: '[?,0,0]' },
-      ],
+      cells: potionCells({}),
+      pointers: [{ index: 0, label: 'l' }, { index: 4, label: 'r' }],
+      counters: [{ label: 'spells[i]', value: 5 }, { label: 'result so far', value: '[?,0,0]' }],
     } as ArrayState,
   });
 
-  // l=0, r=4, mid=2. potions[2]*5=15>=7 → r=mid=2
   steps.push({
-    explanation:
-      'l=0, r=4, mid=2. potions[2]=3. 3*5=15 >= 7 → success! Condition met, but we want the MINIMUM boundary, so set r=mid=2 (try to go further left).',
-    highlightLine: 22,
+    explanation: 'while l < r (0<4): m=(l+r)//2=2. spells[0]*potions[2] = 5*3 = 15 >= 7 → r = m = 2.',
+    anchor: { match: 'if spells[i] * potions[m] >= success:', to: { match: 'r = m', nth: 2 } }, // skips nth=1's comment '# if greater, drop r = m'
     state: {
       type: 'array',
-      cells: [
-        { value: 1, state: 'window' as const },
-        { value: 2, state: 'window' as const },
-        { value: 3, state: 'active' as const },
-        { value: 4, state: 'eliminated' as const },
-        { value: 5, state: 'eliminated' as const },
-      ],
-      pointers: [
-        { index: 0, label: 'l' },
-        { index: 2, label: 'mid/r→' },
-      ],
-      counters: [
-        { label: 'spell', value: 5 },
-        { label: 'potions[2]*5', value: '3*5=15' },
-        { label: '15 >= 7?', value: 'YES → r=mid=2' },
-      ],
+      cells: potionCells({ 0: 'window', 1: 'window', 2: 'active', 3: 'eliminated', 4: 'eliminated' }),
+      pointers: [{ index: 0, label: 'l' }, { index: 2, label: 'm/r→' }],
+      counters: [{ label: 'spells[i]*potions[m]', value: '5*3=15' }, { label: '>= success?', value: 'YES → r=2' }],
     } as ArrayState,
   });
 
-  // l=0, r=2, mid=1. potions[1]*5=10>=7 → r=mid=1
   steps.push({
-    explanation:
-      'l=0, r=2, mid=1. potions[1]=2. 2*5=10 >= 7 → success! Set r=mid=1.',
-    highlightLine: 22,
+    explanation: 'while l < r (0<2): m=(l+r)//2=1. spells[0]*potions[1] = 5*2 = 10 >= 7 → r = m = 1.',
+    anchor: { match: 'if spells[i] * potions[m] >= success:', to: { match: 'r = m', nth: 2 } }, // skips nth=1's comment '# if greater, drop r = m'
     state: {
       type: 'array',
-      cells: [
-        { value: 1, state: 'window' as const },
-        { value: 2, state: 'active' as const },
-        { value: 3, state: 'eliminated' as const },
-        { value: 4, state: 'eliminated' as const },
-        { value: 5, state: 'eliminated' as const },
-      ],
-      pointers: [
-        { index: 0, label: 'l' },
-        { index: 1, label: 'mid/r→' },
-      ],
-      counters: [
-        { label: 'spell', value: 5 },
-        { label: 'potions[1]*5', value: '2*5=10' },
-        { label: '10 >= 7?', value: 'YES → r=mid=1' },
-      ],
+      cells: potionCells({ 0: 'window', 1: 'active', 2: 'eliminated', 3: 'eliminated', 4: 'eliminated' }),
+      pointers: [{ index: 0, label: 'l' }, { index: 1, label: 'm/r→' }],
+      counters: [{ label: 'spells[i]*potions[m]', value: '5*2=10' }, { label: '>= success?', value: 'YES → r=1' }],
     } as ArrayState,
   });
 
-  // l=0, r=1, mid=0. potions[0]*5=5<7 → l=mid+1=1. Loop ends l==r==1
   steps.push({
-    explanation:
-      'l=0, r=1, mid=0. potions[0]=1. 1*5=5 < 7 → not successful. Set l=mid+1=1. Now l==r==1, loop ends. Min boundary index=1. Check: potions[1]*5=10>=7 → successRate[0] = len(potions)-l = 5-1 = 4.',
-    highlightLine: 24,
+    explanation: 'while l < r (0<1): m=(l+r)//2=0. spells[0]*potions[0] = 5*1 = 5, not >= 7 → the if doesn\'t fire, else: l = m+1 = 1. Now l==r==1, loop ends.',
+    // nth 1: the binary search's own 'else:'/'l = m + 1'; hit 2 of 'else:' belongs to the
+    // post-loop success-check's else branch further down.
+    anchor: { match: 'else:', nth: 1, to: { match: 'l = m + 1' } },
     state: {
       type: 'array',
-      cells: [
-        { value: 1, state: 'eliminated' as const },
-        { value: 2, state: 'found' as const },
-        { value: 3, state: 'found' as const },
-        { value: 4, state: 'found' as const },
-        { value: 5, state: 'found' as const },
-      ],
-      pointers: [{ index: 1, label: 'cutoff (l=r=1)' }],
-      counters: [
-        { label: 'spell', value: 5 },
-        { label: 'potions[0]*5', value: '1*5=5 < 7 → l=1' },
-        { label: 'cutoff index', value: 1 },
-        { label: 'pairs = 5-1', value: 4 },
-      ],
+      cells: potionCells({ 0: 'eliminated', 1: 'window', 2: 'window', 3: 'window', 4: 'window' }),
+      pointers: [{ index: 1, label: 'l=r=1' }],
+      counters: [{ label: 'spells[i]*potions[m]', value: '5*1=5' }, { label: '>= success?', value: 'NO → l=1' }],
     } as ArrayState,
   });
 
-  successRate[0] = 4;
-
-  // ── Spell 1: strength=1, success=7, need potion >= 7 → none ──────────────
-
   steps.push({
-    explanation:
-      'Spell 1: strength=1. Need potions[mid]*1 >= 7, i.e. potion >= 7. Max potion is 5 which is < 7 — no successful pairs exist. Binary search: l=0, r=4.',
-    highlightLine: 19,
+    explanation: 'spells[0]*potions[l] = 5*potions[1] = 5*2 = 10, not < 7 → the if doesn\'t fire, else: result[0] = len(potions) - l = 5 - 1 = 4.',
+    // nth 2: hit 1 is the binary search's own 'else:' above; this is the post-loop
+    // success-check's else branch (result[i] = len(potions) - l).
+    anchor: { match: 'else:', nth: 2, to: { match: 'result[i] = len(potions) - l' } },
     state: {
       type: 'array',
-      cells: potions.map((v) => ({ value: v, state: 'window' as const })),
-      pointers: [
-        { index: 0, label: 'l' },
-        { index: 4, label: 'r' },
-      ],
-      counters: [
-        { label: 'spell', value: 1 },
-        { label: 'need potion >=', value: '7/1=7 (impossible)' },
-        { label: 'pairs so far', value: `[${successRate[0]},?,0]` },
-      ],
+      cells: potionCells({ 0: 'eliminated', 1: 'found', 2: 'found', 3: 'found', 4: 'found' }),
+      pointers: [{ index: 1, label: 'cutoff' }],
+      counters: [{ label: 'result[0] = 5-1', value: 4 }],
+    } as ArrayState,
+  });
+  result[0] = 4;
+
+  // ── Spell 1: strength=1, success=7 (no potion works) ──────────────────────
+
+  steps.push({
+    explanation: 'Spell 1: spells[1]=1. l, r = 0, len(potions)-1 → l=0, r=4.',
+    anchor: { match: 'for i in range(len(spells)):', to: { match: 'l, r = 0, len(potions) - 1' } },
+    state: {
+      type: 'array',
+      cells: potionCells({}),
+      pointers: [{ index: 0, label: 'l' }, { index: 4, label: 'r' }],
+      counters: [{ label: 'spells[i]', value: 1 }, { label: 'result so far', value: `[${result[0]},?,0]` }],
     } as ArrayState,
   });
 
-  // mid=2: 3*1=3<7 → l=3. mid=3: 4*1=4<7 → l=4. l==r==4. potions[4]*1=5<7 → 0 pairs
   steps.push({
-    explanation:
-      'Binary search narrows down: potions[mid]*1 always < 7 for all potions. Eventually l=r=4. Check: potions[4]*1=5 < 7 → condition fails → successRate[1]=0.',
-    highlightLine: 28,
+    explanation: 'while l < r (0<4): m=(l+r)//2=2. spells[1]*potions[2] = 1*3 = 3, not >= 7 → else: l = m+1 = 3.',
+    // nth 1: the binary search's own 'else:'/'l = m + 1'; hit 2 of 'else:' belongs to the
+    // post-loop success-check's else branch further down.
+    anchor: { match: 'else:', nth: 1, to: { match: 'l = m + 1' } },
     state: {
       type: 'array',
-      cells: potions.map((v) => ({ value: v, state: 'eliminated' as const })),
+      cells: potionCells({ 0: 'eliminated', 1: 'eliminated', 2: 'eliminated', 3: 'window', 4: 'window' }),
+      pointers: [{ index: 3, label: 'l' }, { index: 4, label: 'r' }],
+      counters: [{ label: 'spells[i]*potions[m]', value: '1*3=3' }, { label: '>= success?', value: 'NO → l=3' }],
+    } as ArrayState,
+  });
+
+  steps.push({
+    explanation: 'while l < r (3<4): m=(l+r)//2=3. spells[1]*potions[3] = 1*4 = 4, not >= 7 → else: l = m+1 = 4. Now l==r==4, loop ends.',
+    // nth 1: the binary search's own 'else:'/'l = m + 1'; hit 2 of 'else:' belongs to the
+    // post-loop success-check's else branch further down.
+    anchor: { match: 'else:', nth: 1, to: { match: 'l = m + 1' } },
+    state: {
+      type: 'array',
+      cells: potionCells({ 0: 'eliminated', 1: 'eliminated', 2: 'eliminated', 3: 'eliminated', 4: 'window' }),
       pointers: [{ index: 4, label: 'l=r=4' }],
-      counters: [
-        { label: 'spell', value: 1 },
-        { label: 'potions[4]*1', value: '5 < 7 → 0 pairs' },
-        { label: 'successRate[1]', value: 0 },
-      ],
+      counters: [{ label: 'spells[i]*potions[m]', value: '1*4=4' }, { label: '>= success?', value: 'NO → l=4' }],
     } as ArrayState,
   });
-
-  successRate[1] = 0;
-
-  // ── Spell 2: strength=3, success=7, need potion >= ceil(7/3)=3 ───────────
 
   steps.push({
-    explanation:
-      'Spell 2: strength=3. Need potions[mid]*3 >= 7, i.e. potion >= 2.33, so min potion=3 (index 2). Binary search: l=0, r=4.',
-    highlightLine: 19,
+    explanation: 'spells[1]*potions[l] = 1*potions[4] = 1*5 = 5 < 7 → result[1] = 0.',
+    anchor: { match: 'if spells[i] * potions[l] < success:', to: { match: 'result[i] = 0' } },
     state: {
       type: 'array',
-      cells: potions.map((v) => ({ value: v, state: 'window' as const })),
-      pointers: [
-        { index: 0, label: 'l' },
-        { index: 4, label: 'r' },
-      ],
-      counters: [
-        { label: 'spell', value: 3 },
-        { label: 'need potion >=', value: '7/3≈2.33' },
-        { label: 'pairs so far', value: `[${successRate[0]},${successRate[1]},?]` },
-      ],
+      cells: potionCells({ 4: 'eliminated' }),
+      pointers: [{ index: 4, label: 'cutoff' }],
+      counters: [{ label: 'result[1]', value: 0 }],
     } as ArrayState,
   });
+  result[1] = 0;
 
-  // l=0, r=4, mid=2. potions[2]*3=9>=7 → r=2
+  // ── Spell 2: strength=3, success=7 ────────────────────────────────────────
+
   steps.push({
-    explanation:
-      'l=0, r=4, mid=2. potions[2]=3. 3*3=9 >= 7 → success! r=mid=2.',
-    highlightLine: 22,
+    explanation: 'Spell 2: spells[2]=3. l, r = 0, len(potions)-1 → l=0, r=4.',
+    anchor: { match: 'for i in range(len(spells)):', to: { match: 'l, r = 0, len(potions) - 1' } },
     state: {
       type: 'array',
-      cells: [
-        { value: 1, state: 'window' as const },
-        { value: 2, state: 'window' as const },
-        { value: 3, state: 'active' as const },
-        { value: 4, state: 'eliminated' as const },
-        { value: 5, state: 'eliminated' as const },
-      ],
-      pointers: [
-        { index: 0, label: 'l' },
-        { index: 2, label: 'mid/r→' },
-      ],
-      counters: [
-        { label: 'spell', value: 3 },
-        { label: 'potions[2]*3', value: '3*3=9 >= 7 → r=2' },
-      ],
+      cells: potionCells({}),
+      pointers: [{ index: 0, label: 'l' }, { index: 4, label: 'r' }],
+      counters: [{ label: 'spells[i]', value: 3 }, { label: 'result so far', value: `[${result[0]},${result[1]},?]` }],
     } as ArrayState,
   });
 
-  // l=0, r=2, mid=1. potions[1]*3=6<7 → l=2. l==r==2
   steps.push({
-    explanation:
-      'l=0, r=2, mid=1. potions[1]=2. 2*3=6 < 7 → not successful. l=mid+1=2. Now l==r==2. Check: potions[2]*3=9>=7 → successRate[2]=5-2=3.',
-    highlightLine: 24,
+    explanation: 'while l < r (0<4): m=(l+r)//2=2. spells[2]*potions[2] = 3*3 = 9 >= 7 → r = m = 2.',
+    anchor: { match: 'if spells[i] * potions[m] >= success:', to: { match: 'r = m', nth: 2 } }, // skips nth=1's comment '# if greater, drop r = m'
     state: {
       type: 'array',
-      cells: [
-        { value: 1, state: 'eliminated' as const },
-        { value: 2, state: 'eliminated' as const },
-        { value: 3, state: 'found' as const },
-        { value: 4, state: 'found' as const },
-        { value: 5, state: 'found' as const },
-      ],
-      pointers: [{ index: 2, label: 'cutoff (l=r=2)' }],
-      counters: [
-        { label: 'spell', value: 3 },
-        { label: 'potions[1]*3', value: '2*3=6 < 7 → l=2' },
-        { label: 'cutoff index', value: 2 },
-        { label: 'pairs = 5-2', value: 3 },
-      ],
+      cells: potionCells({ 0: 'window', 1: 'window', 2: 'active', 3: 'eliminated', 4: 'eliminated' }),
+      pointers: [{ index: 0, label: 'l' }, { index: 2, label: 'm/r→' }],
+      counters: [{ label: 'spells[i]*potions[m]', value: '3*3=9' }, { label: '>= success?', value: 'YES → r=2' }],
     } as ArrayState,
   });
 
-  successRate[2] = 3;
+  steps.push({
+    explanation: 'while l < r (0<2): m=(l+r)//2=1. spells[2]*potions[1] = 3*2 = 6, not >= 7 → else: l = m+1 = 2. Now l==r==2, loop ends.',
+    // nth 1: the binary search's own 'else:'/'l = m + 1'; hit 2 of 'else:' belongs to the
+    // post-loop success-check's else branch further down.
+    anchor: { match: 'else:', nth: 1, to: { match: 'l = m + 1' } },
+    state: {
+      type: 'array',
+      cells: potionCells({ 0: 'eliminated', 1: 'eliminated', 2: 'window', 3: 'window', 4: 'window' }),
+      pointers: [{ index: 2, label: 'l=r=2' }],
+      counters: [{ label: 'spells[i]*potions[m]', value: '3*2=6' }, { label: '>= success?', value: 'NO → l=2' }],
+    } as ArrayState,
+  });
+
+  steps.push({
+    explanation: 'spells[2]*potions[l] = 3*potions[2] = 3*3 = 9, not < 7 → else: result[2] = len(potions) - l = 5 - 2 = 3.',
+    // nth 2: hit 1 is the binary search's own 'else:' above; this is the post-loop
+    // success-check's else branch (result[i] = len(potions) - l).
+    anchor: { match: 'else:', nth: 2, to: { match: 'result[i] = len(potions) - l' } },
+    state: {
+      type: 'array',
+      cells: potionCells({ 0: 'eliminated', 1: 'eliminated', 2: 'found', 3: 'found', 4: 'found' }),
+      pointers: [{ index: 2, label: 'cutoff' }],
+      counters: [{ label: 'result[2] = 5-2', value: 3 }],
+    } as ArrayState,
+  });
+  result[2] = 3;
 
   // ── Final result ──────────────────────────────────────────────────────────
 
   steps.push({
-    explanation:
-      `All spells processed. successRate=[${successRate.join(',')}]. Algorithm: sort potions O(m log m) + binary search per spell O(n log m) = O((n+m) log m) total. Space O(n) for output. Key insight: sorting potions lets us use binary search (min-boundary variant) instead of O(n*m) brute force.`,
-    highlightLine: 31,
+    explanation: `All spells processed. return result = [${result.join(',')}]. Sort potions O(m log m) + binary search per spell O(n log m) = O((n+m) log m) total. Space O(n) for output.`,
+    anchor: { match: 'return result' },
     state: {
       type: 'array',
       cells: potions.map((v) => ({ value: v, state: 'found' as const })),
       pointers: [],
       counters: [
-        { label: 'spell=5 pairs', value: successRate[0] },
-        { label: 'spell=1 pairs', value: successRate[1] },
-        { label: 'spell=3 pairs', value: successRate[2] },
-        { label: 'output', value: `[${successRate.join(',')}]` },
+        { label: 'spell=5 pairs', value: result[0] },
+        { label: 'spell=1 pairs', value: result[1] },
+        { label: 'spell=3 pairs', value: result[2] },
+        { label: 'output', value: `[${result.join(',')}]` },
       ],
     } as ArrayState,
   });
@@ -317,7 +240,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Sort Potions + Binary Search (Min Boundary)',
-  pythonCode: PYTHON_CODE,
+  variant: 'sort-min-boundary',
   generateSteps,
 };
 
@@ -350,6 +273,6 @@ export const successfulPairsSpellsPotionsMeta: AlgorithmMeta = {
     '1 ≤ spells[i], potions[i] ≤ 10⁵',
     '1 ≤ success ≤ 10¹⁰',
   ],
-  hint: 'Sort potions. For each spell, binary search for the leftmost potion index where potions[mid]*spell >= success (min-boundary search: if condition met set r=mid, else set l=mid+1). Pairs = len(potions) - l (if potions[l]*spell >= success, else 0).',
+  hint: 'Sort potions. For each spell, binary search for the leftmost potion index where spells[i]*potions[m] >= success (min-boundary search: if condition met set r=m, else set l=m+1). result[i] = len(potions) - l (if spells[i]*potions[l] >= success, else 0).',
   solutions: [solution],
 };

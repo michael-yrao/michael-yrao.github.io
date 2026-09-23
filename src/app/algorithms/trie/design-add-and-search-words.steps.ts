@@ -1,40 +1,38 @@
-// Solution + comments sourced from cse-progress: dsa/leetcode/trie/211_design_add_and_search_words_data_structure.py
-import { AlgorithmMeta, SolutionVariant, Step, GraphNode, GraphEdge, ProblemExample } from '../../core/models/algorithm.model';
+// Traces cse-progress's WordDictionary_20260812 + helper TrieNode_20260812 verbatim
+// (dsa/leetcode/trie/211_design_add_and_search_words_data_structure.py): the search
+// helper is named trieSearch(trieNode, startingIndex), its loop variable is `i`, and
+// it checks the char match with `elif currentChar in trieNode.children:` — a not-in
+// check happens only in the `else: return False` branch, not as a guard before the
+// descend (the earlier site version inverted this to `if char not in ...: return False`).
+import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, GraphNode, GraphEdge, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class TrieNode:
-    def __init__(self):
-        self.children = {}
-        self.isWord = False
-
-class WordDictionary:
-    def __init__(self):
-        self.root = TrieNode()
-
-    def addWord(self, word: str) -> None:
-        traversal = self.root
-        for char in word:
-            if char not in traversal.children:
-                traversal.children[char] = TrieNode()
-            traversal = traversal.children[char]
-        traversal.isWord = True
-
-    def search(self, word: str) -> bool:
-        # walk known chars; on '.' recurse into every child
-        def dfs(i, node):
-            currentNode = node
-            for j in range(i, len(word)):
-                char = word[j]
-                if char == '.':
-                    for child in currentNode.children.values():
-                        if dfs(j + 1, child):
-                            return True
-                    return False
-                else:
-                    if char not in currentNode.children:
-                        return False
-                    currentNode = currentNode.children[char]
-            return currentNode.isWord
-        return dfs(0, self.root)`;
+const ADD_WORD_CREATE_OR_REUSE: StepAnchor = {
+  match: 'if char not in traversal.children:',
+  to: { match: 'traversal = traversal.children[char]' },
+};
+const ADD_WORD_LAST_CHAR: StepAnchor = {
+  match: 'if char not in traversal.children:',
+  to: { match: 'traversal.isWord = True' },
+};
+const WILDCARD_ENTER: StepAnchor = {
+  match: "if currentChar == '.':",
+  to: { match: 'for childNode in trieNode.children.values():' },
+};
+// 'return False' has 4 hits in this entry: line 165 (comment), line 166 (wildcard
+// fallback — code), line 169 (comment), line 171 (else branch — code). Anchor off a
+// unique start instead of a bare nth so only the two CODE hits are ever in play.
+const WILDCARD_EXHAUSTED: StepAnchor = {
+  match: 'for childNode in trieNode.children.values():',
+  to: { match: 'return False', nth: 2 }, // 2nd hit: line 166 (the wildcard fallback); skips line 165's comment
+};
+const CHAR_NOT_FOUND: StepAnchor = {
+  match: 'else:',
+  to: { match: 'return False', nth: 4 }, // 4th hit: line 171 (the else branch); skips lines 165/166/169
+};
+const CHAR_MATCHES_DESCEND: StepAnchor = {
+  match: 'elif currentChar in trieNode.children:',
+  to: { match: 'trieNode = trieNode.children[currentChar]' },
+};
 
 // Fixed trie for the words bad / dad / mad (unique node ids, shared char labels).
 type TNode = { id: string; char: string; x: number; y: number; children: Record<string, string>; isWord: boolean };
@@ -89,8 +87,8 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation:
-      'WordDictionary backed by a trie. addWord inserts a path of characters and flags the last node isWord (shown ✓). search matches known characters directly, but on a "." wildcard it must recurse into every child. Root is •.',
-    highlightLine: 5,
+      'WordDictionary_20260812 backed by TrieNode_20260812 (children map + isWord flag). addWord walks/creates a path of characters and flags the last node isWord = True (shown ✓). search calls trieSearch(trieNode, startingIndex), which matches known characters directly, but on a "." wildcard recurses into every child. Root is •.',
+    anchor: { match: 'class TrieNode_20260812:', to: { match: 'self.isWord = False' } },
     state: mkState(null, new Set(), [{ label: 'words', value: 0 }]),
     variables: [],
   });
@@ -103,15 +101,16 @@ function generateSteps(): Step[] {
     for (let c = 0; c < word.length; c++) {
       const childId = pathIds[c];
       const isNew = !revealed.has(childId);
+      const isLastChar = c === word.length - 1;
       revealed.add(childId);
       cur = childId;
       walked.add(childId);
       count++;
       steps.push({
-        explanation: `addWord("${word}"): char '${word[c]}' → ${isNew ? 'not present, create a new TrieNode' : 'already present, descend'}. Move to it.${c === word.length - 1 ? ` Mark it isWord = True (end of "${word}").` : ''}`,
-        highlightLine: isNew ? 16 : 17,
+        explanation: `addWord("${word}"): char '${word[c]}' → ${isNew ? 'not present, create a new TrieNode_20260812' : 'already present, descend'}. traversal = traversal.children['${word[c]}'].${isLastChar ? ` End of word: traversal.isWord = True (end of "${word}").` : ''}`,
+        anchor: isLastChar ? ADD_WORD_LAST_CHAR : ADD_WORD_CREATE_OR_REUSE,
         state: mkState(cur, walked, [{ label: 'addWord', value: `"${word}"` }, { label: 'depth', value: count }]),
-        variables: [{ name: 'char', value: word[c], highlight: true }, { name: 'isWord', value: c === word.length - 1 ? 'True' : 'False' }],
+        variables: [{ name: 'char', value: word[c], highlight: true }, { name: 'isWord', value: isLastChar ? 'True' : 'False' }],
       });
     }
   };
@@ -120,70 +119,69 @@ function generateSteps(): Step[] {
   addWord('dad', ['nd', 'nda', 'ndad']);
   addWord('mad', ['nm', 'nma', 'nmad']);
 
-  // ── search that mirrors dfs(i, node) ────────────────────────────────────────
+  // ── search, mirroring trieSearch(trieNode, startingIndex) ────────────────────
   const search = (word: string): boolean => {
     steps.push({
-      explanation: `search("${word}"): start dfs at root, index 0.`,
-      highlightLine: 21,
+      explanation: `search("${word}"): traversal = self.root, then return trieSearch(traversal, 0) — start at the root, index 0.`,
+      anchor: { match: 'return trieSearch(traversal, 0)' },
       state: mkState('r', new Set(['r']), [{ label: 'search', value: `"${word}"` }]),
       variables: [],
     });
 
-    const dfs = (i: number, nodeId: string, path: Set<string>): boolean => {
-      let cur = nodeId;
+    const trieSearch = (startingIndex: number, nodeId: string, path: Set<string>): boolean => {
+      let trieNode = nodeId;
       const localPath = new Set(path);
-      localPath.add(cur);
-      for (let j = i; j < word.length; j++) {
-        const ch = word[j];
-        if (ch === '.') {
-          const children = Object.values(TRIE[cur].children);
+      localPath.add(trieNode);
+      for (let i = startingIndex; i < word.length; i++) {
+        const currentChar = word[i];
+        if (currentChar === '.') {
+          const children = Object.values(TRIE[trieNode].children);
           steps.push({
-            explanation: `Position ${j}: '.' wildcard at node '${TRIE[cur].char}' → try every child (${children.map((c) => `'${TRIE[c].char}'`).join(', ') || 'none'}).`,
-            highlightLine: 27,
-            state: mkState(cur, localPath, [{ label: 'search', value: `"${word}"` }, { label: 'index', value: j }, { label: 'char', value: '. (wildcard)' }]),
-            variables: [{ name: 'wildcard', value: 'yes', highlight: true }],
+            explanation: `i=${i}: currentChar == '.' → wildcard at node '${TRIE[trieNode].char}'. Try every childNode (${children.map((c) => `'${TRIE[c].char}'`).join(', ') || 'none'}) via trieSearch(childNode, i+1).`,
+            anchor: WILDCARD_ENTER,
+            state: mkState(trieNode, localPath, [{ label: 'search', value: `"${word}"` }, { label: 'index', value: i }, { label: 'char', value: '. (wildcard)' }]),
+            variables: [{ name: 'currentChar', value: '.', highlight: true }],
           });
           for (const childId of children) {
-            if (dfs(j + 1, childId, localPath)) return true;
+            if (trieSearch(i + 1, childId, localPath)) return true;
           }
           steps.push({
-            explanation: `Position ${j}: no child of '${TRIE[cur].char}' led to a match → return False for this branch.`,
-            highlightLine: 30,
-            state: mkState(cur, localPath, [{ label: 'search', value: `"${word}"` }, { label: 'index', value: j }, { label: 'result', value: 'False' }]),
+            explanation: `i=${i}: no childNode of '${TRIE[trieNode].char}' returned True from trieSearch → return False for this branch.`,
+            anchor: WILDCARD_EXHAUSTED,
+            state: mkState(trieNode, localPath, [{ label: 'search', value: `"${word}"` }, { label: 'index', value: i }, { label: 'result', value: 'False' }]),
             variables: [{ name: 'return', value: 'False' }],
           });
           return false;
-        } else {
-          if (!(ch in TRIE[cur].children)) {
-            steps.push({
-              explanation: `Position ${j}: '${ch}' is not a child of node '${TRIE[cur].char}' → dead end, return False.`,
-              highlightLine: 33,
-              state: mkState(cur, localPath, [{ label: 'search', value: `"${word}"` }, { label: 'index', value: j }, { label: 'char', value: ch }, { label: 'result', value: 'False' }]),
-              variables: [{ name: 'char', value: ch }, { name: 'return', value: 'False', highlight: true }],
-            });
-            return false;
-          }
-          cur = TRIE[cur].children[ch];
-          localPath.add(cur);
+        } else if (currentChar in TRIE[trieNode].children) {
+          trieNode = TRIE[trieNode].children[currentChar];
+          localPath.add(trieNode);
           steps.push({
-            explanation: `Position ${j}: '${ch}' matches → descend to it.`,
-            highlightLine: 35,
-            state: mkState(cur, localPath, [{ label: 'search', value: `"${word}"` }, { label: 'index', value: j }, { label: 'char', value: ch }]),
-            variables: [{ name: 'char', value: ch, highlight: true }],
+            explanation: `i=${i}: elif currentChar in trieNode.children — '${currentChar}' matches → trieNode = trieNode.children['${currentChar}'].`,
+            anchor: CHAR_MATCHES_DESCEND,
+            state: mkState(trieNode, localPath, [{ label: 'search', value: `"${word}"` }, { label: 'index', value: i }, { label: 'char', value: currentChar }]),
+            variables: [{ name: 'currentChar', value: currentChar, highlight: true }],
           });
+        } else {
+          steps.push({
+            explanation: `i=${i}: '${currentChar}' is not a wildcard and not in node '${TRIE[trieNode].char}'.children → else: return False.`,
+            anchor: CHAR_NOT_FOUND,
+            state: mkState(trieNode, localPath, [{ label: 'search', value: `"${word}"` }, { label: 'index', value: i }, { label: 'char', value: currentChar }, { label: 'result', value: 'False' }]),
+            variables: [{ name: 'currentChar', value: currentChar }, { name: 'return', value: 'False', highlight: true }],
+          });
+          return false;
         }
       }
-      const res = TRIE[cur].isWord;
+      const res = TRIE[trieNode].isWord;
       steps.push({
-        explanation: `Reached end of "${word}" at node '${TRIE[cur].char}'. isWord = ${res ? 'True' : 'False'} → return ${res ? 'True' : 'False'}.`,
-        highlightLine: 36,
-        state: mkState(cur, localPath, [{ label: 'search', value: `"${word}"` }, { label: 'isWord', value: res ? 'True' : 'False' }]),
+        explanation: `Loop exhausted at "${word}" on node '${TRIE[trieNode].char}'. return trieNode.isWord → ${res ? 'True' : 'False'}.`,
+        anchor: { match: 'return trieNode.isWord' },
+        state: mkState(trieNode, localPath, [{ label: 'search', value: `"${word}"` }, { label: 'isWord', value: res ? 'True' : 'False' }]),
         variables: [{ name: 'isWord', value: res ? 'True' : 'False', highlight: true }],
       });
       return res;
     };
 
-    return dfs(0, 'r', new Set());
+    return trieSearch(0, 'r', new Set());
   };
 
   search('pad'); // exact miss on first char
@@ -193,7 +191,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Done. addWord is O(word length). search is O(word length) for exact queries; each "." can branch to all 26 children, so worst case is O(26^(#dots) · length) — the wildcard is what makes this more than a plain trie lookup.',
-    highlightLine: 37,
+    anchor: { match: 'class WordDictionary_20260812:' },
     state: mkState(null, new Set(), [{ label: 'complete', value: 'yes' }]),
     variables: [],
   });
@@ -203,7 +201,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Trie + Wildcard DFS',
-  pythonCode: PYTHON_CODE,
+  variant: 'wildcard-dfs',
   generateSteps,
   timeComplexity: 'O(len) add; O(26^dots · len) search',
   spaceComplexity: 'O(total chars)',

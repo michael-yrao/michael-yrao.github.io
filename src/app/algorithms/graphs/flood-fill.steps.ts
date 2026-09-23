@@ -1,44 +1,4 @@
-import { AlgorithmMeta, Step, GridState, GridCellState } from '../../core/models/algorithm.model';
-
-// ── Python source ─────────────────────────────────────────────────────────────
-
-const PYTHON_CODE = `import collections
-from typing import List
-
-class Solution:
-    def floodFill(self, image: List[List[int]], sr: int, sc: int, color: int) -> List[List[int]]:
-        # we are basically just doing BFS from one node and that's it
-        # we actually need to save the original color of starting point so it can be compared
-
-        originalColor = image[sr][sc]
-
-        rows, cols = len(image), len(image[0])
-
-        queue = collections.deque()
-
-        queue.append((sr,sc))
-
-        neighbors = [[1,0],[-1,0],[0,1],[0,-1]]
-
-        while queue:
-            # we can mark nodes as visited by just changing them to the color
-            # so no need to have a visited set
-            currentRow, currentCol = queue.popleft()
-            image[currentRow][currentCol] = color
-            # we now check currentNode's neighbors
-
-            for rowInc, colInc in neighbors:
-                neighborRow = currentRow + rowInc
-                neighborCol = currentCol + colInc
-                # if not out of bounds and was same color as original
-                # we want to add it to queue
-                # and also if originalColor != color
-                if (neighborRow >= 0 and neighborRow < rows and neighborCol >= 0 and neighborCol < cols
-                    and image[neighborRow][neighborCol] == originalColor
-                    and originalColor != color):
-                    queue.append((neighborRow, neighborCol))
-
-        return image`;
+import { AlgorithmMeta, Step, StepAnchor, GridState, GridCellState } from '../../core/models/algorithm.model';
 
 // ── Example input ─────────────────────────────────────────────────────────────
 
@@ -51,33 +11,34 @@ const SR = 1;
 const SC = 1;
 const COLOR = 2;
 
+const NEIGHBOR_OFFSETS: readonly [number, number][] = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
+const NEIGHBOR_NAMES = ['down', 'up', 'right', 'left'];
+
 // ── Step generator ────────────────────────────────────────────────────────────
 //
-// Runs the exact algorithm above: BFS that paints on DEQUEUE (no visited set),
-// neighbor order down, up, right, left. Because the guard checks the pixel's
-// color at ENQUEUE time, the same cell can be enqueued twice — the simulation
-// shows that faithfully.
+// Traces cse-progress's floodFill_20260628 exactly: an early return when the start
+// pixel already has the target color, the start pixel painted BEFORE the loop begins,
+// and every neighbor painted at ENQUEUE time (not dequeue) — so a cell can never be
+// enqueued twice (once painted, a later visit's color check fails). Neighbor order:
+// down, up, right, left.
 
 function generateBfsSteps(): Step[] {
   const steps: Step[] = [];
-  const image = START_IMAGE.map(row => [...row]);
+  const image = START_IMAGE.map((row) => [...row]);
   const rows = image.length;
   const cols = image[0].length;
-  const originalColor = image[SR][SC];
+  const startColor = image[SR][SC];
+  const queue: [number, number][] = [];
 
-  const queue: [number, number][] = [[SR, SC]];
-  const painted = new Set<string>();
-  const key = (r: number, c: number) => `${r},${c}`;
+  const key = (r: number, c: number): string => `${r},${c}`;
+  const isPainted = (r: number, c: number): boolean => image[r][c] === COLOR;
 
-  const LEGEND: NonNullable<GridState['legend']> = [
-    { state: 'land', label: `original color (${originalColor})` },
-    { state: 'empty', label: 'other color (barrier)' },
-    { state: 'queued', label: 'in queue' },
-    { state: 'active', label: 'being painted' },
-    { state: 'visited', label: `painted to ${COLOR}` },
-  ];
-
-  function render(activeKey?: string): GridState {
+  function render(activeKey: string | undefined): GridState {
     const queuedKeys = new Set(queue.map(([r, c]) => key(r, c)));
     return {
       type: 'grid',
@@ -85,35 +46,35 @@ function generateBfsSteps(): Step[] {
         row.map((px, c) => {
           const k = key(r, c);
           let state: GridCellState = 'empty';
-          if (painted.has(k)) state = 'visited';
-          else if (queuedKeys.has(k)) state = 'queued';
-          else if (px === originalColor) state = 'land';
+          // A queued cell is already painted (painting happens at enqueue) but still
+          // pending processing — queued must win over painted, or 'queued' never shows.
+          if (queuedKeys.has(k)) state = 'queued';
+          else if (isPainted(r, c)) state = 'visited';
+          else if (px === startColor) state = 'land';
           if (k === activeKey) state = 'active';
           return { state, label: String(px) };
-        })
+        }),
       ),
-      legend: LEGEND,
-      counters: [
-        { label: 'queue', value: queue.length ? queue.map(([r, c]) => `(${r},${c})`).join(' ') : 'empty' },
-        { label: 'painted', value: painted.size },
+      legend: [
+        { state: 'land', label: `original color (${startColor})` },
+        { state: 'empty', label: 'other color (barrier)' },
+        { state: 'queued', label: 'in queue' },
+        { state: 'active', label: 'being processed' },
+        { state: 'visited', label: `painted to ${COLOR}` },
       ],
+      counters: [{ label: 'queue', value: queue.length ? queue.map(([r, c]) => `(${r},${c})`).join(' ') : 'empty' }],
     };
   }
 
-  function emit(
-    explanation: string,
-    highlightLine: number,
-    activeKey: string | undefined,
-    v: { row?: number; col?: number },
-  ): void {
+  function emit(explanation: string, anchor: StepAnchor, activeKey: string | undefined, v: { cr?: number; cc?: number }): void {
     steps.push({
       explanation,
-      highlightLine,
+      anchor,
       state: render(activeKey),
       variables: [
-        { name: 'currentRow', value: v.row ?? '—' },
-        { name: 'currentCol', value: v.col ?? '—' },
-        { name: 'originalColor', value: originalColor },
+        { name: 'cr', value: v.cr ?? '—' },
+        { name: 'cc', value: v.cc ?? '—' },
+        { name: 'originalColor', value: startColor },
         { name: 'color', value: COLOR },
         { name: 'queue', value: queue.length ? queue.map(([r, c]) => `(${r},${c})`).join(' ') : '[]' },
       ],
@@ -121,54 +82,58 @@ function generateBfsSteps(): Step[] {
   }
 
   emit(
-    `Flood fill from (${SR},${SC}) with new color ${COLOR}. Save originalColor = image[${SR}][${SC}] = ${originalColor}, then seed the BFS queue with the start pixel. No visited set is needed — painting a pixel to ${COLOR} is itself the "visited" mark.`,
-    15,
+    `Check image[sr][sc] (image[${SR}][${SC}] = ${startColor}) against color (${COLOR}): they differ, so there's no early return — proceed to flood fill.`,
+    { match: 'if image[sr][sc] == color:' },
     key(SR, SC),
     {},
   );
 
-  while (queue.length) {
-    const [currentRow, currentCol] = queue.shift()!;
-    const k = key(currentRow, currentCol);
-    const wasAlreadyPainted = painted.has(k);
-    image[currentRow][currentCol] = COLOR;
-    painted.add(k);
+  queue.push([SR, SC]);
+  image[SR][SC] = COLOR;
 
+  emit(
+    `Save originalColor = image[sr][sc] = ${startColor}, then immediately paint image[sr][sc] to ${COLOR} and enqueue (sr,sc) — painting happens here, before the loop even starts, not on dequeue.`,
+    { match: 'queue = collections.deque()', to: { match: 'image[sr][sc] = color' } },
+    key(SR, SC),
+    { cr: SR, cc: SC },
+  );
+
+  while (queue.length) {
+    const [cr, cc] = queue.shift()!;
     const enqueued: string[] = [];
     const skipped: string[] = [];
-    // neighbors = [[1,0],[-1,0],[0,1],[0,-1]] — down, up, right, left
-    for (const [rowInc, colInc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const nr = currentRow + rowInc;
-      const nc = currentCol + colInc;
-      if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) {
-        skipped.push(`(${nr},${nc}) out of bounds`);
-        continue;
-      }
-      if (image[nr][nc] !== originalColor || originalColor === COLOR) {
-        skipped.push(`(${nr},${nc})=${image[nr][nc]} ≠ ${originalColor}`);
-        continue;
-      }
-      queue.push([nr, nc]);
-      enqueued.push(`(${nr},${nc})`);
-    }
 
-    const dupNote = wasAlreadyPainted
-      ? ` Note: (${currentRow},${currentCol}) was enqueued twice — the guard checks the pixel at enqueue time, but painting happens at dequeue, so a cell can enter the queue from two different neighbors before either paints it. The repaint is a harmless no-op.`
-      : '';
-    const enqText = enqueued.length ? `Enqueue ${enqueued.join(', ')}.` : 'No neighbors qualify.';
+    NEIGHBOR_OFFSETS.forEach(([ir, ic], i) => {
+      const nr = cr + ir;
+      const nc = cc + ic;
+      const inBounds = nr >= 0 && nr < rows && nc >= 0 && nc < cols;
+      if (!inBounds) {
+        skipped.push(`(${nr},${nc}) out of bounds`);
+        return;
+      }
+      if (image[nr][nc] !== startColor) {
+        skipped.push(`(${nr},${nc})=${image[nr][nc]} ≠ ${startColor} (${NEIGHBOR_NAMES[i]})`);
+        return;
+      }
+      image[nr][nc] = COLOR;
+      queue.push([nr, nc]);
+      enqueued.push(`(${nr},${nc}) ${NEIGHBOR_NAMES[i]}`);
+    });
+
+    const enqText = enqueued.length ? `Painted and enqueued ${enqueued.join(', ')}.` : 'No neighbors qualify.';
     const skipText = skipped.length ? ` Skipped: ${skipped.join('; ')}.` : '';
 
     emit(
-      `Dequeue (${currentRow},${currentCol}) and paint it to ${COLOR}. Check neighbors down, up, right, left. ${enqText}${skipText}${dupNote}`,
-      23,
-      k,
-      { row: currentRow, col: currentCol },
+      `Dequeue (${cr},${cc}). Check its 4 neighbors (down, up, right, left) against originalColor; any that still show it are painted to ${COLOR} and enqueued right here — so a cell can never be enqueued twice. ${enqText}${skipText}`,
+      { match: 'cr, cc = queue.popleft()', to: { match: 'queue.append((nr,nc))' } },
+      key(cr, cc),
+      { cr, cc },
     );
   }
 
   emit(
-    `Queue is empty — every pixel connected to the start by the original color ${originalColor} is now painted ${COLOR}. Return image = [${image.map(r => `[${r.join(',')}]`).join(',')}]. The bottom-right 1 stays untouched: it is only diagonally adjacent, and flood fill spreads horizontally and vertically only.`,
-    37,
+    `Queue is empty — every pixel connected to the start by the original color ${startColor} is now painted ${COLOR}. Return image = [${image.map((r) => `[${r.join(',')}]`).join(',')}]. The bottom-right 1 stays untouched: it's only diagonally adjacent, and flood fill spreads horizontally and vertically only.`,
+    { match: 'return image', nth: 2 }, // the early-return's "return image" (line 146) is the 1st hit
     undefined,
     {},
   );
@@ -212,7 +177,7 @@ export const floodFillMeta: AlgorithmMeta = {
   solutions: [
     {
       label: 'BFS (Queue)',
-      pythonCode: PYTHON_CODE,
+      variant: 'bfs',
       generateSteps: generateBfsSteps,
     },
   ],

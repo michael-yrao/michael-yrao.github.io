@@ -1,50 +1,11 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-progress: dsa/leetcode/heap/355_design_twitter.py
-const PYTHON_CODE = `import collections
-import heapq
-
-class Twitter:
-
-    def __init__(self):
-        # globalTweetCount to keep track of heap
-        self.globalTweetCount = 0
-        # person -> followee
-        self.followMap = collections.defaultdict(list)
-        # person -> (globalTweetCount, tweet)
-        self.tweetMap = collections.defaultdict(list)
-
-    def postTweet(self, userId: int, tweetId: int) -> None:
-        # add to tweet map
-        self.tweetMap[userId].append((self.globalTweetCount, tweetId))
-        self.globalTweetCount+=1
-
-    def getNewsFeed(self, userId: int) -> List[int]:
-        result = []
-        heap = []
-
-        # build a heap with all the values in tweetMap that this user follows
-        # or the user himself
-
-        relevantUsers = set(self.followMap[userId]) | {userId}
-
-        for user in relevantUsers:
-            for timestamp, tweetId in self.tweetMap[user]:
-                # timestamp goes up, so we need to negate it to get latest
-                heapq.heappush(heap, (-timestamp, tweetId))
-
-        # now we get 10 or until heap
-        while heap and len(result) < 10:
-            currentFeed = heapq.heappop(heap)
-            result.append(currentFeed[1])
-        return result
-
-    def follow(self, followerId: int, followeeId: int) -> None:
-        self.followMap[followerId].append(followeeId)
-
-    def unfollow(self, followerId: int, followeeId: int) -> None:
-        if followeeId in self.followMap[followerId]:
-            self.followMap[followerId].remove(followeeId)`;
+// Traces cse-progress's Twitter verbatim: the tweet clock is `globalTweetCount`, the follow
+// map is `followMap`, and getNewsFeed builds `relevantUsers` in one expression
+// (`set(self.followMap[userId]) | {userId}`). The merge heap (`heap`) pushes
+// `(-timestamp, tweetId)` so the smallest tuple — i.e. the largest timestamp — pops first,
+// and getNewsFeed returns `result` as built, with no reversal: newest-first, matching the
+// New Feed spec.
 
 function generateSteps(): Step[] {
   const steps: Step[] = [];
@@ -63,13 +24,13 @@ function generateSteps(): Step[] {
 
   const mk = (
     op: string,
-    line: number,
+    anchor: Step['anchor'],
     feed: number[],
     heap: [number, number][],
     returns?: string
   ): Step => ({
     explanation: '',
-    highlightLine: line,
+    anchor,
     state: {
       type: 'array',
       cells: feed.map((v) => ({ value: v, state: 'found' as const })),
@@ -88,15 +49,13 @@ function generateSteps(): Step[] {
     variables: [],
   });
 
-  const push = (s: Step, explanation: string, variables: Step['variables']) => {
-    s.explanation = explanation;
-    s.variables = variables;
-    steps.push(s);
+  const push = (step: Step, explanation: string, variables: Step['variables']): void => {
+    steps.push({ ...step, explanation, variables });
   };
 
   // 1. Twitter()
   push(
-    mk('Twitter()', 8, [], []),
+    mk('Twitter()', { match: 'def __init__(self):' }, [], []),
     'Construct Twitter: globalTweetCount = 0 (a monotonic clock so newer tweets get a higher timestamp), followMap (user → who they follow) and tweetMap (user → their tweets as (timestamp, tweetId)) both empty.',
     [{ name: 'globalTweetCount', value: 0 }]
   );
@@ -105,8 +64,8 @@ function generateSteps(): Step[] {
   (tweetMap[1] ||= []).push([globalTweetCount, 5]);
   globalTweetCount++;
   push(
-    mk('postTweet(1, 5)', 16, [], []),
-    'postTweet(1, 5): append (timestamp=0, tweetId=5) to user 1’s tweets, then bump globalTweetCount → 1. The timestamp records ordering so the feed can sort by recency.',
+    mk('postTweet(1, 5)', { match: 'self.tweetMap[userId].append((self.globalTweetCount, tweetId))', to: { match: 'self.globalTweetCount+=1' } }, [], []),
+    'postTweet(1, 5): append (globalTweetCount=0, tweetId=5) to user 1’s tweets, then bump globalTweetCount → 1. globalTweetCount records ordering so the feed can sort by recency.',
     [{ name: 'tweetMap[1]', value: '[(0,5)]', highlight: true }, { name: 'globalTweetCount', value: 1 }]
   );
 
@@ -116,7 +75,7 @@ function generateSteps(): Step[] {
   // 4. follow(1, 2)
   (followMap[1] ||= []).push(2);
   push(
-    mk('follow(1, 2)', 40, [], []),
+    mk('follow(1, 2)', { match: 'self.followMap[followerId].append(followeeId)' }, [], []),
     'follow(1, 2): append 2 to user 1’s followMap. User 1 will now see user 2’s tweets in their feed.',
     [{ name: 'followMap[1]', value: '[2]', highlight: true }]
   );
@@ -125,65 +84,67 @@ function generateSteps(): Step[] {
   (tweetMap[2] ||= []).push([globalTweetCount, 6]);
   globalTweetCount++;
   push(
-    mk('postTweet(2, 6)', 16, [], []),
-    'postTweet(2, 6): append (timestamp=1, tweetId=6) to user 2’s tweets; globalTweetCount → 2. Note 6 has a higher timestamp than 5, so it’s newer.',
+    mk('postTweet(2, 6)', { match: 'self.tweetMap[userId].append((self.globalTweetCount, tweetId))', to: { match: 'self.globalTweetCount+=1' } }, [], []),
+    'postTweet(2, 6): append (globalTweetCount=1, tweetId=6) to user 2’s tweets; globalTweetCount → 2. Note 6 has a higher globalTweetCount than 5, so it’s newer.',
     [{ name: 'tweetMap[2]', value: '[(1,6)]', highlight: true }, { name: 'globalTweetCount', value: 2 }]
   );
 
-  // 6. getNewsFeed(1)  → [6, 5]
+  // 6. getNewsFeed(1)
   newsFeed(1, 'getNewsFeed(1)');
 
   // 7. unfollow(1, 2)
   followMap[1] = (followMap[1] || []).filter((x) => x !== 2);
   push(
-    mk('unfollow(1, 2)', 44, [], []),
-    'unfollow(1, 2): remove 2 from user 1’s followMap. User 2’s tweets will no longer appear in user 1’s feed.',
+    mk('unfollow(1, 2)', { match: 'if followeeId in self.followMap[followerId]:', to: { match: 'self.followMap[followerId].remove(followeeId)' } }, [], []),
+    'unfollow(1, 2): 2 is in user 1’s followMap → remove it. User 2’s tweets will no longer appear in user 1’s feed.',
     [{ name: 'followMap[1]', value: '[]', highlight: true }]
   );
 
-  // 8. getNewsFeed(1)  → [5]
+  // 8. getNewsFeed(1)
   newsFeed(1, 'getNewsFeed(1)');
 
   return steps;
 
-  // Sub-routine: getNewsFeed with per-step heap build + pop.
+  // Sub-routine: getNewsFeed builds relevantUsers in one expression, merges each relevant
+  // user's tweets into a min-heap of (-timestamp, tweetId) so the newest tweet pops first,
+  // then pops up to 10 into result and returns it as-is — already newest-first, no reversal.
   function newsFeed(userId: number, op: string): void {
     const relevant = [...new Set<number>([userId, ...(followMap[userId] || [])])];
     push(
-      mk(op, 26, [], []),
-      `${op}: relevantUsers = the people user ${userId} follows ∪ {${userId}} = {${relevant.map((u) => `u${u}`).join(', ')}}. We merge their tweets to find the 10 most recent.`,
+      mk(op, { match: 'relevantUsers = set(self.followMap[userId]) | {userId}' }, [], []),
+      `${op}: relevantUsers = set(self.followMap[${userId}]) | {${userId}} = {${relevant.map((u) => `u${u}`).join(', ')}}. We merge their tweets to find the 10 most recent.`,
       [{ name: 'relevantUsers', value: `{${relevant.map((u) => `u${u}`).join(', ')}}`, highlight: true }]
     );
 
-    // Build heap: push (timestamp, tweetId); newest (max timestamp) kept on top.
+    // Build heap: push (-timestamp, tweetId); the smallest tuple (largest timestamp) pops first.
     const heap: [number, number][] = [];
-    for (const u of relevant) {
-      for (const [t, id] of tweetMap[u] || []) {
-        heap.push([t, id]);
+    for (const followee of relevant) {
+      for (const [t, tweet] of tweetMap[followee] || []) {
+        heap.push([t, tweet]);
         heap.sort((a, b) => b[0] - a[0]);
         push(
-          mk(op, 31, [], heap),
-          `Push user ${u}'s tweet ${id} (timestamp ${t}) onto the heap. (Python pushes (−timestamp, id) into a min-heap so the newest pops first.)`,
-          [{ name: 'pushed', value: `${id}@t${t}`, highlight: true }, { name: 'heap size', value: heap.length }]
+          mk(op, { match: 'heapq.heappush(heap, (-timestamp, tweetId))' }, [], heap),
+          `Push user ${followee}'s tweet ${tweet} (time ${t}) onto heap as (−timestamp, tweetId), so the newest (max timestamp) pops first.`,
+          [{ name: 'pushed', value: `${tweet}@t${t}`, highlight: true }, { name: 'heap size', value: heap.length }]
         );
       }
     }
 
-    // Pop up to 10 most-recent into the result.
+    // Pop up to 10 most-recent into result — newest-first throughout.
     const result: number[] = [];
     while (heap.length && result.length < 10) {
-      const [t, id] = heap.shift()!;
-      result.push(id);
+      const [t, tweet] = heap.shift()!;
+      result.push(tweet);
       push(
-        mk(op, 35, result, heap),
-        `Pop the newest tweet: ${id} (timestamp ${t}). Append to feed → [${result.join(', ')}].`,
-        [{ name: 'popped', value: `${id}@t${t}`, highlight: true }, { name: 'feed', value: `[${result.join(', ')}]` }]
+        mk(op, { match: 'while heap and len(result) < 10:', to: { match: 'result.append(currentFeed[1])' } }, result, heap),
+        `Pop the newest tweet: currentFeed = (−${t}, ${tweet}); append currentFeed[1] → result = [${result.join(', ')}].`,
+        [{ name: 'popped', value: `${tweet}@t${t}`, highlight: true }, { name: 'result', value: `[${result.join(', ')}]` }]
       );
     }
 
     push(
-      mk(op, 37, result, [], `[${result.join(', ')}]`),
-      `Heap drained (or 10 reached). ${op} returns [${result.join(', ')}] — most recent first.`,
+      mk(op, { match: 'return result' }, result, [], `[${result.join(', ')}]`),
+      `Heap drained (or 10 reached): return result = [${result.join(', ')}] — already newest-first, no reversal.`,
       [{ name: 'return', value: `[${result.join(', ')}]`, highlight: true }]
     );
   }
@@ -191,7 +152,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Hash Maps + Heap-Merged Feed',
-  pythonCode: PYTHON_CODE,
+  variant: 'heap-feed',
   generateSteps,
   timeComplexity: 'getNewsFeed O(t log t)',
   spaceComplexity: 'O(users + tweets)',

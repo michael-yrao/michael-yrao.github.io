@@ -1,44 +1,9 @@
-import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `from collections import deque
-from typing import List, Optional
-
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-class Solution:
-    def levelOrder(self, root: Optional[TreeNode]) -> List[List[int]]:
-        # this is just bfs
-        # for bfs, we use a queue
-        # we insert the root into the queue
-        # process it and then insert its left/right children in there
-        # main tricky part here is keeping track of number of nodes at each depth
-
-        returnList = []
-
-        queue = deque()
-        queue.append(root)
-
-        while queue:
-            lenOfQueue = len(queue)
-            currentList = []
-            # at each step we insert children in
-            # thus when we start, queue has all the nodes for the current level
-            for i in range(lenOfQueue):
-                currentNode = queue.popleft()
-
-                if currentNode:
-                    currentList.append(currentNode.val)
-                    if currentNode.left:
-                        queue.append(currentNode.left)
-                    if currentNode.right:
-                        queue.append(currentNode.right)
-            if currentList:
-                returnList.append(currentList)
-        return returnList`;
+// Traces cse-progress's levelOrder verbatim: unlike a "never enqueue None" BFS, this attempt
+// seeds the queue with root unconditionally and guards every dequeue with `if currentNode:`
+// (so a None root just produces an empty currentList and returnList) — that check is always
+// True for this non-empty example, but we still narrate it since it's really there.
 
 // Tree: [3, 9, 20, null, null, 15, 7]
 const NODES: Omit<TreeNode, 'state'>[] = [
@@ -66,12 +31,12 @@ function generateSteps(): Step[] {
 
   const push = (
     explanation: string,
-    line: number,
+    anchor: StepAnchor,
     opts: { current?: string | null; vars?: { name: string; value: string | number; highlight?: boolean }[] } = {}
   ) => {
     steps.push({
       explanation,
-      highlightLine: line,
+      anchor,
       state: {
         type: 'tree',
         nodes: makeNodes(),
@@ -86,8 +51,8 @@ function generateSteps(): Step[] {
   };
 
   push(
-    'Level order = BFS with a queue. The one trick: at the START of each level the queue holds EXACTLY the nodes of that level. So we snapshot the queue length, pop that many nodes into one list, enqueuing their children as we go (those become the next level). Seed the queue with the root.',
-    21,
+    'Level order = BFS with a queue. The one trick: at the START of each level the queue holds EXACTLY the nodes of that level. So we snapshot the queue length, pop that many nodes into one list, enqueuing their children as we go (those become the next level). queue = deque(); queue.append(root) seeds it.',
+    { match: 'queue = deque()', to: { match: 'queue.append(root)' } },
     { vars: [{ name: 'queue', value: '[3]' }, { name: 'returnList', value: '[]' }] }
   );
 
@@ -97,7 +62,7 @@ function generateSteps(): Step[] {
     const currentList: number[] = [];
     push(
       `Level ${level} begins. Snapshot lenOfQueue = ${levelSize} → there are ${levelSize} node(s) on this level. We'll pop exactly ${levelSize} of them into a fresh currentList = [].`,
-      24,
+      { match: 'lenOfQueue = len(queue)', to: { match: 'currentList = []' } },
       { vars: [{ name: 'lenOfQueue', value: levelSize, highlight: true }, { name: 'currentList', value: '[]' }] }
     );
 
@@ -118,10 +83,10 @@ function generateSteps(): Step[] {
       }
       colour[id] = 'visited';
       push(
-        `Level ${level}, i=${i}: pop node ${v} from the front, append it to currentList (now [${currentList.join(',')}]). ${
+        `Level ${level}, i=${i}: currentNode = queue.popleft() → node ${v}. if currentNode: True → append its val to currentList (now [${currentList.join(',')}]). ${
           enq.length ? `Enqueue its children (${enq.join(', ')}) for the next level → queue ${queueStr()}.` : 'It has no children, nothing to enqueue.'
         }`,
-        enq.length ? 34 : 32,
+        { match: 'currentNode = queue.popleft()', to: { match: 'queue.append(currentNode.right)' } },
         {
           current: id,
           vars: [
@@ -135,8 +100,8 @@ function generateSteps(): Step[] {
 
     returnList.push(currentList);
     push(
-      `Level ${level} finished — all ${levelSize} node(s) processed. Append currentList [${currentList.join(',')}] to returnList → ${resultStr()}. ${queue.length ? 'The queue now holds the next level.' : 'The queue is empty.'}`,
-      38,
+      `Level ${level} finished — all ${levelSize} node(s) processed. if currentList: True (non-empty) → append it to returnList → ${resultStr()}. ${queue.length ? 'The queue now holds the next level.' : 'The queue is empty.'}`,
+      { match: 'if currentList:', to: { match: 'returnList.append(currentList)' } },
       { vars: [{ name: 'returnList', value: resultStr(), highlight: true }] }
     );
     level++;
@@ -145,7 +110,7 @@ function generateSteps(): Step[] {
   NODES.forEach((n) => (colour[n.id] = 'found'));
   push(
     `Queue is empty — BFS complete. Final level order = ${resultStr()}.`,
-    39,
+    { match: 'return returnList' },
     { vars: [{ name: 'result', value: resultStr(), highlight: true }] }
   );
 
@@ -177,7 +142,7 @@ export const binaryTreeLevelOrderTraversalMeta: AlgorithmMeta = {
   solutions: [
     {
       label: 'BFS (Queue)',
-      pythonCode: PYTHON_CODE,
+      variant: 'bfs',
       generateSteps,
     },
   ],

@@ -1,66 +1,11 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE_MEMO = `class Solution:
-    def kPalindromeMemo(self, s: str, k: int) -> bool:
-        # we'll leverage the same idea we did for valid palindrome 2
-        # we use left and right pointer like we would for valid palindrome 1
-        # and then we keep a counter every time we skip an element
-        # now issue becomes, what happens if we can skip on both sides
-        # then doesn't this become a backtracking problem where we need to decide which side to skip?
-
-        # store how many skips we have for (l,r, skips) -> skippable
-        # memos should be snapshots, not tracking for our resources
-        memo = {}
-
-        def backtrack(l,r,skipsRemaining):
-            currentState = (l,r,skipsRemaining)
-
-            if currentState in memo:
-                return memo[currentState]
-            if skipsRemaining < 0:
-                return False
-
-            while l < r:
-                if s[l] == s[r]:
-                    l+=1
-                    r-=1
-                else:
-                    # choose whether to go left or right
-                    return backtrack(l+1, r, skipsRemaining-1) or backtrack(l,r-1,skipsRemaining-1)
-            return True
-
-        return backtrack(0,len(s)-1,k)`;
-
-const PYTHON_CODE_CACHE = `from functools import cache
-
-class Solution:
-    """
-    What if instead of allowing one skip, we allow skip number of skips
-    """
-    def kPalindromeDP(self, s: str, k: int) -> bool:
-        # we'll leverage the same idea we did for valid palindrome 2
-        # we use left and right pointer like we would for valid palindrome 1
-        # and then we keep a counter every time we skip an element
-        # now issue becomes, what happens if we can skip on both sides
-        # then doesn't this become a backtracking problem where we need to decide which side to skip?
-
-        # we can use the built in 'memoization' or cache from python
-        # this will automatically reduce our time complexity from O(n*2^k) to O(n*k)
-        @cache
-        def backtrack(l,r,skipsRemaining):
-            if skipsRemaining < 0:
-                return False
-
-            while l < r:
-                if s[l] == s[r]:
-                    l+=1
-                    r-=1
-                else:
-                    # choose whether to go left or right
-                    return backtrack(l+1, r, skipsRemaining-1) or backtrack(l,r-1,skipsRemaining-1)
-            return True
-
-        return backtrack(0,len(s)-1,k)`;
+// Traces cse-progress's kPalindrome and kPalindromeDP verbatim. Both share the same
+// two-pointer backtracking body (match/mismatch/branch) over the same while-loop, and differ
+// only in memoization: kPalindrome is plain recursive backtracking with no memo at all;
+// kPalindromeDP wraps the identical backtrack in Python's `@cache` decorator, which does
+// memoize. The intro/final explanation text below is parametrized per variant so it stays
+// truthful to that.
 
 // s = "abcdeca", k = 2
 // The backtracking approach: two-pointer from outside in, skip left or skip right when mismatch
@@ -93,7 +38,25 @@ function makeCells(
   }));
 }
 
-function generateStepsMemo(introLine = 11): Step[] {
+interface BacktrackingTrace {
+  introAnchor: StepAnchor;
+  introExplanation: string;
+  finalExplanation: string;
+}
+
+const BACKTRACKING_TRACE: BacktrackingTrace = {
+  introAnchor: { match: 'def backtrack(l,r,skipsRemaining):' },
+  introExplanation: `Valid Palindrome III: is s = "abcdeca" a 2-palindrome? A string is a k-palindrome if it can become a palindrome by removing at most k characters. Strategy: two-pointer backtracking. Use left (l) and right (r) pointers; while s[l] == s[r], advance both. The moment they differ, branch — try skipping l (backtrack(l+1, r, skipsRemaining-1)) OR skipping r (backtrack(l, r-1, skipsRemaining-1)), short-circuiting on the first branch that returns true. No memoization: a revisited (l, r, skipsRemaining) state is recomputed.`,
+  finalExplanation: `Final result: true. The string "abcdeca" can be made into a palindrome by removing at most 2 characters — remove 'b' (index 1) and 'd' (index 3) → "aceca", which is a palindrome. This is plain exponential-time backtracking — no memo table, no @cache — so every (l, r, skipsRemaining) state that gets revisited is recomputed from scratch: O(n·2^k) time, O(k) recursion depth (each call spends one skip, so depth is bounded by k+1).`,
+};
+
+const CACHE_TRACE: BacktrackingTrace = {
+  introAnchor: { match: 'if skipsRemaining < 0:' },
+  introExplanation: `Valid Palindrome III: is s = "abcdeca" a 2-palindrome? A string is a k-palindrome if it can become a palindrome by removing at most k characters. Strategy: two-pointer backtracking. Use left (l) and right (r) pointers; when s[l] == s[r] advance both. When they differ, branch — try skipping l or skipping r (costs one removal each). The \`@cache\` decorator on backtrack memoizes every (l, r, skipsRemaining) call automatically.`,
+  finalExplanation: `Final result: true. The string "abcdeca" can be made into a palindrome by removing at most 2 characters (e.g., remove 'b' and 'd' → "aceca" or remove 'b' and 'e' → "acdca"). \`@cache\` memoized every (l, r, skipsRemaining) call, cutting this from exponential O(n·2^k) to polynomial O(n²·k).`,
+};
+
+function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
   const steps: Step[] = [];
   const s = 'abcdeca';
   const k = 2;
@@ -104,8 +67,8 @@ function generateStepsMemo(introLine = 11): Step[] {
 
   // Step 0: Introduction
   steps.push({
-    explanation: `Valid Palindrome III: is s = "${s}" a ${k}-palindrome? A string is a k-palindrome if it can become a palindrome by removing at most k characters. Strategy: two-pointer backtracking with memoization. Use left (l) and right (r) pointers; when s[l] == s[r] advance both. When they differ, branch — try skipping l or skipping r (costs one removal each). Memo caches (l, r, skipsRemaining) states.`,
-    highlightLine: introLine,
+    explanation: trace.introExplanation,
+    anchor: trace.introAnchor,
     state: {
       type: 'array',
       cells: chars.map(ch => ({ value: ch, state: 'default' as const })),
@@ -128,7 +91,7 @@ function generateStepsMemo(introLine = 11): Step[] {
   // Step 1: l=0, r=6 → 'a' == 'a' match
   steps.push({
     explanation: `backtrack(l=0, r=6, skips=2): s[0]='a' == s[6]='a' → match! Advance both pointers: l=1, r=5. No removal used. Matched pair highlighted in green.`,
-    highlightLine: 24,
+    anchor: { match: 'if s[l] == s[r]:', to: { match: 'r-=1' } },
     state: {
       type: 'array',
       cells: chars.map((ch, i) => ({
@@ -162,7 +125,7 @@ function generateStepsMemo(introLine = 11): Step[] {
   // Step 2: l=1, r=5 → 'b' != 'c' mismatch → branch
   steps.push({
     explanation: `backtrack(l=1, r=5, skips=2): s[1]='b' != s[5]='c' → mismatch. Must branch: try skipping left (backtrack(l=2, r=5, skips=1)) OR skipping right (backtrack(l=1, r=4, skips=1)). We explore skip-left first (short-circuit OR).`,
-    highlightLine: 27,
+    anchor: { match: 'return backtrack(l+1, r, skipsRemaining-1) or backtrack(l,r-1,skipsRemaining-1)' },
     state: {
       type: 'array',
       cells: chars.map((ch, i) => ({
@@ -196,7 +159,7 @@ function generateStepsMemo(introLine = 11): Step[] {
   skipped.add(1);
   steps.push({
     explanation: `Branch A: skip left — remove 'b' at index 1. backtrack(l=2, r=5, skips=1): s[2]='c' == s[5]='c' → match! Advance: l=3, r=4. Skips remaining: 1.`,
-    highlightLine: 22,
+    anchor: { match: 'if s[l] == s[r]:', to: { match: 'r-=1' } },
     state: {
       type: 'array',
       cells: chars.map((ch, i) => ({
@@ -234,7 +197,7 @@ function generateStepsMemo(introLine = 11): Step[] {
   // l=3, r=4 → 'd' != 'e' mismatch, skips=1
   steps.push({
     explanation: `backtrack(l=3, r=4, skips=1): s[3]='d' != s[4]='e' → mismatch again. Branch: skip left (backtrack(l=4, r=4, skips=0)) or skip right (backtrack(l=3, r=3, skips=0)). Try skip-left first.`,
-    highlightLine: 27,
+    anchor: { match: 'return backtrack(l+1, r, skipsRemaining-1) or backtrack(l,r-1,skipsRemaining-1)' },
     state: {
       type: 'array',
       cells: chars.map((ch, i) => ({
@@ -270,7 +233,7 @@ function generateStepsMemo(introLine = 11): Step[] {
   skipped.add(3);
   steps.push({
     explanation: `Skip left — remove 'd' at index 3. backtrack(l=4, r=4, skips=0): l >= r → palindrome condition met! Return true. Total removals used: 2 ('b' and 'd'). 2 ≤ k=2 → valid k-palindrome.`,
-    highlightLine: 28,
+    anchor: { match: 'return True' },
     state: {
       type: 'array',
       cells: chars.map((ch, i) => ({
@@ -301,8 +264,8 @@ function generateStepsMemo(introLine = 11): Step[] {
 
   // Final step
   steps.push({
-    explanation: `Final result: true. The string "${s}" can be made into a palindrome by removing at most ${k} characters (e.g., remove 'b' and 'd' → "acdca" or remove 'b' and 'e' → "acdca"). The memoization (state = (l, r, skipsRemaining)) prevents re-computing the same sub-problems. Time: O(n²·k), Space: O(n²·k) with memo — but @cache reduces this from exponential O(n·2^k) to polynomial.`,
-    highlightLine: 30,
+    explanation: trace.finalExplanation,
+    anchor: { match: 'return backtrack(0,len(s)-1,k)' },
     state: {
       type: 'array',
       cells: chars.map((ch, i) => ({
@@ -324,21 +287,20 @@ function generateStepsMemo(introLine = 11): Step[] {
   return steps;
 }
 
-// The @cache variant has the same algorithmic trace — only the Python code differs.
-function generateStepsCache(): Step[] {
-  return generateStepsMemo(16);
-}
-
-const solutionMemo: SolutionVariant = {
-  label: 'Backtracking + Manual Memo',
-  pythonCode: PYTHON_CODE_MEMO,
-  generateSteps: generateStepsMemo,
+const solutionBacktracking: SolutionVariant = {
+  label: 'Backtracking',
+  variant: 'backtracking',
+  generateSteps: () => generateBacktrackingSteps(BACKTRACKING_TRACE),
+  timeComplexity: 'O(n·2^k) — plain exponential backtracking, no memoization',
+  spaceComplexity: 'O(k) recursion depth',
 };
 
 const solutionCache: SolutionVariant = {
   label: 'Backtracking + @cache',
-  pythonCode: PYTHON_CODE_CACHE,
-  generateSteps: generateStepsCache,
+  variant: 'cache',
+  generateSteps: () => generateBacktrackingSteps(CACHE_TRACE),
+  timeComplexity: 'O(n²·k)',
+  spaceComplexity: 'O(n²·k)',
 };
 
 export const validPalindromeIIIMeta: AlgorithmMeta = {
@@ -356,7 +318,7 @@ export const validPalindromeIIIMeta: AlgorithmMeta = {
     {
       input: 's = "abcdeca", k = 2',
       output: 'true',
-      explanation: "Remove 'b' and 'e' (or 'b' and 'd') to get \"acdca\", which is a palindrome.",
+      explanation: "Remove 'b' and 'd' to get \"aceca\" (or 'b' and 'e' to get \"acdca\"), which is a palindrome.",
     },
     {
       input: 's = "abcdeca", k = 1',
@@ -370,5 +332,5 @@ export const validPalindromeIIIMeta: AlgorithmMeta = {
     '1 ≤ k ≤ s.length',
   ],
   hint: 'Use two-pointer backtracking: l and r start at opposite ends. When s[l] == s[r], advance both. When they differ, branch — try removing s[l] (call backtrack(l+1, r, k-1)) OR removing s[r] (call backtrack(l, r-1, k-1)). Memoize on (l, r, skipsRemaining) to cut exponential time to polynomial.',
-  solutions: [solutionMemo, solutionCache],
+  solutions: [solutionBacktracking, solutionCache],
 };

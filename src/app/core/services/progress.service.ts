@@ -1,5 +1,4 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, map, of, throwError } from 'rxjs';
 
 import {
@@ -9,14 +8,23 @@ import {
   TrophyGraduateSummary,
   PROGRESS_SCHEMA_VERSION,
 } from '../models/progress.model';
-import { RepoRef, repoRefFromQuery, fetchRepoFile$ } from './github-contents';
+import {
+  GitHubFileService,
+  RepoRef,
+  LoadStatus,
+  DEFAULT_REPO,
+  DEFAULT_BRANCH,
+  parseRepoSlug,
+  sameRef,
+  httpErrorMessage,
+} from './github-file.service';
 
 // The dashboard renders any repo that follows the cse-coach schema. This is the default
-// when no ?repo= is given; ?repo=owner/name overrides it for any PUBLIC repo.
-export const DEFAULT_REPO = 'michael-yrao/cse-progress';
-export const DEFAULT_BRANCH = 'main';
-
-export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
+// when no ?repo= is given; ?repo=owner/name overrides it for any PUBLIC repo. Re-exported
+// from github-file.service.ts, the single place the slug is spelled out, so existing
+// importers of ProgressService keep compiling.
+export { DEFAULT_REPO, DEFAULT_BRANCH };
+export type { RepoRef, LoadStatus };
 
 // Landing fetches SUMMARY_FILE only (a few KB, no `problems[]`) — instant, cheap, no
 // per-problem components. DETAILS_FILE (the full 144 KB contract) is fetched only when the
@@ -29,6 +37,11 @@ const SUMMARY_FILE = 'dashboard/progress-summary.json';
 const DETAILS_FILE = 'dashboard/progress.json';
 const LEGACY_SUMMARY_FILE = 'progress-summary.json';
 const LEGACY_DETAILS_FILE = 'progress.json';
+
+const NOT_FOUND_STATUS = 404;
+
+// What a fetch failure is fetching, for httpErrorMessage()'s wording.
+const PROGRESS_WHAT = 'progress';
 
 /** Derive the lightweight summary from a full contract — the client-side mirror of
  *  cse-progress's `gamify.py::summary_of()`. Used when `progress-summary.json` 404s (an
@@ -105,15 +118,15 @@ export class ProgressService {
     return s ? `${s.owner}/${s.repo}` : null;
   });
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(private readonly github: GitHubFileService) {}
 
   /** Parse "owner/name" or "owner/name@branch"; empty/missing input falls back to the
    *  default repo, but a malformed slug (not exactly owner/name[@branch], every part
    *  non-empty) returns `null` instead of silently substituting the default — the caller
-   *  decides how to surface that (see `loadSummary`'s null-ref branch). Thin wrapper over
-   *  the shared `repoRefFromQuery` (also used by `CheatSheetService`). */
+   *  decides how to surface that (see `loadSummary`'s null-ref branch). Delegates to
+   *  `parseRepoSlug`, the single implementation shared with `GitHubFileService`. */
   parseRepo(raw: string | null | undefined): RepoRef | null {
-    return repoRefFromQuery(raw, DEFAULT_REPO, DEFAULT_BRANCH);
+    return parseRepoSlug(raw);
   }
 
   /** Fetch a logical contract file, preferring its `dashboard/` location and falling back
@@ -122,9 +135,9 @@ export class ProgressService {
    *  propagates unchanged rather than masquerading as "not found", so the caller's own
    *  404 handling (summary → full-contract derivation) stays correct. */
   private fetchFile$<T>(ref: RepoRef, primary: string, legacy: string, bust: boolean): Observable<T> {
-    return fetchRepoFile$<T>(this.http, ref, primary, bust).pipe(
+    return this.github.fetch$<T>(ref, primary, bust).pipe(
       catchError((err) =>
-        err?.status === 404 ? fetchRepoFile$<T>(this.http, ref, legacy, bust) : throwError(() => err),
+        err?.status === NOT_FOUND_STATUS ? this.github.fetch$<T>(ref, legacy, bust) : throwError(() => err),
       ),
     );
   }
@@ -149,14 +162,7 @@ export class ProgressService {
     // Skip a redundant reload of the repo already shown (the effect can fire twice with the
     // same value). A forced refresh always proceeds; a retry (not ready) always proceeds.
     const cur = this.source();
-    if (
-      !force &&
-      cur &&
-      cur.owner === ref.owner &&
-      cur.repo === ref.repo &&
-      cur.branch === ref.branch &&
-      this.status() === 'ready'
-    ) {
+    if (!force && sameRef(cur, ref) && this.status() === 'ready') {
       return;
     }
 
@@ -166,8 +172,7 @@ export class ProgressService {
     // would look like a change to anything tracking `source` (e.g. an effect calling this
     // method) even when the repo is identical — defense in depth alongside the `untracked`
     // wrap at the call site in progress-page.component.ts.
-    const same = cur && cur.owner === ref.owner && cur.repo === ref.repo && cur.branch === ref.branch;
-    if (!same) this.source.set(ref);
+    if (!sameRef(cur, ref)) this.source.set(ref);
     if (force) {
       // Keep the current dashboard visible; just spin the button.
       this.refreshing.set(true);
@@ -185,7 +190,7 @@ export class ProgressService {
           // fall back to the full contract and derive the aggregates client-side, so the
           // landing still works. Any other failure (403 rate-limit, network, etc.) keeps
           // the normal error path.
-          if (err?.status !== 404) return of(this.toError(err));
+          if (err?.status !== NOT_FOUND_STATUS) return of(this.toError(err));
           return this.fetchFile$<ProgressData>(ref, DETAILS_FILE, LEGACY_DETAILS_FILE, force).pipe(
             map((full) => summaryFromFull(full)),
             catchError((fallbackErr) => of(this.toError(fallbackErr))),
@@ -283,21 +288,9 @@ export class ProgressService {
     return null;
   }
 
-  /** Turn an HttpErrorResponse into a human message (rate-limit / missing / offline). */
+  /** Turn an HttpErrorResponse into a human message (rate-limit / missing / offline). Text
+   *  comes from the shared `httpErrorMessage`, unchanged from before the B2 extraction. */
   private toError(err: { status?: number }): Error {
-    if (err?.status === 404) {
-      return new Error(
-        'No progress data found on that repo/branch. It must be a public cse-coach repo that has generated one.',
-      );
-    }
-    if (err?.status === 403) {
-      return new Error(
-        'GitHub rate limit reached for anonymous requests. Sign in (coming soon) or try again shortly.',
-      );
-    }
-    if (err?.status === 0) {
-      return new Error('Could not reach GitHub — check your connection.');
-    }
-    return new Error(`Could not load progress (HTTP ${err?.status ?? '?'}).`);
+    return new Error(httpErrorMessage(err, PROGRESS_WHAT));
   }
 }

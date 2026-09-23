@@ -1,48 +1,18 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def singleNonDuplicate(self, nums: List[int]) -> int:
-        # logn time and O(1) space means has to be binary search and no extra space
-        # we don't know what we are looking for, thus we need a way to identify which half it is in
-        # since all elements appear twice except for the target, we know len(nums) is odd
-        # return condition: mid != mid + 1 and mid != mid - 1
-        # [1,1,2,3,3,4,4,8,8]
-        #  l       m       r
-        # since we know the side with the answer is odd, we can look at length of both sides without current element
-        # if m=m-1, then len(left)=m-1, if len(left)%2==0, then we move l=m+1 else r=m-1
-        # if m!=m-1, then len(left)=m
-
-        l,r = 0,len(nums) - 1
-
-        while l <= r:
-            mid = (l+r)//2
-
-            # since we are doing mid - 1 and mid + 1 here
-            # we need to make sure they are inbound
-            # if mid -1 is out of bounds or if nums[mid - 1] != nums[mid], left side check is good
-            # if mid + 1 is out of bounds or if nums[mid + 1] != nums[mid], right side check is good
-            if (mid - 1 < 0 or nums[mid - 1] != nums[mid]) and (mid + 1 >= len(nums) or nums[mid] != nums[mid + 1]):
-                return nums[mid]
-            # no answers found yet
-            # check which side is odd
-            lenLeft = 0
-            if nums[mid] == nums[mid - 1]:
-                lenLeft = mid - 1
-            else:
-                lenLeft = mid
-            if lenLeft%2==0:
-                l=mid+1
-            else:
-                r=mid-1
-
-        return -1`;
+// Traces cse-progress's singleNonDuplicate_20260610 verbatim. This is a genuine min-boundary
+// binary search (l < r, converge, return nums[l] AFTER the loop) — NOT an exact-match search
+// with an in-loop early return. Each iteration: m = (l+r)//2, then if m is odd, shift it down
+// by 1 (m-=1) so m always lands on what WOULD be the first index of an intact pair; then
+// compare nums[m] to nums[m+1] — if they still match, the pair is intact and the single
+// element is strictly right of it (l = m+2, skipping the whole pair); otherwise the pair is
+// broken and the single element is at m or to its left (r = m).
 
 function generateSteps(): Step[] {
   const nums = [1, 1, 2, 3, 3, 4, 4, 8, 8];
-  const n = nums.length;
   const steps: Step[] = [];
 
-  const snap = (l: number, r: number, mid: number | null, foundIdx: number | null) =>
+  const snap = (l: number, r: number, m: number | null, foundIdx: number | null) =>
     nums.map((v, i) => ({
       value: v,
       state:
@@ -50,16 +20,32 @@ function generateSteps(): Step[] {
           ? ('found' as const)
           : foundIdx !== null
           ? ('eliminated' as const)
-          : i === mid
+          : i === m
           ? ('active' as const)
           : i >= l && i <= r
           ? ('window' as const)
           : ('eliminated' as const),
     }));
 
+  function emit(explanation: string, anchor: StepAnchor, l: number, r: number, m: number | null, vars: { name: string; value: string | number; highlight?: boolean }[]): void {
+    steps.push({
+      explanation,
+      anchor,
+      state: {
+        type: 'array',
+        cells: snap(l, r, m, null),
+        pointers:
+          m !== null
+            ? [{ index: l, label: 'l' }, { index: m, label: 'm' }, { index: r, label: 'r' }]
+            : [{ index: l, label: 'l' }, { index: r, label: 'r' }],
+      },
+      variables: vars,
+    });
+  }
+
   steps.push({
-    explanation: `Find the single non-duplicate in [${nums.join(', ')}] in O(log n). All elements appear exactly twice except one. Key insight: in the left portion before the single element, pairs start at even indices (nums[0]=nums[1], nums[2]=nums[3]…). After the single element, pairs start at odd indices. Binary search on this parity property.`,
-    highlightLine: 13,
+    explanation: `Find the single non-duplicate in [${nums.join(', ')}] in O(log n). All elements appear exactly twice except one. Before the single element, an intact pair's first index is always even (nums[0]=nums[1], nums[2]=nums[3]…); after it, pairs shift to start on odd indices. Min-boundary binary search on that parity break — no exact-match early return.`,
+    anchor: { match: 'def singleNonDuplicate_20260610(self, nums: List[int]) -> int:' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),
@@ -69,97 +55,89 @@ function generateSteps(): Step[] {
   });
 
   let l = 0;
-  let r = n - 1;
+  let r = nums.length - 1;
+
+  emit(
+    `Initialize l=${l}, r=${r}. Use l < r (min boundary) — the answer is returned as nums[l] only after the loop converges, not from inside it.`,
+    { match: 'l, r = 0, len(nums) - 1' },
+    l,
+    r,
+    null,
+    [{ name: 'l', value: l }, { name: 'r', value: r }],
+  );
+
+  while (l < r) {
+    let m = Math.floor((l + r) / 2);
+    const rawM = m;
+
+    emit(
+      `l=${l}, r=${r}: m = (l+r)//2 = ${m}.`,
+      { match: 'm = (l+r)//2' },
+      l,
+      r,
+      m,
+      [{ name: 'm', value: m }],
+    );
+
+    const needsShift = m % 2 === 1;
+    if (needsShift) m -= 1;
+
+    emit(
+      needsShift
+        ? `m=${rawM} is odd → shift m down by 1 so it always lands on what would be an intact pair's first index → m=${m}.`
+        : `m=${rawM} is already even → no shift needed, m stays ${m}.`,
+      needsShift
+        ? { match: 'if m % 2 == 1:', to: { match: 'm-=1' } }
+        : { match: 'if m % 2 == 1:' },
+      l,
+      r,
+      m,
+      [{ name: 'm', value: m, highlight: needsShift }],
+    );
+
+    const pairIntact = nums[m] === nums[m + 1];
+
+    if (pairIntact) {
+      l = m + 2;
+      emit(
+        `nums[m]=${nums[m]} == nums[m+1]=${nums[m + 1]} → this pair is still intact, so the single element is strictly right of it. l = m + 2 = ${l}.`,
+        // Skips nth=1's comment '# so we set l = m + 2' above the if — nth=2 is the real line.
+        { match: 'if nums[m] == nums[m+1]:', to: { match: 'l = m + 2', nth: 2 } },
+        l,
+        r,
+        null,
+        [{ name: 'l', value: l, highlight: true }, { name: 'r', value: r }],
+      );
+    } else {
+      r = m;
+      emit(
+        `nums[m]=${nums[m]} != nums[m+1]=${nums[m + 1]} → this pair is broken, so the single element is at m or to its left. r = m = ${r}.`,
+        { match: 'r = m' },
+        l,
+        r,
+        null,
+        [{ name: 'l', value: l }, { name: 'r', value: r, highlight: true }],
+      );
+    }
+  }
 
   steps.push({
-    explanation: `Initialize l=${l}, r=${r}. Use l ≤ r because we return as soon as we find the single element (not just converging on a boundary).`,
-    highlightLine: 13,
+    explanation: `l === r === ${l}: loop converged. Return nums[${l}] = ${nums[l]}.`,
+    anchor: { match: 'return nums[l]' },
     state: {
       type: 'array',
-      cells: snap(l, r, null, null),
-      pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
+      cells: snap(l, r, null, l),
+      pointers: [{ index: l, label: 'answer' }],
     },
-    variables: [{ name: 'l', value: l }, { name: 'r', value: r }],
+    variables: [{ name: 'return', value: nums[l], highlight: true }],
   });
-
-  while (l <= r) {
-    const mid = Math.floor((l + r) / 2);
-    const leftOk = mid - 1 < 0 || nums[mid - 1] !== nums[mid];
-    const rightOk = mid + 1 >= n || nums[mid] !== nums[mid + 1];
-
-    steps.push({
-      explanation: `l=${l}, r=${r}, mid=${mid}: nums[mid]=${nums[mid]}. Check bounds: left neighbor ${mid - 1 < 0 ? 'OOB' : `nums[${mid - 1}]=${nums[mid - 1]}`} (ok=${leftOk}), right neighbor ${mid + 1 >= n ? 'OOB' : `nums[${mid + 1}]=${nums[mid + 1]}`} (ok=${rightOk}).`,
-      highlightLine: 19,
-      state: {
-        type: 'array',
-        cells: snap(l, r, mid, null),
-        pointers: [
-          { index: l, label: 'l' },
-          { index: mid, label: 'mid' },
-          { index: r, label: 'r' },
-        ],
-      },
-      variables: [
-        { name: 'mid', value: mid },
-        { name: 'nums[mid]', value: nums[mid] },
-        { name: 'leftOk', value: String(leftOk) },
-        { name: 'rightOk', value: String(rightOk) },
-      ],
-    });
-
-    if (leftOk && rightOk) {
-      // Found the single element
-      steps.push({
-        explanation: `Both neighbors differ from nums[mid]=${nums[mid]} (or are out of bounds). Found the single element! Return ${nums[mid]}.`,
-        highlightLine: 20,
-        state: {
-          type: 'array',
-          cells: snap(l, r, null, mid),
-          pointers: [{ index: mid, label: 'answer' }],
-        },
-        variables: [{ name: 'return', value: nums[mid], highlight: true }],
-      });
-      break;
-    }
-
-    // Determine which half to eliminate
-    let lenLeft: number;
-    if (nums[mid] === nums[mid - 1]) {
-      lenLeft = mid - 1;
-    } else {
-      lenLeft = mid;
-    }
-    const goRight = lenLeft % 2 === 0;
-
-    steps.push({
-      explanation: `Not the single element. ${nums[mid] === nums[mid - 1] ? `nums[mid]=nums[mid-1]=${nums[mid]}, so lenLeft (elements strictly left of the pair) = mid-1 = ${lenLeft}.` : `nums[mid]≠nums[mid-1], so lenLeft = mid = ${lenLeft}.`} lenLeft=${lenLeft} is ${lenLeft % 2 === 0 ? 'even' : 'odd'} → single element is ${goRight ? 'to the RIGHT' : 'to the LEFT'} → ${goRight ? `l = mid+1 = ${mid + 1}` : `r = mid-1 = ${mid - 1}`}.`,
-      highlightLine: goRight ? 29 : 31,
-      state: {
-        type: 'array',
-        cells: snap(l, r, mid, null),
-        pointers: [
-          { index: l, label: 'l' },
-          { index: mid, label: 'mid' },
-          { index: r, label: 'r' },
-        ],
-      },
-      variables: [
-        { name: 'lenLeft', value: lenLeft },
-        { name: 'parity', value: lenLeft % 2 === 0 ? 'even → go right' : 'odd → go left' },
-        { name: goRight ? 'l →' : 'r →', value: goRight ? mid + 1 : mid - 1, highlight: true },
-      ],
-    });
-
-    if (goRight) l = mid + 1;
-    else r = mid - 1;
-  }
 
   return steps;
 }
 
 const solution: SolutionVariant = {
   label: 'Binary Search on Pair Parity',
-  pythonCode: PYTHON_CODE,
+  variant: 'pair-parity',
   generateSteps,
 };
 
@@ -189,6 +167,6 @@ export const singleElementSortedArrayMeta: AlgorithmMeta = {
     '0 ≤ nums[i] ≤ 10⁵',
     'nums is sorted.',
   ],
-  hint: 'Before the single element, each pair starts at an even index. After it, pairs start at odd indices. At mid: if nums[mid] differs from both neighbors, it is the single element. Otherwise, compute lenLeft (count of elements strictly left of mid\'s pair) — if even, the single element is to the right; if odd, it\'s to the left.',
+  hint: 'Min-boundary binary search: m = (l+r)//2, then if m is odd shift it down by 1 so m always lands on what would be an intact pair\'s first index. Compare nums[m] to nums[m+1] — equal means the pair is intact and the single element is strictly right of it (l = m+2); unequal means the pair is broken and the single element is at m or to its left (r = m). Converges to l === r; return nums[l].',
   solutions: [solution],
 };

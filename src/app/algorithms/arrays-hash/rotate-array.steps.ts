@@ -1,24 +1,12 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def rotate(self, nums: List[int], k: int) -> None:
-        # three-reversal trick: reverse all → reverse first k → reverse last (n-k)
-        # this repositions every element in O(n) time with O(1) space
-
-        def reverseArray(l, r):
-            def swap(l, r):
-                temp = nums[l]
-                nums[l] = nums[r]
-                nums[r] = temp
-            while r > l:
-                swap(l, r)
-                l += 1
-                r -= 1
-        # rotating by n is the same as no rotation, so reduce k to avoid redundant work
-        k = k % len(nums)
-        reverseArray(0, len(nums) - 1)
-        reverseArray(0, k - 1)
-        reverseArray(k, len(nums) - 1)`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's rotate_20260624 verbatim: a SINGLE `reverse(left,
+// right)` helper (no nested `swap` sub-helper) that inlines the swap via
+// `tmp = nums[left]; nums[left] = nums[right]; nums[right] = tmp`, then
+// `left += 1; right -= 1`, called as reverse(0,len(nums)-1), reverse(0,k-1),
+// reverse(k,len(nums)-1).
 
 function generateSteps(): Step[] {
   const original = [1, 2, 3, 4, 5, 6, 7];
@@ -46,7 +34,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Rotation by k=${k} on [${original.join(',')}]. Key insight: reverse all → reverse first k → reverse last n-k. This repositions every element in O(n) time with O(1) space.`,
-    highlightLine: 8,
+    anchor: { match: 'k = k % len(nums)' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),
@@ -60,46 +48,49 @@ function generateSteps(): Step[] {
 
   // Phase 1: reverse all
   steps.push({
-    explanation: `Phase 1: reverse the entire array (indices 0..${n - 1}).`,
-    highlightLine: 9,
+    explanation: `Phase 1: reverse(0, len(nums)-1) — reverse the entire array (indices 0..${n - 1}).`,
+    anchor: { match: 'reverse(0,len(nums)-1)' },
     state: {
       type: 'array',
       cells: snap(new Set(), new Set(), [0, n - 1]),
-      pointers: [{ index: 0, label: 'l' }, { index: n - 1, label: 'r' }],
+      pointers: [{ index: 0, label: 'left' }, { index: n - 1, label: 'right' }],
     },
-    variables: [{ name: 'phase', value: 'reverse all' }],
+    variables: [{ name: 'phase', value: 'reverse(0, len(nums)-1)' }],
   });
 
-  const reverse = (l: number, r: number, phaseLabel: string, hl: number) => {
-    let ll = l, rr = r;
-    while (ll < rr) {
+  const reverse = (left: number, right: number, phaseLabel: string) => {
+    let currentLeft = left, currentRight = right;
+    while (currentLeft < currentRight) {
       const done: Set<number> = new Set();
-      for (let x = l; x < ll; x++) done.add(x);
-      for (let x = rr + 1; x <= r; x++) done.add(x);
+      for (let x = left; x < currentLeft; x++) done.add(x);
+      for (let x = currentRight + 1; x <= right; x++) done.add(x);
+
+      const tmp = nums[currentLeft];
 
       steps.push({
-        explanation: `${phaseLabel}: swap nums[${ll}]=${nums[ll]} ↔ nums[${rr}]=${nums[rr]}.`,
-        highlightLine: hl,
+        explanation: `${phaseLabel}: tmp = nums[${currentLeft}] = ${tmp}. nums[${currentLeft}] = nums[${currentRight}] (${nums[currentRight]}). nums[${currentRight}] = tmp (${tmp}). left+=1, right-=1.`,
+        anchor: { match: 'tmp = nums[left]', to: { match: 'right-=1' } },
         state: {
           type: 'array',
-          cells: snap(new Set([ll, rr]), done, [l, r]),
-          pointers: [{ index: ll, label: 'l' }, { index: rr, label: 'r' }],
+          cells: snap(new Set([currentLeft, currentRight]), done, [left, right]),
+          pointers: [{ index: currentLeft, label: 'left' }, { index: currentRight, label: 'right' }],
         },
         variables: [
-          { name: 'swap', value: `${nums[ll]} ↔ ${nums[rr]}`, highlight: true },
+          { name: 'tmp', value: tmp, highlight: true },
+          { name: 'swap', value: `${nums[currentLeft]} ↔ ${nums[currentRight]}`, highlight: true },
         ],
       });
-      [nums[ll], nums[rr]] = [nums[rr], nums[ll]];
-      ll++;
-      rr--;
+      [nums[currentLeft], nums[currentRight]] = [nums[currentRight], nums[currentLeft]];
+      currentLeft++;
+      currentRight--;
     }
   };
 
-  reverse(0, n - 1, 'Phase 1', 4);
+  reverse(0, n - 1, 'Phase 1');
 
   steps.push({
     explanation: `After phase 1: [${nums.join(',')}]. The whole array is flipped.`,
-    highlightLine: 9,
+    anchor: { match: 'reverse(0,len(nums)-1)' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'visited' as const })),
@@ -110,21 +101,21 @@ function generateSteps(): Step[] {
 
   // Phase 2: reverse first k
   steps.push({
-    explanation: `Phase 2: reverse first k=${k} elements (indices 0..${k - 1}).`,
-    highlightLine: 10,
+    explanation: `Phase 2: reverse(0, k-1) — reverse first k=${k} elements (indices 0..${k - 1}).`,
+    anchor: { match: 'reverse(0,k-1)' },
     state: {
       type: 'array',
       cells: snap(new Set(), new Set(), [0, k - 1]),
-      pointers: [{ index: 0, label: 'l' }, { index: k - 1, label: 'r' }],
+      pointers: [{ index: 0, label: 'left' }, { index: k - 1, label: 'right' }],
     },
-    variables: [{ name: 'phase', value: `reverse [0..${k - 1}]` }],
+    variables: [{ name: 'phase', value: `reverse(0, ${k - 1})` }],
   });
 
-  reverse(0, k - 1, 'Phase 2', 4);
+  reverse(0, k - 1, 'Phase 2');
 
   steps.push({
     explanation: `After phase 2: [${nums.join(',')}]. First ${k} elements are now in rotated order.`,
-    highlightLine: 10,
+    anchor: { match: 'reverse(0,k-1)' },
     state: {
       type: 'array',
       cells: nums.map((v, i) => ({
@@ -138,21 +129,21 @@ function generateSteps(): Step[] {
 
   // Phase 3: reverse last n-k
   steps.push({
-    explanation: `Phase 3: reverse last n-k=${n - k} elements (indices ${k}..${n - 1}).`,
-    highlightLine: 11,
+    explanation: `Phase 3: reverse(k, len(nums)-1) — reverse last n-k=${n - k} elements (indices ${k}..${n - 1}).`,
+    anchor: { match: 'reverse(k,len(nums)-1)' },
     state: {
       type: 'array',
       cells: snap(new Set(), new Set([...Array(k).keys()]), [k, n - 1]),
-      pointers: [{ index: k, label: 'l' }, { index: n - 1, label: 'r' }],
+      pointers: [{ index: k, label: 'left' }, { index: n - 1, label: 'right' }],
     },
-    variables: [{ name: 'phase', value: `reverse [${k}..${n - 1}]` }],
+    variables: [{ name: 'phase', value: `reverse(${k}, len(nums)-1)` }],
   });
 
-  reverse(k, n - 1, 'Phase 3', 4);
+  reverse(k, n - 1, 'Phase 3');
 
   steps.push({
     explanation: `Done. [${nums.join(',')}] = rotate([${original.join(',')}], k=${k}). Three reversals: O(n) time, O(1) space.`,
-    highlightLine: 11,
+    anchor: { match: 'reverse(k,len(nums)-1)' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'found' as const })),
@@ -166,7 +157,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Three Reversals',
-  pythonCode: PYTHON_CODE,
+  variant: 'three-reversals',
   generateSteps,
 };
 

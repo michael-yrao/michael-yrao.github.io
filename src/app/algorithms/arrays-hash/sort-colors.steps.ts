@@ -1,48 +1,19 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const DUTCH_FLAG_CODE = `class Solution:
-    def sortColors(self, nums: List[int]) -> None:
-        # Dutch National Flag: maintain three regions in a single pass
-        # l = boundary of confirmed 0s, r = boundary of confirmed 2s, inc = current element
-        #   if nums[inc] == 0: swap with l, advance both l and inc (0 region grows left)
-        #   if nums[inc] == 1: just advance inc (already in the correct middle region)
-        #   if nums[inc] == 2: swap with r, shrink r (don't advance inc — must re-inspect swapped value)
-        def swap(l, r):
-            temp = nums[l]
-            nums[l] = nums[r]
-            nums[r] = temp
-
-        l, inc, r = 0, 0, len(nums) - 1
-        while inc < len(nums):
-            if nums[inc] == 0:
-                swap(l, inc)
-                l += 1
-            elif nums[inc] == 2:
-                swap(r, inc)
-                r -= 1
-                # the value swapped in from r is unknown — decrement inc so the next inc += 1 re-visits it
-                inc -= 1
-            inc += 1`;
-
-const BUCKET_SORT_CODE = `class Solution:
-    def sortColors(self, nums: List[int]) -> None:
-        # counting sort works here because values are bounded to {0, 1, 2}
-        # count occurrences of each color, then overwrite the array in color order
-        bucket = {}
-        for num in nums:
-            bucket[num] = 1 + bucket.get(num, 0)
-        counter = 0
-        for i in range(3):
-            while bucket.get(i):
-                nums[counter] = i
-                bucket[i] = -1 + bucket.get(i, 0)
-                counter += 1`;
+// ── Solution 1: Dutch Flag ────────────────────────────────────────────────────
+//
+// Traces cse-progress's sortColors_20260816 verbatim: pointers named l, t, r
+// (not l, inc, r); `swap(l, r)` takes the two indices in the ORDER CALLED (not
+// "left, right"); the loop condition is `while t <= r:`; and t is advanced by
+// an UNCONDITIONAL `t += 1` at the end of every iteration — the ==2 branch's
+// `t -= 1` right before it is what makes t net-unchanged, not a skipped
+// increment. Every iteration (0, 1, or 2) falls through to that same `t += 1`.
 
 function generateDutchFlagSteps(): Step[] {
   const nums = [2, 0, 2, 1, 1, 0];
   const steps: Step[] = [];
 
-  const snap = (l: number, inc: number, r: number) =>
+  const snap = (l: number, t: number, r: number) =>
     nums.map((v, i) => ({
       value: v,
       state:
@@ -50,89 +21,93 @@ function generateDutchFlagSteps(): Step[] {
           ? ('found' as const)
           : i > r
           ? ('eliminated' as const)
-          : i === inc
+          : i === t
           ? ('active' as const)
-          : i === l && l !== inc
+          : i === l && l !== t
           ? ('min-ptr' as const)
-          : i === r && r !== inc
+          : i === r && r !== t
           ? ('max-ptr' as const)
           : ('default' as const),
     }));
 
-  const ptrs = (l: number, inc: number, r: number) => {
+  const ptrs = (l: number, t: number, r: number) => {
     const ps = [];
-    if (l === inc && l === r) ps.push({ index: l, label: 'l=inc=r' });
-    else if (l === inc) { ps.push({ index: l, label: 'l=inc' }); ps.push({ index: r, label: 'r' }); }
-    else if (inc === r) { ps.push({ index: l, label: 'l' }); ps.push({ index: inc, label: 'inc=r' }); }
-    else { ps.push({ index: l, label: 'l' }); ps.push({ index: inc, label: 'inc' }); ps.push({ index: r, label: 'r' }); }
+    if (l === t && l === r) ps.push({ index: l, label: 'l=t=r' });
+    else if (l === t) { ps.push({ index: l, label: 'l=t' }); ps.push({ index: r, label: 'r' }); }
+    else if (t === r) { ps.push({ index: l, label: 'l' }); ps.push({ index: t, label: 't=r' }); }
+    else { ps.push({ index: l, label: 'l' }); ps.push({ index: t, label: 't' }); ps.push({ index: r, label: 'r' }); }
     return ps;
   };
 
-  let l = 0, inc = 0, r = nums.length - 1;
+  let l = 0, t = 0, r = nums.length - 1;
 
   steps.push({
     explanation:
-      'Dutch National Flag: three regions — [0..l) are confirmed 0s (green), (r..n) are confirmed 2s (red), [l..inc) are confirmed 1s (middle), [inc..r] are unknown. inc scans forward; we place 0s left and 2s right.',
-    highlightLine: 3,
+      'Dutch National Flag: three regions — [0..l) confirmed 0s, (r..n) confirmed 2s, [l..t) confirmed 1s, [t..r] unknown. t scans forward; nums[t]==0 swaps left, nums[t]==2 swaps right, nums[t]==1 falls through. t always advances by 1 at the end of the loop body; the ==2 branch pre-cancels that by decrementing t first.',
+    anchor: { match: 'l, t, r = 0, 0, len(nums) - 1' },
     state: {
       type: 'array',
-      cells: snap(l, inc, r),
-      pointers: ptrs(l, inc, r),
+      cells: snap(l, t, r),
+      pointers: ptrs(l, t, r),
     },
     variables: [
       { name: 'l', value: l },
-      { name: 'inc', value: inc },
+      { name: 't', value: t },
       { name: 'r', value: r },
     ],
   });
 
-  while (inc <= r) {
-    const val = nums[inc];
+  while (t <= r) {
+    const val = nums[t];
 
     if (val === 0) {
+      [nums[l], nums[t]] = [nums[t], nums[l]];
+      const swappedL = l;
+      l++;
+      const prevT = t;
+      t++;
       steps.push({
-        explanation: `nums[${inc}]=0: swap with l=${l}. Grow the 0-region left boundary, advance both l and inc.`,
-        highlightLine: 5,
-        state: { type: 'array', cells: snap(l, inc, r), pointers: ptrs(l, inc, r) },
-        variables: [{ name: 'nums[inc]', value: 0, highlight: true }, { name: 'action', value: 'swap(l,inc), l++, inc++' }],
-      });
-      [nums[l], nums[inc]] = [nums[inc], nums[l]];
-      l++; inc++;
-      steps.push({
-        explanation: `After swap: nums[${l - 1}]=${nums[l - 1]} locked as 0. l=${l}, inc=${inc}.`,
-        highlightLine: 8,
-        state: { type: 'array', cells: snap(l, inc, r), pointers: ptrs(l, inc, r) },
-        variables: [{ name: 'l', value: l, highlight: true }, { name: 'inc', value: inc }],
+        explanation: `nums[${prevT}]=0: swap(l,t) swaps l=${swappedL} and t=${prevT}, then l+=1 → ${l}. Falls through to the unconditional t+=1 → ${t}.`,
+        anchor: { match: 'if nums[t] == 0:', to: { match: 't+=1' } },
+        state: { type: 'array', cells: snap(l, t, r), pointers: ptrs(l, t, r) },
+        variables: [
+          { name: 'nums[t]', value: 0, highlight: true },
+          { name: 'l', value: l, highlight: true },
+          { name: 't', value: t },
+        ],
       });
     } else if (val === 2) {
-      steps.push({
-        explanation: `nums[${inc}]=2: swap with r=${r}. Shrink the 2-region. Do NOT advance inc — must re-check the swapped value.`,
-        highlightLine: 10,
-        state: { type: 'array', cells: snap(l, inc, r), pointers: ptrs(l, inc, r) },
-        variables: [{ name: 'nums[inc]', value: 2, highlight: true }, { name: 'action', value: 'swap(r,inc), r--' }],
-      });
-      [nums[r], nums[inc]] = [nums[inc], nums[r]];
+      [nums[t], nums[r]] = [nums[r], nums[t]];
+      const swappedR = r;
       r--;
+      const prevT = t;
+      t--;
+      t++;
       steps.push({
-        explanation: `After swap: nums[${r + 1}]=${nums[r + 1]} locked as 2. r=${r}. inc stays at ${inc} to recheck.`,
-        highlightLine: 12,
-        state: { type: 'array', cells: snap(l, inc, r), pointers: ptrs(l, inc, r) },
-        variables: [{ name: 'r', value: r, highlight: true }, { name: 'inc', value: inc }],
+        explanation: `nums[${prevT}]=2: swap(t,r) swaps t=${prevT} and r=${swappedR}, then r-=1 → ${r}, t-=1 → ${prevT - 1}. Falls through to the unconditional t+=1 → ${t} — net unchanged, so the swapped-in value gets re-inspected.`,
+        anchor: { match: 'elif nums[t] == 2:', to: { match: 't+=1' } },
+        state: { type: 'array', cells: snap(l, t, r), pointers: ptrs(l, t, r) },
+        variables: [
+          { name: 'nums[t]', value: 2, highlight: true },
+          { name: 'r', value: r, highlight: true },
+          { name: 't', value: t },
+        ],
       });
     } else {
+      const prevT = t;
+      t++;
       steps.push({
-        explanation: `nums[${inc}]=1: already in the middle region. Just advance inc.`,
-        highlightLine: 14,
-        state: { type: 'array', cells: snap(l, inc, r), pointers: ptrs(l, inc, r) },
-        variables: [{ name: 'nums[inc]', value: 1 }, { name: 'action', value: 'inc++' }],
+        explanation: `nums[${prevT}]=1: neither if nor elif matches — falls straight through to the unconditional t+=1 → ${t}. Already in the correct middle region.`,
+        anchor: { match: 'while t <= r:', to: { match: 't+=1' } },
+        state: { type: 'array', cells: snap(l, t, r), pointers: ptrs(l, t, r) },
+        variables: [{ name: 'nums[t]', value: 1 }, { name: 't', value: t }],
       });
-      inc++;
     }
   }
 
   steps.push({
-    explanation: `inc(${inc}) > r(${r}): done. All elements sorted into three regions: 0s, 1s, 2s. O(n) time, O(1) space — single pass.`,
-    highlightLine: 4,
+    explanation: `t(${t}) > r(${r}): the while loop's condition fails. All elements sorted into three regions: 0s, 1s, 2s. O(n) time, O(1) space — single pass. The function mutates nums in place and returns nothing.`,
+    anchor: { match: 'while t <= r:' },
     state: {
       type: 'array',
       cells: nums.map(v => ({
@@ -148,14 +123,15 @@ function generateDutchFlagSteps(): Step[] {
 }
 
 function generateBucketSortSteps(): Step[] {
-  const nums = [2, 0, 2, 1, 1, 0];
+  const original = [2, 0, 2, 1, 1, 0];
+  const nums = [...original];
   const steps: Step[] = [];
-  const bucket: Record<number, number> = {};
+  const countMap: Record<number, number> = {};
 
   steps.push({
     explanation:
-      'Bucket / Counting Sort: count how many 0s, 1s, and 2s exist, then overwrite the array in order. Two passes, O(n) time, O(1) extra space (only 3 buckets).',
-    highlightLine: 3,
+      'Counting Sort: count how many 0s, 1s, and 2s exist in countMap, then overwrite nums IN PLACE in color order. Two passes, O(n) time, O(1) extra space (only 3 buckets).',
+    anchor: { match: 'countMap = {}' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),
@@ -166,73 +142,74 @@ function generateBucketSortSteps(): Step[] {
   });
 
   // Count pass
-  for (let i = 0; i < nums.length; i++) {
-    bucket[nums[i]] = (bucket[nums[i]] ?? 0) + 1;
+  for (let i = 0; i < original.length; i++) {
+    countMap[original[i]] = (countMap[original[i]] ?? 0) + 1;
     steps.push({
-      explanation: `Count nums[${i}]=${nums[i]}. bucket[${nums[i]}] = ${bucket[nums[i]]}.`,
-      highlightLine: 5,
+      explanation: `Count nums[${i}]=${original[i]}. countMap[${original[i]}] = ${countMap[original[i]]}.`,
+      anchor: { match: 'countMap[num] = 1 + countMap.get(num,0)' },
       state: {
         type: 'array',
-        cells: nums.map((v, j) => ({
+        cells: original.map((v, j) => ({
           value: v,
           state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
         })),
         pointers: [{ index: i, label: 'i' }],
-        hashmap: { ...bucket },
+        hashmap: { ...countMap },
       },
       variables: [
-        { name: `bucket[${nums[i]}]`, value: bucket[nums[i]], highlight: true },
+        { name: `countMap[${original[i]}]`, value: countMap[original[i]], highlight: true },
       ],
     });
   }
 
-  // Write pass
-  const result = [...nums];
-  let counter = 0;
+  // Write pass — overwrites nums in place, index by index
+  let index = 0;
   for (let color = 0; color < 3; color++) {
-    const cnt = bucket[color] ?? 0;
-    for (let k = 0; k < cnt; k++) {
-      result[counter] = color;
+    const remaining = countMap[color] ?? 0;
+    for (let k = 0; k < remaining; k++) {
+      nums[index] = color;
+      countMap[color] = (countMap[color] ?? 0) - 1;
       steps.push({
-        explanation: `Write color ${color} at index ${counter}. ${cnt - k - 1} more ${color}(s) to write.`,
-        highlightLine: 9,
+        explanation: `countMap.get(${color}) is truthy → nums[${index}] = ${color}, countMap[${color}] -= 1 → ${countMap[color]}, index += 1.`,
+        anchor: {
+          match: 'while countMap.get(color):',
+          to: { match: 'index+=1' },
+        },
         state: {
           type: 'array',
-          cells: result.map((v, j) => ({
+          cells: nums.map((v, j) => ({
             value: v,
             state:
-              j < counter
+              j < index
                 ? ('found' as const)
-                : j === counter
+                : j === index
                 ? ('active' as const)
-                : j > counter && j <= counter + (cnt - k - 1) - 1
-                ? ('default' as const)
                 : ('default' as const),
           })),
-          pointers: [{ index: counter, label: 'counter' }],
-          hashmap: { ...bucket },
+          pointers: [{ index, label: 'index' }],
+          hashmap: { ...countMap },
         },
         variables: [
           { name: 'color', value: color },
-          { name: 'counter', value: counter, highlight: true },
+          { name: 'index', value: index, highlight: true },
         ],
       });
-      counter++;
+      index++;
     }
   }
 
   steps.push({
-    explanation: `Done. [${result.join(', ')}]. O(n) time — two passes. Works only because values are bounded (0,1,2).`,
-    highlightLine: 10,
+    explanation: `Done. nums = [${nums.join(', ')}]. O(n) time — two passes. Works only because values are bounded (0,1,2).`,
+    anchor: { match: 'for color in range(3):' },
     state: {
       type: 'array',
-      cells: result.map(v => ({
+      cells: nums.map(v => ({
         value: v,
         state: v === 0 ? ('found' as const) : v === 2 ? ('eliminated' as const) : ('visited' as const),
       })),
       pointers: [],
     },
-    variables: [{ name: 'result', value: `[${result.join(', ')}]`, highlight: true }],
+    variables: [{ name: 'result', value: `[${nums.join(', ')}]`, highlight: true }],
   });
 
   return steps;
@@ -240,13 +217,13 @@ function generateBucketSortSteps(): Step[] {
 
 const dutchFlagSolution: SolutionVariant = {
   label: 'Dutch Flag',
-  pythonCode: DUTCH_FLAG_CODE,
+  variant: 'dutch-flag',
   generateSteps: generateDutchFlagSteps,
 };
 
 const bucketSortSolution: SolutionVariant = {
   label: 'Bucket Sort',
-  pythonCode: BUCKET_SORT_CODE,
+  variant: 'bucket-sort',
   generateSteps: generateBucketSortSteps,
 };
 
@@ -270,6 +247,6 @@ export const sortColorsMeta: AlgorithmMeta = {
     '1 ≤ n ≤ 300',
     'nums[i] is either 0, 1, or 2.',
   ],
-  hint: 'Dutch National Flag: maintain three regions using l, inc, r. Elements before l are 0s, between l and inc are 1s, after r are 2s. inc scans forward — swap 0s to l, 2s to r. When swapping with r, do not advance inc (the incoming element needs inspection).',
+  hint: 'Dutch National Flag: maintain three regions using l, t, r. Elements before l are 0s, between l and t are 1s, after r are 2s. t scans forward — swap 0s to l, 2s to r. t always advances by 1 at the end of the loop body; on a 2-swap, t -= 1 first, so the net effect is t stays put and the swapped-in value gets re-inspected.',
   solutions: [dutchFlagSolution, bucketSortSolution],
 };

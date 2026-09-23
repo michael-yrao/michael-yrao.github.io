@@ -1,29 +1,7 @@
-// Solution + comments sourced from cse-progress: dsa/leetcode/graphs/787_cheapest_flights_within_k_stops.py
+// Traces cse-progress's findCheapestPrice_20260815 verbatim: Bellman-Ford with a working
+// copy named workingPrices, read from the locked prices[] and written to workingPrices so
+// a round never chains more than one extra edge.
 import { AlgorithmMeta, SolutionVariant, Step, GraphNode, GraphEdge, ProblemExample } from '../../core/models/algorithm.model';
-
-const PYTHON_CODE = `class Solution:
-    def findCheapestPrice(self, n: int, flights: List[List[int]], src: int, dst: int, k: int) -> int:
-        # weighted directed graph — Bellman-Ford, no adjacency map needed
-        # array of size n, all inf except src = 0
-        prices = [math.inf] * n
-        prices[src] = 0
-
-        # at most k stops = k + 1 edges, so do k + 1 relaxation rounds
-        for _ in range(k + 1):
-            unsettledPrices = prices.copy()
-            for source, target, price in flights:
-                # if source unreachable, skip (inf + anything = inf)
-                if prices[source] == math.inf:
-                    continue
-                # read prices (last round) but write unsettledPrices (this round)
-                # using unsettledPrices[source] here would chain > k + 1 edges
-                if unsettledPrices[target] > prices[source] + price:
-                    unsettledPrices[target] = prices[source] + price
-            prices = unsettledPrices
-
-        if prices[dst] == math.inf:
-            return -1
-        return prices[dst]`;
 
 const N = 4;
 const FLIGHTS: [number, number, number][] = [
@@ -75,7 +53,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       `Bellman-Ford. Flights: ${flightsList}. src=0, dst=3, k=1. prices[] starts ∞ except prices[0]=0. "At most k stops" = k+1 edges, so we run exactly k+1 = 2 relaxation rounds — each round can extend a path by one more edge.`,
-    highlightLine: 6,
+    anchor: { match: 'prices = [math.inf] * n', to: { match: 'prices[src] = 0' } },
     state: {
       type: 'graph',
       directed: true,
@@ -89,10 +67,10 @@ function generateSteps(): Step[] {
   });
 
   for (let round = 0; round < K + 1; round++) {
-    const unsettled = [...prices];
+    const workingPrices = [...prices];
     steps.push({
-      explanation: `Round ${round + 1} of ${K + 1}: copy prices → unsettledPrices. We will READ from prices (locked at last round's values) and WRITE to unsettledPrices, so no path grows by more than one edge this round.`,
-      highlightLine: 12,
+      explanation: `Round ${round + 1} of ${K + 1}: copy prices → workingPrices. We will READ from prices (locked at last round's values) and WRITE to workingPrices, so no path grows by more than one edge this round.`,
+      anchor: { match: 'workingPrices = prices.copy()' },
       state: {
         type: 'graph',
         directed: true,
@@ -100,8 +78,8 @@ function generateSteps(): Step[] {
         edges: edges(null),
         hashmap: priceMap(prices),
         hashmapLabel: 'prices (locked)',
-        hashmap2: priceMap(unsettled),
-        hashmap2Label: 'unsettled (writing)',
+        hashmap2: priceMap(workingPrices),
+        hashmap2Label: 'workingPrices (writing)',
         counters: [{ label: 'round', value: `${round + 1} / ${K + 1}` }],
       },
       variables: [],
@@ -112,7 +90,7 @@ function generateSteps(): Step[] {
       if (prices[s] === Infinity) {
         steps.push({
           explanation: `Flight ${s}→${t} ($${p}): prices[${s}] is ∞ (city ${s} unreachable so far) → skip.`,
-          highlightLine: 16,
+          anchor: { match: 'if prices[source] == math.inf:' },
           state: {
             type: 'graph',
             directed: true,
@@ -120,8 +98,8 @@ function generateSteps(): Step[] {
             edges: edges(fi),
             hashmap: priceMap(prices),
             hashmapLabel: 'prices (locked)',
-            hashmap2: priceMap(unsettled),
-            hashmap2Label: 'unsettled (writing)',
+            hashmap2: priceMap(workingPrices),
+            hashmap2Label: 'workingPrices (writing)',
             counters: [{ label: 'round', value: `${round + 1} / ${K + 1}` }, { label: 'flight', value: `${s}→${t}` }],
           },
           variables: [{ name: `prices[${s}]`, value: '∞' }, { name: 'action', value: 'skip' }],
@@ -129,14 +107,14 @@ function generateSteps(): Step[] {
         continue;
       }
       const candidate = prices[s] + p;
-      const prevVal = unsettled[t];
+      const prevVal = workingPrices[t];
       const improved = candidate < prevVal;
-      if (improved) unsettled[t] = candidate;
+      if (improved) workingPrices[t] = candidate;
       steps.push({
         explanation: improved
-          ? `Flight ${s}→${t} ($${p}): prices[${s}] + ${p} = ${candidate} < unsettled[${t}] (${fmt(prevVal)}) → relax it → unsettled[${t}] = ${candidate}.`
-          : `Flight ${s}→${t} ($${p}): prices[${s}] + ${p} = ${candidate} is not better than unsettled[${t}] (${fmt(prevVal)}) → leave it.`,
-        highlightLine: 20,
+          ? `Flight ${s}→${t} ($${p}): prices[${s}] + ${p} = ${candidate} < workingPrices[${t}] (${fmt(prevVal)}) → relax it → workingPrices[${t}] = ${candidate}.`
+          : `Flight ${s}→${t} ($${p}): prices[${s}] + ${p} = ${candidate} is not better than workingPrices[${t}] (${fmt(prevVal)}) → leave it.`,
+        anchor: { match: 'if prices[source] + price < workingPrices[destination]:', to: { match: 'workingPrices[destination] = prices[source] + price' } },
         state: {
           type: 'graph',
           directed: true,
@@ -144,8 +122,8 @@ function generateSteps(): Step[] {
           edges: edges(fi),
           hashmap: priceMap(prices),
           hashmapLabel: 'prices (locked)',
-          hashmap2: priceMap(unsettled),
-          hashmap2Label: 'unsettled (writing)',
+          hashmap2: priceMap(workingPrices),
+          hashmap2Label: 'workingPrices (writing)',
           counters: [
             { label: 'round', value: `${round + 1} / ${K + 1}` },
             { label: 'flight', value: `${s}→${t}` },
@@ -154,15 +132,15 @@ function generateSteps(): Step[] {
         },
         variables: [
           { name: `prices[${s}]+${p}`, value: candidate, highlight: improved },
-          { name: `unsettled[${t}]`, value: fmt(unsettled[t]) },
+          { name: `workingPrices[${t}]`, value: fmt(workingPrices[t]) },
         ],
       });
     }
 
-    prices = unsettled;
+    prices = workingPrices;
     steps.push({
-      explanation: `End of round ${round + 1}: commit prices = unsettledPrices → [${prices.map(fmt).join(', ')}]. These paths use at most ${round + 1} edge(s).`,
-      highlightLine: 21,
+      explanation: `End of round ${round + 1}: commit prices = workingPrices → [${prices.map(fmt).join(', ')}]. These paths use at most ${round + 1} edge(s).`,
+      anchor: { match: 'prices = workingPrices' },
       state: {
         type: 'graph',
         directed: true,
@@ -182,7 +160,7 @@ function generateSteps(): Step[] {
       answer === -1
         ? `prices[${DST}] is ∞ → no route within ${K} stop(s). Return -1.`
         : `prices[dst=${DST}] = ${answer}. Return ${answer}. Note the cheaper 0→1→2→3 = $400 route is rejected — it needs 2 stops (3 edges), exceeding k=1.`,
-    highlightLine: 24,
+    anchor: answer === -1 ? { match: 'return -1' } : { match: 'return prices[dst]' },
     state: {
       type: 'graph',
       directed: true,
@@ -200,7 +178,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Bellman-Ford (k+1 rounds)',
-  pythonCode: PYTHON_CODE,
+  variant: 'bellman-ford',
   generateSteps,
   timeComplexity: 'O(k · E)',
   spaceComplexity: 'O(n)',

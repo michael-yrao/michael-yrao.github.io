@@ -1,52 +1,31 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def longestConsecutive(self, nums: List[int]) -> int:
-        # only start counting from sequence beginnings to avoid O(n²) inner loops
-        # a number is a sequence start only if (num - 1) is not in the set
-        # a set (not map) suffices — we only need membership checks, not stored lengths
+// CPython does NOT iterate a set in insertion order (small ints hash to
+// themselves, so it's roughly numeric-bucket order). Both attempts below do
+// `for n in numSet:` where numSet = set(nums), so we trace CPython's real
+// order, not JS's insertion order — verified with
+// `python -c "print(list(set([100,4,200,1,3,2])))"` → [1, 2, 3, 100, 4, 200].
+const NUM_SET_ITERATION_ORDER = [1, 2, 3, 100, 4, 200];
 
-        if not nums:
-            return 0
-        consecutiveSet = set(nums)
-        longest = 0
-
-        for num in consecutiveSet:
-            if (num - 1) not in consecutiveSet:
-                # this is a sequence start — extend forward until the chain breaks
-                length = 1
-                while (num + length) in consecutiveSet:
-                    length += 1
-                longest = max(longest, length)
-
-        return longest`;
+// ── Solution 1: HashSet ───────────────────────────────────────────────────────
+//
+// Traces cse-progress's longestConsecutive_20260629 verbatim: numSet,
+// maxConsecutive, n, counter (not consecutiveSet/longest/num/length). No early
+// return for an empty nums — the loop over numSet simply wouldn't execute.
 
 function generateSteps(): Step[] {
   const nums = [100, 4, 200, 1, 3, 2];
   const numSet = new Set(nums);
   const steps: Step[] = [];
-  let longest = 0;
+  let maxConsecutive = 0;
 
   const snapDefault = () =>
     nums.map(v => ({ value: v, state: 'default' as const }));
 
-  const snapWithSeq = (seq: number[], checking: number | null) =>
-    nums.map(v => ({
-      value: v,
-      state:
-        v === checking
-          ? ('active' as const)
-          : seq.includes(v)
-          ? ('found' as const)
-          : seq.length > 0 && nums.indexOf(v) < nums.indexOf(seq[0])
-          ? ('visited' as const)
-          : ('default' as const),
-    }));
-
   steps.push({
     explanation:
-      'Key insight: only start counting from sequence beginnings — a number is a start if (num − 1) is not in the set. This avoids redundant inner loops and keeps overall complexity O(n).',
-    highlightLine: 3,
+      'Key insight: only start counting from sequence beginnings — n is a start if (n − 1) is not in numSet. This avoids redundant inner loops and keeps overall complexity O(n).',
+    anchor: { match: 'numSet = set(nums)', to: { match: 'maxConsecutive = 0' } },
     state: {
       type: 'array',
       cells: snapDefault(),
@@ -54,28 +33,28 @@ function generateSteps(): Step[] {
       hashmap: Object.fromEntries([...numSet].map(v => [v, 1])),
     },
     variables: [
-      { name: 'set', value: `{${[...numSet].sort((a, b) => a - b).join(', ')}}` },
+      { name: 'numSet', value: `{${NUM_SET_ITERATION_ORDER.join(', ')}}` },
     ],
   });
 
   const visited = new Set<number>();
 
-  for (const num of numSet) {
-    // Check if num is a sequence start
-    if (!numSet.has(num - 1)) {
+  for (const n of NUM_SET_ITERATION_ORDER) {
+    // Check if n is a sequence start
+    if (!numSet.has(n - 1)) {
       // It's a start — extend
-      let length = 1;
-      const seq = [num];
+      let counter = 1;
+      const seq = [n];
 
       steps.push({
-        explanation: `num=${num}: (${num}-1)=${num - 1} not in set → this is a sequence start! Begin extending.`,
-        highlightLine: 5,
+        explanation: `n=${n}: (${n}-1)=${n - 1} not in numSet → this is a sequence start! counter = 1.`,
+        anchor: { match: 'if n - 1 not in numSet:', to: { match: 'counter = 1' } },
         state: {
           type: 'array',
           cells: nums.map(v => ({
             value: v,
             state:
-              v === num
+              v === n
                 ? ('active' as const)
                 : visited.has(v)
                 ? ('visited' as const)
@@ -83,21 +62,21 @@ function generateSteps(): Step[] {
           })),
           pointers: [],
           hashmap: Object.fromEntries([...numSet].map(v => [v, 1])),
-          counters: [{ label: 'longest', value: longest }],
+          counters: [{ label: 'maxConsecutive', value: maxConsecutive }],
         },
         variables: [
-          { name: 'num', value: num, highlight: true },
+          { name: 'n', value: n, highlight: true },
           { name: 'is start', value: 'true' },
-          { name: 'length', value: length },
+          { name: 'counter', value: counter },
         ],
       });
 
-      while (numSet.has(num + length)) {
-        seq.push(num + length);
-        length++;
+      while (numSet.has(n + counter)) {
+        seq.push(n + counter);
+        counter++;
         steps.push({
-          explanation: `${num + length - 1} is in set → sequence extends to length ${length}. Current: [${seq.join('→')}].`,
-          highlightLine: 8,
+          explanation: `${n + counter - 1} is in numSet → counter extends to ${counter}. Current: [${seq.join('→')}].`,
+          anchor: { match: 'while n + counter in numSet:', to: { match: 'counter+=1' } },
           state: {
             type: 'array',
             cells: nums.map(v => ({
@@ -111,22 +90,22 @@ function generateSteps(): Step[] {
             })),
             pointers: [],
             hashmap: Object.fromEntries([...numSet].map(v => [v, 1])),
-            counters: [{ label: 'longest', value: longest }],
+            counters: [{ label: 'maxConsecutive', value: maxConsecutive }],
           },
           variables: [
-            { name: 'num+length', value: num + length - 1, highlight: true },
-            { name: 'length', value: length, highlight: true },
+            { name: 'n+counter', value: n + counter - 1, highlight: true },
+            { name: 'counter', value: counter, highlight: true },
           ],
         });
       }
 
-      const prevLongest = longest;
-      longest = Math.max(longest, length);
+      const prevMax = maxConsecutive;
+      maxConsecutive = Math.max(maxConsecutive, counter);
       seq.forEach(v => visited.add(v));
 
       steps.push({
-        explanation: `Sequence [${seq.join('→')}] has length ${length}. longest = max(${prevLongest}, ${length}) = ${longest}.`,
-        highlightLine: 9,
+        explanation: `Sequence [${seq.join('→')}] has counter=${counter}. maxConsecutive = max(${prevMax}, ${counter}) = ${maxConsecutive}.`,
+        anchor: { match: 'maxConsecutive = max(maxConsecutive, counter)' },
         state: {
           type: 'array',
           cells: nums.map(v => ({
@@ -140,24 +119,24 @@ function generateSteps(): Step[] {
           })),
           pointers: [],
           hashmap: Object.fromEntries([...numSet].map(v => [v, 1])),
-          counters: [{ label: 'longest', value: longest }],
+          counters: [{ label: 'maxConsecutive', value: maxConsecutive }],
         },
         variables: [
-          { name: 'length', value: length },
-          { name: 'longest', value: longest, highlight: true },
+          { name: 'counter', value: counter },
+          { name: 'maxConsecutive', value: maxConsecutive, highlight: true },
         ],
       });
     } else {
-      visited.add(num);
+      visited.add(n);
       steps.push({
-        explanation: `num=${num}: (${num}-1)=${num - 1} IS in set → not a sequence start. Skip to avoid redundant work.`,
-        highlightLine: 5,
+        explanation: `n=${n}: (${n}-1)=${n - 1} IS in numSet → not a sequence start. Skip to avoid redundant work.`,
+        anchor: { match: 'if n - 1 not in numSet:' },
         state: {
           type: 'array',
           cells: nums.map(v => ({
             value: v,
             state:
-              v === num
+              v === n
                 ? ('eliminated' as const)
                 : visited.has(v)
                 ? ('visited' as const)
@@ -165,10 +144,10 @@ function generateSteps(): Step[] {
           })),
           pointers: [],
           hashmap: Object.fromEntries([...numSet].map(v => [v, 1])),
-          counters: [{ label: 'longest', value: longest }],
+          counters: [{ label: 'maxConsecutive', value: maxConsecutive }],
         },
         variables: [
-          { name: 'num', value: num },
+          { name: 'n', value: n },
           { name: 'is start', value: 'false — skip' },
         ],
       });
@@ -176,15 +155,15 @@ function generateSteps(): Step[] {
   }
 
   steps.push({
-    explanation: `All elements checked. Longest consecutive sequence = ${longest}. O(n) time — each element is visited at most twice (once as start check, once during extension).`,
-    highlightLine: 10,
+    explanation: `All elements checked. Longest consecutive sequence = ${maxConsecutive}. O(n) time — each element is visited at most twice (once as start check, once during extension).`,
+    anchor: { match: 'return maxConsecutive' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'visited' as const })),
       pointers: [],
-      counters: [{ label: 'longest', value: longest }],
+      counters: [{ label: 'maxConsecutive', value: maxConsecutive }],
     },
-    variables: [{ name: 'return', value: longest, highlight: true }],
+    variables: [{ name: 'return', value: maxConsecutive, highlight: true }],
   });
 
   return steps;
@@ -192,36 +171,19 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'HashSet',
-  pythonCode: PYTHON_CODE,
+  variant: 'hashset',
   generateSteps,
 };
 
 // ── Solution 2: HashMap (endpoint run-length merge) ───────────────────────────
-
-const PYTHON_CODE_MAP = `class Solution:
-    def longestConsecutive(self, nums: List[int]) -> int:
-        numSet = set(nums)
-        numMap = {}
-        longest = 0
-
-        for n in numSet:
-            # numMap[n-1] = length ending at n-1
-            leftSequenceLength = numMap.get(n-1,0)
-            # numMap[n+1] = length starting at n+1
-            rightSequenceLength = numMap.get(n+1,0)
-            # Add left sequence length, right sequence length and 1 for current value to get current sequence length
-            numMap[n] = leftSequenceLength + rightSequenceLength + 1
-            # set starting left sequence to new value
-            numMap[n-leftSequenceLength] = numMap[n]
-            # set ending right sequence to new value
-            numMap[n+rightSequenceLength] = numMap[n]
-            longest = max(longest, numMap[n])
-
-        return longest`;
+//
+// Traces cse-progress's longestConsecutiveMap verbatim: numSet, numMap,
+// longest, leftSequenceLength, rightSequenceLength — one step per n glues the
+// left and right runs and stamps the merged length onto both outer endpoints.
 
 function generateStepsMap(): Step[] {
   const nums = [100, 4, 200, 1, 3, 2];
-  const order = [...new Set(nums)];
+  const order = NUM_SET_ITERATION_ORDER;
   const steps: Step[] = [];
   const numMap: Record<number, number> = {};
   let longest = 0;
@@ -241,7 +203,7 @@ function generateStepsMap(): Step[] {
   steps.push({
     explanation:
       "HashMap approach: numMap[x] stores the length of the consecutive run that has x as an ENDPOINT. For each value, glue its left run (ending at n−1) to its right run (starting at n+1), then write the merged length onto the two OUTER endpoints. O(n) — no per-run scanning.",
-    highlightLine: 3,
+    anchor: { match: 'numSet = set(nums)', to: { match: 'longest = 0' } },
     state: snap(null),
     variables: [
       { name: 'numSet', value: `{${order.join(', ')}}` },
@@ -250,21 +212,21 @@ function generateStepsMap(): Step[] {
   });
 
   for (const n of order) {
-    const left = numMap[n - 1] || 0;
-    const right = numMap[n + 1] || 0;
-    const total = left + right + 1;
+    const leftSequenceLength = numMap[n - 1] || 0;
+    const rightSequenceLength = numMap[n + 1] || 0;
+    const total = leftSequenceLength + rightSequenceLength + 1;
     numMap[n] = total;
-    numMap[n - left] = total;
-    numMap[n + right] = total;
+    numMap[n - leftSequenceLength] = total;
+    numMap[n + rightSequenceLength] = total;
     longest = Math.max(longest, total);
     steps.push({
-      explanation: `n=${n}: left run ending at ${n - 1} = ${left}, right run starting at ${n + 1} = ${right}. Merge → numMap[${n}] = ${left}+${right}+1 = ${total}. Stamp that length onto the outer endpoints numMap[${n - left}] and numMap[${n + right}]. longest = ${longest}.`,
-      highlightLine: 13,
+      explanation: `n=${n}: leftSequenceLength ending at ${n - 1} = ${leftSequenceLength}, rightSequenceLength starting at ${n + 1} = ${rightSequenceLength}. Merge → numMap[${n}] = ${leftSequenceLength}+${rightSequenceLength}+1 = ${total}. Stamp that length onto the outer endpoints numMap[${n - leftSequenceLength}] and numMap[${n + rightSequenceLength}]. longest = ${longest}.`,
+      anchor: { match: 'leftSequenceLength = numMap.get(n-1,0)', to: { match: 'longest = max(longest, numMap[n])' } },
       state: snap(n),
       variables: [
         { name: 'n', value: n, highlight: true },
-        { name: 'left', value: left },
-        { name: 'right', value: right },
+        { name: 'leftSequenceLength', value: leftSequenceLength },
+        { name: 'rightSequenceLength', value: rightSequenceLength },
         { name: 'numMap[n]', value: total, highlight: true },
         { name: 'longest', value: longest, highlight: longest === total },
       ],
@@ -272,8 +234,8 @@ function generateStepsMap(): Step[] {
   }
 
   steps.push({
-    explanation: `All values processed. The longest run is ${longest} — the 1–2–3–4 chain, assembled as 3 glued 2 (right run) and 2 glued 1 (left run). Return ${longest}.`,
-    highlightLine: 20,
+    explanation: `All values processed. The longest run is ${longest} — the 1–2–3–4 chain, assembled purely through LEFT merges in this iteration order: 1 seeds a run of length 1, 2 glues onto 1's run (length 2), 3 glues onto that (length 3), 4 glues onto that (length 4). rightSequenceLength stays 0 throughout since each larger neighbor hasn't been visited yet. Return ${longest}.`,
+    anchor: { match: 'return longest' },
     state: snap(null),
     variables: [{ name: 'return', value: longest, highlight: true }],
   });
@@ -283,7 +245,7 @@ function generateStepsMap(): Step[] {
 
 const mapSolution: SolutionVariant = {
   label: 'HashMap (endpoint merge)',
-  pythonCode: PYTHON_CODE_MAP,
+  variant: 'endpoint-map',
   generateSteps: generateStepsMap,
 };
 

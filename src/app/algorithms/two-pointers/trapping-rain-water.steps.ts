@@ -1,55 +1,15 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PREFIX_CODE = `class Solution:
-    def trap(self, height: List[int]) -> int:
-        # knowing water at each index = min(leftMax, rightMax) - height[i]
-        # we need to keep track of leftMax and rightMax of each index
-        # leftMax and rightMax stands for the walls for which this current index
-        # can trap water
-
-        # height   = [0,1,0,2,1,0,1,3,2,1,2,1]
-        # leftMax  = [0,0,1,1,2,2,2,2,3,3,3,3]
-        # rightMax = [3,3,3,3,3,3,3,2,2,2,1,0]
-        # water    = [0,0,1,0,1,2,1,0,0,1,0,0]
-
-        leftMax = [0] * len(height)
-        rightMax = [0] * len(height)
-        totalWater = 0
-
-        for i in range(1, len(height)):
-            leftMax[i] = max(leftMax[i-1], height[i-1])
-
-        for i in range(len(height)-2, -1, -1):
-            rightMax[i] = max(rightMax[i+1], height[i+1])
-
-        for i in range(len(height)):
-            currentWater = max(0, min(leftMax[i], rightMax[i]) - height[i])
-            totalWater += currentWater
-
-        return totalWater`;
-
-const TWO_PTR_CODE = `class Solution:
-    def trap(self, height: List[int]) -> int:
-        # water[i] = min(leftMax, rightMax) - height[i]; the smaller side is the bottleneck
-        # two pointers: always process the side whose max is smaller — that side's max is the true potential water
-        # this lets us compute the running max from each side without storing full leftMax/rightMax arrays
-
-        if not height:
-            return 0
-
-        l, r = 0, len(height) - 1
-        leftMax, rightMax = height[l], height[r]
-        res = 0
-        while l < r:
-            if leftMax < rightMax:
-                l += 1                             # move inward — boundary cells themselves hold no water
-                leftMax = max(leftMax, height[l])  # update running max from the left
-                res += leftMax - height[l]         # potential water - actual height = trapped water
-            else:
-                r -= 1
-                rightMax = max(rightMax, height[r])
-                res += rightMax - height[r]
-        return res`;
+// ── Step generators ──────────────────────────────────────────────────────────
+//
+// prefix-arrays traces cse-progress's trap verbatim: leftMax/rightMax arrays built in two
+// passes, then a third pass computes currentWater = max(0, min(leftMax[i],rightMax[i]) -
+// height[i]) and accumulates it into totalWater on the fly — no water[] array is kept.
+//
+// two-pointers traces trapTwoPointer verbatim: l/r start at the ends, leftMax/rightMax seed
+// from height[l]/height[r]; while leftMax < rightMax the left side is the bottleneck (l
+// advances first, then leftMax updates, then res accumulates); otherwise the right side is
+// (symmetric). `if not height: return 0` guards the empty case up front.
 
 function generatePrefixSteps(): Step[] {
   const height = [0, 1, 0, 2, 1, 0, 2, 1];
@@ -60,11 +20,11 @@ function generatePrefixSteps(): Step[] {
 
   steps.push({
     explanation:
-      'Water at index i = min(leftMax[i], rightMax[i]) − height[i], where leftMax[i] is the tallest wall to the left and rightMax[i] to the right. Build both arrays in two passes, then compute water in a third.',
-    highlightLine: 2,
+      'leftMax = [0]*len(height), rightMax = [0]*len(height), totalWater = 0. Build leftMax and rightMax in two passes, then accumulate currentWater = max(0, min(leftMax[i],rightMax[i]) - height[i]) into totalWater in a third pass — no water[] array is kept.',
+    anchor: { match: 'leftMax = [0] * len(height)', to: { match: 'totalWater = 0' } },
     state: {
       type: 'array',
-      cells: height.map(v => ({ value: v, state: 'default' as const })),
+      cells: height.map((v) => ({ value: v, state: 'default' as const })),
       pointers: [],
       counters: [
         { label: 'leftMax', value: `[${leftMax.join(', ')}]` },
@@ -79,7 +39,7 @@ function generatePrefixSteps(): Step[] {
     leftMax[i] = Math.max(leftMax[i - 1], height[i - 1]);
     steps.push({
       explanation: `leftMax[${i}] = max(leftMax[${i - 1}]=${leftMax[i - 1]}, height[${i - 1}]=${height[i - 1]}) = ${leftMax[i]}.`,
-      highlightLine: 6,
+      anchor: { match: 'for i in range(1,len(height)):', to: { match: 'leftMax[i] = max(leftMax[i-1], height[i-1])' } },
       state: {
         type: 'array',
         cells: leftMax.map((v, j) => ({
@@ -104,7 +64,7 @@ function generatePrefixSteps(): Step[] {
     rightMax[i] = Math.max(rightMax[i + 1], height[i + 1]);
     steps.push({
       explanation: `rightMax[${i}] = max(rightMax[${i + 1}]=${rightMax[i + 1]}, height[${i + 1}]=${height[i + 1]}) = ${rightMax[i]}.`,
-      highlightLine: 8,
+      anchor: { match: 'for i in range(len(height)-2,-1,-1):', to: { match: 'rightMax[i] = max(rightMax[i+1],height[i+1])' } },
       state: {
         type: 'array',
         cells: rightMax.map((v, j) => ({
@@ -124,53 +84,51 @@ function generatePrefixSteps(): Step[] {
     });
   }
 
-  // Compute water
-  let total = 0;
-  const water = Array(n).fill(0);
+  // Accumulate totalWater
+  let totalWater = 0;
+  const rendered = [...height];
   for (let i = 0; i < n; i++) {
-    water[i] = Math.max(0, Math.min(leftMax[i], rightMax[i]) - height[i]);
-    total += water[i];
+    const currentWater = Math.max(0, Math.min(leftMax[i], rightMax[i]) - height[i]);
+    totalWater += currentWater;
+    rendered[i] = currentWater;
     steps.push({
-      explanation: `i=${i}: min(leftMax=${leftMax[i]}, rightMax=${rightMax[i]}) − height=${height[i]} = ${water[i]} unit${water[i] !== 1 ? 's' : ''} of water. Running total: ${total}.`,
-      highlightLine: 11,
+      explanation: `i=${i}: currentWater = max(0, min(leftMax[i]=${leftMax[i]}, rightMax[i]=${rightMax[i]}) - height[i]=${height[i]}) = ${currentWater}. totalWater += currentWater → ${totalWater}.`,
+      anchor: { match: 'for i in range(len(height)):', to: { match: 'totalWater += currentWater' } },
       state: {
         type: 'array',
         cells: height.map((v, j) => ({
-          value: j <= i ? water[j] : v,
-          state: j < i ? (water[j] > 0 ? ('found' as const) : ('visited' as const)) : j === i ? ('active' as const) : ('default' as const),
+          value: j <= i ? rendered[j] : v,
+          state: j < i ? (rendered[j] > 0 ? ('found' as const) : ('visited' as const)) : j === i ? ('active' as const) : ('default' as const),
         })),
         pointers: [{ index: i, label: 'i' }],
         counters: [
           { label: 'leftMax', value: `[${leftMax.join(', ')}]` },
           { label: 'rightMax', value: `[${rightMax.join(', ')}]` },
-          { label: 'total', value: total },
+          { label: 'totalWater', value: totalWater },
         ],
       },
       variables: [
         { name: 'i', value: i },
-        { name: `water[${i}]`, value: water[i], highlight: true },
-        { name: 'total', value: total, highlight: true },
+        { name: 'currentWater', value: currentWater, highlight: true },
+        { name: 'totalWater', value: totalWater, highlight: true },
       ],
     });
   }
 
   steps.push({
-    explanation: `Total trapped water = ${total}. O(n) time, O(n) space for the two auxiliary arrays.`,
-    highlightLine: 12,
+    explanation: `Return totalWater = ${totalWater}. O(n) time, O(n) space for the two auxiliary arrays.`,
+    anchor: { match: 'return totalWater' },
     state: {
       type: 'array',
-      cells: water.map(v => ({
-        value: v,
-        state: v > 0 ? ('found' as const) : ('eliminated' as const),
-      })),
+      cells: rendered.map((v) => ({ value: v, state: v > 0 ? ('found' as const) : ('eliminated' as const) })),
       pointers: [],
       counters: [
         { label: 'leftMax', value: `[${leftMax.join(', ')}]` },
         { label: 'rightMax', value: `[${rightMax.join(', ')}]` },
-        { label: 'total', value: total },
+        { label: 'totalWater', value: totalWater },
       ],
     },
-    variables: [{ name: 'return', value: total, highlight: true }],
+    variables: [{ name: 'return', value: totalWater, highlight: true }],
   });
 
   return steps;
@@ -187,8 +145,8 @@ function generateTwoPointerSteps(): Step[] {
 
   steps.push({
     explanation:
-      'Key insight: water at i is bounded by the shorter wall. We only need the running max from each side, not the full arrays. Two pointers l and r move inward — always process the side with the smaller max, since that side is the bottleneck.',
-    highlightLine: 3,
+      'if not height: return 0 guards the empty case. l, r = 0, len(height)-1; leftMax, rightMax = height[l], height[r]; res = 0. While leftMax < rightMax the left side is the bottleneck; otherwise the right side is — that running max IS the potential water at the side that moves.',
+    anchor: { match: 'l, r = 0, len(height) - 1', to: { match: 'res = 0' } },
     state: {
       type: 'array',
       cells: height.map((v, i) => ({
@@ -216,8 +174,8 @@ function generateTwoPointerSteps(): Step[] {
       leftMax = Math.max(leftMax, height[l]);
       res += leftMax - height[l];
       steps.push({
-        explanation: `leftMax(${leftMax}) < rightMax(${rightMax}): left side is bottleneck. Move l to ${l}. leftMax=max(${leftMax},${height[l]})=${leftMax}. water += ${leftMax}-${height[l]}=${leftMax - height[l]}. res=${res}.`,
-        highlightLine: 8,
+        explanation: `leftMax(${leftMax}) < rightMax(${rightMax}): left side is the bottleneck. l+=1 → ${l}. leftMax = max(leftMax, height[l]) = ${leftMax}. res += leftMax - height[l] = ${leftMax}-${height[l]} → res=${res}.`,
+        anchor: { match: 'if leftMax < rightMax:', to: { match: 'res += leftMax - height[l]' } },
         state: {
           type: 'array',
           cells: height.map((v, i) => ({
@@ -243,7 +201,6 @@ function generateTwoPointerSteps(): Step[] {
         variables: [
           { name: 'l', value: l, highlight: true },
           { name: 'leftMax', value: leftMax, highlight: true },
-          { name: 'water', value: leftMax - height[l] },
           { name: 'res', value: res, highlight: true },
         ],
       });
@@ -252,8 +209,8 @@ function generateTwoPointerSteps(): Step[] {
       rightMax = Math.max(rightMax, height[r]);
       res += rightMax - height[r];
       steps.push({
-        explanation: `leftMax(${leftMax}) >= rightMax(${rightMax}): right side is bottleneck. Move r to ${r}. rightMax=max(${rightMax},${height[r]})=${rightMax}. water += ${rightMax}-${height[r]}=${rightMax - height[r]}. res=${res}.`,
-        highlightLine: 11,
+        explanation: `leftMax(${leftMax}) >= rightMax(${rightMax}): right side is the bottleneck. r-=1 → ${r}. rightMax = max(rightMax, height[r]) = ${rightMax}. res += rightMax - height[r] = ${rightMax}-${height[r]} → res=${res}.`,
+        anchor: { match: 'else:', to: { match: 'res += rightMax - height[r]' } },
         state: {
           type: 'array',
           cells: height.map((v, i) => ({
@@ -279,7 +236,6 @@ function generateTwoPointerSteps(): Step[] {
         variables: [
           { name: 'r', value: r, highlight: true },
           { name: 'rightMax', value: rightMax, highlight: true },
-          { name: 'water', value: rightMax - height[r] },
           { name: 'res', value: res, highlight: true },
         ],
       });
@@ -287,14 +243,11 @@ function generateTwoPointerSteps(): Step[] {
   }
 
   steps.push({
-    explanation: `l(${l}) meets r(${r}) — done. Total = ${res}. O(n) time, O(1) space — no auxiliary arrays needed.`,
-    highlightLine: 13,
+    explanation: `l(${l}) meets r(${r}) — done. Return res = ${res}. O(n) time, O(1) space — no auxiliary arrays needed.`,
+    anchor: { match: 'return res' },
     state: {
       type: 'array',
-      cells: height.map((_, i) => ({
-        value: height[i],
-        state: ('found' as const),
-      })),
+      cells: height.map((v) => ({ value: v, state: 'found' as const })),
       pointers: [{ index: l, label: 'l=r' }],
       counters: [
         { label: 'leftMax', value: leftMax },
@@ -310,13 +263,13 @@ function generateTwoPointerSteps(): Step[] {
 
 const prefixSolution: SolutionVariant = {
   label: 'Prefix Arrays',
-  pythonCode: PREFIX_CODE,
+  variant: 'prefix-arrays',
   generateSteps: generatePrefixSteps,
 };
 
 const twoPointerSolution: SolutionVariant = {
   label: 'Two Pointers',
-  pythonCode: TWO_PTR_CODE,
+  variant: 'two-pointers',
   generateSteps: generateTwoPointerSteps,
 };
 

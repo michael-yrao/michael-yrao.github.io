@@ -1,23 +1,7 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def findPeakElement(self, nums: List[int]) -> int:
-        # key is that a peak must exist
-        # and a peak is only applicable to its immediate neighbors
-        # so knowing peaks exist, we can be greedy and assume that if nums[mid] < nums[mid + 1], then there is a peak on the right
-        # this is a boundary type search where we find the first position where the condition holds
-
-        l, r = 0, len(nums) - 1
-        # min boundary binary search (find first true position)
-        # is_valid(mid) = nums[mid] >= nums[mid + 1] (peak at or left of mid)
-        while l < r:
-            mid = l + (r - l) // 2
-            if nums[mid] < nums[mid + 1]:
-                l = mid + 1  # peak on right
-            else:
-                r = mid  # peak on left or at mid
-
-        return l`;
+// Traces cse-progress's findPeakElement verbatim: min-boundary binary search where
+// is_valid(mid) = nums[mid] >= nums[mid + 1] (peak at or left of mid).
 
 function generateSteps(): Step[] {
   const nums = [1, 2, 3, 1];
@@ -41,7 +25,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       'Find a peak element in [1,2,3,1] in O(log n). Key insight: if nums[mid] < nums[mid+1], the slope is rising right — a peak must exist to the right of mid. Otherwise, nums[mid] ≥ nums[mid+1] means mid itself could be the peak, so we keep it.',
-    highlightLine: 6,
+    anchor: { match: 'def findPeakElement(self, nums: List[int]) -> int:' },
     state: {
       type: 'array',
       cells: nums.map(v => ({ value: v, state: 'default' as const })),
@@ -55,7 +39,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Initialize l=${l}, r=${r}. We use l < r to converge on the peak without overshooting.`,
-    highlightLine: 8,
+    anchor: { match: 'l, r = 0, len(nums) - 1' },
     state: {
       type: 'array',
       cells: snap(l, r, null, null),
@@ -70,7 +54,9 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `l=${l}, r=${r}, mid=${mid}: nums[${mid}]=${nums[mid]} ${risingRight ? '<' : '≥'} nums[${mid + 1}]=${nums[mid + 1]}. ${risingRight ? 'Slope rising right → peak is strictly right of mid → l = mid+1.' : 'nums[mid] ≥ nums[mid+1] → peak at mid or left → r = mid (keep mid as candidate).'}`,
-      highlightLine: risingRight ? 12 : 14,
+      anchor: risingRight
+        ? { match: 'if nums[mid] < nums[mid + 1]:' }
+        : { match: 'r = mid' },
       state: {
         type: 'array',
         cells: snap(l, r, mid, null),
@@ -94,7 +80,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `l === r === ${l}. Converged! nums[${l}] = ${nums[l]} is a peak element (greater than both neighbors). Return index ${l}.`,
-    highlightLine: 16,
+    anchor: { match: 'return l' },
     state: {
       type: 'array',
       cells: snap(l, r, null, l),
@@ -111,7 +97,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Binary Search (Min Boundary)',
-  pythonCode: PYTHON_CODE,
+  variant: 'min-boundary',
   generateSteps,
 };
 

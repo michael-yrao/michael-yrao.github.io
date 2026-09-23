@@ -1,43 +1,8 @@
-import { AlgorithmMeta, Step, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `import collections
-from typing import List, Optional
-
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-class Solution:
-    def rightSideView(self, root: Optional[TreeNode]) -> List[int]:
-        # if we do bfs, it's just the last element we see each time
-        # so we'll just do that
-        if not root:
-            return []
-
-        result = []
-
-        queue = collections.deque()
-
-        queue.append(root)
-
-        while queue:
-            # we want to put the last element of each level in the result
-            # so we want to keep track of number of elements in each level
-            numElementInLevel = len(queue)
-
-            for i in range(numElementInLevel):
-                currentNode = queue.popleft()
-                # at last element, add to result
-                if i == numElementInLevel - 1:
-                    result.append(currentNode.val)
-                if currentNode.left:
-                    queue.append(currentNode.left)
-                if currentNode.right:
-                    queue.append(currentNode.right)
-
-        return result`;
+// Traces cse-progress's rightSideView verbatim: an explicit `if not root: return []` guard
+// up front (always False for this non-empty example, but narrated), then BFS level by level,
+// recording only the node at i == numElementInLevel − 1.
 
 // Tree: [1,2,3,null,5,null,4]  →  right side view = [1,3,4]
 //        1
@@ -70,12 +35,12 @@ function generateSteps(): Step[] {
 
   const push = (
     explanation: string,
-    line: number,
+    anchor: StepAnchor,
     opts: { current?: string | null; vars?: { name: string; value: string | number; highlight?: boolean }[] } = {}
   ) => {
     steps.push({
       explanation,
-      highlightLine: line,
+      anchor,
       state: {
         type: 'tree',
         nodes: makeNodes(),
@@ -90,8 +55,8 @@ function generateSteps(): Step[] {
   };
 
   push(
-    'Standing on the right, you see exactly the LAST node of each level (the rightmost one). So we BFS level by level, and within a level we only record the node at index i == numElementInLevel − 1. Seed the queue with the root.',
-    21,
+    'if not root: return [] — root is not None here, so that guard is skipped. Standing on the right, you see exactly the LAST node of each level (the rightmost one). So we BFS level by level, and within a level we only record the node at index i == numElementInLevel − 1. Seed the queue with the root.',
+    { match: 'if not root:', to: { match: 'return []' } },
     { vars: [{ name: 'queue', value: '[1]' }, { name: 'result', value: '[]' }] }
   );
 
@@ -100,7 +65,7 @@ function generateSteps(): Step[] {
     const levelSize = queue.length;
     push(
       `Level ${level}: snapshot numElementInLevel = ${levelSize}. The visible node will be the one at i = ${levelSize - 1} (the last we pop this level).`,
-      26,
+      { match: 'numElementInLevel = len(queue)' },
       { vars: [{ name: 'numElementInLevel', value: levelSize, highlight: true }] }
     );
 
@@ -131,7 +96,7 @@ function generateSteps(): Step[] {
             ? `Yes → it's the rightmost on this level, append ${v} to result → ${resultStr()}.`
             : `No → not the rightmost, don't record it.`
         } ${enq.length ? `Enqueue its children (${enq.join(', ')}) → queue ${queueStr()}.` : 'No children to enqueue.'}`,
-        isLast ? 32 : 29,
+        { match: 'currentNode = queue.popleft()', to: { match: 'queue.append(currentNode.right)' } },
         {
           current: id,
           vars: [
@@ -148,7 +113,7 @@ function generateSteps(): Step[] {
 
   push(
     `Queue empty — done. The rightmost node at each depth, top to bottom, is ${resultStr()}.`,
-    38,
+    { match: 'return result' },
     { vars: [{ name: 'result', value: resultStr(), highlight: true }] }
   );
 
@@ -184,7 +149,7 @@ export const binaryTreeRightSideViewMeta: AlgorithmMeta = {
   solutions: [
     {
       label: 'BFS (level-by-level, take last of each level)',
-      pythonCode: PYTHON_CODE,
+      variant: 'bfs-last',
       generateSteps,
     },
   ],

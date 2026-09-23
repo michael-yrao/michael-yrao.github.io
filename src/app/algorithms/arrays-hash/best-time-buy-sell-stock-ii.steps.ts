@@ -1,15 +1,9 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def maxProfit(self, prices: List[int]) -> int:
-        # greedy: collect every upward move
-        # if prices[i] > prices[i-1], that is a profitable day
-        # add prices[i] - prices[i-1] to profit
-        profit = 0
-        for i in range(1, len(prices)):
-            if prices[i] > prices[i-1]:
-                profit += prices[i] - prices[i-1]
-        return profit`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's maxProfit verbatim: `profit+=(prices[i]-prices[i-1])`
+// inside the `if prices[i] > prices[i-1]:` guard, same variable names.
 
 function generateSteps(): Step[] {
   const prices = [7, 1, 5, 3, 6, 4];
@@ -19,7 +13,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation:
       `Best Time to Buy and Sell Stock II: prices=[${prices.join(',')}]. Greedy approach: every time prices[i] > prices[i-1], add that gain to profit (equivalent to buying at every local min, selling at every local max). Sum all positive day-over-day differences.`,
-    highlightLine: 5,
+    anchor: { match: 'profit = 0' },
     state: {
       type: 'array',
       cells: prices.map(v => ({ value: v, state: 'default' as const })),
@@ -41,7 +35,9 @@ function generateSteps(): Step[] {
 
     steps.push({
       explanation: `i=${i}: prices[${i}]=${prices[i]}, prices[${i - 1}]=${prices[i - 1]}. Gain = ${prices[i]} - ${prices[i - 1]} = ${gain}. ${isProfitable ? `Profitable! Add ${gain} → profit = ${profit} + ${gain} = ${profit + gain}.` : `Not profitable (gain ≤ 0), skip.`}`,
-      highlightLine: isProfitable ? 8 : 7,
+      anchor: isProfitable
+        ? { match: 'profit+=(prices[i]-prices[i-1])' }
+        : { match: 'if prices[i] > prices[i-1]:' },
       state: {
         type: 'array',
         cells: prices.map((v, idx) => ({
@@ -76,7 +72,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `All days processed. Total profit = ${profit}. Profitable days (green) contributed gains; unprofitable days (red) were skipped. Return ${profit}.`,
-    highlightLine: 9,
+    anchor: { match: 'return profit' },
     state: {
       type: 'array',
       cells: prices.map((v, idx) => ({
@@ -99,7 +95,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Greedy (Collect Every Upward Move)',
-  pythonCode: PYTHON_CODE,
+  variant: 'greedy',
   generateSteps,
 };
 

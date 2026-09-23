@@ -1,41 +1,36 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def longestCommonPrefix(self, strs: List[str]) -> str:
-        # the prefix can never be longer than the shortest string, so scan that as our limit
-        # at each position, if any string diverges from the shortest, we have our answer
-
-        shortestString = min(strs, key=len)
-
-        lcp = ""
-
-        for i in range(len(shortestString)):
-            for str in strs:
-                if str[i] != shortestString[i]:
-                    return lcp
-            lcp += shortestString[i]
-
-        return lcp`;
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's longestCommonPrefix verbatim: there is NO pre-computed
+// "shortest string" — the outer loop is bounded by len(strs[0]) (the FIRST
+// string, not the shortest), and the inner loop's guard is a single combined
+// condition `if i == len(string) or string[i] != strs[0][i]:` — an explicit
+// bounds check (since the loop isn't pre-bounded by the shortest length) OR'd
+// with the character mismatch check. `strs[0]` itself is compared against
+// itself on every outer iteration (it's the first element of `strs`, iterated
+// like every other string).
 
 function generateSteps(): Step[] {
   const strs = ['flower', 'flow', 'flight'];
   const steps: Step[] = [];
 
-  const shortest = strs.reduce((a, b) => (a.length <= b.length ? a : b));
-  let lcp = '';
+  const reference = strs[0];
+  let prefix = '';
+  let diverged = false;
 
   steps.push({
-    explanation: `Find the longest prefix shared by all ${strs.length} strings. Strategy: the prefix can never be longer than the shortest string — "${shortest}". Scan it character by character; stop the moment any string diverges.`,
-    highlightLine: 2,
+    explanation: `Find the longest prefix shared by all ${strs.length} strings. Strategy: scan by index against strs[0] = "${reference}" (the FIRST string, not the shortest). At each i, check every string: if i is past that string's length, or its char at i differs from strs[0][i], the common prefix ends there.`,
+    anchor: { match: 'prefix = ""' },
     state: {
       type: 'array',
-      cells: shortest.split('').map(c => ({ value: c, state: 'default' as const })),
+      cells: reference.split('').map(c => ({ value: c, state: 'default' as const })),
       pointers: [],
       hashmap: Object.fromEntries(strs.map((s, i) => [`str${i + 1}`, s])),
     },
     variables: [
-      { name: 'shortest', value: shortest },
-      { name: 'lcp', value: '""' },
+      { name: 'strs[0]', value: reference },
+      { name: 'prefix', value: '""' },
     ],
   });
 
@@ -49,52 +44,62 @@ function generateSteps(): Step[] {
     return m;
   };
 
-  outer: for (let i = 0; i < shortest.length; i++) {
-    const ch = shortest[i];
+  outer: for (let i = 0; i < reference.length; i++) {
+    const ch = reference[i];
 
-    // Inner loop: compare EVERY string's char at position i, one at a time.
+    // Inner loop: compare EVERY string (including strs[0] itself) at position i.
     for (let k = 0; k < strs.length; k++) {
       const s = strs[k];
-      const matchHere = s[i] === ch;
+      const outOfBounds = i >= s.length;
+      const mismatch = !outOfBounds && s[i] !== ch;
+      const diverges = outOfBounds || mismatch;
+
       steps.push({
-        explanation: matchHere
-          ? `i=${i}: check string "${s}". Is "${s}"[${i}] = "${s[i]}" equal to the shortest's "${ch}"? Yes ✓ — keep going to the next string.`
-          : `i=${i}: check string "${s}". Is "${s}"[${i}] = "${s[i]}" equal to "${ch}"? NO ✗ — a string diverged here, so the common prefix ends. Return lcp="${lcp}".`,
-        highlightLine: matchHere ? 5 : 6,
+        explanation: diverges
+          ? outOfBounds
+            ? `i=${i}: check string "${s}". i == len("${s}") (${s.length}) — out of bounds. The common prefix ends here. Return prefix="${prefix}".`
+            : `i=${i}: check string "${s}". "${s}"[${i}] = "${s[i]}" ≠ strs[0][${i}] = "${ch}". A string diverged here, so the common prefix ends. Return prefix="${prefix}".`
+          : `i=${i}: check string "${s}". Not out of bounds, and "${s}"[${i}] = "${s[i]}" equals strs[0][${i}] = "${ch}" ✓ — keep going to the next string.`,
+        anchor: diverges
+          ? { match: 'if i == len(string) or string[i] != strs[0][i]:', to: { match: 'return prefix', nth: 2 } } // nth:2 skips the plan comment (hit 1) and the final `return prefix` (hit 3)
+          : { match: 'if i == len(string) or string[i] != strs[0][i]:' },
         state: {
           type: 'array',
-          cells: shortest.split('').map((c, j) => ({
+          cells: reference.split('').map((c, j) => ({
             value: c,
             state:
-              j < i ? ('found' as const) : j === i ? (matchHere ? ('active' as const) : ('eliminated' as const)) : ('default' as const),
+              j < i ? ('found' as const) : j === i ? (diverges ? ('eliminated' as const) : ('active' as const)) : ('default' as const),
           })),
           pointers: [{ index: i, label: 'i' }],
-          hashmap: strMap(k, matchHere ? 'ok' : 'bad'),
+          hashmap: strMap(k, diverges ? 'bad' : 'ok'),
         },
         variables: [
           { name: 'i', value: i },
-          { name: 'checking', value: `"${s}"`, highlight: true },
-          { name: `"${s}"[${i}]`, value: `"${s[i]}"` },
-          { name: 'shortest char', value: `"${ch}"` },
-          { name: 'equal?', value: matchHere ? 'yes' : 'NO → return', highlight: !matchHere },
+          { name: 'string', value: `"${s}"`, highlight: true },
+          { name: 'i == len(string)', value: outOfBounds ? 'yes → return' : 'no' },
+          { name: `string[${i}] != strs[0][${i}]`, value: outOfBounds ? '—' : mismatch ? 'yes → return' : 'no', highlight: diverges },
         ],
       });
-      if (!matchHere) break outer;
+
+      if (diverges) {
+        diverged = true;
+        break outer;
+      }
     }
 
-    lcp += ch;
+    prefix += ch;
 
     steps.push({
-      explanation: `i=${i}: every string had "${ch}" at position ${i} ✓. Commit it — lcp grows to "${lcp}". Move to the next position.`,
-      highlightLine: 8,
+      explanation: `i=${i}: every string had "${ch}" at position ${i} ✓ (no bounds issue, no mismatch). Commit it — prefix grows to "${prefix}". Move to the next position.`,
+      anchor: { match: 'prefix += strs[0][i]' },
       state: {
         type: 'array',
-        cells: shortest.split('').map((c, j) => ({
+        cells: reference.split('').map((c, j) => ({
           value: c,
           state:
-            j < lcp.length
+            j < prefix.length
               ? ('found' as const)
-              : j === lcp.length
+              : j === prefix.length
               ? ('active' as const)
               : ('default' as const),
         })),
@@ -104,22 +109,22 @@ function generateSteps(): Step[] {
       variables: [
         { name: 'i', value: i },
         { name: 'char', value: ch },
-        { name: 'lcp', value: `"${lcp}"`, highlight: true },
+        { name: 'prefix', value: `"${prefix}"`, highlight: true },
       ],
     });
   }
 
-  if (lcp === shortest) {
+  if (!diverged) {
     steps.push({
-      explanation: `Reached end of shortest string "${shortest}" with no mismatch. Return lcp="${lcp}".`,
-      highlightLine: 16,
+      explanation: `i reached len(strs[0]) = ${reference.length} with no divergence. Return prefix="${prefix}".`,
+      anchor: { match: 'return prefix', nth: 3 }, // nth:3 — the final `return prefix` after the loop completes
       state: {
         type: 'array',
-        cells: shortest.split('').map(c => ({ value: c, state: 'found' as const })),
+        cells: reference.split('').map(c => ({ value: c, state: 'found' as const })),
         pointers: [],
         hashmap: Object.fromEntries(strs.map((s, i) => [`str${i + 1}`, s])),
       },
-      variables: [{ name: 'return', value: `"${lcp}"`, highlight: true }],
+      variables: [{ name: 'return', value: `"${prefix}"`, highlight: true }],
     });
   }
 
@@ -128,7 +133,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Vertical Scan',
-  pythonCode: PYTHON_CODE,
+  variant: 'vertical-scan',
   generateSteps,
 };
 
@@ -160,6 +165,6 @@ export const longestCommonPrefixMeta: AlgorithmMeta = {
     '0 ≤ strs[i].length ≤ 200',
     'strs[i] consists of only lowercase English letters.',
   ],
-  hint: 'Find the shortest string first — the LCP can never be longer. Then scan column by column (same index across all strings). The moment any string differs, return what you have.',
+  hint: 'Scan by index against strs[0] — no need to pre-find the shortest string. At each i, check every string in turn: if i runs past that string\'s length, or its char at i differs from strs[0][i], the common prefix ends there.',
   solutions: [solution],
 };

@@ -1,35 +1,10 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `import math
-
-class Solution:
-    def minEatingSpeed(self, piles: List[int], h: int) -> int:
-        # we are looking for the value k
-        # using a bit of math, we can tell we are looking for where math.ceil(piles[i] / k) = h
-        # we also know the max this k should be is the max(piles)
-        # knowing the list is not sorted, we should just go through the list to find the max giving us O(n) minimum
-        # brute force solution is trying k from 1 to max(piles), giving us a time complexity of O(n*max(piles))
-        # what we can do is actually just do the same thing but with binary search
-        # l = 1, r = max(piles)
-
-        l, r = 1, max(piles)
-
-        # we are not sure what we are looking for just yet
-        # thus we want to use l < r
-        while l < r:
-            mid = (l + r) // 2
-            currentHours = 0
-            for pile in piles:
-                currentHours += math.ceil(pile / mid)
-
-            # can't finish the bananas in mid eating speed
-            # exclude mid from further searches
-            if currentHours > h:
-                l = mid + 1
-            else:
-            # can finish in mid eating speed, keep it as a candidate
-                r = mid
-        return l`;
+// Traces cse-progress's minEatingSpeed_20260703 verbatim. Two nested helpers, not one flat
+// function: canFinish(m) sums timeTaken = Σ⌈bananas/m⌉ over piles and returns timeTaken <= h;
+// minBoundaryBinarySearch(l, r) runs the actual while l < r loop, calling canFinish(m) — if
+// canFinish(m): r = m (feasible, keep as candidate) else: l = m + 1 (too slow). l and r arrive
+// as that function's own parameters (1, max(piles)), not from a bare l, r = ... assignment.
 
 function generateSteps(): Step[] {
   const piles = [3, 6, 7, 11];
@@ -39,8 +14,8 @@ function generateSteps(): Step[] {
   const maxPile = Math.max(...piles);
 
   steps.push({
-    explanation: `Find the minimum eating speed k so Koko can finish all piles in h=${h} hours. piles=[${piles.join(', ')}]. Binary search on the answer space [1..${maxPile}] (1 is slowest, max(piles) is always fast enough). For each candidate k, compute hours=Σ⌈pile/k⌉; if hours ≤ h, k is feasible (keep as candidate, try smaller); else k is too slow (must go larger).`,
-    highlightLine: 11,
+    explanation: `Find the minimum eating speed k so Koko can finish all piles in h=${h} hours. piles=[${piles.join(', ')}]. Binary search on the answer space [1..${maxPile}] (1 is slowest, max(piles) is always fast enough). canFinish(m) sums timeTaken=Σ⌈bananas/m⌉ across piles and returns timeTaken<=h; minBoundaryBinarySearch(l, r) narrows using that.`,
+    anchor: { match: 'def minEatingSpeed_20260703(self, piles: List[int], h: int) -> int:' },
     state: {
       type: 'array',
       cells: piles.map(v => ({ value: v, state: 'default' as const })),
@@ -61,8 +36,8 @@ function generateSteps(): Step[] {
   let r = maxPile;
 
   steps.push({
-    explanation: `Initialize l=1, r=${maxPile}=max(piles). We use l < r (not l ≤ r) because we want to converge to the minimum feasible k without overshooting — when l === r, that value is the answer.`,
-    highlightLine: 13,
+    explanation: `Call minBoundaryBinarySearch(1, max(piles)) = minBoundaryBinarySearch(1, ${maxPile}) — l=1, r=${maxPile} arrive as this function's own parameters. Loop is l < r (not l ≤ r) so it converges to the minimum feasible k without overshooting — when l === r, that value is the answer.`,
+    anchor: { match: 'return minBoundaryBinarySearch(1,max(piles))' },
     state: {
       type: 'array',
       cells: piles.map(v => ({ value: v, state: 'default' as const })),
@@ -77,75 +52,76 @@ function generateSteps(): Step[] {
   });
 
   while (l < r) {
-    const mid = Math.floor((l + r) / 2);
-    let currentHours = 0;
-    for (const pile of piles) currentHours += Math.ceil(pile / mid);
+    const m = Math.floor((l + r) / 2);
+    let timeTaken = 0;
+    for (const bananas of piles) timeTaken += Math.ceil(bananas / m);
 
-    // Show: computing hours for this k=mid
     steps.push({
-      explanation: `l=${l}, r=${r}, mid=${mid} (k=${mid}). Computing hours needed at speed k=${mid}: Σ⌈pile/${mid}⌉ = ${piles.map(p => `⌈${p}/${mid}⌉=${Math.ceil(p / mid)}`).join(' + ')} = ${currentHours}.`,
-      highlightLine: 17,
+      explanation: `l=${l}, r=${r}, m=${m}. canFinish(${m}) computes timeTaken = Σ⌈bananas/${m}⌉ = ${piles.map(p => `⌈${p}/${m}⌉=${Math.ceil(p / m)}`).join(' + ')} = ${timeTaken}.`,
+      anchor: { match: 'timeTaken = 0', to: { match: 'timeTaken+=math.ceil(bananas/m)' } },
       state: {
         type: 'array',
         cells: piles.map(v => ({ value: v, state: 'active' as const })),
         pointers: [],
         counters: [
-          { label: 'k (mid)', value: mid },
-          { label: 'hoursNeeded', value: currentHours },
+          { label: 'm (k)', value: m },
+          { label: 'timeTaken', value: timeTaken },
           { label: 'h', value: h },
           { label: 'l', value: l },
           { label: 'r', value: r },
         ],
       },
       variables: [
-        { name: 'mid (k)', value: mid },
-        { name: 'hoursNeeded', value: currentHours },
+        { name: 'm (k)', value: m },
+        { name: 'timeTaken', value: timeTaken },
         { name: 'h', value: h },
       ],
     });
 
-    const tooSlow = currentHours > h;
+    const feasible = timeTaken <= h;
     steps.push({
-      explanation: tooSlow
-        ? `hoursNeeded=${currentHours} > h=${h}: speed k=${mid} is too slow — Koko can't finish in time. Exclude mid, set l = mid+1 = ${mid + 1}.`
-        : `hoursNeeded=${currentHours} ≤ h=${h}: speed k=${mid} is feasible — Koko finishes in time. Keep mid as a candidate (might do better), set r = mid = ${mid}.`,
-      highlightLine: tooSlow ? 23 : 26,
+      explanation: feasible
+        ? `canFinish(${m}) returns timeTaken<=h → ${timeTaken}<=${h} → True: speed m=${m} is feasible — Koko finishes in time. Keep m as a candidate (might do better), set r = m = ${m}.`
+        : `canFinish(${m}) returns timeTaken<=h → ${timeTaken}<=${h} → False: speed m=${m} is too slow — Koko can't finish in time. Exclude m, set l = m+1 = ${m + 1}.`,
+      anchor: feasible
+        ? { match: 'if canFinish(m):' }
+        : { match: 'l = m + 1' },
       state: {
         type: 'array',
         cells: piles.map(v => ({
           value: v,
-          state: tooSlow ? ('eliminated' as const) : ('window' as const),
+          state: feasible ? ('window' as const) : ('eliminated' as const),
         })),
         pointers: [],
         counters: [
-          { label: 'k (mid)', value: mid },
-          { label: 'hoursNeeded', value: currentHours },
+          { label: 'm (k)', value: m },
+          { label: 'timeTaken', value: timeTaken },
           { label: 'h', value: h },
-          { label: tooSlow ? 'l →' : 'r →', value: tooSlow ? mid + 1 : mid },
+          { label: feasible ? 'r →' : 'l →', value: feasible ? m : m + 1 },
         ],
       },
       variables: [
-        { name: 'feasible?', value: tooSlow ? 'NO' : 'YES', highlight: true },
-        { name: tooSlow ? 'l →' : 'r →', value: tooSlow ? mid + 1 : mid, highlight: true },
+        { name: 'canFinish(m)', value: feasible ? 'True' : 'False', highlight: true },
+        { name: feasible ? 'r →' : 'l →', value: feasible ? m : m + 1, highlight: true },
       ],
     });
 
-    if (tooSlow) l = mid + 1;
-    else r = mid;
+    if (feasible) r = m;
+    else l = m + 1;
   }
 
   // l === r, found answer
   const answerHours = piles.reduce((sum, p) => sum + Math.ceil(p / l), 0);
   steps.push({
-    explanation: `l === r === ${l}. Converged! Minimum eating speed k=${l}. Verification: Σ⌈pile/${l}⌉ = ${piles.map(p => `⌈${p}/${l}⌉=${Math.ceil(p / l)}`).join(' + ')} = ${answerHours} ≤ ${h} ✓. O(n log m) time where n=piles.length and m=max(piles). O(1) space.`,
-    highlightLine: 27,
+    explanation: `l === r === ${l}: minBoundaryBinarySearch returns l. Minimum eating speed k=${l}. Verification: Σ⌈bananas/${l}⌉ = ${piles.map(p => `⌈${p}/${l}⌉=${Math.ceil(p / l)}`).join(' + ')} = ${answerHours} ≤ ${h} ✓. O(n log m) time where n=piles.length and m=max(piles). O(1) space.`,
+    anchor: { match: 'return l' },
     state: {
       type: 'array',
       cells: piles.map(v => ({ value: v, state: 'found' as const })),
       pointers: [],
       counters: [
         { label: 'answer k', value: l },
-        { label: 'hoursNeeded', value: answerHours },
+        { label: 'timeTaken', value: answerHours },
         { label: 'h', value: h },
       ],
     },
@@ -157,7 +133,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Binary Search on Answer Space',
-  pythonCode: PYTHON_CODE,
+  variant: 'answer-space',
   generateSteps,
 };
 

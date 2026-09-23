@@ -1,26 +1,9 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-// Solution + comments sourced from cse-progress: dsa/leetcode/heap/703_kth_largest_element_in_stream.py
-const PYTHON_CODE = `import heapq
-
-class KthLargest:
-
-    def __init__(self, k: int, nums: List[int]):
-        self.k = k
-        self.heap = []
-        # heap by default is minheap so what we should do is create a minheap
-        # of size k so that the smallest value is our return value
-        for n in nums:
-            heapq.heappush(self.heap,n)
-            while len(self.heap) > self.k:
-                heapq.heappop(self.heap)
-
-    def add(self, val: int) -> int:
-        # adds a value to nums and returns kth largest
-        heapq.heappush(self.heap, val)
-        if len(self.heap) > self.k:
-            heapq.heappop(self.heap)
-        return self.heap[0]`;
+// Traces cse-progress's KthLargest verbatim: the constructor evicts with a `while
+// len(self.heap) > self.k` loop (pops at most once per pushed num here, since the heap
+// grows by 1 per num), while add() evicts with a single `if` — same net effect, different
+// guard.
 
 function generateSteps(): Step[] {
   const k = 3;
@@ -44,7 +27,7 @@ function generateSteps(): Step[] {
 
   steps.push({
     explanation: `Keep a MIN-heap of the k largest values seen so far. Its smallest element — the top — is exactly the kth largest. Whenever the heap grows past size k, pop the smallest. Constructor: KthLargest(k=${k}, [${initNums.join(', ')}]).`,
-    highlightLine: 8,
+    anchor: { match: 'def __init__(self, k: int, nums: List[int]):' },
     state: snap([]),
     variables: [{ name: 'k', value: k }, { name: 'nums', value: `[${initNums.join(', ')}]` }],
   });
@@ -53,8 +36,8 @@ function generateSteps(): Step[] {
     heap.push(n);
     heap.sort((a, b) => a - b);
     steps.push({
-      explanation: `Constructor: push ${n} → [${heap.join(', ')}] (size ${heap.length}).`,
-      highlightLine: 11,
+      explanation: `Constructor: heapq.heappush(self.heap, ${n}) → [${heap.join(', ')}] (size ${heap.length}).`,
+      anchor: { match: 'heapq.heappush(self.heap,n)' },
       state: snap([heap.indexOf(n)]),
       variables: [{ name: 'pushed', value: n, highlight: true }, { name: 'size', value: heap.length }],
     });
@@ -62,8 +45,10 @@ function generateSteps(): Step[] {
       const popped = heap[0];
       heap = heap.slice(1);
       steps.push({
-        explanation: `Size ${heap.length + 1} > k=${k} → pop the smallest (${popped}); it's not in the top ${k}. → [${heap.join(', ')}].`,
-        highlightLine: 13,
+        explanation: `while len(self.heap) > self.k: size ${heap.length + 1} > k=${k} → pop the smallest (${popped}); it's not in the top ${k}. → [${heap.join(', ')}].`,
+        // nth 1 hit: contract line 86 `heapq.heappop(self.heap)` (__init__'s evict).
+        // skips line 92, add()'s `heapq.heappop(self.heap)`.
+        anchor: { match: 'while len(self.heap) > self.k:', to: { match: 'heapq.heappop(self.heap)', nth: 1 } },
         state: snap([]),
         variables: [{ name: 'popped', value: popped, highlight: true }, { name: 'size', value: heap.length }],
       });
@@ -71,8 +56,11 @@ function generateSteps(): Step[] {
   }
 
   steps.push({
-    explanation: `Constructor done. minHeap = [${heap.join(', ')}]; the top (${heap[0]}) is the ${k}th largest so far.`,
-    highlightLine: 13,
+    explanation: `Constructor done. self.heap = [${heap.join(', ')}]; the top (${heap[0]}) is the ${k}th largest so far.`,
+    // Spans the whole init loop (`for n in nums:` ... its `heapq.heappop(self.heap)`).
+    // nth: 1 picks the FIRST heappop hit in the file — the constructor's (contract line
+    // 86) — so this never lands on add()'s heappop (contract line 92, nth: 2).
+    anchor: { match: 'for n in nums:', to: { match: 'heapq.heappop(self.heap)', nth: 1 } },
     state: snap([0]),
     variables: [{ name: 'kth largest', value: heap[0], highlight: true }],
   });
@@ -81,8 +69,8 @@ function generateSteps(): Step[] {
     heap.push(val);
     heap.sort((a, b) => a - b);
     steps.push({
-      explanation: `add(${val}): push ${val} → [${heap.join(', ')}] (size ${heap.length}).`,
-      highlightLine: 17,
+      explanation: `add(${val}): heapq.heappush(self.heap, ${val}) → [${heap.join(', ')}] (size ${heap.length}).`,
+      anchor: { match: 'heapq.heappush(self.heap, val)' },
       state: snap([heap.indexOf(val)]),
       variables: [{ name: 'val', value: val, highlight: true }, { name: 'size', value: heap.length }],
     });
@@ -90,15 +78,17 @@ function generateSteps(): Step[] {
       const popped = heap[0];
       heap = heap.slice(1);
       steps.push({
-        explanation: `Size ${heap.length + 1} > k=${k} → pop the smallest (${popped}) → [${heap.join(', ')}].`,
-        highlightLine: 19,
+        explanation: `if len(self.heap) > self.k: size ${heap.length + 1} > k=${k} → pop the smallest (${popped}) → [${heap.join(', ')}].`,
+        // nth 2 hit: contract line 92 `heapq.heappop(self.heap)` (add()'s evict).
+        // skips line 86, __init__'s `heapq.heappop(self.heap)`.
+        anchor: { match: 'if len(self.heap) > self.k:', to: { match: 'heapq.heappop(self.heap)', nth: 2 } },
         state: snap([]),
         variables: [{ name: 'popped', value: popped }, { name: 'size', value: heap.length }],
       });
     }
     steps.push({
-      explanation: `Return heap[0] = ${heap[0]} — the ${k}th largest after adding ${val}.`,
-      highlightLine: 20,
+      explanation: `Return self.heap[0] = ${heap[0]} — the ${k}th largest after adding ${val}.`,
+      anchor: { match: 'return self.heap[0]' },
       state: snap([0]),
       variables: [{ name: 'return', value: heap[0], highlight: true }],
     });
@@ -109,7 +99,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Min-Heap (size k)',
-  pythonCode: PYTHON_CODE,
+  variant: 'min-heap-k',
   generateSteps,
   timeComplexity: 'O(log k) per add',
   spaceComplexity: 'O(k)',

@@ -1,58 +1,32 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 
-const PYTHON_CODE = `class Solution:
-    def shipWithinDays(self, weights: List[int], days: int) -> int:
-        # ordering matters, so can't sort
-        # seems like what we are doing is getting the min boundary for each day
-        # so sum(weights)/days is at minimum the capacity we need if we can split up the weights, which we cannot
-        # then sum(weights) is a guarantee that we can ship all in one day
-        # so what we can do is binary search min boundary with those two
-        # so above thought for minimum capacity is wrong, since we will never be able to ship some packages
-        # e.g. [1,1,1,1,10], days = 5
-        # sum(weights)//days = 2, which means we will never be able to ship out the 10
-        # the minimum boundary of sum(weights)//days is unfortunately just logically impossible
-        # thus we don't start with it
+// ── Step generator ────────────────────────────────────────────────────────────
+//
+// Traces cse-progress's shipWithinDays_20260612 verbatim: left = max(weights), right =
+// sum(weights); canShip(capacity) tracks currentDayCapacity as REMAINING room on the current
+// day (starts at capacity, decrements as weights load) — not an accumulated-load counter. When
+// currentDayCapacity < weight, a new day starts: numberOfDaysUsed+=1, currentDayCapacity resets
+// to capacity, THEN the weight loads. Outer loop: left, right, middle (not l/r/mid).
 
-        def canShip(dailyCapacity):
-            daysNeeded = 1
-            currentLoad = 0
-
-            for weight in weights:
-                if currentLoad + weight > dailyCapacity:
-                    daysNeeded+=1
-                    currentLoad=0
-                currentLoad+=weight
-            return daysNeeded <= days
-
-        l = max(weights)
-        r = sum(weights)
-
-        while l < r:
-            mid = (l + r) // 2
-            # criteria is that we are able to ship
-            # so let's find the smallest possible to ship
-            if canShip(mid):
-                r=mid
-            else:
-                l=mid+1
-        return l`;
-
-function canShipSim(weights: number[], dailyCapacity: number, days: number): { daysNeeded: number; shipDays: number[] } {
-  let daysNeeded = 1;
-  let currentLoad = 0;
+/** One capacity's greedy-packing simulation, following canShip's own remaining-capacity
+ *  tracking rather than an accumulated-load counter. */
+function canShipSim(weights: number[], capacity: number, days: number): { numberOfDaysUsed: number; shipDays: number[] } {
+  let numberOfDaysUsed = 1;
+  let currentDayCapacity = capacity;
   const shipDays: number[] = new Array(weights.length).fill(0);
-  let dayIdx = 0;
 
   for (let i = 0; i < weights.length; i++) {
-    if (currentLoad + weights[i] > dailyCapacity) {
-      daysNeeded++;
-      currentLoad = 0;
-      dayIdx++;
+    const weight = weights[i];
+    if (currentDayCapacity >= weight) {
+      currentDayCapacity -= weight;
+    } else {
+      numberOfDaysUsed += 1;
+      currentDayCapacity = capacity;
+      currentDayCapacity -= weight;
     }
-    currentLoad += weights[i];
-    shipDays[i] = dayIdx + 1;
+    shipDays[i] = numberOfDaysUsed;
   }
-  return { daysNeeded, shipDays };
+  return { numberOfDaysUsed, shipDays };
 }
 
 function generateSteps(): Step[] {
@@ -64,125 +38,127 @@ function generateSteps(): Step[] {
   const sumW = weights.reduce((a, b) => a + b, 0);
 
   steps.push({
-    explanation:
-      `Capacity to Ship Packages: weights=[${weights.join(',')}], days=${days}. Binary search on capacity in [max(weights)..sum(weights)] = [${maxW}..${sumW}]. max(weights)=${maxW} is the minimum possible (must fit the heaviest package). sum(weights)=${sumW} ships everything in 1 day. For each mid capacity, simulate greedy packing and count days needed.`,
-    highlightLine: 25,
+    explanation: `Capacity to Ship Packages: weights=[${weights.join(',')}], days=${days}. left = max(weights) = ${maxW}, right = sum(weights) = ${sumW}. Binary search on capacity — the minimum possible is max(weights) (must fit the heaviest package alone); the maximum useful is sum(weights) (ships everything in 1 day).`,
+    anchor: { match: 'left = max(weights)', to: { match: 'right = sum(weights)' } },
     state: {
       type: 'array',
-      cells: weights.map(v => ({ value: v, state: 'default' as const })),
+      cells: weights.map((v) => ({ value: v, state: 'default' as const })),
       pointers: [],
       counters: [
-        { label: 'l (min cap)', value: maxW },
-        { label: 'r (max cap)', value: sumW },
-        { label: 'target days', value: days },
+        { label: 'left', value: maxW },
+        { label: 'right', value: sumW },
+        { label: 'days', value: days },
       ],
     },
     variables: [
       { name: 'weights', value: `[${weights.join(',')}]` },
-      { name: 'l', value: maxW },
-      { name: 'r', value: sumW },
+      { name: 'left', value: maxW },
+      { name: 'right', value: sumW },
       { name: 'days', value: days },
     ],
   });
 
-  let l = maxW;
-  let r = sumW;
-
   steps.push({
-    explanation: `Initialize l=${l}=max(weights), r=${r}=sum(weights). Use l < r to converge on the minimum feasible capacity. Note: we can't use sum/days as the lower bound because individual packages can't be split.`,
-    highlightLine: 25,
+    explanation:
+      'def canShip(capacity): numberOfDaysUsed=1, currentDayCapacity=capacity. For each weight, if currentDayCapacity >= weight it loads onto today (currentDayCapacity -= weight); otherwise a new day starts (numberOfDaysUsed+=1, currentDayCapacity resets to capacity, THEN loads this weight). Returns numberOfDaysUsed <= days.',
+    anchor: { match: 'def canShip(capacity):', to: { match: 'return numberOfDaysUsed <= days' } },
     state: {
       type: 'array',
-      cells: weights.map(v => ({ value: v, state: 'default' as const })),
+      cells: weights.map((v) => ({ value: v, state: 'default' as const })),
       pointers: [],
-      counters: [
-        { label: 'l', value: l },
-        { label: 'r', value: r },
-        { label: 'target days', value: days },
-      ],
     },
-    variables: [{ name: 'l', value: l }, { name: 'r', value: r }],
+    variables: [{ name: 'days', value: days }],
   });
 
-  while (l < r) {
-    const mid = Math.floor((l + r) / 2);
-    const { daysNeeded, shipDays } = canShipSim(weights, mid, days);
-    const feasible = daysNeeded <= days;
+  let left = maxW;
+  let right = sumW;
 
-    // Show simulation of packing for this capacity
+  while (left < right) {
+    const middle = Math.floor((left + right) / 2);
+    const { numberOfDaysUsed, shipDays } = canShipSim(weights, middle, days);
+    const feasible = numberOfDaysUsed <= days;
+
     steps.push({
-      explanation: `l=${l}, r=${r}, mid=${mid} (capacity=${mid}). Simulate greedy packing: greedily load packages until adding the next would exceed ${mid}. Days needed = ${daysNeeded}. ${feasible ? `${daysNeeded} ≤ ${days} → feasible, try smaller: r = ${mid}.` : `${daysNeeded} > ${days} → too small, try larger: l = ${mid + 1}.`}`,
-      highlightLine: feasible ? 31 : 33,
+      explanation: `while left < right (${left}<${right}): middle = (left+right)//2 = ${middle}. canShip(${middle}): numberOfDaysUsed=${numberOfDaysUsed}.`,
+      anchor: { match: 'while left < right:', to: { match: 'middle = (left+right)//2' } },
       state: {
         type: 'array',
-        cells: weights.map((v, idx) => ({
-          value: v,
-          state: feasible ? ('window' as const) : ('eliminated' as const),
-        })),
+        cells: weights.map((v) => ({ value: v, state: 'default' as const })),
         pointers: [],
         counters: [
-          { label: 'mid (capacity)', value: mid },
-          { label: 'days_needed', value: daysNeeded },
-          { label: 'target_days', value: days },
-          { label: 'l', value: l },
-          { label: 'r', value: r },
-          { label: feasible ? 'r →' : 'l →', value: feasible ? mid : mid + 1 },
+          { label: 'left', value: left },
+          { label: 'right', value: right },
+          { label: 'middle', value: middle },
         ],
       },
       variables: [
-        { name: 'mid', value: mid },
-        { name: 'days_needed', value: daysNeeded },
-        { name: 'feasible?', value: feasible ? 'YES → r=mid' : 'NO → l=mid+1', highlight: true },
+        { name: 'left', value: left },
+        { name: 'right', value: right },
+        { name: 'middle', value: middle, highlight: true },
       ],
     });
 
-    // Show which packages go on which day
-    steps.push({
-      explanation: `Packing detail at capacity=${mid}: packages coloured by ship day. Day 1 (window) → Day ${daysNeeded}. Package sizes: ${weights.map((w, i) => `[${i}]:${w}→day${shipDays[i]}`).join(', ')}.`,
-      highlightLine: feasible ? 31 : 33,
-      state: {
-        type: 'array',
-        cells: weights.map((v, idx) => ({
-          value: v,
-          state:
-            shipDays[idx] % 2 === 1
-              ? ('window' as const)
-              : ('visited' as const),
-        })),
-        pointers: [],
-        counters: [
-          { label: 'capacity', value: mid },
-          { label: 'days_needed', value: daysNeeded },
-          { label: 'target_days', value: days },
-          { label: 'feasible?', value: feasible ? 'YES' : 'NO' },
+    if (feasible) {
+      steps.push({
+        explanation: `canShip(${middle}) → numberOfDaysUsed=${numberOfDaysUsed} <= days=${days} → True → right = middle = ${middle}. Ship day assignment: ${weights.map((w, i) => `[${i}]:${w}→day${shipDays[i]}`).join(', ')}.`,
+        anchor: { match: 'if canShip(middle):', to: { match: 'right = middle' } },
+        state: {
+          type: 'array',
+          cells: weights.map((v, idx) => ({ value: v, state: (shipDays[idx] % 2 === 1 ? 'window' : 'visited') as 'window' | 'visited' })),
+          pointers: [],
+          counters: [
+            { label: 'numberOfDaysUsed', value: numberOfDaysUsed },
+            { label: 'days', value: days },
+            { label: 'right →', value: middle },
+          ],
+        },
+        variables: [
+          { name: 'numberOfDaysUsed', value: numberOfDaysUsed, highlight: true },
+          { name: 'right', value: middle, highlight: true },
         ],
-      },
-      variables: [
-        { name: 'ship day dist', value: `[${shipDays.join(',')}]` },
-        { name: 'days_needed', value: daysNeeded },
-      ],
-    });
-
-    if (feasible) r = mid;
-    else l = mid + 1;
+      });
+      right = middle;
+    } else {
+      steps.push({
+        explanation: `canShip(${middle}) → numberOfDaysUsed=${numberOfDaysUsed} > days=${days} → False → else: left = middle+1 = ${middle + 1}.`,
+        // nth 2: hit 1 is canShip()'s own 'else:' (the day-rollover branch); this is the outer
+        // while loop's else.
+        anchor: { match: 'else:', nth: 2, to: { match: 'left = middle + 1' } },
+        state: {
+          type: 'array',
+          cells: weights.map((v) => ({ value: v, state: 'eliminated' as const })),
+          pointers: [],
+          counters: [
+            { label: 'numberOfDaysUsed', value: numberOfDaysUsed },
+            { label: 'days', value: days },
+            { label: 'left →', value: middle + 1 },
+          ],
+        },
+        variables: [
+          { name: 'numberOfDaysUsed', value: numberOfDaysUsed, highlight: true },
+          { name: 'left', value: middle + 1, highlight: true },
+        ],
+      });
+      left = middle + 1;
+    }
   }
 
-  const { daysNeeded: finalDays } = canShipSim(weights, l, days);
+  const { numberOfDaysUsed: finalDays } = canShipSim(weights, left, days);
 
   steps.push({
-    explanation: `l === r === ${l}. Converged! Minimum ship capacity = ${l}. Verification: at capacity=${l}, need ${finalDays} days ≤ ${days} ✓. O(n log m) time where n=weights.length and m=sum(weights)-max(weights). O(1) space.`,
-    highlightLine: 34,
+    explanation: `left === right === ${left}. Converged! return left = ${left}. Verification: canShip(${left}) needs ${finalDays} days ≤ ${days} ✓. O(n log m) time where n=weights.length and m=sum(weights)-max(weights). O(1) space.`,
+    anchor: { match: 'return left' },
     state: {
       type: 'array',
-      cells: weights.map(v => ({ value: v, state: 'found' as const })),
+      cells: weights.map((v) => ({ value: v, state: 'found' as const })),
       pointers: [],
       counters: [
-        { label: 'answer capacity', value: l },
-        { label: 'days_needed', value: finalDays },
-        { label: 'target_days', value: days },
+        { label: 'answer capacity', value: left },
+        { label: 'numberOfDaysUsed', value: finalDays },
+        { label: 'days', value: days },
       ],
     },
-    variables: [{ name: 'return capacity', value: l, highlight: true }],
+    variables: [{ name: 'return', value: left, highlight: true }],
   });
 
   return steps;
@@ -190,7 +166,7 @@ function generateSteps(): Step[] {
 
 const solution: SolutionVariant = {
   label: 'Binary Search on Capacity',
-  pythonCode: PYTHON_CODE,
+  variant: 'capacity-search',
   generateSteps,
 };
 
@@ -224,6 +200,6 @@ export const capacityToShipPackagesMeta: AlgorithmMeta = {
     '1 ≤ days ≤ weights.length ≤ 5 × 10⁴',
     '1 ≤ weights[i] ≤ 500',
   ],
-  hint: 'Binary search on the capacity in [max(weights)..sum(weights)]. For each candidate capacity mid, greedily simulate: accumulate weights into the current day; when adding the next package exceeds mid, start a new day. If days_needed ≤ days the capacity is feasible (try smaller, r=mid); otherwise too small (l=mid+1).',
+  hint: 'Binary search on the capacity in [max(weights)..sum(weights)]. For each candidate capacity middle, simulate canShip: track currentDayCapacity as room remaining on the current day, decrementing per weight; when it can\'t fit the next weight, start a new day. If numberOfDaysUsed ≤ days the capacity is feasible (try smaller, right=middle); otherwise too small (left=middle+1).',
   solutions: [solution],
 };
