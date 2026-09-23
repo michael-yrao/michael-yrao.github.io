@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import { TodayBoardComponent } from './today-board.component';
+import { TodayBoardComponent, endNoteMeaning } from './today-board.component';
 import { Schedule } from '../../../core/models/progress.model';
 import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
 
@@ -664,7 +664,7 @@ describe('TodayBoardComponent', () => {
   });
 
   // ── The rep's earned outcome (endComfort/endNote/nextReview) ───────────────────────
-  it("shows the earned outcome (start→end glyph pair, note) as a BUTTON with a next-review popover bubble, on a done row with a nextReview, with no plain comfort span and no .tag--next", () => {
+  it('shows the earned outcome (start→end glyph pair only, no inline note) as a BUTTON, with the note code, its meaning, and the next-review date all moved into the popover bubble', () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
       { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
@@ -677,17 +677,25 @@ describe('TodayBoardComponent', () => {
     expect(outcome).toBeTruthy();
     expect(outcome.tagName).toBe('BUTTON');
     expect(outcome.textContent).toContain('🔴→🟢');
-    expect(outcome.textContent).toContain('s2');
+    // The note code no longer sits inline on the row — only the popover bubble carries it.
+    expect(outcome.textContent).not.toContain('s2');
     expect(fixture.nativeElement.querySelector('.today-board__comfort')).toBeFalsy();
 
     const bubble = fixture.nativeElement.querySelector('.today-board__outcome-bubble');
     expect(bubble).toBeTruthy();
+    expect(bubble.textContent).toContain('s2');
+    expect(bubble.textContent).toContain('clean streak 2');
     expect(bubble.textContent).toContain('next Oct 21');
     expect(outcome.getAttribute('aria-describedby')).toBe(bubble.id);
     // The fixture's own title ("Same Tree") carries a space — the id must not, or
     // aria-describedby (a whitespace-separated id list) points at nothing.
     expect(bubble.id).not.toMatch(/\s/);
 
+    // The aria-label stays short (just the raw note code) — the meaning and the date live in
+    // the bubble alone, reached via aria-describedby, so a screen reader hears each once.
+    expect(outcome.getAttribute('aria-label')).toContain('s2');
+    expect(outcome.getAttribute('aria-label')).not.toContain('clean streak');
+    expect(outcome.getAttribute('aria-label')).not.toContain('next review');
     expect(fixture.nativeElement.querySelector('.tag--next')).toBeFalsy();
   });
 
@@ -789,11 +797,11 @@ describe('TodayBoardComponent', () => {
     expect(wraps()[1].classList.contains('today-board__outcome-wrap--open')).toBe(false);
   });
 
-  it('renders the outcome as a plain SPAN, with no wrap or bubble, when endComfort is set but nextReview is null', () => {
+  it('renders the outcome as a plain SPAN, with no wrap or bubble, when endComfort is set but there is no date and no note', () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
       { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
-        difficulty: 'Easy', done: true, endComfort: '🟢', endNote: 's2', nextReview: null },
+        difficulty: 'Easy', done: true, endComfort: '🟢', endNote: null, nextReview: null },
     ];
 
     const fixture = createFixture(schedule);
@@ -802,6 +810,40 @@ describe('TodayBoardComponent', () => {
     expect(outcome.tagName).toBe('SPAN');
     expect(fixture.nativeElement.querySelector('.today-board__outcome-wrap')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.today-board__outcome-bubble')).toBeFalsy();
+  });
+
+  it('opens the popover on a note alone (no nextReview): the bubble shows the note\'s meaning with no "next" line', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
+        difficulty: 'Easy', done: true, endComfort: '🟢', endNote: 'prov', nextReview: null },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const outcome: HTMLElement = fixture.nativeElement.querySelector('.today-board__outcome');
+    expect(outcome.tagName).toBe('BUTTON');
+    expect(fixture.nativeElement.querySelector('.today-board__outcome-wrap')).toBeTruthy();
+
+    const bubble = fixture.nativeElement.querySelector('.today-board__outcome-bubble');
+    expect(bubble.textContent).toContain('provisional clean');
+    expect(bubble.textContent).not.toContain('next');
+  });
+
+  it('shows an unknown note code raw in the bubble, with no meaning and no " · " separator', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
+        difficulty: 'Easy', done: true, endComfort: '🟢', endNote: 's7', nextReview: null },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const outcome: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__outcome');
+    const bubble = fixture.nativeElement.querySelector('.today-board__outcome-bubble');
+    expect(bubble.textContent).toContain('s7');
+    expect(bubble.textContent).not.toContain('·');
+    expect(outcome.getAttribute('aria-label')).toContain('s7');
   });
 
   it('renders as today (plain comfort span, no outcome, no next tag) for a done row carrying none of the new outcome fields (older contract)', () => {
@@ -823,11 +865,11 @@ describe('TodayBoardComponent', () => {
     expect(children.length).toBe(titleIndex + 3);
   });
 
-  it('renders the outcome with no note element when endNote is null', () => {
+  it('renders no note line in the bubble when endNote is null, but still shows the next-review date', () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
       { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
-        difficulty: 'Easy', done: true, endComfort: '🟢', endNote: null, nextReview: null },
+        difficulty: 'Easy', done: true, endComfort: '🟢', endNote: null, nextReview: '2026-10-21' },
     ];
 
     const fixture = createFixture(schedule);
@@ -835,7 +877,10 @@ describe('TodayBoardComponent', () => {
     const outcome = fixture.nativeElement.querySelector('.today-board__outcome');
     expect(outcome).toBeTruthy();
     expect(outcome.textContent).toContain('🔴→🟢');
-    expect(outcome.querySelector('small')).toBeFalsy();
+
+    const bubble = fixture.nativeElement.querySelector('.today-board__outcome-bubble');
+    expect(bubble.querySelector('b')).toBeFalsy();
+    expect(bubble.textContent).toContain('next Oct 21');
   });
 
   it('renders no next-rep tag on a not-done row even when nextReview would otherwise be absent', () => {
@@ -878,5 +923,34 @@ describe('shortMonthDay', () => {
   it('returns non-matching input unchanged (fail-visible, not silent)', () => {
     expect(shortMonthDay('not-a-date')).toBe('not-a-date');
     expect(shortMonthDay('')).toBe('');
+  });
+});
+
+describe('endNoteMeaning', () => {
+  it('maps s0 and prov to the same provisional-clean meaning', () => {
+    expect(endNoteMeaning('s0')).toBe(endNoteMeaning('prov'));
+    expect(endNoteMeaning('prov')).toContain('provisional clean');
+  });
+
+  it('maps s1 and s2 to distinct clean-streak meanings', () => {
+    expect(endNoteMeaning('s1')).toContain('clean streak 1');
+    expect(endNoteMeaning('s2')).toContain('clean streak 2');
+    expect(endNoteMeaning('s1')).not.toBe(endNoteMeaning('s2'));
+  });
+
+  it('maps dropped to its own meaning', () => {
+    expect(endNoteMeaning('dropped')).toContain('dropped from the tracker');
+  });
+
+  it('returns null for an unknown or empty note (fail-visible: shown raw by the template)', () => {
+    expect(endNoteMeaning('s7')).toBeNull();
+    expect(endNoteMeaning('')).toBeNull();
+  });
+
+  it('returns null for an inherited Object property name, never the prototype method itself', () => {
+    // endNote is external input ("anything else the E cell carried") — a plain object also
+    // answers to `toString`/`constructor`/`__proto__`, which a naive lookup would return.
+    expect(endNoteMeaning('toString')).toBeNull();
+    expect(endNoteMeaning('constructor')).toBeNull();
   });
 });

@@ -101,7 +101,7 @@
 }
 // Shared popover-bubble chrome (position/size/surface/typography/reveal-transition) for both
 // the workload ⓘ popover and the outcome popover below — `@extend`ed so the two bubbles never
-// drift apart, only their anchor edge differs.
+// drift apart; each overrides only its anchor edge (and the outcome bubble, its max-width).
 %popover-bubble {
   position: absolute;
   bottom: calc(100% + 6px);
@@ -138,16 +138,28 @@
 }
 // Left-anchored, not centered like the ⓘ bubble: the outcome sits at the row's far left, so a
 // centered bubble would clip off the viewport's left edge on narrow (phone-width) screens.
+// Wider than the shared 220px too: this bubble can carry two short lines (the note's meaning,
+// then the next-review date), not the ⓘ popover's single short sentence.
 .today-board__outcome-bubble {
   @extend %popover-bubble;
   left: 0;
   transform: none;
+  max-width: 260px;
 }
 .today-board__outcome-wrap:hover .today-board__outcome-bubble,
 .today-board__outcome-wrap:focus-within .today-board__outcome-bubble,
 .today-board__outcome-wrap--open .today-board__outcome-bubble {
   opacity: 1;
   visibility: visible;
+}
+// One bubble fact per line (the note + its meaning, then the next-review date); the note
+// code reads as code (mono), the meaning is the bubble's own normal text.
+.today-board__outcome-line {
+  display: block;
+
+  & + & { margin-top: var(--space-xs); }
+
+  b { font-family: var(--font-mono); }
 }
 
 // ── Collapsed-mode head ─────────────────────────────────────────────────────────────
@@ -274,20 +286,19 @@ $status-badge-height: 1.5em;
 }
 
 .today-board__comfort { font-size: 1rem; }
-// The earned outcome (replaces .today-board__comfort once a rep is done): a tight
-// start→end glyph pair plus an optional muted note (`s2`, `prov`, …).
+// The earned outcome (replaces .today-board__comfort once a rep is done): a tight start→end
+// glyph pair — the note code and the next-review date both moved into the popover bubble
+// below, so this is the only inline content now.
 .today-board__outcome {
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
   font-size: 1rem;
-
-  small { font-size: 0.7rem; color: var(--color-text-muted); }
 }
-// A done row with a `nextReview` wraps the outcome in this popover — reveals `next <date>`
-// on hover/focus/tap instead of sitting inline as a chip. Own class names, never
-// shared with the workload ⓘ popover's `.today-board__info-*` (the spec queries that
-// popover by its own first-match selectors).
+// A done row with an `endNote` and/or a `nextReview` wraps the outcome in this popover —
+// reveals the note's meaning and/or `next <date>` on hover/focus/tap instead of sitting
+// inline. Own class names, never shared with the workload ⓘ popover's `.today-board__info-*`
+// (the spec queries that popover by its own first-match selectors).
 .today-board__outcome-wrap {
   position: relative;
   display: inline-flex;
@@ -301,7 +312,7 @@ $status-badge-height: 1.5em;
   padding: 0;
   // `font-family`/`line-height` only, not the `font` shorthand — that shorthand also resets
   // `font-size`, and this selector's higher specificity would then beat the base rule's own
-  // 1rem, shrinking the glyph pair on every dated row.
+  // 1rem, shrinking the glyph pair on every row with a note or a next-review date.
   font-family: inherit;
   line-height: inherit;
   color: inherit;

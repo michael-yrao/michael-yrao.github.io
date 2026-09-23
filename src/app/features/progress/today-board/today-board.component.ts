@@ -91,6 +91,30 @@ function groupComplexityItems(items: readonly ScheduleItem[]): BoardRow[] {
   return [...flushPending(grouped).rows];
 }
 
+// Qualitative on purpose: the interval lengths and the graduation threshold are config values
+// in the adopter's cse-progress repo (cse.config.yml), and this site renders any cse-coach
+// repo — so the wording never states a day count or "one more graduates it". The only
+// consumer is this component, so the const stays local rather than living in a shared util.
+const PROVISIONAL_CLEAN_MEANING = `provisional clean — first clean straight after a blank; a short lock-down check before it's trusted`;
+
+const END_NOTE_MEANINGS: Readonly<Record<string, string>> = {
+  prov: PROVISIONAL_CLEAN_MEANING,
+  s0: PROVISIONAL_CLEAN_MEANING,
+  s1: `clean streak 1 — one clean in a row; the next review moves further out`,
+  s2: `clean streak 2 — two cleans in a row; further out again`,
+  dropped: `dropped from the tracker after this rep`,
+};
+
+/** The plain-language meaning of an `endNote` code (`s0`, `s1`, `s2`, `prov`, `dropped`, …),
+ *  or null when the note isn't one of the known codes — an unknown/future note is then shown
+ *  raw, with no explanation. Pure. `endNote` is server-supplied external input ("anything else
+ *  the E cell carried"), so this checks the map's OWN keys rather than indexing it directly:
+ *  a plain object also answers to inherited property names like `toString` or `constructor`,
+ *  which `?? null` would not catch since they aren't nullish. */
+export function endNoteMeaning(note: string): string | null {
+  return Object.hasOwn(END_NOTE_MEANINGS, note) ? END_NOTE_MEANINGS[note] : null;
+}
+
 /**
  * The Overview tab's one schedule card: a 7-day selector strip over the week's
  * `schedule.days`, defaulting to the VIEWER's own local date (never a server-baked "today" —
@@ -187,10 +211,11 @@ export class TodayBoardComponent {
     this.infoOpen.update((v) => !v);
   }
 
-  // The done-row outcome popover — replaces the inline `next <date>` chip: the next-review
-  // date is hidden until hover/focus/tap on the outcome glyph pair. Keyed by day date + row
-  // (see outcomeKey()), not row alone, so at most one row's bubble is open at a time even in
-  // the expanded week view, where the same problem can appear done on two different days.
+  // The done-row outcome popover — replaces the inline `next <date>` chip and the inline
+  // note code: the note's meaning and the next-review date are both hidden until
+  // hover/focus/tap on the outcome glyph pair. Keyed by day date + row (see outcomeKey()),
+  // not row alone, so at most one row's bubble is open at a time even in the expanded week
+  // view, where the same problem can appear done on two different days.
   readonly openOutcomeKey = signal<string | null>(null);
 
   toggleOutcome(key: string): void {
@@ -214,13 +239,15 @@ export class TodayBoardComponent {
     return `outcome-${this.outcomeKey(item, date)}`;
   }
 
-  /** The outcome button's aria-label — "earned 🟢 s2" plus ", next review Oct 21" once a
-   *  `nextReview` is present. Only ever called once `item.endComfort` is already known truthy
-   *  (the template's own `@if`). */
+  /** The outcome button's aria-label — "earned 🟢" plus the raw note code when present (e.g.
+   *  "earned 🟢 s2"). Deliberately short: the bubble this button describes (wired via
+   *  `aria-describedby`) already carries the note's meaning and the next-review date, so a
+   *  screen reader announces the label, then the description, each exactly once — not the
+   *  explanation read out twice over. Only ever called once `item.endComfort` is already
+   *  known truthy (the template's own `@if`). */
   outcomeAriaLabel(item: ScheduleItem): string {
-    const note = item.endNote ? ` ${item.endNote}` : '';
-    const base = `earned ${item.endComfort}${note}`;
-    return item.nextReview ? `${base}, next review ${shortMonthDay(item.nextReview)}` : base;
+    const noteText = item.endNote ? ` ${item.endNote}` : '';
+    return `earned ${item.endComfort}${noteText}`;
   }
 
   selectDay(date: string): void {
@@ -267,6 +294,7 @@ export class TodayBoardComponent {
 
   protected readonly leetCodeUrlFor = leetCodeUrlFor;
   protected readonly shortMonthDay = shortMonthDay;
+  protected readonly endNoteMeaning = endNoteMeaning;
   protected readonly isGateRow = isGateRow;
   protected readonly gateTitle = COMPLEXITY_GATE_TITLE;
 }

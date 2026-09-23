@@ -1,8 +1,5 @@
 <ng-template #outcomeGlyphTpl let-item>
   {{ item.startComfort ? item.startComfort + '→' + item.endComfort : item.endComfort }}
-  @if (item.endNote) {
-    <small>{{ item.endNote }}</small>
-  }
 </ng-template>
 
 <ng-template #itemRowTpl let-item let-date="date">
@@ -21,7 +18,7 @@
       }}</span>
     }
     @if (item.endComfort) {
-      @if (item.nextReview) {
+      @if (item.endNote || item.nextReview) {
         <span
           class="today-board__outcome-wrap"
           [class.today-board__outcome-wrap--open]="isOutcomeOpen(item, date)"
@@ -36,7 +33,17 @@
             <ng-container [ngTemplateOutlet]="outcomeGlyphTpl" [ngTemplateOutletContext]="{ $implicit: item }" />
           </button>
           <span class="today-board__outcome-bubble" role="tooltip" [id]="outcomeBubbleId(item, date)">
-            next {{ shortMonthDay(item.nextReview) }}
+            @if (item.endNote) {
+              <span class="today-board__outcome-line">
+                <b>{{ item.endNote }}</b>
+                @if (endNoteMeaning(item.endNote); as meaning) {
+                  · {{ meaning }}
+                }
+              </span>
+            }
+            @if (item.nextReview) {
+              <span class="today-board__outcome-line">next {{ shortMonthDay(item.nextReview) }}</span>
+            }
           </span>
         </span>
       } @else {
