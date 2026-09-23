@@ -43,6 +43,8 @@ function makePayload(): CheatSheetsData {
   };
 }
 
+// Any URL succeeds with `payload` — fine for tests that don't care which fetch path is
+// taken (the repo fetch always resolves first, so these exercise that path).
 function makeHttp(payload: unknown) {
   const calls: string[] = [];
   const http = {
@@ -55,9 +57,31 @@ function makeHttp(payload: unknown) {
   return http;
 }
 
+interface HttpOutcome {
+  payload?: unknown;
+  error?: { status: number };
+}
+
+// Discriminates by URL, the way the real Contents-API vs. bundled-asset fetch does: the
+// repo fetch goes to api.github.com (or, on a 403, raw.githubusercontent.com); the fallback
+// goes to the bundled `assets/` path. Lets a test drive the repo and bundled outcomes
+// independently.
+function makeSplitHttp(repo: HttpOutcome, bundled: HttpOutcome) {
+  const calls: string[] = [];
+  const http = {
+    calls,
+    get: (url: string) => {
+      calls.push(url);
+      const outcome = url.startsWith('assets/') ? bundled : repo;
+      return outcome.error ? throwError(() => outcome.error) : of(outcome.payload);
+    },
+  };
+  return http;
+}
+
 describe('CheatSheetService', () => {
-  it('loads the bundled asset once and exposes it as signals', () => {
-    const http = makeHttp(makePayload());
+  it('fetches dashboard/cheat-sheets.json from the default repo first, and sets source=repo', () => {
+    const http = makeSplitHttp({ payload: makePayload() }, { payload: makePayload() });
     TestBed.configureTestingModule({
       providers: [CheatSheetService, { provide: HttpClient, useValue: http }],
     });
@@ -65,14 +89,70 @@ describe('CheatSheetService', () => {
 
     service.load();
 
-    expect(http.calls).toEqual(['assets/cheat-sheets.json']);
+    expect(http.calls).toEqual([
+      'https://api.github.com/repos/michael-yrao/cse-progress/contents/dashboard/cheat-sheets.json?ref=main',
+    ]);
     expect(service.status()).toBe('ready');
     expect(service.error()).toBeNull();
     expect(service.data()?.techniques.length).toBe(3);
+    expect(service.source()).toBe('repo');
+    expect(service.repoSlug()).toBe('michael-yrao/cse-progress');
+    expect(service.sourceFooter()).toBe(`Generated ${makePayload().generatedAt} from michael-yrao/cse-progress`);
   });
 
-  it('fetches the asset only once across repeated load() calls', () => {
-    const http = makeHttp(makePayload());
+  it('falls back to the bundled asset when the repo fetch 404s, and sets source=bundled', () => {
+    const http = makeSplitHttp({ error: { status: 404 } }, { payload: makePayload() });
+    TestBed.configureTestingModule({
+      providers: [CheatSheetService, { provide: HttpClient, useValue: http }],
+    });
+    const service = TestBed.inject(CheatSheetService);
+
+    service.load();
+
+    expect(http.calls).toEqual([
+      'https://api.github.com/repos/michael-yrao/cse-progress/contents/dashboard/cheat-sheets.json?ref=main',
+      'assets/cheat-sheets.json',
+    ]);
+    expect(service.status()).toBe('ready');
+    expect(service.data()?.techniques.length).toBe(3);
+    expect(service.source()).toBe('bundled');
+    expect(service.repoSlug()).toBeNull();
+    expect(service.sourceFooter()).toBe(`Bundled copy (generated ${makePayload().generatedAt})`);
+  });
+
+  it('falls back to the bundled asset on a remote schemaVersion mismatch', () => {
+    const mismatched = { ...makePayload(), schemaVersion: CHEAT_SHEETS_SCHEMA_VERSION + 1 };
+    const http = makeSplitHttp({ payload: mismatched }, { payload: makePayload() });
+    TestBed.configureTestingModule({
+      providers: [CheatSheetService, { provide: HttpClient, useValue: http }],
+    });
+    const service = TestBed.inject(CheatSheetService);
+
+    service.load();
+
+    expect(service.status()).toBe('ready');
+    expect(service.source()).toBe('bundled');
+    expect(service.data()?.schemaVersion).toBe(CHEAT_SHEETS_SCHEMA_VERSION);
+  });
+
+  it('honours a ?repo= override, fetching that repo/branch instead of the default', () => {
+    const http = makeSplitHttp({ payload: makePayload() }, { payload: makePayload() });
+    TestBed.configureTestingModule({
+      providers: [CheatSheetService, { provide: HttpClient, useValue: http }],
+    });
+    const service = TestBed.inject(CheatSheetService);
+
+    service.load('someone/their-repo@dev');
+
+    expect(http.calls).toEqual([
+      'https://api.github.com/repos/someone/their-repo/contents/dashboard/cheat-sheets.json?ref=dev',
+    ]);
+    expect(service.status()).toBe('ready');
+    expect(service.repoSlug()).toBe('someone/their-repo');
+  });
+
+  it('fetches only once across repeated load() calls', () => {
+    const http = makeSplitHttp({ payload: makePayload() }, { payload: makePayload() });
     TestBed.configureTestingModule({
       providers: [CheatSheetService, { provide: HttpClient, useValue: http }],
     });
@@ -85,10 +165,8 @@ describe('CheatSheetService', () => {
     expect(http.calls.length).toBe(1);
   });
 
-  it('goes to an error state when the HTTP request fails', () => {
-    const http = {
-      get: () => throwError(() => ({ status: 404 })),
-    };
+  it('goes to an error state when both the repo fetch and the bundled fetch fail', () => {
+    const http = makeSplitHttp({ error: { status: 404 } }, { error: { status: 404 } });
     TestBed.configureTestingModule({
       providers: [CheatSheetService, { provide: HttpClient, useValue: http }],
     });
@@ -98,11 +176,12 @@ describe('CheatSheetService', () => {
 
     expect(service.status()).toBe('error');
     expect(service.data()).toBeNull();
+    expect(service.source()).toBeNull();
   });
 
-  it('goes to an error state on a schemaVersion mismatch, with a clear message', () => {
+  it('goes to an error state when both copies are schema-mismatched, with a clear message', () => {
     const mismatched = { ...makePayload(), schemaVersion: CHEAT_SHEETS_SCHEMA_VERSION + 1 };
-    const http = makeHttp(mismatched);
+    const http = makeSplitHttp({ payload: mismatched }, { payload: mismatched });
     TestBed.configureTestingModule({
       providers: [CheatSheetService, { provide: HttpClient, useValue: http }],
     });

@@ -136,3 +136,10 @@
 @media (max-width: 600px) {
   .ll-grid { grid-template-columns: 1fr; }
 }
+
+// ── Source footer ───────────────────────────────────────────────
+.ll-source-footer {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin: var(--space-lg) 0 0;
+}

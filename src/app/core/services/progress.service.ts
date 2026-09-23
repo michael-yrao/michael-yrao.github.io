@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, map, of, throwError } from 'rxjs';
 
 import {
@@ -9,6 +9,7 @@ import {
   TrophyGraduateSummary,
   PROGRESS_SCHEMA_VERSION,
 } from '../models/progress.model';
+import { RepoRef, repoRefFromQuery, fetchRepoFile$ } from './github-contents';
 
 // The dashboard renders any repo that follows the cse-coach schema. This is the default
 // when no ?repo= is given; ?repo=owner/name overrides it for any PUBLIC repo.
@@ -16,12 +17,6 @@ export const DEFAULT_REPO = 'michael-yrao/cse-progress';
 export const DEFAULT_BRANCH = 'main';
 
 export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
-
-interface RepoRef {
-  owner: string;
-  repo: string;
-  branch: string;
-}
 
 // Landing fetches SUMMARY_FILE only (a few KB, no `problems[]`) — instant, cheap, no
 // per-problem components. DETAILS_FILE (the full 144 KB contract) is fetched only when the
@@ -34,11 +29,6 @@ const SUMMARY_FILE = 'dashboard/progress-summary.json';
 const DETAILS_FILE = 'dashboard/progress.json';
 const LEGACY_SUMMARY_FILE = 'progress-summary.json';
 const LEGACY_DETAILS_FILE = 'progress.json';
-
-// A repo slug is "owner/name" or "owner/name@branch" — exactly one '@' at most, and exactly
-// two non-empty '/'-parts either side of it.
-const MAX_SLUG_AT_PARTS = 2;
-const SLUG_PART_COUNT = 2;
 
 /** Derive the lightweight summary from a full contract — the client-side mirror of
  *  cse-progress's `gamify.py::summary_of()`. Used when `progress-summary.json` 404s (an
@@ -120,42 +110,10 @@ export class ProgressService {
   /** Parse "owner/name" or "owner/name@branch"; empty/missing input falls back to the
    *  default repo, but a malformed slug (not exactly owner/name[@branch], every part
    *  non-empty) returns `null` instead of silently substituting the default — the caller
-   *  decides how to surface that (see `loadSummary`'s null-ref branch). */
+   *  decides how to surface that (see `loadSummary`'s null-ref branch). Thin wrapper over
+   *  the shared `repoRefFromQuery` (also used by `CheatSheetService`). */
   parseRepo(raw: string | null | undefined): RepoRef | null {
-    if (!raw) return this.split(DEFAULT_REPO, DEFAULT_BRANCH);
-    const atParts = raw.split('@');
-    if (atParts.length > MAX_SLUG_AT_PARTS) return null;
-    const [slug, branch] = atParts;
-    if (atParts.length === MAX_SLUG_AT_PARTS && !branch) return null;
-    const parts = slug.split('/');
-    if (parts.length !== SLUG_PART_COUNT || parts.some((p) => !p)) return null;
-    return { owner: parts[0], repo: parts[1], branch: branch || DEFAULT_BRANCH };
-  }
-
-  private split(slug: string, branch: string): RepoRef {
-    const [owner, repo] = slug.split('/');
-    return { owner, repo, branch };
-  }
-
-  private apiUrl(ref: RepoRef, file: string, bust: boolean): string {
-    const base = `https://api.github.com/repos/${ref.owner}/${ref.repo}/contents/${file}?ref=${encodeURIComponent(ref.branch)}`;
-    return bust ? `${base}&_=${Date.now()}` : base;
-  }
-
-  private rawUrl(ref: RepoRef, file: string): string {
-    return `https://raw.githubusercontent.com/${ref.owner}/${ref.repo}/${ref.branch}/${file}`;
-  }
-
-  /** GET a named file from the repo, API-first with a raw fallback on the API's rate-limit (403). */
-  private fetch$<T>(ref: RepoRef, file: string, bust: boolean): Observable<T> {
-    const apiHeaders = new HttpHeaders({ Accept: 'application/vnd.github.raw' });
-    return this.http.get<T>(this.apiUrl(ref, file, bust), { headers: apiHeaders, responseType: 'json' }).pipe(
-      catchError((err) =>
-        err?.status === 403
-          ? this.http.get<T>(this.rawUrl(ref, file), { responseType: 'json' })
-          : throwError(() => err),
-      ),
-    );
+    return repoRefFromQuery(raw, DEFAULT_REPO, DEFAULT_BRANCH);
   }
 
   /** Fetch a logical contract file, preferring its `dashboard/` location and falling back
@@ -164,9 +122,9 @@ export class ProgressService {
    *  propagates unchanged rather than masquerading as "not found", so the caller's own
    *  404 handling (summary → full-contract derivation) stays correct. */
   private fetchFile$<T>(ref: RepoRef, primary: string, legacy: string, bust: boolean): Observable<T> {
-    return this.fetch$<T>(ref, primary, bust).pipe(
+    return fetchRepoFile$<T>(this.http, ref, primary, bust).pipe(
       catchError((err) =>
-        err?.status === 404 ? this.fetch$<T>(ref, legacy, bust) : throwError(() => err),
+        err?.status === 404 ? fetchRepoFile$<T>(this.http, ref, legacy, bust) : throwError(() => err),
       ),
     );
   }

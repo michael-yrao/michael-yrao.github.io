@@ -119,6 +119,10 @@
           <a [href]="sheet.docUrl" target="_blank" rel="noopener">Full doc on GitHub ↗</a>
         </p>
 
+        @if (sourceFooter(); as footer) {
+          <p class="cs-source-footer">{{ footer }}</p>
+        }
+
         <!-- ── Prev / Next navigation ──────────────────────────────── -->
         <nav class="cs-nav">
           @if (prevTechnique(); as prev) {

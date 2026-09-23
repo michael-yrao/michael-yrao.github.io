@@ -36,6 +36,7 @@ export class LearnListComponent {
   readonly notice = NOTICE;
   readonly status = this.cheatSheets.status;
   readonly error = this.cheatSheets.error;
+  readonly sourceFooter = this.cheatSheets.sourceFooter;
 
   readonly signalRows = computed<SignalRowView[]>(() => {
     const data = this.cheatSheets.data();

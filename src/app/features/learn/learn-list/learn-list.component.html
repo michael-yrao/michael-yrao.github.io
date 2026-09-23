@@ -65,6 +65,10 @@
           </div>
         </section>
       }
+
+      @if (sourceFooter(); as footer) {
+        <p class="ll-source-footer">{{ footer }}</p>
+      }
     }
   }
 </div>

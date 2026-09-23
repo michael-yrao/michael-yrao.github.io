@@ -39,6 +39,7 @@ export class CheatSheetComponent {
   readonly notice = NOTICE;
   readonly status = this.cheatSheets.status;
   readonly error = this.cheatSheets.error;
+  readonly sourceFooter = this.cheatSheets.sourceFooter;
 
   // A signal, not a snapshot: the component instance is reused across prev/next navigation
   // within the same route (:technique changes but the component doesn't recreate).

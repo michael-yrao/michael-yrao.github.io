@@ -4,10 +4,19 @@ import { catchError, of } from 'rxjs';
 
 import { CheatSheetsData, Technique, CHEAT_SHEETS_SCHEMA_VERSION } from '../models/cheat-sheet.model';
 import { ALL_ALGORITHMS } from '../data/algorithms.data';
+import { RepoRef, fetchRepoFile$, repoRefFromQuery } from './github-contents';
+import { DEFAULT_REPO, DEFAULT_BRANCH } from './progress.service';
 
 export type CheatSheetLoadStatus = 'idle' | 'loading' | 'ready' | 'error';
 
+/** Which copy of the contract is currently loaded: the repo-fetched one, or the bundled
+ *  fallback asset. `null` before anything has loaded. */
+export type CheatSheetSource = 'repo' | 'bundled' | null;
+
 const CHEAT_SHEETS_ASSET = 'assets/cheat-sheets.json';
+// Same logical file ProgressService fetches from `dashboard/`, in the same repo/branch —
+// no legacy-path fallback here, since this file has no earlier location to fall back to.
+const CHEAT_SHEETS_FILE = 'dashboard/cheat-sheets.json';
 
 export type ProblemLink =
   | { kind: 'internal'; commands: string[] }
@@ -22,9 +31,10 @@ export interface FamilyGroup {
 }
 
 /**
- * Loads the bundled technique cheat-sheet contract (`assets/cheat-sheets.json`) once and
- * exposes it as signals, in the style of `ProgressService`. Phase C swaps the fetch for the
- * generated `dashboard/cheat-sheets.json` without touching any consumer of this service.
+ * Loads the technique cheat-sheet contract from cse-progress's `dashboard/cheat-sheets.json`
+ * (the same repo/branch and Contents-API path `ProgressService` resolves) and exposes it as
+ * signals. Falls back to the bundled `assets/cheat-sheets.json` — Phase B's only source — on
+ * any remote failure, so the page always has something to render.
  */
 @Injectable({ providedIn: 'root' })
 export class CheatSheetService {
@@ -33,6 +43,30 @@ export class CheatSheetService {
   readonly status = signal<CheatSheetLoadStatus>('idle');
   readonly error = signal<string | null>(null);
   readonly data = signal<CheatSheetsData | null>(null);
+  /** Which copy is on screen; reset to `null` at the start of every `load()` so a retry
+   *  never shows a stale source/slug while the new fetch is in flight. */
+  readonly source = signal<CheatSheetSource>(null);
+  private readonly repoRef = signal<RepoRef | null>(null);
+
+  readonly generatedAt = computed<string | null>(() => this.data()?.generatedAt ?? null);
+
+  /** "owner/name" of the repo a remote load came from; `null` when nothing loaded from a
+   *  repo (idle, still loading, or on the bundled fallback). */
+  readonly repoSlug = computed<string | null>(() => {
+    const ref = this.repoRef();
+    return ref ? `${ref.owner}/${ref.repo}` : null;
+  });
+
+  /** The one-line footer both `/learn` pages render: which copy of the contract is on
+   *  screen and when it was generated. `null` until a load finishes. */
+  readonly sourceFooter = computed<string | null>(() => {
+    const generatedAt = this.generatedAt();
+    const source = this.source();
+    if (!generatedAt || !source) return null;
+    if (source === 'bundled') return `Bundled copy (generated ${generatedAt})`;
+    const slug = this.repoSlug();
+    return slug ? `Generated ${generatedAt} from ${slug}` : `Generated ${generatedAt}`;
+  });
 
   readonly techniquesByFamily = computed<FamilyGroup[]>(() => {
     const techniques = this.data()?.techniques ?? [];
@@ -53,13 +87,49 @@ export class CheatSheetService {
     this.techniquesByFamily().flatMap((group) => group.techniques),
   );
 
-  /** Fetch the bundled asset once. A no-op while already loading or ready; an error retries. */
-  load(): void {
+  /** Fetch the cheat-sheet contract, repo first. `repoOverride` is the raw `?repo=` value
+   *  (owner/name[@branch]); omitted/null resolves to `DEFAULT_REPO`@`DEFAULT_BRANCH`, same as
+   *  `ProgressService.loadSummary`. Any remote failure — network error, non-404 or 404, bad
+   *  JSON, a schema mismatch, missing `techniques[]`, or a malformed `repoOverride` — falls
+   *  back to the bundled asset silently (a `console.warn` is the only trace); only a failure
+   *  of THAT fallback reaches `error`. A no-op while already loading or ready; an error retries. */
+  load(repoOverride?: string | null): void {
     if (this.status() === 'loading' || this.status() === 'ready') return;
 
     this.status.set('loading');
     this.error.set(null);
+    this.source.set(null);
+    this.repoRef.set(null);
 
+    const ref = repoRefFromQuery(repoOverride, DEFAULT_REPO, DEFAULT_BRANCH);
+    if (!ref) {
+      console.warn(`'${repoOverride}' isn't a repo slug; using the bundled cheat sheets.`);
+      this.loadBundled();
+      return;
+    }
+
+    fetchRepoFile$<CheatSheetsData>(this.http, ref, CHEAT_SHEETS_FILE, false)
+      .pipe(catchError(() => of(null)))
+      .subscribe((result) => {
+        const invalid = result ? this.invalidReason(result, CHEAT_SHEETS_FILE) : null;
+        if (result && !invalid) {
+          this.data.set(result);
+          this.source.set('repo');
+          this.repoRef.set(ref);
+          this.status.set('ready');
+          return;
+        }
+        console.warn(
+          invalid ??
+            `Could not reach ${ref.owner}/${ref.repo}@${ref.branch}'s ${CHEAT_SHEETS_FILE}; using the bundled cheat sheets.`,
+        );
+        this.loadBundled();
+      });
+  }
+
+  /** The fallback path — also Phase B's only path. Its own failure is the one that reaches
+   *  `error` and keeps the existing error state + Retry. */
+  private loadBundled(): void {
     this.http
       .get<CheatSheetsData>(CHEAT_SHEETS_ASSET)
       .pipe(catchError((err) => of(this.toError(err))))
@@ -70,7 +140,7 @@ export class CheatSheetService {
           this.data.set(null);
           return;
         }
-        const invalid = this.invalidReason(result);
+        const invalid = this.invalidReason(result, CHEAT_SHEETS_ASSET);
         if (invalid) {
           this.status.set('error');
           this.error.set(invalid);
@@ -78,6 +148,7 @@ export class CheatSheetService {
           return;
         }
         this.data.set(result);
+        this.source.set('bundled');
         this.status.set('ready');
       });
   }
@@ -107,15 +178,20 @@ export class CheatSheetService {
       .replace(/^-+|-+$/g, '');
   }
 
-  private invalidReason(result: { schemaVersion?: number; techniques?: unknown } | null): string | null {
+  /** `null` when `result` is a usable, compatible contract; else a human reason naming
+   *  `label` (the file path it came from — `CHEAT_SHEETS_FILE` or `CHEAT_SHEETS_ASSET`). */
+  private invalidReason(
+    result: { schemaVersion?: number; techniques?: unknown } | null,
+    label: string,
+  ): string | null {
     if (!result || typeof result.schemaVersion !== 'number') {
-      return 'assets/cheat-sheets.json has no valid cheat-sheet data.';
+      return `${label} has no valid cheat-sheet data.`;
     }
     if (result.schemaVersion !== CHEAT_SHEETS_SCHEMA_VERSION) {
-      return `The bundled cheat sheets are schema v${result.schemaVersion}; this viewer speaks v${CHEAT_SHEETS_SCHEMA_VERSION}. Update the site.`;
+      return `${label} is schema v${result.schemaVersion}; this viewer speaks v${CHEAT_SHEETS_SCHEMA_VERSION}. Update the site.`;
     }
     if (!Array.isArray(result.techniques)) {
-      return 'assets/cheat-sheets.json has no techniques[] array.';
+      return `${label} has no techniques[] array.`;
     }
     return null;
   }
