@@ -147,7 +147,7 @@
     left: var(--space-xl);
     display: flex;
     flex-direction: column;
-    min-width: 260px;
+    min-width: 220px;
     max-width: calc(100vw - 2 * var(--space-xl));
     padding: var(--space-sm);
     background: var(--color-bg-card);
@@ -183,51 +183,16 @@
     }
   }
 
-  &__drawer-link--section {
-    display: grid;
-    grid-template-columns: 1.25rem 1fr auto;
-    align-items: center;
-    column-gap: var(--space-sm);
-  }
-
-  &__drawer-glyph {
-    color: var(--color-accent);
-    font-size: 1rem;
-    line-height: 1;
-  }
-
-  &__drawer-hint {
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-    font-family: var(--font-mono);
-  }
-
-  &__drawer-eyebrow {
-    display: block;
+  &__drawer-link--secondary {
+    font-size: 0.82rem;
     padding: var(--space-xs) var(--space-md);
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--color-text-muted);
   }
 
-  // ── Secondary drawer group: smaller, muted links, divided by the shared
-  // &__drawer-section rule above ──
+  // ── Secondary drawer group: divided by the shared &__drawer-section rule
+  // above; its links use the &__drawer-link--secondary modifier ──
   &__drawer-secondary {
     display: flex;
     flex-direction: column;
-
-    a {
-      padding: var(--space-xs) var(--space-md);
-      border-radius: var(--radius-sm);
-      color: var(--color-text-muted);
-      font-size: 0.82rem;
-
-      &:hover {
-        background: var(--hover-tint);
-        color: var(--color-text);
-      }
-    }
   }
 
   &__theme {

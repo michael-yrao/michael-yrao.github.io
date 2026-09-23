@@ -6,6 +6,9 @@ Source of truth: the Claude design canvas "Progressive Overflow Logo" (2026-09-2
 - mark-on-dark.svg    inverted tile for the slate site background
 - mark-mono.svg       one colour, uses currentColor
 - favicon.svg         same as mark-on-light; drop in as <link rel="icon" type="image/svg+xml">
+    the site's tab icon is instead the accent-tile variant (tile #06b6d4, bars
+    #f1f5f9, overflow bar #0f172a) because Chromium ignores
+    prefers-color-scheme inside an SVG favicon
 - lockup-on-light.svg / lockup-on-dark.svg
     mark + wordmark; the wordmark is live text in Space Grotesk 600, so either
     load that font on the page or convert the text to outlines before use elsewhere.

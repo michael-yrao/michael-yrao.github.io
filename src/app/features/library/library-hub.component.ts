@@ -2,9 +2,13 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ALL_ALGORITHMS, countVisualized } from '../../core/data/algorithms.data';
 import { GAMES } from '../../core/data/games.data';
-import { CHEAT_SHEET_COUNT } from '../../core/data/library-sections';
 import { SITE_LINKS } from '../../core/data/site-links';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../shared/components/page-header/page-header.component';
+
+// A literal, not a read of `assets/cheat-sheets.json`: importing the JSON here would pull the
+// whole cheat-sheet asset into this chunk. Update it when a technique doc is added to
+// cse-progress (the asset's `techniques` length).
+const CHEAT_SHEET_COUNT = 18;
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
