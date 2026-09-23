@@ -1,5 +1,10 @@
 <nav class="po-nav">
   <div class="po-nav__inner">
+    <a class="po-nav__brand" routerLink="/" aria-label="Progressive Overflow — home">
+      <app-logo-mark [size]="28" label="" />
+      <span class="po-nav__wordmark">progressive<em>overflow</em></span>
+    </a>
+
     <button
       class="po-nav__hamburger"
       [attr.aria-expanded]="isDrawerOpen()"
@@ -9,11 +14,6 @@
     >
       ☰
     </button>
-
-    <a class="po-nav__brand" routerLink="/" aria-label="Progressive Overflow — home">
-      <app-logo-mark [size]="28" label="" />
-      <span class="po-nav__wordmark">progressive<em>overflow</em></span>
-    </a>
 
     @if (currentCtx(); as ctx) {
       <button

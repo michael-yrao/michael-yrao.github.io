@@ -49,13 +49,13 @@ describe('AppComponent', () => {
     expect(compiled.querySelector('.po-nav__brand app-logo-mark svg')).toBeTruthy();
   });
 
-  it('renders the hamburger as the first child of the nav bar, before the brand', () => {
+  it('renders the brand as the first child of the nav bar, before the hamburger', () => {
     fixture.detectChanges();
     const inner = fixture.nativeElement.querySelector('.po-nav__inner') as HTMLElement;
     const children = Array.from(inner.children);
-    expect(children[0]?.classList.contains('po-nav__hamburger')).toBe(true);
-    expect(children.findIndex((el) => el.classList.contains('po-nav__hamburger'))).toBeLessThan(
-      children.findIndex((el) => el.classList.contains('po-nav__brand')),
+    expect(children[0]?.classList.contains('po-nav__brand')).toBe(true);
+    expect(children.findIndex((el) => el.classList.contains('po-nav__brand'))).toBeLessThan(
+      children.findIndex((el) => el.classList.contains('po-nav__hamburger')),
     );
   });
 

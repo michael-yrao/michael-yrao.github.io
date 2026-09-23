@@ -21,8 +21,8 @@
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    // Sits at the bar's right edge (space-between pushes it there, opposite the ☰);
-    // the centre stays free for the absolutely-centred problem-context button.
+    // Sits at the bar's left edge (space-between puts the ☰ at the right); the centre
+    // stays free for the absolutely-centred problem-context button.
     margin: 0;
     text-decoration: none;
     color: var(--color-text);
@@ -137,14 +137,14 @@
     cursor: pointer;
   }
 
-  // ── Menu drawer: anchored under the bar's left gutter, card-styled ──
-  // A child of __inner (not of .po-nav), so `left` is relative to the bar's
-  // own padding box — var(--space-xl) lines this up with __inner's left
+  // ── Menu drawer: anchored under the bar's right gutter, card-styled ──
+  // A child of __inner (not of .po-nav), so `right` is relative to the bar's
+  // own padding box — var(--space-xl) lines this up with __inner's right
   // padding, i.e. with the ☰ button, rather than the viewport edge.
   &__drawer {
     position: absolute;
     top: 100%;
-    left: var(--space-xl);
+    right: var(--space-xl);
     display: flex;
     flex-direction: column;
     min-width: 220px;
