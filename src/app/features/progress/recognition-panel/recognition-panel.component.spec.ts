@@ -58,6 +58,35 @@ describe('RecognitionPanelComponent', () => {
     expect(fixture.nativeElement.querySelector('.recognition__note')?.textContent).toContain('cold');
   });
 
+  // ── The technique field is dropped from every row (recognition-gate spoiler) ───────
+  it('renders no technique anywhere, even though items carry a technique field', () => {
+    const fixture = createFixture(makeProbes());
+
+    const rows = fixture.nativeElement.querySelectorAll('.recognition__row');
+    for (const row of Array.from(rows) as HTMLElement[]) {
+      expect(row.textContent).not.toContain('Hash Map');
+      expect(row.textContent).not.toContain('Graph-DFS');
+    }
+  });
+
+  it("renders .recognition__date immediately after .recognition__title, then .recognition__links as the row's last child", () => {
+    const fixture = createFixture(makeProbes());
+
+    const rows = fixture.nativeElement.querySelectorAll('.recognition__row');
+    for (const row of Array.from(rows) as HTMLElement[]) {
+      const children = Array.from(row.children) as HTMLElement[];
+      const titleIndex = children.findIndex((el) => el.classList.contains('recognition__title'));
+      expect(titleIndex).toBeGreaterThan(-1);
+
+      const dateEl = children[titleIndex + 1];
+      expect(dateEl.classList.contains('recognition__date')).toBe(true);
+
+      const linksEl = children[titleIndex + 2];
+      expect(linksEl.classList.contains('recognition__links')).toBe(true);
+      expect(children.length).toBe(titleIndex + 3);
+    }
+  });
+
   it('shows a friendly hint and no crash when probes is null', () => {
     const fixture = createFixture(null);
 

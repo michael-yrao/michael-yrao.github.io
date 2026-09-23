@@ -12,20 +12,23 @@
             @if (item.result) {
               <span class="recognition__result">{{ item.result }}</span>
             }
-            <span class="recognition__date">{{ item.date }}</span>
             @if (item.lcNumber) {
               <span class="recognition__num">#{{ item.lcNumber }}</span>
             }
             <span class="recognition__title">{{ item.title }}</span>
-            <span class="tag">{{ item.technique }}</span>
-            @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
-              <a
-                [href]="lc"
-                target="_blank"
-                rel="noopener"
-                class="recognition__link"
-              >LeetCode ↗</a>
-            }
+            <span class="recognition__date">{{ item.date }}</span>
+            <span class="recognition__links">
+              @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
+                <a
+                  [href]="lc"
+                  target="_blank"
+                  rel="noopener"
+                  class="recognition__link"
+                  aria-label="Open on LeetCode"
+                  title="LeetCode"
+                >↗</a>
+              }
+            </span>
           </li>
         }
       </ul>

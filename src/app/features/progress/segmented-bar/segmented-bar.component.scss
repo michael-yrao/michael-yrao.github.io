@@ -7,10 +7,15 @@
   display: flex;
   height: 32px; // ONE height for every bar usage (was 34px pipeline / 20px breadth — the
   // learner's exact complaint was that these didn't match)
+  gap: 2px; // dataviz: a visible surface gap between stacked fills, on every variant
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--color-bg-raised);
 }
+
+// The difficulty-mix bar: slim, unlabeled — its labels live in the legend row below instead.
+.segbar__bar--mix { height: 12px; }
+.segbar__bar--mix .segbar__seg { min-width: 4px; padding: 0; }
 
 .segbar__seg {
   appearance: none;
@@ -21,7 +26,7 @@
   min-width: 28px;
   height: 100%;
   padding: 0 6px;
-  color: #0b1220; // fixed dark text — every segment color below is bright enough for this
+  color: var(--color-seg-ink);
   font-weight: 700;
   font-size: 0.72rem;
   transition: width var(--transition-base), filter var(--transition-fast);
@@ -37,6 +42,53 @@ button.segbar__seg {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+// The muted axis line under a `stages` bar, naming its two ends ("◂ unfamiliar / mastered ▸")
+// — a visual-only cue (the bar's own aria-label already lists every segment).
+.segbar__axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-xs);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+
+  span:first-child::before { content: '◂ '; }
+  span:last-child::after { content: ' ▸'; }
+}
+
+// The `mix` bar's legend row (swatch · label · count) — replaces in-bar text the 12px bar
+// can't carry, and doubles as the bigger click target (never the slim segments themselves).
+.segbar__legend {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-sm) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.segbar__swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.segbar__legend-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover, &:focus-visible { color: var(--color-text); outline: none; text-decoration: underline; }
 }
 
 .segbar__caption {
@@ -58,7 +110,9 @@ button.segbar__seg {
 .seg-medium { background: var(--color-medium); }
 .seg-hard { background: var(--color-hard); }
 
-// Technique breadth (tiered by the interview-ROI line)
-.seg-practiced { background: var(--color-accent); }
-.seg-upcoming { background: var(--color-easy); }
-.seg-horizon { background: var(--color-border); }
+// Technique breadth / roadmap — single-hue cyan ramp, far → here, so both stage bars share
+// one direction (still ahead → earned): the earned (practiced) segment always sits at the
+// ramp's darkest step, at the bar's right edge.
+.seg-horizon { background: var(--color-roadmap-far); }
+.seg-upcoming { background: var(--color-roadmap-near); }
+.seg-practiced { background: var(--color-roadmap-here); color: var(--color-roadmap-here-ink); }

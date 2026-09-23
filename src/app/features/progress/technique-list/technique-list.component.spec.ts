@@ -158,5 +158,14 @@ describe('TechniqueListComponent', () => {
     expect(row?.textContent).toContain('#11');
     expect(row?.textContent).toContain('🟡');
     expect(fixture.nativeElement.querySelector('.tag--medium')?.textContent).toContain('Medium');
+
+    // #11 (Container With Most Water) has a visualizer route, so the leading slot is the
+    // `</>` link — and it's the row's first element child, leading the row.
+    expect(row?.firstElementChild?.classList.contains('tech-row__problem-status')).toBe(true);
+    expect(row?.firstElementChild?.classList.contains('tech-row__problem-status--link')).toBe(true);
+
+    const link: HTMLAnchorElement | null = row?.querySelector('.tech-row__problem-links a') ?? null;
+    expect(link?.textContent?.trim()).toBe('↗');
+    expect(link?.getAttribute('aria-label')).toBe('Open on LeetCode');
   });
 });

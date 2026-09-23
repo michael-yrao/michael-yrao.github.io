@@ -1,0 +1,135 @@
+// Shared problem-row grammar (Overview · Recognition · Problems · Mastery). Every row is the
+// same slots in the same left-to-right order — status badge, glyph, #num, title, tags, meta,
+// link, trailing control — and a surface omits a slot it has no data for rather than
+// reordering or inventing one. See the plan's slot-order table for which surface uses which
+// slot. Mixin bodies below are lifted verbatim from today-board.component.scss, the most
+// complete of the four surfaces.
+
+// Width must clear three mono glyphs (`</>` is ~1.8em at this size) with a little air on
+// each side; every badge shares it so the column stays aligned whether it holds `</>`, ○ or ✓.
+$status-badge-width: 2.25em;
+$status-badge-height: 1.5em;
+
+$row-mobile-breakpoint: 680px;
+
+// Split so a surface that already draws its own bordered box (Problems' `.problem`) can take
+// only the layout half on its inner flex row, instead of nesting a second bordered box inside
+// the first. `row-layout` keeps font-size alongside its other declarations rather than a
+// separate `row-font` mixin — the simplest split — which means `row` below emits font-size
+// before padding/border/border-radius/background instead of last as it used to. That is a
+// reorder, not a behavior change: with no duplicate property in the rule, declaration order
+// doesn't affect the computed style.
+@mixin row-layout {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  font-size: 0.9rem;
+}
+
+@mixin row-surface {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+@mixin row {
+  @include row-layout;
+  @include row-surface;
+}
+
+@mixin status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: $status-badge-width;
+  height: $status-badge-height;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  flex: none;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+// Occupies exactly the badge's box so columns still align on a row with no walkthrough and no
+// done-state. The badge has a 1px border; a spacer with no border at all would sit 2px
+// narrower/shorter than the badge's outer box, so this keeps `border: 1px solid transparent`
+// (rather than `border: none` plus a matching box-sizing adjustment) — simplest way to make
+// the spacer's outer box identical to the badge's.
+@mixin status-spacer {
+  display: inline-flex;
+  width: $status-badge-width;
+  height: $status-badge-height;
+  border: 1px solid transparent;
+  flex: none;
+  visibility: hidden;
+}
+
+// Hover/focus-visible DECLARATIONS only (no selector) — a caller includes this inside its own
+// `:hover, :focus-visible` selector. Split into two mixins (border/color accent vs. the
+// focus-visible outline) so a caller can reproduce today-board's two separate rules
+// (`.today-board__row .today-board__status--link:hover, …:focus-visible` and the standalone
+// `.today-board__status--link:focus-visible` outline rule) exactly. today-board keeps writing
+// its own specificity-scoped selectors and does not use these two mixins — they exist for the
+// other surfaces, which have no equivalent done-state specificity fight to win.
+@mixin status-badge-link-hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+@mixin status-badge-link-focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@mixin num {
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+}
+
+@mixin title {
+  font-weight: 600;
+  flex: 1 1 auto;
+}
+
+@mixin meta {
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  margin-left: auto;
+}
+
+@mixin links {
+  display: flex;
+  gap: var(--space-sm);
+  font-size: 0.78rem;
+  margin-left: auto;
+
+  a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
+}
+
+@mixin tag {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+@mixin tag-difficulty {
+  &--easy { color: var(--color-easy); }
+  &--medium { color: var(--color-medium); }
+  &--hard { color: var(--color-hard); }
+}
+
+@mixin row-mobile {
+  @media (max-width: $row-mobile-breakpoint) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

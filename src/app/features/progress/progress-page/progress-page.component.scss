@@ -1,3 +1,5 @@
+@use '../problem-row' as prow;
+
 // Shared reset for an inline control that must read as plain content, not a button — used by
 // the drill triggers below (gauge links, problem rows). Segment-bar buttons have their own
 // reset in segmented-bar.component.scss.
@@ -375,26 +377,31 @@ $skeleton-card-height: 12rem;
 
 .problems { display: flex; flex-direction: column; gap: var(--space-sm); margin-top: var(--space-md); }
 .problem {
-  @extend %raised-md-surface;
-  padding: var(--space-sm) var(--space-md);
+  @include prow.row-surface;
 }
 // Compact row IS the expand toggle — a `role="button"` div (not a real <button>) because it
-// hosts a real <a> (the solution-glyph link right after the title), and an <a> nested inside
-// a <button> is invalid HTML. Keyboard support (Enter/Space) is wired in the template.
+// hosts a real <a> (the leading `</>` status badge and the trailing ↗ LeetCode link), and an
+// <a> nested inside a <button> is invalid HTML. Keyboard support (Enter/Space) is wired in
+// the template.
 .problem__row {
   @extend %btn-reset;
   @extend %focus-ring-2;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
+  @include prow.row-layout;
   width: 100%;
   text-align: left;
   border-radius: var(--radius-sm);
 }
+.problem__status { @include prow.status-badge; }
+.problem__status--spacer { @include prow.status-spacer; }
+.problem__status--link {
+  &:hover, &:focus-visible { @include prow.status-badge-link-hover; }
+  &:focus-visible { @include prow.status-badge-link-focus; }
+}
 .problem__comfort { font-size: 1.1rem; }
-.problem__num { font-family: var(--font-mono); color: var(--color-text-muted); }
-.problem__name { font-weight: 600; flex: 1 1 auto; }
+.problem__num { @include prow.num; }
+.problem__name { @include prow.title; }
+.problem__meta { @include prow.meta; }
+.problem__links { @include prow.links; }
 .problem__caret {
   display: inline-block;
   color: var(--color-text-muted);
@@ -402,20 +409,13 @@ $skeleton-card-height: 12rem;
   &.problem__caret--open { transform: rotate(90deg); }
 }
 .tag {
-  @extend %card-surface;
-  font-size: 0.7rem; padding: 2px 6px; border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
-}
-.tag--easy { color: var(--color-easy); }
-.tag--medium { color: var(--color-medium); }
-.tag--hard { color: var(--color-hard); }
-// LeetCode stays alone at the row's right edge, on its own line below the row's tags.
-.problem__links { display: flex; justify-content: flex-end; gap: var(--space-md); font-size: 0.8rem; margin-top: var(--space-xs);
-  a { @extend %text-link; }
+  @include prow.tag;
+  @include prow.tag-difficulty;
 }
 // Full row width, not a fixed box — the chart's own viewBox grows with rep count, so it
 // needs the whole expanded row to keep per-point spacing legible.
 .problem__chart { width: 100%; margin-top: var(--space-sm); }
+.problem__row { @include prow.row-mobile; }
 
 // ── Responsive ───────────────────────────────────────────────────────────────
 @media (max-width: 680px) {

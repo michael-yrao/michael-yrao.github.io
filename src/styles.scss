@@ -24,6 +24,14 @@
   --color-window:      rgba(6, 182, 212, 0.25);
   --color-eliminated:  #1e293b;
 
+  // Segmented-bar tokens — the fixed dark segment-label ink, and the roadmap's single-hue
+  // cyan ramp (far → here), validated with the dataviz skill's validate_palette.js --ordinal.
+  --color-seg-ink:          #0b1220;
+  --color-roadmap-far:      #a5f3fc;
+  --color-roadmap-near:     #22d3ee;
+  --color-roadmap-here:     #06b6d4;
+  --color-roadmap-here-ink: #0b1220;
+
   // Typography
   --font-ui:    'Inter', system-ui, -apple-system, sans-serif;
   --font-mono:  'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
@@ -82,6 +90,15 @@
   --color-visited:     #cbd5e1;
   --color-window:      rgba(8, 145, 178, 0.2);
   --color-eliminated:  #e2e8f0;
+
+  // Segmented-bar tokens — the darkest ramp step needs light label text on the light surface
+  // (the fixed dark ink only reaches 2.6:1 there); the ramp runs darker here to clear the
+  // light surface.
+  --color-seg-ink:          #0b1220;
+  --color-roadmap-far:      #0891b2;
+  --color-roadmap-near:     #0e7490;
+  --color-roadmap-here:     #155e75;
+  --color-roadmap-here-ink: #f1f5f9;
 }
 
 // ── Reset & Base ─────────────────────────────────────────────────────────────
@@ -173,23 +190,6 @@ code, pre, .mono { font-family: var(--font-mono); }
     border-color: var(--color-accent);
     background: var(--color-bg-raised);
     transform: translateY(-3px);
-  }
-}
-
-// ── Solution-walkthrough glyph ─────────────────────────────────────────────────
-// Small muted anchor to the learner's own solution walkthrough — an internal
-// routerLink to this site's step-by-step visualizer for that problem. Rendered
-// right after a problem title on the today-board, technique-list, and problems
-// list. Tokens flip automatically under [data-theme='light'].
-.solution-glyph {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  transition: color var(--transition-fast);
-
-  &:hover,
-  &:focus-visible {
-    color: var(--color-accent);
   }
 }
 

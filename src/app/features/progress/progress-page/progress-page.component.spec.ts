@@ -124,7 +124,7 @@ function makeActivatedRouteStub() {
 }
 
 // A trivial catch-all route target — every RouterLink this page renders (vizRoute links,
-// the solution-glyph) needs SOMETHING to resolve to, or a real click on one throws an
+// the problem__status--link badge) needs SOMETHING to resolve to, or a real click on one throws an
 // uncaught NG04002 ("cannot match any routes") that Vitest reports as an unhandled error
 // even though the assertions themselves still pass.
 @Component({ selector: 'app-blank-route-stub', template: '' })
@@ -352,7 +352,7 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
   });
 
-  it('an Enter keydown on the solution-glyph does not expand the row (stopPropagation)', () => {
+  it('an Enter keydown on the problem__status link does not expand the row (stopPropagation)', () => {
     const problem: ProblemProgress = {
       lcNumber: 206,
       title: 'Reverse Linked List',
@@ -373,7 +373,7 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'problems');
 
-    const glyph: HTMLAnchorElement = fixture.nativeElement.querySelector('.solution-glyph');
+    const glyph: HTMLAnchorElement = fixture.nativeElement.querySelector('.problem__status--link');
     expect(glyph).toBeTruthy();
     glyph.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     fixture.detectChanges();
@@ -381,7 +381,7 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
   });
 
-  it('clicking the solution-glyph inside the row does not toggle the row (stopPropagation)', () => {
+  it('clicking the problem__status link inside the row does not toggle the row (stopPropagation)', () => {
     const problem: ProblemProgress = {
       lcNumber: 206,
       title: 'Reverse Linked List',
@@ -402,11 +402,94 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'problems');
 
-    const glyph: HTMLAnchorElement = fixture.nativeElement.querySelector('.solution-glyph');
+    const glyph: HTMLAnchorElement = fixture.nativeElement.querySelector('.problem__status--link');
     expect(glyph).toBeTruthy();
     glyph.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
+  });
+
+  it("a Problems row's textContent never contains the technique category (recognition-gate spoiler)", () => {
+    const problem: ProblemProgress = {
+      lcNumber: 206,
+      title: 'Reverse Linked List',
+      url: 'https://leetcode.com/problems/reverse-linked-list/',
+      difficulty: 'Easy',
+      category: 'linked-list',
+      comfort: '🎓',
+      level: 3,
+      streak: 3,
+      nextReview: '2026-10-01',
+      repDates: ['2026-09-01'],
+      timeline: [{ date: '2026-09-01', comfort: '🎓', level: 3 }],
+    };
+    progress.detailsStatus.set('ready');
+    progress.details.set([problem]);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'problems');
+
+    const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
+    expect(row.textContent).not.toContain('linked-list');
+  });
+
+  it('a Problems row renders the LC number with a leading #', () => {
+    const problem: ProblemProgress = {
+      lcNumber: 206,
+      title: 'Reverse Linked List',
+      url: 'https://leetcode.com/problems/reverse-linked-list/',
+      difficulty: 'Easy',
+      category: 'linked-list',
+      comfort: '🎓',
+      level: 3,
+      streak: 3,
+      nextReview: '2026-10-01',
+      repDates: ['2026-09-01'],
+      timeline: [{ date: '2026-09-01', comfort: '🎓', level: 3 }],
+    };
+    progress.detailsStatus.set('ready');
+    progress.details.set([problem]);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'problems');
+
+    const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
+    expect(row.querySelector('.problem__num')!.textContent).toContain('#206');
+  });
+
+  it('the ↗ LeetCode link lives inside the row and does not toggle it on click (stopPropagation)', () => {
+    const problem: ProblemProgress = {
+      lcNumber: 206,
+      title: 'Reverse Linked List',
+      url: 'https://leetcode.com/problems/reverse-linked-list/',
+      difficulty: 'Easy',
+      category: 'linked-list',
+      comfort: '🎓',
+      level: 3,
+      streak: 3,
+      nextReview: '2026-10-01',
+      repDates: ['2026-09-01'],
+      timeline: [{ date: '2026-09-01', comfort: '🎓', level: 3 }],
+    };
+    progress.detailsStatus.set('ready');
+    progress.details.set([problem]);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'problems');
+
+    const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
+    const link: HTMLAnchorElement = row.querySelector('.problem__links a')!;
+    expect(link).toBeTruthy();
+    expect(row.contains(link)).toBe(true);
+
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(row.getAttribute('aria-expanded')).toBe('false');
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
   });
 
@@ -435,6 +518,30 @@ describe('ProgressPageComponent', () => {
     expect(bar.textContent).toContain('2');
     expect(bar.textContent).toContain('Interview-upcoming');
     expect(bar.textContent).toContain('Competitive-horizon');
+
+    // Both stage bars read still-ahead → earned: horizon, then upcoming, then practiced at
+    // the right edge, same direction as the pipeline's 🎓/🏆.
+    const segs = Array.from(bar.querySelectorAll('.segbar__seg')) as HTMLElement[];
+    expect(segs.map((s) => Array.from(s.classList).find((c) => c.startsWith('seg-')))).toEqual([
+      'seg-horizon',
+      'seg-upcoming',
+      'seg-practiced',
+    ]);
+  });
+
+  it('the pipeline and roadmap bars each carry an axis; the difficulty bar is a mix variant with a legend', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'mastery');
+
+    const bars = fixture.nativeElement.querySelectorAll('app-segmented-bar');
+    const [pipelineBar, difficultyBar, roadmapBar] = Array.from(bars) as HTMLElement[];
+
+    expect(pipelineBar.querySelector('.segbar__axis')).toBeTruthy();
+    expect(roadmapBar.querySelector('.segbar__axis')).toBeTruthy();
+
+    expect(difficultyBar.querySelector('.segbar__bar--mix')).toBeTruthy();
+    expect(difficultyBar.querySelector('.segbar__legend')).toBeTruthy();
   });
 
   it("the breadth bar shows a title and a caption explaining the interview-ROI split", () => {
@@ -507,7 +614,11 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const diffBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.difficulty-inline .segbar__seg');
+    // The difficulty bar is a `mix` variant — its slim segments aren't clickable; the legend
+    // row beneath it is the click target.
+    const diffBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.difficulty-inline .segbar__legend-btn',
+    );
     expect(diffBtn).toBeTruthy();
     diffBtn.click();
     fixture.detectChanges();

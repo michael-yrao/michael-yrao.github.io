@@ -215,14 +215,16 @@ export class ProgressPageComponent {
   // definitions as techniqueBreadth() above (practiced=started; upcoming/horizon split by
   // the interview-ROI line), just reshaped into self-labeling segments so it reads like the
   // pipeline instead of needing its own vertical "ROI line" marker to be legible.
+  // Both stage bars read the same direction — still ahead → earned — so the earned segment
+  // sits at the right edge here, same as the pipeline's 🎓/🏆.
   readonly breadthSegments = computed<SegmentedBarSegment[]>(() => {
     const tb = this.techniqueBreadth();
     if (!tb) return [];
     return (
       [
-        { key: 'practiced', label: 'Practiced (started)', value: tb.practiced, cls: 'seg-practiced' },
-        { key: 'upcoming', label: 'Interview-upcoming', value: tb.upcoming, cls: 'seg-upcoming' },
         { key: 'horizon', label: 'Competitive-horizon', value: tb.horizon, cls: 'seg-horizon' },
+        { key: 'upcoming', label: 'Interview-upcoming', value: tb.upcoming, cls: 'seg-upcoming' },
+        { key: 'practiced', label: 'Practiced (started)', value: tb.practiced, cls: 'seg-practiced' },
       ] satisfies SegmentedBarSegment[]
     ).filter((s) => s.value > 0);
   });

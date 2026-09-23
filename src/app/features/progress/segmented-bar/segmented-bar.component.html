@@ -2,9 +2,16 @@
   @if (title()) {
     <h3 class="segbar__title">{{ title() }}</h3>
   }
-  <div class="segbar__bar" role="img" [attr.aria-label]="ariaLabel()">
+  <div class="segbar__bar" [class.segbar__bar--mix]="variant() === 'mix'" role="img" [attr.aria-label]="ariaLabel()">
     @for (seg of visibleSegments(); track seg.key) {
-      @if (clickable()) {
+      @if (variant() === 'mix') {
+        <span
+          class="segbar__seg"
+          [class]="seg.cls"
+          [style.width.%]="pct(seg.value)"
+          [attr.title]="seg.label + ': ' + seg.value"
+        ></span>
+      } @else if (clickable()) {
         <button
           type="button"
           class="segbar__seg"
@@ -27,6 +34,24 @@
       }
     }
   </div>
+  @if (axisStart() || axisEnd()) {
+    <div class="segbar__axis" aria-hidden="true"><span>{{ axisStart() }}</span><span>{{ axisEnd() }}</span></div>
+  }
+  @if (variant() === 'mix') {
+    <ul class="segbar__legend">
+      @for (seg of visibleSegments(); track seg.key) {
+        <li>
+          @if (clickable()) {
+            <button type="button" class="segbar__legend-btn" (click)="onSegmentClick(seg)">
+              <span class="segbar__swatch {{ seg.cls }}"></span>{{ seg.label }} · {{ seg.value }}
+            </button>
+          } @else {
+            <span class="segbar__swatch {{ seg.cls }}"></span>{{ seg.label }} · {{ seg.value }}
+          }
+        </li>
+      }
+    </ul>
+  }
   @if (caption()) {
     <p class="segbar__caption">{{ caption() }}</p>
   }

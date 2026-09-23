@@ -1,3 +1,5 @@
+@use '../problem-row' as prow;
+
 .recognition__head {
   display: flex;
   align-items: baseline;
@@ -25,36 +27,18 @@
 }
 
 .recognition__row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-raised);
-  font-size: 0.85rem;
+  @include prow.row;
 }
 
 .recognition__result { font-size: 1rem; }
-.recognition__date { font-family: var(--font-mono); color: var(--color-text-muted); font-size: 0.78rem; }
-.recognition__num { font-family: var(--font-mono); color: var(--color-text-muted); }
-.recognition__title { font-weight: 600; flex: 1 1 auto; }
+.recognition__date { @include prow.meta; }
+.recognition__num { @include prow.num; }
+.recognition__title { @include prow.title; }
 
-.tag {
-  font-size: 0.68rem;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-card);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-}
-
-.recognition__link {
-  color: var(--color-accent);
-  text-decoration: none;
-  font-size: 0.78rem;
-  &:hover { text-decoration: underline; }
+// `.recognition__link` (the anchor) gets its color/underline from `prow.links`' own nested
+// `a` selector — no separate rule needed.
+.recognition__links {
+  @include prow.links;
 }
 
 .recognition__note {
@@ -70,6 +54,6 @@
   margin: 0;
 }
 
-@media (max-width: 680px) {
-  .recognition__row { flex-direction: column; align-items: flex-start; }
+.recognition__row {
+  @include prow.row-mobile;
 }

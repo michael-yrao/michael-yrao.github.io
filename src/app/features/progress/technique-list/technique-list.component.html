@@ -44,24 +44,26 @@
                         <ul class="tech-row__problems">
                           @for (p of probs; track p.lcNumber + '-' + p.title) {
                             <li class="tech-row__problem">
-                              <span class="tech-row__problem-comfort">{{ p.comfort }}</span>
-                              <span class="tech-row__problem-num">#{{ p.lcNumber }}</span>
-                              <span class="tech-row__problem-title">{{ p.title }}</span>
                               @if (vizRoute(p.lcNumber); as route) {
                                 <a
                                   [routerLink]="route"
-                                  class="solution-glyph"
+                                  class="tech-row__problem-status tech-row__problem-status--link"
                                   title="Solution walkthrough"
                                   [attr.aria-label]="'Solution walkthrough for #' + p.lcNumber"
                                   >&lt;/&gt;</a
                                 >
+                              } @else {
+                                <span class="tech-row__problem-status tech-row__problem-status--spacer" aria-hidden="true"></span>
                               }
+                              <span class="tech-row__problem-comfort">{{ p.comfort }}</span>
+                              <span class="tech-row__problem-num">#{{ p.lcNumber }}</span>
+                              <span class="tech-row__problem-title">{{ p.title }}</span>
                               @if (p.difficulty) {
                                 <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
                               }
                               <span class="tech-row__problem-links">
                                 @if (p.url) {
-                                  <a [href]="p.url" target="_blank" rel="noopener">LeetCode ↗</a>
+                                  <a [href]="p.url" target="_blank" rel="noopener" aria-label="Open on LeetCode" title="LeetCode">↗</a>
                                 }
                               </span>
                             </li>

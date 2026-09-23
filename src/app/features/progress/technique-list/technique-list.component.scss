@@ -1,3 +1,5 @@
+@use '../problem-row' as prow;
+
 .tech-list {
   display: flex;
   flex-direction: column;
@@ -102,36 +104,24 @@
   flex-direction: column;
   gap: var(--space-xs);
 }
+// Matches Problems' row shape (shared padding/border/background/font-size) — Mastery's
+// expanded technique rows are the fourth of the four problem-row surfaces this partial unifies.
 .tech-row__problem {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-card);
-  font-size: 0.8rem;
+  @include prow.row;
+  @include prow.row-mobile;
+}
+.tech-row__problem-status { @include prow.status-badge; }
+.tech-row__problem-status--spacer { @include prow.status-spacer; }
+.tech-row__problem-status--link {
+  &:hover, &:focus-visible { @include prow.status-badge-link-hover; }
+  &:focus-visible { @include prow.status-badge-link-focus; }
 }
 .tech-row__problem-comfort { font-size: 0.95rem; }
-.tech-row__problem-num { font-family: var(--font-mono); color: var(--color-text-muted); }
-.tech-row__problem-title { font-weight: 600; flex: 1 1 auto; }
-.tech-row__problem-links {
-  display: flex;
-  gap: var(--space-sm);
-  font-size: 0.75rem;
-  margin-left: auto;
-  a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
-}
+.tech-row__problem-num { @include prow.num; }
+.tech-row__problem-title { @include prow.title; }
+.tech-row__problem-links { @include prow.links; }
 
 .tag {
-  font-size: 0.68rem;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-raised);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
+  @include prow.tag;
+  @include prow.tag-difficulty;
 }
-.tag--easy { color: var(--color-easy); }
-.tag--medium { color: var(--color-medium); }
-.tag--hard { color: var(--color-hard); }

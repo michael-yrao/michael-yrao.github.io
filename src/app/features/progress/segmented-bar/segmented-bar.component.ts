@@ -10,6 +10,10 @@ export interface SegmentedBarSegment {
   cls: string;
 }
 
+/** `stages`: a self-labeled progression bar (the default — pipeline, roadmap). `mix`: a slim,
+ *  unlabeled breakdown bar with its labels moved to a legend row beneath it (difficulty). */
+export type SegmentedBarVariant = 'stages' | 'mix';
+
 /**
  * One reusable horizontal stacked bar — the mastery pipeline, the difficulty mix, and the
  * technique-breadth bar all render through this SAME component (round 4: the learner's
@@ -34,6 +38,9 @@ export class SegmentedBarComponent {
   readonly title = input<string | null>(null);
   readonly caption = input<string | null>(null);
   readonly clickable = input(false);
+  readonly variant = input<SegmentedBarVariant>('stages');
+  readonly axisStart = input<string | null>(null);
+  readonly axisEnd = input<string | null>(null);
   readonly segmentClick = output<SegmentedBarSegment>();
 
   // Zero-value segments are dropped — a 0-wide segment is not "consistent," it's an

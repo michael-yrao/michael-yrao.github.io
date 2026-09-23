@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { SegmentedBarComponent, SegmentedBarSegment } from './segmented-bar.component';
+import { SegmentedBarComponent, SegmentedBarSegment, SegmentedBarVariant } from './segmented-bar.component';
 
 function makeSegments(overrides: Partial<SegmentedBarSegment>[] = []): SegmentedBarSegment[] {
   const base: SegmentedBarSegment[] = [
@@ -11,13 +11,26 @@ function makeSegments(overrides: Partial<SegmentedBarSegment>[] = []): Segmented
   return overrides.length ? (overrides as SegmentedBarSegment[]) : base;
 }
 
-function createFixture(segments: SegmentedBarSegment[], opts: { clickable?: boolean; title?: string; caption?: string } = {}) {
+function createFixture(
+  segments: SegmentedBarSegment[],
+  opts: {
+    clickable?: boolean;
+    title?: string;
+    caption?: string;
+    variant?: SegmentedBarVariant;
+    axisStart?: string;
+    axisEnd?: string;
+  } = {},
+) {
   TestBed.configureTestingModule({ imports: [SegmentedBarComponent] });
   const fixture = TestBed.createComponent(SegmentedBarComponent);
   fixture.componentRef.setInput('segments', segments);
   if (opts.clickable !== undefined) fixture.componentRef.setInput('clickable', opts.clickable);
   if (opts.title !== undefined) fixture.componentRef.setInput('title', opts.title);
   if (opts.caption !== undefined) fixture.componentRef.setInput('caption', opts.caption);
+  if (opts.variant !== undefined) fixture.componentRef.setInput('variant', opts.variant);
+  if (opts.axisStart !== undefined) fixture.componentRef.setInput('axisStart', opts.axisStart);
+  if (opts.axisEnd !== undefined) fixture.componentRef.setInput('axisEnd', opts.axisEnd);
   fixture.detectChanges();
   return fixture;
 }
@@ -111,5 +124,66 @@ describe('SegmentedBarComponent', () => {
     const label = bar.getAttribute('aria-label');
     expect(label).toContain('Roadmap coverage');
     expect(label).toContain('Alpha: 30');
+  });
+
+  // ── variant: 'mix' — a slim, unlabeled breakdown bar with a legend row beneath ─────
+  it("renders plain span segments with no .segbar__seg-text for variant 'mix', even when clickable, plus one legend item per visible segment", () => {
+    const fixture = createFixture(makeSegments(), { variant: 'mix', clickable: true });
+
+    const segs = fixture.nativeElement.querySelectorAll('.segbar__bar .segbar__seg');
+    expect(segs.length).toBe(3);
+    for (const seg of Array.from(segs) as HTMLElement[]) {
+      expect(seg.tagName).toBe('SPAN');
+    }
+    expect(fixture.nativeElement.querySelector('.segbar__seg-text')).toBeFalsy();
+
+    const items = fixture.nativeElement.querySelectorAll('.segbar__legend li');
+    expect(items.length).toBe(3);
+    expect(items[0].textContent).toContain('Alpha');
+    expect(items[0].textContent).toContain('30');
+  });
+
+  it("renders legend buttons and emits segmentClick from the legend, not the slim segments, when variant is 'mix' and clickable", () => {
+    const fixture = createFixture(makeSegments(), { variant: 'mix', clickable: true });
+    const clicked: SegmentedBarSegment[] = [];
+    fixture.componentInstance.segmentClick.subscribe((s) => clicked.push(s));
+
+    expect(fixture.nativeElement.querySelectorAll('button.segbar__seg').length).toBe(0);
+
+    const buttons = fixture.nativeElement.querySelectorAll('button.segbar__legend-btn');
+    expect(buttons.length).toBe(3);
+
+    (buttons[1] as HTMLButtonElement).click();
+
+    expect(clicked.length).toBe(1);
+    expect(clicked[0].key).toBe('b');
+  });
+
+  it('renders axisStart/axisEnd inside .segbar__axis', () => {
+    const fixture = createFixture(makeSegments(), { axisStart: 'unfamiliar', axisEnd: 'mastered' });
+
+    const axis = fixture.nativeElement.querySelector('.segbar__axis');
+    expect(axis).toBeTruthy();
+    expect(axis.getAttribute('aria-hidden')).toBe('true');
+    expect(axis.textContent).toContain('unfamiliar');
+    expect(axis.textContent).toContain('mastered');
+  });
+
+  it('omits .segbar__axis when neither axisStart nor axisEnd is given', () => {
+    const fixture = createFixture(makeSegments());
+
+    expect(fixture.nativeElement.querySelector('.segbar__axis')).toBeFalsy();
+  });
+
+  it("adds the segbar__bar--mix class for variant 'mix'", () => {
+    const fixture = createFixture(makeSegments(), { variant: 'mix' });
+
+    expect(fixture.nativeElement.querySelector('.segbar__bar').classList.contains('segbar__bar--mix')).toBe(true);
+  });
+
+  it("omits the segbar__bar--mix class for the default 'stages' variant", () => {
+    const fixture = createFixture(makeSegments());
+
+    expect(fixture.nativeElement.querySelector('.segbar__bar').classList.contains('segbar__bar--mix')).toBe(false);
   });
 });
