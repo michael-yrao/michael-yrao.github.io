@@ -6,9 +6,7 @@ const DEFAULT_LABEL = 'Progressive Overflow';
 /**
  * The 64×64 Progressive Overflow mark, drawn as inline SVG from the site's own
  * theme tokens (`--color-text`, `--color-bg`, `--color-accent`) rather than a
- * static asset, so it inverts with the theme by itself — no separate
- * on-light/on-dark file swap needed. This reproduces `mark-on-light.svg` in
- * light mode and `mark-on-dark.svg` in dark mode (see
+ * static asset. This reproduces `mark-on-dark.svg` (see
  * `src/assets/brand/README.md` for the source kit).
  *
  * `label` doubles as the a11y toggle: the default announces the wordmark for a

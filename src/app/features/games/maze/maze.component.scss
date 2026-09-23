@@ -245,14 +245,6 @@
   &--2      { background: rgba(250, 204, 21, 0.15); border: 1px solid #facc15; color: #fde047; }
   &--3      { background: rgba(251, 146, 60, 0.15); border: 1px solid #fb923c; color: #fdba74; }
   &--goal   { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; }
-
-  :host-context([data-theme='light']) & {
-    &--start  { background: rgba(99, 102, 241, 0.12); border-color: #6366f1; color: #4f46e5; }
-    &--1      { background: rgba(22, 163, 74, 0.12);  border-color: #16a34a; color: #15803d; }
-    &--2      { background: rgba(202, 138, 4, 0.12);  border-color: #ca8a04; color: #92400e; }
-    &--3      { background: rgba(234, 88, 12, 0.12);  border-color: #ea580c; color: #9a3412; }
-    &--goal   { background: rgba(220, 38, 38, 0.12);  border-color: #dc2626; color: #991b1b; }
-  }
 }
 
 .mapping-table {

@@ -24,7 +24,7 @@ const COMFORT_COLOR: Record<number, string> = {
  * learner's explicit ask ("graphs that show progression of each problem"). Comfort is an
  * ordinal (🔴→🏆); a rep with no known comfort (predating the schedule archive) is drawn
  * as a hollow activity dot on the baseline, never as a fabricated value. Colours are CSS
- * variables, so it reads correctly in both themes.
+ * variables, so the chart stays consistent with the rest of the dark theme.
  */
 @Component({
   selector: 'app-problem-timeline',

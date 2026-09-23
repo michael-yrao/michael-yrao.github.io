@@ -2,7 +2,6 @@ import { Component, ChangeDetectionStrategy, HostListener, computed, inject, sig
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { NavContextService } from './core/services/nav-context.service';
-import { ThemeService } from './core/services/theme.service';
 import { SITE_LINKS } from './core/data/site-links';
 import { LogoMarkComponent } from './shared/components/logo-mark/logo-mark.component';
 
@@ -15,7 +14,6 @@ import { LogoMarkComponent } from './shared/components/logo-mark/logo-mark.compo
 })
 export class AppComponent {
   private readonly navCtx = inject(NavContextService);
-  readonly themeService = inject(ThemeService);
 
   readonly SITE_LINKS = SITE_LINKS;
   readonly year = new Date().getFullYear();

@@ -110,9 +110,9 @@ button.segbar__seg {
 .seg-medium { background: var(--color-medium); }
 .seg-hard { background: var(--color-hard); }
 
-// Technique breadth / roadmap — single-hue cyan ramp, far → here, so both stage bars share
-// one direction (still ahead → earned): the earned (practiced) segment always sits at the
-// ramp's darkest step, at the bar's right edge.
-.seg-horizon { background: var(--color-roadmap-far); }
-.seg-upcoming { background: var(--color-roadmap-near); }
-.seg-practiced { background: var(--color-roadmap-here); color: var(--color-roadmap-here-ink); }
+// Technique breadth / roadmap — three categorical state hues, not a lightness ramp, so both
+// stage bars still share one direction (still ahead → earned): the earned (practiced)
+// segment always sits at the bar's right edge.
+.seg-horizon { background: var(--color-roadmap-horizon); }
+.seg-upcoming { background: var(--color-roadmap-upcoming); }
+.seg-practiced { background: var(--color-roadmap-practiced); }

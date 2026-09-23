@@ -21,8 +21,8 @@
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    // Hugs the ☰ on the left and pushes the theme toggle right; the bar's centre
-    // stays free for the absolutely-centred problem-context button.
+    // Hugs the ☰ on the left; the bar's centre stays free for the
+    // absolutely-centred problem-context button.
     margin: 0 auto 0 var(--space-md);
     text-decoration: none;
     color: var(--color-text);
@@ -195,27 +195,6 @@
     flex-direction: column;
   }
 
-  &__theme {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border: 1px solid var(--color-border);
-    border-radius: 50%;
-    background: transparent;
-    color: var(--color-text-muted);
-    font-size: 0.95rem;
-    line-height: 1;
-    cursor: pointer;
-    transition: color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
-
-    &:hover {
-      color: var(--color-accent);
-      border-color: var(--color-accent);
-      transform: rotate(15deg);
-    }
-  }
 }
 
 // ── Backdrop: catches outside clicks ────────────────────────────

@@ -24,15 +24,14 @@
   --color-window:      rgba(6, 182, 212, 0.25);
   --color-eliminated:  #1e293b;
 
-  // Segmented-bar tokens — the fixed dark segment-label ink, and the roadmap's single-hue
-  // cyan ramp (far → here), validated with the dataviz skill's validate_palette.js --ordinal.
-  // Steps are spread wide (cyan-100 / 400 / 700) so the three tiers read apart at a glance;
-  // the darkest step takes light label text.
-  --color-seg-ink:          #0b1220;
-  --color-roadmap-far:      #cffafe;
-  --color-roadmap-near:     #22d3ee;
-  --color-roadmap-here:     #0e7490;
-  --color-roadmap-here-ink: #f1f5f9;
+  // Segmented-bar tokens — the fixed dark segment-label ink, and the roadmap's three
+  // categorical state colours (not-started neutral, next warm, practiced accent), not a
+  // ramp, validated as a categorical palette with the dataviz skill's validate_palette.js.
+  // Dark ink reads on all three.
+  --color-seg-ink:             #0b1220;
+  --color-roadmap-horizon:     #94a3b8;
+  --color-roadmap-upcoming:    #fbbf24;
+  --color-roadmap-practiced:   #06b6d4;
 
   // Typography
   --font-ui:    'Inter', system-ui, -apple-system, sans-serif;
@@ -65,41 +64,6 @@
   // Transitions
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
-}
-
-// ── Light theme ──────────────────────────────────────────────────────────────
-// Dark is the default (tokens above); [data-theme='light'] overrides colors only.
-[data-theme='light'] {
-  color-scheme: light;
-
-  --color-bg:          #f1f5f9;
-  --color-bg-rgb:      241, 245, 249;
-  --hover-tint:        rgba(15, 23, 42, 0.05);
-  --hover-tint-strong: rgba(15, 23, 42, 0.09);
-  --shadow-strong:     0 12px 40px -8px rgba(15, 23, 42, 0.18);
-  --color-bg-card:     #ffffff;
-  --color-bg-raised:   #e2e8f0;
-  --color-border:      #cbd5e1;
-  --color-accent:      #0891b2;
-  --color-accent-dim:  rgba(8, 145, 178, 0.12);
-  --color-text:        #0f172a;
-  --color-text-muted:  #64748b;
-  --color-easy:        #16a34a;
-  --color-medium:      #ea580c;
-  --color-hard:        #dc2626;
-  --color-found:       #16a34a;
-  --color-active:      #0891b2;
-  --color-visited:     #cbd5e1;
-  --color-window:      rgba(8, 145, 178, 0.2);
-  --color-eliminated:  #e2e8f0;
-
-  // Segmented-bar tokens — the ramp runs darker here (cyan-600 / 700 / 900) to clear the
-  // light surface; the darkest step needs light label text (dark ink only reaches 2:1 on it).
-  --color-seg-ink:          #0b1220;
-  --color-roadmap-far:      #0891b2;
-  --color-roadmap-near:     #0e7490;
-  --color-roadmap-here:     #164e63;
-  --color-roadmap-here-ink: #f1f5f9;
 }
 
 // ── Reset & Base ─────────────────────────────────────────────────────────────
