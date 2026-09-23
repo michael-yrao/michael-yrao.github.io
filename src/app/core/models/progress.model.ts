@@ -108,7 +108,12 @@ export interface Technique {
  *  `tags` and `kind` (both optional — an older contract predating them still renders
  *  identically) are the enriched-row markers: `tags` values are one or more of `protected,
  *  backfill, new, probe, variant, primer, moved`; `kind` distinguishes a normal rep from a
- *  🆕 intake row, a cold probe re-ask, a Sunday complexity-gate re-ask, or a primer. */
+ *  🆕 intake row, a cold probe re-ask, a Sunday complexity-gate re-ask, or a primer.
+ *
+ *  `endComfort`/`endNote`/`nextReview` (all optional, additive — an older contract predating
+ *  them still renders identically) carry the rep's earned outcome once `done`: the E-column
+ *  comfort and its short note (`s2`, `prov`, …), and the Next-rep date; `endNote` is only
+ *  ever present alongside a non-null `endComfort` and never falls back to `startComfort`. */
 export interface ScheduleItem {
   lcNumber: number | null;
   title: string;
@@ -119,6 +124,9 @@ export interface ScheduleItem {
   done: boolean;
   tags?: string[];
   kind?: 'rep' | 'new' | 'probe' | 'complexity' | 'primer';
+  endComfort?: Comfort | null;
+  endNote?: string | null;
+  nextReview?: string | null;
 }
 
 export interface ScheduleDay {

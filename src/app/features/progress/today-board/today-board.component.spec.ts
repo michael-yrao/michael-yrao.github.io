@@ -624,6 +624,69 @@ describe('TodayBoardComponent', () => {
     expect(gateRow.querySelector('.today-board__gate-progress')).toBeFalsy();
   });
 
+  // ── The rep's earned outcome (endComfort/endNote/nextReview) ───────────────────────
+  it("shows the earned outcome (start→end glyph pair, note, next-rep tag) on a done row, with no plain comfort span", () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
+        difficulty: 'Easy', done: true, endComfort: '🟢', endNote: 's2', nextReview: '2026-10-21' },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const outcome = fixture.nativeElement.querySelector('.today-board__outcome');
+    expect(outcome).toBeTruthy();
+    expect(outcome.textContent).toContain('🔴→🟢');
+    expect(outcome.textContent).toContain('s2');
+    expect(fixture.nativeElement.querySelector('.today-board__comfort')).toBeFalsy();
+
+    const nextTag = fixture.nativeElement.querySelector('.tag--next');
+    expect(nextTag?.textContent).toContain('next 2026-10-21');
+  });
+
+  it('renders as today (plain comfort span, no outcome, no next tag) for a done row carrying none of the new outcome fields (older contract)', () => {
+    const fixture = createFixture(makeSchedule());
+
+    expect(fixture.nativeElement.querySelector('.today-board__outcome')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.tag--next')).toBeFalsy();
+    const doneRow = fixture.nativeElement.querySelector('.today-board__row--done');
+    expect(doneRow.querySelector('.today-board__comfort')?.textContent).toContain('🟢');
+
+    // The existing children-count assertion for the not-done row still holds unmodified.
+    const row = fixture.nativeElement.querySelector('.today-board__row');
+    const children = Array.from(row.children) as HTMLElement[];
+    const titleIndex = children.findIndex((el) => el.classList.contains('today-board__title'));
+    const nextEl = children[titleIndex + 1];
+    expect(nextEl.classList.contains('tag--medium')).toBe(true);
+    const linksEl = children[titleIndex + 2];
+    expect(linksEl.classList.contains('today-board__links')).toBe(true);
+    expect(children.length).toBe(titleIndex + 3);
+  });
+
+  it('renders the outcome with no note element when endNote is null', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
+        difficulty: 'Easy', done: true, endComfort: '🟢', endNote: null, nextReview: null },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const outcome = fixture.nativeElement.querySelector('.today-board__outcome');
+    expect(outcome).toBeTruthy();
+    expect(outcome.textContent).toContain('🔴→🟢');
+    expect(outcome.querySelector('small')).toBeFalsy();
+  });
+
+  it('renders no next-rep tag on a not-done row even when nextReview would otherwise be absent', () => {
+    const fixture = createFixture(makeSchedule());
+
+    const notDoneRow = Array.from(
+      fixture.nativeElement.querySelectorAll('.today-board__row'),
+    ).find((row) => !(row as HTMLElement).classList.contains('today-board__row--done')) as HTMLElement;
+    expect(notDoneRow.querySelector('.tag--next')).toBeFalsy();
+  });
+
   it('does not collapse a lone (non-consecutive) complexity item — it renders as a normal row', () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [

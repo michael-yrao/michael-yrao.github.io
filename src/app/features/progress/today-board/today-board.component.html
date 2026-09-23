@@ -3,7 +3,14 @@
     <span class="today-board__check" [attr.aria-label]="item.done ? 'done' : 'not done'">{{
       item.done ? '✓' : '○'
     }}</span>
-    @if (item.startComfort) {
+    @if (item.endComfort) {
+      <span class="today-board__outcome" [attr.aria-label]="'earned ' + item.endComfort + (item.endNote ? ' ' + item.endNote : '')">
+        {{ item.startComfort ? item.startComfort + '→' + item.endComfort : item.endComfort }}
+        @if (item.endNote) {
+          <small>{{ item.endNote }}</small>
+        }
+      </span>
+    } @else if (item.startComfort) {
       <span class="today-board__comfort">{{ item.startComfort }}</span>
     }
     @if (item.lcNumber) {
@@ -30,6 +37,9 @@
     }
     @if (item.difficulty) {
       <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
+    }
+    @if (item.nextReview) {
+      <span class="tag tag--next">next {{ item.nextReview }}</span>
     }
     <span class="today-board__links">
       @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {

@@ -201,8 +201,10 @@
   font-size: 0.9rem;
 }
 
+// Dim everything except the check and the earned outcome — a done row should still read as
+// "here's what I earned", not fade the reward along with the rest of the row.
 .today-board__row--done {
-  opacity: 0.6;
+  .today-board__num, .today-board__title, .tag, .solution-glyph, .today-board__links, .today-board__comfort, .today-board__moved, .today-board__gate-sub, .today-board__gate-progress { opacity: 0.6; }
 
   .today-board__title { text-decoration: line-through; }
 }
@@ -218,6 +220,16 @@
 }
 
 .today-board__comfort { font-size: 1rem; }
+// The earned outcome (replaces .today-board__comfort once a rep is done): a tight
+// start→end glyph pair plus an optional muted note (`s2`, `prov`, …).
+.today-board__outcome {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 1rem;
+
+  small { font-size: 0.7rem; color: var(--color-text-muted); }
+}
 .today-board__num { font-family: var(--font-mono); color: var(--color-text-muted); }
 .today-board__title { font-weight: 600; flex: 1 1 auto; }
 // A rescheduled ("moved") row gets a muted arrow ahead of its title — no color beyond the
@@ -238,6 +250,8 @@
 // A 🆕 intake row's chip — accent-dim so it reads as "new" without a new color.
 .tag--new { background: var(--color-accent-dim); color: var(--color-accent); border-color: transparent; }
 .tag--probe { font-style: italic; }
+// Matches .today-board__date's mono treatment — the Next-rep date is a date, not a label.
+.tag--next { font-family: var(--font-mono); }
 
 // LeetCode stays alone at the row's right edge — pushed there by the flex row's own wrap,
 // never adjacent to the solution glyph (which sits up by the title instead).
