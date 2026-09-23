@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Progressive Overflow">
+  <rect x="4" y="8" width="56" height="56" rx="14" fill="#f1f5f9"/>
+  <rect x="8" y="42" width="9" height="16" rx="4.5" fill="#0f172a"/>
+  <rect x="21" y="32" width="9" height="26" rx="4.5" fill="#0f172a"/>
+  <rect x="34" y="22" width="9" height="36" rx="4.5" fill="#0f172a"/>
+  <rect x="47" y="0" width="9" height="58" rx="4.5" fill="#06b6d4"/>
+</svg>

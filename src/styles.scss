@@ -27,6 +27,7 @@
   // Typography
   --font-ui:    'Inter', system-ui, -apple-system, sans-serif;
   --font-mono:  'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-brand: 'Space Grotesk', var(--font-ui);
 
   // Type scale — a shared step system so headers/eyebrows/body text converge
   // on the same sizes instead of each feature picking its own rem value.

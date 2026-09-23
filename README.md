@@ -1,4 +1,7 @@
-# Progressive Overflow
+<picture>
+  <source srcset="src/assets/brand/lockup-on-dark.svg" media="(prefers-color-scheme: dark)">
+  <img src="src/assets/brand/lockup-on-light.svg" alt="Progressive Overflow">
+</picture>
 
 Source for **[progressiveoverflow.com](https://progressiveoverflow.com)** — an Angular
 app of interactive, step-by-step algorithm visualizations.

@@ -4,6 +4,9 @@ Angular app that renders step-by-step LeetCode algorithm visualizers. Each probl
 `src/app/algorithms/<category>/<name>.steps.ts` and exports an `AlgorithmMeta` with one or more
 `SolutionVariant`s. Every variant has `pythonCode`, a `generateSteps()` function, and complexity labels.
 
+The brand kit lives in `src/assets/brand/` and the nav mark is `LogoMarkComponent`, drawn from theme
+tokens.
+
 ## Source of truth: cse-progress
 
 The canonical Python solutions and their comments live in the sibling **cse-progress** repo (formerly

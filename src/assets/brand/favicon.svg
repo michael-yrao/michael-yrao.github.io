@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <style>
+    /* Swap to the on-dark palette when the browser chrome itself is dark, so the
+       tab icon still reads. The overflow bar (#06b6d4) is untouched — it carries
+       no class and keeps its own fill in both modes. A <style> rule beats a
+       presentation attribute's fill, so no !important is needed. */
+    @media (prefers-color-scheme: dark) {
+      .po-favicon-tile { fill: #f1f5f9; }
+      .po-favicon-bar { fill: #0f172a; }
+    }
+  </style>
+  <rect class="po-favicon-tile" x="4" y="8" width="56" height="56" rx="14" fill="#0f172a"/>
+  <rect class="po-favicon-bar" x="8" y="42" width="9" height="16" rx="4.5" fill="#f1f5f9"/>
+  <rect class="po-favicon-bar" x="21" y="32" width="9" height="26" rx="4.5" fill="#f1f5f9"/>
+  <rect class="po-favicon-bar" x="34" y="22" width="9" height="36" rx="4.5" fill="#f1f5f9"/>
+  <rect x="47" y="0" width="9" height="58" rx="4.5" fill="#06b6d4"/>
+</svg>

@@ -5,13 +5,14 @@ import { NavContextService } from './core/services/nav-context.service';
 import { ThemeService } from './core/services/theme.service';
 import { SITE_LINKS } from './core/data/site-links';
 import { LIBRARY_SECTIONS } from './core/data/library-sections';
+import { LogoMarkComponent } from './shared/components/logo-mark/logo-mark.component';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LogoMarkComponent],
 })
 export class AppComponent {
   private readonly navCtx = inject(NavContextService);

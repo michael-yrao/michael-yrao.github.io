@@ -10,9 +10,9 @@
       ☰
     </button>
 
-    <a class="po-nav__brand" routerLink="/">
-      <span class="po-nav__logo">PO</span>
-      <span class="po-nav__title">Progressive Overflow</span>
+    <a class="po-nav__brand" routerLink="/" aria-label="Progressive Overflow — home">
+      <app-logo-mark [size]="28" label="" />
+      <span class="po-nav__wordmark">progressive<em>overflow</em></span>
     </a>
 
     @if (currentCtx(); as ctx) {
@@ -28,25 +28,50 @@
       </button>
     }
 
-    <!-- Menu drawer: flat primary links, then a muted secondary group -->
+    <!-- Menu drawer: four sections — Progress, Library (with per-section hints), Human, secondary -->
     @if (isDrawerOpen()) {
       <div class="po-nav__drawer" id="po-nav-menu">
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }" (click)="closeAll()">Progress</a>
-        <div class="po-nav__drawer-group">
+        <div class="po-nav__drawer-section">
           <a
-            class="po-nav__drawer-label"
-            routerLink="/library"
+            class="po-nav__drawer-link"
+            routerLink="/"
             routerLinkActive="active"
+            [routerLinkActiveOptions]="{
+              paths: 'exact',
+              queryParams: 'ignored',
+              matrixParams: 'ignored',
+              fragment: 'ignored',
+            }"
             (click)="closeAll()"
-            >Library</a
+            >Progress</a
           >
+        </div>
+        <div class="po-nav__drawer-section">
+          <span class="po-nav__drawer-eyebrow">Library</span>
           @for (s of librarySections; track s.path) {
-            <a [routerLink]="s.path" routerLinkActive="active" (click)="closeAll()">{{ s.label }}</a>
+            <a
+              class="po-nav__drawer-link po-nav__drawer-link--section"
+              [routerLink]="s.path"
+              routerLinkActive="active"
+              (click)="closeAll()"
+            >
+              <span class="po-nav__drawer-glyph" aria-hidden="true">{{ s.glyph }}</span>
+              <span class="po-nav__drawer-text">{{ s.label }}</span>
+              <span class="po-nav__drawer-hint">{{ s.hint }}</span>
+            </a>
           }
         </div>
-        <a routerLink="/about" routerLinkActive="active" (click)="closeAll()">Human</a>
-
-        <div class="po-nav__drawer-secondary">
+        <div class="po-nav__drawer-section">
+          <a
+            class="po-nav__drawer-link"
+            routerLink="/about"
+            routerLinkActive="active"
+            (click)="closeAll()"
+            >Human</a
+          >
+        </div>
+        <div class="po-nav__drawer-section po-nav__drawer-secondary">
+          <a routerLink="/library" (click)="closeAll()">Library hub</a>
           <a [routerLink]="SITE_LINKS.coach" (click)="closeAll()">Get the coach</a>
           <a
             [href]="SITE_LINKS.siteRepo"

@@ -41,7 +41,13 @@ describe('AppComponent', () => {
   it('renders the Progressive Overflow brand in the nav', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.po-nav__title')?.textContent).toContain('Progressive Overflow');
+    expect(compiled.querySelector('.po-nav__wordmark')?.textContent?.trim()).toBe(
+      'progressiveoverflow',
+    );
+    expect(compiled.querySelector('.po-nav__brand')?.getAttribute('aria-label')).toBe(
+      'Progressive Overflow — home',
+    );
+    expect(compiled.querySelector('.po-nav__brand app-logo-mark svg')).toBeTruthy();
   });
 
   it('renders the hamburger as the first child of the nav bar, before the brand', () => {
@@ -87,7 +93,7 @@ describe('AppComponent', () => {
       expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
     });
 
-    it('lists exactly Progress, Library, Algorithms, Patterns, Games, Human in order with the right routerLinks', () => {
+    it('lists exactly Progress, Algorithms, Patterns, Games, Human as primary links in order with the right routerLinks', () => {
       fixture.detectChanges();
       const hamburger = fixture.nativeElement.querySelector(
         '.po-nav__hamburger',
@@ -96,28 +102,65 @@ describe('AppComponent', () => {
       fixture.detectChanges();
 
       const drawer = fixture.nativeElement.querySelector('.po-nav__drawer') as HTMLElement;
-      const links = Array.from(drawer.querySelectorAll('a')).filter(
-        (a) => !a.closest('.po-nav__drawer-secondary'),
-      );
+      const primaryLinks = Array.from(
+        drawer.querySelectorAll<HTMLAnchorElement>('a.po-nav__drawer-link'),
+      ).filter((a) => !a.closest('.po-nav__drawer-secondary'));
 
-      expect(links.map((a) => a.textContent?.trim())).toEqual([
+      // A library-section link's own label lives in its .po-nav__drawer-text
+      // span (the row also carries a glyph and a hint); every other primary
+      // link has no such span and is read straight off its textContent.
+      const readLinkLabel = (link: HTMLAnchorElement): string | undefined =>
+        (link.querySelector('.po-nav__drawer-text') ?? link).textContent?.trim();
+
+      expect(primaryLinks.map(readLinkLabel)).toEqual([
         'Progress',
-        'Library',
         'Algorithms',
         'Patterns',
         'Games',
         'Human',
       ]);
-      expect(links.map((a) => a.getAttribute('href'))).toEqual([
+      expect(primaryLinks.map((a) => a.getAttribute('href'))).toEqual([
         '/',
-        '/library',
         '/algorithms',
         '/learn',
         '/games',
         '/about',
       ]);
-      const libraryLink = links.find((a) => a.textContent?.trim() === 'Library');
-      expect(libraryLink?.classList.contains('po-nav__drawer-label')).toBe(true);
+    });
+
+    it('shows the Library eyebrow as a non-link heading above the library section links', () => {
+      fixture.detectChanges();
+      const hamburger = fixture.nativeElement.querySelector(
+        '.po-nav__hamburger',
+      ) as HTMLButtonElement;
+      hamburger.click();
+      fixture.detectChanges();
+
+      const eyebrow = fixture.nativeElement.querySelector('.po-nav__drawer-eyebrow') as HTMLElement;
+      expect(eyebrow).toBeTruthy();
+      expect(eyebrow.tagName).toBe('SPAN');
+      expect(eyebrow.textContent?.trim()).toBe('Library');
+      expect(eyebrow.closest('a')).toBeNull();
+    });
+
+    it('gives each library section row a glyph and a non-empty hint', () => {
+      fixture.detectChanges();
+      const hamburger = fixture.nativeElement.querySelector(
+        '.po-nav__hamburger',
+      ) as HTMLButtonElement;
+      hamburger.click();
+      fixture.detectChanges();
+
+      const sectionLinks = Array.from(
+        fixture.nativeElement.querySelectorAll('.po-nav__drawer-link--section'),
+      ) as HTMLElement[];
+      expect(sectionLinks.length).toBeGreaterThan(0);
+      for (const link of sectionLinks) {
+        const glyph = link.querySelector('.po-nav__drawer-glyph');
+        const hint = link.querySelector('.po-nav__drawer-hint');
+        expect(glyph?.textContent?.trim()).toBeTruthy();
+        expect(hint?.textContent?.trim()).toBeTruthy();
+      }
     });
 
     it('closes on a link click, on Escape, and on the backdrop', () => {
@@ -150,7 +193,7 @@ describe('AppComponent', () => {
       expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
     });
 
-    it('has a secondary group with "Get the coach" and "GitHub ↗"', () => {
+    it('has a secondary group with "Library hub", "Get the coach", and "GitHub ↗"', () => {
       fixture.detectChanges();
       const hamburger = fixture.nativeElement.querySelector(
         '.po-nav__hamburger',
@@ -162,6 +205,11 @@ describe('AppComponent', () => {
         '.po-nav__drawer-secondary',
       ) as HTMLElement;
       expect(secondary).toBeTruthy();
+
+      const libraryHubLink = Array.from(secondary.querySelectorAll('a')).find(
+        (a) => a.textContent?.trim() === 'Library hub',
+      ) as HTMLAnchorElement;
+      expect(libraryHubLink?.getAttribute('href')).toBe('/library');
 
       const coachLink = Array.from(secondary.querySelectorAll('a')).find(
         (a) => a.textContent?.trim() === 'Get the coach',
