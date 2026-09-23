@@ -145,11 +145,6 @@
   color: var(--color-text);
 }
 
-.today-board__label {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-}
-
 // ── Expanded-mode per-day stack (folded in from weekly-board) ───────────────────────
 .today-board__day {
   padding-bottom: var(--space-md);
@@ -172,7 +167,6 @@
 
 .today-board__weekday { font-weight: 700; font-size: 0.9rem; color: var(--color-text); }
 .today-board__date { font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-text-muted); }
-.today-board__day-label { font-size: 0.78rem; color: var(--color-text-muted); }
 
 .today-board__badge {
   padding: 1px 6px;

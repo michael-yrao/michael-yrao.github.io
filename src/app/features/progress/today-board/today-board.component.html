@@ -119,9 +119,6 @@
         }
         <div class="today-board__head">
           <span class="today-board__count">{{ doneCount() }} of {{ totalCount() }} done</span>
-          @if (day.label) {
-            <span class="today-board__label">{{ day.label }}</span>
-          }
         </div>
         <ng-container [ngTemplateOutlet]="dayItemsTpl" [ngTemplateOutletContext]="{ $implicit: day }" />
       }
@@ -133,9 +130,6 @@
             <span class="today-board__date">{{ day.date }}</span>
             @if (day.date === todayISO()) {
               <span class="today-board__badge">Today</span>
-            }
-            @if (day.label) {
-              <span class="today-board__day-label">{{ day.label }}</span>
             }
           </div>
           <ng-container [ngTemplateOutlet]="dayItemsTpl" [ngTemplateOutletContext]="{ $implicit: day }" />

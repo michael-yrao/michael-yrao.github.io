@@ -106,6 +106,27 @@ describe('TodayBoardComponent', () => {
     expect(doneRows[0].textContent).toContain('Same Tree');
   });
 
+  // ── The technique-naming day label is dropped from the board (recognition-gate spoiler) ─
+  it('renders no day-label element or text in the collapsed view, even though the fixture carries one', () => {
+    const fixture = createFixture(makeSchedule());
+
+    expect(fixture.nativeElement.querySelector('.today-board__label')).toBeFalsy();
+    expect(fixture.nativeElement.textContent).not.toContain('Test day');
+  });
+
+  it('renders no day-label element or text anywhere after expanding the week', () => {
+    const fixture = createFixture(makeWeekSchedule());
+
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.today-board__expand-toggle',
+    );
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.today-board__day-label')).toBeFalsy();
+    expect(fixture.nativeElement.textContent).not.toContain('Test day');
+  });
+
   it('shows M of M when every item for the selected day is done', () => {
     const schedule = makeSchedule();
     schedule.days[0].items = schedule.days[0].items.map((item) => ({ ...item, done: true }));
