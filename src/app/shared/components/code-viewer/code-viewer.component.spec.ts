@@ -83,6 +83,18 @@ describe('CodeViewerComponent', () => {
     expect(() => fixture.detectChanges()).not.toThrow();
   });
 
+  it('renders no whitespace text nodes between rows inside <pre>', () => {
+    const fixture = createFixture({ rows: makeRows() });
+
+    const code = fixture.nativeElement.querySelector('code.hljs') as HTMLElement;
+    expect(Array.from(code.childNodes).some((n: Node) => n.nodeType === Node.TEXT_NODE)).toBe(
+      false,
+    );
+    expect(fixture.nativeElement.querySelector('pre').textContent).toBe(
+      '39class Solution:⋯41    def floodFill(self, image):42        return image',
+    );
+  });
+
   it('scrolls the newly active row into view once the view has re-rendered it', () => {
     const calls: HTMLElement[] = [];
     const original = HTMLElement.prototype.scrollIntoView;

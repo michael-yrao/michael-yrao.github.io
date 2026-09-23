@@ -35,6 +35,8 @@ function rangesEqual(a: RowRange | null, b: RowRange | null): boolean {
  * source lines, gap rows for skipped source, paired with `activeRange` — the resolved active
  * step) for the grounded solution panel, or a plain `code` string (no active range) for a
  * static snippet with no step-through, such as the Big-O trainer or the cheat sheet.
+ * Row markup inside <pre> must stay whitespace-free between tags — Angular never trims
+ * whitespace inside <pre>; each stray newline renders as a blank row (fixed 2026-09-23).
  */
 @Component({
     selector: 'app-code-viewer',
