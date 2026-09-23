@@ -26,11 +26,13 @@
 
   // Segmented-bar tokens — the fixed dark segment-label ink, and the roadmap's single-hue
   // cyan ramp (far → here), validated with the dataviz skill's validate_palette.js --ordinal.
+  // Steps are spread wide (cyan-100 / 400 / 700) so the three tiers read apart at a glance;
+  // the darkest step takes light label text.
   --color-seg-ink:          #0b1220;
-  --color-roadmap-far:      #a5f3fc;
+  --color-roadmap-far:      #cffafe;
   --color-roadmap-near:     #22d3ee;
-  --color-roadmap-here:     #06b6d4;
-  --color-roadmap-here-ink: #0b1220;
+  --color-roadmap-here:     #0e7490;
+  --color-roadmap-here-ink: #f1f5f9;
 
   // Typography
   --font-ui:    'Inter', system-ui, -apple-system, sans-serif;
@@ -91,13 +93,12 @@
   --color-window:      rgba(8, 145, 178, 0.2);
   --color-eliminated:  #e2e8f0;
 
-  // Segmented-bar tokens — the darkest ramp step needs light label text on the light surface
-  // (the fixed dark ink only reaches 2.6:1 there); the ramp runs darker here to clear the
-  // light surface.
+  // Segmented-bar tokens — the ramp runs darker here (cyan-600 / 700 / 900) to clear the
+  // light surface; the darkest step needs light label text (dark ink only reaches 2:1 on it).
   --color-seg-ink:          #0b1220;
   --color-roadmap-far:      #0891b2;
   --color-roadmap-near:     #0e7490;
-  --color-roadmap-here:     #155e75;
+  --color-roadmap-here:     #164e63;
   --color-roadmap-here-ink: #f1f5f9;
 }
 
