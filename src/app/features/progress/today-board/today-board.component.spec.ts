@@ -74,9 +74,9 @@ function createFixture(
   effortCeiling?: number,
   effortFloor?: number,
 ) {
-  // RouterLink (the solution-glyph link, rendered when a schedule item's lcNumber has a
-  // visualizer route) needs an injectable ActivatedRoute the moment it's actually
-  // instantiated in the DOM — an empty route config is enough, nothing navigates here.
+  // RouterLink (the status badge's walkthrough link, rendered when a schedule item's
+  // lcNumber has a visualizer route) needs an injectable ActivatedRoute the moment it's
+  // actually instantiated in the DOM — an empty route config is enough, nothing navigates here.
   TestBed.configureTestingModule({
     imports: [TodayBoardComponent],
     providers: [provideRouter([])],
@@ -388,29 +388,64 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.today-board__info')).toBeFalsy();
   });
 
-  // ── Round 5: the solution-glyph replaces "Visualize ▶" ──────────────────────────────
-  it('renders a muted </> solution-glyph link (not "Visualize ▶") right after the title, for a row with a registered viz route', () => {
-    const fixture = createFixture(makeSchedule()); // lcNumber 100 (Same Tree) has a real route
+  // ── The leading status badge replaces the check + the after-title glyph ────────────
+  it("renders the boxed </> status link as the row's FIRST child, for a done row with a registered walkthrough route", () => {
+    const fixture = createFixture(makeSchedule()); // lcNumber 100 (Same Tree) has a real route, done: true
 
     expect(fixture.nativeElement.textContent).not.toContain('Visualize');
 
-    const glyph: HTMLAnchorElement = fixture.nativeElement.querySelector('.solution-glyph');
-    expect(glyph).toBeTruthy();
-    expect(glyph.textContent).toContain('</>');
-    expect(glyph.title).toBe('Solution walkthrough');
-    expect(glyph.getAttribute('aria-label')).toBe('Solution walkthrough for #100');
+    const badge: HTMLAnchorElement = fixture.nativeElement.querySelector('.today-board__status--link');
+    expect(badge).toBeTruthy();
+    expect(badge.tagName).toBe('A');
+    expect(badge.textContent).toContain('</>');
+    expect(badge.title).toBe('Solution walkthrough');
+    expect(badge.getAttribute('aria-label')).toBe('Solution walkthrough for #100, done');
 
-    const row = glyph.closest('.today-board__row')!;
+    const row = badge.closest('.today-board__row')!;
     const children = Array.from(row.children) as HTMLElement[];
-    const titleIndex = children.findIndex((el) => el.classList.contains('today-board__title'));
-    expect(children[titleIndex + 1]).toBe(glyph);
+    expect(children[0]).toBe(badge);
+    // A done row WITH a route keeps the link form (a done row with NO route falls back to
+    // the span instead — covered by the two tests below).
+    expect(row.classList.contains('today-board__row--done')).toBe(true);
 
-    // LeetCode stays alone, never adjacent to the glyph.
+    // LeetCode still holds its own separate link, never the status badge.
     const links = row.querySelector('.today-board__links')!;
-    expect(links.contains(glyph)).toBe(false);
+    expect(links.contains(badge)).toBe(false);
     const lcLink: HTMLAnchorElement = links.querySelector('a')!;
     expect(lcLink.textContent?.trim()).toBe('↗');
     expect(lcLink.getAttribute('aria-label')).toContain('LeetCode');
+  });
+
+  it('renders a plain SPAN status badge (○, aria-label "not done") for a not-done row with no registered walkthrough route', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 39, title: 'Combination Sum', technique: 'Backtracking',
+        startComfort: null, difficulty: null, done: false },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const badge: HTMLElement = fixture.nativeElement.querySelector('.today-board__status');
+    expect(badge.tagName).toBe('SPAN');
+    expect(badge.textContent?.trim()).toBe('○');
+    expect(badge.getAttribute('aria-label')).toBe('not done');
+    expect(fixture.nativeElement.querySelector('.today-board__status--link')).toBeFalsy();
+  });
+
+  it('renders a plain SPAN status badge (✓, aria-label "done") for a done row with no registered walkthrough route', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 39, title: 'Combination Sum', technique: 'Backtracking',
+        startComfort: null, difficulty: null, done: true },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const badge: HTMLElement = fixture.nativeElement.querySelector('.today-board__status');
+    expect(badge.tagName).toBe('SPAN');
+    expect(badge.textContent?.trim()).toBe('✓');
+    expect(badge.getAttribute('aria-label')).toBe('done');
+    expect(fixture.nativeElement.querySelector('.today-board__status--link')).toBeFalsy();
   });
 
   // ── Round 5: kind === 'new' / 'probe' chips, and the 'moved' tag's muted prefix ─────
@@ -489,7 +524,7 @@ describe('TodayBoardComponent', () => {
 
     // Not all done -> the gate itself reads not-done.
     expect(gateRow.classList.contains('today-board__row--done')).toBe(false);
-    expect(gateRow.querySelector('.today-board__check')?.textContent).toBe('○');
+    expect(gateRow.querySelector('.today-board__status')?.textContent).toBe('○');
 
     // The gate counts as ONE item toward both doneCount and totalCount.
     expect(fixture.nativeElement.querySelector('.today-board__count')?.textContent).toContain('0 of 1 done');
@@ -508,7 +543,7 @@ describe('TodayBoardComponent', () => {
 
     const gateRow = fixture.nativeElement.querySelector('.today-board__row--gate')!;
     expect(gateRow.classList.contains('today-board__row--done')).toBe(true);
-    expect(gateRow.querySelector('.today-board__check')?.textContent).toBe('✓');
+    expect(gateRow.querySelector('.today-board__status')?.textContent).toBe('✓');
     expect(fixture.nativeElement.querySelector('.today-board__count')?.textContent).toContain('1 of 1 done');
   });
 

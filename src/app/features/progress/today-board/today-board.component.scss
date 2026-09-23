@@ -221,22 +221,56 @@
   font-size: 0.9rem;
 }
 
-// Dim everything except the check and the earned outcome — a done row should still read as
-// "here's what I earned", not fade the reward along with the rest of the row.
+// Dim everything except the status badge and the earned outcome — a done row should still
+// read as "here's what I earned", not fade the reward along with the rest of the row.
 .today-board__row--done {
-  .today-board__num, .today-board__title, .tag, .solution-glyph, .today-board__links, .today-board__comfort, .today-board__moved, .today-board__gate-sub, .today-board__gate-progress { opacity: 0.6; }
+  .today-board__num, .today-board__title, .tag, .today-board__links, .today-board__comfort, .today-board__moved, .today-board__gate-sub, .today-board__gate-progress { opacity: 0.6; }
 
   .today-board__title { text-decoration: line-through; }
 }
 
-.today-board__check {
-  font-size: 1rem;
-  color: var(--color-easy);
-  width: 1.1em;
-  text-align: center;
-}
-.today-board__row:not(.today-board__row--done) .today-board__check {
+// The leading status badge: one box replaces both the old ✓/○ check and the after-title
+// `</>` walkthrough link. Link when a walkthrough route exists, plain span otherwise; a gate
+// row (no single lcNumber) is always the span.
+// Width must clear three mono glyphs (`</>` is ~1.8em at this size) with a little air on
+// each side; every badge shares it so the column stays aligned whether it holds `</>`, ○ or ✓.
+$status-badge-width: 2.25em;
+$status-badge-height: 1.5em;
+
+.today-board__status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: $status-badge-width;
+  height: $status-badge-height;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
+  text-decoration: none;
+  flex: none;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+// Done carries through to the badge regardless of link/span — it's the done signal now, so
+// it's deliberately left out of the dim list above.
+.today-board__row--done .today-board__status {
+  border-color: var(--color-easy);
+  color: var(--color-easy);
+}
+// Hover/focus-visible only apply to the link form — the plain span isn't interactive.
+// Scoped under `.today-board__row` so this beats the done rule above on specificity (both
+// compile with Angular's emulated `[_ngcontent-*]` attribute added to every compound
+// selector; an unscoped `.today-board__status--link:hover` alone is one compound shorter
+// than `.today-board__row--done .today-board__status` and would lose to it on a done row).
+.today-board__row .today-board__status--link:hover,
+.today-board__row .today-board__status--link:focus-visible {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.today-board__status--link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .today-board__comfort { font-size: 1rem; }
@@ -251,7 +285,7 @@
   small { font-size: 0.7rem; color: var(--color-text-muted); }
 }
 // A done row with a `nextReview` wraps the outcome in this popover — reveals `next <date>`
-// on hover/focus/tap instead of sitting inline as a chip (round 6). Own class names, never
+// on hover/focus/tap instead of sitting inline as a chip. Own class names, never
 // shared with the workload ⓘ popover's `.today-board__info-*` (the spec queries that
 // popover by its own first-match selectors).
 .today-board__outcome-wrap {
@@ -297,7 +331,7 @@
 .tag--probe { font-style: italic; }
 
 // LeetCode stays alone at the row's right edge — pushed there by the flex row's own wrap,
-// never adjacent to the solution glyph (which sits up by the title instead).
+// never adjacent to the leading status badge (the walkthrough link, when there is one).
 .today-board__links {
   display: flex;
   gap: var(--space-sm);

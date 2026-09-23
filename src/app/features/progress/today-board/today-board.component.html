@@ -7,9 +7,19 @@
 
 <ng-template #itemRowTpl let-item let-date="date">
   <li class="today-board__row" [class.today-board__row--done]="item.done">
-    <span class="today-board__check" [attr.aria-label]="item.done ? 'done' : 'not done'">{{
-      item.done ? '✓' : '○'
-    }}</span>
+    @if (vizRoute(item.lcNumber); as route) {
+      <a
+        [routerLink]="route"
+        class="today-board__status today-board__status--link"
+        title="Solution walkthrough"
+        [attr.aria-label]="statusAriaLabel(item)"
+        >&lt;/&gt;</a
+      >
+    } @else {
+      <span class="today-board__status" [attr.aria-label]="item.done ? 'done' : 'not done'">{{
+        item.done ? '✓' : '○'
+      }}</span>
+    }
     @if (item.endComfort) {
       @if (item.nextReview) {
         <span
@@ -44,15 +54,6 @@
       <span class="today-board__moved" aria-hidden="true">→</span>
     }
     <span class="today-board__title">{{ item.title }}</span>
-    @if (vizRoute(item.lcNumber); as route) {
-      <a
-        [routerLink]="route"
-        class="solution-glyph"
-        title="Solution walkthrough"
-        [attr.aria-label]="'Solution walkthrough for #' + item.lcNumber"
-        >&lt;/&gt;</a
-      >
-    }
     @if (item.kind === 'new') {
       <span class="tag tag--new">new</span>
     }
@@ -72,7 +73,7 @@
 
 <ng-template #gateRowTpl let-row>
   <li class="today-board__row today-board__row--gate" [class.today-board__row--done]="row.done">
-    <span class="today-board__check" [attr.aria-label]="row.done ? 'done' : 'not done'">{{
+    <span class="today-board__status" [attr.aria-label]="row.done ? 'done' : 'not done'">{{
       row.done ? '✓' : '○'
     }}</span>
     <span class="today-board__title">{{ gateTitle }}</span>

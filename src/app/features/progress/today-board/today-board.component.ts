@@ -243,6 +243,13 @@ export class TodayBoardComponent {
     return vizRouteFor(lcNumber);
   }
 
+  /** The status badge's aria-label when it's the walkthrough link: "Solution walkthrough for
+   *  #N, done|not done" — the badge now carries the row's done-ness too, since it replaces
+   *  the separate leading check. */
+  statusAriaLabel(item: ScheduleItem): string {
+    return `Solution walkthrough for #${item.lcNumber}, ${item.done ? 'done' : 'not done'}`;
+  }
+
   /** Rows for one day, used by both the collapsed (selected-day) and expanded (7-day) views. */
   rowsFor(day: ScheduleDay): BoardRow[] {
     return this.boardRowsByDate().get(day.date) ?? [];
