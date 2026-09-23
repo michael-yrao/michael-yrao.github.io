@@ -28,7 +28,7 @@
       </button>
     }
 
-    <!-- Menu drawer: four sections — Progress, Library (with per-section hints), Human, secondary -->
+    <!-- Menu drawer: two sections — primary (Progress, Library), secondary (Coach, Human) -->
     @if (isDrawerOpen()) {
       <div class="po-nav__drawer" id="po-nav-menu">
         <div class="po-nav__drawer-section">
@@ -45,40 +45,28 @@
             (click)="closeAll()"
             >Progress</a
           >
-        </div>
-        <div class="po-nav__drawer-section">
-          <span class="po-nav__drawer-eyebrow">Library</span>
-          @for (s of librarySections; track s.path) {
-            <a
-              class="po-nav__drawer-link po-nav__drawer-link--section"
-              [routerLink]="s.path"
-              routerLinkActive="active"
-              (click)="closeAll()"
-            >
-              <span class="po-nav__drawer-glyph" aria-hidden="true">{{ s.glyph }}</span>
-              <span class="po-nav__drawer-text">{{ s.label }}</span>
-              <span class="po-nav__drawer-hint">{{ s.hint }}</span>
-            </a>
-          }
-        </div>
-        <div class="po-nav__drawer-section">
           <a
             class="po-nav__drawer-link"
+            routerLink="/library"
+            routerLinkActive="active"
+            (click)="closeAll()"
+            >Library</a
+          >
+        </div>
+        <div class="po-nav__drawer-section po-nav__drawer-secondary">
+          <a
+            class="po-nav__drawer-link po-nav__drawer-link--secondary"
+            [routerLink]="SITE_LINKS.coach"
+            routerLinkActive="active"
+            (click)="closeAll()"
+            >Coach</a
+          >
+          <a
+            class="po-nav__drawer-link po-nav__drawer-link--secondary"
             routerLink="/about"
             routerLinkActive="active"
             (click)="closeAll()"
             >Human</a
-          >
-        </div>
-        <div class="po-nav__drawer-section po-nav__drawer-secondary">
-          <a routerLink="/library" (click)="closeAll()">Library hub</a>
-          <a [routerLink]="SITE_LINKS.coach" (click)="closeAll()">Get the coach</a>
-          <a
-            [href]="SITE_LINKS.siteRepo"
-            target="_blank"
-            rel="noopener noreferrer"
-            (click)="closeAll()"
-            >GitHub ↗</a
           >
         </div>
       </div>

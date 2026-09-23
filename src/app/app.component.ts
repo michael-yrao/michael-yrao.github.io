@@ -4,7 +4,6 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { NavContextService } from './core/services/nav-context.service';
 import { ThemeService } from './core/services/theme.service';
 import { SITE_LINKS } from './core/data/site-links';
-import { LIBRARY_SECTIONS } from './core/data/library-sections';
 import { LogoMarkComponent } from './shared/components/logo-mark/logo-mark.component';
 
 @Component({
@@ -19,7 +18,6 @@ export class AppComponent {
   readonly themeService = inject(ThemeService);
 
   readonly SITE_LINKS = SITE_LINKS;
-  readonly librarySections = LIBRARY_SECTIONS;
   readonly year = new Date().getFullYear();
 
   readonly currentCtx = toSignal(this.navCtx.ctx$, { initialValue: null });
