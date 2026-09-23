@@ -7,7 +7,8 @@ import { ShowcaseService } from '../../../core/services/showcase.service';
 const RATIO_TO_PERCENT = 100;
 
 /**
- * The "N of M walkthroughs grounded" meter — identical on the Library hub and the Algorithms
+ * The "N of M solutions grounded" meter (a solution is any showcased variant, with or without a
+ * walkthrough) — identical on the Library hub and the Algorithms
  * list (plan B7), factored out once rather than duplicated (DRY). Self-contained: injects
  * `ShowcaseService` itself, triggers `load()`, and computes the sitewide report — a caller
  * just places `<app-groundedness-meter>` with no inputs (the report is always "all of

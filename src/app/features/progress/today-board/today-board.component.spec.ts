@@ -19,7 +19,8 @@ function makeSchedule(overrides: Partial<Schedule> = {}): Schedule {
         label: 'Test day',
         units: 5,
         items: [
-          { lcNumber: 22, title: 'Generate Parentheses', technique: 'Backtracking',
+          // 9999 is deliberately unregistered — the "no viz route" row must never gain a page.
+          { lcNumber: 9999, title: 'Unvisualized Problem', technique: 'Backtracking',
             startComfort: '🔴', difficulty: 'Medium', done: false },
           { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS',
             startComfort: '🟢', difficulty: 'Easy', done: true },
@@ -51,7 +52,7 @@ function makeWeekSchedule(): Schedule {
         label: 'Test day',
         units: 5,
         items: [
-          { lcNumber: 22, title: 'Generate Parentheses', technique: 'Backtracking',
+          { lcNumber: 9999, title: 'Unvisualized Problem', technique: 'Backtracking',
             startComfort: '🔴', difficulty: 'Medium', done: false },
           { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS',
             startComfort: '🟢', difficulty: 'Easy', done: true },
@@ -97,7 +98,7 @@ describe('TodayBoardComponent', () => {
 
     const rows = fixture.nativeElement.querySelectorAll('.today-board__row');
     expect(rows.length).toBe(2);
-    expect(fixture.nativeElement.textContent).toContain('Generate Parentheses');
+    expect(fixture.nativeElement.textContent).toContain('Unvisualized Problem');
     expect(fixture.nativeElement.textContent).toContain('Same Tree');
 
     // The done row and the not-done row are distinguishable in the DOM.

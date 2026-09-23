@@ -39,6 +39,8 @@ const RECOGNITION_CUES: Record<Category, string> = {
     'Cue: prefix lookups, autocomplete, or many words sharing leading characters → a trie (prefix tree) walks one node per character.',
   'dynamic-programming':
     'Cue: overlapping subproblems + optimal substructure → memoize the recursion or tabulate bottom-up.',
+  'backtracking':
+    'Cue: enumerate every valid combination/permutation/subset → choose, recurse, un-choose; prune on a legality check.',
 };
 
 interface CategoryOption {

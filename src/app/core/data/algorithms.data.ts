@@ -42,6 +42,7 @@ import { plusOneMeta } from '../../algorithms/arrays-hash/plus-one.steps';
 import { findPeakElementMeta } from '../../algorithms/binary-search/find-peak-element.steps';
 import { searchA2DMatrixMeta } from '../../algorithms/binary-search/search-a-2d-matrix.steps';
 import { longestRepeatingCharReplacementMeta } from '../../algorithms/sliding-window/longest-repeating-char-replacement.steps';
+import { longestSubstringWithoutRepeatingCharactersMeta } from '../../algorithms/sliding-window/longest-substring-without-repeating-characters.steps';
 import { fourSumMeta } from '../../algorithms/two-pointers/four-sum.steps';
 import { kokoEatingBananasMeta } from '../../algorithms/binary-search/koko-eating-bananas.steps';
 import { singleElementSortedArrayMeta } from '../../algorithms/binary-search/single-element-in-sorted-array.steps';
@@ -63,6 +64,8 @@ import { capacityToShipPackagesMeta } from '../../algorithms/binary-search/capac
 import { validSudokuMeta } from '../../algorithms/arrays-hash/valid-sudoku.steps';
 import { sortAnArrayMeta } from '../../algorithms/arrays-hash/sort-an-array.steps';
 import { successfulPairsSpellsPotionsMeta } from '../../algorithms/binary-search/successful-pairs-spells-potions.steps';
+import { findFirstAndLastPositionMeta } from '../../algorithms/binary-search/find-first-and-last-position.steps';
+import { magneticForceBetweenTwoBallsMeta } from '../../algorithms/binary-search/magnetic-force-between-two-balls.steps';
 import { invertBinaryTreeMeta } from '../../algorithms/trees/invert-binary-tree.steps';
 import { maximumDepthBinaryTreeMeta } from '../../algorithms/trees/maximum-depth-binary-tree.steps';
 import { diameterOfBinaryTreeMeta } from '../../algorithms/trees/diameter-of-binary-tree.steps';
@@ -80,6 +83,7 @@ import { kthLargestInStreamMeta } from '../../algorithms/heap/kth-largest-elemen
 import { designTwitterMeta } from '../../algorithms/heap/design-twitter.steps';
 import { subarraySumEqualsKMeta } from '../../algorithms/arrays-hash/subarray-sum-equals-k.steps';
 import { encodeAndDecodeStringsMeta } from '../../algorithms/arrays-hash/encode-and-decode-strings.steps';
+import { happyNumberMeta } from '../../algorithms/arrays-hash/happy-number.steps';
 import { addTwoNumbersMeta } from '../../algorithms/linked-list/add-two-numbers.steps';
 import { nextGreaterElementIMeta } from '../../algorithms/stack/next-greater-element-i.steps';
 import { implementTrieMeta } from '../../algorithms/trie/implement-trie.steps';
@@ -87,13 +91,37 @@ import { onlineStockSpanMeta } from '../../algorithms/stack/online-stock-span.st
 import { copyListWithRandomPointerMeta } from '../../algorithms/linked-list/copy-list-with-random-pointer.steps';
 import { constructTreePreorderInorderMeta } from '../../algorithms/trees/construct-tree-preorder-inorder.steps';
 import { taskSchedulerMeta } from '../../algorithms/greedy/task-scheduler.steps';
+import { jumpGameIiMeta } from '../../algorithms/greedy/jump-game-ii.steps';
+import { jumpGameMeta } from '../../algorithms/greedy/jump-game.steps';
+import { mergeIntervalsMeta } from '../../algorithms/greedy/merge-intervals.steps';
+import { insertIntervalMeta } from '../../algorithms/greedy/insert-interval.steps';
+import { gasStationMeta } from '../../algorithms/greedy/gas-station.steps';
+import { nonOverlappingIntervalsMeta } from '../../algorithms/greedy/non-overlapping-intervals.steps';
+import { partitionLabelsMeta } from '../../algorithms/greedy/partition-labels.steps';
 import { cheapestFlightsWithinKStopsMeta } from '../../algorithms/graphs/cheapest-flights-within-k-stops.steps';
 import { lruCacheMeta } from '../../algorithms/linked-list/lru-cache.steps';
 import { nextGreaterElementIIMeta } from '../../algorithms/stack/next-greater-element-ii.steps';
+import { largestRectangleInHistogramMeta } from '../../algorithms/stack/largest-rectangle-in-histogram.steps';
+import { evaluateReversePolishNotationMeta } from '../../algorithms/stack/evaluate-reverse-polish-notation.steps';
+import { minStackMeta } from '../../algorithms/stack/min-stack.steps';
+import { slidingWindowMaximumMeta } from '../../algorithms/stack/sliding-window-maximum.steps';
+import { dailyTemperaturesMeta } from '../../algorithms/stack/daily-temperatures.steps';
+import { carFleetMeta } from '../../algorithms/stack/car-fleet.steps';
 import { binaryTreeMaximumPathSumMeta } from '../../algorithms/trees/binary-tree-maximum-path-sum.steps';
 import { networkDelayTimeMeta } from '../../algorithms/graphs/network-delay-time.steps';
 import { designAddAndSearchWordsMeta } from '../../algorithms/trie/design-add-and-search-words.steps';
+import { replaceWordsMeta } from '../../algorithms/trie/replace-words.steps';
 import { minCostConnectAllPointsMeta } from '../../algorithms/graphs/min-cost-connect-all-points.steps';
+import { wordLadderMeta } from '../../algorithms/graphs/word-ladder.steps';
+import { alienDictionaryMeta } from '../../algorithms/graphs/alien-dictionary.steps';
+import { reconstructItineraryMeta } from '../../algorithms/graphs/reconstruct-itinerary.steps';
+import { accountsMergeMeta } from '../../algorithms/graphs/accounts-merge.steps';
+import { swimInRisingWaterMeta } from '../../algorithms/graphs/swim-in-rising-water.steps';
+import { findTheCityMeta } from '../../algorithms/graphs/find-the-city.steps';
+import { courseScheduleIvMeta } from '../../algorithms/graphs/course-schedule-iv.steps';
+import { validArrangementOfPairsMeta } from '../../algorithms/graphs/valid-arrangement-of-pairs.steps';
+import { generateParenthesesMeta } from '../../algorithms/backtracking/generate-parentheses.steps';
+import { subsetsMeta } from '../../algorithms/backtracking/subsets.steps';
 
 const stub = (
   id: string,
@@ -143,6 +171,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   subarraySumEqualsKMeta,
   encodeAndDecodeStringsMeta,
   containerWithMostWaterMeta,
+  happyNumberMeta,
 
   // ── Two Pointers ──────────────────────────────────────────────────────────
   mergeStringsAlternatelyMeta,
@@ -163,6 +192,7 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   containsDuplicateIIMeta,
   permutationInStringMeta,
   longestRepeatingCharReplacementMeta,
+  longestSubstringWithoutRepeatingCharactersMeta,
 
   // ── Binary Search ─────────────────────────────────────────────────────────
   binarySearchMeta,
@@ -174,6 +204,8 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   kokoEatingBananasMeta,
   capacityToShipPackagesMeta,
   successfulPairsSpellsPotionsMeta,
+  findFirstAndLastPositionMeta,
+  magneticForceBetweenTwoBallsMeta,
 
   // ── Linked List ───────────────────────────────────────────────────────────
   reverseLinkedListMeta,
@@ -216,16 +248,37 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   cheapestFlightsWithinKStopsMeta,
   networkDelayTimeMeta,
   minCostConnectAllPointsMeta,
+  wordLadderMeta,
+  alienDictionaryMeta,
+  reconstructItineraryMeta,
+  accountsMergeMeta,
+  swimInRisingWaterMeta,
+  findTheCityMeta,
+  courseScheduleIvMeta,
+  validArrangementOfPairsMeta,
 
   // ── Stack ─────────────────────────────────────────────────────────────────
   validParenthesesMeta,
   nextGreaterElementIMeta,
   onlineStockSpanMeta,
   nextGreaterElementIIMeta,
+  largestRectangleInHistogramMeta,
+  evaluateReversePolishNotationMeta,
+  minStackMeta,
+  slidingWindowMaximumMeta,
+  dailyTemperaturesMeta,
+  carFleetMeta,
 
   // ── Greedy ────────────────────────────────────────────────────────────────
   maximumSubarrayMeta,
   taskSchedulerMeta,
+  jumpGameIiMeta,
+  jumpGameMeta,
+  mergeIntervalsMeta,
+  insertIntervalMeta,
+  gasStationMeta,
+  nonOverlappingIntervalsMeta,
+  partitionLabelsMeta,
 
   // ── Dynamic Programming ───────────────────────────────────────────────────
   validPalindromeIIIMeta,
@@ -239,6 +292,11 @@ export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   // ── Trie / Prefix Tree ────────────────────────────────────────────────────
   implementTrieMeta,
   designAddAndSearchWordsMeta,
+  replaceWordsMeta,
+
+  // ── Backtracking ──────────────────────────────────────────────────────────
+  generateParenthesesMeta,
+  subsetsMeta,
 ];
 
 export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
@@ -254,6 +312,7 @@ export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
   'heap': ALL_ALGORITHMS.filter((a) => a.category === 'heap'),
   'trie': ALL_ALGORITHMS.filter((a) => a.category === 'trie'),
   'dynamic-programming': ALL_ALGORITHMS.filter((a) => a.category === 'dynamic-programming'),
+  'backtracking': ALL_ALGORITHMS.filter((a) => a.category === 'backtracking'),
 };
 
 // Memoized: generateSteps() builds the full step array, so list views must not

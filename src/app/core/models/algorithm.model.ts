@@ -12,7 +12,8 @@ export type Category =
   | 'greedy'
   | 'heap'
   | 'trie'
-  | 'dynamic-programming';
+  | 'dynamic-programming'
+  | 'backtracking';
 
 export type CellState = 'default' | 'active' | 'visited' | 'found' | 'eliminated' | 'window' | 'min-ptr' | 'max-ptr';
 
@@ -177,6 +178,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   'heap': 'Heap / Priority Queue',
   'trie': 'Trie / Prefix Tree',
   'dynamic-programming': 'Dynamic Programming',
+  'backtracking': 'Backtracking',
 };
 
 export const CATEGORY_ICONS: Record<Category, string> = {
@@ -192,4 +194,5 @@ export const CATEGORY_ICONS: Record<Category, string> = {
   'heap': '△',
   'trie': '⋔',
   'dynamic-programming': '⊞',
+  'backtracking': '⤴',
 };
