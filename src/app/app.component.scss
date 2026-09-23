@@ -21,9 +21,9 @@
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    // Hugs the ☰ on the left; the bar's centre stays free for the
-    // absolutely-centred problem-context button.
-    margin: 0 auto 0 var(--space-md);
+    // Sits at the bar's right edge (space-between pushes it there, opposite the ☰);
+    // the centre stays free for the absolutely-centred problem-context button.
+    margin: 0;
     text-decoration: none;
     color: var(--color-text);
 
