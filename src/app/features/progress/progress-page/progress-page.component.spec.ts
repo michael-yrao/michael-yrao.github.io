@@ -33,7 +33,13 @@ function makeSummary(): ProgressSummary {
       retired: 0,
     },
     difficulty: { Easy: 1, Medium: 1, Hard: 0 },
-    streak: { current: 3, longest: 5, lastStudyDay: '2026-09-20', studyDays: 10, restDayAllowance: 1 },
+    streak: {
+      current: 3,
+      longest: 5,
+      lastStudyDay: '2026-09-20',
+      studyDays: 10,
+      restDayAllowance: 1,
+    },
     coverage: { total: 56, started: 40, noGreen: 2, thin: 3, variantGaps: 1 },
     onSchedule: { totalActive: 5, dueToday: 1, overdue: 0 },
     trophyCase: {
@@ -42,18 +48,58 @@ function makeSummary(): ProgressSummary {
     },
     badges: [{ id: 'first-graduate', title: 'First Graduation', earned: true }],
     techniques: [
-      { name: 'Bellman-Ford', family: 'advanced_graphs', tier: 'core', started: true,
-        minProblems: 3, problemCount: 1, problems: [787], bestComfort: '🟢',
-        hasGreen: true, thin: true, hasVariantGap: false },
-      { name: 'Frequency Counting', family: 'arrays_and_hash', tier: 'core', started: true,
-        minProblems: 2, problemCount: 2, problems: [49, 242], bestComfort: '🎓',
-        hasGreen: true, thin: false, hasVariantGap: false },
-      { name: 'Knapsack', family: 'dynamic_programming', tier: 'dp', started: false,
-        minProblems: 3, problemCount: 0, problems: [], bestComfort: null,
-        hasGreen: false, thin: false, hasVariantGap: false },
-      { name: 'Segment Tree Beats', family: 'expansion', tier: 'tier3', started: false,
-        minProblems: 3, problemCount: 0, problems: [], bestComfort: null,
-        hasGreen: false, thin: false, hasVariantGap: false },
+      {
+        name: 'Bellman-Ford',
+        family: 'advanced_graphs',
+        tier: 'core',
+        started: true,
+        minProblems: 3,
+        problemCount: 1,
+        problems: [787],
+        bestComfort: '🟢',
+        hasGreen: true,
+        thin: true,
+        hasVariantGap: false,
+      },
+      {
+        name: 'Frequency Counting',
+        family: 'arrays_and_hash',
+        tier: 'core',
+        started: true,
+        minProblems: 2,
+        problemCount: 2,
+        problems: [49, 242],
+        bestComfort: '🎓',
+        hasGreen: true,
+        thin: false,
+        hasVariantGap: false,
+      },
+      {
+        name: 'Knapsack',
+        family: 'dynamic_programming',
+        tier: 'dp',
+        started: false,
+        minProblems: 3,
+        problemCount: 0,
+        problems: [],
+        bestComfort: null,
+        hasGreen: false,
+        thin: false,
+        hasVariantGap: false,
+      },
+      {
+        name: 'Segment Tree Beats',
+        family: 'expansion',
+        tier: 'tier3',
+        started: false,
+        minProblems: 3,
+        problemCount: 0,
+        problems: [],
+        bestComfort: null,
+        hasGreen: false,
+        thin: false,
+        hasVariantGap: false,
+      },
     ],
     studyDays: ['2026-09-18', '2026-09-19', '2026-09-20'],
     schedule: {
@@ -65,10 +111,22 @@ function makeSummary(): ProgressSummary {
           label: 'Test day',
           units: 5,
           items: [
-            { lcNumber: 22, title: 'Generate Parentheses', technique: 'Backtracking',
-              startComfort: '🔴', difficulty: 'Medium', done: false },
-            { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS',
-              startComfort: '🟢', difficulty: 'Easy', done: true },
+            {
+              lcNumber: 22,
+              title: 'Generate Parentheses',
+              technique: 'Backtracking',
+              startComfort: '🔴',
+              difficulty: 'Medium',
+              done: false,
+            },
+            {
+              lcNumber: 100,
+              title: 'Same Tree',
+              technique: 'Tree-DFS',
+              startComfort: '🟢',
+              difficulty: 'Easy',
+              done: true,
+            },
           ],
         },
       ],
@@ -80,7 +138,13 @@ function makeSummary(): ProgressSummary {
       cleanRate: 0.5,
       items: [
         { date: '2026-09-01', lcNumber: 1, title: 'Two Sum', technique: 'Hash Map', result: '🟢' },
-        { date: '2026-09-08', lcNumber: 200, title: 'Number of Islands', technique: 'Graph-DFS', result: '🔴' },
+        {
+          date: '2026-09-08',
+          lcNumber: 200,
+          title: 'Number of Islands',
+          technique: 'Graph-DFS',
+          result: '🔴',
+        },
       ],
     },
   };
@@ -178,7 +242,7 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelector('h1')).toBeFalsy();
   });
 
-  it("an app-today-board trend emission calls the stubbed loadDetails()", () => {
+  it('an app-today-board trend emission calls the stubbed loadDetails()', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
@@ -368,7 +432,9 @@ describe('ProgressPageComponent', () => {
     const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
 
-    row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    row.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+    );
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(1);
 
@@ -400,7 +466,9 @@ describe('ProgressPageComponent', () => {
 
     const glyph: HTMLAnchorElement = fixture.nativeElement.querySelector('.problem__status--link');
     expect(glyph).toBeTruthy();
-    glyph.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    glyph.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+    );
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
@@ -536,7 +604,7 @@ describe('ProgressPageComponent', () => {
     };
   }
 
-  it('renders a `src` link to the GitHub blob of the row\'s solution file, in the ACTIVE repo/branch (not the gold standard)', () => {
+  it("renders a `src` link to the GitHub blob of the row's solution file, in the ACTIVE repo/branch (not the gold standard)", () => {
     progress.repoRef.set({ owner: 'someone', repo: 'their-log', branch: 'dev' });
     progress.detailsStatus.set('ready');
     progress.details.set([problemWithFile('dsa/leetcode/backtracking/39_combination_sum.py')]);
@@ -579,7 +647,10 @@ describe('ProgressPageComponent', () => {
 
   it('renders no `src` link when the contract has no file for the row (null) or predates the field (undefined)', () => {
     progress.detailsStatus.set('ready');
-    progress.details.set([problemWithFile(null), { ...problemWithFile(undefined), lcNumber: 40, title: 'Combination Sum II' }]);
+    progress.details.set([
+      problemWithFile(null),
+      { ...problemWithFile(undefined), lcNumber: 40, title: 'Combination Sum II' },
+    ]);
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
@@ -642,7 +713,7 @@ describe('ProgressPageComponent', () => {
     expect(difficultyBar.querySelector('.segbar__legend')).toBeTruthy();
   });
 
-  it("the breadth bar shows a title and a caption explaining the interview-ROI split", () => {
+  it('the breadth bar shows a title and a caption explaining the interview-ROI split', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
@@ -678,7 +749,9 @@ describe('ProgressPageComponent', () => {
 
     expect(progress.loadDetails).toHaveBeenCalled();
     expect(fixture.componentInstance.listFilter()).toEqual({ kind: 'comfort', value: '🎓' });
-    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe(
+      'true',
+    );
   });
 
   it('clicking "Needs attention" fetches details, sets the schedule facet, and switches to Problems', () => {
@@ -694,12 +767,20 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     expect(progress.loadDetails).toHaveBeenCalled();
-    expect(fixture.componentInstance.listFilter()).toEqual({ kind: 'schedule', value: 'attention' });
-    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe('true');
+    expect(fixture.componentInstance.listFilter()).toEqual({
+      kind: 'schedule',
+      value: 'attention',
+    });
+    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe(
+      'true',
+    );
   });
 
   it('hides the "Needs attention" drill when nothing is overdue or due', () => {
-    progress.data.set({ ...makeSummary(), onSchedule: { totalActive: 5, dueToday: 0, overdue: 0 } });
+    progress.data.set({
+      ...makeSummary(),
+      onSchedule: { totalActive: 5, dueToday: 0, overdue: 0 },
+    });
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'activity');
@@ -724,7 +805,9 @@ describe('ProgressPageComponent', () => {
     expect(progress.loadDetails).toHaveBeenCalled();
     const facet = fixture.componentInstance.listFilter();
     expect(facet?.kind).toBe('difficulty');
-    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe(
+      'true',
+    );
   });
 
   // ── 🏆 Retired never appears in details().problems[] (retired rows leave the tracker
@@ -746,16 +829,22 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const retiredSeg: HTMLButtonElement = fixture.nativeElement.querySelector('.segbar__seg.seg-retired');
+    const retiredSeg: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.segbar__seg.seg-retired',
+    );
     expect(retiredSeg).toBeTruthy();
     retiredSeg.click();
     fixture.detectChanges();
 
     expect(progress.loadDetails).not.toHaveBeenCalled();
     expect(fixture.componentInstance.listFilter()).toBeNull();
-    expect(fixture.nativeElement.querySelector('#tab-activity').getAttribute('aria-selected')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#tab-activity').getAttribute('aria-selected')).toBe(
+      'true',
+    );
     // The Trophy Case itself lives there now, retired row included.
-    expect(fixture.nativeElement.querySelector('.trophy--retired')?.textContent).toContain('Binary Search');
+    expect(fixture.nativeElement.querySelector('.trophy--retired')?.textContent).toContain(
+      'Binary Search',
+    );
   });
 
   // ── Keyboard nav: the tablist is a real roving-tabindex control ─────────────────────
@@ -767,7 +856,9 @@ describe('ProgressPageComponent', () => {
     overviewTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('#tab-mastery').getAttribute('aria-selected')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#tab-mastery').getAttribute('aria-selected')).toBe(
+      'true',
+    );
   });
 
   it('ArrowLeft on the first tab wraps to the last tab (Activity, round 5)', () => {
@@ -778,7 +869,9 @@ describe('ProgressPageComponent', () => {
     overviewTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('#tab-activity').getAttribute('aria-selected')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#tab-activity').getAttribute('aria-selected')).toBe(
+      'true',
+    );
   });
 
   // ── Round 5: exactly 5 tabs — Techniques folded into Mastery ────────────────────────
@@ -789,9 +882,16 @@ describe('ProgressPageComponent', () => {
     const tabs = fixture.nativeElement.querySelectorAll('[role="tab"]');
     expect(tabs.length).toBe(5);
     const ids = Array.from(tabs).map((t) => (t as HTMLElement).id);
-    expect(ids).toEqual(['tab-overview', 'tab-mastery', 'tab-recognition', 'tab-problems', 'tab-activity']);
+    expect(ids).toEqual([
+      'tab-overview',
+      'tab-mastery',
+      'tab-recognition',
+      'tab-problems',
+      'tab-activity',
+    ]);
 
-    const recognitionTab: HTMLButtonElement = fixture.nativeElement.querySelector('#tab-recognition');
+    const recognitionTab: HTMLButtonElement =
+      fixture.nativeElement.querySelector('#tab-recognition');
     expect(recognitionTab).toBeTruthy();
     expect(recognitionTab.textContent).toContain('Recognition');
     expect(recognitionTab.getAttribute('aria-selected')).toBe('false');
@@ -800,7 +900,7 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelector('#tab-techniques')).toBeFalsy();
   });
 
-  it('switching to Recognition renders app-recognition-panel wired to the summary\'s probes, no fetch', () => {
+  it("switching to Recognition renders app-recognition-panel wired to the summary's probes, no fetch", () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
@@ -815,13 +915,14 @@ describe('ProgressPageComponent', () => {
 
   // ── Round 3: technique minProblems + click-to-expand-problems wiring (round 5: now on
   // the Mastery tab) ───────────────────────────────────────────────────────────────────
-  it('shows each technique\'s count/target ratio (problemCount/minProblems) on the Mastery tab', () => {
+  it("shows each technique's count/target ratio (problemCount/minProblems) on the Mastery tab", () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const ratios = Array.from(fixture.nativeElement.querySelectorAll('.tech-row__ratio'))
-      .map((el) => (el as HTMLElement).textContent);
+    const ratios = Array.from(fixture.nativeElement.querySelectorAll('.tech-row__ratio')).map(
+      (el) => (el as HTMLElement).textContent,
+    );
     expect(ratios).toContain('1/3');
     expect(ratios).toContain('2/2');
   });
