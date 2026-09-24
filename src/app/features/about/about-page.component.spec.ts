@@ -27,9 +27,9 @@ describe('AboutPageComponent', () => {
     expect(bios[0].textContent).toContain('Finance Command Center');
   });
 
-  it('renders a support CTA linking to Venmo in a new tab', () => {
+  it('renders a support link to Venmo that opens in a new tab', () => {
     const el = fixture.nativeElement as HTMLElement;
-    const cta = el.querySelector('a.support-cta');
+    const cta = el.querySelector('a.support-link');
     expect(cta?.getAttribute('href')).toBe(SITE_LINKS.venmo);
     expect(cta?.getAttribute('target')).toBe('_blank');
     const rel = cta?.getAttribute('rel') ?? '';
