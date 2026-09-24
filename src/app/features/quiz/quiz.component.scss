@@ -1,0 +1,9 @@
+@use '../game-card' as gcard;
+
+.games-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-2xl) var(--space-xl);
+}
+
+@include gcard.card-grid;

@@ -7,7 +7,7 @@
     </p>
     <div class="algo-links">
       @if (vizRoute) {
-        <a [routerLink]="vizRoute" class="algo-link">Practice this on the visualizer →</a>
+        <a [routerLink]="vizRoute" class="algo-link">Step through the algorithm →</a>
       }
       @if (lcUrl) {
         <a [href]="lcUrl" target="_blank" rel="noopener" class="algo-link">
@@ -183,7 +183,7 @@
           </p>
 
           <div class="algo-breakdown__links">
-            <span class="algo-breakdown__links-label">Practice the same algorithm</span>
+            <span class="algo-breakdown__links-label">The problem behind this game</span>
             @if (vizRoute) {
               <a [routerLink]="vizRoute" class="problem-link">
                 LC {{ lcNumber }} · Min Cost to Connect All Points

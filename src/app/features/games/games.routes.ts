@@ -10,17 +10,19 @@ export const GAMES_ROUTES: Routes = [
       import('./flood-fill/flood-fill.component').then((m) => m.FloodFillComponent),
   },
   {
-    path: 'pattern-sense',
-    loadComponent: () =>
-      import('./pattern-sense/pattern-sense.component').then((m) => m.PatternSenseComponent),
-  },
-  {
     path: 'maze',
     loadComponent: () => import('./maze/maze.component').then((m) => m.MazeComponent),
   },
   {
+    // Pattern Sense and Big-O moved to the /quiz feature; keep the old URLs alive.
+    path: 'pattern-sense',
+    pathMatch: 'full',
+    redirectTo: '/quiz/pattern-sense',
+  },
+  {
     path: 'big-o',
-    loadComponent: () => import('./big-o/big-o.component').then((m) => m.BigOComponent),
+    pathMatch: 'full',
+    redirectTo: '/quiz/big-o',
   },
   {
     path: 'bisect-it',

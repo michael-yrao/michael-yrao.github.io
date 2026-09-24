@@ -1,0 +1,35 @@
+<div class="games-page">
+  <app-page-header
+    [breadcrumb]="breadcrumb"
+    eyebrow="Quick-fire drills"
+    heading="Quiz"
+  >
+    Name the pattern, name the complexity. Each round tests a skill before you'd ever write code.
+  </app-page-header>
+  <app-library-subnav></app-library-subnav>
+
+  <div class="games-grid">
+    @for (game of quizzes; track game) {
+      <a
+        class="game-card po-card"
+        [class.game-card--available]="game.status === 'available'"
+        [class.game-card--soon]="game.status === 'coming-soon'"
+        [routerLink]="game.status === 'available' ? game.route : null"
+        >
+        <div class="game-card__header">
+          <h3 class="game-card__title">{{ game.title }}</h3>
+          <span class="game-card__badge" [class.game-card__badge--available]="game.status === 'available'">
+            {{ game.status === 'available' ? 'Play Now' : 'Coming Soon' }}
+          </span>
+        </div>
+        <p class="game-card__desc">{{ game.description }}</p>
+        <p class="game-card__algo-note">{{ game.algorithmNote }}</p>
+        <div class="game-card__algos">
+          @for (algo of game.algorithms; track algo) {
+            <span class="algo-tag">{{ algo }}</span>
+          }
+        </div>
+      </a>
+    }
+  </div>
+</div>

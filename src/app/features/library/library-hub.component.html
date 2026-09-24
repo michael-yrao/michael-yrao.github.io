@@ -32,11 +32,23 @@
       <span class="section-card__cta">Browse patterns →</span>
     </a>
 
+    <a routerLink="/quiz" class="section-card po-card po-card--link">
+      <div class="section-card__icon">◇</div>
+      <h2 class="section-card__title">Quiz</h2>
+      <p class="section-card__desc">
+        Quick-fire drills on the skills before the code: name the pattern a problem calls for, and name the time and space complexity of a real solution.
+      </p>
+      <div class="section-card__meta">
+        <span><strong>{{ totalQuizzes }}</strong> quizzes</span>
+      </div>
+      <span class="section-card__cta">Take a quiz →</span>
+    </a>
+
     <a routerLink="/games" class="section-card po-card po-card--link">
       <div class="section-card__icon">◉</div>
       <h2 class="section-card__title">Games</h2>
       <p class="section-card__desc">
-        Interactive coding challenges to test and reinforce what you've learned — built on the same problems.
+        Interactive coding challenges to reinforce what you've learned — built on the same problems.
       </p>
       <div class="section-card__meta">
         <span><strong>{{ totalGames }}</strong> playable</span>

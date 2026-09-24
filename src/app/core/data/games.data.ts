@@ -1,17 +1,9 @@
-export type GameCategory = 'recognition' | 'graph-traversal' | 'complexity' | 'optimization';
+export type GameCategory = 'graph-traversal' | 'optimization';
 
 export const GAME_CATEGORY_LABELS: Record<GameCategory, { label: string; blurb: string }> = {
-  'recognition': {
-    label: 'Pattern Recognition',
-    blurb: 'Train the skill that comes before code: reading a problem and knowing which technique it calls for.',
-  },
   'graph-traversal': {
     label: 'Graph Traversal',
     blurb: 'BFS and DFS made playable — frontiers, flood fills, and shortest paths you can watch.',
-  },
-  'complexity': {
-    label: 'Complexity Analysis',
-    blurb: 'Read real code, name the time and space complexity, and learn why each loop or structure costs what it does.',
   },
   'optimization': {
     label: 'Optimization',
@@ -32,16 +24,6 @@ export interface GameMeta {
 
 export const GAMES: GameMeta[] = [
   {
-    id: 'pattern-sense',
-    title: 'Pattern Sense',
-    description: 'Read a real problem with the title hidden — name the technique it calls for. Build the recognition reflex that is half of every interview.',
-    algorithmNote: 'Every problem on this site becomes a quiz round: spot the cues (sorted input? contiguous run? hierarchy?) and pick the right tool.',
-    algorithms: ['Recognition', 'All techniques'],
-    category: 'recognition',
-    status: 'available',
-    route: '/games/pattern-sense',
-  },
-  {
     id: 'flood-fill',
     title: 'Flood Fill',
     description: 'Pick a color to flood the board outward from the top-left corner. Conquer the whole grid in 22 moves or fewer.',
@@ -60,16 +42,6 @@ export const GAMES: GameMeta[] = [
     category: 'graph-traversal',
     status: 'available',
     route: '/games/maze',
-  },
-  {
-    id: 'big-o',
-    title: 'Big-O Trainer',
-    description: 'Read a real code snippet from this site and name both the time and space complexity. The harder questions target common gotchas — recursion stack space, input-vs-output counting, and why O(n log m) is not O(n log n).',
-    algorithmNote: '25 questions drawn from problems across all 10 patterns. Each answer includes a line-by-line explanation of the reasoning.',
-    algorithms: ['All complexities', 'Time & Space'],
-    category: 'complexity',
-    status: 'available',
-    route: '/games/big-o',
   },
   {
     id: 'bisect-it',

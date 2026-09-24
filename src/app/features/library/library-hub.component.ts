@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ALL_ALGORITHMS, countVisualized } from '../../core/data/algorithms.data';
 import { GAMES } from '../../core/data/games.data';
+import { QUIZZES } from '../../core/data/quizzes.data';
 import { SITE_LINKS } from '../../core/data/site-links';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../shared/components/page-header/page-header.component';
 import { GroundednessMeterComponent } from '../../shared/components/groundedness-meter/groundedness-meter.component';
@@ -28,6 +29,7 @@ export class LibraryHubComponent {
   readonly totalSolved = ALL_ALGORITHMS.length;
   readonly totalVisualized = countVisualized(ALL_ALGORITHMS);
   readonly totalGames = GAMES.filter((g) => g.status === 'available').length;
+  readonly totalQuizzes = QUIZZES.filter((q) => q.status === 'available').length;
   readonly cheatSheetCount = CHEAT_SHEET_COUNT;
   readonly SITE_LINKS = SITE_LINKS;
 }

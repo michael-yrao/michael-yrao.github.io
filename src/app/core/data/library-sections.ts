@@ -9,5 +9,6 @@ export interface LibrarySection {
 export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   { label: 'Algorithms', path: '/algorithms' },
   { label: 'Patterns', path: '/learn' },
+  { label: 'Quiz', path: '/quiz' },
   { label: 'Games', path: '/games' },
 ];

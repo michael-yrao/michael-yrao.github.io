@@ -16,4 +16,20 @@ describe('app routes', () => {
 
     expect(router.url).toBe('/?repo=a%2Fb');
   });
+
+  it('redirects /games/pattern-sense to /quiz/pattern-sense', async () => {
+    const router = TestBed.inject(Router);
+
+    await router.navigateByUrl('/games/pattern-sense');
+
+    expect(router.url).toBe('/quiz/pattern-sense');
+  });
+
+  it('redirects /games/big-o to /quiz/big-o', async () => {
+    const router = TestBed.inject(Router);
+
+    await router.navigateByUrl('/games/big-o');
+
+    expect(router.url).toBe('/quiz/big-o');
+  });
 });

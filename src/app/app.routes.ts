@@ -38,6 +38,11 @@ export const routes: Routes = [
       import('./features/games/games.routes').then((m) => m.GAMES_ROUTES),
   },
   {
+    path: 'quiz',
+    loadChildren: () =>
+      import('./features/quiz/quiz.routes').then((m) => m.QUIZ_ROUTES),
+  },
+  {
     path: 'learn',
     loadChildren: () =>
       import('./features/learn/learn.routes').then((m) => m.LEARN_ROUTES),
