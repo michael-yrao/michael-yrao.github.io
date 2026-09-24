@@ -2,6 +2,7 @@ import {
   Component,
   ChangeDetectionStrategy,
   ElementRef,
+  InjectionToken,
   computed,
   inject,
   viewChildren,
@@ -11,7 +12,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 
 import { CheatSheetService, FamilyGroup } from '../../../core/services/cheat-sheet.service';
-import { SignalRow } from '../../../core/models/cheat-sheet.model';
+import { DecisionTreeNode, SignalRow } from '../../../core/models/cheat-sheet.model';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
 import { DecisionTreeComponent } from '../decision-tree/decision-tree.component';
@@ -24,6 +25,13 @@ const NOTICE =
 export type LearnView = 'table' | 'tree';
 const VIEW_ORDER: LearnView[] = ['table', 'tree'];
 const VIEW_LABEL: Record<LearnView, string> = { table: 'Table', tree: 'Decision tree' };
+
+/** The decision-tree view is hidden pending the learner's review; flip the factory to `true`
+ *  to show it (the data pipeline, component, and `?view=tree` handling all stay wired). */
+export const LEARN_DECISION_TREE_ENABLED = new InjectionToken<boolean>(
+  'LEARN_DECISION_TREE_ENABLED',
+  { providedIn: 'root', factory: () => false },
+);
 
 interface SignalRowView extends SignalRow {
   /** Route to `/learn/<reach>` when the row names a technique that resolves; null renders
@@ -50,12 +58,15 @@ export class LearnListComponent {
   private readonly cheatSheets = inject(CheatSheetService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly isTreeEnabled = inject(LEARN_DECISION_TREE_ENABLED);
 
   readonly notice = NOTICE;
   readonly status = this.cheatSheets.status;
   readonly error = this.cheatSheets.error;
   readonly sourceFooter = this.cheatSheets.sourceFooter;
-  readonly decisionTree = this.cheatSheets.decisionTree;
+  readonly decisionTree = computed<DecisionTreeNode | null>(() =>
+    this.isTreeEnabled ? this.cheatSheets.decisionTree() : null,
+  );
 
   readonly viewOrder = VIEW_ORDER;
   readonly viewLabel = VIEW_LABEL;

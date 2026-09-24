@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angul
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
-import { LearnListComponent } from './learn-list.component';
+import { LearnListComponent, LEARN_DECISION_TREE_ENABLED } from './learn-list.component';
 import cheatSheetsAsset from '../../../../assets/cheat-sheets.json';
 
 // The bundled asset is a copy of cse-progress's generated dashboard/cheat-sheets.json, which
@@ -24,6 +24,7 @@ function makeActivatedRouteStub(view: string | null) {
 function createFixture(
   http: { get: (url: string, opts?: unknown) => unknown } = { get: () => of(cheatSheetsAsset) },
   view: string | null = null,
+  treeEnabled = false,
 ) {
   TestBed.configureTestingModule({
     imports: [LearnListComponent],
@@ -31,6 +32,7 @@ function createFixture(
       provideRouter([]),
       { provide: HttpClient, useValue: http },
       { provide: ActivatedRoute, useValue: makeActivatedRouteStub(view) },
+      ...(treeEnabled ? [{ provide: LEARN_DECISION_TREE_ENABLED, useValue: true }] : []),
     ],
   });
   const fixture = TestBed.createComponent(LearnListComponent);
@@ -71,14 +73,22 @@ describe('LearnListComponent', () => {
   });
 
   describe('Table / Decision tree toggle', () => {
+    it('with the flag off, renders the table and hides the toggle even when the payload has a tree', () => {
+      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) });
+
+      expect(fixture.nativeElement.querySelector('.ll-viewbar')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('app-decision-tree')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('.ll-table')).toBeTruthy();
+    });
+
     it('renders no view tablist when the payload has no decisionTree', () => {
-      const fixture = createFixture({ get: () => of(cheatSheetsWithoutTree) });
+      const fixture = createFixture({ get: () => of(cheatSheetsWithoutTree) }, null, true);
 
       expect(fixture.nativeElement.querySelector('.ll-viewbar')).toBeFalsy();
     });
 
     it('renders both view tabs with Table selected by default', () => {
-      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) });
+      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) }, null, true);
 
       const tableTab: HTMLButtonElement = fixture.nativeElement.querySelector('#view-table');
       const treeTab: HTMLButtonElement = fixture.nativeElement.querySelector('#view-tree');
@@ -90,7 +100,7 @@ describe('LearnListComponent', () => {
     });
 
     it('gives #learn-view-panel a tabpanel role labelled by the active (Table) tab', () => {
-      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) });
+      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) }, null, true);
 
       const panel: HTMLElement = fixture.nativeElement.querySelector('#learn-view-panel');
 
@@ -99,7 +109,7 @@ describe('LearnListComponent', () => {
     });
 
     it('relabels #learn-view-panel to the Tree tab on ?view=tree', () => {
-      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) }, 'tree');
+      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) }, 'tree', true);
 
       const panel: HTMLElement = fixture.nativeElement.querySelector('#learn-view-panel');
 
@@ -107,7 +117,7 @@ describe('LearnListComponent', () => {
     });
 
     it('?view=tree renders the decision tree, hides the table, and keeps the family cards', () => {
-      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) }, 'tree');
+      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) }, 'tree', true);
 
       expect(fixture.nativeElement.querySelector('app-decision-tree')).toBeTruthy();
       expect(fixture.nativeElement.querySelector('.ll-table')).toBeFalsy();
@@ -115,21 +125,21 @@ describe('LearnListComponent', () => {
     });
 
     it('falls back to the table on an invalid ?view= value', () => {
-      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) }, 'bogus');
+      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) }, 'bogus', true);
 
       expect(fixture.nativeElement.querySelector('.ll-table')).toBeTruthy();
       expect(fixture.nativeElement.querySelector('app-decision-tree')).toBeFalsy();
     });
 
     it('falls back to the table on ?view=tree when the payload has no decisionTree', () => {
-      const fixture = createFixture({ get: () => of(cheatSheetsWithoutTree) }, 'tree');
+      const fixture = createFixture({ get: () => of(cheatSheetsWithoutTree) }, 'tree', true);
 
       expect(fixture.nativeElement.querySelector('.ll-table')).toBeTruthy();
       expect(fixture.nativeElement.querySelector('app-decision-tree')).toBeFalsy();
     });
 
     it('clicking the Decision tree tab calls router.navigate with the tree view param', () => {
-      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) });
+      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) }, null, true);
       const router = TestBed.inject(Router);
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
@@ -144,7 +154,7 @@ describe('LearnListComponent', () => {
     });
 
     it('ArrowRight on the Table tab navigates and moves focus to the Tree tab', () => {
-      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) });
+      const fixture = createFixture({ get: () => of(cheatSheetsWithTree) }, null, true);
       const router = TestBed.inject(Router);
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
