@@ -1,0 +1,225 @@
+<div class="bisect-it-page">
+  <app-page-header [breadcrumb]="breadcrumb" eyebrow="Algorithm Game" heading="Bisect It">
+    <p>
+      A hidden threshold sits on a monotone yes/no answer space. Probe values, read
+      <strong>feasible</strong> or <strong>not feasible</strong>, and corner the exact boundary —
+      par is <strong>ceil(log2(range))</strong> probes.
+    </p>
+    <a routerLink="/algorithms/binary-search/koko-eating-bananas" class="algo-link">
+      Uses binary search on the answer — see Koko Eating Bananas →
+    </a>
+  </app-page-header>
+
+  <div class="game-layout">
+    <div class="game-column">
+      @if (current) {
+        <div class="game-stats">
+          <div class="stat">
+            <span class="stat__value">{{ progressLabel }}</span>
+            <span class="stat__label">round</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat__value">{{ probes.length }}</span>
+            <span class="stat__label">probes</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat__value stat__value--par">{{ par }}</span>
+            <span class="stat__label">par</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat__value">{{ currentStreak }}</span>
+            <span class="stat__label">streak (best {{ bestStreak }})</span>
+          </div>
+        </div>
+
+        <div class="question-card">
+          <p class="question-card__text">{{ current.question }}</p>
+          <div class="question-card__row">
+            <span class="question-card__label">{{ current.itemLabel }}</span>
+            <span class="question-card__value">{{ current.items.join(', ') }}</span>
+          </div>
+          <div class="question-card__row">
+            <span class="question-card__label">{{ current.paramLabel }}</span>
+            <span class="question-card__value">{{ current.paramValue }}</span>
+          </div>
+        </div>
+
+        <div class="number-line">
+          <div class="track">
+            <div
+              class="track__alive"
+              [style.left.%]="percentFor(displayRange.lo)"
+              [style.width.%]="percentFor(displayRange.hi) - percentFor(displayRange.lo)"
+            ></div>
+            @if (solverMid !== null) {
+              <div class="track__mid" [style.left.%]="percentFor(solverMid)"></div>
+            }
+          </div>
+
+          @if (isCellMode) {
+            <div class="cell-line">
+              @for (v of cellValues; track v) {
+                <button
+                  type="button"
+                  class="line-cell"
+                  [class.line-cell--eliminated]="v < displayRange.lo || v > displayRange.hi"
+                  [class.line-cell--selected]="!solverRunning && selectedValue === v"
+                  [class.line-cell--probed]="probedValues.has(v)"
+                  [class.line-cell--mid]="solverRunning && solverMid === v"
+                  [disabled]="solverRunning || mode !== 'playing'"
+                  (click)="selectValue(v)"
+                >{{ v }}</button>
+              }
+            </div>
+          } @else {
+            <div class="slider-line">
+              <input
+                type="range"
+                class="slider-input"
+                [min]="displayRange.lo"
+                [max]="displayRange.hi"
+                [value]="selectedValue ?? displayRange.lo"
+                [disabled]="solverRunning || mode !== 'playing'"
+                (input)="onSliderInput($event)"
+              />
+              <span class="slider-readout">{{ selectedValue }}</span>
+            </div>
+          }
+
+          @if (solverRunning) {
+            <p class="solver-readout">
+              step {{ solverStepIdx }} / {{ current.trace.length }} — l = {{ solverRange.lo }}, r = {{ solverRange.hi }}
+              @if (solverMid !== null) {
+                , mid = {{ solverMid }} → {{ solverFeasible ? 'feasible' : 'not feasible' }}
+              }
+            </p>
+          }
+        </div>
+
+        @if (!solverRunning && mode === 'playing') {
+          <div class="move-controls">
+            <button class="btn-probe" [disabled]="!canProbe" (click)="probe()">Probe {{ selectedValue }}</button>
+            <button class="btn-submit" [disabled]="!canSubmit" (click)="submit()">Submit {{ selectedValue }}</button>
+          </div>
+        }
+
+        @if (probes.length > 0) {
+          <ul class="probe-log">
+            @for (p of probes; track $index) {
+              <li class="probe-log__row" [class.probe-log__row--feasible]="p.feasible">
+                probe {{ p.value }} → {{ p.feasible ? 'feasible' : 'not feasible' }}
+              </li>
+            }
+          </ul>
+        }
+
+        @if (mode === 'revealed') {
+          <div class="reveal-card" [class.reveal-card--exact]="isExact">
+            <div class="reveal-card__title">
+              {{ isExact ? 'Exact boundary!' : (offByOne ? 'Off by one' : 'Not the boundary') }}
+            </div>
+            <div class="reveal-card__body">
+              You submitted <strong>{{ submittedValue }}</strong>, the true answer is
+              <strong>{{ current.answer }}</strong>. Probes used: <strong>{{ probes.length }}</strong>
+              vs par <strong>{{ par }}</strong>.
+            </div>
+            <button class="btn-next" (click)="next()">
+              {{ roundIndex + 1 >= deck.length ? 'See results' : 'Next round' }}
+            </button>
+          </div>
+        }
+      }
+
+      @if (mode === 'finished') {
+        <div class="run-summary">
+          <h2 class="run-summary__title">Run complete</h2>
+          <p class="run-summary__line">Exact boundary: <strong>{{ roundsExact }} / {{ deck.length }}</strong></p>
+          <p class="run-summary__line">Total probes: <strong>{{ totalProbes }}</strong> vs total par <strong>{{ totalPar }}</strong></p>
+          <p class="run-summary__line">Best exact-boundary streak: <strong>{{ bestStreak }}</strong></p>
+          <button class="btn-play-again" (click)="startRun()">Play Again</button>
+        </div>
+      }
+    </div>
+
+    <aside class="algo-column">
+      <section class="algo-breakdown">
+        <h2 class="algo-breakdown__title">How the Algorithm Works</h2>
+
+        <div class="algo-breakdown__body">
+          <p class="algo-breakdown__intro">
+            Every round is <strong>binary search on the answer</strong>: the feasibility check is
+            monotone, so once you know one probe's result, an entire half of the range is decided
+            — halving each time finds the exact boundary in <code>ceil(log2(range))</code> probes.
+          </p>
+
+          <div class="mapping-table">
+            <div class="mapping-row mapping-row--header">
+              <span>Game mechanic</span>
+              <span>Binary search concept</span>
+            </div>
+            <div class="mapping-row">
+              <span>Probe a value</span>
+              <span>Evaluate feasible(mid)</span>
+            </div>
+            <div class="mapping-row">
+              <span>Greyed-out half</span>
+              <span>The eliminated side of [l, r]</span>
+            </div>
+            <div class="mapping-row">
+              <span>Submitted value</span>
+              <span>The boundary the loop converges to</span>
+            </div>
+            <div class="mapping-row">
+              <span>Par</span>
+              <span>ceil(log2(range)) iterations</span>
+            </div>
+          </div>
+
+          @if (current) {
+            <h3 class="algo-breakdown__step-title">This round's predicate</h3>
+            <p class="algo-breakdown__intro">
+              @switch (current.flavour) {
+                @case ('koko') {
+                  <code>feasible(k)</code> = sum of <code>ceil(pile / k)</code> over every pile is
+                  ≤ h hours. Minimise k.
+                }
+                @case ('ship') {
+                  <code>feasible(capacity)</code> = the greedy day count loading packages in order
+                  at that capacity is ≤ D days. Minimise capacity.
+                }
+                @case ('magnet') {
+                  <code>feasible(d)</code> = greedily placing balls at least d apart fits at least
+                  m balls. Maximise d.
+                }
+              }
+            </p>
+          }
+
+          <div class="solver-controls">
+            @if (!solverRunning) {
+              <button class="btn-solver" [disabled]="mode !== 'revealed'" (click)="watchSolver()">
+                ▶ Watch binary search
+              </button>
+            }
+            @if (solverRunning) {
+              <div class="solver-running">
+                <span class="solver-running__label">Reference trace — step {{ solverStepIdx }} / {{ current?.trace?.length }}</span>
+                <button class="btn-solver-stop" (click)="stopSolver()">Stop</button>
+              </div>
+            }
+          </div>
+
+          <div class="algo-breakdown__links">
+            <span class="algo-breakdown__links-label">Practice the same technique</span>
+            <a routerLink="/algorithms/binary-search/koko-eating-bananas" class="problem-link">LC 875 · Koko Eating Bananas</a>
+            <a routerLink="/algorithms/binary-search/capacity-to-ship-packages" class="problem-link">LC 1011 · Capacity to Ship Packages Within D Days</a>
+            <a routerLink="/algorithms/binary-search/magnetic-force-between-two-balls" class="problem-link">LC 1552 · Magnetic Force Between Two Balls</a>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>

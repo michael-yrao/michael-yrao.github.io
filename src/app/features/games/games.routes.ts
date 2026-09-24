@@ -22,4 +22,17 @@ export const GAMES_ROUTES: Routes = [
     path: 'big-o',
     loadComponent: () => import('./big-o/big-o.component').then((m) => m.BigOComponent),
   },
+  {
+    path: 'bisect-it',
+    loadComponent: () => import('./bisect-it/bisect-it.component').then((m) => m.BisectItComponent),
+  },
+  {
+    path: 'connect-cities',
+    loadComponent: () =>
+      import('./connect-cities/connect-cities.component').then((m) => m.ConnectCitiesComponent),
+  },
+  {
+    path: 'one-stroke',
+    loadComponent: () => import('./one-stroke/one-stroke.component').then((m) => m.OneStrokeComponent),
+  },
 ];

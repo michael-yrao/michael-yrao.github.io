@@ -1,0 +1,194 @@
+<div class="os-page">
+  <app-page-header [breadcrumb]="breadcrumb" eyebrow="Algorithm Game" heading="One-Stroke Tour">
+    <p>
+      Trace every edge exactly once without lifting your pen — a directed or undirected
+      <strong>Eulerian path</strong>. Pick a start node, then click along unused edges.
+    </p>
+    <div class="os-links">
+      @if (vizRoute) {
+        <a [routerLink]="vizRoute" class="algo-link">See the itinerary-reconstruction visualizer →</a>
+      }
+      @if (leetCodeUrl) {
+        <a [href]="leetCodeUrl" target="_blank" rel="noopener" class="algo-link">LC 332 · Reconstruct Itinerary ↗</a>
+      }
+    </div>
+  </app-page-header>
+
+  <div class="os-layout">
+    <div class="os-controls">
+      <button class="btn-os" (click)="newBoard()" [disabled]="solverRunning">New Board</button>
+      <button class="btn-os" (click)="resetBoard()" [disabled]="solverRunning">Reset</button>
+      <button class="btn-os" (click)="undo()" [disabled]="solverActive || !canUndo">Undo</button>
+      <button class="btn-os" (click)="toggleExplain()" [disabled]="solverActive">
+        {{ showExplain ? 'Hide' : 'Explain' }}
+      </button>
+      @if (!solverActive) {
+        <button class="btn-os btn-os--solver" (click)="watchSolver()">Watch Solver</button>
+      } @else {
+        <button class="btn-os btn-os--solver btn-os--active" (click)="stopSolver()">Back to my board</button>
+      }
+      <span class="os-phase" aria-live="polite">
+        @if (solverRunning) {
+          {{ solverPhase === 'stack' ? 'Hierholzer building the stack…' : 'walking the final tour…' }}
+        } @else if (solverFinished) {
+          tour complete — Back to my board when ready
+        } @else {
+          @switch (phase) {
+            @case ('choosing-start') { pick a start node }
+            @case ('playing') { go — click an unused edge }
+            @case ('won') { tour complete }
+            @case ('lost') { dead end — no edges left from here }
+          }
+        }
+      </span>
+    </div>
+
+    <div class="os-stats">
+      <div class="stat">
+        <span class="stat__value">{{ movesCount }}</span>
+        <span class="stat__label">moves</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat__value">{{ usedEdgeIds.size }}/{{ totalEdges }}</span>
+        <span class="stat__label">edges used</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat__value">{{ winStreak }}</span>
+        <span class="stat__label">streak</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat__value stat__value--par">{{ bestStreak }}</span>
+        <span class="stat__label">best streak</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat__value">{{ board.directed ? 'Directed' : 'Undirected' }}</span>
+        <span class="stat__label">board</span>
+      </div>
+    </div>
+
+    <div class="os-arena">
+      <svg class="os-svg" [attr.viewBox]="viewBox" role="img" aria-label="One-stroke tour board">
+        <defs>
+          <marker id="os-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" class="os-arrowhead"></path>
+          </marker>
+          <marker id="os-arrow-used" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" class="os-arrowhead os-arrowhead--used"></path>
+          </marker>
+        </defs>
+
+        @for (info of edgeRenderInfo; track info.edge.id) {
+          <path
+            class="os-edge"
+            [class.os-edge--used]="edgeState(info.edge) === 'used'"
+            [attr.d]="info.pathD"
+            [attr.marker-end]="board.directed ? markerUrl(edgeState(info.edge)) : null"
+          ></path>
+        }
+
+        @for (node of board.nodes; track node.id) {
+          <g
+            class="os-node"
+            [class.os-node--current]="isCurrentNode(node.id)"
+            [class.os-node--problem]="isProblemNode(node.id)"
+            [class.os-node--candidate]="showExplain && phase === 'choosing-start' && isStartCandidate(node.id)"
+            role="button"
+            tabindex="0"
+            [attr.aria-label]="'Node ' + node.id"
+            (click)="selectNode(node.id)"
+            (keydown.enter)="selectNode(node.id)"
+          >
+            <circle [attr.cx]="node.x" [attr.cy]="node.y" [attr.r]="nodeRadius"></circle>
+            <text [attr.x]="node.x" [attr.y]="node.y">{{ node.id }}</text>
+          </g>
+        }
+      </svg>
+
+      @if (solverActive) {
+        <div class="os-stack-panel">
+          @if (solverPhase === 'stack') {
+            <div class="os-solver-columns">
+              <div class="os-solver-col">
+                <span class="os-stack-panel__label">Stack</span>
+                <div class="os-stack-column">
+                  @for (id of solverStack; track $index) {
+                    <div class="os-stack-item">{{ id }}</div>
+                  }
+                </div>
+              </div>
+              <div class="os-solver-col">
+                <span class="os-stack-panel__label">Popped</span>
+                <div class="os-stack-column">
+                  @for (id of solverPopped; track $index) {
+                    <div class="os-stack-item os-stack-item--popped">{{ id }}</div>
+                  }
+                </div>
+              </div>
+            </div>
+          } @else {
+            <span class="os-stack-panel__label">Tour = reverse(popped)</span>
+            <div class="os-tour-row">
+              @for (id of solverTourNodeIds; track $index; let i = $index; let isLast = $last) {
+                <span class="os-tour-node" [class.os-tour-node--walked]="i <= solverTourWalkedCount">{{ id }}</span>
+                @if (!isLast) {
+                  <span class="os-tour-arrow">→</span>
+                }
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (!solverActive && (phase === 'won' || phase === 'lost')) {
+        <div class="os-overlay">
+          <div class="os-overlay__content">
+            <div class="os-overlay__icon" [class.os-overlay__icon--win]="phase === 'won'">
+              {{ phase === 'won' ? '✓' : '✗' }}
+            </div>
+            <div class="os-overlay__title">{{ phase === 'won' ? 'Tour Complete!' : 'Dead End' }}</div>
+            <div class="os-overlay__sub">
+              @if (phase === 'won') {
+                Finished in {{ movesCount }} move{{ movesCount === 1 ? '' : 's' }}
+              }
+              @if (phase === 'lost') {
+                {{ usedEdgeIds.size }} / {{ totalEdges }} edges used — no unused edge left from here
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    @if (showExplain) {
+      <div class="os-explain">
+        @if (invalidStartMessage) {
+          <p class="os-explain__warn">{{ invalidStartMessage }}</p>
+        }
+        @if (board.directed) {
+          @if (diagnosis.problemNodeIds.length === 0) {
+            <p>Every node is balanced (in-degree = out-degree) — this is an Eulerian circuit, so any node works as a start.</p>
+          } @else {
+            <p>
+              Node <strong>{{ diagnosis.validStartIds[0] }}</strong> has out-degree − in-degree&nbsp;=&nbsp;1 — that is
+              the only valid start. The node with in-degree − out-degree&nbsp;=&nbsp;1 is the required finish.
+            </p>
+          }
+        } @else {
+          @if (diagnosis.problemNodeIds.length === 0) {
+            <p>Every node has even degree — this is an Eulerian circuit, so any node works as a start.</p>
+          } @else {
+            <p>
+              Nodes <strong>{{ diagnosis.problemNodeIds[0] }}</strong> and
+              <strong>{{ diagnosis.problemNodeIds[1] }}</strong> have odd degree — the tour must start at one of them
+              (and finishes at the other).
+            </p>
+          }
+        }
+      </div>
+    }
+  </div>
+</div>

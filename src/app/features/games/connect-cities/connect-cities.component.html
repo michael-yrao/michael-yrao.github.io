@@ -1,0 +1,202 @@
+<div class="connect-cities-page">
+  <app-page-header [breadcrumb]="breadcrumb" eyebrow="Algorithm Game" heading="Connect the Cities">
+    <p>
+      Draw edges to connect all <strong>{{ points.length }}</strong> cities into one network at
+      minimum total cost. An edge that closes a cycle is rejected — match
+      <strong>Prim's</strong> optimal cost to win.
+    </p>
+    <div class="algo-links">
+      @if (vizRoute) {
+        <a [routerLink]="vizRoute" class="algo-link">Practice this on the visualizer →</a>
+      }
+      @if (lcUrl) {
+        <a [href]="lcUrl" target="_blank" rel="noopener" class="algo-link">
+          LC {{ lcNumber }} · Min Cost to Connect All Points →
+        </a>
+      }
+    </div>
+  </app-page-header>
+
+  <div class="game-layout">
+    <div class="game-column">
+      <div class="game-arena">
+        <div class="game-stats">
+          <div class="stat">
+            <span class="stat__value">{{ playerCost }}</span>
+            <span class="stat__label">your cost</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat__value stat__value--par">{{ optimalCost }}</span>
+            <span class="stat__label">Prim's optimal</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat__value">{{ selectedEdges.length }} / {{ edgesNeeded }}</span>
+            <span class="stat__label">edges placed</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat__value">{{ bestScore }}</span>
+            <span class="stat__label">optimal wins</span>
+          </div>
+        </div>
+
+        <div class="board-wrapper">
+          <svg
+            class="board"
+            [attr.viewBox]="'0 0 ' + planeSize + ' ' + planeSize"
+            role="img"
+            aria-label="City connection board"
+          >
+            @for (edge of edges; track edgeKeyOf(edge)) {
+              <g class="edge-group">
+                <line
+                  class="edge-hit"
+                  [attr.x1]="points[edge.a].x"
+                  [attr.y1]="points[edge.a].y"
+                  [attr.x2]="points[edge.b].x"
+                  [attr.y2]="points[edge.b].y"
+                  (mouseenter)="setHover(edge)"
+                  (mouseleave)="clearHover()"
+                  (click)="selectEdge(edge)"
+                ></line>
+                <line
+                  class="edge-line"
+                  [class.edge-line--selected]="isEdgeSelected(edge)"
+                  [class.edge-line--hover]="isHovered(edge) && !isEdgeSelected(edge)"
+                  [class.edge-line--reject]="isCycleFlash(edge)"
+                  [class.edge-line--frontier]="isSolverFrontier(edge)"
+                  [attr.x1]="points[edge.a].x"
+                  [attr.y1]="points[edge.a].y"
+                  [attr.x2]="points[edge.b].x"
+                  [attr.y2]="points[edge.b].y"
+                ></line>
+                @if (isEdgeSelected(edge)) {
+                  <text class="edge-label" [attr.x]="midX(edge)" [attr.y]="midY(edge)">{{ edge.weight }}</text>
+                }
+              </g>
+            }
+
+            @for (point of points; track $index; let i = $index) {
+              <circle
+                class="city"
+                [class.city--start]="i === 0"
+                [attr.cx]="point.x"
+                [attr.cy]="point.y"
+                [attr.r]="cityRadius"
+              ></circle>
+              <text class="city-label" [attr.x]="point.x" [attr.y]="point.y - cityLabelOffset">{{ i }}</text>
+            }
+          </svg>
+
+          @if (gameState === 'won') {
+            <div class="game-overlay">
+              <div class="game-overlay__content">
+                <div class="game-overlay__icon game-overlay__icon--win">✓</div>
+                @if (isOptimal) {
+                  <div class="game-overlay__title">Optimal!</div>
+                  <div class="game-overlay__sub">Cost {{ playerCost }} — matches Prim's optimal</div>
+                } @else {
+                  <div class="game-overlay__title">Connected</div>
+                  <div class="game-overlay__sub">+{{ overCost }} over optimal ({{ overPercent }}%)</div>
+                }
+                <button class="btn-play-again" (click)="newBoard()">New Board</button>
+              </div>
+            </div>
+          }
+
+          @if (solverFinished) {
+            <div class="solver-banner">Prim's tree — cost {{ optimalCost }}</div>
+          }
+        </div>
+
+        <div class="board-controls">
+          <button
+            class="btn-secondary"
+            (click)="undoLast()"
+            [disabled]="isSolverActive || selectedEdges.length === 0"
+          >Undo last edge</button>
+          <button class="btn-secondary" (click)="newBoard()" [disabled]="isSolverActive">New board</button>
+
+          @if (solverRunning) {
+            <div class="solver-running">
+              <span class="solver-running__label">Prim's — edge {{ solverStepIdx }} / {{ edgesNeeded }}</span>
+              <button class="btn-solver-stop" (click)="stopSolver()">Stop</button>
+            </div>
+          } @else if (solverFinished) {
+            <div class="solver-running">
+              <span class="solver-running__label">Prim's tree complete — cost {{ optimalCost }}</span>
+              <button class="btn-solver-stop" (click)="stopSolver()">Back to my board</button>
+            </div>
+          } @else {
+            <button class="btn-solver" (click)="watchSolver()">▶ Watch Prim's solve this board</button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <aside class="algo-column">
+      <section class="algo-breakdown">
+        <h2 class="algo-breakdown__title">How Prim's Algorithm Works</h2>
+
+        <div class="algo-breakdown__body">
+          <p class="algo-breakdown__intro">
+            This game is a playable Minimum Spanning Tree builder. Prim's grows one connected
+            tree outward from city 0, at every step attaching the cheapest edge from the tree
+            to a city not yet in it — the exact shape as the learner's own
+            <code>minCostConnectPoints</code> solution.
+          </p>
+
+          <div class="mapping-table">
+            <div class="mapping-row mapping-row--header">
+              <span>Game mechanic</span>
+              <span>Prim's / Union-Find concept</span>
+            </div>
+            <div class="mapping-row">
+              <span>Selected edges</span>
+              <span>Tree built so far</span>
+            </div>
+            <div class="mapping-row">
+              <span>Cycle rejection (red flash)</span>
+              <span>Union-Find <code>find</code> — same root, reject</span>
+            </div>
+            <div class="mapping-row">
+              <span>Undo last edge</span>
+              <span>Rebuild parent array from the remaining edges</span>
+            </div>
+            <div class="mapping-row">
+              <span>N − 1 edges placed</span>
+              <span>Spanning tree complete</span>
+            </div>
+            <div class="mapping-row">
+              <span>Faint frontier lines (watch solver)</span>
+              <span>Current best distance[] candidate per unvisited city</span>
+            </div>
+          </div>
+
+          <h3 class="algo-breakdown__step-title">Scoring</h3>
+          <p class="algo-breakdown__intro">
+            Your total edge cost is compared against Prim's optimal cost for the same board.
+            Tie it exactly for an <strong>Optimal!</strong> win — every optimal win adds to your
+            best score, saved locally.
+          </p>
+
+          <div class="algo-breakdown__links">
+            <span class="algo-breakdown__links-label">Practice the same algorithm</span>
+            @if (vizRoute) {
+              <a [routerLink]="vizRoute" class="problem-link">
+                LC {{ lcNumber }} · Min Cost to Connect All Points
+              </a>
+            }
+            @if (lcUrl) {
+              <a [href]="lcUrl" target="_blank" rel="noopener" class="problem-link">
+                LC {{ lcNumber }} on LeetCode →
+              </a>
+            }
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>

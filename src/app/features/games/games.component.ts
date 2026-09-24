@@ -11,7 +11,7 @@ interface GameSection {
   games: GameMeta[];
 }
 
-const CATEGORY_ORDER: GameCategory[] = ['recognition', 'graph-traversal', 'complexity'];
+const CATEGORY_ORDER: GameCategory[] = ['recognition', 'graph-traversal', 'complexity', 'optimization'];
 
 const BREADCRUMB: BreadcrumbEntry[] = [{ label: 'Home', link: '/' }, { label: 'Games' }];
 
