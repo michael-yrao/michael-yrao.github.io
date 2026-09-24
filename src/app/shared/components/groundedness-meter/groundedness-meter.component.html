@@ -3,7 +3,7 @@
     >Checking groundedness…</span
   >
 } @else if (status() === 'ready' && report()) {
-  <span class="groundedness-meter" [title]="explanation">
+  <span class="groundedness-meter" tabindex="0" [attr.data-tip]="explanation">
     <strong>{{ report()!.grounded }}</strong> of <strong>{{ report()!.total }}</strong> solution variants
     grounded in {{ repoSlug }} · {{ percent() }}%
   </span>

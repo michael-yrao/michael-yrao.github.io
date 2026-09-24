@@ -78,7 +78,8 @@ describe('GroundednessMeterComponent', () => {
     expect(text).toContain('solution variants');
 
     const meterEl = fixture.nativeElement.querySelector('.groundedness-meter');
-    expect(meterEl.getAttribute('title')).toBeTruthy();
-    expect(meterEl.getAttribute('title')).toContain('variant');
+    expect(meterEl.getAttribute('data-tip')).toBeTruthy();
+    expect(meterEl.getAttribute('data-tip')).toContain('variant');
+    expect(meterEl.getAttribute('tabindex')).toBe('0');
   });
 });
