@@ -491,6 +491,55 @@ describe('TodayBoardComponent', () => {
     expect(lcLink.getAttribute('aria-label')).toContain('LeetCode');
   });
 
+  it('renders a `src` link to the row\'s own solution file in the given repo/branch, after the LeetCode ↗', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 39, title: 'Combination Sum', technique: 'Backtracking', startComfort: null,
+        difficulty: null, done: false, url: 'https://leetcode.com/problems/combination-sum/',
+        file: 'dsa/leetcode/backtracking/39_combination_sum.py' },
+    ];
+    const fixture = createFixture(schedule);
+    fixture.componentRef.setInput('repoRef', { owner: 'someone', repo: 'their-log', branch: 'dev' });
+    fixture.detectChanges();
+
+    const links = Array.from(
+      fixture.nativeElement.querySelectorAll('.today-board__links a'),
+    ) as HTMLAnchorElement[];
+    expect(links.map((a) => a.textContent?.trim())).toEqual(['↗', 'src']);
+    const src = links[1];
+    expect(src.classList.contains('today-board__src')).toBe(true);
+    expect(src.getAttribute('href')).toBe(
+      'https://github.com/someone/their-log/blob/dev/dsa/leetcode/backtracking/39_combination_sum.py',
+    );
+    expect(src.getAttribute('aria-label')).toBe('Solution source for #39 on GitHub');
+    expect(src.getAttribute('title')).toBe('Solution on GitHub');
+  });
+
+  it('renders no `src` link when the row has no file (null, or an older contract with no `file` key)', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 39, title: 'Combination Sum', technique: 'Backtracking', startComfort: null,
+        difficulty: null, done: false, file: null },
+      { lcNumber: 40, title: 'Combination Sum II', technique: 'Backtracking', startComfort: null,
+        difficulty: null, done: false },   // older contract: no `file` key at all
+    ];
+    const fixture = createFixture(schedule);
+    fixture.componentRef.setInput('repoRef', { owner: 'a', repo: 'b', branch: 'main' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('.today-board__src').length).toBe(0);
+  });
+
+  it('renders no `src` link before a repo ref has been given, even when the row has a file', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 39, title: 'Combination Sum', technique: 'Backtracking', startComfort: null,
+        difficulty: null, done: false, file: 'dsa/leetcode/backtracking/39_combination_sum.py' },
+    ];
+    const fixture = createFixture(schedule);   // repoRef left at its null default
+    expect(fixture.nativeElement.querySelectorAll('.today-board__src').length).toBe(0);
+  });
+
   it("renders an ordinary row with no chips when tags are present but kind is absent (older/plain contract rows)", () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [

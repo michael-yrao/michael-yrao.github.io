@@ -161,6 +161,7 @@
                 [details]="details()"
                 [detailsStatus]="detailsStatus()"
                 [detailsError]="detailsError()"
+                [repoRef]="repoRef()"
                 (trend)="onTrendExpand($event)"
               />
             </div>
@@ -323,6 +324,20 @@
                                 (keydown.enter)="$event.stopPropagation()"
                                 (keydown.space)="$event.stopPropagation()"
                                 >↗</a
+                              >
+                            }
+                            @if (solutionUrl(p.file); as src) {
+                              <a
+                                [href]="src"
+                                class="problem__src src-link"
+                                target="_blank"
+                                rel="noopener"
+                                [attr.aria-label]="'Solution source for #' + p.lcNumber + ' on GitHub'"
+                                title="Solution on GitHub"
+                                (click)="$event.stopPropagation()"
+                                (keydown.enter)="$event.stopPropagation()"
+                                (keydown.space)="$event.stopPropagation()"
+                                >src</a
                               >
                             }
                           </span>

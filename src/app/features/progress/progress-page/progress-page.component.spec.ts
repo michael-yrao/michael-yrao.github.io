@@ -6,7 +6,10 @@ import { Observable, of } from 'rxjs';
 import { vi } from 'vitest';
 
 import { ProgressPageComponent, ProgressTab } from './progress-page.component';
+import { By } from '@angular/platform-browser';
 import { ProgressService } from '../../../core/services/progress.service';
+import { TodayBoardComponent } from '../today-board/today-board.component';
+import { GOLD_STANDARD_REPO, RepoRef } from '../../../core/services/github-file.service';
 import { ProgressSummary, ProblemProgress } from '../../../core/models/progress.model';
 import { todayLocalISO } from '../../../core/utils/local-date';
 
@@ -99,6 +102,7 @@ function makeProgressServiceStub() {
     error: signal<string | null>(null),
     data: signal<ProgressSummary | null>(makeSummary()),
     repoSlug: signal<string | null>('michael-yrao/cse-progress'),
+    repoRef: signal<RepoRef | null>(GOLD_STANDARD_REPO),
     refreshing: signal(false),
     refreshError: signal<string | null>(null),
 
@@ -512,6 +516,79 @@ describe('ProgressPageComponent', () => {
 
     expect(row.getAttribute('aria-expanded')).toBe('false');
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
+  });
+
+  // The `src` link — the learner's own solution file (progress.json's additive `file`) on GitHub.
+  function problemWithFile(file: string | null | undefined): ProblemProgress {
+    return {
+      lcNumber: 39,
+      title: 'Combination Sum',
+      url: 'https://leetcode.com/problems/combination-sum/',
+      difficulty: 'Medium',
+      category: 'backtracking',
+      comfort: '🔴',
+      level: 0,
+      streak: 0,
+      nextReview: '2026-09-26',
+      repDates: ['2026-09-23'],
+      timeline: [{ date: '2026-09-23', comfort: '🔴', level: 0 }],
+      ...(file === undefined ? {} : { file }),
+    };
+  }
+
+  it('renders a `src` link to the GitHub blob of the row\'s solution file, in the ACTIVE repo/branch (not the gold standard)', () => {
+    progress.repoRef.set({ owner: 'someone', repo: 'their-log', branch: 'dev' });
+    progress.detailsStatus.set('ready');
+    progress.details.set([problemWithFile('dsa/leetcode/backtracking/39_combination_sum.py')]);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'problems');
+
+    const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
+    const src: HTMLAnchorElement = row.querySelector('.problem__src')!;
+    expect(src).toBeTruthy();
+    expect(src.textContent?.trim()).toBe('src');
+    expect(src.getAttribute('href')).toBe(
+      'https://github.com/someone/their-log/blob/dev/dsa/leetcode/backtracking/39_combination_sum.py',
+    );
+    expect(src.getAttribute('aria-label')).toBe('Solution source for #39 on GitHub');
+    // Never labelled "Visualize"/"View solution" — it's a personal practice file, not a walkthrough.
+    expect(src.getAttribute('title')).toBe('Solution on GitHub');
+    // The LeetCode ↗ is still there, first.
+    const links = Array.from(row.querySelectorAll('.problem__links a')) as HTMLAnchorElement[];
+    expect(links.map((a) => a.textContent?.trim())).toEqual(['↗', 'src']);
+
+    // Clicking it opens GitHub, never the timeline (stopPropagation, same as ↗).
+    src.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(row.getAttribute('aria-expanded')).toBe('false');
+    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
+  });
+
+  it('passes the active repo ref down to <app-today-board> so board rows can build their own `src` links', () => {
+    const ref = { owner: 'someone', repo: 'their-log', branch: 'dev' };
+    progress.repoRef.set(ref);
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const board = fixture.debugElement.query(By.directive(TodayBoardComponent));
+    expect(board).toBeTruthy();
+    expect((board.componentInstance as TodayBoardComponent).repoRef()).toEqual(ref);
+  });
+
+  it('renders no `src` link when the contract has no file for the row (null) or predates the field (undefined)', () => {
+    progress.detailsStatus.set('ready');
+    progress.details.set([problemWithFile(null), { ...problemWithFile(undefined), lcNumber: 40, title: 'Combination Sum II' }]);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'problems');
+
+    expect(fixture.nativeElement.querySelectorAll('.problem__row').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('.problem__src').length).toBe(0);
+    // ...and the LeetCode link is unaffected.
+    expect(fixture.nativeElement.querySelectorAll('.problem__links a').length).toBe(2);
   });
 
   // ── Mastery tab (round 5 — folded in from the removed Techniques tab): the technique

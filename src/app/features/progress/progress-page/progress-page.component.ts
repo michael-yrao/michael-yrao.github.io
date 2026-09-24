@@ -14,6 +14,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 
 import { ProgressService } from '../../../core/services/progress.service';
+import { fileUrl } from '../../../core/services/github-file.service';
 import { Comfort, ProblemProgress, ScheduleItem } from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { todayLocalISO } from '../../../core/utils/local-date';
@@ -103,6 +104,7 @@ export class ProgressPageComponent {
   readonly error = this.progress.error;
   readonly data = this.progress.data;
   readonly repoSlug = this.progress.repoSlug;
+  readonly repoRef = this.progress.repoRef;
   readonly refreshing = this.progress.refreshing;
   readonly refreshError = this.progress.refreshError;
 
@@ -267,6 +269,14 @@ export class ProgressPageComponent {
 
   vizRoute(lc: number): string | null {
     return vizRouteFor(lc);
+  }
+
+  /** The `src` link: the learner's own solution file (progress.json's `file`) on GitHub, in
+   *  the repo/branch this page is rendering — never the gold standard, since a `?repo=` viewer's
+   *  paths belong to THEIR checkout. Null until the repo ref is known. */
+  solutionUrl(file: string | null | undefined): string | null {
+    const ref = this.repoRef();
+    return file && ref ? fileUrl(ref, file) : null;
   }
 
   retry(): void {

@@ -58,9 +58,16 @@ export function sameRef(a: RepoRef | null, b: RepoRef | null): boolean {
   return a.owner === b.owner && a.repo === b.repo && a.branch === b.branch;
 }
 
+/** The GitHub blob URL of a whole file — the Progress page's `src` link to the learner's own
+ *  solution (progress.json's `file`, honouring `?repo=`). The one spelling of `blob/<branch>/`;
+ *  `blobUrl` narrows it to a line range. */
+export function fileUrl(ref: RepoRef, file: string): string {
+  return `https://github.com/${ref.owner}/${ref.repo}/blob/${ref.branch}/${file}`;
+}
+
 /** The GitHub blob URL for a line range, e.g. for the "Grounded" badge's link. */
 export function blobUrl(ref: RepoRef, file: string, startLine: number, endLine: number): string {
-  return `https://github.com/${ref.owner}/${ref.repo}/blob/${ref.branch}/${file}#L${startLine}-L${endLine}`;
+  return `${fileUrl(ref, file)}#L${startLine}-L${endLine}`;
 }
 
 /** Turns an HttpErrorResponse into a human message (rate-limit / missing / offline). `what`

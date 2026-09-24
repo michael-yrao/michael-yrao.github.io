@@ -22,6 +22,11 @@ export interface ProblemProgress {
   level: number | null;
   streak: number;
   nextReview?: string;
+  /** Repo-relative path of the learner's own solution file (cse-progress gamify.py's
+   *  `solution_path`, from `links.solution_files()`), or null when none exists yet. A path,
+   *  never code — the Problems tab turns it into a `src` link to the GitHub blob. Optional so
+   *  an older contract predating it still renders. */
+  file?: string | null;
   repDates: string[];
   timeline: TimelinePoint[];
 }
@@ -127,6 +132,9 @@ export interface ScheduleItem {
   endComfort?: Comfort | null;
   endNote?: string | null;
   nextReview?: string | null;
+  /** Same as `ProblemProgress.file` — the row's own solution file path (null for a row with
+   *  no lcNumber, or no file yet); optional, additive. */
+  file?: string | null;
 }
 
 export interface ScheduleDay {

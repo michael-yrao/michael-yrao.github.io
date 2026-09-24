@@ -10,6 +10,7 @@ import {
   parseRepoSlug,
   sameRef,
   blobUrl,
+  fileUrl,
   httpErrorMessage,
 } from './github-file.service';
 
@@ -71,11 +72,26 @@ describe('sameRef', () => {
   });
 });
 
+describe('fileUrl', () => {
+  it('builds the GitHub blob URL of a whole file, on the given branch', () => {
+    expect(
+      fileUrl({ owner: 'someone', repo: 'their-log', branch: 'dev' }, 'dsa/leetcode/x/1_x.py'),
+    ).toBe('https://github.com/someone/their-log/blob/dev/dsa/leetcode/x/1_x.py');
+  });
+});
+
 describe('blobUrl', () => {
   it('builds a GitHub blob URL with a line range', () => {
     const url = blobUrl(GOLD_STANDARD_REPO, 'dsa/leetcode/graphs/733_flood_fill.py', 41, 70);
     expect(url).toBe(
       'https://github.com/michael-yrao/cse-progress/blob/main/dsa/leetcode/graphs/733_flood_fill.py#L41-L70',
+    );
+  });
+
+  it('is fileUrl plus the line-range fragment — one spelling of blob/<branch>/', () => {
+    const file = 'dsa/leetcode/graphs/733_flood_fill.py';
+    expect(blobUrl(GOLD_STANDARD_REPO, file, 41, 70)).toBe(
+      `${fileUrl(GOLD_STANDARD_REPO, file)}#L41-L70`,
     );
   });
 });

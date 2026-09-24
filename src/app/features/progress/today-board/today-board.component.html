@@ -71,6 +71,11 @@
       @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
         <a [href]="lc" target="_blank" rel="noopener" aria-label="Open on LeetCode" title="LeetCode">↗</a>
       }
+      @if (solutionUrl(item.file); as src) {
+        <a [href]="src" class="today-board__src src-link" target="_blank" rel="noopener"
+          [attr.aria-label]="'Solution source for #' + item.lcNumber + ' on GitHub'"
+          title="Solution on GitHub">src</a>
+      }
       @if (item.lcNumber) {
         <button type="button" class="today-board__trend-btn" title="Comfort history"
           [attr.aria-label]="trendAriaLabel(item)"

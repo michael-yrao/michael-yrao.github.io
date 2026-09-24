@@ -4,6 +4,7 @@ import { NgTemplateOutlet } from '@angular/common';
 
 import { ProblemProgress, Schedule, ScheduleDay, ScheduleItem } from '../../../core/models/progress.model';
 import { LoadStatus } from '../../../core/services/progress.service';
+import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
@@ -157,6 +158,9 @@ export class TodayBoardComponent {
    *  TechniqueListComponent's `expand`. The Overview tab stays summary-only until a row is
    *  actually clicked open. */
   readonly trend = output<ScheduleItem>();
+  /** The repo/branch the page is rendering (ProgressService.repoRef) — a row's `file` path is
+   *  relative to it, so the `src` link is built from it, never from the gold standard. */
+  readonly repoRef = input<RepoRef | null>(null);
 
   // Which day the strip has explicitly selected (null = no explicit pick yet — fall back to
   // today, or the first day of the week if today isn't in it).
@@ -332,6 +336,13 @@ export class TodayBoardComponent {
 
   vizRoute(lcNumber: number | null): string | null {
     return vizRouteFor(lcNumber);
+  }
+
+  /** The `src` link — the learner's own solution file on GitHub (see ProgressPageComponent's
+   *  `solutionUrl`); null without a file or before the repo ref is known. */
+  solutionUrl(file: string | null | undefined): string | null {
+    const ref = this.repoRef();
+    return file && ref ? fileUrl(ref, file) : null;
   }
 
   /** The status badge's aria-label when it's the walkthrough link: "Solution walkthrough for

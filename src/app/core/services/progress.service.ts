@@ -118,6 +118,11 @@ export class ProgressService {
     return s ? `${s.owner}/${s.repo}` : null;
   });
 
+  /** The active repo WITH its branch — what a per-row `src` link needs (`fileUrl`), since a
+   *  progress.json `file` path is relative to whichever repo/branch the page is rendering,
+   *  never to the gold standard. Null until a slug has been parsed. */
+  readonly repoRef = this.source.asReadonly();
+
   constructor(private readonly github: GitHubFileService) {}
 
   /** Parse "owner/name" or "owner/name@branch"; empty/missing input falls back to the

@@ -110,6 +110,17 @@ a {
 
 code, pre, .mono { font-family: var(--font-mono); }
 
+// The `src` link on Progress rows / Today-board items — the learner's own solution file on
+// GitHub. Muted and monospace like the `</>` walkthrough glyph (a personal practice file, not a
+// call to action), lifting to the accent only on hover/focus so the row's LeetCode ↗ stays the
+// one accented link. Global on purpose: both components sit at their per-component style budget.
+.src-link {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  &:hover, &:focus-visible { color: var(--color-accent); }
+}
+
 // ── Accessibility ─────────────────────────────────────────────────────────────
 :focus-visible {
   outline: 2px solid var(--color-accent);
