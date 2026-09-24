@@ -14,7 +14,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 
 import { ProgressService } from '../../../core/services/progress.service';
-import { Comfort, ProblemProgress } from '../../../core/models/progress.model';
+import { Comfort, ProblemProgress, ScheduleItem } from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { todayLocalISO } from '../../../core/utils/local-date';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
@@ -345,6 +345,13 @@ export class ProgressPageComponent {
    *  idempotent loadDetails() as the Problems tab; TechniqueListComponent only emits this
    *  for a STARTED technique (a not-started one has nothing to join). */
   onTechniqueExpand(_t: Technique): void {
+    this.progress.loadDetails();
+  }
+
+  /** A today-board row's trend panel opened (Overview tab) — same on-demand, idempotent
+   *  loadDetails() as onTechniqueExpand/the Problems tab; the Overview stays summary-only
+   *  until a row's title is actually clicked open. */
+  onTrendExpand(_item: ScheduleItem): void {
     this.progress.loadDetails();
   }
 

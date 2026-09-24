@@ -60,7 +60,21 @@
     @if (hasMovedTag(item)) {
       <span class="today-board__moved" aria-hidden="true">→</span>
     }
-    <span class="today-board__title">{{ item.title }}</span>
+    @if (item.lcNumber) {
+      <button
+        type="button"
+        class="today-board__title today-board__title--toggle"
+        [attr.aria-expanded]="isTrendOpen(item, date)"
+        [attr.aria-controls]="trendPanelId(item, date)"
+        (click)="toggleTrend(item, date)"
+      >{{ item.title }}<span
+          class="today-board__caret"
+          [class.today-board__caret--open]="isTrendOpen(item, date)"
+          aria-hidden="true"
+        >▸</span></button>
+    } @else {
+      <span class="today-board__title">{{ item.title }}</span>
+    }
     @if (item.kind === 'new') {
       <span class="tag tag--new">new</span>
     }
@@ -75,6 +89,21 @@
         <a [href]="lc" target="_blank" rel="noopener" aria-label="Open on LeetCode" title="LeetCode">↗</a>
       }
     </span>
+    @if (item.lcNumber && isTrendOpen(item, date)) {
+      <div class="today-board__trend" [id]="trendPanelId(item, date)">
+        @let p = problemFor(item);
+        @if (p) {
+          <app-problem-timeline [problem]="p" />
+        } @else if (detailsStatus() === 'error') {
+          <p class="today-board__hint">{{ detailsError() }}</p>
+          <button type="button" class="today-board__expand-toggle" (click)="retryTrend(item)">Retry</button>
+        } @else if (detailsStatus() === 'ready') {
+          <p class="today-board__hint">No rep history yet for #{{ item.lcNumber }}.</p>
+        } @else {
+          <p class="today-board__hint">Loading history…</p>
+        }
+      </div>
+    }
   </li>
 </ng-template>
 

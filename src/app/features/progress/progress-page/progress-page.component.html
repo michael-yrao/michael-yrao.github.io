@@ -24,7 +24,6 @@
 
 <section class="progress">
   <header class="progress__head">
-    <h1>Progress</h1>
     <div class="progress__head-right">
       @if (repoSlug()) {
         <a
@@ -148,8 +147,9 @@
           }
         </div>
 
-        <!-- Overview — the lead tile. Entirely summary-derived (schedule rides the
-             summary); no fetch, ever. -->
+        <!-- Overview — the lead tile. Entirely summary-derived (schedule rides the summary);
+             the only fetch is opt-in and click-triggered — opening a row's trend panel calls
+             loadDetails(), same on-demand pattern as the Mastery tab's technique expand. -->
         @if (isTabActive('overview')) {
           <div class="tabpanel" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview">
             <div class="card po-card today-board-card">
@@ -158,6 +158,10 @@
                 [schedule]="d.schedule"
                 [effortCeiling]="d.effortCeiling"
                 [effortFloor]="d.effortFloor"
+                [details]="details()"
+                [detailsStatus]="detailsStatus()"
+                [detailsError]="detailsError()"
+                (trend)="onTrendExpand($event)"
               />
             </div>
           </div>

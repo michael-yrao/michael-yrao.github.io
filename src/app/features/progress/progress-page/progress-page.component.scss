@@ -92,14 +92,15 @@
   gap: var(--space-lg);
 }
 
+// No <h1> in this header any more (the nav already says "Progress") — the repo slug /
+// as-of / Refresh cluster is the only child now, so it stays right-aligned rather than
+// space-between against an heading that no longer exists.
 .progress__head {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--space-md);
   flex-wrap: wrap;
-
-  h1 { margin: 0; font-size: 1.9rem; }
 }
 
 .progress__head-right {

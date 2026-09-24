@@ -301,6 +301,28 @@
 }
 .today-board__num { @include prow.num; }
 .today-board__title { @include prow.title; }
+// Reset + toggle affordance layered on `.today-board__title` above for any lcNumber row.
+.today-board__title--toggle {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  &:hover { color: var(--color-accent); }
+  &:focus-visible { color: var(--color-accent); outline: 2px solid currentColor; }
+}
+// No own color — inherits the toggle button's (title text + caret recolor together on hover).
+.today-board__caret {
+  display: inline-block;
+  transition: transform var(--transition-fast);
+}
+.today-board__caret--open { transform: rotate(90deg); }
 // A rescheduled ("moved") row gets a muted arrow ahead of its title — no color beyond the
 // existing tag palette, just a directional cue.
 .today-board__moved { color: var(--color-text-muted); }
@@ -339,6 +361,9 @@
   font-size: 0.9rem;
   margin: 0;
 }
+
+// The trend panel — full row width, same idea as the Problems tab's `.problem__chart`.
+.today-board__trend { flex: 1 1 100%; margin-top: var(--space-sm); }
 
 .today-board__row {
   @include prow.row-mobile;

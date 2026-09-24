@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { TodayBoardComponent, endNoteMeaning } from './today-board.component';
-import { Schedule } from '../../../core/models/progress.model';
+import { ProblemProgress, Schedule, ScheduleItem } from '../../../core/models/progress.model';
+import { LoadStatus } from '../../../core/services/progress.service';
 import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
 
 // Reuses the SAME local-date function the component uses (not a hand-rolled
@@ -69,10 +70,28 @@ function makeWeekSchedule(): Schedule {
   });
 }
 
+// A minimal ProblemProgress, for the trend-panel tests below — only lcNumber/title vary per
+// test; the rest just needs to be a valid, renderable ProblemTimelineComponent input.
+function makeProblemProgress(overrides: Partial<ProblemProgress> = {}): ProblemProgress {
+  return {
+    lcNumber: 100,
+    title: 'Same Tree',
+    comfort: '🟢',
+    level: 2,
+    streak: 2,
+    repDates: ['2026-09-01'],
+    timeline: [{ date: '2026-09-01', comfort: '🟢', level: 2 }],
+    ...overrides,
+  };
+}
+
 function createFixture(
   schedule: Schedule | null | undefined,
   effortCeiling?: number,
   effortFloor?: number,
+  details?: ProblemProgress[] | null,
+  detailsStatus?: LoadStatus,
+  detailsError?: string | null,
 ) {
   // RouterLink (the status badge's walkthrough link, rendered when a schedule item's
   // lcNumber has a visualizer route) needs an injectable ActivatedRoute the moment it's
@@ -85,6 +104,9 @@ function createFixture(
   fixture.componentRef.setInput('schedule', schedule);
   if (effortCeiling !== undefined) fixture.componentRef.setInput('effortCeiling', effortCeiling);
   if (effortFloor !== undefined) fixture.componentRef.setInput('effortFloor', effortFloor);
+  if (details !== undefined) fixture.componentRef.setInput('details', details);
+  if (detailsStatus !== undefined) fixture.componentRef.setInput('detailsStatus', detailsStatus);
+  if (detailsError !== undefined) fixture.componentRef.setInput('detailsError', detailsError);
   fixture.detectChanges();
   return fixture;
 }
@@ -906,6 +928,132 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.today-board__row--gate')).toBeFalsy();
     expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('Re-ask A');
+  });
+});
+
+// ── Trend panel: a numbered row's title toggles an inline <app-problem-timeline> ────────
+describe('TodayBoardComponent — trend panel', () => {
+  it('the title of a numbered row is a toggle button: clicking opens the panel (aria-expanded, .today-board__trend, one trend emit); clicking again collapses it with no further emit', () => {
+    const fixture = createFixture(makeSchedule());
+    const emitted: ScheduleItem[] = [];
+    fixture.componentInstance.trend.subscribe((item) => emitted.push(item));
+
+    const title: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__title--toggle');
+    expect(title.tagName).toBe('BUTTON');
+    expect(title.getAttribute('aria-expanded')).toBe('false');
+
+    title.click();
+    fixture.detectChanges();
+    expect(title.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelector('.today-board__trend')).toBeTruthy();
+    expect(emitted.length).toBe(1);
+
+    title.click();
+    fixture.detectChanges();
+    expect(title.getAttribute('aria-expanded')).toBe('false');
+    expect(fixture.nativeElement.querySelector('.today-board__trend')).toBeFalsy();
+    expect(emitted.length).toBe(1); // collapsing never re-emits
+  });
+
+  it('shows "Loading history…" while details are null (idle/loading)', () => {
+    const fixture = createFixture(makeSchedule(), undefined, undefined, null, 'loading', null);
+
+    const title: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__title--toggle');
+    title.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.today-board__trend')?.textContent).toContain('Loading history…');
+  });
+
+  it('shows the error text and a Retry button that re-emits trend when detailsStatus is error', () => {
+    const fixture = createFixture(makeSchedule(), undefined, undefined, null, 'error', 'boom went the fetch');
+    const emitted: ScheduleItem[] = [];
+    fixture.componentInstance.trend.subscribe((item) => emitted.push(item));
+
+    const title: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__title--toggle');
+    title.click();
+    fixture.detectChanges();
+    expect(emitted.length).toBe(1); // the open itself already emits once
+
+    const panel = fixture.nativeElement.querySelector('.today-board__trend')!;
+    expect(panel.textContent).toContain('boom went the fetch');
+    const retry: HTMLButtonElement = panel.querySelector('button')!;
+    retry.click();
+    fixture.detectChanges();
+
+    expect(emitted.length).toBe(2);
+  });
+
+  it('mounts app-problem-timeline for a ready, matching lcNumber', () => {
+    const problem = makeProblemProgress({ lcNumber: 100, title: 'Same Tree' });
+    const fixture = createFixture(makeSchedule(), undefined, undefined, [problem], 'ready', null);
+
+    const titles: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.today-board__title--toggle'),
+    );
+    const sameTreeTitle = titles.find((t) => t.textContent?.includes('Same Tree'))!;
+    sameTreeTitle.click();
+    fixture.detectChanges();
+
+    const panel = sameTreeTitle.closest('.today-board__row')!.querySelector('.today-board__trend')!;
+    expect(panel.querySelector('app-problem-timeline')).toBeTruthy();
+  });
+
+  it('shows "No rep history yet" when details are ready but nothing matches the row\'s lcNumber', () => {
+    const fixture = createFixture(makeSchedule(), undefined, undefined, [], 'ready', null);
+
+    const title: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__title--toggle');
+    title.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.today-board__trend')?.textContent).toContain('No rep history yet');
+  });
+
+  it("picks the ProblemProgress whose title matches the row when two entries share the same lcNumber (method variants)", () => {
+    const schedule = makeSchedule();
+    const item = schedule.days[0].items[1]; // Same Tree, lcNumber 100
+    const variantA = makeProblemProgress({ lcNumber: 100, title: 'Same Tree (Recursive)' });
+    const variantB = makeProblemProgress({ lcNumber: 100, title: item.title });
+
+    const fixture = createFixture(schedule, undefined, undefined, [variantA, variantB], 'ready', null);
+
+    expect(fixture.componentInstance.problemFor(item)).toBe(variantB);
+  });
+
+  it('opening a second row\'s trend panel closes the first (one open at a time)', () => {
+    const fixture = createFixture(makeSchedule());
+    const titles: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.today-board__title--toggle'),
+    );
+    expect(titles.length).toBe(2);
+
+    titles[0].click();
+    fixture.detectChanges();
+    expect(titles[0].getAttribute('aria-expanded')).toBe('true');
+
+    titles[1].click();
+    fixture.detectChanges();
+    expect(titles[0].getAttribute('aria-expanded')).toBe('false');
+    expect(titles[1].getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelectorAll('.today-board__trend').length).toBe(1);
+  });
+
+  it('renders no toggle button for a gate row or a row with a null lcNumber', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: null, title: 'No-number row', technique: null, startComfort: null,
+        difficulty: null, done: false },
+      { lcNumber: 226, title: 'Re-ask A', technique: 'Complexity', startComfort: null,
+        difficulty: null, done: false, kind: 'complexity' },
+      { lcNumber: 211, title: 'Re-ask B', technique: 'Complexity', startComfort: null,
+        difficulty: null, done: false, kind: 'complexity' },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    expect(fixture.nativeElement.querySelector('.today-board__title--toggle')).toBeFalsy();
+    const gateTitle = fixture.nativeElement.querySelector('.today-board__row--gate .today-board__title');
+    expect(gateTitle.tagName).toBe('SPAN');
   });
 });
 

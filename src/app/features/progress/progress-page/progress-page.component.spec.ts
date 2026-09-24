@@ -167,6 +167,27 @@ describe('ProgressPageComponent', () => {
     expect(timelines.length).toBe(0);
   });
 
+  it('renders no <h1> in the ready state (the nav already says "Progress")', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('h1')).toBeFalsy();
+  });
+
+  it("an app-today-board trend emission calls the stubbed loadDetails()", () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const title: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'app-today-board .today-board__title--toggle',
+    );
+    expect(title).toBeTruthy();
+    title.click();
+    fixture.detectChanges();
+
+    expect(progress.loadDetails).toHaveBeenCalled();
+  });
+
   it('loads the summary (not details) on init', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();

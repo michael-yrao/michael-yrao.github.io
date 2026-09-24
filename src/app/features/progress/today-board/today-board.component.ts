@@ -1,11 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgTemplateOutlet } from '@angular/common';
 
-import { Schedule, ScheduleDay, ScheduleItem } from '../../../core/models/progress.model';
+import { ProblemProgress, Schedule, ScheduleDay, ScheduleItem } from '../../../core/models/progress.model';
+import { LoadStatus } from '../../../core/services/progress.service';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
+import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 
 type WorkloadBand = 'Light' | 'Moderate' | 'Heavy';
 
@@ -137,12 +139,24 @@ export function endNoteMeaning(note: string): string | null {
   templateUrl: './today-board.component.html',
   styleUrls: ['./today-board.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgTemplateOutlet],
+  imports: [RouterLink, NgTemplateOutlet, ProblemTimelineComponent],
 })
 export class TodayBoardComponent {
   readonly schedule = input<Schedule | null | undefined>();
   readonly effortCeiling = input<number | undefined>();
   readonly effortFloor = input<number | undefined>();
+
+  /** The full problems[] (from ProgressService.details), for the per-row trend join — same
+   *  on-demand shape as TechniqueListComponent's `details` input. `null` until the parent's
+   *  Problems tab (or a trend open here) has triggered `loadDetails()`. */
+  readonly details = input<ProblemProgress[] | null>(null);
+  readonly detailsStatus = input<LoadStatus>('idle');
+  readonly detailsError = input<string | null>(null);
+  /** Emitted every time a row's trend panel OPENS (never on collapse), and by its Retry
+   *  button — the page wires this to `loadDetails()`, same click-triggered opt-in fetch as
+   *  TechniqueListComponent's `expand`. The Overview tab stays summary-only until a row is
+   *  actually clicked open. */
+  readonly trend = output<ScheduleItem>();
 
   // Which day the strip has explicitly selected (null = no explicit pick yet — fall back to
   // today, or the first day of the week if today isn't in it).
@@ -226,11 +240,55 @@ export class TodayBoardComponent {
     return this.openOutcomeKey() === this.outcomeKey(item, date);
   }
 
-  /** A per-(day, row) key for the outcome popover's open state and bubble id: `rowKey()`
-   *  alone collides when the same problem is done on two different days (expanded week
-   *  view), so the day's own date is folded in too. Whitespace (`rowKey()` embeds the item's
-   *  title) is collapsed to a hyphen — required for a valid element id, and so
-   *  `aria-describedby`'s id list doesn't split on it. */
+  // The per-row trend panel (<app-problem-timeline>, toggled by clicking a numbered row's
+  // title) — its own signal, same one-open-at-a-time shape as `openOutcomeKey` above and
+  // keyed by the SAME outcomeKey() (day + row), so the two popovers never collide and the
+  // same problem done on two different days keeps distinct panels.
+  readonly openTrendKey = signal<string | null>(null);
+
+  /** Toggles a row's trend panel; emits `trend` only on the OPEN transition (never on
+   *  collapse) — the page's loadDetails() is idempotent, but this still avoids firing on
+   *  every close. */
+  toggleTrend(item: ScheduleItem, date: string): void {
+    const key = this.outcomeKey(item, date);
+    const isOpening = this.openTrendKey() !== key;
+    this.openTrendKey.update((current) => (current === key ? null : key));
+    if (isOpening) this.trend.emit(item);
+  }
+
+  isTrendOpen(item: ScheduleItem, date: string): boolean {
+    return this.openTrendKey() === this.outcomeKey(item, date);
+  }
+
+  trendPanelId(item: ScheduleItem, date: string): string {
+    return `trend-${this.outcomeKey(item, date)}`;
+  }
+
+  /** The trend panel's error-state Retry button — just re-emits `trend`, same idempotent
+   *  loadDetails() the initial open already triggers. */
+  retryTrend(item: ScheduleItem): void {
+    this.trend.emit(item);
+  }
+
+  /** Pure lookup in `details()` by lcNumber for the trend panel: null when details aren't
+   *  loaded yet OR nothing matched — the template tells those apart via `detailsStatus()`.
+   *  A number can carry several method variants (round 3's `technique.problems` join has the
+   *  same issue), so among matches the one whose title equals the row's own wins; otherwise
+   *  the first. */
+  problemFor(item: ScheduleItem): ProblemProgress | null {
+    const list = this.details();
+    if (!list || item.lcNumber == null) return null;
+    const matches = list.filter((p) => p.lcNumber === item.lcNumber);
+    if (!matches.length) return null;
+    return matches.find((p) => p.title === item.title) ?? matches[0];
+  }
+
+  /** A per-(day, row) key — shared by the outcome popover's open state AND the trend panel's
+   *  open state above (each keeps its own signal, so opening one never closes the other) —
+   *  and by the outcome bubble's id. `rowKey()` alone collides when the same problem is done
+   *  on two different days (expanded week view), so the day's own date is folded in too.
+   *  Whitespace (`rowKey()` embeds the item's title) is collapsed to a hyphen — required for
+   *  a valid element id, and so `aria-describedby`'s id list doesn't split on it. */
   outcomeKey(item: ScheduleItem, date: string): string {
     return `${date}-${this.rowKey(item)}`.replace(/\s+/g, '-');
   }
