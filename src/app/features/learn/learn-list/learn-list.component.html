@@ -22,31 +22,63 @@
       </div>
     }
     @case ('ready') {
-      <div class="ll-table-scroll">
-        <table class="ll-table">
-          <thead>
-            <tr>
-              <th>What you see</th>
-              <th>Reach for</th>
-              <th>Note</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of signalRows(); track $index) {
-              <tr>
-                <td>{{ row.see }}</td>
-                <td>
-                  @if (row.techniqueRoute) {
-                    <a [routerLink]="row.techniqueRoute">{{ row.reachLabel }}</a>
-                  } @else {
-                    {{ row.reachLabel }}
-                  }
-                </td>
-                <td>{{ row.note }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
+      @if (decisionTree()) {
+        <div class="ll-viewbar" role="tablist" aria-label="Learn view">
+          @for (view of viewOrder; track view; let i = $index) {
+            <button
+              type="button"
+              role="tab"
+              #viewTab
+              class="ll-viewbar__btn"
+              [class.active]="isViewActive(view)"
+              [attr.aria-selected]="isViewActive(view)"
+              [attr.tabindex]="isViewActive(view) ? 0 : -1"
+              [id]="'view-' + view"
+              aria-controls="learn-view-panel"
+              (click)="setView(view)"
+              (keydown)="onViewKeydown($event, i)"
+            >{{ viewLabel[view] }}</button>
+          }
+        </div>
+      }
+
+      <div
+        id="learn-view-panel"
+        [attr.role]="decisionTree() ? 'tabpanel' : null"
+        [attr.aria-labelledby]="decisionTree() ? 'view-' + activeView() : null"
+      >
+        @if (activeView() === 'tree') {
+          @if (decisionTree(); as tree) {
+            <app-decision-tree [tree]="tree" />
+          }
+        } @else {
+          <div class="ll-table-scroll">
+            <table class="ll-table">
+              <thead>
+                <tr>
+                  <th>What you see</th>
+                  <th>Reach for</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of signalRows(); track $index) {
+                  <tr>
+                    <td>{{ row.see }}</td>
+                    <td>
+                      @if (row.techniqueRoute) {
+                        <a [routerLink]="row.techniqueRoute">{{ row.reachLabel }}</a>
+                      } @else {
+                        {{ row.reachLabel }}
+                      }
+                    </td>
+                    <td>{{ row.note }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
       </div>
 
       @for (section of familySections(); track section.family) {

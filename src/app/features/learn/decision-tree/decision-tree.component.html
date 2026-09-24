@@ -1,0 +1,34 @@
+<ng-template #nodeTpl let-node>
+  <li
+    class="dt__node"
+    [class.dt__node--question]="node.isQuestion"
+    [class.dt__node--leaf]="node.leaf"
+  >
+    <span class="dt__label">{{ node.label }}</span>
+    @if (node.leaf) {
+      <span class="dt__arrow" aria-hidden="true">→</span>
+      @if (node.leaf.route) {
+        <a class="dt__reach" [routerLink]="node.leaf.route">{{ node.leaf.reachLabel }}</a>
+      } @else {
+        <span class="dt__reach">{{ node.leaf.reachLabel }}</span>
+      }
+      @if (node.leaf.note) {
+        <span class="dt__note">({{ node.leaf.note }})</span>
+      }
+    }
+    @if (node.children.length) {
+      <ul class="dt__list">
+        @for (child of node.children; track $index) {
+          <ng-container [ngTemplateOutlet]="nodeTpl" [ngTemplateOutletContext]="{ $implicit: child }" />
+        }
+      </ul>
+    }
+  </li>
+</ng-template>
+
+<p class="dt__root">{{ view().label }}</p>
+<ul class="dt__list dt__list--root">
+  @for (child of view().children; track $index) {
+    <ng-container [ngTemplateOutlet]="nodeTpl" [ngTemplateOutletContext]="{ $implicit: child }" />
+  }
+</ul>

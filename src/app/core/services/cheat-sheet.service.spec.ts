@@ -27,7 +27,10 @@ function makeTechnique(id: string, family: string) {
   };
 }
 
-function makePayload(): CheatSheetsData {
+// `decisionTree` is omitted from the payload unless a caller passes one, so every existing
+// test (built before the tree existed) keeps loading a contract with no `decisionTree` key —
+// exactly the "older bundled copy" shape `CheatSheetService.decisionTree` must tolerate.
+function makePayload(decisionTree?: CheatSheetsData['decisionTree']): CheatSheetsData {
   return {
     schemaVersion: CHEAT_SHEETS_SCHEMA_VERSION,
     generatedAt: '2026-09-22T00:00:00Z',
@@ -40,6 +43,7 @@ function makePayload(): CheatSheetsData {
       makeTechnique('sliding-window', 'arrays_and_hash'),
       makeTechnique('binary-search', 'search'),
     ],
+    ...(decisionTree !== undefined ? { decisionTree } : {}),
   };
 }
 
@@ -239,6 +243,49 @@ describe('CheatSheetService', () => {
         kind: 'external',
         url: 'https://leetcode.com/problems/pow-x-n-friends/',
       });
+    });
+  });
+
+  describe('decisionTree', () => {
+    it("exposes the payload's decisionTree when it looks like a real tree node", () => {
+      const tree = {
+        label: 'What is the shape?',
+        children: [{ label: 'Pair sum', reach: 'two-pointer', note: 'converge from ends' }],
+      };
+      const http = makeHttp(makePayload(tree));
+      TestBed.configureTestingModule({
+        providers: [CheatSheetService, { provide: HttpClient, useValue: http }],
+      });
+      const service = TestBed.inject(CheatSheetService);
+
+      service.load();
+
+      expect(service.decisionTree()).toEqual(tree);
+    });
+
+    it('is null when the payload has no decisionTree', () => {
+      const http = makeHttp(makePayload());
+      TestBed.configureTestingModule({
+        providers: [CheatSheetService, { provide: HttpClient, useValue: http }],
+      });
+      const service = TestBed.inject(CheatSheetService);
+
+      service.load();
+
+      expect(service.decisionTree()).toBeNull();
+    });
+
+    it("is null when the payload's decisionTree is malformed (no children array)", () => {
+      const malformed = { label: 'What is the shape?' } as CheatSheetsData['decisionTree'];
+      const http = makeHttp(makePayload(malformed));
+      TestBed.configureTestingModule({
+        providers: [CheatSheetService, { provide: HttpClient, useValue: http }],
+      });
+      const service = TestBed.inject(CheatSheetService);
+
+      service.load();
+
+      expect(service.decisionTree()).toBeNull();
     });
   });
 });

@@ -5,7 +5,7 @@
   "description": "Contract for /learn's technique cheat sheet, generated from cse-progress's technique docs (see docs/cse-coach/learn_cheatsheet_plan.md). `page` on a signal row is an addition beyond the plan's draft contract: it marks a signal whose technique has no dedicated technique page (heap, Boyer-Moore voting, cyclic sort, two heaps, quickselect), so the site can skip linking it.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "generatedAt", "signals", "techniques"],
+  "required": ["schemaVersion", "generatedAt", "signals", "techniques", "decisionTree"],
   "properties": {
     "schemaVersion": {
       "const": 1
@@ -22,6 +22,10 @@
     "techniques": {
       "type": "array",
       "items": { "$ref": "#/definitions/technique" }
+    },
+    "decisionTree": {
+      "description": "The 'Decision tree' bullet list from intuition_cheatsheet.md (shape -> cue -> technique), rooted at one inner node.",
+      "$ref": "#/definitions/decisionInnerNode"
     }
   },
   "definitions": {
@@ -179,6 +183,56 @@
         },
         "title": {
           "type": "string"
+        }
+      }
+    },
+    "decisionNode": {
+      "description": "One bullet of the decision tree: either a leaf (reaches a technique) or an inner node (asks a further question). Never both.",
+      "oneOf": [
+        { "$ref": "#/definitions/decisionLeaf" },
+        { "$ref": "#/definitions/decisionInnerNode" }
+      ]
+    },
+    "decisionInnerNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "children"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "The shape/cue this node asks about. A label ending in '?' is a question; the site infers this, there is no separate 'kind' field."
+        },
+        "children": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/decisionNode" }
+        }
+      }
+    },
+    "decisionLeaf": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "reach", "reachLabel", "note"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "The cue that reaches this technique."
+        },
+        "reach": {
+          "type": "string",
+          "description": "The technique id to reach for (a techniques[].id), unless `page` is false, in which case this is the technique's text label (no dedicated page exists)."
+        },
+        "reachLabel": {
+          "type": "string",
+          "description": "The author's link/bold text for the technique as written in the doc — e.g. 'DFS postorder', 'sort by start, sweep' — shown by the site as the leaf's link text; `reach` stays the id/route key."
+        },
+        "note": {
+          "type": "string",
+          "description": "The short parenthetical note after the arrow. Empty string when the bullet carries none."
+        },
+        "page": {
+          "const": false,
+          "description": "Present and false when `reach` names a technique with no dedicated page. Omitted (treated as true) whenever a page exists."
         }
       }
     }

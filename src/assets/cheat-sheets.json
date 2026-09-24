@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-23T02:01:15Z",
+  "generatedAt": "2026-09-24T03:30:50Z",
   "signals": [
     {
       "see": "Sorted array + \"find a pair/triple summing to target\"",
@@ -1398,5 +1398,235 @@
       ],
       "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/union_find.md"
     }
-  ]
+  ],
+  "decisionTree": {
+    "label": "What is the shape of the input?",
+    "children": [
+      {
+        "label": "Array / string",
+        "children": [
+          {
+            "label": "Sorted — or can you sort it?",
+            "children": [
+              {
+                "label": "Pair/triple summing to a target",
+                "reach": "two-pointer",
+                "reachLabel": "two pointers",
+                "note": "converge from ends"
+              },
+              {
+                "label": "\"Smallest/largest x that works\", or find a position",
+                "reach": "binary-search",
+                "reachLabel": "binary search",
+                "note": "min/max boundary"
+              }
+            ]
+          },
+          {
+            "label": "\"Contiguous subarray/substring\" + a constraint (≤ k distinct, sum, longest/shortest)",
+            "reach": "sliding-window",
+            "reachLabel": "sliding window",
+            "note": ""
+          },
+          {
+            "label": "\"Subarray sums to k\" / many range-sum queries",
+            "reach": "prefix-sum",
+            "reachLabel": "prefix sum",
+            "note": "+ hashmap"
+          },
+          {
+            "label": "\"Next greater/smaller\", spans, histogram, temperatures",
+            "reach": "monotonic-stack",
+            "reachLabel": "monotonic stack",
+            "note": ""
+          },
+          {
+            "label": "\"Max/min in every window of size k\"",
+            "reach": "monotonic-stack",
+            "reachLabel": "monotonic deque",
+            "note": ""
+          },
+          {
+            "label": "Values are `1..n`, find the missing / duplicate",
+            "reach": "cyclic sort",
+            "reachLabel": "cyclic sort",
+            "note": "",
+            "page": false
+          },
+          {
+            "label": "\"Majority element\" (> n/2 or > n/3)",
+            "reach": "Boyer-Moore voting",
+            "reachLabel": "Boyer-Moore voting",
+            "note": "",
+            "page": false
+          },
+          {
+            "label": "\"Kth largest / smallest\", \"top k\", \"k closest\"",
+            "children": [
+              {
+                "label": "O(n log k) is fine",
+                "reach": "heap",
+                "reachLabel": "heap",
+                "note": "",
+                "page": false
+              },
+              {
+                "label": "want O(n) average, no full sort",
+                "reach": "quickselect",
+                "reachLabel": "quickselect",
+                "note": "",
+                "page": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Intervals",
+        "children": [
+          {
+            "label": "\"Merge/insert overlapping\" (the answer is a set)",
+            "reach": "intervals",
+            "reachLabel": "sort by start, sweep",
+            "note": ""
+          },
+          {
+            "label": "\"Max that fit\" / \"min to remove\" / \"min arrows\" (the answer is a number)",
+            "reach": "intervals",
+            "reachLabel": "sort by end, greedy frontier",
+            "note": ""
+          }
+        ]
+      },
+      {
+        "label": "Linked list",
+        "children": [
+          {
+            "label": "\"Cycle?\", \"middle\", find the duplicate number",
+            "reach": "fast-slow-pointer",
+            "reachLabel": "fast & slow pointers",
+            "note": ""
+          },
+          {
+            "label": "\"Reverse\", reorder, palindrome",
+            "reach": "in-place-reversal",
+            "reachLabel": "in-place reversal",
+            "note": ""
+          },
+          {
+            "label": "Head may change (insert/delete at front, merge)",
+            "reach": "dummy-node",
+            "reachLabel": "dummy node",
+            "note": ""
+          }
+        ]
+      },
+      {
+        "label": "Tree",
+        "children": [
+          {
+            "label": "Property that depends on children (height, balanced, diameter)",
+            "reach": "tree-dfs",
+            "reachLabel": "DFS postorder",
+            "note": ""
+          },
+          {
+            "label": "BST \"sorted output\" or \"validate\"",
+            "reach": "tree-dfs",
+            "reachLabel": "DFS inorder",
+            "note": ""
+          },
+          {
+            "label": "\"Level by level\" / shortest # of steps",
+            "reach": "tree-bfs",
+            "reachLabel": "BFS",
+            "note": ""
+          }
+        ]
+      },
+      {
+        "label": "Graph (edges, a grid, or \"connected?\")",
+        "children": [
+          {
+            "label": "\"Connected?\", how many groups/components, cycle in an undirected graph",
+            "reach": "union-find",
+            "reachLabel": "union-find",
+            "note": ""
+          },
+          {
+            "label": "\"Prerequisites\", ordering, \"can you finish\" (a DAG)",
+            "reach": "topological-sort",
+            "reachLabel": "topological sort",
+            "note": ""
+          },
+          {
+            "label": "Shortest path — are the edges weighted?",
+            "children": [
+              {
+                "label": "unweighted / uniform cost",
+                "reach": "tree-bfs",
+                "reachLabel": "BFS",
+                "note": ""
+              },
+              {
+                "label": "weighted, non-negative",
+                "reach": "Dijkstra",
+                "reachLabel": "Dijkstra",
+                "note": "",
+                "page": false
+              },
+              {
+                "label": "negative weights, or ≤ k hops",
+                "reach": "Bellman-Ford",
+                "reachLabel": "Bellman-Ford",
+                "note": "",
+                "page": false
+              },
+              {
+                "label": "every pair of nodes",
+                "reach": "floyd-warshall",
+                "reachLabel": "Floyd-Warshall",
+                "note": ""
+              }
+            ]
+          },
+          {
+            "label": "Cheapest way to connect every node (MST)",
+            "reach": "prims-mst",
+            "reachLabel": "Prim's",
+            "note": ""
+          }
+        ]
+      },
+      {
+        "label": "A stream (values arrive one at a time)",
+        "children": [
+          {
+            "label": "\"Running median\"",
+            "reach": "two heaps",
+            "reachLabel": "two heaps",
+            "note": "",
+            "page": false
+          }
+        ]
+      },
+      {
+        "label": "No structure stands out — what is the ask?",
+        "children": [
+          {
+            "label": "\"All\" subsets / permutations / combinations, \"find every way\"",
+            "reach": "backtracking",
+            "reachLabel": "backtracking",
+            "note": ""
+          },
+          {
+            "label": "Min / max / count ways, with overlapping subproblems",
+            "reach": "memoization",
+            "reachLabel": "DP",
+            "note": "memoization"
+          }
+        ]
+      }
+    ]
+  }
 }

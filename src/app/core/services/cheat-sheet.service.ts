@@ -4,6 +4,7 @@ import { catchError, of } from 'rxjs';
 
 import {
   CheatSheetsData,
+  DecisionTreeNode,
   Technique,
   CHEAT_SHEETS_SCHEMA_VERSION,
 } from '../models/cheat-sheet.model';
@@ -89,6 +90,15 @@ export class CheatSheetService {
   readonly orderedTechniques = computed<Technique[]>(() =>
     this.techniquesByFamily().flatMap((group) => group.techniques),
   );
+
+  /** The `/learn` decision-tree payload, or `null` when the loaded contract has none (an
+   *  older bundled copy) or its root doesn't look like a real tree node — a malformed remote
+   *  tree hides the Table/Tree toggle instead of crashing the page. */
+  readonly decisionTree = computed<DecisionTreeNode | null>(() => {
+    const tree = this.data()?.decisionTree;
+    if (!tree || typeof tree.label !== 'string' || !Array.isArray(tree.children)) return null;
+    return tree;
+  });
 
   /** Fetch the cheat-sheet contract, repo first. `repoOverride` is the raw `?repo=` value
    *  (owner/name[@branch]); omitted/null resolves to `DEFAULT_REPO`@`DEFAULT_BRANCH`, same as

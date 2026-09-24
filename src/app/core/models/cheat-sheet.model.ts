@@ -10,6 +10,23 @@ export interface CheatSheetsData {
   generatedAt: string;
   signals: SignalRow[];
   techniques: Technique[];
+  decisionTree?: DecisionTreeNode;
+}
+
+/** A node in the `/learn` decision tree: shape → cue → technique. An inner node carries
+ *  `children`; a leaf carries `reach` (a technique id, or a plain no-page label) and `note`
+ *  instead — never both. `reachLabel`, when present, is the author's own display text for the
+ *  leaf (the doc's link/bold text, e.g. "DFS postorder") — `reach` stays the id/route key,
+ *  `reachLabel` is what renders. `page: false` on a leaf means `reach` has no technique page
+ *  (mirrors `SignalRow.page`). A label ending in "?" is a question; the site infers that from
+ *  the string, there is no separate `kind` field. */
+export interface DecisionTreeNode {
+  label: string;
+  reach?: string;
+  reachLabel?: string;
+  note?: string;
+  page?: boolean;
+  children?: DecisionTreeNode[];
 }
 
 export interface SignalRow {
