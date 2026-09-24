@@ -10,7 +10,7 @@ import { By } from '@angular/platform-browser';
 import { ProgressService } from '../../../core/services/progress.service';
 import { TodayBoardComponent } from '../today-board/today-board.component';
 import { GOLD_STANDARD_REPO, RepoRef } from '../../../core/services/github-file.service';
-import { ProgressSummary, ProblemProgress } from '../../../core/models/progress.model';
+import { ProgressSummary, ProblemProgress, Comfort } from '../../../core/models/progress.model';
 import { todayLocalISO } from '../../../core/utils/local-date';
 
 // A minimal, valid summary — enough for the 'ready' branch of every tab, including the two
@@ -587,65 +587,62 @@ describe('ProgressPageComponent', () => {
   });
 
   // The `src` link — the learner's own solution file (progress.json's additive `file`) on GitHub.
-  function problemWithFile(file: string | null | undefined): ProblemProgress {
+  function problemWithFile(file: string | null | undefined, comfort: Comfort = '🔴'): ProblemProgress {
     return {
       lcNumber: 39,
       title: 'Combination Sum',
       url: 'https://leetcode.com/problems/combination-sum/',
       difficulty: 'Medium',
       category: 'backtracking',
-      comfort: '🔴',
+      comfort,
       level: 0,
       streak: 0,
       nextReview: '2026-09-26',
       repDates: ['2026-09-23'],
-      timeline: [{ date: '2026-09-23', comfort: '🔴', level: 0 }],
+      timeline: [{ date: '2026-09-23', comfort, level: 0 }],
       ...(file === undefined ? {} : { file }),
     };
   }
 
-  it("renders a `src` link to the GitHub blob of the row's solution file, in the ACTIVE repo/branch (not the gold standard)", () => {
+  it('renders the status badge as a GitHub solution-file link (○/✓ by comfort) when the row has no walkthrough route, in the ACTIVE repo/branch (not the gold standard)', () => {
     progress.repoRef.set({ owner: 'someone', repo: 'their-log', branch: 'dev' });
     progress.detailsStatus.set('ready');
-    progress.details.set([problemWithFile('dsa/leetcode/backtracking/39_combination_sum.py')]);
+    progress.details.set([
+      problemWithFile('dsa/leetcode/backtracking/39_combination_sum.py', '🔴'),
+      { ...problemWithFile('dsa/leetcode/backtracking/40_combination_sum_ii.py', '🎓'), lcNumber: 40, title: 'Combination Sum II' },
+    ]);
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'problems');
 
-    const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
-    const src: HTMLAnchorElement = row.querySelector('.problem__src')!;
-    expect(src).toBeTruthy();
-    expect(src.textContent?.trim()).toBe('src');
-    expect(src.getAttribute('href')).toBe(
+    const rows = Array.from(fixture.nativeElement.querySelectorAll('.problem__row')) as HTMLElement[];
+    const row39 = rows.find((r) => r.querySelector('.problem__num')?.textContent?.trim() === '#39')!;
+    const row40 = rows.find((r) => r.querySelector('.problem__num')?.textContent?.trim() === '#40')!;
+
+    const src39: HTMLAnchorElement = row39.querySelector('.problem__status--github')!;
+    expect(src39).toBeTruthy();
+    expect(src39.textContent?.trim()).toBe('○'); // 🔴 — not clean
+    expect(src39.getAttribute('href')).toBe(
       'https://github.com/someone/their-log/blob/dev/dsa/leetcode/backtracking/39_combination_sum.py',
     );
-    expect(src.getAttribute('aria-label')).toBe('Solution source for #39 on GitHub');
+    expect(src39.getAttribute('aria-label')).toBe('Solution source for #39 on GitHub, in progress');
     // Never labelled "Visualize"/"View solution" — it's a personal practice file, not a walkthrough.
-    expect(src.getAttribute('title')).toBe('Solution on GitHub');
-    // The LeetCode ↗ is still there, first.
-    const links = Array.from(row.querySelectorAll('.problem__links a')) as HTMLAnchorElement[];
-    expect(links.map((a) => a.textContent?.trim())).toEqual(['↗', 'src']);
+    expect(src39.getAttribute('title')).toBe('Solution on GitHub');
+
+    const src40: HTMLAnchorElement = row40.querySelector('.problem__status--github')!;
+    expect(src40.textContent?.trim()).toBe('✓'); // 🎓 — clean
+    expect(src40.getAttribute('aria-label')).toBe('Solution source for #40 on GitHub, clean');
 
     // Clicking it opens GitHub, never the timeline (stopPropagation, same as ↗).
-    src.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    src39.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     fixture.detectChanges();
-    expect(row.getAttribute('aria-expanded')).toBe('false');
+    expect(row39.getAttribute('aria-expanded')).toBe('false');
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
   });
 
-  it('passes the active repo ref down to <app-today-board> so board rows can build their own `src` links', () => {
-    const ref = { owner: 'someone', repo: 'their-log', branch: 'dev' };
-    progress.repoRef.set(ref);
-    const fixture = TestBed.createComponent(ProgressPageComponent);
-    fixture.detectChanges();
-
-    const board = fixture.debugElement.query(By.directive(TodayBoardComponent));
-    expect(board).toBeTruthy();
-    expect((board.componentInstance as TodayBoardComponent).repoRef()).toEqual(ref);
-  });
-
-  it('renders no `src` link when the contract has no file for the row (null) or predates the field (undefined)', () => {
+  it('renders no GitHub status-badge link (plain spacer) when the contract has no file for the row (null) or predates the field (undefined), but keeps the LeetCode ↗', () => {
+    progress.repoRef.set({ owner: 'someone', repo: 'their-log', branch: 'dev' });
     progress.detailsStatus.set('ready');
     progress.details.set([
       problemWithFile(null),
@@ -657,9 +654,42 @@ describe('ProgressPageComponent', () => {
     clickTab(fixture, 'problems');
 
     expect(fixture.nativeElement.querySelectorAll('.problem__row').length).toBe(2);
-    expect(fixture.nativeElement.querySelectorAll('.problem__src').length).toBe(0);
+    expect(fixture.nativeElement.querySelectorAll('.problem__status--github').length).toBe(0);
+    expect(fixture.nativeElement.querySelectorAll('.problem__status--spacer').length).toBe(2);
     // ...and the LeetCode link is unaffected.
-    expect(fixture.nativeElement.querySelectorAll('.problem__links a').length).toBe(2);
+    const lcLinks = Array.from(fixture.nativeElement.querySelectorAll('.problem__links a')) as HTMLAnchorElement[];
+    expect(lcLinks.length).toBe(2);
+    expect(lcLinks.every((a) => a.textContent?.trim() === '↗')).toBe(true);
+  });
+
+  it('keeps the `</>` walkthrough link (never the GitHub fallback) for a row with a registered viz route, even with a `file` and a repo ref', () => {
+    progress.repoRef.set({ owner: 'someone', repo: 'their-log', branch: 'dev' });
+    progress.detailsStatus.set('ready');
+    // lcNumber 206 (Reverse Linked List) has a real registered viz route.
+    progress.details.set([
+      { ...problemWithFile('dsa/leetcode/linked-list/206_reverse_linked_list.py'), lcNumber: 206, title: 'Reverse Linked List' },
+    ]);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'problems');
+
+    const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
+    const badge: HTMLAnchorElement = row.querySelector('.problem__status--link')!;
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toContain('</>');
+    expect(row.querySelector('.problem__status--github')).toBeFalsy();
+  });
+
+  it('passes the active repo ref down to <app-today-board> so board rows can build their own status-badge links', () => {
+    const ref = { owner: 'someone', repo: 'their-log', branch: 'dev' };
+    progress.repoRef.set(ref);
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    const board = fixture.debugElement.query(By.directive(TodayBoardComponent));
+    expect(board).toBeTruthy();
+    expect((board.componentInstance as TodayBoardComponent).repoRef()).toEqual(ref);
   });
 
   // ── Mastery tab (round 5 — folded in from the removed Techniques tab): the technique

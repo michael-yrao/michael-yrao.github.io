@@ -302,6 +302,19 @@
                               (keydown.space)="$event.stopPropagation()"
                               >&lt;/&gt;</a
                             >
+                          } @else if (solutionUrl(p.file); as src) {
+                            <a
+                              [href]="src"
+                              class="problem__status problem__status--link problem__status--github"
+                              title="Solution on GitHub"
+                              [attr.aria-label]="githubAriaLabel(p)"
+                              target="_blank"
+                              rel="noopener"
+                              (click)="$event.stopPropagation()"
+                              (keydown.enter)="$event.stopPropagation()"
+                              (keydown.space)="$event.stopPropagation()"
+                              >{{ isClean(p.comfort) ? '✓' : '○' }}</a
+                            >
                           } @else {
                             <span class="problem__status problem__status--spacer" aria-hidden="true"></span>
                           }
@@ -324,20 +337,6 @@
                                 (keydown.enter)="$event.stopPropagation()"
                                 (keydown.space)="$event.stopPropagation()"
                                 >↗</a
-                              >
-                            }
-                            @if (solutionUrl(p.file); as src) {
-                              <a
-                                [href]="src"
-                                class="problem__src src-link"
-                                target="_blank"
-                                rel="noopener"
-                                [attr.aria-label]="'Solution source for #' + p.lcNumber + ' on GitHub'"
-                                title="Solution on GitHub"
-                                (click)="$event.stopPropagation()"
-                                (keydown.enter)="$event.stopPropagation()"
-                                (keydown.space)="$event.stopPropagation()"
-                                >src</a
                               >
                             }
                           </span>

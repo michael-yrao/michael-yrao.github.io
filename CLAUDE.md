@@ -121,10 +121,12 @@ a single re-ask block and must render as **one** "Complexity gate" row, not one 
 collapsing them is a rendering rule, not a contract change. (The Problems tab lists tracker
 problems, which never carry `kind`.) The muted `</>` glyph next to a problem's title is the
 learner's own solution walkthrough; it is never labelled "Visualize" (that language overstates
-what a personal practice write-up is). The muted `src` link after the LeetCode `↗` (Problems tab
-rows and Today-board items) is the learner's own solution **file** on GitHub, built by `fileUrl`
-from the contract's additive `file` path in the repo/branch the page is rendering (`?repo=` aware,
-never the gold standard); a row with no `file` simply has no `src` link.
+what a personal practice write-up is). The leading status badge slot is `</>` when an on-site
+walkthrough exists; otherwise, when the contract carries `file`, the same badge's `✓`/`○` links
+to the learner's own solution file on GitHub instead (board: done/not done; Problems tab: clean
+🟢/🎓/🏆 vs in progress), built by `fileUrl` from the contract's additive `file` path in the
+repo/branch the page is rendering (`?repo=` aware, never the gold standard). With neither a
+walkthrough nor a `file`, the board shows a plain `✓`/`○` and the Problems tab an empty spacer.
 
 ## Lint & test
 

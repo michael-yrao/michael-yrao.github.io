@@ -12,6 +12,16 @@
         [attr.aria-label]="statusAriaLabel(item)"
         >&lt;/&gt;</a
       >
+    } @else if (solutionUrl(item.file); as src) {
+      <a
+        [href]="src"
+        class="today-board__status today-board__status--link today-board__status--github"
+        title="Solution on GitHub"
+        [attr.aria-label]="githubAriaLabel(item)"
+        target="_blank"
+        rel="noopener"
+        >{{ item.done ? '✓' : '○' }}</a
+      >
     } @else {
       <span class="today-board__status" [attr.aria-label]="item.done ? 'done' : 'not done'">{{
         item.done ? '✓' : '○'
@@ -70,11 +80,6 @@
     <span class="today-board__links">
       @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
         <a [href]="lc" target="_blank" rel="noopener" aria-label="Open on LeetCode" title="LeetCode">↗</a>
-      }
-      @if (solutionUrl(item.file); as src) {
-        <a [href]="src" class="today-board__src src-link" target="_blank" rel="noopener"
-          [attr.aria-label]="'Solution source for #' + item.lcNumber + ' on GitHub'"
-          title="Solution on GitHub">src</a>
       }
       @if (item.lcNumber) {
         <button type="button" class="today-board__trend-btn" title="Comfort history"

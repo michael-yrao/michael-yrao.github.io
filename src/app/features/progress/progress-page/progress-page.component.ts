@@ -30,6 +30,13 @@ import { Technique } from '../../../core/models/progress.model';
 type ComfortFilter = 'all' | Comfort;
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
+// The status badge's GitHub fallback (no walkthrough route) shows ✓/○ off this set rather than
+// off `endComfort`/`done` — the Problems tab has no per-rep done-ness, only the row's current
+// comfort — "clean" meaning "past the shaky 🟡 stage": 🟢/🎓/🏆. No predicate for this already
+// existed in core (checked progress.model.ts/progress.service.ts — only aggregate pipeline
+// counts, never a per-problem check), so this stays local to the one component that needs it.
+const CLEAN_COMFORTS: ReadonlySet<Comfort> = new Set(['🟢', '🎓', '🏆']);
+
 // Segmented tabs (replaces round-1's single "Full breakdown" toggle — round-2 learner
 // feedback: the toggle "doesn't connect the top and bottom"). Overview is the default —
 // streak hero + Today's board, the at-a-glance landing. Everything else has a home tab;
@@ -271,12 +278,24 @@ export class ProgressPageComponent {
     return vizRouteFor(lc);
   }
 
-  /** The `src` link: the learner's own solution file (progress.json's `file`) on GitHub, in
-   *  the repo/branch this page is rendering — never the gold standard, since a `?repo=` viewer's
-   *  paths belong to THEIR checkout. Null until the repo ref is known. */
+  /** The status badge's GitHub fallback link: the learner's own solution file (progress.json's
+   *  `file`) on GitHub, in the repo/branch this page is rendering — never the gold standard,
+   *  since a `?repo=` viewer's paths belong to THEIR checkout. Null until the repo ref is known. */
   solutionUrl(file: string | null | undefined): string | null {
     const ref = this.repoRef();
     return file && ref ? fileUrl(ref, file) : null;
+  }
+
+  /** Whether a comfort reads as "clean" for the status badge's GitHub fallback (✓ vs ○) — past
+   *  the shaky 🟡 stage: 🟢, 🎓, or 🏆. */
+  isClean(comfort: Comfort): boolean {
+    return CLEAN_COMFORTS.has(comfort);
+  }
+
+  /** The status badge's aria-label when it's the GitHub solution-file link (no walkthrough
+   *  route, but the row carries a `file` and the repo ref is known). */
+  githubAriaLabel(p: ProblemProgress): string {
+    return `Solution source for #${p.lcNumber} on GitHub, ${this.isClean(p.comfort) ? 'clean' : 'in progress'}`;
   }
 
   retry(): void {

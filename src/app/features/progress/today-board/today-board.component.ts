@@ -159,7 +159,8 @@ export class TodayBoardComponent {
    *  actually clicked open. */
   readonly trend = output<ScheduleItem>();
   /** The repo/branch the page is rendering (ProgressService.repoRef) — a row's `file` path is
-   *  relative to it, so the `src` link is built from it, never from the gold standard. */
+   *  relative to it, so the status badge's GitHub link is built from it, never from the gold
+   *  standard. */
   readonly repoRef = input<RepoRef | null>(null);
 
   // Which day the strip has explicitly selected (null = no explicit pick yet — fall back to
@@ -338,8 +339,9 @@ export class TodayBoardComponent {
     return vizRouteFor(lcNumber);
   }
 
-  /** The `src` link — the learner's own solution file on GitHub (see ProgressPageComponent's
-   *  `solutionUrl`); null without a file or before the repo ref is known. */
+  /** The status badge's GitHub fallback link — the learner's own solution file on GitHub (see
+   *  ProgressPageComponent's `solutionUrl`), used when the row has no walkthrough route; null
+   *  without a file or before the repo ref is known. */
   solutionUrl(file: string | null | undefined): string | null {
     const ref = this.repoRef();
     return file && ref ? fileUrl(ref, file) : null;
@@ -350,6 +352,13 @@ export class TodayBoardComponent {
    *  the separate leading check. */
   statusAriaLabel(item: ScheduleItem): string {
     return `Solution walkthrough for #${item.lcNumber}, ${item.done ? 'done' : 'not done'}`;
+  }
+
+  /** The status badge's aria-label when it's the GitHub solution-file link (no walkthrough
+   *  route, but the row carries a `file` and the repo ref is known) — mirrors
+   *  `statusAriaLabel` above, done-ness in place of the walkthrough's. */
+  githubAriaLabel(item: ScheduleItem): string {
+    return `Solution source for #${item.lcNumber} on GitHub, ${item.done ? 'done' : 'not done'}`;
   }
 
   /** Rows for one day, used by both the collapsed (selected-day) and expanded (7-day) views. */

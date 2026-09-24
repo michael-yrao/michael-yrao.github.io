@@ -491,53 +491,70 @@ describe('TodayBoardComponent', () => {
     expect(lcLink.getAttribute('aria-label')).toContain('LeetCode');
   });
 
-  it('renders a `src` link to the row\'s own solution file in the given repo/branch, after the LeetCode ↗', () => {
+  it('renders the status badge as a GitHub solution-file link when the row has no walkthrough route but has a `file` and a repo ref', () => {
+    // 9999 is deliberately unregistered — see makeSchedule()'s own comment.
     const schedule = makeSchedule();
     schedule.days[0].items = [
-      { lcNumber: 39, title: 'Combination Sum', technique: 'Backtracking', startComfort: null,
-        difficulty: null, done: false, url: 'https://leetcode.com/problems/combination-sum/',
-        file: 'dsa/leetcode/backtracking/39_combination_sum.py' },
+      { lcNumber: 9999, title: 'Unvisualized Problem', technique: 'Backtracking', startComfort: null,
+        difficulty: null, done: false, file: 'dsa/leetcode/backtracking/9999_unvisualized_problem.py' },
     ];
     const fixture = createFixture(schedule);
     fixture.componentRef.setInput('repoRef', { owner: 'someone', repo: 'their-log', branch: 'dev' });
     fixture.detectChanges();
 
-    const links = Array.from(
-      fixture.nativeElement.querySelectorAll('.today-board__links a'),
-    ) as HTMLAnchorElement[];
-    expect(links.map((a) => a.textContent?.trim())).toEqual(['↗', 'src']);
-    const src = links[1];
-    expect(src.classList.contains('today-board__src')).toBe(true);
-    expect(src.getAttribute('href')).toBe(
-      'https://github.com/someone/their-log/blob/dev/dsa/leetcode/backtracking/39_combination_sum.py',
+    const badge: HTMLAnchorElement = fixture.nativeElement.querySelector('.today-board__status');
+    expect(badge.tagName).toBe('A');
+    expect(badge.classList.contains('today-board__status--github')).toBe(true);
+    expect(badge.textContent?.trim()).toBe('○');
+    expect(badge.getAttribute('href')).toBe(
+      'https://github.com/someone/their-log/blob/dev/dsa/leetcode/backtracking/9999_unvisualized_problem.py',
     );
-    expect(src.getAttribute('aria-label')).toBe('Solution source for #39 on GitHub');
-    expect(src.getAttribute('title')).toBe('Solution on GitHub');
+    expect(badge.getAttribute('title')).toBe('Solution on GitHub');
+    expect(badge.getAttribute('aria-label')).toBe('Solution source for #9999 on GitHub, not done');
+    expect(badge.getAttribute('target')).toBe('_blank');
   });
 
-  it('renders no `src` link when the row has no file (null, or an older contract with no `file` key)', () => {
+  it('renders the status badge as a GitHub link with ✓ for a DONE row with no walkthrough route', () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
-      { lcNumber: 39, title: 'Combination Sum', technique: 'Backtracking', startComfort: null,
-        difficulty: null, done: false, file: null },
-      { lcNumber: 40, title: 'Combination Sum II', technique: 'Backtracking', startComfort: null,
-        difficulty: null, done: false },   // older contract: no `file` key at all
+      { lcNumber: 9999, title: 'Unvisualized Problem', technique: 'Backtracking', startComfort: null,
+        difficulty: null, done: true, file: 'dsa/leetcode/backtracking/9999_unvisualized_problem.py' },
     ];
     const fixture = createFixture(schedule);
-    fixture.componentRef.setInput('repoRef', { owner: 'a', repo: 'b', branch: 'main' });
+    fixture.componentRef.setInput('repoRef', { owner: 'someone', repo: 'their-log', branch: 'dev' });
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(2);
-    expect(fixture.nativeElement.querySelectorAll('.today-board__src').length).toBe(0);
+
+    const badge: HTMLAnchorElement = fixture.nativeElement.querySelector('.today-board__status');
+    expect(badge.tagName).toBe('A');
+    expect(badge.textContent?.trim()).toBe('✓');
+    expect(badge.getAttribute('aria-label')).toBe('Solution source for #9999 on GitHub, done');
   });
 
-  it('renders no `src` link before a repo ref has been given, even when the row has a file', () => {
+  it('renders a plain SPAN status badge (no GitHub link) when the row has a `file` but no repo ref is known yet', () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
-      { lcNumber: 39, title: 'Combination Sum', technique: 'Backtracking', startComfort: null,
-        difficulty: null, done: false, file: 'dsa/leetcode/backtracking/39_combination_sum.py' },
+      { lcNumber: 9999, title: 'Unvisualized Problem', technique: 'Backtracking', startComfort: null,
+        difficulty: null, done: false, file: 'dsa/leetcode/backtracking/9999_unvisualized_problem.py' },
     ];
     const fixture = createFixture(schedule);   // repoRef left at its null default
-    expect(fixture.nativeElement.querySelectorAll('.today-board__src').length).toBe(0);
+
+    const badge: HTMLElement = fixture.nativeElement.querySelector('.today-board__status');
+    expect(badge.tagName).toBe('SPAN');
+    expect(fixture.nativeElement.querySelector('.today-board__status--link')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.today-board__status--github')).toBeFalsy();
+  });
+
+  it('keeps the `</>` walkthrough link (never the GitHub fallback) for a row with a registered viz route, even with a `file` and a repo ref', () => {
+    const schedule = makeSchedule(); // lcNumber 100 (Same Tree) has a real route
+    schedule.days[0].items[1] = { ...schedule.days[0].items[1], file: 'dsa/leetcode/trees/100_same_tree.py' };
+    const fixture = createFixture(schedule);
+    fixture.componentRef.setInput('repoRef', { owner: 'someone', repo: 'their-log', branch: 'dev' });
+    fixture.detectChanges();
+
+    const badge: HTMLAnchorElement = fixture.nativeElement.querySelector('.today-board__status--link');
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toContain('</>');
+    expect(fixture.nativeElement.querySelector('.today-board__status--github')).toBeFalsy();
   });
 
   it("renders an ordinary row with no chips when tags are present but kind is absent (older/plain contract rows)", () => {
