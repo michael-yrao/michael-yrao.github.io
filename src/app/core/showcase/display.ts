@@ -24,10 +24,12 @@ function rowsForSegment(segment: ShowcaseSegment): DisplayRow[] {
   }));
 }
 
-/** Flattens a showcase entry's segments into display rows, inserting one `gap` row wherever
- *  consecutive segments skip source lines. Rows keep their real source line numbers. Sorts a
- *  copy of `entry.segments` defensively; never mutates the entry. */
-export function buildDisplay(entry: ShowcaseEntry): DisplayRow[] {
+/** Flattens a showcase-shaped entry's segments into display rows, inserting one `gap` row
+ *  wherever consecutive segments skip source lines. Rows keep their real source line numbers.
+ *  Sorts a copy of `entry.segments` defensively; never mutates the entry. Takes only
+ *  `segments` (not the full `ShowcaseEntry`) so callers with a differently-shaped but
+ *  segment-bearing contract — e.g. `BigOEntry` — can reuse it without adapting. */
+export function buildDisplay(entry: Pick<ShowcaseEntry, 'segments'>): DisplayRow[] {
   const segments = [...entry.segments].sort((a, b) => a.startLine - b.startLine);
 
   return segments.reduce<DisplayRow[]>((rows, segment, i) => {

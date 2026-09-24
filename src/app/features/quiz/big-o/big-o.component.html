@@ -4,146 +4,214 @@
     identify the data structures, and name the complexity.
   </app-page-header>
 
-  <!-- ── Scoreboard ──────────────────────────────────────────── -->
-  <div class="bo-stats" aria-live="polite">
-    <div class="stat">
-      <span class="stat__value">{{ timeScore }}/{{ deck.length }}</span>
-      <span class="stat__label">time</span>
-    </div>
-    <div class="stat-divider"></div>
-    <div class="stat">
-      <span class="stat__value">{{ spaceScore }}/{{ deck.length }}</span>
-      <span class="stat__label">space</span>
-    </div>
-    <div class="stat-divider"></div>
-    <div class="stat">
-      <span class="stat__value">{{ progressLabel }}</span>
-      <span class="stat__label">question</span>
-    </div>
-  </div>
-
-  <!-- ── Finished summary ────────────────────────────────────── -->
-  @if (mode === 'finished') {
-    <div class="bo-summary">
-      <h2 class="bo-summary__title">Done!</h2>
-      <p class="bo-summary__score">
-        {{ totalScore }} / {{ maxScore }} points
-        <span class="bo-summary__pct">({{ scorePercent }}%)</span>
-      </p>
-      <div class="bo-summary__breakdown">
-        <div class="breakdown-row">
-          <span class="breakdown-label">Time complexity</span>
-          <span class="breakdown-value">{{ timeScore }}/{{ deck.length }} correct</span>
-        </div>
-        <div class="breakdown-row">
-          <span class="breakdown-label">Space complexity</span>
-          <span class="breakdown-value">{{ spaceScore }}/{{ deck.length }} correct</span>
-        </div>
-      </div>
-      <button class="bo-btn bo-btn--primary" (click)="startRun()">↺ Shuffle &amp; play again</button>
-    </div>
-  }
-
-  @if (mode !== 'finished' && current) {
-    <!-- ── Code snippet ─────────────────────────────────────── -->
-    <section class="bo-snippet">
-      <p class="bo-snippet__context">{{ current.context }}</p>
-      <div class="bo-snippet__code">
-        <app-code-viewer [code]="current.code"></app-code-viewer>
-      </div>
-    </section>
-    <!-- ── Questions ───────────────────────────────────────── -->
-    <div class="bo-questions">
-      <!-- Time complexity -->
-      <div class="bo-q">
-        <p class="bo-q__label">
-          <span class="bo-q__tag">T</span>
-          Time complexity
-          @if (mode === 'revealed') {
-            <span class="bo-q__result"
-              [class.bo-q__result--correct]="timeCorrect"
-              [class.bo-q__result--wrong]="!timeCorrect">
-              {{ timeCorrect ? '✓' : '✗ ' + current.correctTime }}
-            </span>
-          }
-        </p>
-        <div class="bo-options">
-          @for (opt of current.timeOptions; track opt) {
-            <button
-              class="bo-chip"
-              [class.bo-chip--selected]="selectedTime === opt"
-              [class.bo-chip--correct]="mode === 'revealed' && opt === current.correctTime"
-              [class.bo-chip--wrong]="mode === 'revealed' && selectedTime === opt && opt !== current.correctTime"
-              [disabled]="mode === 'revealed'"
-              (click)="pickTime(opt)"
-            >{{ opt }}</button>
-          }
-        </div>
-      </div>
-      <!-- Space complexity -->
-      <div class="bo-q">
-        <p class="bo-q__label">
-          <span class="bo-q__tag">S</span>
-          Space complexity
-          @if (mode === 'revealed') {
-            <span class="bo-q__result"
-              [class.bo-q__result--correct]="spaceCorrect"
-              [class.bo-q__result--wrong]="!spaceCorrect">
-              {{ spaceCorrect ? '✓' : '✗ ' + current.correctSpace }}
-            </span>
-          }
-        </p>
-        <div class="bo-options">
-          @for (opt of current.spaceOptions; track opt) {
-            <button
-              class="bo-chip"
-              [class.bo-chip--selected]="selectedSpace === opt"
-              [class.bo-chip--correct]="mode === 'revealed' && opt === current.correctSpace"
-              [class.bo-chip--wrong]="mode === 'revealed' && selectedSpace === opt && opt !== current.correctSpace"
-              [disabled]="mode === 'revealed'"
-              (click)="pickSpace(opt)"
-            >{{ opt }}</button>
-          }
-        </div>
-      </div>
-    </div>
-    <!-- ── Check button ────────────────────────────────────── -->
-    @if (mode === 'quiz') {
-      <div class="bo-actions">
-        <button
-          class="bo-btn bo-btn--primary"
-          [disabled]="!canCheck"
-          (click)="check()"
-        >Check →</button>
+  @switch (status()) {
+    @case ('loading') {
+      <div class="bo-state" role="status">Loading your solutions…</div>
+    }
+    @case ('error') {
+      <div class="bo-state bo-state--error">
+        <p>{{ error() }}</p>
+        <button type="button" class="bo-btn bo-btn--primary" (click)="retry()">Retry</button>
       </div>
     }
-    <!-- ── Explanation panel ──────────────────────────────── -->
-    @if (mode === 'revealed') {
-      <section class="bo-reveal" aria-live="polite">
-        <div class="bo-reveal__row">
-          <div class="bo-explain">
-            <p class="bo-explain__head">
-              <span class="bo-q__tag">T</span> Time: <code>{{ current.correctTime }}</code>
-            </p>
-            <p class="bo-explain__body">{{ current.timeExplanation }}</p>
-          </div>
-          <div class="bo-explain">
-            <p class="bo-explain__head">
-              <span class="bo-q__tag">S</span> Space: <code>{{ current.correctSpace }}</code>
-            </p>
-            <p class="bo-explain__body">{{ current.spaceExplanation }}</p>
-          </div>
-        </div>
-        <div class="bo-reveal__actions">
-          @if (current.linkedProblemId) {
-            <a
-              class="bo-link"
-              [routerLink]="['/algorithms', current.linkedProblemCategory, current.linkedProblemId]"
-            >See #{{ current.linkedProblemLcNumber }} step by step →</a>
+    @case ('ready') {
+      <!-- ── Filters ─────────────────────────────────────────── -->
+      <section class="bo-filters" aria-label="Filters">
+        <div class="bo-filters__group" role="group" aria-label="Difficulty">
+          @for (d of difficultyFilters; track d) {
+            <button
+              type="button"
+              class="bo-chip"
+              [class.bo-chip--selected]="filter().difficulty === d"
+              [attr.aria-pressed]="filter().difficulty === d"
+              (click)="setDifficulty(d)"
+            >{{ d }}</button>
           }
-          <button class="bo-btn bo-btn--primary" (click)="next()">Next →</button>
+          <button
+            type="button"
+            class="bo-chip bo-chip--toggle"
+            [class.bo-chip--selected]="filter().missesOnly"
+            [attr.aria-pressed]="filter().missesOnly"
+            (click)="toggleMisses()"
+          >My complexity misses</button>
         </div>
+        <p class="bo-filters__caption">
+          {{ pool().length }} problem{{ pool().length !== 1 ? 's' : '' }} match · dealing
+          {{ dealCount() }} per run
+        </p>
       </section>
+
+      @if (pool().length === 0) {
+        <div class="bo-state bo-state--empty">
+          <p>No problems match this filter yet.</p>
+          <button type="button" class="bo-btn bo-btn--primary" (click)="resetFilter()">Show all</button>
+        </div>
+      } @else if (mode() === 'finished') {
+        <!-- ── Finished summary ──────────────────────────────── -->
+        <div class="bo-summary">
+          <h2 class="bo-summary__title">Done!</h2>
+          <p class="bo-summary__score">
+            {{ totalScore() }} / {{ maxScore() }} points
+            <span class="bo-summary__pct">({{ scorePercent() }}%)</span>
+          </p>
+          <div class="bo-summary__breakdown">
+            <div class="breakdown-row">
+              <span class="breakdown-label">Time complexity</span>
+              <span class="breakdown-value">{{ timeScore() }}/{{ deck().length }} correct</span>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-label">Space complexity</span>
+              <span class="breakdown-value">{{ spaceScore() }}/{{ deck().length }} correct</span>
+            </div>
+          </div>
+          <button class="bo-btn bo-btn--primary" (click)="startRun()">↺ Deal a new run</button>
+        </div>
+      } @else if (current(); as q) {
+        <!-- ── Scoreboard ────────────────────────────────────── -->
+        <div class="bo-stats" aria-live="polite">
+          <div class="stat">
+            <span class="stat__value">{{ timeScore() }}/{{ deck().length }}</span>
+            <span class="stat__label">time</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat__value">{{ spaceScore() }}/{{ deck().length }}</span>
+            <span class="stat__label">space</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat__value">{{ progressLabel() }}</span>
+            <span class="stat__label">question</span>
+          </div>
+        </div>
+
+        <!-- ── Code snippet ──────────────────────────────────── -->
+        <section class="bo-snippet">
+          <div class="bo-snippet__header">
+            <span class="bo-snippet__title">#{{ q.lcNumber }} {{ q.title }}</span>
+            @if (q.difficulty) {
+              <span
+                class="bo-pill"
+                [class.bo-pill--easy]="q.difficulty === 'Easy'"
+                [class.bo-pill--medium]="q.difficulty === 'Medium'"
+                [class.bo-pill--hard]="q.difficulty === 'Hard'"
+              >{{ q.difficulty }}</span>
+            }
+          </div>
+          @if (q.note) {
+            <p class="bo-snippet__context">{{ q.note }}</p>
+          }
+          <div class="bo-snippet__code">
+            <app-code-viewer [rows]="rows()"></app-code-viewer>
+          </div>
+        </section>
+        <!-- ── Questions ─────────────────────────────────────── -->
+        <div class="bo-questions">
+          <!-- Time complexity -->
+          <div class="bo-q">
+            <p class="bo-q__label">
+              <span class="bo-q__tag">T</span>
+              Time complexity
+              @if (mode() === 'revealed') {
+                <span class="bo-q__result"
+                  [class.bo-q__result--correct]="timeCorrect()"
+                  [class.bo-q__result--wrong]="!timeCorrect()">
+                  {{ timeCorrect() ? '✓' : '✗ ' + q.time }}
+                </span>
+              }
+            </p>
+            <div class="bo-options">
+              @for (opt of q.timeOptions; track opt) {
+                <button
+                  class="bo-chip"
+                  [class.bo-chip--selected]="selectedTime() === opt"
+                  [class.bo-chip--correct]="mode() === 'revealed' && opt === q.time"
+                  [class.bo-chip--wrong]="mode() === 'revealed' && selectedTime() === opt && opt !== q.time"
+                  [disabled]="mode() === 'revealed'"
+                  (click)="pickTime(opt)"
+                >{{ opt }}</button>
+              }
+            </div>
+          </div>
+          <!-- Space complexity -->
+          <div class="bo-q">
+            <p class="bo-q__label">
+              <span class="bo-q__tag">S</span>
+              Space complexity
+              @if (mode() === 'revealed') {
+                <span class="bo-q__result"
+                  [class.bo-q__result--correct]="spaceCorrect()"
+                  [class.bo-q__result--wrong]="!spaceCorrect()">
+                  {{ spaceCorrect() ? '✓' : '✗ ' + q.space }}
+                </span>
+              }
+            </p>
+            <div class="bo-options">
+              @for (opt of q.spaceOptions; track opt) {
+                <button
+                  class="bo-chip"
+                  [class.bo-chip--selected]="selectedSpace() === opt"
+                  [class.bo-chip--correct]="mode() === 'revealed' && opt === q.space"
+                  [class.bo-chip--wrong]="mode() === 'revealed' && selectedSpace() === opt && opt !== q.space"
+                  [disabled]="mode() === 'revealed'"
+                  (click)="pickSpace(opt)"
+                >{{ opt }}</button>
+              }
+            </div>
+          </div>
+        </div>
+        <!-- ── Check button ──────────────────────────────────── -->
+        @if (mode() === 'quiz') {
+          <div class="bo-actions">
+            <button
+              class="bo-btn bo-btn--primary"
+              [disabled]="!canCheck()"
+              (click)="check()"
+            >Check →</button>
+          </div>
+        }
+        <!-- ── Explanation panel ─────────────────────────────── -->
+        @if (mode() === 'revealed') {
+          <section class="bo-reveal" aria-live="polite">
+            <div class="bo-reveal__row">
+              <div class="bo-explain">
+                <p class="bo-explain__head">
+                  <span class="bo-q__tag">T</span> Time: <code>{{ q.time }}</code>
+                </p>
+                @if (q.whyTime) {
+                  <p class="bo-explain__body">{{ q.whyTime }}</p>
+                }
+              </div>
+              <div class="bo-explain">
+                <p class="bo-explain__head">
+                  <span class="bo-q__tag">S</span> Space: <code>{{ q.space }}</code>
+                </p>
+                @if (q.whySpace) {
+                  <p class="bo-explain__body">{{ q.whySpace }}</p>
+                }
+              </div>
+            </div>
+            <div class="bo-reveal__actions">
+              @if (q.isMiss) {
+                <span class="bo-pill bo-pill--miss">On your miss ledger</span>
+              }
+              @if (vizLink(); as link) {
+                <a class="bo-link" [routerLink]="link">See #{{ q.lcNumber }} step by step →</a>
+              } @else if (leetCodeLink(); as lcLink) {
+                <a class="bo-link" [href]="lcLink" target="_blank" rel="noopener noreferrer"
+                  >View on LeetCode →</a
+                >
+              }
+              @if (attemptBlobUrl(); as sourceUrl) {
+                <a class="bo-link" [href]="sourceUrl" target="_blank" rel="noopener noreferrer"
+                  >Source on GitHub →</a
+                >
+              }
+              <button class="bo-btn bo-btn--primary" (click)="next()">Next →</button>
+            </div>
+          </section>
+        }
+      }
     }
   }
 </div>

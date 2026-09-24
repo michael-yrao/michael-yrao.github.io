@@ -90,4 +90,14 @@ describe('buildDisplay', () => {
     expect(rows.map((r) => r.text)).toEqual(['first', 'second']);
     expect(entry.segments).toEqual(originalOrder); // input segments array untouched
   });
+
+  it('accepts any segment-bearing object, not just a full ShowcaseEntry (e.g. a BigOEntry)', () => {
+    // Only `segments` — none of ShowcaseEntry's other required fields — proving the
+    // `Pick<ShowcaseEntry, 'segments'>` parameter type actually admits a slimmer shape.
+    const bigOShaped = { segments: [CONTAINER] };
+
+    const rows = buildDisplay(bigOShaped);
+
+    expect(rows.map((r) => r.text)).toEqual(['class Solution:']);
+  });
 });

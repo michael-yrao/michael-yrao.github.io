@@ -16,7 +16,7 @@ export const QUIZZES: QuizMeta[] = [
     id: 'big-o',
     title: 'Big-O Trainer',
     description: 'Read a real code snippet pulled straight from your own cse-progress solutions and name both the time and space complexity. Filter by difficulty, or drill only the problems on your complexity-miss ledger.',
-    algorithmNote: 'Deals up to 20 problems per run from your live solution history — never a paraphrase. Each answer includes a line-by-line explanation of the reasoning.',
+    algorithmNote: 'Deals up to 20 problems per run from your live solution history — never a paraphrase. The reveal names both bounds, with your own written reasoning where it exists.',
     algorithms: ['All complexities', 'Time & Space'],
     status: 'available',
     route: '/quiz/big-o',

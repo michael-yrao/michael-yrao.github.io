@@ -22,7 +22,9 @@ function hasConsistentLineCount(
   return segment.lines.length === expectedLineCount;
 }
 
-function isShowcaseSegment(value: unknown): value is ShowcaseSegment {
+/** Exported so `big-o-validation.ts` (and any other segment-bearing contract) can reuse the
+ *  same structural check rather than duplicating it. */
+export function isShowcaseSegment(value: unknown): value is ShowcaseSegment {
   if (typeof value !== 'object' || value === null) return false;
   const segment = value as Partial<ShowcaseSegment>;
 
