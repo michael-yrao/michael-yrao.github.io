@@ -4,46 +4,6 @@
   padding: var(--space-xl) var(--space-lg) var(--space-2xl);
 }
 
-// ── Loading / error / empty-deck states ──────────────────────────
-.bo-state {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-xl) var(--space-lg);
-  margin-bottom: var(--space-xl);
-  text-align: center;
-  color: var(--color-text-muted);
-
-  &--error {
-    border-color: var(--color-hard);
-    color: var(--color-text);
-
-    p { margin: 0 0 var(--space-md); }
-  }
-
-  &--empty {
-    p { margin: 0 0 var(--space-md); }
-  }
-}
-
-// ── Filters ───────────────────────────────────────────────────────
-.bo-filters {
-  margin-bottom: var(--space-xl);
-
-  &__group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-sm);
-  }
-
-  &__caption {
-    font-size: 0.82rem;
-    color: var(--color-text-muted);
-    margin: 0;
-  }
-}
-
 // ── Scoreboard ──────────────────────────────────────────────────
 .bo-stats {
   display: flex;
@@ -130,20 +90,6 @@
 // ── Code snippet ─────────────────────────────────────────────────
 .bo-snippet {
   margin-bottom: var(--space-lg);
-
-  &__header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-    margin-bottom: var(--space-xs);
-  }
-
-  &__title {
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: var(--color-text);
-  }
 
   &__context {
     font-size: 0.88rem;
@@ -257,32 +203,6 @@
     color: var(--color-hard);
     opacity: 1 !important;
   }
-
-  // The misses-only toggle chip: same base look, but reads as a switch (aria-pressed) rather
-  // than a member of a mutually-exclusive difficulty group.
-  &--toggle {
-    font-family: inherit;
-    font-size: 0.82rem;
-  }
-}
-
-// ── Pills (difficulty badge, miss-ledger flag) ───────────────────
-.bo-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  background: var(--color-accent-dim);
-  color: var(--color-accent);
-
-  &--easy   { background: rgba(74, 222, 128, 0.15);  color: var(--color-easy); }
-  &--medium { background: rgba(251, 146, 60, 0.15);  color: var(--color-medium); }
-  &--hard   { background: rgba(248, 113, 113, 0.15); color: var(--color-hard); }
-  &--miss   { background: rgba(248, 113, 113, 0.15); color: var(--color-hard); }
 }
 
 // ── Actions ──────────────────────────────────────────────────────
