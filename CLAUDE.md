@@ -131,3 +131,10 @@ never the gold standard); a row with no `file` simply has no `src` link.
 `npm run lint` (ESLint via `@angular-eslint`) and `npx ng test --watch=false` (vitest) both must
 pass; CI (`.github/workflows/deploy.yml`) runs both before `npm run build` on
 every push.
+
+**Run the toolchain on Node 24, the version CI uses** (`actions/setup-node` in deploy.yml). On a
+Mac with Homebrew that is the keg-only `node@24`: prefix commands with
+`export PATH=/opt/homebrew/opt/node@24/bin:$PATH`. Node 25+ ships an experimental `localStorage`
+global (undefined without `--localstorage-file`) that shadows jsdom's in the vitest environment and
+fails the Big-O trainer's filter-persistence specs; they pass on 24. Angular 22 / TypeScript 6 as
+of Sep 24, 2026 — `ng update` refuses a dirty working tree, so commit first.
