@@ -470,7 +470,7 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.today-board__status--link')).toBeFalsy();
   });
 
-  // ── Round 5: kind === 'new' / 'probe' chips, and the 'moved' tag's muted prefix ─────
+  // ── Round 5: kind === 'new' / 'probe' chips; the 'moved' tag renders no marker ──────
   it("renders a 'new' chip after the title for kind === 'new', with no difficulty tag when difficulty is null", () => {
     // The real regenerated-contract row: url IS present for a 🆕 row (gamify.py reads the
     // row's own [LC] link) — a missing url never means "untracked" for one of these.
@@ -506,7 +506,7 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.tag--hard')?.textContent).toContain('Hard');
   });
 
-  it("renders a 'probe' chip for kind === 'probe', and a muted → prefix when tags include 'moved'", () => {
+  it("renders a 'probe' chip for kind === 'probe', and no moved marker even when tags include 'moved'", () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
       { lcNumber: 200, title: 'Number of Islands', technique: 'Graph-DFS', startComfort: '🟡',
@@ -516,7 +516,8 @@ describe('TodayBoardComponent', () => {
     const fixture = createFixture(schedule);
 
     expect(fixture.nativeElement.querySelector('.tag--probe')?.textContent).toContain('probe');
-    expect(fixture.nativeElement.querySelector('.today-board__moved')?.textContent).toContain('→');
+    expect(fixture.nativeElement.querySelector('.today-board__moved')).toBeFalsy();
+    expect(fixture.nativeElement.textContent).not.toContain('→');
   });
 
   // ── Round 5: consecutive kind === 'complexity' items collapse into one gate row ─────
@@ -931,26 +932,33 @@ describe('TodayBoardComponent', () => {
   });
 });
 
-// ── Trend panel: a numbered row's title toggles an inline <app-problem-timeline> ────────
+// ── Trend panel: a small rising-bars icon button (beside ↗) opens an inline
+// <app-problem-timeline> beneath the row; the title itself is plain text. ────────────────
 describe('TodayBoardComponent — trend panel', () => {
-  it('the title of a numbered row is a toggle button: clicking opens the panel (aria-expanded, .today-board__trend, one trend emit); clicking again collapses it with no further emit', () => {
+  it("the title stays a plain span; the row's history button carries the Comfort-history tooltip/aria-label and toggles the panel (aria-expanded, .today-board__trend, one trend emit); clicking again collapses it with no further emit", () => {
     const fixture = createFixture(makeSchedule());
     const emitted: ScheduleItem[] = [];
     fixture.componentInstance.trend.subscribe((item) => emitted.push(item));
 
-    const title: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__title--toggle');
-    expect(title.tagName).toBe('BUTTON');
-    expect(title.getAttribute('aria-expanded')).toBe('false');
+    const titles: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.today-board__title'));
+    expect(titles.length).toBeGreaterThan(0);
+    expect(titles.every((t) => t.tagName === 'SPAN')).toBe(true);
 
-    title.click();
+    const btns: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('.today-board__trend-btn'));
+    const btn = btns[1]; // Same Tree, lcNumber 100
+    expect(btn.getAttribute('title')).toBe('Comfort history');
+    expect(btn.getAttribute('aria-label')).toBe('Comfort history for #100');
+    expect(btn.getAttribute('aria-expanded')).toBe('false');
+
+    btn.click();
     fixture.detectChanges();
-    expect(title.getAttribute('aria-expanded')).toBe('true');
+    expect(btn.getAttribute('aria-expanded')).toBe('true');
     expect(fixture.nativeElement.querySelector('.today-board__trend')).toBeTruthy();
     expect(emitted.length).toBe(1);
 
-    title.click();
+    btn.click();
     fixture.detectChanges();
-    expect(title.getAttribute('aria-expanded')).toBe('false');
+    expect(btn.getAttribute('aria-expanded')).toBe('false');
     expect(fixture.nativeElement.querySelector('.today-board__trend')).toBeFalsy();
     expect(emitted.length).toBe(1); // collapsing never re-emits
   });
@@ -958,8 +966,8 @@ describe('TodayBoardComponent — trend panel', () => {
   it('shows "Loading history…" while details are null (idle/loading)', () => {
     const fixture = createFixture(makeSchedule(), undefined, undefined, null, 'loading', null);
 
-    const title: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__title--toggle');
-    title.click();
+    const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__trend-btn');
+    btn.click();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.today-board__trend')?.textContent).toContain('Loading history…');
@@ -970,8 +978,8 @@ describe('TodayBoardComponent — trend panel', () => {
     const emitted: ScheduleItem[] = [];
     fixture.componentInstance.trend.subscribe((item) => emitted.push(item));
 
-    const title: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__title--toggle');
-    title.click();
+    const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__trend-btn');
+    btn.click();
     fixture.detectChanges();
     expect(emitted.length).toBe(1); // the open itself already emits once
 
@@ -988,22 +996,41 @@ describe('TodayBoardComponent — trend panel', () => {
     const problem = makeProblemProgress({ lcNumber: 100, title: 'Same Tree' });
     const fixture = createFixture(makeSchedule(), undefined, undefined, [problem], 'ready', null);
 
-    const titles: HTMLButtonElement[] = Array.from(
-      fixture.nativeElement.querySelectorAll('.today-board__title--toggle'),
+    const btns: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.today-board__trend-btn'),
     );
-    const sameTreeTitle = titles.find((t) => t.textContent?.includes('Same Tree'))!;
-    sameTreeTitle.click();
+    const sameTreeBtn = btns.find((b) => b.getAttribute('aria-label') === 'Comfort history for #100')!;
+    sameTreeBtn.click();
     fixture.detectChanges();
 
-    const panel = sameTreeTitle.closest('.today-board__row')!.querySelector('.today-board__trend')!;
+    const panel = sameTreeBtn.closest('.today-board__row')!.querySelector('.today-board__trend')!;
     expect(panel.querySelector('app-problem-timeline')).toBeTruthy();
+  });
+
+  it('shows a "comfort history · N reps" caption above the chart, using the matched problem\'s rep count', () => {
+    const problem = makeProblemProgress({
+      lcNumber: 100,
+      title: 'Same Tree',
+      repDates: ['2026-08-01', '2026-08-15', '2026-09-01'],
+    });
+    const fixture = createFixture(makeSchedule(), undefined, undefined, [problem], 'ready', null);
+
+    const btns: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.today-board__trend-btn'),
+    );
+    const sameTreeBtn = btns.find((b) => b.getAttribute('aria-label') === 'Comfort history for #100')!;
+    sameTreeBtn.click();
+    fixture.detectChanges();
+
+    const panel = sameTreeBtn.closest('.today-board__row')!.querySelector('.today-board__trend')!;
+    expect(panel.querySelector('.today-board__hint')?.textContent).toBe('comfort history · 3 reps');
   });
 
   it('shows "No rep history yet" when details are ready but nothing matches the row\'s lcNumber', () => {
     const fixture = createFixture(makeSchedule(), undefined, undefined, [], 'ready', null);
 
-    const title: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__title--toggle');
-    title.click();
+    const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__trend-btn');
+    btn.click();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.today-board__trend')?.textContent).toContain('No rep history yet');
@@ -1022,23 +1049,23 @@ describe('TodayBoardComponent — trend panel', () => {
 
   it('opening a second row\'s trend panel closes the first (one open at a time)', () => {
     const fixture = createFixture(makeSchedule());
-    const titles: HTMLButtonElement[] = Array.from(
-      fixture.nativeElement.querySelectorAll('.today-board__title--toggle'),
+    const btns: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.today-board__trend-btn'),
     );
-    expect(titles.length).toBe(2);
+    expect(btns.length).toBe(2);
 
-    titles[0].click();
+    btns[0].click();
     fixture.detectChanges();
-    expect(titles[0].getAttribute('aria-expanded')).toBe('true');
+    expect(btns[0].getAttribute('aria-expanded')).toBe('true');
 
-    titles[1].click();
+    btns[1].click();
     fixture.detectChanges();
-    expect(titles[0].getAttribute('aria-expanded')).toBe('false');
-    expect(titles[1].getAttribute('aria-expanded')).toBe('true');
+    expect(btns[0].getAttribute('aria-expanded')).toBe('false');
+    expect(btns[1].getAttribute('aria-expanded')).toBe('true');
     expect(fixture.nativeElement.querySelectorAll('.today-board__trend').length).toBe(1);
   });
 
-  it('renders no toggle button for a gate row or a row with a null lcNumber', () => {
+  it('renders no history button for a gate row or a row with a null lcNumber', () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
       { lcNumber: null, title: 'No-number row', technique: null, startComfort: null,
@@ -1051,7 +1078,7 @@ describe('TodayBoardComponent — trend panel', () => {
 
     const fixture = createFixture(schedule);
 
-    expect(fixture.nativeElement.querySelector('.today-board__title--toggle')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.today-board__trend-btn')).toBeFalsy();
     const gateTitle = fixture.nativeElement.querySelector('.today-board__row--gate .today-board__title');
     expect(gateTitle.tagName).toBe('SPAN');
   });

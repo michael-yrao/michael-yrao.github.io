@@ -57,24 +57,7 @@
     @if (item.lcNumber) {
       <span class="today-board__num">#{{ item.lcNumber }}</span>
     }
-    @if (hasMovedTag(item)) {
-      <span class="today-board__moved" aria-hidden="true">→</span>
-    }
-    @if (item.lcNumber) {
-      <button
-        type="button"
-        class="today-board__title today-board__title--toggle"
-        [attr.aria-expanded]="isTrendOpen(item, date)"
-        [attr.aria-controls]="trendPanelId(item, date)"
-        (click)="toggleTrend(item, date)"
-      >{{ item.title }}<span
-          class="today-board__caret"
-          [class.today-board__caret--open]="isTrendOpen(item, date)"
-          aria-hidden="true"
-        >▸</span></button>
-    } @else {
-      <span class="today-board__title">{{ item.title }}</span>
-    }
+    <span class="today-board__title">{{ item.title }}</span>
     @if (item.kind === 'new') {
       <span class="tag tag--new">new</span>
     }
@@ -88,11 +71,25 @@
       @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
         <a [href]="lc" target="_blank" rel="noopener" aria-label="Open on LeetCode" title="LeetCode">↗</a>
       }
+      @if (item.lcNumber) {
+        <button type="button" class="today-board__trend-btn" title="Comfort history"
+          [attr.aria-label]="trendAriaLabel(item)"
+          [attr.aria-expanded]="isTrendOpen(item, date)"
+          [attr.aria-controls]="trendPanelId(item, date)"
+          (click)="toggleTrend(item, date)">
+          <svg viewBox="0 0 14 14" aria-hidden="true" focusable="false">
+            <rect x="1" y="8" width="3" height="5" rx="0.5" />
+            <rect x="5.5" y="4.5" width="3" height="8.5" rx="0.5" />
+            <rect x="10" y="1" width="3" height="12" rx="0.5" />
+          </svg>
+        </button>
+      }
     </span>
     @if (item.lcNumber && isTrendOpen(item, date)) {
       <div class="today-board__trend" [id]="trendPanelId(item, date)">
         @let p = problemFor(item);
         @if (p) {
+          <p class="today-board__hint">comfort history · {{ p.repDates.length }} reps</p>
           <app-problem-timeline [problem]="p" />
         } @else if (detailsStatus() === 'error') {
           <p class="today-board__hint">{{ detailsError() }}</p>

@@ -240,10 +240,10 @@ export class TodayBoardComponent {
     return this.openOutcomeKey() === this.outcomeKey(item, date);
   }
 
-  // The per-row trend panel (<app-problem-timeline>, toggled by clicking a numbered row's
-  // title) — its own signal, same one-open-at-a-time shape as `openOutcomeKey` above and
-  // keyed by the SAME outcomeKey() (day + row), so the two popovers never collide and the
-  // same problem done on two different days keeps distinct panels.
+  // The per-row trend panel (<app-problem-timeline>, toggled by the row's history button) —
+  // its own signal, same one-open-at-a-time shape as `openOutcomeKey` above and keyed by the
+  // SAME outcomeKey() (day + row), so the two popovers never collide and the same problem
+  // done on two different days keeps distinct panels.
   readonly openTrendKey = signal<string | null>(null);
 
   /** Toggles a row's trend panel; emits `trend` only on the OPEN transition (never on
@@ -262,6 +262,12 @@ export class TodayBoardComponent {
 
   trendPanelId(item: ScheduleItem, date: string): string {
     return `trend-${this.outcomeKey(item, date)}`;
+  }
+
+  /** The history button's aria-label — the `title` attribute is the visible tooltip, this
+   *  carries the row's number for screen readers, same split as `statusAriaLabel`. */
+  trendAriaLabel(item: ScheduleItem): string {
+    return `Comfort history for #${item.lcNumber}`;
   }
 
   /** The trend panel's error-state Retry button — just re-emits `trend`, same idempotent
@@ -338,10 +344,6 @@ export class TodayBoardComponent {
   /** Rows for one day, used by both the collapsed (selected-day) and expanded (7-day) views. */
   rowsFor(day: ScheduleDay): BoardRow[] {
     return this.boardRowsByDate().get(day.date) ?? [];
-  }
-
-  hasMovedTag(item: ScheduleItem): boolean {
-    return item.tags?.includes('moved') ?? false;
   }
 
   /** trackBy for board rows: a gate row has no lcNumber of its own, so it tracks by its

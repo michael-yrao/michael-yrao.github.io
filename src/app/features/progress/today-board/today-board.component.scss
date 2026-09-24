@@ -230,7 +230,7 @@
 // Dim everything except the status badge and the earned outcome — a done row should still
 // read as "here's what I earned", not fade the reward along with the rest of the row.
 .today-board__row--done {
-  .today-board__num, .today-board__title, .tag, .today-board__links, .today-board__comfort, .today-board__moved, .today-board__gate-sub, .today-board__gate-progress { opacity: 0.6; }
+  .today-board__num, .today-board__title, .tag, .today-board__links, .today-board__comfort, .today-board__gate-sub, .today-board__gate-progress { opacity: 0.6; }
 
   .today-board__title { text-decoration: line-through; }
 }
@@ -301,31 +301,6 @@
 }
 .today-board__num { @include prow.num; }
 .today-board__title { @include prow.title; }
-// Reset + toggle affordance layered on `.today-board__title` above for any lcNumber row.
-.today-board__title--toggle {
-  appearance: none;
-  border: 0;
-  background: none;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-
-  &:hover { color: var(--color-accent); }
-  &:focus-visible { color: var(--color-accent); outline: 2px solid currentColor; }
-}
-// No own color — inherits the toggle button's (title text + caret recolor together on hover).
-.today-board__caret {
-  display: inline-block;
-  transition: transform var(--transition-fast);
-}
-.today-board__caret--open { transform: rotate(90deg); }
-// A rescheduled ("moved") row gets a muted arrow ahead of its title — no color beyond the
-// existing tag palette, just a directional cue.
-.today-board__moved { color: var(--color-text-muted); }
 
 .tag {
   @include prow.tag;
@@ -339,6 +314,16 @@
 // never adjacent to the leading status badge (the walkthrough link, when there is one).
 .today-board__links {
   @include prow.links;
+}
+// The row's comfort-history toggle — sits with the other row icons (</>, ↗); muted at
+// rest, accent on hover/focus and while its panel is open.
+.today-board__trend-btn {
+  appearance: none; border: 0; background: none; padding: 0; cursor: pointer;
+  display: inline-flex; align-items: center;
+  color: var(--color-text-muted);
+  svg { width: 14px; height: 14px; fill: currentColor; }
+  &:hover, &:focus-visible, &[aria-expanded='true'] { color: var(--color-accent); }
+  &:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 }
 
 // ── Complexity gate row (collapsed run of consecutive kind==='complexity' items) ────

@@ -179,7 +179,7 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     const title: HTMLButtonElement = fixture.nativeElement.querySelector(
-      'app-today-board .today-board__title--toggle',
+      'app-today-board .today-board__trend-btn',
     );
     expect(title).toBeTruthy();
     title.click();
