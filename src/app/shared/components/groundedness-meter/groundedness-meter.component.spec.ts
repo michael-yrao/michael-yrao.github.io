@@ -75,5 +75,10 @@ describe('GroundednessMeterComponent', () => {
     expect(text).toContain(String(expected.total));
     expect(text).toContain('michael-yrao/cse-progress');
     expect(text).toContain(`${Math.round(expected.ratio * RATIO_TO_PERCENT)}%`);
+    expect(text).toContain('solution variants');
+
+    const meterEl = fixture.nativeElement.querySelector('.groundedness-meter');
+    expect(meterEl.getAttribute('title')).toBeTruthy();
+    expect(meterEl.getAttribute('title')).toContain('variant');
   });
 });

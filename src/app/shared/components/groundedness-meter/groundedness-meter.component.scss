@@ -2,6 +2,7 @@
   font-family: var(--font-mono);
   font-size: 0.78rem;
   color: var(--color-text-muted);
+  cursor: help;
 
   strong {
     color: var(--color-text);
@@ -11,5 +12,6 @@
   &--loading {
     font-style: italic;
     opacity: 0.7;
+    cursor: default;
   }
 }

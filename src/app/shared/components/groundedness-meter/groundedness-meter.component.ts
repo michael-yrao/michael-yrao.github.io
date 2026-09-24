@@ -6,8 +6,13 @@ import { ShowcaseService } from '../../../core/services/showcase.service';
 
 const RATIO_TO_PERCENT = 100;
 
+const GROUNDED_EXPLANATION =
+  'A solution variant is one approach to a problem; a problem can have several, so this counts ' +
+  'more than the problem total. "Grounded" means the code shown is fetched live from the repo ' +
+  'and every walkthrough step is anchored to a real line of it.';
+
 /**
- * The "N of M solutions grounded" meter (a solution is any showcased variant, with or without a
+ * The "N of M solution variants grounded" meter (a solution is any showcased variant, with or without a
  * walkthrough) — identical on the Library hub and the Algorithms
  * list (plan B7), factored out once rather than duplicated (DRY). Self-contained: injects
  * `ShowcaseService` itself, triggers `load()`, and computes the sitewide report — a caller
@@ -30,6 +35,8 @@ export class GroundednessMeterComponent {
   });
 
   readonly repoSlug = GOLD_STANDARD_SLUG;
+
+  readonly explanation = GROUNDED_EXPLANATION;
 
   readonly percent = computed(() => {
     const report = this.report();
