@@ -198,6 +198,9 @@
         <ng-container [ngTemplateOutlet]="dayItemsTpl" [ngTemplateOutletContext]="{ $implicit: day }" />
       }
     } @else {
+      <div class="today-board__head today-board__week-head">
+        <span class="today-board__count">{{ weekCounts().done }} of {{ weekCounts().total }} done this week</span>
+      </div>
       @for (day of days(); track day.date) {
         <div class="today-board__day" [class.today-board__day--today]="day.date === todayISO()">
           <div class="today-board__day-head">
@@ -206,6 +209,7 @@
             @if (day.date === todayISO()) {
               <span class="today-board__badge">Today</span>
             }
+            <span class="today-board__day-count">{{ dayCounts(day).done }} of {{ dayCounts(day).total }} done</span>
           </div>
           <ng-container [ngTemplateOutlet]="dayItemsTpl" [ngTemplateOutletContext]="{ $implicit: day }" />
         </div>

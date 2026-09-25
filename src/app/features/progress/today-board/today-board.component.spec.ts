@@ -282,6 +282,78 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.today-board__day').length).toBe(0);
   });
 
+  it('shows no week total and no per-day counts before expanding', () => {
+    const fixture = createFixture(makeWeekSchedule());
+
+    expect(fixture.nativeElement.querySelector('.today-board__day-count')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.today-board__week-head')).toBeFalsy();
+  });
+
+  it("shows a week total ('N of M done this week') above the stacked days once expanded", () => {
+    // makeWeekSchedule(): 3 seeded-undone days (1 item each) + today (1 done, 1 undone) +
+    // 3 empty days -> 5 grouped rows total, 1 done.
+    const fixture = createFixture(makeWeekSchedule());
+
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__expand-toggle');
+    toggle.click();
+    fixture.detectChanges();
+
+    const weekHead = fixture.nativeElement.querySelector('.today-board__week-head .today-board__count');
+    expect(weekHead?.textContent).toContain('1 of 5 done this week');
+  });
+
+  it("shows each day's own 'N of M done' count in its header once expanded", () => {
+    const fixture = createFixture(makeWeekSchedule());
+
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__expand-toggle');
+    toggle.click();
+    fixture.detectChanges();
+
+    const dayCounts = fixture.nativeElement.querySelectorAll('.today-board__day-count');
+    expect(dayCounts.length).toBe(7);
+
+    const todayBlock = fixture.nativeElement.querySelector('.today-board__day--today');
+    expect(todayBlock.querySelector('.today-board__day-count')?.textContent).toContain('1 of 2 done');
+
+    const dayBlocks = fixture.nativeElement.querySelectorAll('.today-board__day');
+    // First seeded (non-today, non-empty) day: 1 undone item.
+    expect(dayBlocks[0].querySelector('.today-board__day-count')?.textContent).toContain('0 of 1 done');
+    // A day seeded with zero items.
+    expect(dayBlocks[4].querySelector('.today-board__day-count')?.textContent).toContain('0 of 0 done');
+  });
+
+  it("counts a complexity-gate row as ONE item in both the day header and the week total", () => {
+    const gateItems: ScheduleItem[] = [
+      { lcNumber: 226, title: 'Re-ask A', technique: 'Complexity', startComfort: null,
+        difficulty: null, done: false, kind: 'complexity' },
+      { lcNumber: 211, title: 'Re-ask B', technique: 'Complexity', startComfort: null,
+        difficulty: null, done: false, kind: 'complexity' },
+      { lcNumber: 778, title: 'Re-ask C', technique: 'Complexity', startComfort: null,
+        difficulty: null, done: false, kind: 'complexity' },
+      { lcNumber: 42, title: 'Trapping Rain Water', technique: 'Two Pointers', startComfort: null,
+        difficulty: null, done: false },
+    ];
+    const base = makeWeekSchedule();
+    const schedule: Schedule = {
+      ...base,
+      days: base.days.map((d) => (d.date === todayLocalISO() ? { ...d, items: gateItems } : d)),
+    };
+
+    const fixture = createFixture(schedule);
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__expand-toggle');
+    toggle.click();
+    fixture.detectChanges();
+
+    // 3 complexity items collapse into 1 gate row + 1 normal row = 2 items for today.
+    const todayBlock = fixture.nativeElement.querySelector('.today-board__day--today');
+    expect(todayBlock.querySelector('.today-board__day-count')?.textContent).toContain('0 of 2 done');
+
+    // Week total: 3 seeded-undone days (1 row each) + today's 2 rows + 3 empty days = 5 rows,
+    // none done — the gate counted as 1 item, not 3.
+    const weekHead = fixture.nativeElement.querySelector('.today-board__week-head .today-board__count');
+    expect(weekHead?.textContent).toContain('0 of 5 done this week');
+  });
+
   // ── Round 2: the workload bar + per-item difficulty tag ──────────────────────────
   it('renders "{units} / {ceiling} units · Moderate" between the floor and 0.9x ceiling', () => {
     // units=5, ceiling=8, floor=3 -> 5 is above the floor and below 0.9*8=7.2 -> Moderate.

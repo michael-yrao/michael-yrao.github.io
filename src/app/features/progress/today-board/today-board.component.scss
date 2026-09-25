@@ -179,6 +179,8 @@
   color: var(--color-text);
 }
 
+.today-board__week-head { margin-bottom: var(--space-sm); }
+
 // ── Expanded-mode per-day stack (folded in from weekly-board) ───────────────────────
 .today-board__day {
   padding-bottom: var(--space-md);
@@ -200,7 +202,9 @@
 }
 
 .today-board__weekday { font-weight: 700; font-size: 0.9rem; color: var(--color-text); }
-.today-board__date { font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-text-muted); }
+.today-board__date, .today-board__day-count { font-size: 0.78rem; color: var(--color-text-muted); }
+.today-board__date { font-family: var(--font-mono); }
+.today-board__day-count { margin-left: auto; }
 
 .today-board__badge {
   padding: 1px 6px;

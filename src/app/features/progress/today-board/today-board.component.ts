@@ -204,6 +204,19 @@ export class TodayBoardComponent {
   readonly doneCount = computed(() => this.selectedDayRows().filter((r) => r.done).length);
   readonly totalCount = computed(() => this.selectedDayRows().length);
 
+  /** Week done/total = the sum of every day's grouped rows (gate row = 1). Same counting rule
+   *  as `doneCount`/`totalCount` above, summed across `boardRowsByDate()` instead of just the
+   *  selected day — used by the expanded view's week-total line. */
+  readonly weekCounts = computed(() => {
+    let done = 0;
+    let total = 0;
+    for (const rows of this.boardRowsByDate().values()) {
+      total += rows.length;
+      done += rows.filter((r) => r.done).length;
+    }
+    return { done, total };
+  });
+
   // null when there's no board/day, or the day carries no units, or ceiling is unknown —
   // "empty/no-board day -> no bar" (round 2 item 3).
   readonly workload = computed<Workload | null>(() => {
@@ -364,6 +377,13 @@ export class TodayBoardComponent {
   /** Rows for one day, used by both the collapsed (selected-day) and expanded (7-day) views. */
   rowsFor(day: ScheduleDay): BoardRow[] {
     return this.boardRowsByDate().get(day.date) ?? [];
+  }
+
+  /** Done/total for one day, counting a gate row as ONE item — same rule as the collapsed
+   *  view's doneCount/totalCount. Used by the expanded view's day headers. */
+  dayCounts(day: ScheduleDay): { done: number; total: number } {
+    const rows = this.rowsFor(day);
+    return { done: rows.filter((r) => r.done).length, total: rows.length };
   }
 
   /** trackBy for board rows: a gate row has no lcNumber of its own, so it tracks by its
