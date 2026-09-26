@@ -1,4 +1,15 @@
-import { addDaysISO, daysBetweenISO, shortMonthDay, weekStartISO } from './local-date';
+import { addDaysISO, daysBetweenISO, localISODate, shortMonthDay, weekStartISO } from './local-date';
+
+describe('localISODate', () => {
+  it('formats a Date as YYYY-MM-DD in local time, independent of the time of day', () => {
+    // 23:30 local, still Jan 5th locally regardless of the runner's UTC offset.
+    expect(localISODate(new Date(2026, 0, 5, 23, 30))).toBe('2026-01-05');
+  });
+
+  it('pads a single-digit month and day', () => {
+    expect(localISODate(new Date(2026, 2, 4))).toBe('2026-03-04');
+  });
+});
 
 describe('weekStartISO', () => {
   it('returns the Monday of the ISO week a Sunday date falls in', () => {

@@ -1,0 +1,50 @@
+{
+  "location": {
+    "city": "Teaneck",
+    "country": "United States",
+    "country_code": "US",
+    "latitude": 40.8949,
+    "longitude": -74.011
+  },
+  "results": [
+    {
+      "id": 1683,
+      "title": "Snowflake x Google Cloud AI Agent Lab",
+      "start_date": "2026-10-13T14:00:00-04:00",
+      "url": "https://usergroups.snowflake.com/events/details/snowflake-new-york-presents-snowflake-x-google-cloud-ai-agent-lab/",
+      "event_type_title": "In-person User Group Meeting - External Registration",
+      "chapter": {
+        "relative_url": "/new-york/",
+        "timezone": "America/New_York",
+        "title": "New York",
+        "chapter_location": "New York City, NY (US)"
+      }
+    },
+    {
+      "id": 1650,
+      "title": "Snowflake CoCo: Hands-On Lab",
+      "start_date": "2026-09-27T11:00:00+05:30",
+      "url": "https://usergroups.snowflake.com/events/details/snowflake-jaipur-presents-snowflake-coco-hands-on-lab/",
+      "event_type_title": "In-Person User Group Meeting",
+      "chapter": {
+        "relative_url": "/jaipur/",
+        "timezone": "Asia/Kolkata",
+        "title": "Jaipur",
+        "chapter_location": "Jaipur, RJ (IN)"
+      }
+    },
+    {
+      "id": 1593,
+      "title": "Snowflake Virtual - Onboarding Part 4 - ML, AI, GenAI e Cortex",
+      "start_date": "2026-09-28T10:00:00-03:00",
+      "url": "https://usergroups.snowflake.com/events/details/snowflake-sao-paulo-presents-snowflake-virtual-onboarding-part-4-ml-ai-genai-e-cortex-5/",
+      "event_type_title": "Virtual User Group Meeting",
+      "chapter": {
+        "relative_url": "/sao-paulo/",
+        "timezone": "America/Sao_Paulo",
+        "title": "S\u00e3o Paulo",
+        "chapter_location": "S\u00e3o Paulo, SP (BR)"
+      }
+    }
+  ]
+}

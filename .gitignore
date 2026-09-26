@@ -43,3 +43,8 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Cloudflare Worker (worker/ has its own self-contained toolchain)
+worker/node_modules
+worker/.wrangler
+worker/dist

@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { ALL_ALGORITHMS, countVisualized } from '../../core/data/algorithms.data';
 import { GAMES } from '../../core/data/games.data';
 import { QUIZZES } from '../../core/data/quizzes.data';
-import { SITE_LINKS } from '../../core/data/site-links';
+import { EVENTS_FEED_ENABLED, SITE_LINKS } from '../../core/data/site-links';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../shared/components/page-header/page-header.component';
 import { GroundednessMeterComponent } from '../../shared/components/groundedness-meter/groundedness-meter.component';
 
@@ -31,5 +31,6 @@ export class LibraryHubComponent {
   readonly totalGames = GAMES.filter((g) => g.status === 'available').length;
   readonly totalQuizzes = QUIZZES.filter((q) => q.status === 'available').length;
   readonly cheatSheetCount = CHEAT_SHEET_COUNT;
+  readonly eventsFeedEnabled = EVENTS_FEED_ENABLED;
   readonly SITE_LINKS = SITE_LINKS;
 }

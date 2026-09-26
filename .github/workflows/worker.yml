@@ -1,0 +1,60 @@
+name: Deploy events worker
+
+# Builds, type-checks, tests and deploys the Cloudflare Worker in worker/. Entirely separate
+# from deploy.yml (the Angular site): it only runs when worker/** itself changes, and it
+# deploys to Cloudflare Workers, not GitHub Pages.
+#
+# ONE-TIME SETUP: see worker/README.md for creating the Cloudflare account/API token and
+# adding the CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID repo secrets this workflow needs.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - '.github/workflows/worker.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: worker
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Check Cloudflare secrets
+        id: secrets
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$ACCOUNT" ]; then echo "configured=true" >> "$GITHUB_OUTPUT"; else echo "configured=false" >> "$GITHUB_OUTPUT"; echo "::notice::Cloudflare secrets not set — typecheck/tests ran, deploy skipped (see worker/README.md)"; fi
+
+      - name: Deploy to Cloudflare Workers
+        if: steps.secrets.outputs.configured == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: deploy

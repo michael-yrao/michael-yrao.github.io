@@ -1,15 +1,21 @@
-/** Today's date as `YYYY-MM-DD` in the VIEWER's local timezone — deliberately NOT
- *  `toISOString()`, which is UTC and can be off by a day depending on the viewer's
- *  timezone and time of day. Used everywhere a component compares against a server-emitted
- *  ISO date (nextReview, schedule day dates, study-day dates): the server never bakes in
- *  "today" for exactly this reason — a summary can be viewed days after it was generated,
- *  and only the viewer's own clock can say what "today" means to them right now. */
-export function todayLocalISO(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+/** `date`'s calendar date as `YYYY-MM-DD` in the VIEWER's local timezone — deliberately NOT
+ *  `toISOString()`, which is UTC and can be off by a day depending on the viewer's timezone
+ *  and time of day. The shared building block behind `todayLocalISO()` below and the Events
+ *  page's day grouping, so both read a date the same way. */
+export function localISODate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+/** Today's date as `YYYY-MM-DD` in the VIEWER's local timezone. Used everywhere a component
+ *  compares against a server-emitted ISO date (nextReview, schedule day dates, study-day
+ *  dates): the server never bakes in "today" for exactly this reason — a summary can be
+ *  viewed days after it was generated, and only the viewer's own clock can say what "today"
+ *  means to them right now. */
+export function todayLocalISO(): string {
+  return localISODate(new Date());
 }
 
 const ISO_DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;

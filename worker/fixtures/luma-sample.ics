@@ -1,0 +1,71 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Luma//Datadog//EN
+X-WR-CALNAME:Datadog
+X-WR-CALDESC:Luma Calendar
+REFRESH-INTERVAL;VALUE=DURATION:PT12H
+X-PUBLISHED-TTL:PT12H
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+DTSTART:20251006T213000Z
+DTEND:20251007T003000Z
+DTSTAMP:20260926T171116Z
+ORGANIZER;CN="Datadog":MAILTO:calendar-invite@lu.ma
+UID:evt-GN824RiNOT7UalZ@events.lu.ma
+SUMMARY:Datadog Workshop: Evaluating and Iterating on AI Agents
+DESCRIPTION:Get up-to-date information at: https://luma.com/iidlq7ki\n\nAd
+ dress:\nCheck event page for more details.\n\nHosted by Datadog, Charles J
+ acquet & Will Potts
+LOCATION:https://luma.com/event/evt-GN824RiNOT7UalZ
+GEO:40.757866343296165;-73.9910416184452
+SEQUENCE:212605876
+STATUS:TENTATIVE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260221T143000Z
+DTEND:20260222T003000Z
+DTSTAMP:20260926T171116Z
+ORGANIZER;CN="Datadog":MAILTO:calendar-invite@lu.ma
+UID:evt-idYJjSt9wLuN9uS@events.lu.ma
+SUMMARY:Self Improving Agents Hack - NYC
+DESCRIPTION:Get up-to-date information at: https://luma.com/nychack\n\nAdd
+ ress:\nCheck event page for more details.\n\nHosted by Datadog & 4 others
+LOCATION:https://luma.com/event/evt-idYJjSt9wLuN9uS
+GEO:40.75477278975475;-73.98864534603344
+SEQUENCE:212605876
+STATUS:TENTATIVE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260507T220000Z
+DTEND:20260508T010000Z
+DTSTAMP:20260926T171116Z
+ORGANIZER;CN="Natalya Shelburne":MAILTO:calendar-invite@lu.ma
+UID:evt-LCWPHZfVwYI0Mbq@events.lu.ma
+SUMMARY:NYC Creative Builders Collective
+DESCRIPTION:Get up-to-date information at: https://luma.com/o2m36jbw\n\nAd
+ dress:\nDatadog\nNew York, New York\nUnited States\n\nHosted by Natalya Sh
+ elburne, Arielle Mella & Datadog
+LOCATION:Datadog, New York Times Bldg, 620 8th Ave, New York, NY 10018, US
+ A
+GEO:40.756086599999996;-73.9901119
+SEQUENCE:212605876
+STATUS:TENTATIVE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20261013T080000Z
+DTEND:20261013T140000Z
+DTSTAMP:20260926T171116Z
+ORGANIZER;CN="Guilhem Charles":MAILTO:calendar-invite@lu.ma
+UID:evt-QKNZbZXguW5mP3H@events.lu.ma
+SUMMARY:Buildbarn Meetup at Datadog
+DESCRIPTION:Get up-to-date information at: https://luma.com/x08mgk41\n\nAd
+ dress:\nDatadog Netherlands\nAmsterdam, Netherlands\n\nHosted by Guilhem C
+ harles, Joseph Gette & Datadog
+LOCATION:Datadog Netherlands, Herengracht 601, 1017 CE Amsterdam, Netherla
+ nds
+GEO:52.365578199999995;4.898641899999999
+SEQUENCE:212605876
+STATUS:TENTATIVE
+END:VEVENT
+END:VCALENDAR

@@ -32,4 +32,12 @@ describe('app routes', () => {
 
     expect(router.url).toBe('/quiz/big-o');
   });
+
+  it('loads the events feature at /events', async () => {
+    const router = TestBed.inject(Router);
+
+    await router.navigateByUrl('/events');
+
+    expect(router.url).toBe('/events');
+  });
 });

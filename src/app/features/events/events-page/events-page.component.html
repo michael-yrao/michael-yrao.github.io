@@ -1,0 +1,132 @@
+<div class="events-page">
+  <app-page-header [breadcrumb]="breadcrumb" eyebrow="Community" heading="Tech Events">
+    NYC and online meetups worth a calendar hold, pulled straight from each community's own feed.
+  </app-page-header>
+  <app-library-subnav></app-library-subnav>
+
+  @if (!feedEnabled) {
+    <div class="events-state events-state--soon po-card">
+      <h2>Coming soon</h2>
+      <p>Live NYC and online meetups from AWS, Datadog and Snowflake community calendars will appear here.</p>
+      <p>Each one is pulled straight from that community's own feed.</p>
+    </div>
+  } @else {
+    <div class="events-toolbar">
+      <span class="events-toolbar__asof">
+        @if (asOf(); as asOfText) {
+          As of <time [attr.datetime]="generatedAt()">{{ asOfText }}</time>
+        }
+      </span>
+      <button
+        type="button"
+        class="events-btn events-btn--primary"
+        [disabled]="loading()"
+        (click)="refresh()"
+      >Refresh</button>
+    </div>
+
+    <div class="filters" role="group" aria-label="Area">
+      <button
+        type="button"
+        class="filter-btn"
+        [class.filter-btn--active]="area() === 'all'"
+        [attr.aria-pressed]="area() === 'all'"
+        (click)="setArea('all')"
+      >All</button>
+      <button
+        type="button"
+        class="filter-btn"
+        [class.filter-btn--active]="area() === 'nyc'"
+        [attr.aria-pressed]="area() === 'nyc'"
+        (click)="setArea('nyc')"
+      >NYC</button>
+      <button
+        type="button"
+        class="filter-btn"
+        [class.filter-btn--active]="area() === 'online'"
+        [attr.aria-pressed]="area() === 'online'"
+        (click)="setArea('online')"
+      >Online</button>
+    </div>
+
+    @if (sourceChips().length > 0) {
+      <div class="filters" role="group" aria-label="Source">
+        @for (source of sourceChips(); track source.id) {
+          <button
+            type="button"
+            class="filter-btn"
+            [class.filter-btn--active]="sourceId() === source.id"
+            [attr.aria-pressed]="sourceId() === source.id"
+            (click)="setSource(source.id)"
+          >{{ source.label }}</button>
+        }
+      </div>
+    }
+
+    <input
+      type="search"
+      class="events-search"
+      aria-label="Search events"
+      placeholder="Search events…"
+      [value]="query()"
+      (input)="setQuery($any($event.target).value)"
+    />
+
+    @switch (status()) {
+      @case ('error') {
+        <div class="events-state events-state--error">
+          <p>{{ error() }}</p>
+          <button type="button" class="events-btn events-btn--primary" (click)="load()">Retry</button>
+        </div>
+      }
+      @case ('ready') {
+        @if (refreshFailed()) {
+          <p class="events-notice" role="alert">
+            {{ error() }} Showing the list from the last successful load.
+          </p>
+        }
+        @if (groups().length === 0) {
+          <div class="events-state events-state--empty">
+            @if (anyUpcoming()) {
+              <p>No events match your filters.</p>
+            } @else {
+              <p>No upcoming events right now — check back soon.</p>
+            }
+          </div>
+        } @else {
+          @for (group of groups(); track group.dayKey) {
+            <section class="events-day">
+              <h2 class="events-day__label">{{ formatDay(group.dayKey) }}</h2>
+              <div class="events-day__list">
+                @for (event of group.events; track event.id) {
+                  <article class="event-card po-card">
+                    <a
+                      class="event-card__title"
+                      [href]="event.url"
+                      target="_blank"
+                      rel="noopener"
+                    >{{ event.title }}</a>
+                    <time class="event-card__time" [attr.datetime]="event.start">{{ formatTime(event) }}</time>
+                    <p class="event-card__meta">{{ sourceLabel(event.sourceId) }} · {{ sourceCompany(event.sourceId) }}</p>
+                    @if (event.area === 'online') {
+                      <span class="event-card__badge">Online</span>
+                    } @else if (event.location) {
+                      <p class="event-card__location">{{ event.location }}</p>
+                    }
+                  </article>
+                }
+              </div>
+            </section>
+          }
+        }
+
+        @if (failedSources().length > 0) {
+          <p class="events-footnote">Some sources didn't load: {{ failedSourceLabels() }}</p>
+        }
+      }
+      @default {
+        <div class="events-state" role="status">Loading events…</div>
+      }
+    }
+  }
+</div>

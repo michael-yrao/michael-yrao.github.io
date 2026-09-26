@@ -10,3 +10,13 @@ export const SITE_LINKS = {
 
 /** cse-coach is invite-only while it settles; flip to true when the repo goes public. */
 export const COACH_REPO_IS_PUBLIC = false;
+
+/** The Tech Events feed, served by the Cloudflare Worker in `worker/`. Placeholder subdomain
+ *  until the worker's first deploy — `EventsService` doesn't fall back to anything else, so
+ *  this must be updated to the real `*.workers.dev` URL (or a custom route) once deployed. */
+export const EVENTS_API_URL = 'https://po-events.<subdomain>.workers.dev/';
+
+/** The Events page shows a "coming soon" card while this is false, and never calls
+ *  `EVENTS_API_URL`. Flip to `true` in the SAME edit that replaces the placeholder URL above,
+ *  once the worker's first deploy is live. */
+export const EVENTS_FEED_ENABLED = false;

@@ -1,0 +1,62 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Meetup//Meetup Calendar 1.0//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+NAME:AWS New York | Official Meetup
+X-WR-CALNAME:AWS New York | Official Meetup
+BEGIN:VTIMEZONE
+TZID:America/New_York
+TZURL:http://tzurl.org/zoneinfo-outlook/America/New_York
+X-LIC-LOCATION:America/New_York
+BEGIN:DAYLIGHT
+TZOFFSETFROM:-0500
+TZOFFSETTO:-0400
+TZNAME:EDT
+DTSTART:19700308T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:-0400
+TZOFFSETTO:-0500
+TZNAME:EST
+DTSTART:19701101T020000
+RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:event_300000001@meetup.com
+SEQUENCE:1
+DTSTAMP:20250110T171115Z
+DTSTART;TZID=America/New_York:20250115T163000
+DTEND;TZID=America/New_York:20250115T180000
+SUMMARY:Re\, Architecting Observability Pipelines
+DESCRIPTION:AWS New York | Official Meetup\nA past session kept in this fi
+ xture only to exercise the "drop events before now" normalize rule.
+URL;VALUE=URI:https://www.meetup.com/aws-nyc/events/300000001/
+STATUS:CONFIRMED
+CREATED:20250101T173256Z
+LAST-MODIFIED:20250101T173256Z
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:event_316007124@meetup.com
+SEQUENCE:1
+DTSTAMP:20260926T171115Z
+DTSTART;TZID=America/New_York:20261026T163000
+DTEND;TZID=America/New_York:20261026T180000
+SUMMARY:Building a Model Evaluation Practice for Production AI
+DESCRIPTION:AWS New York | Official Meetup\nMost teams pick an AI model th
+ e same way they pick a coffee machine - the demo looks good or they hear a
+ bout it from someone\, so they assume it works. But in production\, evalua
+ tion decisions directly impact cost\, latency\, accuracy\, and user trust.
+  Without a structured eval practice.
+URL;VALUE=URI:https://www.meetup.com/aws-nyc/events/316007124/
+STATUS:CONFIRMED
+CREATED:20260806T173256Z
+LAST-MODIFIED:20260806T173256Z
+CLASS:PUBLIC
+END:VEVENT
+X-ORIGINAL-URL:https://www.meetup.com/aws-nyc/events/ical/
+X-WR-CALNAME:AWS New York | Official Meetup
+END:VCALENDAR

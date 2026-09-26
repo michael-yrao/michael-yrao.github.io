@@ -48,6 +48,11 @@ export const routes: Routes = [
       import('./features/learn/learn.routes').then((m) => m.LEARN_ROUTES),
   },
   {
+    path: 'events',
+    loadChildren: () =>
+      import('./features/events/events.routes').then((m) => m.EVENTS_ROUTES),
+  },
+  {
     // '/progress' is the same page as '/', kept only for old links: redirect
     // rather than loading PROGRESS_ROUTES a second time. A string redirectTo
     // keeps query params (?repo=); see app.routes.spec.ts.

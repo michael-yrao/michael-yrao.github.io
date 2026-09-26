@@ -11,4 +11,5 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   { label: 'Patterns', path: '/learn' },
   { label: 'Quiz', path: '/quiz' },
   { label: 'Games', path: '/games' },
+  { label: 'Events', path: '/events' },
 ];

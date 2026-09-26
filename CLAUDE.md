@@ -102,6 +102,38 @@ There is no working-tree/manual step — a push to `main` is the deploy. The cus
 (**progressiveoverflow.com**) is preserved because `src/CNAME` is copied into the build output via
 `angular.json` `assets`.
 
+## Events
+
+The Events page's data comes from a separate Cloudflare Worker in [`worker/`](worker/) — a
+self-contained toolchain (own `package.json`, own `node_modules`, own `tsconfig.json`), **not**
+part of the Angular app's build or its `npm ci` at the repo root. It fetches a curated list of
+public tech-event feeds, normalizes them to a JSON contract, and serves them with CORS.
+
+- **Source list**: [`worker/src/sources.ts`](worker/src/sources.ts) is the ONE place the feed
+  URLs live. The Angular app never duplicates this list; it renders whatever chips
+  `EventsFeed.sources` reports in the served payload.
+- **Contract**: [`worker/src/contract.ts`](worker/src/contract.ts) defines `EventsFeed`/
+  `TechEvent`/`EventSource`. The Angular model (`src/app/core/models/events.model.ts`) carries
+  the identical block byte-for-byte — a change to one must land in both, in the same edit.
+- **The app's API URL**: `EVENTS_API_URL` in `src/app/core/data/site-links.ts` points at the
+  deployed worker's `https://po-events.<subdomain>.workers.dev/` URL (or a custom domain, if
+  one is set up — see `worker/README.md`).
+- **The feed flag**: `EVENTS_FEED_ENABLED` in `site-links.ts` gates the page — while it's
+  `false` the Events page shows a "coming soon" card and never calls `EVENTS_API_URL`. It
+  flips to `true` in the SAME edit that replaces the placeholder URL, after the worker's
+  first deploy.
+- **Deploy is separate from the site's.** The worker deploys via
+  [`.github/workflows/worker.yml`](.github/workflows/worker.yml), which only runs when
+  `worker/**` changes, and pushes to Cloudflare Workers (via `wrangler deploy`), not GitHub
+  Pages. `deploy.yml` (the Angular site) is untouched by and unaware of the worker.
+- **Secrets**: the worker's deploy needs repo secrets `CLOUDFLARE_API_TOKEN` and
+  `CLOUDFLARE_ACCOUNT_ID` (Settings → Secrets and variables → Actions) — one-time setup, see
+  `worker/README.md`.
+- **Area precedence** (`classifyArea` in `worker/src/normalize.ts`, decided 2026-09-26): first
+  match wins — a source's area pin, then an online keyword/Bevy "Virtual", then New York named
+  in the location or summary (or a Bevy `/new-york/` chapter), then an empty or URL-shaped
+  location counts as online, else other.
+
 ## Progress feature
 
 The Progress page renders the honest-progress contract emitted by `cse-progress/scripts/gamify.py`:

@@ -1,0 +1,181 @@
+@use '../../filter-chips' as chips;
+
+.events-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+// ── Toolbar ───────────────────────────────────────────────────────
+.events-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+
+  &__asof {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+  }
+}
+
+.events-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+
+  &:hover:not(:disabled) { border-color: var(--color-accent); }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  &--primary {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-bg);
+    font-weight: 600;
+
+    &:hover:not(:disabled) { border-color: var(--color-accent); }
+    &:disabled { background: var(--color-bg-card); color: var(--color-text-muted); }
+  }
+}
+
+// ── Filters (shared with the Algorithms list) ──────────────────────
+@include chips.filter-chips;
+
+// ── Search ────────────────────────────────────────────────────────
+.events-search {
+  width: 100%;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  font-size: 0.9rem;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+}
+
+// ── Loading / error / empty states ──────────────────────────────────
+.events-state {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl) var(--space-lg);
+  text-align: center;
+  color: var(--color-text-muted);
+
+  &--error {
+    border-color: var(--color-hard);
+    color: var(--color-text);
+
+    p { margin: 0 0 var(--space-md); }
+  }
+
+  &--soon {
+    h2 {
+      margin: 0 0 var(--space-sm);
+      color: var(--color-text);
+      font-size: 1.1rem;
+    }
+
+    p {
+      margin: 0 0 var(--space-xs);
+
+      &:last-child { margin-bottom: 0; }
+    }
+  }
+}
+
+// Non-blocking "a refresh failed, showing stale data" notice — muted/warning, not the
+// full-panel `.events-state--error` treatment, since the cards stay on screen beside it.
+.events-notice {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-hard);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+// ── Day groups ────────────────────────────────────────────────────
+.events-day {
+  &__label {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 var(--space-sm);
+    color: var(--color-text);
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+}
+
+.event-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &__title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-decoration: none;
+
+    &:hover { color: var(--color-accent); }
+  }
+
+  &__time {
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    color: var(--color-text-muted);
+  }
+
+  &__meta {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  &__location {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  &__badge {
+    align-self: flex-start;
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--color-accent);
+    background: var(--color-accent-dim);
+    border: 1px solid var(--color-border);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+}
+
+.events-footnote {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}

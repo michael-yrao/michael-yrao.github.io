@@ -56,6 +56,22 @@
       <span class="section-card__cta">Play →</span>
     </a>
 
+    <a routerLink="/events" class="section-card po-card po-card--link">
+      <div class="section-card__icon">◷</div>
+      <h2 class="section-card__title">Tech Events</h2>
+      <p class="section-card__desc">
+        Upcoming NYC and online meetups worth a calendar hold, pulled live from each community's own feed.
+      </p>
+      <div class="section-card__meta">
+        @if (eventsFeedEnabled) {
+          <span>NYC · Online</span>
+        } @else {
+          <span>Coming soon</span>
+        }
+      </div>
+      <span class="section-card__cta">See what's on →</span>
+    </a>
+
     <a [routerLink]="SITE_LINKS.coach" class="section-card section-card--coach po-card po-card--link">
       <div class="section-card__icon">◎</div>
       <h2 class="section-card__title">Coach — the engine behind the Progress page</h2>
