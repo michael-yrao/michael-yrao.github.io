@@ -185,15 +185,25 @@
 .progress__hint { margin-top: var(--space-md); font-size: 0.8rem; color: var(--color-text-muted); }
 
 // ── Inline repo picker ───────────────────────────────────────────────────────
+// A small chip control (round 7) — distinct from the plain-text repo slug/as-of stamp either
+// side of it, so it reads as a control rather than another fact in the header line.
 .progress__repo-change {
   @extend %btn-reset;
-  @extend %muted-sm;
   @extend %focus-ring-2;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  &:hover {
-    text-decoration: underline;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+  &:hover,
+  &:focus-visible {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    outline: none;
   }
 }
+.progress__sep { color: var(--color-text-muted); }
 .progress__picker-row {
   margin: var(--space-sm) 0 var(--space-md);
 }
@@ -346,6 +356,12 @@ $skeleton-card-height: 12rem;
   margin-top: var(--space-xs);
   &:hover, &:focus-visible { outline: none; }
 }
+// The inline "Needs attention" list (round 7 — no longer a drill to another tab). The gauge
+// card centres its big percentage; this list must read left-aligned like an ordinary list.
+.gauge__attention {
+  margin-top: var(--space-sm);
+  text-align: left;
+}
 
 // ── Trophy case ──────────────────────────────────────────────────────────────
 // (.trophies' flex/gap/wrap declared alongside .repo-picker above — identical values.)
@@ -402,6 +418,8 @@ $skeleton-card-height: 12rem;
 .problem__num { @include prow.num; }
 .problem__name { @include prow.title; }
 .problem__meta { @include prow.meta; }
+.problem__meta--due { color: var(--color-medium); }
+.problem__meta--today { color: var(--color-accent); }
 .problem__links { @include prow.links; }
 .problem__caret {
   display: inline-block;

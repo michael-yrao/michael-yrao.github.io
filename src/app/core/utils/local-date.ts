@@ -84,6 +84,13 @@ export function addDaysISO(iso: string, n: number): string {
   return fromUTCMillis(toUTCMillis(iso) + n * MS_PER_DAY);
 }
 
+/** The number of days from `fromISO` to `toISO` (both `YYYY-MM-DD`, UTC-millis based like
+ *  `addDaysISO`/`toUTCMillis` above) — positive when `toISO` is the later date, e.g.
+ *  `daysBetweenISO('2026-09-25', '2026-09-26')` -> `1`. */
+export function daysBetweenISO(fromISO: string, toISO: string): number {
+  return Math.round((toUTCMillis(toISO) - toUTCMillis(fromISO)) / MS_PER_DAY);
+}
+
 /** The Monday of the ISO week `iso` falls in (Monday-start, unlike `Date`'s native
  *  Sunday-start week) — computed from `Date.UTC` parts, so there's no viewer-timezone drift
  *  the way a local `Date` constructor would introduce. Used to group daily workload entries

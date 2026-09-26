@@ -22,6 +22,85 @@
   }
 </ng-template>
 
+<!-- A single Problems-tab row — shared by the Explore list and the On-schedule gauge's
+     inline "Needs attention" list (`showDue`, default falsy, adds the due/overdue label). -->
+<ng-template #problemRowTpl let-p let-showDue="showDue">
+  <div class="problem">
+    <div
+      class="problem__row"
+      role="button"
+      tabindex="0"
+      [attr.aria-expanded]="isExpanded(p)"
+      (click)="toggle(p)"
+      (keydown.enter)="toggle(p)"
+      (keydown.space)="$event.preventDefault(); toggle(p)"
+    >
+      @if (vizRoute(p.lcNumber); as route) {
+        <a
+          [routerLink]="route"
+          class="problem__status problem__status--link"
+          title="Solution walkthrough"
+          [attr.aria-label]="'Solution walkthrough for #' + p.lcNumber"
+          (click)="$event.stopPropagation()"
+          (keydown.enter)="$event.stopPropagation()"
+          (keydown.space)="$event.stopPropagation()"
+          >&lt;/&gt;</a
+        >
+      } @else if (solutionUrl(p.file); as src) {
+        <a
+          [href]="src"
+          class="problem__status problem__status--link problem__status--github"
+          title="Solution on GitHub"
+          [attr.aria-label]="githubAriaLabel(p)"
+          target="_blank"
+          rel="noopener"
+          (click)="$event.stopPropagation()"
+          (keydown.enter)="$event.stopPropagation()"
+          (keydown.space)="$event.stopPropagation()"
+          >○</a
+        >
+      } @else {
+        <span class="problem__status problem__status--spacer" aria-hidden="true"></span>
+      }
+      <span class="problem__comfort">{{ p.comfort }}</span>
+      <span class="problem__num">#{{ p.lcNumber }}</span>
+      <span class="problem__name">{{ p.title }}</span>
+      @if (p.difficulty) {
+        <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
+      }
+      <span class="problem__meta">{{ p.repDates.length }} reps</span>
+      @if (showDue) {
+        <span
+          class="problem__meta problem__meta--due"
+          [class.problem__meta--today]="isDueToday(p)"
+          >{{ dueLabel(p) }}</span
+        >
+      }
+      <span class="problem__links">
+        @if (p.url) {
+          <a
+            [href]="p.url"
+            target="_blank"
+            rel="noopener"
+            aria-label="Open on LeetCode"
+            title="LeetCode"
+            (click)="$event.stopPropagation()"
+            (keydown.enter)="$event.stopPropagation()"
+            (keydown.space)="$event.stopPropagation()"
+            >↗</a
+          >
+        }
+      </span>
+      <span class="problem__caret" [class.problem__caret--open]="isExpanded(p)">▸</span>
+    </div>
+    @if (isExpanded(p)) {
+      <div class="problem__chart">
+        <app-problem-timeline [problem]="p" />
+      </div>
+    }
+  </div>
+</ng-template>
+
 <section class="progress">
   <header class="progress__head">
     <div class="progress__head-right">
@@ -39,10 +118,15 @@
             class="progress__repo-change"
             (click)="toggleRepoPicker()"
             [attr.aria-expanded]="isRepoPickerOpen()"
+            aria-label="Switch repository"
+            title="Show progress for a different GitHub repo"
           >
-            change
+            Switch repo
           </button>
         }
+      }
+      @if (repoSlug() && status() === 'ready') {
+        <span class="progress__sep" aria-hidden="true">·</span>
       }
       @if (status() === 'ready') {
         <span class="progress__asof">as of {{ generatedAtLabel() }}</span>
@@ -281,73 +365,7 @@
                 @case ('ready') {
                   <div class="problems">
                     @for (p of visibleProblems(); track p.lcNumber + '-' + p.title) {
-                      <div class="problem">
-                        <div
-                          class="problem__row"
-                          role="button"
-                          tabindex="0"
-                          [attr.aria-expanded]="isExpanded(p)"
-                          (click)="toggle(p)"
-                          (keydown.enter)="toggle(p)"
-                          (keydown.space)="$event.preventDefault(); toggle(p)"
-                        >
-                          @if (vizRoute(p.lcNumber); as route) {
-                            <a
-                              [routerLink]="route"
-                              class="problem__status problem__status--link"
-                              title="Solution walkthrough"
-                              [attr.aria-label]="'Solution walkthrough for #' + p.lcNumber"
-                              (click)="$event.stopPropagation()"
-                              (keydown.enter)="$event.stopPropagation()"
-                              (keydown.space)="$event.stopPropagation()"
-                              >&lt;/&gt;</a
-                            >
-                          } @else if (solutionUrl(p.file); as src) {
-                            <a
-                              [href]="src"
-                              class="problem__status problem__status--link problem__status--github"
-                              title="Solution on GitHub"
-                              [attr.aria-label]="githubAriaLabel(p)"
-                              target="_blank"
-                              rel="noopener"
-                              (click)="$event.stopPropagation()"
-                              (keydown.enter)="$event.stopPropagation()"
-                              (keydown.space)="$event.stopPropagation()"
-                              >{{ isClean(p.comfort) ? '✓' : '○' }}</a
-                            >
-                          } @else {
-                            <span class="problem__status problem__status--spacer" aria-hidden="true"></span>
-                          }
-                          <span class="problem__comfort">{{ p.comfort }}</span>
-                          <span class="problem__num">#{{ p.lcNumber }}</span>
-                          <span class="problem__name">{{ p.title }}</span>
-                          @if (p.difficulty) {
-                            <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
-                          }
-                          <span class="problem__meta">{{ p.repDates.length }} reps</span>
-                          <span class="problem__links">
-                            @if (p.url) {
-                              <a
-                                [href]="p.url"
-                                target="_blank"
-                                rel="noopener"
-                                aria-label="Open on LeetCode"
-                                title="LeetCode"
-                                (click)="$event.stopPropagation()"
-                                (keydown.enter)="$event.stopPropagation()"
-                                (keydown.space)="$event.stopPropagation()"
-                                >↗</a
-                              >
-                            }
-                          </span>
-                          <span class="problem__caret" [class.problem__caret--open]="isExpanded(p)">▸</span>
-                        </div>
-                        @if (isExpanded(p)) {
-                          <div class="problem__chart">
-                            <app-problem-timeline [problem]="p" />
-                          </div>
-                        }
-                      </div>
+                      <ng-container *ngTemplateOutlet="problemRowTpl; context: { $implicit: p }" />
                     }
                   </div>
                 }
@@ -396,10 +414,41 @@
                   <button
                     type="button"
                     class="gauge__drill"
-                    (click)="drill({ kind: 'schedule', value: 'attention' })"
+                    (click)="toggleAttention()"
+                    [attr.aria-expanded]="attentionOpen()"
+                    aria-controls="attention-list"
                   >
-                    Needs attention ({{ os.overdue + os.dueToday }}) →
+                    Needs attention ({{ os.overdue + os.dueToday }}) {{ attentionOpen() ? '▾' : '▸' }}
                   </button>
+                  @if (attentionOpen()) {
+                    <div class="gauge__attention" id="attention-list">
+                      @switch (detailsStatus()) {
+                        @case ('loading') {
+                          <p class="progress__msg">Loading problems…</p>
+                        }
+                        @case ('error') {
+                          <div class="progress__error">
+                            <p>{{ detailsError() }}</p>
+                            <button type="button" (click)="retryAttention()">Retry</button>
+                          </div>
+                        }
+                        @case ('ready') {
+                          @if (attentionProblems().length) {
+                            <div class="problems">
+                              @for (p of attentionProblems(); track p.lcNumber + '-' + p.title) {
+                                <ng-container
+                                  *ngTemplateOutlet="problemRowTpl; context: { $implicit: p, showDue: true }"
+                                />
+                              }
+                            </div>
+                          } @else {
+                            <p class="card__sub">Nothing due as of today's data.</p>
+                          }
+                        }
+                        @default {}
+                      }
+                    </div>
+                  }
                 }
               </div>
             }

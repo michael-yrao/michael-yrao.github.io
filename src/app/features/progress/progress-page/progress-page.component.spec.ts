@@ -11,7 +11,7 @@ import { ProgressService } from '../../../core/services/progress.service';
 import { TodayBoardComponent } from '../today-board/today-board.component';
 import { GOLD_STANDARD_REPO, RepoRef } from '../../../core/services/github-file.service';
 import { ProgressSummary, ProblemProgress, Comfort } from '../../../core/models/progress.model';
-import { todayLocalISO } from '../../../core/utils/local-date';
+import { addDaysISO, todayLocalISO } from '../../../core/utils/local-date';
 
 // A minimal, valid summary — enough for the 'ready' branch of every tab, including the two
 // instant drills (techniques/studyDays ride the summary, no fetch) and the overview-first
@@ -638,7 +638,7 @@ describe('ProgressPageComponent', () => {
     };
   }
 
-  it('renders the status badge as a GitHub solution-file link (○/✓ by comfort) when the row has no walkthrough route, in the ACTIVE repo/branch (not the gold standard)', () => {
+  it('renders the status badge as a GitHub solution-file link (always ○, no comfort encoding) when the row has no walkthrough route, in the ACTIVE repo/branch (not the gold standard)', () => {
     progress.repoRef.set({ owner: 'someone', repo: 'their-log', branch: 'dev' });
     progress.detailsStatus.set('ready');
     progress.details.set([
@@ -656,17 +656,17 @@ describe('ProgressPageComponent', () => {
 
     const src39: HTMLAnchorElement = row39.querySelector('.problem__status--github')!;
     expect(src39).toBeTruthy();
-    expect(src39.textContent?.trim()).toBe('○'); // 🔴 — not clean
+    expect(src39.textContent?.trim()).toBe('○'); // 🔴 — no comfort encoding
     expect(src39.getAttribute('href')).toBe(
       'https://github.com/someone/their-log/blob/dev/dsa/leetcode/backtracking/39_combination_sum.py',
     );
-    expect(src39.getAttribute('aria-label')).toBe('Solution source for #39 on GitHub, in progress');
+    expect(src39.getAttribute('aria-label')).toBe('Solution source for #39 on GitHub');
     // Never labelled "Visualize"/"View solution" — it's a personal practice file, not a walkthrough.
     expect(src39.getAttribute('title')).toBe('Solution on GitHub');
 
     const src40: HTMLAnchorElement = row40.querySelector('.problem__status--github')!;
-    expect(src40.textContent?.trim()).toBe('✓'); // 🎓 — clean
-    expect(src40.getAttribute('aria-label')).toBe('Solution source for #40 on GitHub, clean');
+    expect(src40.textContent?.trim()).toBe('○'); // 🎓 — still ○, no comfort encoding
+    expect(src40.getAttribute('aria-label')).toBe('Solution source for #40 on GitHub');
 
     // Clicking it opens GitHub, never the timeline (stopPropagation, same as ↗).
     src39.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -818,7 +818,7 @@ describe('ProgressPageComponent', () => {
     );
   });
 
-  it('clicking "Needs attention" fetches details, sets the schedule facet, and switches to Problems', () => {
+  it('clicking "Needs attention" fetches details and expands the list inline, without switching tabs', () => {
     // Fixture has overdue:0, dueToday:1 — sum > 0, so the single drill button renders.
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
@@ -831,13 +831,39 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     expect(progress.loadDetails).toHaveBeenCalled();
-    expect(fixture.componentInstance.listFilter()).toEqual({
-      kind: 'schedule',
-      value: 'attention',
-    });
-    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe(
+    expect(attentionBtn.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelector('.gauge__attention')).toBeTruthy();
+    // Stays on Activity — no more jump to the Problems tab.
+    expect(fixture.nativeElement.querySelector('#tab-activity').getAttribute('aria-selected')).toBe(
       'true',
     );
+
+    // Populate details as the (idempotent) loadDetails() call would, and re-render.
+    const overdue: ProblemProgress = {
+      ...problemWithFile(undefined),
+      lcNumber: 39,
+      nextReview: addDaysISO(todayLocalISO(), -1),
+    };
+    const notYetDue: ProblemProgress = {
+      ...problemWithFile(undefined),
+      lcNumber: 40,
+      title: 'Combination Sum II',
+      nextReview: addDaysISO(todayLocalISO(), 1),
+    };
+    progress.details.set([overdue, notYetDue]);
+    progress.detailsStatus.set('ready');
+    fixture.detectChanges();
+
+    const attentionList = fixture.nativeElement.querySelector('.gauge__attention')!;
+    const rows = attentionList.querySelectorAll('.problem');
+    expect(rows.length).toBe(1);
+    expect(attentionList.textContent).toContain('1d overdue');
+
+    // Clicking again collapses it.
+    attentionBtn.click();
+    fixture.detectChanges();
+    expect(attentionBtn.getAttribute('aria-expanded')).toBe('false');
+    expect(fixture.nativeElement.querySelector('.gauge__attention')).toBeFalsy();
   });
 
   it('hides the "Needs attention" drill when nothing is overdue or due', () => {

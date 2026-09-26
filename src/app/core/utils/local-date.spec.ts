@@ -1,4 +1,4 @@
-import { addDaysISO, shortMonthDay, weekStartISO } from './local-date';
+import { addDaysISO, daysBetweenISO, shortMonthDay, weekStartISO } from './local-date';
 
 describe('weekStartISO', () => {
   it('returns the Monday of the ISO week a Sunday date falls in', () => {
@@ -34,6 +34,20 @@ describe('addDaysISO', () => {
     for (const day of week) {
       expect(weekStartISO(day)).toBe(monday);
     }
+  });
+});
+
+describe('daysBetweenISO', () => {
+  it('is 0 for the same day', () => {
+    expect(daysBetweenISO('2026-09-26', '2026-09-26')).toBe(0);
+  });
+
+  it('is 1 for the next day', () => {
+    expect(daysBetweenISO('2026-09-25', '2026-09-26')).toBe(1);
+  });
+
+  it('walks across a month boundary', () => {
+    expect(daysBetweenISO('2026-09-30', '2026-10-01')).toBe(1);
   });
 });
 

@@ -17,7 +17,7 @@ import { ProgressService } from '../../../core/services/progress.service';
 import { fileUrl } from '../../../core/services/github-file.service';
 import { Comfort, ProblemProgress, ScheduleItem } from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
-import { todayLocalISO } from '../../../core/utils/local-date';
+import { daysBetweenISO, todayLocalISO } from '../../../core/utils/local-date';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { BadgeGridComponent } from '../badge-grid/badge-grid.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
@@ -30,13 +30,6 @@ import { Technique } from '../../../core/models/progress.model';
 
 type ComfortFilter = 'all' | Comfort;
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
-
-// The status badge's GitHub fallback (no walkthrough route) shows ✓/○ off this set rather than
-// off `endComfort`/`done` — the Problems tab has no per-rep done-ness, only the row's current
-// comfort — "clean" meaning "past the shaky 🟡 stage": 🟢/🎓/🏆. No predicate for this already
-// existed in core (checked progress.model.ts/progress.service.ts — only aggregate pipeline
-// counts, never a per-problem check), so this stays local to the one component that needs it.
-const CLEAN_COMFORTS: ReadonlySet<Comfort> = new Set(['🟢', '🎓', '🏆']);
 
 // Segmented tabs (replaces round-1's single "Full breakdown" toggle — round-2 learner
 // feedback: the toggle "doesn't connect the top and bottom"). Overview is the default —
@@ -55,13 +48,18 @@ const TAB_LABEL: Record<ProgressTab, string> = {
 };
 
 // The Explore list's unified filter facet. `null` = show everything. Each drill button on
-// the landing (a pipeline tier, an on-schedule count, a difficulty count) sets one of these
-// and triggers loadDetails() + switches to the Problems tab — the three heavy drills all
-// funnel through this single facet rather than each growing its own ad-hoc filter state.
-type ListFacet =
-  | { kind: 'comfort'; value: Comfort }
-  | { kind: 'difficulty'; value: Difficulty }
-  | { kind: 'schedule'; value: 'overdue' | 'due' | 'attention' };
+// the landing (a pipeline tier, a difficulty count) sets one of these and triggers
+// loadDetails() + switches to the Problems tab. The On-schedule gauge's "Needs attention"
+// list is no longer one of these drills — it expands inline in the gauge card instead (see
+// `attentionOpen`/`attentionProblems` below), so this facet only ever carries comfort or
+// difficulty.
+type ListFacet = { kind: 'comfort'; value: Comfort } | { kind: 'difficulty'; value: Difficulty };
+
+/** Overdue or due-today as of `today` — the On-schedule gauge's inline "Needs attention"
+ *  list. A problem with no `nextReview` yet (never reviewed) is never in this state. */
+function isDueOrOverdue(p: ProblemProgress, today: string): boolean {
+  return !!p.nextReview && p.nextReview <= today;
+}
 
 /** lcNumber + title identifies a row uniquely even when a number carries several method
  *  variants (e.g. 21 Recursion vs Iterative) — same key the funnel/timeline `track` uses. */
@@ -130,7 +128,7 @@ export class ProgressPageComponent {
   private readonly tabButtons = viewChildren<ElementRef<HTMLButtonElement>>('tabBtn');
 
   // Unified filter facet for the Explore list. The manual comfort chips set `{kind:'comfort'}`
-  // (or null for the "All" chip); the three headline drills below set 'difficulty'/'schedule'.
+  // (or null for the "All" chip); the pipeline/difficulty headline drills below set the rest.
   readonly listFilter = signal<ListFacet | null>(null);
   readonly comfortFilters: ComfortFilter[] = ['all', '🔴', '🟡', '🟢', '🎓'];
 
@@ -144,14 +142,21 @@ export class ProgressPageComponent {
     const f = this.listFilter();
     if (!f) return list;
     if (f.kind === 'comfort') return list.filter((p) => p.comfort === f.value);
-    if (f.kind === 'difficulty') return list.filter((p) => p.difficulty === f.value);
+    return list.filter((p) => p.difficulty === f.value);
+  });
+
+  // ── On-schedule gauge's inline "Needs attention" list ───────────────────────────────
+  // Round 7: the drill used to jump the learner to the Problems tab via the `schedule`
+  // facet; the list now expands in place under the gauge instead. `attentionOpen` toggles
+  // the disclosure; opening it fires the same idempotent loadDetails() the old drill did.
+  readonly attentionOpen = signal(false);
+
+  readonly attentionProblems = computed<ProblemProgress[]>(() => {
     const today = todayLocalISO();
-    return list.filter((p) => {
-      if (!p.nextReview) return false;
-      if (f.value === 'overdue') return p.nextReview < today;
-      if (f.value === 'due') return p.nextReview === today;
-      return p.nextReview <= today; // 'attention' — overdue OR due today
-    });
+    const due = (this.details() ?? []).filter((p) => isDueOrOverdue(p, today));
+    return [...due].sort(
+      (a, b) => (a.nextReview ?? '').localeCompare(b.nextReview ?? '') || a.lcNumber - b.lcNumber,
+    );
   });
 
   // Pipeline as ordered segments for the shared segmented bar (round 4 — same component the
@@ -288,16 +293,11 @@ export class ProgressPageComponent {
     return file && ref ? fileUrl(ref, file) : null;
   }
 
-  /** Whether a comfort reads as "clean" for the status badge's GitHub fallback (✓ vs ○) — past
-   *  the shaky 🟡 stage: 🟢, 🎓, or 🏆. */
-  isClean(comfort: Comfort): boolean {
-    return CLEAN_COMFORTS.has(comfort);
-  }
-
   /** The status badge's aria-label when it's the GitHub solution-file link (no walkthrough
-   *  route, but the row carries a `file` and the repo ref is known). */
+   *  route, but the row carries a `file` and the repo ref is known). Round 7: the glyph no
+   *  longer encodes comfort (always ○ — see the template), so neither does the label. */
   githubAriaLabel(p: ProblemProgress): string {
-    return `Solution source for #${p.lcNumber} on GitHub, ${this.isClean(p.comfort) ? 'clean' : 'in progress'}`;
+    return `Solution source for #${p.lcNumber} on GitHub`;
   }
 
   retry(): void {
@@ -398,13 +398,39 @@ export class ProgressPageComponent {
     return cur?.kind === 'comfort' && cur.value === f;
   }
 
-  /** A headline-metric drill: a pipeline tier, an on-schedule count, or a difficulty count.
-   *  Sets the Explore list's facet, fetches details (once, cached), and switches to the
-   *  Problems tab — the three heavy drills all funnel through here. */
+  /** A headline-metric drill: a pipeline tier or a difficulty count. Sets the Explore list's
+   *  facet, fetches details (once, cached), and switches to the Problems tab. */
   drill(facet: ListFacet): void {
     this.listFilter.set(facet);
     this.progress.loadDetails();
     this.selectTab('problems');
+  }
+
+  /** The On-schedule gauge's "Needs attention" toggle — expands/collapses the inline list
+   *  in place (round 7: no longer a drill into the Problems tab). Opening it fires the same
+   *  idempotent loadDetails() the old drill fired; collapsing needs no fetch. */
+  toggleAttention(): void {
+    const next = !this.attentionOpen();
+    this.attentionOpen.set(next);
+    if (next) this.progress.loadDetails();
+  }
+
+  /** The inline attention list's Retry button (details load failed). */
+  retryAttention(): void {
+    this.progress.loadDetails();
+  }
+
+  /** Whether a problem's next review is today — the accent modifier on its due label. */
+  isDueToday(p: ProblemProgress): boolean {
+    return p.nextReview === todayLocalISO();
+  }
+
+  /** The attention row's due label: "due today", or "Nd overdue" for a past nextReview. */
+  dueLabel(p: ProblemProgress): string {
+    const today = todayLocalISO();
+    const nextReview = p.nextReview ?? today;
+    if (nextReview === today) return 'due today';
+    return `${daysBetweenISO(nextReview, today)}d overdue`;
   }
 
   /** Pipeline segment click: every tier except 🏆 Retired drills into the Problems tab.
