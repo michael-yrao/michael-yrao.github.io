@@ -146,10 +146,15 @@ describe('filterEvents', () => {
 
 describe('groupByDay', () => {
   it('groups timed events by their local calendar date, in first-appearance order', () => {
+    // Instants built from LOCAL wall-clock times, so the expected grouping holds in whatever
+    // timezone the test runner uses (CI runs in UTC; a fixed-UTC fixture only grouped into
+    // two days in Eastern time).
+    const local = (y: number, m: number, d: number, h: number, min = 0) =>
+      new Date(y, m - 1, d, h, min).toISOString();
     const events = [
-      makeEvent({ id: 'a', start: '2026-09-27T23:00:00Z' }), // 7pm ET on Sep 27
-      makeEvent({ id: 'b', start: '2026-09-28T00:30:00Z' }), // 8:30pm ET, still Sep 27
-      makeEvent({ id: 'c', start: '2026-09-29T15:00:00Z' }), // Sep 29
+      makeEvent({ id: 'a', start: local(2026, 9, 27, 19) }), // 7pm local on Sep 27
+      makeEvent({ id: 'b', start: local(2026, 9, 27, 20, 30) }), // 8:30pm local, still Sep 27
+      makeEvent({ id: 'c', start: local(2026, 9, 29, 11) }), // Sep 29
     ];
 
     const groups = groupByDay(events);
