@@ -37,6 +37,9 @@ function makeProblem(overrides: Partial<ProblemProgress> = {}): ProblemProgress 
 }
 
 function createFixture(techniques: Technique[], details: ProblemProgress[] | null = null) {
+  // Safe to call even before any module has been configured — lets a test create a second,
+  // independent fixture (e.g. to check persistence across a fresh component instance).
+  TestBed.resetTestingModule();
   TestBed.configureTestingModule({
     imports: [TechniqueListComponent],
     providers: [provideRouter([])],
@@ -49,6 +52,8 @@ function createFixture(techniques: Technique[], details: ProblemProgress[] | nul
 }
 
 describe('TechniqueListComponent', () => {
+  afterEach(() => localStorage.clear());
+
   it('shows the count/target ratio as problemCount/minProblems', () => {
     const fixture = createFixture([makeTechnique({ problemCount: 1, minProblems: 3 })]);
 
@@ -167,5 +172,126 @@ describe('TechniqueListComponent', () => {
     const link: HTMLAnchorElement | null = row?.querySelector('.tech-row__problem-links a') ?? null;
     expect(link?.textContent?.trim()).toBe('↗');
     expect(link?.getAttribute('aria-label')).toBe('Open on LeetCode');
+  });
+});
+
+function clickViewButton(fixture: ReturnType<typeof createFixture>, label: 'List' | 'Map'): void {
+  const buttons = Array.from(
+    fixture.nativeElement.querySelectorAll('.tech-viewbar__btn'),
+  ) as HTMLButtonElement[];
+  const button = buttons.find((b) => b.textContent?.trim() === label);
+  button!.click();
+  fixture.detectChanges();
+}
+
+describe('TechniqueListComponent — Map view', () => {
+  afterEach(() => localStorage.clear());
+
+  it('renders a List/Map viewbar defaulting to List, with aria-pressed state', () => {
+    const fixture = createFixture([makeTechnique()]);
+
+    const buttons = fixture.nativeElement.querySelectorAll('.tech-viewbar__btn');
+    expect(buttons.length).toBe(2);
+    expect(buttons[0].textContent.trim()).toBe('List');
+    expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
+    expect(buttons[1].textContent.trim()).toBe('Map');
+    expect(buttons[1].getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('switching to Map shows .tech-map and hides the list rows', () => {
+    const fixture = createFixture([makeTechnique()]);
+
+    clickViewButton(fixture, 'Map');
+
+    expect(fixture.nativeElement.querySelector('.tech-map')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.tech-row__toggle')).toBeFalsy();
+  });
+
+  it('renders one .tech-cell per technique, across families', () => {
+    const fixture = createFixture([
+      makeTechnique({ name: 'Two Pointers', family: 'Arrays' }),
+      makeTechnique({ name: 'Sliding Window', family: 'Arrays', problems: [3] }),
+      makeTechnique({ name: 'BFS', family: 'Graphs', problems: [200] }),
+    ]);
+
+    clickViewButton(fixture, 'Map');
+
+    expect(fixture.nativeElement.querySelectorAll('.tech-cell').length).toBe(3);
+  });
+
+  it('a not-started technique renders a dashed cell with 0/n and no stats line', () => {
+    const fixture = createFixture([makeTechnique({ started: false, problemCount: 0, problems: [] })]);
+
+    clickViewButton(fixture, 'Map');
+
+    const cell = fixture.nativeElement.querySelector('.tech-cell');
+    expect(cell.classList.contains('tech-cell--not-started')).toBe(true);
+    expect(cell.textContent).toContain('0/3');
+    expect(cell.querySelector('.tech-cell__stats')).toBeFalsy();
+    // makeTechnique() defaults thin: true — a not-started cell must still show no corner
+    // mark, matching the list view's own @if (t.started) guard on the thin/gap chips.
+    expect(cell.querySelector('.tech-cell__mark')).toBeFalsy();
+  });
+
+  it('clicking a started cell emits expand once and shows its problem row; a not-started cell never emits', () => {
+    const fixture = createFixture(
+      [
+        makeTechnique({ name: 'Two Pointers', problems: [11] }),
+        makeTechnique({ name: 'Sliding Window', started: false, problemCount: 0, problems: [] }),
+      ],
+      [makeProblem({ lcNumber: 11 })],
+    );
+    clickViewButton(fixture, 'Map');
+
+    const emitted: Technique[] = [];
+    fixture.componentInstance.expand.subscribe((t) => emitted.push(t));
+    const cellFor = (name: string): HTMLButtonElement =>
+      fixture.nativeElement.querySelector(`.tech-cell[title="${name}"]`);
+
+    cellFor('Two Pointers').click();
+    fixture.detectChanges();
+    expect(emitted.length).toBe(1);
+    expect(emitted[0].name).toBe('Two Pointers');
+    expect(fixture.nativeElement.querySelector('.tech-row__problem')?.textContent)
+      .toContain('Container With Most Water');
+    expect(fixture.nativeElement.querySelector('.tech-map__detail-title')?.textContent)
+      .toContain('Two Pointers');
+
+    cellFor('Sliding Window').click();
+    fixture.detectChanges();
+    expect(emitted.length).toBe(1);
+  });
+
+  it('when details is not yet loaded, switching to Map primes with the first started technique exactly once', () => {
+    const fixture = createFixture(
+      [
+        makeTechnique({ name: 'Two Pointers', started: false, problemCount: 0, problems: [] }),
+        makeTechnique({ name: 'Sliding Window', started: true, problems: [3] }),
+      ],
+      null,
+    );
+    const emitted: Technique[] = [];
+    fixture.componentInstance.expand.subscribe((t) => emitted.push(t));
+
+    clickViewButton(fixture, 'Map');
+    expect(emitted.length).toBe(1);
+    expect(emitted[0].name).toBe('Sliding Window');
+
+    // Switching away and back does not re-emit — the priming is a one-shot per component
+    // lifetime, guarded by the `primed` flag.
+    clickViewButton(fixture, 'List');
+    clickViewButton(fixture, 'Map');
+    expect(emitted.length).toBe(1);
+  });
+
+  it("setView('map') persists across a fresh fixture", () => {
+    const fixture = createFixture([makeTechnique()]);
+
+    fixture.componentInstance.setView('map');
+    fixture.detectChanges();
+
+    const fresh = createFixture([makeTechnique()]);
+    expect(fresh.componentInstance.view()).toBe('map');
+    expect(fresh.nativeElement.querySelector('.tech-map')).toBeTruthy();
   });
 });

@@ -1,8 +1,29 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  input,
+  output,
+  signal,
+  untracked,
+} from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
-import { ProblemProgress, Technique, TechniqueTier } from '../../../core/models/progress.model';
+import { Comfort, ProblemProgress, Technique, TechniqueTier } from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
+import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-date';
+import {
+  comfortClass as comfortClassFor,
+  ComfortClass,
+  deriveTechniqueStats,
+  readStoredView,
+  shortName as shortNameFor,
+  TechniqueStats,
+  TechniqueView,
+  writeStoredView,
+} from './technique-map';
 
 interface FamilyGroup {
   family: string;
@@ -46,7 +67,7 @@ const TIER_LABEL: Record<TechniqueTier, string> = {
   templateUrl: './technique-list.component.html',
   styleUrls: ['./technique-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [RouterLink, NgTemplateOutlet],
 })
 export class TechniqueListComponent {
   readonly techniques = input.required<Technique[]>();
@@ -56,6 +77,24 @@ export class TechniqueListComponent {
   readonly expand = output<Technique>();
 
   private readonly expandedNames = signal<ReadonlySet<string>>(new Set());
+
+  /** List vs. Map (heatmap) — persisted per viewer, default List. */
+  readonly view = signal<TechniqueView>(readStoredView());
+  private primed = false;
+
+  constructor() {
+    // One-shot priming: the Map view's per-cell stats (green count, last-touched) need
+    // `details`, which the parent only fetches on-demand — same lazy pattern as a list row's
+    // own expand. Landing on Map with no details yet kicks that fetch off exactly once, via
+    // the first started technique; the (default) List view never triggers this.
+    effect(() => {
+      if (this.view() !== 'map' || this.details() !== null || this.primed) return;
+      const first = this.techniques().find((t) => t.started);
+      if (!first) return;
+      this.primed = true;
+      untracked(() => this.expand.emit(first));
+    });
+  }
 
   readonly groups = computed<TierGroup[]>(() => {
     const byTier = new Map<TechniqueTier, Technique[]>();
@@ -88,6 +127,29 @@ export class TechniqueListComponent {
     });
   });
 
+  /** All fetched problem details, keyed by LC number — the one join both problemsFor() and
+   *  statsFor() read, so it's built once per details() change rather than once per call. */
+  readonly detailsByNumber = computed<ReadonlyMap<number, ProblemProgress> | null>(() => {
+    const list = this.details();
+    return list ? new Map(list.map((p) => [p.lcNumber, p])) : null;
+  });
+
+  private readonly stats = computed<ReadonlyMap<string, TechniqueStats>>(() => {
+    const byNumber = this.detailsByNumber() ?? new Map<number, ProblemProgress>();
+    return new Map(this.techniques().map((t) => [t.name, deriveTechniqueStats(t, byNumber)]));
+  });
+
+  /** stats() always covers every technique currently in techniques() — built by mapping over
+   *  that same signal above — so a lookup miss here would mean t isn't one of them. */
+  statsFor(t: Technique): TechniqueStats {
+    return this.stats().get(t.name)!;
+  }
+
+  setView(next: TechniqueView): void {
+    this.view.set(next);
+    writeStoredView(next);
+  }
+
   toggle(t: Technique): void {
     const key = t.name;
     const next = new Set(this.expandedNames());
@@ -106,13 +168,24 @@ export class TechniqueListComponent {
 
   /** null = details not loaded yet (show a loading hint); [] = loaded but nothing matched. */
   problemsFor(t: Technique): ProblemProgress[] | null {
-    const list = this.details();
-    if (!list) return null;
-    const byNum = new Map(list.map((p) => [p.lcNumber, p]));
-    return t.problems.map((n) => byNum.get(n)).filter((p): p is ProblemProgress => !!p);
+    const byNumber = this.detailsByNumber();
+    if (!byNumber) return null;
+    return t.problems.map((n) => byNumber.get(n)).filter((p): p is ProblemProgress => !!p);
   }
 
   vizRoute(lcNumber: number): string | null {
     return vizRouteFor(lcNumber);
+  }
+
+  comfortClass(comfort: Comfort | null): ComfortClass {
+    return comfortClassFor(comfort);
+  }
+
+  shortName(name: string): string {
+    return shortNameFor(name);
+  }
+
+  shortMonthDay(iso: string): string {
+    return shortMonthDayFor(iso);
   }
 }

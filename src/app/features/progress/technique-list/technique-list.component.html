@@ -1,85 +1,151 @@
 <div class="tech-list">
+  <div class="tech-viewbar" role="group" aria-label="Technique view">
+    <button
+      type="button"
+      class="tech-viewbar__btn"
+      [class.tech-viewbar__btn--active]="view() === 'list'"
+      [attr.aria-pressed]="view() === 'list'"
+      (click)="setView('list')"
+    >List</button>
+    <button
+      type="button"
+      class="tech-viewbar__btn"
+      [class.tech-viewbar__btn--active]="view() === 'map'"
+      [attr.aria-pressed]="view() === 'map'"
+      (click)="setView('map')"
+    >Map</button>
+  </div>
+
   @for (group of groups(); track group.tier) {
     <div class="tech-list__tier">
       <h3 class="tech-list__tier-label">{{ group.label }}</h3>
       @for (fam of group.families; track fam.family) {
         <div class="tech-list__group">
           <h4 class="tech-list__family">{{ fam.family }}</h4>
-          <ul class="tech-list__items">
-            @for (t of fam.items; track t.name) {
-              <li class="tech-row" [class.tech-row--not-started]="!t.started">
+          @if (view() === 'map') {
+            <div class="tech-map">
+              @for (t of fam.items; track t.name) {
+                @let stats = statsFor(t);
                 <button
                   type="button"
-                  class="tech-row__toggle"
+                  class="tech-cell tech-cell--{{ comfortClass(t.bestComfort) }}"
+                  [class.tech-cell--not-started]="!t.started"
+                  [class.tech-cell--open]="isExpanded(t)"
                   [attr.aria-expanded]="isExpanded(t)"
+                  [title]="t.name"
                   (click)="toggle(t)"
                 >
-                  <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
-                  <span class="tech-row__name">{{ t.name }}</span>
-                  <span class="tech-row__ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
-                  @if (t.started) {
-                    <span class="chip" [class.chip--thin]="t.thin" [class.chip--covered]="!t.thin">
-                      {{ t.thin ? 'thin' : 'covered' }}
-                    </span>
-                    @if (t.hasVariantGap) {
-                      <span class="chip chip--gap">variant gap</span>
-                    }
-                    @if (!t.hasGreen) {
-                      <span class="chip chip--nogreen">no 🟢</span>
-                    }
-                  } @else {
-                    <span class="chip chip--not-started">not started</span>
-                  }
-                  <span class="tech-row__caret" [class.tech-row__caret--open]="isExpanded(t)">▸</span>
-                </button>
-                @if (isExpanded(t)) {
-                  <div class="tech-row__detail">
-                    @if (!t.started) {
-                      <p class="tech-row__empty">Not started yet.</p>
-                    } @else {
-                      @let probs = problemsFor(t);
-                      @if (probs === null) {
-                        <p class="tech-row__empty">Loading problems…</p>
-                      } @else if (probs.length) {
-                        <ul class="tech-row__problems">
-                          @for (p of probs; track p.lcNumber + '-' + p.title) {
-                            <li class="tech-row__problem">
-                              @if (vizRoute(p.lcNumber); as route) {
-                                <a
-                                  [routerLink]="route"
-                                  class="tech-row__problem-status tech-row__problem-status--link"
-                                  title="Solution walkthrough"
-                                  [attr.aria-label]="'Solution walkthrough for #' + p.lcNumber"
-                                  >&lt;/&gt;</a
-                                >
-                              } @else {
-                                <span class="tech-row__problem-status tech-row__problem-status--spacer" aria-hidden="true"></span>
-                              }
-                              <span class="tech-row__problem-comfort">{{ p.comfort }}</span>
-                              <span class="tech-row__problem-num">#{{ p.lcNumber }}</span>
-                              <span class="tech-row__problem-title">{{ p.title }}</span>
-                              @if (p.difficulty) {
-                                <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
-                              }
-                              <span class="tech-row__problem-links">
-                                @if (p.url) {
-                                  <a [href]="p.url" target="_blank" rel="noopener" aria-label="Open on LeetCode" title="LeetCode">↗</a>
-                                }
-                              </span>
-                            </li>
-                          }
-                        </ul>
-                      } @else {
-                        <p class="tech-row__empty">No matching problems found.</p>
+                  <span class="tech-cell__name">{{ shortName(t.name) }}</span>
+                  <span class="tech-cell__ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
+                  @if (stats.greenCount > 0 || stats.lastTouched) {
+                    <span class="tech-cell__stats">
+                      {{ stats.greenCount }} 🟢
+                      @if (stats.lastTouched) {
+                        · {{ shortMonthDay(stats.lastTouched) }}
                       }
-                    }
-                  </div>
-                }
-              </li>
+                    </span>
+                  }
+                  @if (t.started && t.thin) {
+                    <span class="tech-cell__mark tech-cell__mark--thin" aria-label="thin">▲</span>
+                  }
+                  @if (t.started && t.hasVariantGap) {
+                    <span class="tech-cell__mark tech-cell__mark--gap" aria-label="variant gap">◆</span>
+                  }
+                </button>
+              }
+            </div>
+            @for (t of fam.items; track t.name) {
+              @if (isExpanded(t)) {
+                <div class="tech-row__detail tech-map__detail">
+                  <h5 class="tech-map__detail-title">
+                    {{ t.bestComfort || '—' }} {{ t.name }}
+                    <span class="tech-cell__ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
+                  </h5>
+                  <ng-container *ngTemplateOutlet="detail; context: { $implicit: t }" />
+                </div>
+              }
             }
-          </ul>
+          } @else {
+            <ul class="tech-list__items">
+              @for (t of fam.items; track t.name) {
+                <li class="tech-row" [class.tech-row--not-started]="!t.started">
+                  <button
+                    type="button"
+                    class="tech-row__toggle"
+                    [attr.aria-expanded]="isExpanded(t)"
+                    (click)="toggle(t)"
+                  >
+                    <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
+                    <span class="tech-row__name">{{ t.name }}</span>
+                    <span class="tech-row__ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
+                    @if (t.started) {
+                      <span class="chip" [class.chip--thin]="t.thin" [class.chip--covered]="!t.thin">
+                        {{ t.thin ? 'thin' : 'covered' }}
+                      </span>
+                      @if (t.hasVariantGap) {
+                        <span class="chip chip--gap">variant gap</span>
+                      }
+                      @if (!t.hasGreen) {
+                        <span class="chip chip--nogreen">no 🟢</span>
+                      }
+                    } @else {
+                      <span class="chip chip--not-started">not started</span>
+                    }
+                    <span class="tech-row__caret" [class.tech-row__caret--open]="isExpanded(t)">▸</span>
+                  </button>
+                  @if (isExpanded(t)) {
+                    <div class="tech-row__detail">
+                      <ng-container *ngTemplateOutlet="detail; context: { $implicit: t }" />
+                    </div>
+                  }
+                </li>
+              }
+            </ul>
+          }
         </div>
       }
     </div>
   }
 </div>
+
+<ng-template #detail let-t>
+  @if (!t.started) {
+    <p class="tech-row__empty">Not started yet.</p>
+  } @else {
+    @let probs = problemsFor(t);
+    @if (probs === null) {
+      <p class="tech-row__empty">Loading problems…</p>
+    } @else if (probs.length) {
+      <ul class="tech-row__problems">
+        @for (p of probs; track p.lcNumber + '-' + p.title) {
+          <li class="tech-row__problem">
+            @if (vizRoute(p.lcNumber); as route) {
+              <a
+                [routerLink]="route"
+                class="tech-row__problem-status tech-row__problem-status--link"
+                title="Solution walkthrough"
+                [attr.aria-label]="'Solution walkthrough for #' + p.lcNumber"
+                >&lt;/&gt;</a
+              >
+            } @else {
+              <span class="tech-row__problem-status tech-row__problem-status--spacer" aria-hidden="true"></span>
+            }
+            <span class="tech-row__problem-comfort">{{ p.comfort }}</span>
+            <span class="tech-row__problem-num">#{{ p.lcNumber }}</span>
+            <span class="tech-row__problem-title">{{ p.title }}</span>
+            @if (p.difficulty) {
+              <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
+            }
+            <span class="tech-row__problem-links">
+              @if (p.url) {
+                <a [href]="p.url" target="_blank" rel="noopener" aria-label="Open on LeetCode" title="LeetCode">↗</a>
+              }
+            </span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="tech-row__empty">No matching problems found.</p>
+    }
+  }
+</ng-template>

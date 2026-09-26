@@ -7,6 +7,33 @@
   margin-top: var(--space-md);
 }
 
+// ── List / Map toggle — chrome copied from workload-chart's .wlchart__toggle ───────────────
+.tech-viewbar {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.tech-viewbar__btn {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+
+  &:hover, &:focus-visible { border-color: var(--color-accent); color: var(--color-text); outline: none; }
+}
+
+.tech-viewbar__btn--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
 .tech-list__tier { display: flex; flex-direction: column; gap: var(--space-md); }
 .tech-list__tier-label {
   margin: 0;
@@ -124,4 +151,84 @@
 .tag {
   @include prow.tag;
   @include prow.tag-difficulty;
+}
+
+// ── Map view (round 4 — heatmap toggle) ─────────────────────────────────────────────────
+.tech-map {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-xs);
+
+  @media (max-width: 600px) {
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  }
+}
+
+.tech-cell {
+  --cell: var(--color-text-muted);
+  appearance: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-height: 60px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--cell);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--cell) 18%, var(--color-bg-raised));
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover, &:focus-visible { filter: brightness(1.12); outline: none; }
+}
+
+// Pipeline comfort tiers, same mapping as segmented-bar's .seg-* vocabulary.
+.tech-cell--blank { --cell: var(--color-hard); }
+.tech-cell--shaky { --cell: var(--color-medium); }
+.tech-cell--clean { --cell: var(--color-easy); }
+.tech-cell--grad { --cell: var(--color-accent); }
+.tech-cell--retired { --cell: var(--color-trophy); }
+
+.tech-cell--not-started {
+  border-style: dashed;
+  background: transparent;
+}
+
+.tech-cell--open {
+  box-shadow: inset 0 -3px 0 var(--color-accent);
+}
+
+.tech-cell__name {
+  font-weight: 600;
+  font-size: 0.78rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tech-cell__ratio { font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-text-muted); }
+.tech-cell__stats { font-size: 0.68rem; color: var(--color-text-muted); }
+
+.tech-cell__mark {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 0.7rem;
+}
+.tech-cell__mark--thin { color: var(--color-medium); }
+.tech-cell__mark--gap { top: 16px; color: var(--color-hard); }
+
+// The map's detail panel sits below the grid (not inline in a cell), so unlike a list row —
+// which already carries its own name — it needs its own heading naming which technique it's
+// showing problems for.
+.tech-map__detail-title {
+  margin: 0 0 var(--space-xs);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
 }
