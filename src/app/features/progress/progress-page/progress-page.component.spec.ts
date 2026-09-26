@@ -339,13 +339,13 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelector('.progress__explore')).toBeTruthy();
   });
 
-  it('orders the Activity tab as calendar, gauge, Achievements, then Trophy case', () => {
+  it('orders the Activity tab as calendar, gauge, then Achievements', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'activity');
 
     const panel = fixture.nativeElement.querySelector('#panel-activity')!;
-    const order = ['app-streak-calendar', '.gauge', 'app-badge-grid', '.trophies'];
+    const order = ['app-streak-calendar', '.gauge', 'app-badge-grid'];
     const indices = order.map((sel) =>
       Array.from(panel.querySelectorAll('*')).findIndex((el) => (el as HTMLElement).matches(sel)),
     );
@@ -909,17 +909,13 @@ describe('ProgressPageComponent', () => {
   });
 
   // ── 🏆 Retired never appears in details().problems[] (retired rows leave the tracker
-  // entirely), so it must not drill into a comfort facet. Round 5: the Trophy Case moved
-  // to the Activity tab, so clicking Retired now switches there instead of staying put —
-  // no fetch, no facet, just a tab switch. ────────────────────────────────────────────
-  it('clicking the 🏆 Retired segment does NOT set a facet or fetch details, and switches to Activity', () => {
+  // entirely), so it must not drill into a comfort facet. The Trophy Case it used to jump
+  // to was removed Sep 26, 2026, so clicking Retired is now a plain no-op — no fetch, no
+  // facet, no tab switch. ─────────────────────────────────────────────────────────────
+  it('clicking the 🏆 Retired segment does NOT set a facet or fetch details, and stays on Mastery', () => {
     const withRetired: ProgressSummary = {
       ...makeSummary(),
       pipeline: { ...makeSummary().pipeline, retired: 1 },
-      trophyCase: {
-        graduated: makeSummary().trophyCase!.graduated,
-        retired: [{ lcNumber: 704, title: 'Binary Search', retiredOn: '2026-08-01' }],
-      },
     };
     progress.data.set(withRetired);
 
@@ -936,12 +932,8 @@ describe('ProgressPageComponent', () => {
 
     expect(progress.loadDetails).not.toHaveBeenCalled();
     expect(fixture.componentInstance.listFilter()).toBeNull();
-    expect(fixture.nativeElement.querySelector('#tab-activity').getAttribute('aria-selected')).toBe(
+    expect(fixture.nativeElement.querySelector('#tab-mastery').getAttribute('aria-selected')).toBe(
       'true',
-    );
-    // The Trophy Case itself lives there now, retired row included.
-    expect(fixture.nativeElement.querySelector('.trophy--retired')?.textContent).toContain(
-      'Binary Search',
     );
   });
 

@@ -213,7 +213,6 @@
   margin: var(--space-sm) 0 var(--space-md);
 }
 .repo-picker,
-.trophies,
 .problems__head {
   display: flex;
   gap: var(--space-sm);
@@ -367,15 +366,6 @@ $skeleton-card-height: 12rem;
   margin-top: var(--space-sm);
   text-align: left;
 }
-
-// ── Trophy case ──────────────────────────────────────────────────────────────
-// (.trophies' flex/gap/wrap declared alongside .repo-picker above — identical values.)
-.trophy {
-  @extend %field-btn;
-  padding: var(--space-xs) var(--space-sm);
-  font-size: 0.8rem;
-}
-.trophy--retired { border-color: #a78bfa; }
 
 // ── Problems ─────────────────────────────────────────────────────────────────
 .problems__head { justify-content: space-between; align-items: center; }

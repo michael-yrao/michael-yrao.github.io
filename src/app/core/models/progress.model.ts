@@ -73,6 +73,9 @@ export interface Badge {
   icon?: string;
   description?: string;
   earned: boolean;
+  /** Only on counter badges (streak-N, trophies-N, all-green) — never on one-shot event
+   *  badges. Lets a locked counter badge show "current / target" progress. */
+  progress?: { current: number; target: number };
 }
 
 /** Curriculum tier for the honest technique-breadth denominator (Sep 21, 2026): 'core' =

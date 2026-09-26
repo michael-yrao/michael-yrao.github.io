@@ -1,15 +1,56 @@
-<div class="badges">
-  @for (b of sorted(); track b.id) {
-    <div
-      class="badge"
-      [class.earned]="b.earned"
-      [class.locked]="!b.earned"
-      [attr.title]="b.description"
-      tabindex="0"
-    >
-      <span class="badge__icon">{{ b.icon || '•' }}</span>
-      <span class="badge__title">{{ b.title }}</span>
-      <span class="badge__desc">{{ b.description }}</span>
-    </div>
-  }
+<div class="badges__summary">
+  <p class="badges__count"><b>{{ earnedCount() }}</b> / {{ total() }} earned</p>
+  <div
+    class="badges__meter"
+    role="progressbar"
+    aria-label="Badges earned"
+    [attr.aria-valuenow]="earnedCount()"
+    aria-valuemin="0"
+    [attr.aria-valuemax]="total()"
+  >
+    <div class="badges__meter-fill" [style.width.%]="earnedPct()"></div>
+  </div>
+  <div class="badges__filters">
+    @for (f of filters; track f) {
+      <button
+        type="button"
+        class="badges__filter"
+        [class.active]="isFilterActive(f)"
+        [attr.aria-pressed]="isFilterActive(f)"
+        (click)="setFilter(f)"
+      >{{ filterLabel(f) }}</button>
+    }
+  </div>
 </div>
+
+@if (visible().length) {
+  <div class="badges">
+    @for (b of visible(); track b.id) {
+      <div
+        class="badge"
+        [class.earned]="b.earned"
+        [class.locked]="!b.earned"
+        [attr.title]="b.description"
+        tabindex="0"
+      >
+        <span class="badge__icon">{{ b.icon || '•' }}</span>
+        <span class="badge__title">{{ b.title }}</span>
+        <span class="badge__desc">{{ b.description }}</span>
+        @if (!b.earned && b.progress) {
+          <span class="badge__progress">{{ b.progress.current }} / {{ b.progress.target }}</span>
+          <div class="badge__progress-bar">
+            <div class="badge__progress-fill" [style.width.%]="badgeProgressPct(b)"></div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+} @else {
+  <p class="badges__empty">
+    @switch (filter()) {
+      @case ('locked') { Nothing locked — every badge is earned. }
+      @case ('earned') { Nothing earned yet — every badge is still locked. }
+      @default { No badges yet. }
+    }
+  </p>
+}

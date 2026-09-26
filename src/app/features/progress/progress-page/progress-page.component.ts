@@ -456,11 +456,10 @@ export class ProgressPageComponent {
 
   /** Pipeline segment click: every tier except 🏆 Retired drills into the Problems tab.
    *  Retired rows are never in details().problems[] (retired rows leave the tracker
-   *  entirely — see cse-progress's parse_retired()), so that segment just switches to the
-   *  Activity tab instead, where the Trophy Case now lives — no fetch, no dead-end facet. */
+   *  entirely — see cse-progress's parse_retired()), so that segment is a no-op — no fetch,
+   *  no facet, no tab switch (the Trophy Case it used to jump to was removed Sep 26, 2026). */
   pipelineSegmentClick(seg: SegmentedBarSegment): void {
     if (seg.key === 'retired') {
-      this.selectTab('activity');
       return;
     }
     const comfort = PIPELINE_COMFORT[seg.key];
