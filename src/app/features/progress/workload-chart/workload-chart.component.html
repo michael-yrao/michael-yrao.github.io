@@ -24,19 +24,6 @@
         role="img"
         [attr.aria-label]="summary()"
       >
-        @if (ceilingLineY(); as ly) {
-          <line
-            class="wlchart__ceiling"
-            [attr.x1]="padX"
-            [attr.x2]="width() - padX"
-            [attr.y1]="ly"
-            [attr.y2]="ly"
-          />
-          <text class="wlchart__ceiling-label" [attr.x]="width() - padX" [attr.y]="ly - 4" text-anchor="end">{{
-            ceilingLineLabel()
-          }}</text>
-        }
-
         @for (b of bars(); track b.key; let i = $index) {
           <g class="wlchart__bar" [attr.transform]="'translate(' + xFor(i) + ', 0)'">
             <rect
@@ -69,6 +56,22 @@
               >{{ b.label }}</text>
             }
           </g>
+        }
+
+        <!-- Painted AFTER the bars: SVG paints in document order, so drawn first the line and
+             its label vanish behind any bar at or above the ceiling (exactly the bars the line
+             exists to flag). The label also carries a halo (see scss) for the bars it crosses. -->
+        @if (ceilingLineY(); as ly) {
+          <line
+            class="wlchart__ceiling"
+            [attr.x1]="padX"
+            [attr.x2]="width() - padX"
+            [attr.y1]="ly"
+            [attr.y2]="ly"
+          />
+          <text class="wlchart__ceiling-label" [attr.x]="width() - padX" [attr.y]="ly - 4" text-anchor="end">{{
+            ceilingLineLabel()
+          }}</text>
         }
       </svg>
     </div>

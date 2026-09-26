@@ -137,6 +137,21 @@ describe('WorkloadChartComponent', () => {
     expect(label).toBe('ceiling 56.7');
   });
 
+  it('paints the ceiling line and label AFTER the bars, so over-ceiling bars never hide them', () => {
+    // A 12-unit day against a ceiling of 8: the bar tops out above the ceiling line, which SVG
+    // paints in document order — the line/label must come after every bar group in the DOM.
+    const workload = [makeDay({ date: addDaysISO(BASE_DATE, 0), planned: 12, done: 12 })];
+    const fixture = createFixture(workload, 8, 3);
+
+    const svg: SVGElement = fixture.nativeElement.querySelector('svg');
+    const children = Array.from(svg.children);
+    const lastBarIndex = children.map((c) => c.classList.contains('wlchart__bar')).lastIndexOf(true);
+    const lineIndex = children.findIndex((c) => c.classList.contains('wlchart__ceiling'));
+    const labelIndex = children.findIndex((c) => c.classList.contains('wlchart__ceiling-label'));
+    expect(lineIndex).toBeGreaterThan(lastBarIndex);
+    expect(labelIndex).toBeGreaterThan(lastBarIndex);
+  });
+
   it('sets a summarizing aria-label on the svg (role="img")', () => {
     const workload = [makeDay({ date: addDaysISO(BASE_DATE, 0), planned: 6, done: 5 })];
     const fixture = createFixture(workload);

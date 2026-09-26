@@ -50,10 +50,16 @@
   opacity: 0.6;
 }
 
+// Drawn over the bars (see the template), so a card-coloured halo keeps the text legible
+// where it crosses a bar; `paint-order: stroke` paints the halo under the glyph fill.
 .wlchart__ceiling-label {
   fill: var(--color-text-muted);
   font-size: 8px;
   font-family: var(--font-mono);
+  paint-order: stroke;
+  stroke: var(--color-bg-card);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 
 .wlchart__planned {
