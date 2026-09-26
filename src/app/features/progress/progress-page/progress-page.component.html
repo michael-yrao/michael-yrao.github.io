@@ -110,23 +110,23 @@
           [href]="'https://github.com/' + repoSlug()"
           target="_blank"
           rel="noopener"
-          >{{ repoSlug() }} ↗</a
+          >{{ repoSlug() }}</a
         >
         @if (status() !== 'error') {
+          <!-- Icon-only picker toggle beside the slug: the swap glyph says "switch", the
+               tooltip/aria-label say what to. Word-free so the header never reads as a
+               sentence ("<repo> change as of <date>"). -->
           <button
             type="button"
             class="progress__repo-change"
             (click)="toggleRepoPicker()"
             [attr.aria-expanded]="isRepoPickerOpen()"
             aria-label="Switch repository"
-            title="Show progress for a different GitHub repo"
+            title="Switch repo"
           >
-            Switch repo
+            ⇄
           </button>
         }
-      }
-      @if (repoSlug() && status() === 'ready') {
-        <span class="progress__sep" aria-hidden="true">·</span>
       }
       @if (status() === 'ready') {
         <span class="progress__asof">as of {{ generatedAtLabel() }}</span>
@@ -401,7 +401,7 @@
                 />
               </div>
             }
-            @if (d.onSchedule; as os) {
+            @if (onScheduleView(); as os) {
               <div class="card po-card gauge">
                 <h2>On schedule</h2>
                 <div class="gauge__big" [class.gauge__warn]="onSchedulePct() < 90">

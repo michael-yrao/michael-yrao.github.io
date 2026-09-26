@@ -15,7 +15,7 @@ import { map } from 'rxjs';
 
 import { ProgressService } from '../../../core/services/progress.service';
 import { fileUrl } from '../../../core/services/github-file.service';
-import { Comfort, ProblemProgress, ScheduleItem } from '../../../core/models/progress.model';
+import { Comfort, OnSchedule, ProblemProgress, ScheduleItem } from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { daysBetweenISO, todayLocalISO } from '../../../core/utils/local-date';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
@@ -59,6 +59,15 @@ type ListFacet = { kind: 'comfort'; value: Comfort } | { kind: 'difficulty'; val
  *  list. A problem with no `nextReview` yet (never reviewed) is never in this state. */
 function isDueOrOverdue(p: ProblemProgress, today: string): boolean {
   return !!p.nextReview && p.nextReview <= today;
+}
+
+/** The On-schedule gauge's counts recomputed client-side from the loaded problem rows —
+ *  the same arithmetic as cse-progress gamify.py's `on_schedule()`, but against the
+ *  viewer's `today` rather than the exporter's session date. */
+function countOnSchedule(problems: readonly ProblemProgress[], today: string): OnSchedule {
+  const overdue = problems.filter((p) => !!p.nextReview && p.nextReview < today).length;
+  const dueToday = problems.filter((p) => p.nextReview === today).length;
+  return { totalActive: problems.length, dueToday, overdue };
 }
 
 /** lcNumber + title identifies a row uniquely even when a number carries several method
@@ -203,8 +212,20 @@ export class ProgressPageComponent {
   // MISSING_GENERATED_AT fallback, no "pull the latest…" tail (that belongs to the button).
   readonly generatedAtLabel = computed(() => this.data()?.generatedAt ?? MISSING_GENERATED_AT);
 
+  // The gauge's counts. The exported `onSchedule` is frozen at the exporter's session date
+  // (cse-progress keeps a past-midnight session on its START date), so viewed the next
+  // morning it can say "0 due today" while the inline attention list — filtered by the
+  // browser's own date — shows five. Once details are loaded the gauge recounts from the
+  // same rows the list uses, with the same `today`, so the two can never disagree; before
+  // that, the exported snapshot stands in.
+  readonly onScheduleView = computed<OnSchedule | null>(() => {
+    const details = this.details();
+    if (!details) return this.data()?.onSchedule ?? null;
+    return countOnSchedule(details, todayLocalISO());
+  });
+
   readonly onSchedulePct = computed(() => {
-    const os = this.data()?.onSchedule;
+    const os = this.onScheduleView();
     if (!os || !os.totalActive) return 100;
     return Math.round(((os.totalActive - os.overdue) / os.totalActive) * 100);
   });

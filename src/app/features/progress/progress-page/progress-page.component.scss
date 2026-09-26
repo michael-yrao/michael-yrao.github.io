@@ -187,23 +187,22 @@
 // ── Inline repo picker ───────────────────────────────────────────────────────
 // A small chip control (round 7) — distinct from the plain-text repo slug/as-of stamp either
 // side of it, so it reads as a control rather than another fact in the header line.
+// Icon-only (⇄) picker toggle sitting right after the repo slug — muted like the slug, accent
+// on hover/focus, with the same focus ring the slug link uses.
 .progress__repo-change {
   @extend %btn-reset;
   @extend %focus-ring-2;
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: 2px 8px;
-  font-size: 0.75rem;
+  padding: 0 4px;
+  font-size: 0.9rem;
+  line-height: 1;
   color: var(--color-text-muted);
-  transition: border-color var(--transition-fast), color var(--transition-fast);
+  transition: color var(--transition-fast);
   &:hover,
   &:focus-visible {
-    border-color: var(--color-accent);
     color: var(--color-accent);
-    outline: none;
   }
 }
-.progress__sep { color: var(--color-text-muted); }
 .progress__picker-row {
   margin: var(--space-sm) 0 var(--space-md);
 }

@@ -859,6 +859,14 @@ describe('ProgressPageComponent', () => {
     expect(rows.length).toBe(1);
     expect(attentionList.textContent).toContain('1d overdue');
 
+    // The gauge recounts from the SAME loaded rows with the SAME local `today` the list
+    // uses — the exported snapshot (overdue:0, dueToday:1, totalActive:5) is replaced by
+    // 1 overdue · 0 due today · 2 active, so gauge and list can never disagree.
+    const gaugeSub = fixture.nativeElement.querySelector('.gauge .card__sub');
+    expect(gaugeSub?.textContent).toContain('1 overdue · 0 due today · 2 active');
+    expect(attentionBtn.textContent).toContain('Needs attention (1)');
+    expect(fixture.nativeElement.querySelector('.gauge__big')?.textContent).toContain('50%');
+
     // Clicking again collapses it.
     attentionBtn.click();
     fixture.detectChanges();
