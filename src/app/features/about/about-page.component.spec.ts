@@ -20,11 +20,11 @@ describe('AboutPageComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('renders two bio paragraphs, the first mentioning Finance Command Center', () => {
+  it('renders two bio paragraphs, the first mentioning Snowflake Cortex', () => {
     const el = fixture.nativeElement as HTMLElement;
     const bios = el.querySelectorAll('.hero__bio');
     expect(bios.length).toBe(2);
-    expect(bios[0].textContent).toContain('Finance Command Center');
+    expect(bios[0].textContent).toContain('Snowflake Cortex');
   });
 
   it('renders a support link to Venmo that opens in a new tab', () => {
