@@ -10,27 +10,27 @@
     <button
       type="button"
       class="tech-viewbar__btn"
-      [class.tech-viewbar__btn--active]="view() === 'tree'"
-      [attr.aria-pressed]="view() === 'tree'"
-      (click)="setView('tree')"
-    >Tree</button>
+      [class.tech-viewbar__btn--active]="view() === 'map'"
+      [attr.aria-pressed]="view() === 'map'"
+      (click)="setView('map')"
+    >Map</button>
   </div>
 
-  @if (view() === 'tree') {
-    <app-technique-tree
+  @if (view() === 'map') {
+    <app-technique-map
       [techniques]="techniques()"
       [details]="details()"
-      [expandedName]="treeSelectedName()"
-      (select)="selectInTree($event)"
+      [expandedName]="mapSelectedName()"
+      (select)="selectInMap($event)"
     />
-    @if (treeSelected(); as t) {
+    @if (mapSelected(); as t) {
       @let stats = statsFor(t);
-      <div class="tech-row__detail tech-tree__detail">
-        <h5 class="tech-tree__detail-title">
+      <div class="tech-row__detail tech-map__detail">
+        <h5 class="tech-map__detail-title">
           {{ t.bestComfort || '—' }} {{ t.name }}
-          <span class="tech-tree__detail-ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
+          <span class="tech-map__detail-ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
           @if (stats.greenCount > 0 || stats.lastTouched) {
-            <span class="tech-tree__detail-stats">
+            <span class="tech-map__detail-stats">
               {{ stats.greenCount }} 🟢
               @if (stats.lastTouched) {
                 · {{ shortMonthDay(stats.lastTouched) }}

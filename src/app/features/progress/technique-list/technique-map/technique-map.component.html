@@ -1,0 +1,99 @@
+@if (expansionCount() > 0) {
+  <div class="tech-map__toolbar">
+    <button
+      type="button"
+      class="tech-map__toggle"
+      [attr.aria-pressed]="showExpansion()"
+      (click)="toggleExpansion()"
+    >{{ showExpansion() ? 'Hide' : 'Show' }} tier 1–3 ({{ expansionCount() }})</button>
+  </div>
+}
+
+<div class="tech-map__scroll" [class.tech-map__scroll--has-selection]="hasSelection()">
+  <div class="tech-map__labels" aria-hidden="true">
+    @for (lane of layout().lanes; track lane.family; let i = $index) {
+      <div class="tech-map__lane-label" [class.tech-map__lane-label--alt]="i % 2 === 1" [style.height.px]="lane.height">
+        {{ lane.label }}
+      </div>
+    }
+  </div>
+
+  <svg
+    class="tech-map__svg"
+    [attr.viewBox]="'0 0 ' + layout().width + ' ' + layout().height"
+    [attr.width]="layout().width"
+    [attr.height]="layout().height"
+    role="group"
+    [attr.aria-label]="'Technique map, ' + layout().lanes.length + ' families, ' + layout().nodes.length + ' techniques'"
+  >
+    <defs>
+      <marker id="map-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+        <path class="tech-map__arrowhead" d="M0,0 L8,4 L0,8 Z" />
+      </marker>
+      <marker id="map-arrow-hi" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+        <path class="tech-map__arrowhead tech-map__arrowhead--hi" d="M0,0 L8,4 L0,8 Z" />
+      </marker>
+    </defs>
+
+    <g class="tech-map__bands">
+      @for (lane of layout().lanes; track lane.family; let i = $index) {
+        <rect
+          class="tech-map__band"
+          [class.tech-map__band--alt]="i % 2 === 1"
+          x="0"
+          [attr.y]="lane.y"
+          [attr.width]="layout().width"
+          [attr.height]="lane.height"
+        >
+          <title>{{ lane.label }}</title>
+        </rect>
+      }
+    </g>
+
+    <g class="tech-map__edges">
+      @for (edge of layout().edges; track edge.from + '>' + edge.to) {
+        <path
+          class="tech-map__edge"
+          [class.tech-map__edge--cross]="edge.crossLane"
+          [class.tech-map__edge--highlighted]="isEdgeHighlighted(edge.from, edge.to)"
+          [attr.d]="edge.path"
+          [attr.marker-end]="isEdgeHighlighted(edge.from, edge.to) ? 'url(#map-arrow-hi)' : 'url(#map-arrow)'"
+        />
+      }
+    </g>
+
+    <g class="tech-map__nodes">
+      @for (node of layout().nodes; track node.name) {
+        @let technique = techniqueFor(node.name);
+        <g
+          class="tech-map__node"
+          [class.tech-map__node--mastered]="isMastered(node.name)"
+          [class.tech-map__node--started]="technique.started && !isMastered(node.name)"
+          [class.tech-map__node--not-started]="!technique.started"
+          [class.tech-map__node--selected]="isSelected(node.name)"
+          role="button"
+          tabindex="0"
+          [attr.aria-pressed]="isSelected(node.name)"
+          [attr.aria-label]="technique.name"
+          [attr.transform]="'translate(' + node.x + ',' + node.y + ')'"
+          (click)="onSelect(node.name)"
+          (keydown.enter)="onSelect(node.name)"
+          (keydown.space)="$event.preventDefault(); onSelect(node.name)"
+        >
+          <rect class="tech-map__rect" [attr.width]="NODE_W" [attr.height]="NODE_H" rx="5" />
+          <text class="tech-map__label" [attr.x]="NODE_W / 2" y="15" text-anchor="middle">{{ clampLabel(technique.name) }}</text>
+          <text class="tech-map__ratio" [attr.x]="NODE_W / 2" y="29" text-anchor="middle">{{ graduatedCountFor(node.name) }}/{{ technique.minProblems }} 🎓</text>
+        </g>
+      }
+    </g>
+  </svg>
+</div>
+
+<p class="tech-map__legend">solid = graduated ≥ threshold · dashed outline = not started · dashed link = builds on another family</p>
+
+@if (graph().droppedEdgeCount > 0) {
+  <p class="tech-map__footnote">
+    {{ graph().droppedEdgeCount }} prerequisite link{{ graph().droppedEdgeCount === 1 ? '' : 's' }}
+    skipped (technique not found)
+  </p>
+}

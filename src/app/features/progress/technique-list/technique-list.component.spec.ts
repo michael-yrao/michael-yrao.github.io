@@ -175,7 +175,7 @@ describe('TechniqueListComponent', () => {
   });
 });
 
-function clickViewButton(fixture: ReturnType<typeof createFixture>, label: 'List' | 'Tree'): void {
+function clickViewButton(fixture: ReturnType<typeof createFixture>, label: 'List' | 'Map'): void {
   const buttons = Array.from(
     fixture.nativeElement.querySelectorAll('.tech-viewbar__btn'),
   ) as HTMLButtonElement[];
@@ -184,47 +184,47 @@ function clickViewButton(fixture: ReturnType<typeof createFixture>, label: 'List
   fixture.detectChanges();
 }
 
-function clickTreeNode(fixture: ReturnType<typeof createFixture>, name: string): void {
+function clickMapNode(fixture: ReturnType<typeof createFixture>, name: string): void {
   const node = fixture.nativeElement.querySelector(
-    `app-technique-tree .tech-tree__node[aria-label="${name}"]`,
+    `app-technique-map .tech-map__node[aria-label="${name}"]`,
   ) as Element;
   node.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   fixture.detectChanges();
 }
 
-describe('TechniqueListComponent — Tree view', () => {
+describe('TechniqueListComponent — Map view', () => {
   afterEach(() => localStorage.clear());
 
-  it('renders a List/Tree viewbar defaulting to List, with aria-pressed state', () => {
+  it('renders a List/Map viewbar defaulting to List, with aria-pressed state', () => {
     const fixture = createFixture([makeTechnique()]);
 
     const buttons = fixture.nativeElement.querySelectorAll('.tech-viewbar__btn');
     expect(buttons.length).toBe(2);
     expect(buttons[0].textContent.trim()).toBe('List');
     expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
-    expect(buttons[1].textContent.trim()).toBe('Tree');
+    expect(buttons[1].textContent.trim()).toBe('Map');
     expect(buttons[1].getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('switching to Tree shows exactly one app-technique-tree and hides the list rows', () => {
+  it('switching to Map shows exactly one app-technique-map and hides the list rows', () => {
     const fixture = createFixture([makeTechnique()]);
 
-    clickViewButton(fixture, 'Tree');
+    clickViewButton(fixture, 'Map');
 
-    expect(fixture.nativeElement.querySelectorAll('app-technique-tree').length).toBe(1);
+    expect(fixture.nativeElement.querySelectorAll('app-technique-map').length).toBe(1);
     expect(fixture.nativeElement.querySelector('.tech-row__toggle')).toBeFalsy();
   });
 
-  it('renders one tree node per technique, across families, as a single graph (not per family)', () => {
+  it('renders one map node per technique, across families, as a single graph (not per family)', () => {
     const fixture = createFixture([
       makeTechnique({ name: 'Two Pointers', family: 'Arrays' }),
       makeTechnique({ name: 'Sliding Window', family: 'Arrays', problems: [3] }),
       makeTechnique({ name: 'BFS', family: 'Graphs', problems: [200] }),
     ]);
 
-    clickViewButton(fixture, 'Tree');
+    clickViewButton(fixture, 'Map');
 
-    expect(fixture.nativeElement.querySelectorAll('.tech-tree__node').length).toBe(3);
+    expect(fixture.nativeElement.querySelectorAll('.tech-map__node').length).toBe(3);
   });
 
   it('a technique whose graduatedCount reaches minProblems renders --mastered; one below does not', () => {
@@ -233,21 +233,21 @@ describe('TechniqueListComponent — Tree view', () => {
       makeTechnique({ name: 'Below', minProblems: 3, graduatedCount: 1 }),
     ]);
 
-    clickViewButton(fixture, 'Tree');
+    clickViewButton(fixture, 'Map');
 
     const nodeFor = (name: string) =>
-      fixture.nativeElement.querySelector(`.tech-tree__node[aria-label="${name}"]`);
-    expect(nodeFor('Mastered').classList.contains('tech-tree__node--mastered')).toBe(true);
-    expect(nodeFor('Below').classList.contains('tech-tree__node--mastered')).toBe(false);
+      fixture.nativeElement.querySelector(`.tech-map__node[aria-label="${name}"]`);
+    expect(nodeFor('Mastered').classList.contains('tech-map__node--mastered')).toBe(true);
+    expect(nodeFor('Below').classList.contains('tech-map__node--mastered')).toBe(false);
   });
 
   it('a not-started technique renders --not-started', () => {
     const fixture = createFixture([makeTechnique({ started: false, problemCount: 0, problems: [] })]);
 
-    clickViewButton(fixture, 'Tree');
+    clickViewButton(fixture, 'Map');
 
-    const node = fixture.nativeElement.querySelector('.tech-tree__node');
-    expect(node.classList.contains('tech-tree__node--not-started')).toBe(true);
+    const node = fixture.nativeElement.querySelector('.tech-map__node');
+    expect(node.classList.contains('tech-map__node--not-started')).toBe(true);
   });
 
   it('selecting a started node emits expand once and shows the detail heading', () => {
@@ -255,16 +255,16 @@ describe('TechniqueListComponent — Tree view', () => {
       [makeTechnique({ name: 'Two Pointers', problems: [11] })],
       [makeProblem({ lcNumber: 11 })],
     );
-    clickViewButton(fixture, 'Tree');
+    clickViewButton(fixture, 'Map');
 
     const emitted: Technique[] = [];
     fixture.componentInstance.expand.subscribe((t) => emitted.push(t));
 
-    clickTreeNode(fixture, 'Two Pointers');
+    clickMapNode(fixture, 'Two Pointers');
 
     expect(emitted.length).toBe(1);
     expect(emitted[0].name).toBe('Two Pointers');
-    expect(fixture.nativeElement.querySelector('.tech-tree__detail-title')?.textContent)
+    expect(fixture.nativeElement.querySelector('.tech-map__detail-title')?.textContent)
       .toContain('Two Pointers');
     expect(fixture.nativeElement.querySelector('.tech-row__problem')?.textContent)
       .toContain('Container With Most Water');
@@ -278,17 +278,17 @@ describe('TechniqueListComponent — Tree view', () => {
       ],
       [makeProblem({ lcNumber: 11 }), makeProblem({ lcNumber: 22, title: 'Other' })],
     );
-    clickViewButton(fixture, 'Tree');
+    clickViewButton(fixture, 'Map');
 
-    clickTreeNode(fixture, 'A');
-    clickTreeNode(fixture, 'B');
-    expect(fixture.nativeElement.querySelector('.tech-tree__detail-title')?.textContent)
+    clickMapNode(fixture, 'A');
+    clickMapNode(fixture, 'B');
+    expect(fixture.nativeElement.querySelector('.tech-map__detail-title')?.textContent)
       .toContain('B');
 
     // Selecting B again (the currently-selected node) must close the panel entirely — not
     // fall back to A, which was expanded earlier but is no longer the current selection.
-    clickTreeNode(fixture, 'B');
-    expect(fixture.nativeElement.querySelector('.tech-tree__detail-title')).toBeFalsy();
+    clickMapNode(fixture, 'B');
+    expect(fixture.nativeElement.querySelector('.tech-map__detail-title')).toBeFalsy();
   });
 
   it('a selection that no longer exists in techniques() (e.g. a ?repo= switch) closes the panel without throwing', () => {
@@ -296,10 +296,10 @@ describe('TechniqueListComponent — Tree view', () => {
       [makeTechnique({ name: 'A', problems: [11] })],
       [makeProblem({ lcNumber: 11 })],
     );
-    clickViewButton(fixture, 'Tree');
+    clickViewButton(fixture, 'Map');
 
-    clickTreeNode(fixture, 'A');
-    expect(fixture.nativeElement.querySelector('.tech-tree__detail-title')?.textContent)
+    clickMapNode(fixture, 'A');
+    expect(fixture.nativeElement.querySelector('.tech-map__detail-title')?.textContent)
       .toContain('A');
 
     expect(() => {
@@ -307,7 +307,7 @@ describe('TechniqueListComponent — Tree view', () => {
       fixture.detectChanges();
     }).not.toThrow();
 
-    expect(fixture.nativeElement.querySelector('.tech-tree__detail-title')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.tech-map__detail-title')).toBeFalsy();
   });
 
   it('edges count equals the number of valid buildsOn pairs', () => {
@@ -317,12 +317,12 @@ describe('TechniqueListComponent — Tree view', () => {
       makeTechnique({ name: 'C', buildsOn: ['A', 'Ghost'] }),
     ]);
 
-    clickViewButton(fixture, 'Tree');
+    clickViewButton(fixture, 'Map');
 
-    expect(fixture.nativeElement.querySelectorAll('.tech-tree__edge').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('.tech-map__edge').length).toBe(2);
   });
 
-  it('when details is not yet loaded, switching to Tree primes with the first started technique exactly once', () => {
+  it('when details is not yet loaded, switching to Map primes with the first started technique exactly once', () => {
     const fixture = createFixture(
       [
         makeTechnique({ name: 'Two Pointers', started: false, problemCount: 0, problems: [] }),
@@ -333,33 +333,33 @@ describe('TechniqueListComponent — Tree view', () => {
     const emitted: Technique[] = [];
     fixture.componentInstance.expand.subscribe((t) => emitted.push(t));
 
-    clickViewButton(fixture, 'Tree');
+    clickViewButton(fixture, 'Map');
     expect(emitted.length).toBe(1);
     expect(emitted[0].name).toBe('Sliding Window');
 
     // Switching away and back does not re-emit — the priming is a one-shot per component
     // lifetime, guarded by the `primed` flag.
     clickViewButton(fixture, 'List');
-    clickViewButton(fixture, 'Tree');
+    clickViewButton(fixture, 'Map');
     expect(emitted.length).toBe(1);
   });
 
-  it("a stored 'map' (the retired view) reads as List", () => {
-    localStorage.setItem('po.progress.techniqueView', 'map');
+  it("a stored 'tree' (the retired skill tree) reads as Map", () => {
+    localStorage.setItem('po.progress.techniqueView', 'tree');
     const fixture = createFixture([makeTechnique()]);
 
-    expect(fixture.componentInstance.view()).toBe('list');
-    expect(fixture.nativeElement.querySelector('.tech-row__toggle')).toBeTruthy();
+    expect(fixture.componentInstance.view()).toBe('map');
+    expect(fixture.nativeElement.querySelector('app-technique-map')).toBeTruthy();
   });
 
-  it("setView('tree') persists across a fresh fixture", () => {
+  it("setView('map') persists across a fresh fixture", () => {
     const fixture = createFixture([makeTechnique()]);
 
-    fixture.componentInstance.setView('tree');
+    fixture.componentInstance.setView('map');
     fixture.detectChanges();
 
     const fresh = createFixture([makeTechnique()]);
-    expect(fresh.componentInstance.view()).toBe('tree');
-    expect(fresh.nativeElement.querySelector('app-technique-tree')).toBeTruthy();
+    expect(fresh.componentInstance.view()).toBe('map');
+    expect(fresh.nativeElement.querySelector('app-technique-map')).toBeTruthy();
   });
 });

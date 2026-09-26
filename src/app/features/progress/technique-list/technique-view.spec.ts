@@ -45,15 +45,18 @@ function makeProblem(overrides: Partial<ProblemProgress> = {}): ProblemProgress 
 }
 
 describe('parseStoredView', () => {
-  it("returns 'tree' only for the literal string 'tree'", () => {
-    expect(parseStoredView('tree')).toBe('tree');
+  it("returns 'map' for the literal string 'map'", () => {
+    expect(parseStoredView('map')).toBe('map');
   });
 
-  it("falls back to 'list' for null, the retired 'map', an unrelated string, or garbage", () => {
+  it("reads the legacy 'tree' (the retired skill tree) as 'map'", () => {
+    expect(parseStoredView('tree')).toBe('map');
+  });
+
+  it("falls back to 'list' for null, an unrelated string, an uppercase variant, or garbage", () => {
     expect(parseStoredView(null)).toBe('list');
-    expect(parseStoredView('map')).toBe('list');
     expect(parseStoredView('grid')).toBe('list');
-    expect(parseStoredView('TREE')).toBe('list');
+    expect(parseStoredView('MAP')).toBe('list');
     expect(parseStoredView('')).toBe('list');
   });
 });
@@ -66,9 +69,9 @@ describe('readStoredView / writeStoredView', () => {
   });
 
   it('round-trips a written view', () => {
-    writeStoredView('tree');
-    expect(localStorage.getItem(TECHNIQUE_VIEW_STORAGE_KEY)).toBe('tree');
-    expect(readStoredView()).toBe('tree');
+    writeStoredView('map');
+    expect(localStorage.getItem(TECHNIQUE_VIEW_STORAGE_KEY)).toBe('map');
+    expect(readStoredView()).toBe('map');
   });
 
   it('reading survives a localStorage getItem throw (private mode / blocked)', () => {
@@ -83,7 +86,7 @@ describe('readStoredView / writeStoredView', () => {
     const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('blocked');
     });
-    expect(() => writeStoredView('tree')).not.toThrow();
+    expect(() => writeStoredView('map')).not.toThrow();
     spy.mockRestore();
   });
 });

@@ -1,16 +1,18 @@
 import { Comfort, ProblemProgress, Technique } from '../../../core/models/progress.model';
 
-/** The Mastery tab's technique-breadth drill: a flat list of rows, or a skill tree (nodes
- *  joined by prerequisite edges) grouped the same way (tier -> family) for the list, and as
- *  one graph for the tree. Persisted per viewer so a reload keeps the last choice. */
-export type TechniqueView = 'list' | 'tree';
+/** The Mastery tab's technique-breadth drill: a flat list of rows, or a technique map (nodes
+ *  joined by prerequisite edges, one swimlane per family) grouped the same way (tier -> family)
+ *  for the list, and as one graph for the map. Persisted per viewer so a reload keeps the last
+ *  choice. */
+export type TechniqueView = 'list' | 'map';
 
 export const TECHNIQUE_VIEW_STORAGE_KEY = 'po.progress.techniqueView';
 
-/** Anything but the literal 'tree' falls back to 'list', the default — a corrupted or
- *  old-shape localStorage value (including the retired 'map') must never crash the tab. */
+/** 'map' is the current value; the retired layered-DAG skill tree's 'tree' reads as 'map' for
+ *  a viewer whose localStorage still carries it. Anything else falls back to 'list', the
+ *  default — a corrupted or old-shape value must never crash the tab. */
 export function parseStoredView(raw: string | null): TechniqueView {
-  return raw === 'tree' ? 'tree' : 'list';
+  return raw === 'map' || raw === 'tree' ? 'map' : 'list';
 }
 
 /** Reads the persisted view — try/catch as in `big-o-deck.ts`'s filter read, since

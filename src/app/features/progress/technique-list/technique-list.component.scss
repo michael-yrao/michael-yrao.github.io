@@ -153,15 +153,15 @@
   @include prow.tag-difficulty;
 }
 
-// ── Tree view detail panel (round 5 — skill tree replaces the Map grid) ─────────────────
-// The tree's detail panel sits below the graph (not nested in a per-family group), so unlike
+// ── Map view detail panel (round 6 — swimlanes replace the layered-DAG skill tree) ──────────
+// The map's detail panel sits below the graph (not nested in a per-family group), so unlike
 // a list row — which already carries its own name — it needs its own heading naming which
 // technique it's showing problems for. Reuses the list's own .tech-row__detail box + spacing.
-.tech-tree__detail-title {
+.tech-map__detail-title {
   margin: 0 0 var(--space-xs);
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text);
 }
-.tech-tree__detail-ratio { font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-text-muted); }
-.tech-tree__detail-stats { font-size: 0.68rem; color: var(--color-text-muted); }
+.tech-map__detail-ratio { font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-text-muted); }
+.tech-map__detail-stats { font-size: 0.68rem; color: var(--color-text-muted); }

@@ -1,0 +1,158 @@
+// ── Technique map (round 6 — swimlanes replace the layered-DAG skill tree) ─────────────────
+// One horizontal lane per family, techniques placed left→right by prerequisite depth. Wider
+// than the viewport at full curriculum size, so the whole thing scrolls horizontally instead
+// of shrinking (styles.scss caps every `svg` at `max-width: 100%`; `max-width: none` below
+// escapes that to render at natural pixel size).
+
+$tech-map-label-w: 84px;
+
+.tech-map__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-xs);
+}
+
+// Copies .tech-viewbar__btn's chrome (technique-list.component.scss) so the toggle reads as
+// the same family of control as the List/Map viewbar above it.
+.tech-map__toggle {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+
+  &:hover, &:focus-visible { border-color: var(--color-accent); color: var(--color-text); outline: none; }
+  &[aria-pressed="true"] {
+    border-color: var(--color-accent);
+    background: var(--color-accent-dim);
+    color: var(--color-accent);
+    font-weight: 700;
+  }
+}
+
+.tech-map__scroll {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  padding: var(--space-sm);
+}
+
+// Sticky label column: stays put while the SVG scrolls sideways underneath it.
+.tech-map__labels {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  flex: 0 0 $tech-map-label-w;
+  width: $tech-map-label-w;
+  background: var(--color-bg-card);
+}
+
+.tech-map__lane-label {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-xs);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+
+  @media (max-width: 480px) { font-size: 0.62rem; }
+}
+.tech-map__lane-label--alt { background: var(--color-bg-raised); }
+
+.tech-map__svg { display: block; max-width: none; }
+
+.tech-map__band { fill: var(--color-bg-card); }
+.tech-map__band--alt { fill: var(--color-bg-raised); }
+
+.tech-map__edge {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+}
+.tech-map__edge--cross {
+  stroke-dasharray: 3 3;
+  stroke-width: 1;
+  opacity: 0.75;
+}
+.tech-map__edge--highlighted {
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  stroke-dasharray: none;
+  opacity: 1;
+}
+.tech-map__scroll--has-selection .tech-map__edge:not(.tech-map__edge--highlighted) { opacity: 0.3; }
+
+.tech-map__arrowhead { fill: var(--color-border); }
+.tech-map__arrowhead--hi { fill: var(--color-accent); }
+
+.tech-map__node {
+  cursor: pointer;
+  outline: none;
+
+  &:focus-visible .tech-map__rect {
+    stroke: var(--color-accent);
+    stroke-width: 2;
+  }
+}
+
+.tech-map__rect {
+  fill: var(--color-bg-card);
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+  transition: filter var(--transition-fast);
+}
+
+.tech-map__node:hover .tech-map__rect { filter: brightness(1.12); }
+
+// Two-state color: solid once graduated >= minProblems, neutral otherwise — no gradient,
+// no comfort ladder.
+.tech-map__node--mastered .tech-map__rect {
+  fill: var(--color-easy);
+  stroke: var(--color-easy);
+}
+.tech-map__node--mastered .tech-map__label,
+.tech-map__node--mastered .tech-map__ratio {
+  fill: var(--color-bg);
+}
+
+.tech-map__node--not-started .tech-map__rect {
+  stroke-dasharray: 4 3;
+}
+.tech-map__node--not-started .tech-map__label,
+.tech-map__node--not-started .tech-map__ratio {
+  fill: var(--color-text-muted);
+}
+
+.tech-map__node--selected .tech-map__rect {
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+}
+
+.tech-map__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  fill: var(--color-text);
+}
+.tech-map__ratio {
+  font-size: 0.66rem;
+  fill: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.tech-map__legend {
+  margin: var(--space-xs) 0 0;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.tech-map__footnote {
+  margin: var(--space-xs) 0 0;
+  font-size: 0.7rem;
+  color: var(--color-medium);
+}
