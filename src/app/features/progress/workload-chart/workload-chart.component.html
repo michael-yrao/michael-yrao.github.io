@@ -1,0 +1,99 @@
+<div class="wlchart">
+  <div class="wlchart__toolbar" role="group" aria-label="Chart granularity">
+    <button
+      type="button"
+      class="wlchart__toggle"
+      [class.wlchart__toggle--active]="view() === 'daily'"
+      (click)="setView('daily')"
+    >Daily</button>
+    <button
+      type="button"
+      class="wlchart__toggle"
+      [class.wlchart__toggle--active]="view() === 'weekly'"
+      (click)="setView('weekly')"
+    >Weekly</button>
+  </div>
+
+  @if (bars().length) {
+    <div class="wlchart__scroll">
+      <svg
+        class="wlchart__svg"
+        [attr.width]="width()"
+        [attr.height]="H"
+        [attr.viewBox]="'0 0 ' + width() + ' ' + H"
+        role="img"
+        [attr.aria-label]="summary()"
+      >
+        @if (ceilingLineY(); as ly) {
+          <line
+            class="wlchart__ceiling"
+            [attr.x1]="padX"
+            [attr.x2]="width() - padX"
+            [attr.y1]="ly"
+            [attr.y2]="ly"
+          />
+          <text class="wlchart__ceiling-label" [attr.x]="width() - padX" [attr.y]="ly - 4" text-anchor="end">{{
+            ceilingLineLabel()
+          }}</text>
+        }
+
+        @for (b of bars(); track b.key; let i = $index) {
+          <g class="wlchart__bar" [attr.transform]="'translate(' + xFor(i) + ', 0)'">
+            <rect
+              class="wlchart__planned"
+              x="0"
+              [attr.y]="yFor(b.planned ?? 0)"
+              [attr.width]="barWidth()"
+              [attr.height]="heightFor(b.planned ?? 0)"
+              rx="2"
+            />
+            @if (!b.isFuture) {
+              <rect
+                class="wlchart__done"
+                x="0"
+                [attr.y]="yFor(b.done)"
+                [attr.width]="barWidth()"
+                [attr.height]="heightFor(b.done)"
+                rx="2"
+                [attr.fill]="colorFor(b)"
+              />
+            }
+            <title>{{ tooltipFor(b) }}</title>
+            @if (showLabel(i)) {
+              <text
+                class="wlchart__label"
+                [attr.x]="barWidth() / 2"
+                [attr.y]="labelY"
+                text-anchor="end"
+                [attr.transform]="'rotate(-45 ' + barWidth() / 2 + ' ' + labelY + ')'"
+              >{{ b.label }}</text>
+            }
+          </g>
+        }
+      </svg>
+    </div>
+
+    <p class="wlchart__legend">
+      <span class="wlchart__swatch wlchart__swatch--planned" aria-hidden="true"></span>
+      outline = planned (schedule header)
+      <span class="wlchart__legend-sep" aria-hidden="true">·</span>
+      solid = completed (struck rows, priced with the current config):
+      <span class="wlchart__legend-band">
+        <span class="wlchart__swatch wlchart__swatch--light" aria-hidden="true"></span>Light
+      </span>
+      <span class="wlchart__legend-band">
+        <span class="wlchart__swatch wlchart__swatch--moderate" aria-hidden="true"></span>Moderate
+      </span>
+      <span class="wlchart__legend-band">
+        <span class="wlchart__swatch wlchart__swatch--heavy" aria-hidden="true"></span>Heavy
+      </span>
+      @if (ceiling() === null) {
+        <span class="wlchart__legend-band">
+          <span class="wlchart__swatch wlchart__swatch--unbanded" aria-hidden="true"></span>done (no ceiling known)
+        </span>
+      }
+    </p>
+  } @else {
+    <p class="wlchart-empty">Nothing to chart yet.</p>
+  }
+</div>

@@ -372,6 +372,17 @@
                 />
               </div>
             }
+            @if (d.workload?.length) {
+              <div class="card po-card">
+                <h2>Workload</h2>
+                <p class="card__sub">Planned vs completed effort units, by day or by week.</p>
+                <app-workload-chart
+                  [workload]="d.workload!"
+                  [ceiling]="d.effortCeiling ?? null"
+                  [floor]="d.effortFloor ?? null"
+                />
+              </div>
+            }
             @if (d.onSchedule; as os) {
               <div class="card po-card gauge">
                 <h2>On schedule</h2>

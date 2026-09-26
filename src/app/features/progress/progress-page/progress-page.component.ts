@@ -25,6 +25,7 @@ import { StreakCalendarComponent } from '../streak-calendar/streak-calendar.comp
 import { TodayBoardComponent } from '../today-board/today-board.component';
 import { RecognitionPanelComponent } from '../recognition-panel/recognition-panel.component';
 import { SegmentedBarComponent, SegmentedBarSegment } from '../segmented-bar/segmented-bar.component';
+import { WorkloadChartComponent } from '../workload-chart/workload-chart.component';
 import { Technique } from '../../../core/models/progress.model';
 
 type ComfortFilter = 'all' | Comfort;
@@ -104,6 +105,7 @@ const PIPELINE_COMFORT: Record<string, Comfort> = {
     TodayBoardComponent,
     RecognitionPanelComponent,
     SegmentedBarComponent,
+    WorkloadChartComponent,
   ],
 })
 export class ProgressPageComponent {

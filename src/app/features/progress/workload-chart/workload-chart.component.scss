@@ -1,0 +1,125 @@
+.wlchart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+// ── View toggle — styled like today-board's .today-board__expand-toggle ────────────────
+.wlchart__toolbar {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.wlchart__toggle {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+
+  &:hover, &:focus-visible { border-color: var(--color-accent); color: var(--color-text); outline: none; }
+}
+
+.wlchart__toggle--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+// Horizontal scroller, not a shrink-to-fit SVG: at up to 56 daily bars the chart is wider
+// than most cards, and scaling it down via `width: 100%` would shrink the 7px/8px labels
+// below legibility. The SVG renders at its own intrinsic width/height (1 viewBox unit = 1
+// CSS px) and this wrapper scrolls instead.
+.wlchart__scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.wlchart__svg {
+  display: block;
+}
+
+.wlchart__ceiling {
+  stroke: var(--color-text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  opacity: 0.6;
+}
+
+.wlchart__ceiling-label {
+  fill: var(--color-text-muted);
+  font-size: 8px;
+  font-family: var(--font-mono);
+}
+
+.wlchart__planned {
+  fill: var(--color-bg-raised);
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.wlchart__done {
+  // A 2px surface ring separates the solid "done" bar from the outline "planned" bar it
+  // overlaps, per the dataviz skill's overlapping-marks spacer rule.
+  stroke: var(--color-bg-card);
+  stroke-width: 2;
+}
+
+.wlchart__label {
+  fill: var(--color-text-muted);
+  font-size: 7px;
+  font-family: var(--font-mono);
+}
+
+.wlchart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.wlchart__legend-sep {
+  margin: 0 4px;
+}
+
+// One per band name, so each done-bar color the chart can actually draw is named in the
+// legend — a single generic "solid" swatch would misrepresent the three colors bars are
+// actually filled with.
+.wlchart__legend-band {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wlchart__swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.wlchart__swatch--planned {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+}
+
+.wlchart__swatch--light { background: var(--color-easy); }
+.wlchart__swatch--moderate { background: var(--color-medium); }
+.wlchart__swatch--heavy { background: var(--color-hard); }
+// Only shown when `ceiling()` is null — a done bar can't be banded without one, so it falls
+// back to this neutral fill (see WorkloadChartComponent.colorFor).
+.wlchart__swatch--unbanded { background: var(--color-accent); }
+
+.wlchart-empty {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}

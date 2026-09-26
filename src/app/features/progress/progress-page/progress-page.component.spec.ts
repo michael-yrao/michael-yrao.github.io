@@ -353,6 +353,33 @@ describe('ProgressPageComponent', () => {
     expect(indices).toEqual([...indices].sort((a, b) => a - b));
   });
 
+  it('renders the Workload card on the Activity tab when the summary carries workload', () => {
+    progress.data.set({
+      ...makeSummary(),
+      workload: [{ date: '2026-09-20', planned: 6, done: 5, built: 6, partial: false }],
+    });
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'activity');
+
+    const headings = Array.from(fixture.nativeElement.querySelectorAll('#panel-activity h2')) as HTMLElement[];
+    expect(headings.some((h) => h.textContent === 'Workload')).toBe(true);
+    expect(fixture.nativeElement.querySelector('app-workload-chart')).toBeTruthy();
+  });
+
+  it('omits the Workload card on the Activity tab when the summary carries no workload', () => {
+    // makeSummary() carries no `workload` field at all — the same "an older contract
+    // predating it still renders identically" case the model's own doc comment describes.
+    progress.data.set(makeSummary());
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'activity');
+
+    const headings = Array.from(fixture.nativeElement.querySelectorAll('#panel-activity h2')) as HTMLElement[];
+    expect(headings.some((h) => h.textContent === 'Workload')).toBe(false);
+    expect(fixture.nativeElement.querySelector('app-workload-chart')).toBeFalsy();
+  });
+
   it('switching to the Problems tab fetches details automatically', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();

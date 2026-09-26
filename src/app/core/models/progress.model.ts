@@ -153,6 +153,23 @@ export interface Schedule {
   days: ScheduleDay[];
 }
 
+/** One scheduled day's effort-unit accounting (cse-progress gamify.py's workload export) —
+ *  one entry per day that has a schedule header, live week or archive, sorted by date.
+ *  `planned` is the header's stated units (null when the header states none); `done` sums
+ *  the struck-through rows' price and `built` sums every row's price (done + remaining),
+ *  both re-priced under the CURRENT cse.config.yml — a rep struck weeks ago under an older
+ *  config still contributes its current-config price, not what it cost at the time.
+ *  `partial` is true when any row on the day couldn't be priced exactly (e.g. no match in
+ *  the price table), so a consumer can flag the day's numbers as approximate. Backs the
+ *  Activity tab's workload chart (planned vs completed units, by day or by week). */
+export interface WorkloadDay {
+  date: string;
+  planned: number | null;
+  done: number;
+  built: number;
+  partial: boolean;
+}
+
 /** One row of the Probe log (dsa/probes/README.md — cold, label-stripped, disposable
  *  recognition reps). `result` is the FIRST comfort glyph in the Result cell — the row is
  *  scored on the COLD call, not a later conversion (e.g. "🔴 → 🟡 (re-rep Sep 16)" reads 🔴). */
@@ -194,6 +211,10 @@ export interface ProgressData {
   effortFloor?: number;
   probes?: Probes | null;
   warnings?: string[];
+  /** The full, uncapped per-day effort-unit history — see `WorkloadDay`. Optional/additive:
+   *  an older contract predating it still renders identically (the workload chart's card
+   *  simply doesn't appear). */
+  workload?: WorkloadDay[];
 }
 
 /** A trophy-case graduate reduced to the fields the landing needs — no timeline/repDates. */
@@ -238,4 +259,9 @@ export interface ProgressSummary {
    *  small either way); null when no Probe log table was found. */
   probes?: Probes | null;
   warnings?: string[];
+  /** The last `SUMMARY_STUDY_DAYS_WINDOW` days of `WorkloadDay` entries (cse-progress caps
+   *  this file's window; the full, uncapped history lives on `ProgressData.workload`) —
+   *  small either way, rides the summary so the Activity tab's workload chart renders with
+   *  no fetch. See `WorkloadDay`. */
+  workload?: WorkloadDay[];
 }

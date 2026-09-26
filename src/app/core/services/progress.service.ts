@@ -72,6 +72,7 @@ function summaryFromFull(full: ProgressData): ProgressSummary {
     effortFloor: full.effortFloor,
     probes: full.probes,
     warnings: full.warnings,
+    workload: full.workload,
   };
 }
 

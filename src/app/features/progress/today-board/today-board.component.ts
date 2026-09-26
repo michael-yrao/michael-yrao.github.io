@@ -8,9 +8,8 @@ import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
+import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
-
-type WorkloadBand = 'Light' | 'Moderate' | 'Heavy';
 
 interface Workload {
   units: number;
@@ -18,11 +17,6 @@ interface Workload {
   pct: number;
   band: WorkloadBand;
 }
-
-// Heavy at 90% of ceiling — matches the language the schedule's own build notes already use
-// ("Mon priced 8.8 over ceiling") — a day this close to the cap reads as heavy even before
-// it's technically over. Below this and above the floor is the (unremarkable) Moderate band.
-const HEAVY_THRESHOLD = 0.9;
 
 const COMPLEXITY_GATE_TITLE = 'Complexity gate';
 const RE_ASK_SUFFIX = 're-asks';
@@ -226,10 +220,7 @@ export class TodayBoardComponent {
     const units = day.units;
     const floor = this.effortFloor();
     const pct = Math.min(100, (units / ceiling) * 100);
-    let band: WorkloadBand;
-    if (units >= HEAVY_THRESHOLD * ceiling) band = 'Heavy';
-    else if (floor != null && units <= floor) band = 'Light';
-    else band = 'Moderate';
+    const band = workloadBand(units, ceiling, floor);
     return { units, ceiling, pct, band };
   });
 
