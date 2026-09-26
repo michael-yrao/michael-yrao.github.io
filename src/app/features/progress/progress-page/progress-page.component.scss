@@ -189,12 +189,18 @@
 // side of it, so it reads as a control rather than another fact in the header line.
 // Icon-only (⇄) picker toggle sitting right after the repo slug — muted like the slug, accent
 // on hover/focus, with the same focus ring the slug link uses.
+// Set like a superscript on the slug: the flex gap between the two is pulled back so the
+// glyph hugs the name, and it is raised half an em so it reads as an exponent, not the
+// next word on the line.
 .progress__repo-change {
   @extend %btn-reset;
   @extend %focus-ring-2;
+  position: relative;
+  top: -0.5em;
+  margin-left: calc(2px - var(--space-md));
   border-radius: var(--radius-sm);
-  padding: 0 4px;
-  font-size: 0.9rem;
+  padding: 0 3px;
+  font-size: 0.7rem;
   line-height: 1;
   color: var(--color-text-muted);
   transition: color var(--transition-fast);
