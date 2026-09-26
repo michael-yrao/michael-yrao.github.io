@@ -12,7 +12,6 @@ import { EventsService } from '../../../core/services/events.service';
 import { LoadStatus } from '../../../core/services/github-file.service';
 import { EVENTS_FEED_ENABLED } from '../../../core/data/site-links';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
-import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
 import {
   DEFAULT_EVENTS_FILTER,
   EventAreaFilter,
@@ -39,7 +38,7 @@ export const EVENTS_FEED_ENABLED_TOKEN = new InjectionToken<boolean>(
   templateUrl: './events-page.component.html',
   styleUrls: ['./events-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageHeaderComponent, LibrarySubnavComponent],
+  imports: [PageHeaderComponent],
 })
 export class EventsPageComponent {
   private readonly events = inject(EventsService);

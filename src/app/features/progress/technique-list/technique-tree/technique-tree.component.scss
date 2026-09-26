@@ -10,7 +10,10 @@
   padding: var(--space-sm);
 }
 
-.tech-tree__svg { display: block; }
+// styles.scss caps every `svg` at `max-width: 100%`, which would scale this wide diagram down
+// to fit the card (unreadably small). The tree renders at its natural pixel size and the
+// wrapper above scrolls instead.
+.tech-tree__svg { display: block; max-width: none; }
 
 .tech-tree__edge {
   fill: none;
