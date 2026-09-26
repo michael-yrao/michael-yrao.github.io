@@ -361,17 +361,6 @@
              an activity-history fact, and it's what the 🏆 pipeline segment now drills to). -->
         @if (isTabActive('activity')) {
           <div class="tabpanel" role="tabpanel" id="panel-activity" aria-labelledby="tab-activity">
-            @if (d.studyDays) {
-              <div class="card po-card">
-                <h2>Study-day calendar</h2>
-                <p class="card__sub">When did I practice? A filled cell is a study day.</p>
-                <app-streak-calendar
-                  [studyDays]="d.studyDays"
-                  [current]="d.streak.current"
-                  [longest]="d.streak.longest"
-                />
-              </div>
-            }
             @if (d.workload?.length) {
               <div class="card po-card">
                 <h2>Workload</h2>
@@ -380,6 +369,17 @@
                   [workload]="d.workload!"
                   [ceiling]="d.effortCeiling ?? null"
                   [floor]="d.effortFloor ?? null"
+                />
+              </div>
+            }
+            @if (d.studyDays) {
+              <div class="card po-card">
+                <h2>Study-day calendar</h2>
+                <p class="card__sub">When did I practice? A filled cell is a study day.</p>
+                <app-streak-calendar
+                  [studyDays]="d.studyDays"
+                  [current]="d.streak.current"
+                  [longest]="d.streak.longest"
                 />
               </div>
             }

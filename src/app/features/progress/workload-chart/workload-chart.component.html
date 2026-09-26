@@ -58,25 +58,36 @@
           </g>
         }
 
-        <!-- Painted AFTER the bars: SVG paints in document order, so drawn first the line and
-             its label vanish behind any bar at or above the ceiling (exactly the bars the line
-             exists to flag). The label also carries a halo (see scss) for the bars it crosses. -->
+        <!-- Painted AFTER the bars: SVG paints in document order, so drawn first the line would
+             vanish behind any bar at or above the ceiling (exactly the bars the line exists to
+             flag). The tick itself lives outside the bars, in the right gutter (padRight), so
+             it never crosses a bar — only the line still needs the after-bars ordering. -->
         @if (ceilingLineY(); as ly) {
           <line
             class="wlchart__ceiling"
             [attr.x1]="padX"
-            [attr.x2]="width() - padX"
+            [attr.x2]="width() - padRight"
             [attr.y1]="ly"
             [attr.y2]="ly"
           />
-          <text class="wlchart__ceiling-label" [attr.x]="width() - padX" [attr.y]="ly - 4" text-anchor="end">{{
-            ceilingLineLabel()
-          }}</text>
+          <text
+            class="wlchart__ceiling-tick"
+            [attr.x]="width() - padRight + tickGap"
+            [attr.y]="ly + tickBaselineNudge"
+            text-anchor="start"
+          >{{ ceilingTick() }}</text>
         }
       </svg>
     </div>
 
     <p class="wlchart__legend">
+      @if (ceilingLegend()) {
+        <span class="wlchart__legend-band">
+          <span class="wlchart__swatch wlchart__swatch--ceiling" aria-hidden="true"></span>dashed line = {{
+            ceilingLegend()
+          }}</span>
+        <span class="wlchart__legend-sep" aria-hidden="true">·</span>
+      }
       <span class="wlchart__swatch wlchart__swatch--planned" aria-hidden="true"></span>
       outline = planned (schedule header)
       <span class="wlchart__legend-sep" aria-hidden="true">·</span>

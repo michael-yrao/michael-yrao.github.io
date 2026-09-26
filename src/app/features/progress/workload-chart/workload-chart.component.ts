@@ -84,12 +84,19 @@ export class WorkloadChartComponent {
 
   // ── Layout (viewBox units — fixed proportions like problem-timeline.component.ts) ──────
   readonly padX = 32;
+  // The ceiling line no longer carries a label inside the plot, but it still needs a right
+  // gutter of its own — outside the bars — for the axis tick that replaces that label.
+  readonly padRight = 36;
   readonly padTop = 16;
   readonly plotH = 160;
   readonly labelGapY = 10;
   readonly labelRowH = 46;
   readonly H = this.padTop + this.plotH + this.labelRowH;
   private readonly minW = 640;
+  // Horizontal offset from the ceiling line's right end to its tick text, and the tick's
+  // vertical nudge (half an 8px glyph's cap height) to sit centred on the line.
+  readonly tickGap = 4;
+  readonly tickBaselineNudge = 3;
 
   // Bar width/spacing follow the CURRENT view (see the per-view constants above) — the
   // template and xFor()/width() all read these, never the per-view constants directly, so
@@ -142,7 +149,7 @@ export class WorkloadChartComponent {
   }
 
   readonly width = computed(() =>
-    Math.max(this.minW, this.padX * 2 + this.barSpacing() * this.bars().length),
+    Math.max(this.minW, this.padX + this.padRight + this.barSpacing() * this.bars().length),
   );
 
   private readonly ceilingLine = computed<number | null>(() => {
@@ -164,10 +171,18 @@ export class WorkloadChartComponent {
   });
 
   // Rounded to 1dp — the weekly line is ceiling * 7, and floating multiplication (e.g. 8.1 *
-  // 7) can otherwise print a value like "56.699999999999996".
-  readonly ceilingLineLabel = computed(() => {
+  // 7) can otherwise print a value like "56.699999999999996". The tick is just the number
+  // (it sits in a narrow axis gutter); the legend spells out what the number means.
+  readonly ceilingTick = computed(() => {
     const cl = this.ceilingLine();
-    return cl == null ? '' : `ceiling ${roundToTenth(cl)}`;
+    return cl == null ? '' : `${roundToTenth(cl)}`;
+  });
+
+  readonly ceilingLegend = computed(() => {
+    const cl = this.ceilingLine();
+    if (cl == null) return '';
+    const unit = this.view() === 'daily' ? 'units/day' : 'units/week';
+    return `ceiling ${roundToTenth(cl)} ${unit}`;
   });
 
   xFor(index: number): number {

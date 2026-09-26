@@ -43,23 +43,19 @@
   display: block;
 }
 
+// The target line reads in the theme's full text colour, not the muted one — it is the
+// chart's one reference and sits over the bars, so it must never fade into them.
 .wlchart__ceiling {
-  stroke: var(--color-text-muted);
+  stroke: var(--color-text);
   stroke-width: 1;
   stroke-dasharray: 4 3;
-  opacity: 0.6;
+  opacity: 0.85;
 }
 
-// Drawn over the bars (see the template), so a card-coloured halo keeps the text legible
-// where it crosses a bar; `paint-order: stroke` paints the halo under the glyph fill.
-.wlchart__ceiling-label {
-  fill: var(--color-text-muted);
+.wlchart__ceiling-tick {
+  fill: var(--color-text);
   font-size: 8px;
   font-family: var(--font-mono);
-  paint-order: stroke;
-  stroke: var(--color-bg-card);
-  stroke-width: 3px;
-  stroke-linejoin: round;
 }
 
 .wlchart__planned {
@@ -115,6 +111,16 @@
 .wlchart__swatch--planned {
   background: var(--color-bg-raised);
   border: 1px solid var(--color-border);
+}
+
+// Matches the ceiling line's own dashed-stroke look (see .wlchart__ceiling) rather than a
+// filled block, since the line itself has no fill.
+.wlchart__swatch--ceiling {
+  width: 14px;
+  height: 0;
+  background: none;
+  border-top: 1px dashed var(--color-text);
+  opacity: 0.85;
 }
 
 .wlchart__swatch--light { background: var(--color-easy); }

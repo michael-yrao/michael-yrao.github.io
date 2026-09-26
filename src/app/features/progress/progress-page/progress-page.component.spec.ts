@@ -353,7 +353,7 @@ describe('ProgressPageComponent', () => {
     expect(indices).toEqual([...indices].sort((a, b) => a - b));
   });
 
-  it('renders the Workload card on the Activity tab when the summary carries workload', () => {
+  it('renders the Workload card on the Activity tab when the summary carries workload, first and before the calendar', () => {
     progress.data.set({
       ...makeSummary(),
       workload: [{ date: '2026-09-20', planned: 6, done: 5, built: 6, partial: false }],
@@ -362,9 +362,16 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'activity');
 
-    const headings = Array.from(fixture.nativeElement.querySelectorAll('#panel-activity h2')) as HTMLElement[];
+    const panel = fixture.nativeElement.querySelector('#panel-activity')!;
+    const headings = Array.from(panel.querySelectorAll('h2')) as HTMLElement[];
     expect(headings.some((h) => h.textContent === 'Workload')).toBe(true);
     expect(fixture.nativeElement.querySelector('app-workload-chart')).toBeTruthy();
+
+    const firstCardHeading = panel.querySelector('.card h2') as HTMLElement;
+    expect(firstCardHeading.textContent).toBe('Workload');
+    const workloadIndex = headings.findIndex((h) => h.textContent === 'Workload');
+    const calendarIndex = headings.findIndex((h) => h.textContent === 'Study-day calendar');
+    expect(calendarIndex).toBeGreaterThan(workloadIndex);
   });
 
   it('omits the Workload card on the Activity tab when the summary carries no workload', () => {

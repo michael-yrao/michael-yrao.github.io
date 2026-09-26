@@ -127,19 +127,21 @@ describe('WorkloadChartComponent', () => {
     expect(legendText).toContain('no ceiling known');
   });
 
-  it('rounds a fractional weekly ceiling line to 1dp (8.1 * 7 -> "ceiling 56.7")', () => {
+  it('rounds a fractional weekly ceiling to 1dp (8.1 * 7 -> tick "56.7", legend "ceiling 56.7 units/week")', () => {
     const workload = [makeDay({ date: addDaysISO(BASE_DATE, 0) })];
     const fixture = createFixture(workload, 8.1, 3);
 
     clickWeeklyToggle(fixture);
 
-    const label = fixture.nativeElement.querySelector('.wlchart__ceiling-label')?.textContent;
-    expect(label).toBe('ceiling 56.7');
+    const tick = fixture.nativeElement.querySelector('.wlchart__ceiling-tick')?.textContent;
+    expect(tick).toBe('56.7');
+    const legendText = fixture.nativeElement.querySelector('.wlchart__legend')?.textContent ?? '';
+    expect(legendText).toContain('ceiling 56.7 units/week');
   });
 
-  it('paints the ceiling line and label AFTER the bars, so over-ceiling bars never hide them', () => {
+  it('paints the ceiling line and tick AFTER the bars, so over-ceiling bars never hide them', () => {
     // A 12-unit day against a ceiling of 8: the bar tops out above the ceiling line, which SVG
-    // paints in document order — the line/label must come after every bar group in the DOM.
+    // paints in document order — the line/tick must come after every bar group in the DOM.
     const workload = [makeDay({ date: addDaysISO(BASE_DATE, 0), planned: 12, done: 12 })];
     const fixture = createFixture(workload, 8, 3);
 
@@ -147,9 +149,23 @@ describe('WorkloadChartComponent', () => {
     const children = Array.from(svg.children);
     const lastBarIndex = children.map((c) => c.classList.contains('wlchart__bar')).lastIndexOf(true);
     const lineIndex = children.findIndex((c) => c.classList.contains('wlchart__ceiling'));
-    const labelIndex = children.findIndex((c) => c.classList.contains('wlchart__ceiling-label'));
+    const tickIndex = children.findIndex((c) => c.classList.contains('wlchart__ceiling-tick'));
     expect(lineIndex).toBeGreaterThan(lastBarIndex);
-    expect(labelIndex).toBeGreaterThan(lastBarIndex);
+    expect(tickIndex).toBeGreaterThan(lastBarIndex);
+  });
+
+  it('places the ceiling tick outside the bars, in the right gutter, and names the line in the legend', () => {
+    const workload = Array.from({ length: 3 }, (_, i) => makeDay({ date: addDaysISO(BASE_DATE, i) }));
+    const fixture = createFixture(workload, 8, 3);
+
+    const tick = fixture.nativeElement.querySelector('.wlchart__ceiling-tick')!;
+    const component = fixture.componentInstance;
+    const lastBarIndex = workload.length - 1;
+    const lastBarRightEdge = component.xFor(lastBarIndex) + component.barWidth();
+    expect(Number(tick.getAttribute('x'))).toBeGreaterThan(lastBarRightEdge);
+
+    const legendText = fixture.nativeElement.querySelector('.wlchart__legend')?.textContent ?? '';
+    expect(legendText).toContain('ceiling 8 units/day');
   });
 
   it('sets a summarizing aria-label on the svg (role="img")', () => {
