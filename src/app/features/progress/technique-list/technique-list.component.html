@@ -10,62 +10,44 @@
     <button
       type="button"
       class="tech-viewbar__btn"
-      [class.tech-viewbar__btn--active]="view() === 'map'"
-      [attr.aria-pressed]="view() === 'map'"
-      (click)="setView('map')"
-    >Map</button>
+      [class.tech-viewbar__btn--active]="view() === 'tree'"
+      [attr.aria-pressed]="view() === 'tree'"
+      (click)="setView('tree')"
+    >Tree</button>
   </div>
 
-  @for (group of groups(); track group.tier) {
-    <div class="tech-list__tier">
-      <h3 class="tech-list__tier-label">{{ group.label }}</h3>
-      @for (fam of group.families; track fam.family) {
-        <div class="tech-list__group">
-          <h4 class="tech-list__family">{{ fam.family }}</h4>
-          @if (view() === 'map') {
-            <div class="tech-map">
-              @for (t of fam.items; track t.name) {
-                @let stats = statsFor(t);
-                <button
-                  type="button"
-                  class="tech-cell tech-cell--{{ comfortClass(t.bestComfort) }}"
-                  [class.tech-cell--not-started]="!t.started"
-                  [class.tech-cell--open]="isExpanded(t)"
-                  [attr.aria-expanded]="isExpanded(t)"
-                  [title]="t.name"
-                  (click)="toggle(t)"
-                >
-                  <span class="tech-cell__name">{{ shortName(t.name) }}</span>
-                  <span class="tech-cell__ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
-                  @if (stats.greenCount > 0 || stats.lastTouched) {
-                    <span class="tech-cell__stats">
-                      {{ stats.greenCount }} 🟢
-                      @if (stats.lastTouched) {
-                        · {{ shortMonthDay(stats.lastTouched) }}
-                      }
-                    </span>
-                  }
-                  @if (t.started && t.thin) {
-                    <span class="tech-cell__mark tech-cell__mark--thin" aria-label="thin">▲</span>
-                  }
-                  @if (t.started && t.hasVariantGap) {
-                    <span class="tech-cell__mark tech-cell__mark--gap" aria-label="variant gap">◆</span>
-                  }
-                </button>
+  @if (view() === 'tree') {
+    <app-technique-tree
+      [techniques]="techniques()"
+      [details]="details()"
+      [expandedName]="treeSelectedName()"
+      (select)="selectInTree($event)"
+    />
+    @if (treeSelected(); as t) {
+      @let stats = statsFor(t);
+      <div class="tech-row__detail tech-tree__detail">
+        <h5 class="tech-tree__detail-title">
+          {{ t.bestComfort || '—' }} {{ t.name }}
+          <span class="tech-tree__detail-ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
+          @if (stats.greenCount > 0 || stats.lastTouched) {
+            <span class="tech-tree__detail-stats">
+              {{ stats.greenCount }} 🟢
+              @if (stats.lastTouched) {
+                · {{ shortMonthDay(stats.lastTouched) }}
               }
-            </div>
-            @for (t of fam.items; track t.name) {
-              @if (isExpanded(t)) {
-                <div class="tech-row__detail tech-map__detail">
-                  <h5 class="tech-map__detail-title">
-                    {{ t.bestComfort || '—' }} {{ t.name }}
-                    <span class="tech-cell__ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
-                  </h5>
-                  <ng-container *ngTemplateOutlet="detail; context: { $implicit: t }" />
-                </div>
-              }
-            }
-          } @else {
+            </span>
+          }
+        </h5>
+        <ng-container *ngTemplateOutlet="detail; context: { $implicit: t }" />
+      </div>
+    }
+  } @else {
+    @for (group of groups(); track group.tier) {
+      <div class="tech-list__tier">
+        <h3 class="tech-list__tier-label">{{ group.label }}</h3>
+        @for (fam of group.families; track fam.family) {
+          <div class="tech-list__group">
+            <h4 class="tech-list__family">{{ fam.family }}</h4>
             <ul class="tech-list__items">
               @for (t of fam.items; track t.name) {
                 <li class="tech-row" [class.tech-row--not-started]="!t.started">
@@ -101,10 +83,10 @@
                 </li>
               }
             </ul>
-          }
-        </div>
-      }
-    </div>
+          </div>
+        }
+      </div>
+    }
   }
 </div>
 

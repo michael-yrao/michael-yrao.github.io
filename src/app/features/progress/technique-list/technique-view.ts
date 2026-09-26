@@ -1,15 +1,16 @@
 import { Comfort, ProblemProgress, Technique } from '../../../core/models/progress.model';
 
-/** The Mastery tab's technique-breadth drill: a flat list of rows, or a heatmap grid grouped
- *  the same way (tier -> family). Persisted per viewer so a reload keeps the last choice. */
-export type TechniqueView = 'list' | 'map';
+/** The Mastery tab's technique-breadth drill: a flat list of rows, or a skill tree (nodes
+ *  joined by prerequisite edges) grouped the same way (tier -> family) for the list, and as
+ *  one graph for the tree. Persisted per viewer so a reload keeps the last choice. */
+export type TechniqueView = 'list' | 'tree';
 
 export const TECHNIQUE_VIEW_STORAGE_KEY = 'po.progress.techniqueView';
 
-/** Anything but the literal 'map' falls back to 'list', the default — a corrupted or
- *  old-shape localStorage value must never crash the tab. */
+/** Anything but the literal 'tree' falls back to 'list', the default — a corrupted or
+ *  old-shape localStorage value (including the retired 'map') must never crash the tab. */
 export function parseStoredView(raw: string | null): TechniqueView {
-  return raw === 'map' ? 'map' : 'list';
+  return raw === 'tree' ? 'tree' : 'list';
 }
 
 /** Reads the persisted view — try/catch as in `big-o-deck.ts`'s filter read, since
@@ -35,27 +36,12 @@ export function writeStoredView(view: TechniqueView): void {
 export const COMFORT_ORDER: readonly Comfort[] = ['🔴', '🟡', '🟢', '🎓', '🏆'];
 
 const GREEN_RANK = COMFORT_ORDER.indexOf('🟢');
+const GRAD_RANK = COMFORT_ORDER.indexOf('🎓');
 
 /** A comfort's position in COMFORT_ORDER (weakest = 0), or -1 for null — never NaN, so
  *  callers can compare ranks with plain `<`/`>=`. */
 export function comfortRank(comfort: Comfort | null): number {
   return comfort === null ? -1 : COMFORT_ORDER.indexOf(comfort);
-}
-
-export type ComfortClass = 'blank' | 'shaky' | 'clean' | 'grad' | 'retired' | 'none';
-
-const COMFORT_CLASS: Readonly<Record<Comfort, ComfortClass>> = {
-  '🔴': 'blank',
-  '🟡': 'shaky',
-  '🟢': 'clean',
-  '🎓': 'grad',
-  '🏆': 'retired',
-};
-
-/** The pipeline's .seg-* vocabulary, applied to a single technique's best comfort — 'none'
- *  for a not-started technique (bestComfort null). */
-export function comfortClass(comfort: Comfort | null): ComfortClass {
-  return comfort === null ? 'none' : COMFORT_CLASS[comfort];
 }
 
 export interface TechniqueStats {
@@ -64,16 +50,24 @@ export interface TechniqueStats {
   readonly lastTouched: string | null;
   /** Count of matched problems at 🟢 or better. */
   readonly greenCount: number;
+  /** Count of matched problems at 🎓 or 🏆 — the skill tree's mastery fallback for an older
+   *  contract with no `Technique.graduatedCount` (see `isMastered`). */
+  readonly graduatedCount: number;
   /** The least-mastered comfort among matched problems, or null when none matched. */
   readonly weakestComfort: Comfort | null;
 }
 
-const EMPTY_STATS: TechniqueStats = { lastTouched: null, greenCount: 0, weakestComfort: null };
+const EMPTY_STATS: TechniqueStats = {
+  lastTouched: null,
+  greenCount: 0,
+  graduatedCount: 0,
+  weakestComfort: null,
+};
 
-/** Derives a technique's map-cell stats by joining its problems[] (LC numbers) against the
- *  fetched details (byNumber) — pure, never mutates either input. Mirrors
- *  TechniqueListComponent.problemsFor's join, folded into three summary numbers instead of a
- *  full problem list. */
+/** Derives a technique's detail-panel stats by joining its problems[] (LC numbers) against
+ *  the fetched details (byNumber) — pure, never mutates either input. Mirrors
+ *  TechniqueListComponent.problemsFor's join, folded into summary numbers instead of a full
+ *  problem list. */
 export function deriveTechniqueStats(
   t: Technique,
   byNumber: ReadonlyMap<number, ProblemProgress>,
@@ -84,19 +78,31 @@ export function deriveTechniqueStats(
   const repDates = matched.flatMap((p) => p.repDates);
   const lastTouched = repDates.length ? repDates.reduce((max, d) => (d > max ? d : max)) : null;
   const greenCount = matched.filter((p) => comfortRank(p.comfort) >= GREEN_RANK).length;
+  const graduatedCount = matched.filter((p) => comfortRank(p.comfort) >= GRAD_RANK).length;
   const weakestComfort = matched.reduce<Comfort>(
     (weakest, p) => (comfortRank(p.comfort) < comfortRank(weakest) ? p.comfort : weakest),
     matched[0].comfort,
   );
 
-  return { lastTouched, greenCount, weakestComfort };
+  return { lastTouched, greenCount, graduatedCount, weakestComfort };
+}
+
+/** The skill tree's two-state color rule: solid ("mastered") once the technique's graduated
+ *  (🎓/🏆) problem count reaches its declared `minProblems`, neutral otherwise — no gradient,
+ *  no comfort ladder. Prefers the technique's own `graduatedCount` (gamify.py's tally, correct
+ *  even before `details` has loaded); falls back to `stats.graduatedCount` (derived from
+ *  `details` once loaded) for an older contract predating that field, and to 0 before either
+ *  is available. */
+export function isMastered(t: Technique, stats: TechniqueStats | undefined): boolean {
+  const graduatedCount = t.graduatedCount ?? stats?.graduatedCount ?? 0;
+  return graduatedCount >= t.minProblems;
 }
 
 const TRAILING_PARENTHETICAL = /\s*\([^()]*\)\s*$/;
 
-/** Strips a trailing "(...)" qualifier for the map cell's tight label, e.g.
- *  "Two Pointers (opposite ends)" -> "Two Pointers". A name with no trailing parenthetical
- *  is returned unchanged (aside from trimming). */
+/** Strips a trailing "(...)" qualifier for a tight label, e.g. "Two Pointers (opposite
+ *  ends)" -> "Two Pointers". A name with no trailing parenthetical is returned unchanged
+ *  (aside from trimming). */
 export function shortName(name: string): string {
   return name.replace(TRAILING_PARENTHETICAL, '').trim();
 }

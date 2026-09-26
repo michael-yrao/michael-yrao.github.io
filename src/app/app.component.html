@@ -28,7 +28,7 @@
       </button>
     }
 
-    <!-- Menu drawer: two sections — primary (Progress, Library), secondary (Coach, Human) -->
+    <!-- Menu drawer: two sections — primary (Progress, Library, Events), secondary (Coach, Human) -->
     @if (isDrawerOpen()) {
       <div class="po-nav__drawer" id="po-nav-menu">
         <div class="po-nav__drawer-section">
@@ -51,6 +51,13 @@
             routerLinkActive="active"
             (click)="closeAll()"
             >Library</a
+          >
+          <a
+            class="po-nav__drawer-link"
+            routerLink="/events"
+            routerLinkActive="active"
+            (click)="closeAll()"
+            >Events</a
           >
         </div>
         <div class="po-nav__drawer-section po-nav__drawer-secondary">

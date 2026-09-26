@@ -1,0 +1,90 @@
+// ── Skill tree (round 5 — replaces the Map grid) ────────────────────────────────────────
+// Layered-DAG SVG: horizontal scroll when the diagram is wider than the viewport, since a
+// large curriculum can't be squeezed to fit without overlapping nodes.
+.tech-tree__scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  padding: var(--space-sm);
+}
+
+.tech-tree__svg { display: block; }
+
+.tech-tree__edge {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+}
+.tech-tree__edge--highlighted {
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+.tech-tree__arrowhead { fill: var(--color-border); }
+
+.tech-tree__node {
+  cursor: pointer;
+  outline: none;
+
+  &:focus-visible .tech-tree__rect {
+    stroke: var(--color-accent);
+    stroke-width: 2;
+  }
+}
+
+.tech-tree__rect {
+  fill: var(--color-bg-raised);
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+  transition: filter var(--transition-fast);
+}
+
+.tech-tree__node:hover .tech-tree__rect { filter: brightness(1.12); }
+
+// Two-state color: solid once graduated >= minProblems, neutral otherwise — no gradient,
+// no comfort ladder.
+.tech-tree__node--mastered .tech-tree__rect {
+  fill: var(--color-easy);
+  stroke: var(--color-easy);
+}
+.tech-tree__node--mastered .tech-tree__label,
+.tech-tree__node--mastered .tech-tree__ratio {
+  fill: var(--color-bg);
+}
+
+.tech-tree__node--not-started .tech-tree__rect {
+  stroke-dasharray: 4 3;
+}
+.tech-tree__node--not-started .tech-tree__label,
+.tech-tree__node--not-started .tech-tree__ratio {
+  fill: var(--color-text-muted);
+}
+
+.tech-tree__node--selected .tech-tree__rect {
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+}
+
+.tech-tree__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  fill: var(--color-text);
+}
+.tech-tree__ratio {
+  font-size: 0.66rem;
+  fill: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.tech-tree__legend {
+  margin: var(--space-xs) 0 0;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.tech-tree__footnote {
+  margin: var(--space-xs) 0 0;
+  font-size: 0.7rem;
+  color: var(--color-medium);
+}

@@ -104,6 +104,15 @@ export interface Technique {
   hasGreen: boolean;
   thin: boolean;
   hasVariantGap: boolean;
+  /** Prerequisite technique names (cse-progress's techniques.yml, exported by gamify.py) —
+   *  what this technique builds on, drawn as incoming edges in the skill tree. Optional,
+   *  additive: an older contract predating it renders every node as a root with no edges. */
+  buildsOn?: string[];
+  /** Count of this technique's problems at 🎓 or 🏆 (gamify.py's own tally, so it's correct
+   *  even before `details` has loaded). Optional, additive: an older contract predating it
+   *  falls back to deriving the count from `details` once loaded (0 until then) — see
+   *  `deriveTechniqueStats`/`isMastered` in technique-view.ts. */
+  graduatedCount?: number;
 }
 
 /** One row of the current week's Daily Schedule table (cse-progress gamify.py's

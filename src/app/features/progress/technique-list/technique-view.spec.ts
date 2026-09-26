@@ -2,15 +2,15 @@ import { vi } from 'vitest';
 
 import { ProblemProgress, Technique } from '../../../core/models/progress.model';
 import {
-  comfortClass,
   comfortRank,
   deriveTechniqueStats,
+  isMastered,
   parseStoredView,
   readStoredView,
   shortName,
   TECHNIQUE_VIEW_STORAGE_KEY,
   writeStoredView,
-} from './technique-map';
+} from './technique-view';
 
 function makeTechnique(overrides: Partial<Technique> = {}): Technique {
   return {
@@ -45,14 +45,15 @@ function makeProblem(overrides: Partial<ProblemProgress> = {}): ProblemProgress 
 }
 
 describe('parseStoredView', () => {
-  it("returns 'map' only for the literal string 'map'", () => {
-    expect(parseStoredView('map')).toBe('map');
+  it("returns 'tree' only for the literal string 'tree'", () => {
+    expect(parseStoredView('tree')).toBe('tree');
   });
 
-  it("falls back to 'list' for null, an unrelated string, or garbage", () => {
+  it("falls back to 'list' for null, the retired 'map', an unrelated string, or garbage", () => {
     expect(parseStoredView(null)).toBe('list');
+    expect(parseStoredView('map')).toBe('list');
     expect(parseStoredView('grid')).toBe('list');
-    expect(parseStoredView('MAP')).toBe('list');
+    expect(parseStoredView('TREE')).toBe('list');
     expect(parseStoredView('')).toBe('list');
   });
 });
@@ -65,9 +66,9 @@ describe('readStoredView / writeStoredView', () => {
   });
 
   it('round-trips a written view', () => {
-    writeStoredView('map');
-    expect(localStorage.getItem(TECHNIQUE_VIEW_STORAGE_KEY)).toBe('map');
-    expect(readStoredView()).toBe('map');
+    writeStoredView('tree');
+    expect(localStorage.getItem(TECHNIQUE_VIEW_STORAGE_KEY)).toBe('tree');
+    expect(readStoredView()).toBe('tree');
   });
 
   it('reading survives a localStorage getItem throw (private mode / blocked)', () => {
@@ -82,7 +83,7 @@ describe('readStoredView / writeStoredView', () => {
     const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('blocked');
     });
-    expect(() => writeStoredView('map')).not.toThrow();
+    expect(() => writeStoredView('tree')).not.toThrow();
     spy.mockRestore();
   });
 });
@@ -101,26 +102,13 @@ describe('comfortRank', () => {
   });
 });
 
-describe('comfortClass', () => {
-  it('maps every comfort to the pipeline .seg-* vocabulary', () => {
-    expect(comfortClass('🔴')).toBe('blank');
-    expect(comfortClass('🟡')).toBe('shaky');
-    expect(comfortClass('🟢')).toBe('clean');
-    expect(comfortClass('🎓')).toBe('grad');
-    expect(comfortClass('🏆')).toBe('retired');
-  });
-
-  it("maps null (not-started technique) to 'none'", () => {
-    expect(comfortClass(null)).toBe('none');
-  });
-});
-
 describe('deriveTechniqueStats', () => {
   it('returns empty stats when no problem in the technique matches byNumber', () => {
     const t = makeTechnique({ problems: [11] });
     expect(deriveTechniqueStats(t, new Map())).toEqual({
       lastTouched: null,
       greenCount: 0,
+      graduatedCount: 0,
       weakestComfort: null,
     });
   });
@@ -131,6 +119,7 @@ describe('deriveTechniqueStats', () => {
     expect(deriveTechniqueStats(t, byNumber)).toEqual({
       lastTouched: null,
       greenCount: 0,
+      graduatedCount: 0,
       weakestComfort: null,
     });
   });
@@ -143,6 +132,16 @@ describe('deriveTechniqueStats', () => {
       [3, makeProblem({ lcNumber: 3, comfort: '🎓' })],
     ]);
     expect(deriveTechniqueStats(t, byNumber).greenCount).toBe(2);
+  });
+
+  it('counts only matched problems at 🎓 or better toward graduatedCount', () => {
+    const t = makeTechnique({ problems: [1, 2, 3] });
+    const byNumber = new Map([
+      [1, makeProblem({ lcNumber: 1, comfort: '🟢' })],
+      [2, makeProblem({ lcNumber: 2, comfort: '🎓' })],
+      [3, makeProblem({ lcNumber: 3, comfort: '🏆' })],
+    ]);
+    expect(deriveTechniqueStats(t, byNumber).graduatedCount).toBe(2);
   });
 
   it('lastTouched is the max repDate across all matched problems, by ISO string compare', () => {
@@ -180,6 +179,29 @@ describe('deriveTechniqueStats', () => {
 
     expect(t.problems).toEqual(frozenProblems);
     expect(byNumber.get(1)).toBe(problem);
+  });
+});
+
+describe('isMastered', () => {
+  it('is true once the technique\'s own graduatedCount reaches minProblems', () => {
+    const t = makeTechnique({ minProblems: 2, graduatedCount: 2 });
+    expect(isMastered(t, undefined)).toBe(true);
+  });
+
+  it("is false below minProblems, using the technique's own graduatedCount", () => {
+    const t = makeTechnique({ minProblems: 3, graduatedCount: 1 });
+    expect(isMastered(t, undefined)).toBe(false);
+  });
+
+  it('falls back to stats.graduatedCount when the technique carries no graduatedCount (older contract)', () => {
+    const t = makeTechnique({ minProblems: 2, graduatedCount: undefined });
+    expect(isMastered(t, { lastTouched: null, greenCount: 2, graduatedCount: 2, weakestComfort: '🎓' })).toBe(true);
+    expect(isMastered(t, { lastTouched: null, greenCount: 1, graduatedCount: 1, weakestComfort: '🎓' })).toBe(false);
+  });
+
+  it('is false when neither graduatedCount nor stats is available', () => {
+    const t = makeTechnique({ minProblems: 1, graduatedCount: undefined });
+    expect(isMastered(t, undefined)).toBe(false);
   });
 });
 

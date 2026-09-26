@@ -11,19 +11,18 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
-import { Comfort, ProblemProgress, Technique, TechniqueTier } from '../../../core/models/progress.model';
+import { ProblemProgress, Technique, TechniqueTier } from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-date';
 import {
-  comfortClass as comfortClassFor,
-  ComfortClass,
   deriveTechniqueStats,
   readStoredView,
   shortName as shortNameFor,
   TechniqueStats,
   TechniqueView,
   writeStoredView,
-} from './technique-map';
+} from './technique-view';
+import { TechniqueTreeComponent } from './technique-tree/technique-tree.component';
 
 interface FamilyGroup {
   family: string;
@@ -67,7 +66,7 @@ const TIER_LABEL: Record<TechniqueTier, string> = {
   templateUrl: './technique-list.component.html',
   styleUrls: ['./technique-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgTemplateOutlet],
+  imports: [RouterLink, NgTemplateOutlet, TechniqueTreeComponent],
 })
 export class TechniqueListComponent {
   readonly techniques = input.required<Technique[]>();
@@ -78,17 +77,18 @@ export class TechniqueListComponent {
 
   private readonly expandedNames = signal<ReadonlySet<string>>(new Set());
 
-  /** List vs. Map (heatmap) — persisted per viewer, default List. */
+  /** List vs. Tree (skill tree) — persisted per viewer, default List. */
   readonly view = signal<TechniqueView>(readStoredView());
   private primed = false;
 
   constructor() {
-    // One-shot priming: the Map view's per-cell stats (green count, last-touched) need
-    // `details`, which the parent only fetches on-demand — same lazy pattern as a list row's
-    // own expand. Landing on Map with no details yet kicks that fetch off exactly once, via
-    // the first started technique; the (default) List view never triggers this.
+    // One-shot priming: the Tree view's per-node mastery (graduated count, for an older
+    // contract with no Technique.graduatedCount) needs `details`, which the parent only
+    // fetches on-demand — same lazy pattern as a list row's own expand. Landing on Tree with
+    // no details yet kicks that fetch off exactly once, via the first started technique; the
+    // (default) List view never triggers this.
     effect(() => {
-      if (this.view() !== 'map' || this.details() !== null || this.primed) return;
+      if (this.view() !== 'tree' || this.details() !== null || this.primed) return;
       const first = this.techniques().find((t) => t.started);
       if (!first) return;
       this.primed = true;
@@ -145,6 +145,38 @@ export class TechniqueListComponent {
     return this.stats().get(t.name)!;
   }
 
+  private readonly techniquesByName = computed<ReadonlyMap<string, Technique>>(() =>
+    new Map(this.techniques().map((t) => [t.name, t])),
+  );
+
+  /** The Tree view's own single-selection state — deliberately separate from the List view's
+   *  `expandedNames` (which supports several simultaneously-open rows). A Set-based "most
+   *  recently toggled" reused from `expandedNames` was tried and rejected: clicking the
+   *  already-selected node would toggle it OUT of the set but leave an earlier List-view
+   *  selection as the new "most recent", so the panel would jump to stale content instead of
+   *  closing; and selecting an older List-view entry would delete it from the shared set while
+   *  the panel kept showing whatever was still "most recent" in it. */
+  readonly treeSelectedName = signal<string | null>(null);
+
+  /** The selected technique itself, re-resolved against the current `techniques()` on every
+   *  read — not just captured once at selection time. `techniques()` can change out from
+   *  under an open selection (e.g. a `?repo=` switch to a log that never had this technique),
+   *  so this falls back to null rather than a stale/undefined object the template would throw
+   *  on (`t.bestComfort`) via a non-null assertion. */
+  readonly treeSelected = computed<Technique | null>(() => {
+    const name = this.treeSelectedName();
+    return name ? this.techniquesByName().get(name) ?? null : null;
+  });
+
+  /** A tree node click: selects it (same first-expand `expand` emission rule as `toggle()`),
+   *  or deselects when it's already the selection — a tree node always has exactly zero or
+   *  one selection, never the List view's multi-row toggle. */
+  selectInTree(t: Technique): void {
+    const isReselect = this.treeSelectedName() === t.name;
+    this.treeSelectedName.set(isReselect ? null : t.name);
+    if (!isReselect && t.started) this.expand.emit(t);
+  }
+
   setView(next: TechniqueView): void {
     this.view.set(next);
     writeStoredView(next);
@@ -175,10 +207,6 @@ export class TechniqueListComponent {
 
   vizRoute(lcNumber: number): string | null {
     return vizRouteFor(lcNumber);
-  }
-
-  comfortClass(comfort: Comfort | null): ComfortClass {
-    return comfortClassFor(comfort);
   }
 
   shortName(name: string): string {
