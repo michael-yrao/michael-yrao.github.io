@@ -2,11 +2,11 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 
 import { ProblemProgress, Technique } from '../../../../core/models/progress.model';
 import {
+  coverageTitle,
   deriveTechniqueStats,
   doneOf,
   isMastered,
   plannedTotalOf,
-  ratioTitle,
   shortName as shortNameFor,
   TechniqueStats,
 } from '../technique-view';
@@ -52,7 +52,7 @@ export class TechniqueMapComponent {
   // properties so the node-label template can call them per technique.
   readonly doneOf = doneOf;
   readonly plannedTotalOf = plannedTotalOf;
-  readonly ratioTitle = ratioTitle;
+  readonly coverageTitle = coverageTitle;
 
   readonly graph = computed(() => buildTechniqueGraph(this.techniques()));
 

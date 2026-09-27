@@ -43,7 +43,7 @@
     }
   } @else {
     <div class="tech-list__legend">
-      <span class="tech-list__legend-text">ratio and bar = done of planned · tick = enough to call it covered</span>
+      <span class="tech-list__legend-text">ratio and bar = done of planned · tick = enough to call it covered · green = covered, amber = not yet</span>
       <span class="tech-list__info-wrap" [class.tech-list__info-wrap--open]="infoOpen()">
         <button
           type="button"
@@ -55,6 +55,7 @@
         <span class="tech-list__info-bubble" id="tech-list-bar-info" role="tooltip">
           The ratio and the bar both read as done of everything planned for this technique.
           The tick marks how many done problems are enough to call it covered.
+          A green bar means it's covered; an amber bar means it isn't yet.
         </span>
       </span>
     </div>
@@ -75,7 +76,7 @@
                   >
                     <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
                     <span class="tech-row__name">{{ t.name }}</span>
-                    <span class="tech-row__ratio" [title]="ratioTitle(t)">{{ doneOf(t) }}/{{ plannedTotalOf(t) }}</span>
+                    <span class="tech-row__ratio">{{ doneOf(t) }}/{{ plannedTotalOf(t) }}</span>
                     @if (t.started) {
                       <span class="chip" [class]="statusChipClass(t)">{{ statusChipLabel(t) }}</span>
                       @if (variationChipLabel(t); as label) {
@@ -88,23 +89,18 @@
                     }
                     <span class="tech-row__caret" [class.tech-row__caret--open]="isExpanded(t)">▸</span>
                     @if (plannedTotalOf(t) > 0) {
-                      <span class="tech-row__bar-wrap">
+                      <span class="tech-row__bar-wrap" [attr.data-tip]="coverageTitle(t)">
                         <span
                           class="tech-row__bar"
                           role="progressbar"
                           aria-valuemin="0"
                           [attr.aria-valuenow]="doneOf(t)"
                           [attr.aria-valuemax]="plannedTotalOf(t)"
-                          [attr.aria-label]="barAriaLabel(t)"
+                          [attr.aria-label]="coverageTitle(t)"
                         >
-                          <span class="tech-row__bar-fill" [style.width.%]="barFillPercent(t)"></span>
+                          <span class="tech-row__bar-fill" [class]="barFillClass(t)" [style.width.%]="barFillPercent(t)"></span>
                           <span class="tech-row__bar-tick" [style.left.%]="thresholdPercent(t)"></span>
                         </span>
-                        @if (isThresholdBeyondPlan(t)) {
-                          <span class="tech-row__bar-caption">
-                            covered at {{ t.minProblems }} · only {{ plannedTotalOf(t) }} planned
-                          </span>
-                        }
                       </span>
                     }
                   </button>
@@ -124,10 +120,6 @@
 </div>
 
 <ng-template #detail let-t>
-  <p class="tech-row__summary">
-    Covered at {{ t.minProblems }} problem{{ t.minProblems === 1 ? '' : 's' }}.
-    {{ doneOf(t) }} done, {{ remainingPlanned(t) }}.
-  </p>
   @if (untriedVariationsFor(t).length) {
     <p class="tech-row__variations">Not tried yet: {{ untriedVariationsFor(t).join(', ') }}</p>
   }

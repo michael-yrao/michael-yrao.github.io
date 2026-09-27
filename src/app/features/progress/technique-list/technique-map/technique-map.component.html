@@ -80,7 +80,7 @@
           (keydown.enter)="onSelect(node.name)"
           (keydown.space)="$event.preventDefault(); onSelect(node.name)"
         >
-          <title>{{ ratioTitle(technique) }}</title>
+          <title>{{ coverageTitle(technique) }}</title>
           <rect class="tech-map__rect" [attr.width]="NODE_W" [attr.height]="NODE_H" rx="5" />
           <text class="tech-map__label" [attr.x]="NODE_W / 2" y="15" text-anchor="middle">{{ clampLabel(technique.name) }}</text>
           <text class="tech-map__ratio" [attr.x]="NODE_W / 2" y="29" text-anchor="middle">{{ doneOf(technique) }}/{{ plannedTotalOf(technique) }}</text>

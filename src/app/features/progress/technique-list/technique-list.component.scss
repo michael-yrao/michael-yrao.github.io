@@ -133,6 +133,10 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg-raised);
+  // A not-started row's `opacity` below creates its own stacking context, trapping the
+  // coverage tooltip's z-index inside it — the next row would paint over the bubble. Lifting
+  // the hovered/focused row above its siblings fixes that without changing its stacking otherwise.
+  &:hover, &:focus-within { position: relative; z-index: 1; }
 }
 
 .tech-row__toggle {
@@ -185,6 +189,7 @@
 // Forces the bar onto its own flex line under the row's wrapped comfort/name/ratio/chips/caret
 // line — the row is only ~260px wide on a 360px phone, so that content already wraps.
 .tech-row__bar-wrap {
+  position: relative; // anchors the coverage tooltip (data-tip) below the bar
   flex: 1 0 100%;
   display: flex;
   flex-direction: column;
@@ -199,24 +204,71 @@
   border: 1px solid var(--color-border);
   overflow: visible;
 }
+// Change 2 (Sep 27, 2026) — colour carries the coverage state, from the same `coverageState`
+// the chip's colour reads (barFillClass/statusChipClass), so the two can't disagree. No base
+// background: `notBegun` gets neither class, and the bar is 0% wide then anyway.
 .tech-row__bar-fill {
   display: block;
   height: 100%;
   border-radius: var(--radius-sm);
-  background: var(--color-accent);
   transition: width var(--transition-fast);
 }
-// The coverage-threshold tick — an absolutely positioned marker at thresholdPercent(t),
-// drawn slightly taller than the bar so it reads as a marker rather than part of the fill.
+.tech-row__bar-fill--covered { background: var(--color-easy); }
+.tech-row__bar-fill--in-progress { background: var(--color-medium); }
+// The coverage-threshold tick, an absolutely positioned marker at thresholdPercent(t). Only
+// two backgrounds land under it: the dark track (`inProgress` — done hasn't reached the tick
+// yet) or the green fill (`covered` — the fill already reaches it). `--color-text` alone reads
+// ~1.6:1 on green (too close); a `--color-bg` ring fixes that (~10:1) without hurting the
+// track case.
 .tech-row__bar-tick {
   position: absolute;
   top: -2px;
   bottom: -2px;
   width: 2px;
-  background: var(--color-text-muted);
+  background: var(--color-text);
+  box-shadow: 0 0 0 1px var(--color-bg);
   transform: translateX(-1px);
 }
-.tech-row__bar-caption { font-size: 0.68rem; color: var(--color-medium); }
+
+// ── Coverage hover tooltip (Change 3) — same data-tip pattern as groundedness-meter's own
+// `[data-tip]::after` (twin), copied not shared (Sass placeholders don't `@extend` across
+// stylesheets). Left-aligned below the bar (not right-aligned, unlike the meter); reveals on
+// hovering/focusing the whole row toggle, not the bar-wrap, so one data-tip covers the ratio
+// too without a second focus stop.
+$tech-tooltip-show-delay: 150ms;
+$tech-tooltip-fade: 120ms;
+$tech-tooltip-gap: 4px;
+
+.tech-row__bar-wrap[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + #{$tech-tooltip-gap});
+  left: 0;
+  max-width: min(40ch, 80vw);
+  white-space: normal;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+  box-shadow: var(--shadow-strong);
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  text-align: left;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity $tech-tooltip-fade ease,
+    visibility 0s linear $tech-tooltip-fade;
+}
+.tech-row__toggle:hover .tech-row__bar-wrap[data-tip]::after,
+.tech-row__toggle:focus-visible .tech-row__bar-wrap[data-tip]::after {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: $tech-tooltip-show-delay, 0s;
+}
 
 // ── Expand-to-problems (round 3) ────────────────────────────────────────────
 .tech-row__detail {
@@ -226,7 +278,6 @@
   padding-top: var(--space-sm);
 }
 .tech-row__empty { margin: 0; color: var(--color-text-muted); font-size: 0.8rem; }
-.tech-row__summary { margin: 0 0 var(--space-xs); font-size: 0.8rem; color: var(--color-text); }
 .tech-row__variations { margin: 0 0 var(--space-sm); font-size: 0.8rem; color: var(--color-text-muted); }
 
 .tech-row__problems {

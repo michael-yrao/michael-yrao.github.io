@@ -129,6 +129,20 @@ export function remainingToCover(t: Technique): number {
   return Math.max(0, t.minProblems - doneOf(t));
 }
 
+/** covered once done (z) reaches the threshold (x); notBegun before any problem is done;
+ *  inProgress in between. `z >= x` wins even when the threshold sits beyond what's planned
+ *  (`isThresholdBeyondPlan`) — a covered technique never reads as merely in progress. */
+export type CoverageState = 'covered' | 'inProgress' | 'notBegun';
+
+/** The single source both the bar fill's colour class and the status chip's colour class
+ *  read from (Change 2, Sep 27, 2026) — so the two can never disagree about a technique's
+ *  coverage. */
+export function coverageState(t: Technique): CoverageState {
+  const done = doneOf(t);
+  if (done >= t.minProblems) return 'covered';
+  return done > 0 ? 'inProgress' : 'notBegun';
+}
+
 /** The done/planned bar's fill, as a percent of the bar's own width. 0 when nothing is
  *  planned (`plannedTotalOf` is 0); clamped to [0, 100] so a contract inconsistency (more done
  *  than planned) never overflows the bar. */
@@ -148,28 +162,40 @@ export function thresholdPercent(t: Technique): number {
 }
 
 /** True when the coverage threshold (x) asks for more problems than are even planned (y) — a
- *  real finding for the coach, surfaced as an honest caption rather than hidden. */
+ *  real finding for the coach, surfaced as `coverageTitle`'s honest "only N planned" clause
+ *  rather than hidden. */
 export function isThresholdBeyondPlan(t: Technique): boolean {
   return t.minProblems > plannedTotalOf(t);
 }
 
-/** The expanded detail's trailing clause — "N to go" (y − z), or "none left to do" once
- *  nothing remains (Sep 27, 2026: "planned" was reading as two different numbers on one
- *  screen — the ratio's denominator vs. this remaining count — so this clause drops the
- *  word "planned" entirely and just says how much is left). */
-export function remainingPlanned(t: Technique): string {
-  const remaining = plannedTotalOf(t) - doneOf(t);
-  return remaining <= 0 ? 'none left to do' : `${remaining} to go`;
-}
-
-/** The bare "X of Y planned problem(s) done" sentence — shared by the list row's ratio hover
- *  title, the Map node's SVG `<title>`, and the bar's aria-label (which appends
- *  "; covered at Z" — see `TechniqueListComponent.barAriaLabel`). Singular "problem" only when
- *  exactly one is planned. */
+/** The bare "X of Y planned problem(s) done" sentence — the first clause of `coverageTitle`,
+ *  and the Map node's SVG `<title>` before Change 3 folded its own coverage clause in.
+ *  Singular "problem" only when exactly one is planned. */
 export function ratioTitle(t: Technique): string {
   const planned = plannedTotalOf(t);
   const noun = planned === 1 ? 'problem' : 'problems';
   return `${doneOf(t)} of ${planned} planned ${noun} done`;
+}
+
+// ── Coverage hover (Sep 27, 2026 — Change 3: the "covered at N" / bar-caption prose moves off
+// the row and into a hover, one sentence built from the same numbers) ──────────────────────
+/** The coverage hover's one sentence, read on hovering or focusing a row (Change 3). Built on
+ *  `ratioTitle`'s bare clause, plus a second clause naming the coverage state — "covered
+ *  (X needed)" once `coverageState` is 'covered', otherwise "N more to be covered (X needed)" —
+ *  and, only when the threshold asks for more than is even planned (`isThresholdBeyondPlan`,
+ *  the same finding the removed bar caption surfaced), a third, honest clause naming how much
+ *  is planned. Nothing planned at all (y = 0) short-circuits to a bare admission instead. */
+export function coverageTitle(t: Technique): string {
+  const planned = plannedTotalOf(t);
+  if (planned <= 0) return 'nothing planned yet';
+
+  const base = ratioTitle(t);
+  if (coverageState(t) === 'covered') {
+    return `${base} · covered (${t.minProblems} needed)`;
+  }
+
+  const needsClause = `${base} · ${remainingToCover(t)} more to be covered (${t.minProblems} needed)`;
+  return isThresholdBeyondPlan(t) ? `${needsClause} · only ${planned} planned` : needsClause;
 }
 
 const TRAILING_PARENTHETICAL = /\s*\([^()]*\)\s*$/;

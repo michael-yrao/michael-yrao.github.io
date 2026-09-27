@@ -4,6 +4,8 @@ import { ProblemProgress, Technique } from '../../../core/models/progress.model'
 import {
   barFillPercent,
   comfortRank,
+  coverageState,
+  coverageTitle,
   deriveTechniqueStats,
   doneOf,
   isMastered,
@@ -12,7 +14,6 @@ import {
   plannedTotalOf,
   ratioTitle,
   readStoredView,
-  remainingPlanned,
   remainingToCover,
   shortName,
   TECHNIQUE_VIEW_STORAGE_KEY,
@@ -256,15 +257,61 @@ describe('remainingToCover', () => {
   });
 });
 
-describe('remainingPlanned', () => {
-  it('reads "N to go" when problems remain (plannedTotal minus problemCount)', () => {
-    const t = makeTechnique({ problemCount: 1, plannedTotal: 3, planned: [] });
-    expect(remainingPlanned(t)).toBe('2 to go');
+describe('coverageState', () => {
+  it('is "covered" once done reaches the threshold', () => {
+    expect(coverageState(makeTechnique({ minProblems: 2, problemCount: 2 }))).toBe('covered');
   });
 
-  it('reads "none left to do" once problemCount reaches plannedTotal', () => {
-    const t = makeTechnique({ problemCount: 3, plannedTotal: 3, planned: [] });
-    expect(remainingPlanned(t)).toBe('none left to do');
+  it('is "inProgress" once at least one is done but the threshold is not yet reached', () => {
+    expect(coverageState(makeTechnique({ minProblems: 3, problemCount: 1 }))).toBe('inProgress');
+  });
+
+  it('is "notBegun" before any problem is done', () => {
+    expect(coverageState(makeTechnique({ minProblems: 3, problemCount: 0 }))).toBe('notBegun');
+  });
+
+  it('is "inProgress" when the threshold sits beyond what is planned (x > y) but done has not reached it', () => {
+    const t = makeTechnique({ minProblems: 3, problemCount: 2, plannedTotal: 2, planned: [] });
+    expect(coverageState(t)).toBe('inProgress');
+  });
+
+  it('is "covered" once done reaches the threshold even when the threshold sits beyond what is planned (y < x)', () => {
+    const t = makeTechnique({ minProblems: 2, problemCount: 3, plannedTotal: 1, planned: [] });
+    expect(coverageState(t)).toBe('covered');
+  });
+});
+
+describe('coverageTitle', () => {
+  it('covered: names the threshold it reached', () => {
+    const t = makeTechnique({ problemCount: 3, plannedTotal: 7, minProblems: 3, planned: [] });
+    expect(coverageTitle(t)).toBe('3 of 7 planned problems done · covered (3 needed)');
+  });
+
+  it('not covered: names how many more and the threshold', () => {
+    const t = makeTechnique({ problemCount: 1, plannedTotal: 3, minProblems: 3, planned: [] });
+    expect(coverageTitle(t)).toBe('1 of 3 planned problems done · 2 more to be covered (3 needed)');
+  });
+
+  it('threshold beyond the plan (x > y): adds the honest "only N planned" clause', () => {
+    const t = makeTechnique({ problemCount: 2, plannedTotal: 2, minProblems: 3, planned: [] });
+    expect(coverageTitle(t)).toBe(
+      '2 of 2 planned problems done · 1 more to be covered (3 needed) · only 2 planned',
+    );
+  });
+
+  it('nothing planned (y = 0): a bare admission, no ratio clause', () => {
+    const t = makeTechnique({ problemCount: 0, plannedTotal: 0, minProblems: 2, planned: [] });
+    expect(coverageTitle(t)).toBe('nothing planned yet');
+  });
+
+  it('singularizes "problem" (from ratioTitle) when exactly one is planned', () => {
+    const t = makeTechnique({ problemCount: 1, plannedTotal: 1, minProblems: 1, planned: [] });
+    expect(coverageTitle(t)).toBe('1 of 1 planned problem done · covered (1 needed)');
+  });
+
+  it('"needs 1 more" stays singular-friendly (no plural suffix on "more")', () => {
+    const t = makeTechnique({ problemCount: 0, plannedTotal: 1, minProblems: 1, planned: [] });
+    expect(coverageTitle(t)).toBe('0 of 1 planned problem done · 1 more to be covered (1 needed)');
   });
 });
 

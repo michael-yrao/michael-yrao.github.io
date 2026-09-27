@@ -22,13 +22,12 @@ import { fileUrl, RepoRef } from '../../../core/services/github-file.service';
 import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-date';
 import {
   barFillPercent,
+  coverageState,
+  coverageTitle,
   deriveTechniqueStats,
   doneOf,
-  isThresholdBeyondPlan,
   plannedTotalOf,
-  ratioTitle,
   readStoredView,
-  remainingPlanned,
   remainingToCover,
   shortName as shortNameFor,
   TechniqueStats,
@@ -68,6 +67,7 @@ const JUDGE_HOST_LABELS: Readonly<Record<string, string>> = {
   'neetcode.io': 'NC',
   'open.kattis.com': 'Kattis',
   'cses.fi': 'CSES',
+  'hellointerview.com': 'HelloInterview',
 };
 
 /**
@@ -106,12 +106,10 @@ export class TechniqueListComponent {
   // properties so the template can call them per row without a wrapper method each.
   readonly doneOf = doneOf;
   readonly plannedTotalOf = plannedTotalOf;
-  readonly remainingPlanned = remainingPlanned;
   readonly remainingToCover = remainingToCover;
   readonly barFillPercent = barFillPercent;
   readonly thresholdPercent = thresholdPercent;
-  readonly isThresholdBeyondPlan = isThresholdBeyondPlan;
-  readonly ratioTitle = ratioTitle;
+  readonly coverageTitle = coverageTitle;
 
   private readonly expandedNames = signal<ReadonlySet<string>>(new Set());
 
@@ -275,9 +273,24 @@ export class TechniqueListComponent {
     return remaining > 0 ? `needs ${remaining} more` : 'covered';
   }
 
-  /** The status chip's modifier class, kept in lockstep with `statusChipLabel`. */
+  /** The status chip's modifier class, derived from `coverageState` — the same source
+   *  `barFillClass` reads, so the chip and the bar's fill colour can never disagree. */
   statusChipClass(t: Technique): string {
-    return this.remainingToCover(t) > 0 ? 'chip--needs-more' : 'chip--covered';
+    return coverageState(t) === 'covered' ? 'chip--covered' : 'chip--needs-more';
+  }
+
+  /** The done/planned bar's fill colour class (Change 2), derived from the same
+   *  `coverageState` as `statusChipClass`. '' for `notBegun` — the bar is 0% wide then
+   *  (`barFillPercent`), so no fill colour would be visible anyway. */
+  barFillClass(t: Technique): string {
+    switch (coverageState(t)) {
+      case 'covered':
+        return 'tech-row__bar-fill--covered';
+      case 'inProgress':
+        return 'tech-row__bar-fill--in-progress';
+      default:
+        return '';
+    }
   }
 
   /** Names of declared variations never exercised and not queued — empty when the contract
@@ -296,13 +309,6 @@ export class TechniqueListComponent {
     if (names.length === 1) return '1 variation not tried';
     if (names.length > 1) return `${names.length} variations not tried`;
     return t.hasVariantGap ? 'a variation not tried' : null;
-  }
-
-  /** The done/planned bar's aria-label sentence, e.g. "1 of 3 planned problems done; covered
-   *  at 3" — extends `ratioTitle`'s bare sentence (also used by the ratio's hover title and
-   *  the Map node's SVG `<title>`) with the coverage threshold. */
-  barAriaLabel(t: Technique): string {
-    return `${this.ratioTitle(t)}; covered at ${t.minProblems}`;
   }
 
   /** The judge a planned problem's `url` points at, for the detail row's number/label slot
