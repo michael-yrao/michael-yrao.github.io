@@ -9,6 +9,7 @@ import { ProgressPageComponent, ProgressTab } from './progress-page.component';
 import { By } from '@angular/platform-browser';
 import { ProgressService } from '../../../core/services/progress.service';
 import { TodayBoardComponent } from '../today-board/today-board.component';
+import { TechniqueListComponent } from '../technique-list/technique-list.component';
 import { GOLD_STANDARD_REPO, RepoRef } from '../../../core/services/github-file.service';
 import { ProgressSummary, ProblemProgress, Comfort } from '../../../core/models/progress.model';
 import { addDaysISO, todayLocalISO } from '../../../core/utils/local-date';
@@ -724,6 +725,18 @@ describe('ProgressPageComponent', () => {
     const board = fixture.debugElement.query(By.directive(TodayBoardComponent));
     expect(board).toBeTruthy();
     expect((board.componentInstance as TodayBoardComponent).repoRef()).toEqual(ref);
+  });
+
+  it('passes the active repo ref down to <app-technique-list> so its rows can build their own GitHub fallback links', () => {
+    const ref = { owner: 'someone', repo: 'their-log', branch: 'dev' };
+    progress.repoRef.set(ref);
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'mastery');
+
+    const list = fixture.debugElement.query(By.directive(TechniqueListComponent));
+    expect(list).toBeTruthy();
+    expect((list.componentInstance as TechniqueListComponent).repoRef()).toEqual(ref);
   });
 
   // ── Mastery tab (round 5 — folded in from the removed Techniques tab): the technique

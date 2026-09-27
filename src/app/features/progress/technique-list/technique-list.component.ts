@@ -18,6 +18,7 @@ import {
   TechniqueTier,
 } from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
+import { fileUrl, RepoRef } from '../../../core/services/github-file.service';
 import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-date';
 import {
   deriveTechniqueStats,
@@ -87,6 +88,10 @@ export class TechniqueListComponent {
   /** The full problems[] (from ProgressService.details), for the expand-to-problems join.
    *  null until loadDetails() has resolved at least once. */
   readonly details = input<ProblemProgress[] | null>(null);
+  /** The repo/branch the page is rendering (ProgressService.repoRef) — a row's `file` path is
+   *  relative to it, so the GitHub fallback link is built from it, never from the gold
+   *  standard. Same shape as TodayBoardComponent's own `repoRef` input. */
+  readonly repoRef = input<RepoRef | null>(null);
   readonly expand = output<Technique>();
 
   private readonly expandedNames = signal<ReadonlySet<string>>(new Set());
@@ -246,6 +251,22 @@ export class TechniqueListComponent {
 
   vizRoute(lcNumber: number): string | null {
     return vizRouteFor(lcNumber);
+  }
+
+  /** A problem row's GitHub fallback link: the learner's own solution file (progress.json's
+   *  `file`) on GitHub, in the repo/branch this page is rendering — never the gold standard,
+   *  since a `?repo=` viewer's paths belong to THEIR checkout. Null until the repo ref is
+   *  known. Mirrors progress-page.component.ts's own `solutionUrl`. */
+  solutionUrl(file: string | null | undefined): string | null {
+    const ref = this.repoRef();
+    return file && ref ? fileUrl(ref, file) : null;
+  }
+
+  /** The GitHub fallback link's aria-label (no walkthrough route, but the row carries a
+   *  `file` and the repo ref is known). Mirrors progress-page.component.ts's own
+   *  `githubAriaLabel` — same wording; a technique row carries no `done` state to append. */
+  githubAriaLabel(p: ProblemProgress): string {
+    return `Solution source for #${p.lcNumber} on GitHub`;
   }
 
   shortName(name: string): string {

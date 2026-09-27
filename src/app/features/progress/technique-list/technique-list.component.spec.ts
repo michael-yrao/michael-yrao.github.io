@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 
 import { TechniqueListComponent } from './technique-list.component';
 import { PlannedProblem, ProblemProgress, Technique } from '../../../core/models/progress.model';
+import { RepoRef } from '../../../core/services/github-file.service';
 
 function makeTechnique(overrides: Partial<Technique> = {}): Technique {
   return {
@@ -47,7 +48,11 @@ function makePlanned(overrides: Partial<PlannedProblem> = {}): PlannedProblem {
   };
 }
 
-function createFixture(techniques: Technique[], details: ProblemProgress[] | null = null) {
+function createFixture(
+  techniques: Technique[],
+  details: ProblemProgress[] | null = null,
+  repoRef: RepoRef | null = null,
+) {
   // Safe to call even before any module has been configured — lets a test create a second,
   // independent fixture (e.g. to check persistence across a fresh component instance).
   TestBed.resetTestingModule();
@@ -58,6 +63,7 @@ function createFixture(techniques: Technique[], details: ProblemProgress[] | nul
   const fixture = TestBed.createComponent(TechniqueListComponent);
   fixture.componentRef.setInput('techniques', techniques);
   fixture.componentRef.setInput('details', details);
+  fixture.componentRef.setInput('repoRef', repoRef);
   fixture.detectChanges();
   return fixture;
 }
@@ -183,6 +189,71 @@ describe('TechniqueListComponent', () => {
     const link: HTMLAnchorElement | null = row?.querySelector('.tech-row__problem-links a') ?? null;
     expect(link?.textContent?.trim()).toBe('↗');
     expect(link?.getAttribute('aria-label')).toBe('Open on LeetCode');
+  });
+
+  // #9999 is deliberately unregistered — same convention as today-board.component.spec.ts's
+  // makeSchedule() — so vizRoute(9999) is null and the GitHub-fallback branch is exercised.
+  it('renders a GitHub fallback link for a problem with no walkthrough route but a `file`, when a repo ref is set', () => {
+    const ref: RepoRef = { owner: 'someone', repo: 'their-log', branch: 'dev' };
+    const fixture = createFixture(
+      [makeTechnique({ problems: [9999] })],
+      [makeProblem({
+        lcNumber: 9999,
+        title: 'Unvisualized Problem',
+        file: 'dsa/leetcode/backtracking/9999_unvisualized_problem.py',
+      })],
+      ref,
+    );
+
+    (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const link: HTMLAnchorElement | null = fixture.nativeElement.querySelector(
+      '.tech-row__problem-status--github',
+    );
+    expect(link).toBeTruthy();
+    expect(link?.tagName).toBe('A');
+    expect(link?.getAttribute('href')).toBe(
+      'https://github.com/someone/their-log/blob/dev/dsa/leetcode/backtracking/9999_unvisualized_problem.py',
+    );
+    expect(link?.textContent?.trim()).toBe('○');
+    expect(link?.getAttribute('title')).toBe('Solution on GitHub');
+    expect(link?.getAttribute('aria-label')).toBe('Solution source for #9999 on GitHub');
+    expect(link?.getAttribute('target')).toBe('_blank');
+  });
+
+  it('renders the spacer (no GitHub link) for the same problem when repoRef is null', () => {
+    const fixture = createFixture(
+      [makeTechnique({ problems: [9999] })],
+      [makeProblem({
+        lcNumber: 9999,
+        title: 'Unvisualized Problem',
+        file: 'dsa/leetcode/backtracking/9999_unvisualized_problem.py',
+      })],
+      null,
+    );
+
+    (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.tech-row__problem-status--github')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.tech-row__problem-status--spacer')).toBeTruthy();
+  });
+
+  it('still renders the `</>` walkthrough link (never the GitHub fallback) for a problem with a registered viz route, even with a `file` and a repo ref', () => {
+    const ref: RepoRef = { owner: 'someone', repo: 'their-log', branch: 'dev' };
+    const fixture = createFixture(
+      [makeTechnique({ problems: [11] })],
+      [makeProblem({ lcNumber: 11, file: 'dsa/leetcode/arrays/11_container_with_most_water.py' })],
+      ref,
+    );
+
+    (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const link = fixture.nativeElement.querySelector('.tech-row__problem-status--link');
+    expect(link?.textContent).toContain('</>');
+    expect(fixture.nativeElement.querySelector('.tech-row__problem-status--github')).toBeFalsy();
   });
 });
 

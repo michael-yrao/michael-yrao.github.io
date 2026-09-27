@@ -109,7 +109,6 @@
 .chip--thin { color: var(--color-medium); border-color: var(--color-medium); }
 .chip--covered { color: var(--color-easy); border-color: var(--color-easy); }
 .chip--gap { color: var(--color-hard); border-color: var(--color-hard); }
-.chip--nogreen { color: var(--color-text-muted); }
 .chip--not-started { color: var(--color-text-muted); font-style: italic; }
 // Accent-dim, matching .tag--new's precedent — "planned" reads as the same family as "new".
 .chip--planned { background: var(--color-accent-dim); color: var(--color-accent); border-color: transparent; }

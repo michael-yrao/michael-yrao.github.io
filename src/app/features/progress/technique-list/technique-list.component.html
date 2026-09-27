@@ -70,9 +70,6 @@
                       @if (t.hasVariantGap) {
                         <span class="chip chip--gap">variant gap</span>
                       }
-                      @if (!t.hasGreen) {
-                        <span class="chip chip--nogreen">no 🟢</span>
-                      }
                     } @else {
                       <span class="chip chip--not-started">not started</span>
                     }
@@ -111,6 +108,16 @@
                 title="Solution walkthrough"
                 [attr.aria-label]="'Solution walkthrough for #' + p.lcNumber"
                 >&lt;/&gt;</a
+              >
+            } @else if (solutionUrl(p.file); as src) {
+              <a
+                [href]="src"
+                class="tech-row__problem-status tech-row__problem-status--link tech-row__problem-status--github"
+                title="Solution on GitHub"
+                [attr.aria-label]="githubAriaLabel(p)"
+                target="_blank"
+                rel="noopener"
+                >○</a
               >
             } @else {
               <span class="tech-row__problem-status tech-row__problem-status--spacer" aria-hidden="true"></span>
