@@ -71,28 +71,6 @@
   &:hover, &:focus-visible { text-decoration: underline; outline: none; }
 }
 
-// The Overview schedule's link-source toggle (Site first / GitHub) — sits in the same strip
-// as the day buttons and "Expand week", styled the same way (`.today-board__expand-toggle`'s
-// look, minus its auto margin so it doesn't also get pushed to the row's far edge).
-.today-board__link-mode {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.today-board__link-mode-label {
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
-}
-.today-board__link-mode-btn {
-  @extend .today-board__expand-toggle;
-  margin-left: 0;
-}
-.today-board__link-mode-btn--active {
-  border-color: var(--color-accent);
-  background: var(--color-accent-dim);
-  font-weight: 700;
-}
-
 // ── Workload bar ─────────────────────────────────────────────────────────────────────
 .today-board__workload-bar {
   height: 8px;

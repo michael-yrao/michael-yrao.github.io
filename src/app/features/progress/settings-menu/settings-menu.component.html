@@ -1,0 +1,32 @@
+<button
+  type="button"
+  class="settings-menu__btn"
+  aria-label="Settings"
+  title="Settings"
+  [attr.aria-expanded]="isSettingsOpen()"
+  aria-controls="progress-settings-menu"
+  (click)="toggleSettings()"
+>⚙</button>
+@if (isSettingsOpen()) {
+  <div class="settings-menu__menu" id="progress-settings-menu">
+    <h3 class="settings-menu__heading">Solution links</h3>
+    <div class="settings-menu__group" role="group" aria-label="Solution links">
+      <button
+        type="button"
+        class="settings-menu__option"
+        [class.settings-menu__option--active]="linkModeService.mode() === 'site-first'"
+        [attr.aria-pressed]="linkModeService.mode() === 'site-first'"
+        title="Open the walkthrough on this site when there is one"
+        (click)="chooseLinkMode('site-first')"
+      >Site first</button>
+      <button
+        type="button"
+        class="settings-menu__option"
+        [class.settings-menu__option--active]="linkModeService.mode() === 'github'"
+        [attr.aria-pressed]="linkModeService.mode() === 'github'"
+        title="Always open the solution file on GitHub"
+        (click)="chooseLinkMode('github')"
+      >GitHub</button>
+    </div>
+  </div>
+}

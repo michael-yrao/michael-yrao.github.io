@@ -161,25 +161,6 @@
           >{{ dayButtonLabel(day) }}</button>
         }
       </div>
-      <div class="today-board__link-mode" role="group" aria-label="Solution links">
-        <span class="today-board__link-mode-label">Solution links</span>
-        <button
-          type="button"
-          class="today-board__link-mode-btn"
-          [class.today-board__link-mode-btn--active]="linkMode() === 'site-first'"
-          [attr.aria-pressed]="linkMode() === 'site-first'"
-          title="Open the walkthrough on this site when there is one"
-          (click)="setLinkMode('site-first')"
-        >Site first</button>
-        <button
-          type="button"
-          class="today-board__link-mode-btn"
-          [class.today-board__link-mode-btn--active]="linkMode() === 'github'"
-          [attr.aria-pressed]="linkMode() === 'github'"
-          title="Always open the solution file on GitHub"
-          (click)="setLinkMode('github')"
-        >GitHub</button>
-      </div>
       <button type="button" class="today-board__expand-toggle" (click)="toggleExpanded()">
         {{ expanded() ? 'Collapse' : 'Expand week' }}
       </button>

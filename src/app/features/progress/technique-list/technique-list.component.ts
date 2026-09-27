@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
@@ -17,9 +18,10 @@ import {
   Technique,
   TechniqueTier,
 } from '../../../core/models/progress.model';
-import { vizRouteFor } from '../../../core/data/viz-route';
 import { fileUrl, RepoRef } from '../../../core/services/github-file.service';
 import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-date';
+import { walkthroughRouteFor } from '../solution-link-mode';
+import { SolutionLinkModeService } from '../solution-link-mode.service';
 import {
   barFillPercent,
   columnFor,
@@ -130,6 +132,10 @@ export class TechniqueListComponent {
    *  standard. Same shape as TodayBoardComponent's own `repoRef` input. */
   readonly repoRef = input<RepoRef | null>(null);
   readonly expand = output<Technique>();
+
+  // The shared, page-header-level Solution Links setting (settings-menu.component.ts's ⚙
+  // Settings panel) — read here for the detail template's problem-row link chain.
+  private readonly linkModeService = inject(SolutionLinkModeService);
 
   // Pure done/planned bar helpers (technique-view.ts) — bound directly as instance
   // properties so the template can call them per row without a wrapper method each.
@@ -409,10 +415,6 @@ export class TechniqueListComponent {
     return JUDGE_HOST_LABELS[bareHost] ?? bareHost;
   }
 
-  vizRoute(lcNumber: number): string | null {
-    return vizRouteFor(lcNumber);
-  }
-
   /** A problem row's GitHub fallback link: the learner's own solution file (progress.json's
    *  `file`) on GitHub, in the repo/branch this page is rendering — never the gold standard,
    *  since a `?repo=` viewer's paths belong to THEIR checkout. Null until the repo ref is
@@ -420,6 +422,13 @@ export class TechniqueListComponent {
   solutionUrl(file: string | null | undefined): string | null {
     const ref = this.repoRef();
     return file && ref ? fileUrl(ref, file) : null;
+  }
+
+  /** A problem row's walkthrough-route candidate — delegates to the shared
+   *  walkthroughRouteFor() rule (solution-link-mode.ts) using the page-header setting's
+   *  current mode. */
+  walkthroughRoute(p: ProblemProgress): string | null {
+    return walkthroughRouteFor(this.linkModeService.mode(), p.lcNumber, this.solutionUrl(p.file));
   }
 
   /** The GitHub fallback link's aria-label (no walkthrough route, but the row carries a

@@ -35,7 +35,7 @@
       (keydown.enter)="toggle(p)"
       (keydown.space)="$event.preventDefault(); toggle(p)"
     >
-      @if (vizRoute(p.lcNumber); as route) {
+      @if (walkthroughRoute(p); as route) {
         <a
           [routerLink]="route"
           class="problem__status problem__status--link"
@@ -141,6 +141,10 @@
           <span class="progress__refresh-icon" [class.spinning]="refreshing()">↻</span>
           {{ refreshing() ? 'Refreshing…' : 'Refresh' }}
         </button>
+
+        <!-- The ONE Solution Links setting, shared by every problem list on the page — see
+             SolutionLinkModeService. -->
+        <app-settings-menu />
       }
     </div>
   </header>

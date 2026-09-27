@@ -4,6 +4,7 @@ import {
   ElementRef,
   computed,
   effect,
+  inject,
   signal,
   untracked,
   viewChildren,
@@ -16,14 +17,16 @@ import { map } from 'rxjs';
 import { ProgressService } from '../../../core/services/progress.service';
 import { fileUrl } from '../../../core/services/github-file.service';
 import { Comfort, OnSchedule, ProblemProgress, ScheduleItem } from '../../../core/models/progress.model';
-import { vizRouteFor } from '../../../core/data/viz-route';
 import { daysBetweenISO, todayLocalISO } from '../../../core/utils/local-date';
+import { walkthroughRouteFor } from '../solution-link-mode';
+import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { BadgeGridComponent } from '../badge-grid/badge-grid.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
 import { StreakCalendarComponent } from '../streak-calendar/streak-calendar.component';
 import { TodayBoardComponent } from '../today-board/today-board.component';
 import { RecognitionPanelComponent } from '../recognition-panel/recognition-panel.component';
+import { SettingsMenuComponent } from '../settings-menu/settings-menu.component';
 import { SegmentedBarComponent, SegmentedBarSegment } from '../segmented-bar/segmented-bar.component';
 import { WorkloadChartComponent } from '../workload-chart/workload-chart.component';
 import { GrowthAreasComponent } from '../growth-areas/growth-areas.component';
@@ -116,6 +119,7 @@ const PIPELINE_COMFORT: Record<string, Comfort> = {
     SegmentedBarComponent,
     WorkloadChartComponent,
     GrowthAreasComponent,
+    SettingsMenuComponent,
   ],
 })
 export class ProgressPageComponent {
@@ -138,6 +142,12 @@ export class ProgressPageComponent {
   readonly tabLabel = TAB_LABEL;
   readonly activeTab = signal<ProgressTab>('overview');
   private readonly tabButtons = viewChildren<ElementRef<HTMLButtonElement>>('tabBtn');
+
+  // The ONE Solution Links mode, shared by every problem list on the page (Overview schedule,
+  // Mastery's technique list, the Problems tab) — the header's ⚙ Settings panel that sets it
+  // now lives in <app-settings-menu>; the page keeps injecting this only for its own
+  // `walkthroughRoute()` below.
+  private readonly linkModeService = inject(SolutionLinkModeService);
 
   // Overview's growth-area toggle (DSA / System Design / AI Engineering) — not persisted.
   readonly growthArea = signal<GrowthArea>('dsa');
@@ -316,16 +326,20 @@ export class ProgressPageComponent {
     });
   }
 
-  vizRoute(lc: number): string | null {
-    return vizRouteFor(lc);
-  }
-
   /** The status badge's GitHub fallback link: the learner's own solution file (progress.json's
    *  `file`) on GitHub, in the repo/branch this page is rendering — never the gold standard,
    *  since a `?repo=` viewer's paths belong to THEIR checkout. Null until the repo ref is known. */
   solutionUrl(file: string | null | undefined): string | null {
     const ref = this.repoRef();
     return file && ref ? fileUrl(ref, file) : null;
+  }
+
+  /** The status badge's walkthrough-route candidate — delegates to the shared
+   *  walkthroughRouteFor() rule (solution-link-mode.ts) using the page-header setting's
+   *  current mode. Shared by the Problems tab AND the "Needs attention" list, since both
+   *  render through `#problemRowTpl`. */
+  walkthroughRoute(p: ProblemProgress): string | null {
+    return walkthroughRouteFor(this.linkModeService.mode(), p.lcNumber, this.solutionUrl(p.file));
   }
 
   /** The status badge's aria-label when it's the GitHub solution-file link (no walkthrough

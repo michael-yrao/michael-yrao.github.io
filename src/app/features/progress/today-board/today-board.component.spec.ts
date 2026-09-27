@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { TodayBoardComponent, endNoteMeaning } from './today-board.component';
-import { SOLUTION_LINK_MODE_STORAGE_KEY } from './solution-link-mode';
+import { SOLUTION_LINK_MODE_STORAGE_KEY } from '../solution-link-mode';
+import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemProgress, Schedule, ScheduleItem } from '../../../core/models/progress.model';
 import { LoadStatus } from '../../../core/services/progress.service';
 import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
@@ -690,12 +691,9 @@ describe('TodayBoardComponent', () => {
       schedule.days[0].items = [item];
       const fixture = createFixture(schedule);
       fixture.componentRef.setInput('repoRef', repoRef);
-      fixture.detectChanges();
-
-      const githubBtn = Array.from(
-        fixture.nativeElement.querySelectorAll('.today-board__link-mode-btn'),
-      ).find((b) => (b as HTMLElement).textContent?.trim() === 'GitHub') as HTMLButtonElement;
-      githubBtn.click();
+      // The mode now lives on the shared, page-header-level service — not a button on this
+      // board — so a test sets it directly through that service.
+      TestBed.inject(SolutionLinkModeService).set('github');
       fixture.detectChanges();
 
       const row: HTMLElement = fixture.nativeElement.querySelector('.today-board__row');

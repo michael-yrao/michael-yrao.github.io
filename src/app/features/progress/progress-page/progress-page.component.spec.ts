@@ -13,6 +13,7 @@ import { TechniqueListComponent } from '../technique-list/technique-list.compone
 import { GOLD_STANDARD_REPO, RepoRef } from '../../../core/services/github-file.service';
 import { ProgressSummary, ProblemProgress, Comfort } from '../../../core/models/progress.model';
 import { addDaysISO, todayLocalISO } from '../../../core/utils/local-date';
+import { SOLUTION_LINK_MODE_STORAGE_KEY } from '../solution-link-mode';
 
 // A minimal, valid summary — enough for the 'ready' branch of every tab, including the two
 // instant drills (techniques/studyDays ride the summary, no fetch) and the overview-first
@@ -214,6 +215,10 @@ function clickTab(
 
 describe('ProgressPageComponent', () => {
   let progress: ReturnType<typeof makeProgressServiceStub>;
+
+  // The Settings-panel test below sets the shared SolutionLinkModeService to 'github' — clear
+  // its persisted key after each test so that choice never leaks into a later test's fixture.
+  afterEach(() => localStorage.removeItem(SOLUTION_LINK_MODE_STORAGE_KEY));
 
   beforeEach(() => {
     progress = makeProgressServiceStub();
@@ -763,6 +768,37 @@ describe('ProgressPageComponent', () => {
     expect(badge).toBeTruthy();
     expect(badge.textContent).toContain('</>');
     expect(row.querySelector('.problem__status--github')).toBeFalsy();
+  });
+
+  // ── The header's ⚙ Settings panel — the ONE Solution Links mode, shared by every problem
+  // list on the page (SolutionLinkModeService). ──────────────────────────────────────────
+  it('opening Settings and choosing GitHub renders the GitHub link instead of the walkthrough link for a Problems-tab row with a registered route, a file, and a repo ref', () => {
+    progress.repoRef.set({ owner: 'someone', repo: 'their-log', branch: 'dev' });
+    progress.detailsStatus.set('ready');
+    // lcNumber 206 (Reverse Linked List) has a real registered viz route.
+    progress.details.set([
+      { ...problemWithFile('dsa/leetcode/linked-list/206_reverse_linked_list.py'), lcNumber: 206, title: 'Reverse Linked List' },
+    ]);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'problems');
+
+    const settingsBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.settings-menu__btn');
+    settingsBtn.click();
+    fixture.detectChanges();
+
+    const githubOption = Array.from(
+      fixture.nativeElement.querySelectorAll('.settings-menu__option'),
+    ).find((b) => (b as HTMLElement).textContent?.trim() === 'GitHub') as HTMLButtonElement;
+    githubOption.click();
+    fixture.detectChanges();
+
+    const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
+    const badge: HTMLAnchorElement = row.querySelector('.problem__status--github')!;
+    expect(badge).toBeTruthy();
+    expect(badge.textContent?.trim()).toBe('○');
+    expect(row.textContent).not.toContain('</>');
   });
 
   it('passes the active repo ref down to <app-today-board> so board rows can build their own status-badge links', () => {

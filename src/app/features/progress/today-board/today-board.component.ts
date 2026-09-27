@@ -1,16 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgTemplateOutlet } from '@angular/common';
 
 import { ProblemProgress, Schedule, ScheduleDay, ScheduleItem } from '../../../core/models/progress.model';
 import { LoadStatus } from '../../../core/services/progress.service';
 import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
-import { vizRouteFor } from '../../../core/data/viz-route';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
-import { SolutionLinkMode, readStoredMode, writeStoredMode } from './solution-link-mode';
+import { walkthroughRouteFor } from '../solution-link-mode';
+import { SolutionLinkModeService } from '../solution-link-mode.service';
 
 interface Workload {
   units: number;
@@ -164,15 +164,9 @@ export class TodayBoardComponent {
   // Collapsed (default) = just the selected day; expanded = the whole week stacked.
   readonly expanded = signal(false);
 
-  // A row's status-badge link source — 'site-first' (default) prefers the walkthrough,
-  // falling back to GitHub; 'github' always sends the learner to their own solution file.
-  // Persisted per viewer, same pattern as TechniqueListComponent's `view`.
-  readonly linkMode = signal<SolutionLinkMode>(readStoredMode());
-
-  setLinkMode(mode: SolutionLinkMode): void {
-    this.linkMode.set(mode);
-    writeStoredMode(mode);
-  }
+  // A row's status-badge link source — one shared setting owned by the page header's
+  // Settings panel (settings-menu.component.ts), not by this board.
+  private readonly linkModeService = inject(SolutionLinkModeService);
 
   readonly days = computed(() => this.schedule()?.days ?? []);
   readonly todayISO = computed(() => todayLocalISO());
@@ -362,14 +356,11 @@ export class TodayBoardComponent {
     return `${weekdayAbbrev} ${dayOfMonth}`;
   }
 
-  /** The status badge's walkthrough-route candidate. In 'site-first' mode this is always just
-   *  `vizRouteFor(item.lcNumber)`. In 'github' mode it defers to GitHub ONLY when the row
-   *  actually has a GitHub URL to defer to (`solutionUrl(item.file)` is non-null) — otherwise
-   *  a row with a walkthrough but no GitHub URL yet (no `file`, or no repo ref known yet)
-   *  would show no link at all instead of falling back to the walkthrough. */
+  /** The status badge's walkthrough-route candidate — delegates to the shared
+   *  walkthroughRouteFor() rule (solution-link-mode.ts) using the page-header setting's
+   *  current mode. */
   walkthroughRoute(item: ScheduleItem): string | null {
-    const hasGithubFallback = this.linkMode() === 'github' && this.solutionUrl(item.file) != null;
-    return hasGithubFallback ? null : vizRouteFor(item.lcNumber);
+    return walkthroughRouteFor(this.linkModeService.mode(), item.lcNumber, this.solutionUrl(item.file));
   }
 
   /** The status badge's GitHub fallback link — the learner's own solution file on GitHub (see
