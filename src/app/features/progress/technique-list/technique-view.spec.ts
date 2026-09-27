@@ -3,7 +3,9 @@ import { vi } from 'vitest';
 import { ProblemProgress, Technique } from '../../../core/models/progress.model';
 import {
   barFillPercent,
+  columnFor,
   comfortRank,
+  compareTechniques,
   coverageState,
   coverageTitle,
   deriveTechniqueStats,
@@ -12,10 +14,12 @@ import {
   isThresholdBeyondPlan,
   parseStoredView,
   plannedTotalOf,
+  ratioDenominatorOf,
   ratioTitle,
   readStoredView,
   remainingToCover,
   shortName,
+  TechniqueStats,
   TECHNIQUE_VIEW_STORAGE_KEY,
   thresholdPercent,
   writeStoredView,
@@ -54,19 +58,18 @@ function makeProblem(overrides: Partial<ProblemProgress> = {}): ProblemProgress 
 }
 
 describe('parseStoredView', () => {
-  it("returns 'map' for the literal string 'map'", () => {
-    expect(parseStoredView('map')).toBe('map');
-  });
+  const cases: [string, string | null, 'list' | 'board'][] = [
+    ["'board' returns 'board'", 'board', 'board'],
+    ["the retired Map view's 'map' falls back to 'list'", 'map', 'list'],
+    ["the retired skill tree's 'tree' falls back to 'list'", 'tree', 'list'],
+    ['null falls back to list', null, 'list'],
+    ['an unrelated string falls back to list', 'grid', 'list'],
+    ["an uppercase variant ('BOARD') falls back to list", 'BOARD', 'list'],
+    ['an empty string falls back to list', '', 'list'],
+  ];
 
-  it("reads the legacy 'tree' (the retired skill tree) as 'map'", () => {
-    expect(parseStoredView('tree')).toBe('map');
-  });
-
-  it("falls back to 'list' for null, an unrelated string, an uppercase variant, or garbage", () => {
-    expect(parseStoredView(null)).toBe('list');
-    expect(parseStoredView('grid')).toBe('list');
-    expect(parseStoredView('MAP')).toBe('list');
-    expect(parseStoredView('')).toBe('list');
+  it.each(cases)('%s', (_label, raw, expected) => {
+    expect(parseStoredView(raw)).toBe(expected);
   });
 });
 
@@ -78,9 +81,9 @@ describe('readStoredView / writeStoredView', () => {
   });
 
   it('round-trips a written view', () => {
-    writeStoredView('map');
-    expect(localStorage.getItem(TECHNIQUE_VIEW_STORAGE_KEY)).toBe('map');
-    expect(readStoredView()).toBe('map');
+    writeStoredView('board');
+    expect(localStorage.getItem(TECHNIQUE_VIEW_STORAGE_KEY)).toBe('board');
+    expect(readStoredView()).toBe('board');
   });
 
   it('reading survives a localStorage getItem throw (private mode / blocked)', () => {
@@ -95,7 +98,7 @@ describe('readStoredView / writeStoredView', () => {
     const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('blocked');
     });
-    expect(() => writeStoredView('map')).not.toThrow();
+    expect(() => writeStoredView('board')).not.toThrow();
     spy.mockRestore();
   });
 });
@@ -247,6 +250,30 @@ describe('doneOf', () => {
   });
 });
 
+describe('ratioDenominatorOf', () => {
+  const cases: [string, Technique, number][] = [
+    [
+      'planned exceeds the threshold: the denominator is what is planned',
+      makeTechnique({ minProblems: 2, plannedTotal: 5, planned: [] }),
+      5,
+    ],
+    [
+      'planned falls short of the threshold: the denominator is raised to the threshold',
+      makeTechnique({ minProblems: 3, plannedTotal: 1, planned: [] }),
+      3,
+    ],
+    [
+      'nothing planned (y = 0): the denominator is the threshold itself',
+      makeTechnique({ minProblems: 1, problemCount: 0, plannedTotal: 0, planned: [] }),
+      1,
+    ],
+  ];
+
+  it.each(cases)('%s', (_label, t, expected) => {
+    expect(ratioDenominatorOf(t)).toBe(expected);
+  });
+});
+
 describe('remainingToCover', () => {
   it('is minProblems minus problemCount when positive', () => {
     expect(remainingToCover(makeTechnique({ minProblems: 3, problemCount: 1 }))).toBe(2);
@@ -282,36 +309,49 @@ describe('coverageState', () => {
 });
 
 describe('coverageTitle', () => {
-  it('covered: names the threshold it reached', () => {
-    const t = makeTechnique({ problemCount: 3, plannedTotal: 7, minProblems: 3, planned: [] });
-    expect(coverageTitle(t)).toBe('3 of 7 planned problems done · covered (3 needed)');
-  });
-
-  it('not covered: names how many more and the threshold', () => {
-    const t = makeTechnique({ problemCount: 1, plannedTotal: 3, minProblems: 3, planned: [] });
-    expect(coverageTitle(t)).toBe('1 of 3 planned problems done · 2 more to be covered (3 needed)');
-  });
-
-  it('threshold beyond the plan (x > y): adds the honest "only N planned" clause', () => {
-    const t = makeTechnique({ problemCount: 2, plannedTotal: 2, minProblems: 3, planned: [] });
-    expect(coverageTitle(t)).toBe(
+  const cases: [string, Technique, string][] = [
+    [
+      'covered: names the threshold it reached',
+      makeTechnique({ problemCount: 3, plannedTotal: 7, minProblems: 3, planned: [] }),
+      '3 of 7 planned problems done · covered (3 needed)',
+    ],
+    [
+      'not covered: names how many more and the threshold',
+      makeTechnique({ problemCount: 1, plannedTotal: 3, minProblems: 3, planned: [] }),
+      '1 of 3 planned problems done · 2 more to be covered (3 needed)',
+    ],
+    [
+      'threshold beyond the plan (x > y): adds the honest "only N planned" clause',
+      makeTechnique({ problemCount: 2, plannedTotal: 2, minProblems: 3, planned: [] }),
       '2 of 2 planned problems done · 1 more to be covered (3 needed) · only 2 planned',
-    );
-  });
+    ],
+    [
+      'nothing planned (y = 0): a bare admission, no ratio clause',
+      makeTechnique({ problemCount: 0, plannedTotal: 0, minProblems: 2, planned: [] }),
+      'nothing planned yet',
+    ],
+    [
+      'singularizes "problem" (from ratioTitle) when exactly one is planned',
+      makeTechnique({ problemCount: 1, plannedTotal: 1, minProblems: 1, planned: [] }),
+      '1 of 1 planned problem done · covered (1 needed)',
+    ],
+    [
+      '"needs 1 more" stays singular-friendly (no plural suffix on "more")',
+      makeTechnique({ problemCount: 0, plannedTotal: 1, minProblems: 1, planned: [] }),
+      '0 of 1 planned problem done · 1 more to be covered (1 needed)',
+    ],
+    [
+      'coverageFloor + uncleanCount (both present, uncleanCount > 0): explains the threshold in plain words',
+      makeTechnique({
+        problemCount: 4, plannedTotal: 8, minProblems: 8, planned: [], coverageFloor: 4, uncleanCount: 4,
+      }),
+      '4 of 8 planned problems done · 4 more to be covered '
+        + '(8 needed: 4, plus 4 while 4 problems are still shaky)',
+    ],
+  ];
 
-  it('nothing planned (y = 0): a bare admission, no ratio clause', () => {
-    const t = makeTechnique({ problemCount: 0, plannedTotal: 0, minProblems: 2, planned: [] });
-    expect(coverageTitle(t)).toBe('nothing planned yet');
-  });
-
-  it('singularizes "problem" (from ratioTitle) when exactly one is planned', () => {
-    const t = makeTechnique({ problemCount: 1, plannedTotal: 1, minProblems: 1, planned: [] });
-    expect(coverageTitle(t)).toBe('1 of 1 planned problem done · covered (1 needed)');
-  });
-
-  it('"needs 1 more" stays singular-friendly (no plural suffix on "more")', () => {
-    const t = makeTechnique({ problemCount: 0, plannedTotal: 1, minProblems: 1, planned: [] });
-    expect(coverageTitle(t)).toBe('0 of 1 planned problem done · 1 more to be covered (1 needed)');
+  it.each(cases)('%s', (_label, t, expected) => {
+    expect(coverageTitle(t)).toBe(expected);
   });
 });
 
@@ -333,19 +373,23 @@ describe('barFillPercent', () => {
 });
 
 describe('thresholdPercent', () => {
-  it('is minProblems / plannedTotal as a percent (a non-clamped case, distinct from the clamp value)', () => {
-    const t = makeTechnique({ minProblems: 2, problemCount: 0, plannedTotal: 4, planned: [] });
-    expect(thresholdPercent(t)).toBe(50);
-  });
+  // x > y and y = 0 both raise the denominator to the threshold itself (ratioDenominatorOf),
+  // landing on the same 100% branch — one case for it, not two, per testing.md.
+  const cases: [string, Technique, number][] = [
+    [
+      'minProblems / ratioDenominatorOf as a percent',
+      makeTechnique({ minProblems: 2, problemCount: 0, plannedTotal: 4, planned: [] }),
+      50,
+    ],
+    [
+      'threshold beyond the plan (x > y): denominator = threshold, so 100%',
+      makeTechnique({ minProblems: 3, problemCount: 0, plannedTotal: 2, planned: [] }),
+      100,
+    ],
+  ];
 
-  it('clamps to 100 when the threshold is beyond what is planned (x > y)', () => {
-    const t = makeTechnique({ minProblems: 3, problemCount: 0, plannedTotal: 2, planned: [] });
-    expect(thresholdPercent(t)).toBe(100);
-  });
-
-  it('is 0 when plannedTotal is 0 (nothing declared)', () => {
-    const t = makeTechnique({ minProblems: 2, problemCount: 0, plannedTotal: 0, planned: [] });
-    expect(thresholdPercent(t)).toBe(0);
+  it.each(cases)('%s', (_label, t, expected) => {
+    expect(thresholdPercent(t)).toBe(expected);
   });
 });
 
@@ -388,5 +432,116 @@ describe('shortName', () => {
 
   it('does not touch a parenthetical that is not at the end', () => {
     expect(shortName('DP (1D) over intervals')).toBe('DP (1D) over intervals');
+  });
+});
+
+describe('columnFor', () => {
+  const cases: [string, Technique, TechniqueStats | undefined, string][] = [
+    [
+      'mastered (own graduatedCount reaches minProblems) wins outright over coverageState',
+      makeTechnique({ minProblems: 2, problemCount: 2, graduatedCount: 2 }),
+      undefined,
+      'mastered',
+    ],
+    [
+      "mastered via stats.graduatedCount fallback (older contract, no Technique.graduatedCount)",
+      makeTechnique({ minProblems: 2, problemCount: 2, graduatedCount: undefined }),
+      { lastTouched: null, greenCount: 2, graduatedCount: 2, weakestComfort: '🎓' },
+      'mastered',
+    ],
+    [
+      'covered (threshold reached) but not mastered',
+      makeTechnique({ minProblems: 2, problemCount: 2, graduatedCount: 0 }),
+      undefined,
+      'covered',
+    ],
+    [
+      'in progress: started but below the threshold',
+      makeTechnique({ minProblems: 3, problemCount: 1, graduatedCount: 0 }),
+      undefined,
+      'inProgress',
+    ],
+    [
+      'not started: no problem done yet',
+      makeTechnique({ minProblems: 3, problemCount: 0, graduatedCount: 0 }),
+      undefined,
+      'notStarted',
+    ],
+  ];
+
+  it.each(cases)('%s', (_label, t, stats, expected) => {
+    expect(columnFor(t, stats)).toBe(expected);
+  });
+});
+
+describe('compareTechniques', () => {
+  const statsFor = (overrides: Partial<TechniqueStats>): TechniqueStats => ({
+    lastTouched: null,
+    greenCount: 0,
+    graduatedCount: 0,
+    weakestComfort: null,
+    ...overrides,
+  });
+
+  function sortedNames(
+    techniques: Technique[],
+    key: 'name' | 'coverage' | 'lastPracticed',
+    statsByName: ReadonlyMap<string, TechniqueStats> = new Map(),
+  ): string[] {
+    return [...techniques]
+      .sort((a, b) => compareTechniques(a, b, key, statsByName))
+      .map((t) => t.name);
+  }
+
+  type SortKey = 'name' | 'coverage' | 'lastPracticed';
+  const cases: [string, Technique[], SortKey, ReadonlyMap<string, TechniqueStats>, string[]][] = [
+    [
+      "'name': plain alphabetical order",
+      [makeTechnique({ name: 'Zeta' }), makeTechnique({ name: 'Alpha' })],
+      'name',
+      new Map(),
+      ['Alpha', 'Zeta'],
+    ],
+    [
+      "'coverage': highest done/ratioDenominatorOf ratio first",
+      [
+        makeTechnique({ name: 'Half', problemCount: 1, plannedTotal: 2, minProblems: 2, planned: [] }),
+        makeTechnique({ name: 'Full', problemCount: 2, plannedTotal: 2, minProblems: 2, planned: [] }),
+      ],
+      'coverage',
+      new Map(),
+      ['Full', 'Half'],
+    ],
+    [
+      "'coverage': equal ratios break the tie on name",
+      [
+        makeTechnique({ name: 'Zeta', problemCount: 1, plannedTotal: 2, minProblems: 2, planned: [] }),
+        makeTechnique({ name: 'Alpha', problemCount: 1, plannedTotal: 2, minProblems: 2, planned: [] }),
+      ],
+      'coverage',
+      new Map(),
+      ['Alpha', 'Zeta'],
+    ],
+    [
+      "'lastPracticed': most recent first; untouched or missing-stats last, tiebreak on name",
+      [
+        makeTechnique({ name: 'Old' }),
+        makeTechnique({ name: 'New' }),
+        makeTechnique({ name: 'NeverTouched' }),
+        makeTechnique({ name: 'NoStatsEntry' }),
+      ],
+      'lastPracticed',
+      new Map([
+        ['Old', statsFor({ lastTouched: '2026-01-01' })],
+        ['New', statsFor({ lastTouched: '2026-06-01' })],
+        ['NeverTouched', statsFor({ lastTouched: null })],
+        // 'NoStatsEntry' deliberately carries no map entry — falls back the same as null.
+      ]),
+      ['New', 'Old', 'NeverTouched', 'NoStatsEntry'],
+    ],
+  ];
+
+  it.each(cases)('%s', (_label, techniques, key, statsByName, expected) => {
+    expect(sortedNames(techniques, key, statsByName)).toEqual(expected);
   });
 });

@@ -110,11 +110,14 @@ export interface Technique {
   /** Has the learner solved anything under this technique — technique_coverage.py's
    *  `is_started`. false for a declared-but-not-yet-begun tier1/2/3/dp entry. */
   started: boolean;
-  /** The per-technique coverage threshold (techniques.yml's min_problems — 1 for most, up to
-   *  5 for one): how many done problems call the technique "covered". Rendered as a tick on
-   *  the done/planned bar (see `plannedTotal`), not the ratio's denominator — the ratio the
-   *  page shows is done/planned. A not-started technique still carries its declared
-   *  threshold. */
+  /** The per-technique coverage threshold (computed by cse-progress from how many problems
+   *  are planned, plus one for each problem still 🔴/🟡 — see `coverageFloor`/`uncleanCount`):
+   *  how many done problems call the technique "covered". Rendered as a tick on
+   *  the done/planned bar (see `plannedTotal`); also a floor under the ratio's own
+   *  denominator — the ratio the page shows is done/max(planned, minProblems), so a technique
+   *  planned for fewer problems than its own threshold still reads honestly instead of
+   *  understating what's expected of it (see `ratioDenominatorOf` in technique-view.ts). A
+   *  not-started technique still carries its declared threshold. */
   minProblems: number;
   problemCount: number;
   problems: number[];
@@ -149,6 +152,18 @@ export interface Technique {
    *  with `hasVariantGap: true` but no `untriedVariations` shows the variation chip with no
    *  count or names (see feedback_site_plain_language.md's fallback rule). */
   untriedVariations?: string[];
+  /** The technique's ordinary per-technique minimum, before any "still shaky" surcharge
+   *  (cse-progress gamify.py's own coverage-floor tally). Paired with `uncleanCount` to explain
+   *  a `minProblems` that sits above this floor: `minProblems = coverageFloor + uncleanCount`
+   *  once the coach has raised the threshold because some matched problems aren't clean yet.
+   *  Optional, additive: absent (or `uncleanCount` absent/not positive) and `coverageTitle`
+   *  states the threshold as before, with no breakdown — see `coverageTitle` in
+   *  technique-view.ts. */
+  coverageFloor?: number;
+  /** Count of this technique's matched problems that are 🟡/🔴 ("shaky", not yet clean) —
+   *  cse-progress gamify.py's own tally, the reason `minProblems` can sit above
+   *  `coverageFloor`. See `coverageFloor`. */
+  uncleanCount?: number;
 }
 
 /** One row of the current week's Daily Schedule table (cse-progress gamify.py's

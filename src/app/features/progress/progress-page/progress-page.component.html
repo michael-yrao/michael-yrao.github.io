@@ -236,6 +236,8 @@
              loadDetails(), same on-demand pattern as the Mastery tab's technique expand. -->
         @if (isTabActive('overview')) {
           <div class="tabpanel" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview">
+            <app-growth-areas [dsaStats]="dsaGrowthStats()" (open)="selectTab('mastery')" />
+
             <div class="card po-card today-board-card">
               <h2>Schedule</h2>
               <app-today-board
@@ -252,8 +254,8 @@
           </div>
         }
 
-        <!-- Mastery — the pipeline funnel (no legend — the glyph segments are self-evident)
-             with difficulty folded in, the honest technique-breadth denominator, and the
+        <!-- Mastery — the pipeline funnel (every bar variant carries a legend row now — item
+             5) with difficulty folded in, the honest technique-breadth denominator, and the
              technique list itself (round 5 — techniques folded into Mastery). -->
         @if (isTabActive('mastery')) {
           <div class="tabpanel" role="tabpanel" id="panel-mastery" aria-labelledby="tab-mastery">

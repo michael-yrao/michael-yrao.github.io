@@ -26,6 +26,7 @@ import { TodayBoardComponent } from '../today-board/today-board.component';
 import { RecognitionPanelComponent } from '../recognition-panel/recognition-panel.component';
 import { SegmentedBarComponent, SegmentedBarSegment } from '../segmented-bar/segmented-bar.component';
 import { WorkloadChartComponent } from '../workload-chart/workload-chart.component';
+import { DsaGrowthStats, GrowthAreasComponent } from '../growth-areas/growth-areas.component';
 import { Technique } from '../../../core/models/progress.model';
 
 type ComfortFilter = 'all' | Comfort;
@@ -113,6 +114,7 @@ const PIPELINE_COMFORT: Record<string, Comfort> = {
     RecognitionPanelComponent,
     SegmentedBarComponent,
     WorkloadChartComponent,
+    GrowthAreasComponent,
   ],
 })
 export class ProgressPageComponent {
@@ -170,8 +172,8 @@ export class ProgressPageComponent {
 
   // Pipeline as ordered segments for the shared segmented bar (round 4 — same component the
   // difficulty mix and technique breadth now render through) — each is a drill into the
-  // Problems tab filtered to that comfort tier. No legend (round-2 item 6 — the segments are
-  // self-labeling); the bar's own segments are the only click target.
+  // Problems tab filtered to that comfort tier. The bar's own segments AND its legend row are
+  // both click targets (item 5 — every bar variant now carries a legend).
   readonly pipelineSegments = computed<SegmentedBarSegment[]>(() => {
     const d = this.data();
     if (!d) return [];
@@ -264,6 +266,19 @@ export class ProgressPageComponent {
         { key: 'practiced', label: 'Practiced (started)', value: tb.practiced, cls: 'seg-practiced' },
       ] satisfies SegmentedBarSegment[]
     ).filter((s) => s.value > 0);
+  });
+
+  // The Overview tab's "Growth areas" section (item 6) — its one live card's stats, entirely
+  // derived from the already-loaded summary (no fetch of its own). `problemsMastered` mirrors
+  // the streak hero's own tile (graduated + retired); `coverage` is null when the summary
+  // carries none, same fallback the hero's own coverage tile uses.
+  readonly dsaGrowthStats = computed<DsaGrowthStats>(() => {
+    const d = this.data();
+    return {
+      streakDays: d?.streak.current ?? 0,
+      problemsMastered: d ? d.pipeline.graduated + d.pipeline.retired : 0,
+      coverage: d?.coverage ? { started: d.coverage.started, total: d.coverage.total } : null,
+    };
   });
 
   private readonly repoParam;

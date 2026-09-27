@@ -10,22 +10,26 @@ export interface SegmentedBarSegment {
   cls: string;
 }
 
-/** `stages`: a self-labeled progression bar (the default — pipeline, roadmap). `mix`: a slim,
- *  unlabeled breakdown bar with its labels moved to a legend row beneath it (difficulty). */
+/** `stages`: a progression bar (the default — pipeline, roadmap). `mix`: a slim breakdown bar
+ *  (difficulty) with no height to carry a label. Both variants share the same legend row
+ *  beneath the bar; only the bar's own height (32px vs 12px) and the in-segment text (a bare
+ *  count on `stages`, nothing at all on `mix`) differ between them. */
 export type SegmentedBarVariant = 'stages' | 'mix';
 
 /**
  * One reusable horizontal stacked bar — the mastery pipeline, the difficulty mix, and the
  * technique-breadth bar all render through this SAME component (round 4: the learner's
  * complaint was that the breadth bar had a different, harder-to-read shape than the
- * pipeline — "similar things should have similar frameworks"). Each segment is
- * self-labeling (its own label + value print ON the segment, not hidden behind a
- * hover-only tooltip or a separate legend), so the bar reads on its own.
+ * pipeline — "similar things should have similar frameworks"). Every segment gets a legend
+ * entry below the bar (swatch · label · count); the in-segment text itself carries only the
+ * count, so a narrow segment never has to fit a full label and the bar stays legible at any
+ * width.
  *
  * `clickable` is an explicit flag rather than inferred from whether `segmentClick` has a
  * subscriber — Angular's signal-based `output()` exposes no public "is anyone listening"
  * check. A caller that wires `(segmentClick)` also sets `[clickable]="true"`, which renders
- * each segment as a real `<button>`; otherwise segments are plain, non-interactive `<span>`s.
+ * each segment (on a `stages` bar) and every legend entry as a real `<button>`; otherwise
+ * both are plain, non-interactive elements.
  */
 @Component({
   selector: 'app-segmented-bar',

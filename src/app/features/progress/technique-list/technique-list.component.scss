@@ -7,7 +7,7 @@
   margin-top: var(--space-md);
 }
 
-// ── List / Map toggle — chrome copied from workload-chart's .wlchart__toggle ───────────────
+// ── List / Board toggle — chrome copied from workload-chart's .wlchart__toggle ─────────────
 .tech-viewbar {
   display: flex;
   gap: var(--space-xs);
@@ -324,15 +324,101 @@ $tech-tooltip-gap: 4px;
   color: var(--color-text-muted);
 }
 
-// ── Map view detail panel (round 6 — swimlanes replace the layered-DAG skill tree) ──────────
-// The map's detail panel sits below the graph (not nested in a per-family group), so unlike
-// a list row — which already carries its own name — it needs its own heading naming which
-// technique it's showing problems for. Reuses the list's own .tech-row__detail box + spacing.
-.tech-map__detail-title {
+// ── Status board (round 7, Sep 27, 2026 — replaces the Map view) ────────────────────────────
+// Four coverage columns, side by side on desktop; stacked on phone at
+// prow.$row-mobile-breakpoint — _problem-row.scss's own shared breakpoint (this file already
+// @uses prow, above, for its row/tag mixins).
+.tech-board { display: flex; flex-direction: column; gap: var(--space-md); }
+
+.tech-board__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+.tech-board__control { display: flex; align-items: center; gap: 4px; }
+.tech-board__select {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.tech-board__columns {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+
+  @media (max-width: prow.$row-mobile-breakpoint) {
+    flex-direction: column;
+  }
+}
+.tech-board__column {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.tech-board__column-label {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+.tech-board__column-count { font-family: var(--font-mono); }
+
+.tech-board__cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+// One flex-wrap row per card, same shape as a list row's own .tech-row__toggle — comfort/
+// name/ratio/chips wrap together, and .tech-row__bar-wrap (its existing `flex: 1 0 100%`)
+// forces the bar onto its own line beneath them, reused as-is.
+.tech-board__card {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-raised);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover, &:focus-visible { border-color: var(--color-accent); outline: none; }
+  &[aria-pressed="true"] { border-color: var(--color-accent); background: var(--color-accent-dim); }
+}
+.tech-board__card-name { flex: 1 1 auto; font-weight: 600; font-size: 0.82rem; }
+
+// The board's detail panel sits below the columns (not nested in a per-family group), so
+// unlike a list row — which already carries its own name — it needs its own heading naming
+// which technique it's showing problems for. Reuses the list's own .tech-row__detail box +
+// spacing, and .tech-row__ratio for the ratio itself (twin: the retired Map view's own
+// .tech-map__detail-title, which this replaces).
+.tech-board__detail-title {
   margin: 0 0 var(--space-xs);
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text);
 }
-.tech-map__detail-ratio { font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-text-muted); }
-.tech-map__detail-stats { font-size: 0.68rem; color: var(--color-text-muted); }
+.tech-board__detail-stats { font-size: 0.68rem; color: var(--color-text-muted); }

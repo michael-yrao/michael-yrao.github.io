@@ -1,18 +1,17 @@
 import { Comfort, ProblemProgress, Technique } from '../../../core/models/progress.model';
 
-/** The Mastery tab's technique-breadth drill: a flat list of rows, or a technique map (nodes
- *  joined by prerequisite edges, one swimlane per family) grouped the same way (tier -> family)
- *  for the list, and as one graph for the map. Persisted per viewer so a reload keeps the last
- *  choice. */
-export type TechniqueView = 'list' | 'map';
+/** The Mastery tab's technique-breadth drill: a flat list of rows grouped tier -> family, or a
+ *  status board (four coverage columns, sortable/filterable). Persisted per viewer so a reload
+ *  keeps the last choice. */
+export type TechniqueView = 'list' | 'board';
 
 export const TECHNIQUE_VIEW_STORAGE_KEY = 'po.progress.techniqueView';
 
-/** 'map' is the current value; the retired layered-DAG skill tree's 'tree' reads as 'map' for
- *  a viewer whose localStorage still carries it. Anything else falls back to 'list', the
- *  default — a corrupted or old-shape value must never crash the tab. */
+/** 'board' is the only value that isn't 'list' — the retired technique map ('map', and its own
+ *  retired predecessor 'tree') both fall back to 'list', same as any other corrupted or
+ *  old-shape value. A stored value must never crash the tab. */
 export function parseStoredView(raw: string | null): TechniqueView {
-  return raw === 'map' || raw === 'tree' ? 'map' : 'list';
+  return raw === 'board' ? 'board' : 'list';
 }
 
 /** Reads the persisted view — try/catch as in `big-o-deck.ts`'s filter read, since
@@ -101,7 +100,10 @@ export function isMastered(t: Technique, stats: TechniqueStats | undefined): boo
 }
 
 // ── Done/planned bar (Sep 26, 2026 — ratio moved from problemCount/minProblems to
-// done/planned, with the old threshold shown as a tick instead of the denominator) ─────────
+// done/planned, with the old threshold shown as a tick instead of the denominator; Sep 27,
+// 2026 — `ratioDenominatorOf` raises that denominator to the threshold itself whenever fewer
+// problems are planned than the technique needs, so the ratio never implies less is expected
+// than actually is) ─────────────────────────────────────────────────────────────────────────
 const MIN_PERCENT = 0;
 const MAX_PERCENT = 100;
 
@@ -121,6 +123,18 @@ export function plannedTotalOf(t: Technique): number {
  *  (cse-progress's own `problemCount` tally). */
 export function doneOf(t: Technique): number {
   return t.problemCount;
+}
+
+/** The ratio's actual denominator: the greater of what's planned (y) and the coverage
+ *  threshold (x). A technique planned for fewer problems than its own threshold (y < x) would
+ *  otherwise show a ratio — and a bar fill/tick — that implies less is expected of it than
+ *  really is; raising the denominator to the threshold keeps the ratio honest (e.g. 0/1 rather
+ *  than 0/0 for a technique with nothing planned yet but a threshold of 1). Used for the row
+ *  ratio, the bar fill, the tick, and the progressbar's `aria-valuemax` — never for
+ *  `plannedTotalOf`, `isThresholdBeyondPlan` or the hover's "only N planned" clause, which stay
+ *  keyed on what's actually planned so the hover keeps naming that honestly. */
+export function ratioDenominatorOf(t: Technique): number {
+  return Math.max(plannedTotalOf(t), t.minProblems);
 }
 
 /** How many more done problems would reach the coverage threshold (x − z) — never negative;
@@ -143,22 +157,24 @@ export function coverageState(t: Technique): CoverageState {
   return done > 0 ? 'inProgress' : 'notBegun';
 }
 
-/** The done/planned bar's fill, as a percent of the bar's own width. 0 when nothing is
- *  planned (`plannedTotalOf` is 0); clamped to [0, 100] so a contract inconsistency (more done
- *  than planned) never overflows the bar. */
+/** The done/planned bar's fill, as a percent of the bar's own width, against
+ *  `ratioDenominatorOf` (never bare `plannedTotalOf` — see that function). 0 when the
+ *  denominator is 0 (nothing planned and no threshold either); clamped to [0, 100] so a
+ *  contract inconsistency (more done than the denominator) never overflows the bar. */
 export function barFillPercent(t: Technique): number {
-  const planned = plannedTotalOf(t);
-  if (planned <= 0) return MIN_PERCENT;
-  return clampPercent((doneOf(t) / planned) * MAX_PERCENT);
+  const denominator = ratioDenominatorOf(t);
+  if (denominator <= 0) return MIN_PERCENT;
+  return clampPercent((doneOf(t) / denominator) * MAX_PERCENT);
 }
 
-/** Where the coverage-threshold tick sits on the same bar, as a percent. Clamped to 100 so a
- *  threshold beyond what's planned (`isThresholdBeyondPlan`) still draws at the bar's end
- *  instead of running off it; 0 when nothing is planned (the bar itself isn't rendered then). */
+/** Where the coverage-threshold tick sits on the same bar, as a percent of
+ *  `ratioDenominatorOf`. Since the denominator is never less than the threshold itself, this
+ *  only ever reaches exactly 100 (the threshold sitting at the denominator's own value), never
+ *  clamps past it; 0 when the denominator is 0 (the bar itself isn't rendered then). */
 export function thresholdPercent(t: Technique): number {
-  const planned = plannedTotalOf(t);
-  if (planned <= 0) return MIN_PERCENT;
-  return clampPercent((t.minProblems / planned) * MAX_PERCENT);
+  const denominator = ratioDenominatorOf(t);
+  if (denominator <= 0) return MIN_PERCENT;
+  return clampPercent((t.minProblems / denominator) * MAX_PERCENT);
 }
 
 /** True when the coverage threshold (x) asks for more problems than are even planned (y) — a
@@ -177,6 +193,21 @@ export function ratioTitle(t: Technique): string {
   return `${doneOf(t)} of ${planned} planned ${noun} done`;
 }
 
+/** The threshold clause inside `coverageTitle`'s parenthetical: "N needed" by default, or a
+ *  plain-language breakdown once the coach exports WHY the threshold sits above its ordinary
+ *  floor — `coverageFloor` (the technique's plain minimum) plus `uncleanCount` (extra reps
+ *  required while that many matched problems are still 🟡/🔴 "shaky", not yet clean). Optional,
+ *  additive: either field absent, or `uncleanCount` not positive, and the sentence is
+ *  unchanged. */
+function neededClause(t: Technique): string {
+  const { coverageFloor, uncleanCount } = t;
+  if (coverageFloor === undefined || uncleanCount === undefined || uncleanCount <= 0) {
+    return `${t.minProblems} needed`;
+  }
+  const subject = uncleanCount === 1 ? 'problem is' : 'problems are';
+  return `${t.minProblems} needed: ${coverageFloor}, plus ${uncleanCount} while ${uncleanCount} ${subject} still shaky`;
+}
+
 // ── Coverage hover (Sep 27, 2026 — Change 3: the "covered at N" / bar-caption prose moves off
 // the row and into a hover, one sentence built from the same numbers) ──────────────────────
 /** The coverage hover's one sentence, read on hovering or focusing a row (Change 3). Built on
@@ -184,17 +215,19 @@ export function ratioTitle(t: Technique): string {
  *  (X needed)" once `coverageState` is 'covered', otherwise "N more to be covered (X needed)" —
  *  and, only when the threshold asks for more than is even planned (`isThresholdBeyondPlan`,
  *  the same finding the removed bar caption surfaced), a third, honest clause naming how much
- *  is planned. Nothing planned at all (y = 0) short-circuits to a bare admission instead. */
+ *  is planned. Nothing planned at all (y = 0) short-circuits to a bare admission instead. The
+ *  "(X needed)" clause itself is `neededClause`, which explains the threshold's own breakdown
+ *  when the coach exports `coverageFloor`/`uncleanCount`. */
 export function coverageTitle(t: Technique): string {
   const planned = plannedTotalOf(t);
   if (planned <= 0) return 'nothing planned yet';
 
   const base = ratioTitle(t);
   if (coverageState(t) === 'covered') {
-    return `${base} · covered (${t.minProblems} needed)`;
+    return `${base} · covered (${neededClause(t)})`;
   }
 
-  const needsClause = `${base} · ${remainingToCover(t)} more to be covered (${t.minProblems} needed)`;
+  const needsClause = `${base} · ${remainingToCover(t)} more to be covered (${neededClause(t)})`;
   return isThresholdBeyondPlan(t) ? `${needsClause} · only ${planned} planned` : needsClause;
 }
 
@@ -205,4 +238,59 @@ const TRAILING_PARENTHETICAL = /\s*\([^()]*\)\s*$/;
  *  (aside from trimming). */
 export function shortName(name: string): string {
   return name.replace(TRAILING_PARENTHETICAL, '').trim();
+}
+
+// ── Status board (Sep 27, 2026 — replaces the Map view) ─────────────────────────────────────
+/** The board's four columns, most- to least-advanced order left to the caller (the component
+ *  owns the fixed column order/labels, same as it already owns `TIER_ORDER`/`TIER_LABEL`). */
+export type TechniqueColumn = 'notStarted' | 'inProgress' | 'covered' | 'mastered';
+
+/** A technique's board column: `isMastered` wins outright (a mastered technique never reads as
+ *  merely "covered"); otherwise the column mirrors `coverageState` one-for-one. */
+export function columnFor(t: Technique, stats: TechniqueStats | undefined): TechniqueColumn {
+  if (isMastered(t, stats)) return 'mastered';
+  switch (coverageState(t)) {
+    case 'covered':
+      return 'covered';
+    case 'inProgress':
+      return 'inProgress';
+    default:
+      return 'notStarted';
+  }
+}
+
+export type TechniqueSortKey = 'name' | 'coverage' | 'lastPracticed';
+
+/** The Coverage sort's own ranking number: done ÷ `ratioDenominatorOf`, i.e. the same fraction
+ *  the bar fill draws. 0 when the denominator is 0 (nothing planned and no threshold either) —
+ *  never NaN. */
+function coverageRatio(t: Technique): number {
+  const denominator = ratioDenominatorOf(t);
+  return denominator > 0 ? doneOf(t) / denominator : 0;
+}
+
+/** The board's sort comparator, for `Array.prototype.sort`. 'name' is a plain alphabetical
+ *  sort; 'coverage' ranks highest coverage ratio first, name as tiebreak; 'lastPracticed' ranks
+ *  the most recently touched technique first (by `stats.lastTouched`, ISO string-compare),
+ *  with a technique untouched (or missing from `statsByName`, e.g. `details` not loaded yet)
+ *  sorted after every touched one, name as tiebreak either way. */
+export function compareTechniques(
+  a: Technique,
+  b: Technique,
+  key: TechniqueSortKey,
+  statsByName: ReadonlyMap<string, TechniqueStats>,
+): number {
+  if (key === 'coverage') {
+    const diff = coverageRatio(b) - coverageRatio(a);
+    return diff !== 0 ? diff : a.name.localeCompare(b.name);
+  }
+  if (key === 'lastPracticed') {
+    const aTouched = statsByName.get(a.name)?.lastTouched ?? null;
+    const bTouched = statsByName.get(b.name)?.lastTouched ?? null;
+    if (aTouched === null && bTouched === null) return a.name.localeCompare(b.name);
+    if (aTouched === null) return 1;
+    if (bTouched === null) return -1;
+    return bTouched === aTouched ? a.name.localeCompare(b.name) : bTouched.localeCompare(aTouched);
+  }
+  return a.name.localeCompare(b.name);
 }

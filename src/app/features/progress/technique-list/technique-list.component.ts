@@ -22,20 +22,24 @@ import { fileUrl, RepoRef } from '../../../core/services/github-file.service';
 import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-date';
 import {
   barFillPercent,
+  columnFor,
+  compareTechniques,
   coverageState,
   coverageTitle,
   deriveTechniqueStats,
   doneOf,
   plannedTotalOf,
+  ratioDenominatorOf,
   readStoredView,
   remainingToCover,
   shortName as shortNameFor,
+  TechniqueColumn,
+  TechniqueSortKey,
   TechniqueStats,
   TechniqueView,
   thresholdPercent,
   writeStoredView,
 } from './technique-view';
-import { TechniqueMapComponent } from './technique-map/technique-map.component';
 
 interface FamilyGroup {
   family: string;
@@ -60,6 +64,27 @@ const TIER_LABEL: Record<TechniqueTier, string> = {
   tier3: 'Tier 3 · below the ROI line (competitive) — not started',
 };
 
+// A competitive-horizon technique (tier2/tier3) is hidden from the board by default — same
+// interview-ROI line TIER_LABEL already names — until the learner opts in via the toggle.
+const HORIZON_TIERS: ReadonlySet<TechniqueTier> = new Set(['tier2', 'tier3']);
+
+interface BoardColumn {
+  readonly key: TechniqueColumn;
+  readonly label: string;
+  readonly items: Technique[];
+}
+
+// Least- to most-advanced, matching how a technique actually progresses.
+const BOARD_COLUMN_ORDER: TechniqueColumn[] = ['notStarted', 'inProgress', 'covered', 'mastered'];
+const BOARD_COLUMN_LABEL: Record<TechniqueColumn, string> = {
+  notStarted: 'Not started',
+  inProgress: 'In progress',
+  covered: 'Covered',
+  mastered: 'Mastered',
+};
+
+const BOARD_SORT_KEYS: readonly TechniqueSortKey[] = ['name', 'coverage', 'lastPracticed'];
+
 // judgeLabel()'s host → short label map. Keyed by the bare hostname (no leading `www.` —
 // judgeLabel strips that before lookup). A host with no entry here falls back to itself.
 const JUDGE_HOST_LABELS: Readonly<Record<string, string>> = {
@@ -83,13 +108,18 @@ const JUDGE_HOST_LABELS: Readonly<Record<string, string>> = {
  * `expand`, which the parent wires to `loadDetails()` — same on-demand, cached pattern as
  * the Problems tab. A not-started technique (empty `problems`) never emits `expand`; it just
  * shows "not started yet."
+ *
+ * Round 7: an alternate Board view (`view() === 'board'`) regroups the same techniques into
+ * four coverage columns instead of tier/family, with its own sort/family-filter/horizon
+ * controls and single-card selection — see `boardColumns`/`selectInBoard`. Replaces the
+ * retired technique map (`technique-map/`, left in place but no longer wired in here).
  */
 @Component({
   selector: 'app-technique-list',
   templateUrl: './technique-list.component.html',
   styleUrls: ['./technique-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgTemplateOutlet, TechniqueMapComponent],
+  imports: [RouterLink, NgTemplateOutlet],
 })
 export class TechniqueListComponent {
   readonly techniques = input.required<Technique[]>();
@@ -106,6 +136,7 @@ export class TechniqueListComponent {
   // properties so the template can call them per row without a wrapper method each.
   readonly doneOf = doneOf;
   readonly plannedTotalOf = plannedTotalOf;
+  readonly ratioDenominatorOf = ratioDenominatorOf;
   readonly remainingToCover = remainingToCover;
   readonly barFillPercent = barFillPercent;
   readonly thresholdPercent = thresholdPercent;
@@ -113,18 +144,19 @@ export class TechniqueListComponent {
 
   private readonly expandedNames = signal<ReadonlySet<string>>(new Set());
 
-  /** List vs. Map (technique map) — persisted per viewer, default List. */
+  /** List vs. Board (technique board) — persisted per viewer, default List. */
   readonly view = signal<TechniqueView>(readStoredView());
   private primed = false;
 
   constructor() {
-    // One-shot priming: the Map view's per-node mastery (graduated count, for an older
-    // contract with no Technique.graduatedCount) needs `details`, which the parent only
-    // fetches on-demand — same lazy pattern as a list row's own expand. Landing on Map with
+    // One-shot priming: the Board's Mastered column (`isMastered`'s `stats.graduatedCount`
+    // fallback for an older contract with no `Technique.graduatedCount`) and its
+    // Last-practiced sort (`stats.lastTouched`) both need `details`, which the parent only
+    // fetches on-demand — same lazy pattern as a list row's own expand. Landing on Board with
     // no details yet kicks that fetch off exactly once, via the first started technique; the
     // (default) List view never triggers this.
     effect(() => {
-      if (this.view() !== 'map' || this.details() !== null || this.primed) return;
+      if (this.view() !== 'board' || this.details() !== null || this.primed) return;
       const first = this.techniques().find((t) => t.started);
       if (!first) return;
       this.primed = true;
@@ -185,33 +217,93 @@ export class TechniqueListComponent {
     new Map(this.techniques().map((t) => [t.name, t])),
   );
 
-  /** The Map view's own single-selection state — deliberately separate from the List view's
+  /** The board's own single-selection state — deliberately separate from the List view's
    *  `expandedNames` (which supports several simultaneously-open rows). A Set-based "most
    *  recently toggled" reused from `expandedNames` was tried and rejected: clicking the
-   *  already-selected node would toggle it OUT of the set but leave an earlier List-view
+   *  already-selected card would toggle it OUT of the set but leave an earlier List-view
    *  selection as the new "most recent", so the panel would jump to stale content instead of
    *  closing; and selecting an older List-view entry would delete it from the shared set while
    *  the panel kept showing whatever was still "most recent" in it. */
-  readonly mapSelectedName = signal<string | null>(null);
+  readonly boardSelectedName = signal<string | null>(null);
 
   /** The selected technique itself, re-resolved against the current `techniques()` on every
    *  read — not just captured once at selection time. `techniques()` can change out from
    *  under an open selection (e.g. a `?repo=` switch to a log that never had this technique),
    *  so this falls back to null rather than a stale/undefined object the template would throw
    *  on (`t.bestComfort`) via a non-null assertion. */
-  readonly mapSelected = computed<Technique | null>(() => {
-    const name = this.mapSelectedName();
+  readonly boardSelected = computed<Technique | null>(() => {
+    const name = this.boardSelectedName();
     return name ? this.techniquesByName().get(name) ?? null : null;
   });
 
-  /** A map node click: selects it (same first-expand `expand` emission rule as `toggle()`),
-   *  or deselects when it's already the selection — a map node always has exactly zero or
-   *  one selection, never the List view's multi-row toggle. */
-  selectInMap(t: Technique): void {
-    const isReselect = this.mapSelectedName() === t.name;
-    this.mapSelectedName.set(isReselect ? null : t.name);
+  isBoardSelected(t: Technique): boolean {
+    return this.boardSelectedName() === t.name;
+  }
+
+  /** A board card click: selects it (same first-expand `expand` emission rule as `toggle()`),
+   *  or deselects when it's already the selection — a card always has exactly zero or one
+   *  selection, never the List view's multi-row toggle. */
+  selectInBoard(t: Technique): void {
+    const isReselect = this.boardSelectedName() === t.name;
+    this.boardSelectedName.set(isReselect ? null : t.name);
     if (!isReselect && t.started) this.expand.emit(t);
   }
+
+  /** Board organizing controls — signals rather than derived state, since none of the three
+   *  are derivable from `techniques()`/`details()` alone; persisting them isn't required. */
+  readonly boardSort = signal<TechniqueSortKey>('name');
+  readonly boardFamily = signal<string | null>(null);
+  readonly showHorizon = signal(false);
+
+  setBoardSort(value: string): void {
+    const key = value as TechniqueSortKey;
+    this.boardSort.set(BOARD_SORT_KEYS.includes(key) ? key : 'name');
+  }
+
+  setBoardFamily(value: string): void {
+    this.boardFamily.set(value === '' ? null : value);
+  }
+
+  toggleHorizon(): void {
+    this.showHorizon.update((v) => !v);
+  }
+
+  /** The techniques the horizon toggle lets through — the pool both the family filter's
+   *  option list and the board itself draw from, so the filter never offers a family whose
+   *  every technique is hidden. */
+  private readonly boardInScope = computed<Technique[]>(() => {
+    const showHorizon = this.showHorizon();
+    return this.techniques().filter((t) => showHorizon || !HORIZON_TIERS.has(t.tier));
+  });
+
+  readonly boardFamilies = computed<string[]>(() =>
+    [...new Set(this.boardInScope().map((t) => t.family))].sort((a, b) => a.localeCompare(b)),
+  );
+
+  private readonly boardFiltered = computed<Technique[]>(() => {
+    const family = this.boardFamily();
+    return this.boardInScope().filter((t) => family === null || t.family === family);
+  });
+
+  private readonly boardSorted = computed<Technique[]>(() => {
+    const key = this.boardSort();
+    const stats = this.stats();
+    return [...this.boardFiltered()].sort((a, b) => compareTechniques(a, b, key, stats));
+  });
+
+  /** The board's four columns, in `BOARD_COLUMN_ORDER`, each carrying its own count — a plain
+   *  `filter` per column over the already-sorted/filtered list, so each column's items stay in
+   *  sort order with no mutation. The technique list is small enough that filtering it once per
+   *  column costs nothing worth optimizing for. */
+  readonly boardColumns = computed<BoardColumn[]>(() => {
+    const stats = this.stats();
+    const sorted = this.boardSorted();
+    return BOARD_COLUMN_ORDER.map((key) => ({
+      key,
+      label: BOARD_COLUMN_LABEL[key],
+      items: sorted.filter((t) => columnFor(t, stats.get(t.name)) === key),
+    }));
+  });
 
   setView(next: TechniqueView): void {
     this.view.set(next);

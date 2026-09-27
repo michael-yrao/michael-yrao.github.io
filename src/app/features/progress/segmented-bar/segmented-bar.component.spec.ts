@@ -58,18 +58,6 @@ describe('SegmentedBarComponent', () => {
     expect((segs[1] as HTMLElement).style.width).toBe('50%');
   });
 
-  it('shows each segment self-labeled with its label and value', () => {
-    const fixture = createFixture(makeSegments());
-
-    const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Alpha');
-    expect(text).toContain('30');
-    expect(text).toContain('Beta');
-    expect(text).toContain('10');
-    expect(text).toContain('Gamma');
-    expect(text).toContain('60');
-  });
-
   it('omits zero-value segments entirely', () => {
     const fixture = createFixture([
       { key: 'a', label: 'Alpha', value: 5, cls: 'seg-easy' },
@@ -185,5 +173,33 @@ describe('SegmentedBarComponent', () => {
     const fixture = createFixture(makeSegments());
 
     expect(fixture.nativeElement.querySelector('.segbar__bar').classList.contains('segbar__bar--mix')).toBe(false);
+  });
+
+  // ── item 5: every variant now carries a legend, not just 'mix' ─────────────────────
+  it("renders a legend for the default 'stages' variant too, with the segment itself showing only the count", () => {
+    const fixture = createFixture(makeSegments()); // default variant: stages
+
+    const items = fixture.nativeElement.querySelectorAll('.segbar__legend li');
+    expect(items.length).toBe(3);
+    expect(items[0].textContent).toContain('Alpha');
+    expect(items[0].textContent).toContain('30');
+
+    const segTexts = Array.from(fixture.nativeElement.querySelectorAll('.segbar__seg-text')) as HTMLElement[];
+    expect(segTexts.map((el) => el.textContent?.trim())).toEqual(['30', '10', '60']);
+    expect(segTexts.every((el) => !el.textContent?.includes('Alpha'))).toBe(true);
+  });
+
+  it('emits segmentClick from a stages-bar legend entry when clickable', () => {
+    const fixture = createFixture(makeSegments(), { clickable: true }); // default variant: stages
+    const clicked: SegmentedBarSegment[] = [];
+    fixture.componentInstance.segmentClick.subscribe((s) => clicked.push(s));
+
+    const legendButtons = fixture.nativeElement.querySelectorAll('.segbar__legend-btn');
+    expect(legendButtons.length).toBe(3);
+
+    (legendButtons[1] as HTMLButtonElement).click();
+
+    expect(clicked.length).toBe(1);
+    expect(clicked[0].key).toBe('b');
   });
 });

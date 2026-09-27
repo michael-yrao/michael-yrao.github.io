@@ -134,7 +134,12 @@ describe('TechniqueListComponent', () => {
   // replaces an earlier version of this spec that (incorrectly) exercised it via a
   // contradictory started: true + problemCount: 0 + plannedTotal: 0 fixture; see
   // statusChipLabel's doc comment in technique-list.component.ts.
-  it('shows "nothing planned yet" (not "not started"), ratio 0/0, and no bar for a not-started technique with nothing planned (y = 0)', () => {
+  //
+  // The ratio itself reads 0/2 (not 0/0): `ratioDenominatorOf` raises the denominator to the
+  // technique's own threshold (minProblems) whenever nothing is planned, so the ratio never
+  // implies less is expected of the technique than really is — the chip and the (still hidden)
+  // bar stay keyed on `plannedTotalOf` alone, unaffected.
+  it('shows "nothing planned yet" (not "not started"), ratio 0/threshold, and no bar for a not-started technique with nothing planned (y = 0)', () => {
     const fixture = createFixture([
       makeTechnique({ started: false, problemCount: 0, problems: [], minProblems: 2, plannedTotal: 0, planned: [] }),
     ]);
@@ -143,7 +148,7 @@ describe('TechniqueListComponent', () => {
     expect(chip?.textContent).toContain('nothing planned yet');
     expect(fixture.nativeElement.querySelector('.chip--not-started')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.tech-row__bar')).toBeFalsy();
-    expect(fixture.nativeElement.querySelector('.tech-row__ratio')?.textContent).toContain('0/0');
+    expect(fixture.nativeElement.querySelector('.tech-row__ratio')?.textContent).toContain('0/2');
   });
 
   it('the ratio carries no native title (the coverage hover lives on the bar-wrap instead, so only one bubble ever shows)', () => {
@@ -626,7 +631,7 @@ describe('TechniqueListComponent — coverage colour (Change 2) and hover (Chang
   });
 });
 
-function clickViewButton(fixture: ReturnType<typeof createFixture>, label: 'List' | 'Map'): void {
+function clickViewButton(fixture: ReturnType<typeof createFixture>, label: 'List' | 'Board'): void {
   const buttons = Array.from(
     fixture.nativeElement.querySelectorAll('.tech-viewbar__btn'),
   ) as HTMLButtonElement[];
@@ -635,156 +640,61 @@ function clickViewButton(fixture: ReturnType<typeof createFixture>, label: 'List
   fixture.detectChanges();
 }
 
-function clickMapNode(fixture: ReturnType<typeof createFixture>, name: string): void {
-  const node = fixture.nativeElement.querySelector(
-    `app-technique-map .tech-map__node[aria-label="${name}"]`,
-  ) as Element;
-  node.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+function clickBoardCard(fixture: ReturnType<typeof createFixture>, name: string): void {
+  const buttons = Array.from(
+    fixture.nativeElement.querySelectorAll('.tech-board__card'),
+  ) as HTMLButtonElement[];
+  const card = buttons.find((b) => b.textContent?.includes(name));
+  card!.click();
   fixture.detectChanges();
 }
 
-describe('TechniqueListComponent — Map view', () => {
+describe('TechniqueListComponent — Board view', () => {
   afterEach(() => localStorage.clear());
 
-  it('renders a List/Map viewbar defaulting to List, with aria-pressed state', () => {
-    const fixture = createFixture([makeTechnique()]);
-
-    const buttons = fixture.nativeElement.querySelectorAll('.tech-viewbar__btn');
-    expect(buttons.length).toBe(2);
-    expect(buttons[0].textContent.trim()).toBe('List');
-    expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
-    expect(buttons[1].textContent.trim()).toBe('Map');
-    expect(buttons[1].getAttribute('aria-pressed')).toBe('false');
-  });
-
-  it('switching to Map shows exactly one app-technique-map and hides the list rows', () => {
-    const fixture = createFixture([makeTechnique()]);
-
-    clickViewButton(fixture, 'Map');
-
-    expect(fixture.nativeElement.querySelectorAll('app-technique-map').length).toBe(1);
-    expect(fixture.nativeElement.querySelector('.tech-row__toggle')).toBeFalsy();
-  });
-
-  it('renders one map node per technique, across families, as a single graph (not per family)', () => {
-    const fixture = createFixture([
-      makeTechnique({ name: 'Two Pointers', family: 'Arrays' }),
-      makeTechnique({ name: 'Sliding Window', family: 'Arrays', problems: [3] }),
-      makeTechnique({ name: 'BFS', family: 'Graphs', problems: [200] }),
-    ]);
-
-    clickViewButton(fixture, 'Map');
-
-    expect(fixture.nativeElement.querySelectorAll('.tech-map__node').length).toBe(3);
-  });
-
-  it('a technique whose graduatedCount reaches minProblems renders --mastered; one below does not', () => {
-    const fixture = createFixture([
-      makeTechnique({ name: 'Mastered', minProblems: 2, graduatedCount: 2 }),
-      makeTechnique({ name: 'Below', minProblems: 3, graduatedCount: 1 }),
-    ]);
-
-    clickViewButton(fixture, 'Map');
-
-    const nodeFor = (name: string) =>
-      fixture.nativeElement.querySelector(`.tech-map__node[aria-label="${name}"]`);
-    expect(nodeFor('Mastered').classList.contains('tech-map__node--mastered')).toBe(true);
-    expect(nodeFor('Below').classList.contains('tech-map__node--mastered')).toBe(false);
-  });
-
-  it("the Map detail heading's ratio matches the List view's done/planned ratio", () => {
-    const fixture = createFixture(
-      [makeTechnique({ name: 'Two Pointers', problemCount: 1, minProblems: 3, plannedTotal: 3, problems: [11] })],
-      [makeProblem({ lcNumber: 11 })],
-    );
-    clickViewButton(fixture, 'Map');
-    clickMapNode(fixture, 'Two Pointers');
-
-    expect(fixture.nativeElement.querySelector('.tech-map__detail-ratio')?.textContent).toContain('1/3');
-  });
-
-  it('a not-started technique renders --not-started', () => {
-    const fixture = createFixture([makeTechnique({ started: false, problemCount: 0, problems: [] })]);
-
-    clickViewButton(fixture, 'Map');
-
-    const node = fixture.nativeElement.querySelector('.tech-map__node');
-    expect(node.classList.contains('tech-map__node--not-started')).toBe(true);
-  });
-
-  it('selecting a started node emits expand once and shows the detail heading', () => {
+  it('clicking a card opens the detail panel below the board and emits expand', () => {
     const fixture = createFixture(
       [makeTechnique({ name: 'Two Pointers', problems: [11] })],
       [makeProblem({ lcNumber: 11 })],
     );
-    clickViewButton(fixture, 'Map');
+    clickViewButton(fixture, 'Board');
 
     const emitted: Technique[] = [];
     fixture.componentInstance.expand.subscribe((t) => emitted.push(t));
 
-    clickMapNode(fixture, 'Two Pointers');
+    clickBoardCard(fixture, 'Two Pointers');
 
     expect(emitted.length).toBe(1);
     expect(emitted[0].name).toBe('Two Pointers');
-    expect(fixture.nativeElement.querySelector('.tech-map__detail-title')?.textContent)
+    expect(fixture.nativeElement.querySelector('.tech-board__detail-title')?.textContent)
       .toContain('Two Pointers');
     expect(fixture.nativeElement.querySelector('.tech-row__problem')?.textContent)
       .toContain('Container With Most Water');
   });
 
-  it('selecting the already-selected node deselects it (no detail panel), rather than falling back to an earlier selection', () => {
-    const fixture = createFixture(
-      [
-        makeTechnique({ name: 'A', problems: [11] }),
-        makeTechnique({ name: 'B', problems: [22] }),
-      ],
-      [makeProblem({ lcNumber: 11 }), makeProblem({ lcNumber: 22, title: 'Other' })],
-    );
-    clickViewButton(fixture, 'Map');
-
-    clickMapNode(fixture, 'A');
-    clickMapNode(fixture, 'B');
-    expect(fixture.nativeElement.querySelector('.tech-map__detail-title')?.textContent)
-      .toContain('B');
-
-    // Selecting B again (the currently-selected node) must close the panel entirely — not
-    // fall back to A, which was expanded earlier but is no longer the current selection.
-    clickMapNode(fixture, 'B');
-    expect(fixture.nativeElement.querySelector('.tech-map__detail-title')).toBeFalsy();
-  });
-
-  it('a selection that no longer exists in techniques() (e.g. a ?repo= switch) closes the panel without throwing', () => {
-    const fixture = createFixture(
-      [makeTechnique({ name: 'A', problems: [11] })],
-      [makeProblem({ lcNumber: 11 })],
-    );
-    clickViewButton(fixture, 'Map');
-
-    clickMapNode(fixture, 'A');
-    expect(fixture.nativeElement.querySelector('.tech-map__detail-title')?.textContent)
-      .toContain('A');
-
-    expect(() => {
-      fixture.componentRef.setInput('techniques', [makeTechnique({ name: 'B' })]);
-      fixture.detectChanges();
-    }).not.toThrow();
-
-    expect(fixture.nativeElement.querySelector('.tech-map__detail-title')).toBeFalsy();
-  });
-
-  it('edges count equals the number of valid buildsOn pairs', () => {
+  it('the horizon toggle is off by default (tier2/tier3 hidden) and showing it reveals those cards', () => {
     const fixture = createFixture([
-      makeTechnique({ name: 'A' }),
-      makeTechnique({ name: 'B', buildsOn: ['A'] }),
-      makeTechnique({ name: 'C', buildsOn: ['A', 'Ghost'] }),
+      makeTechnique({ name: 'Core Technique', tier: 'core' }),
+      makeTechnique({ name: 'Horizon Technique', tier: 'tier2', problemCount: 0, problems: [], started: false }),
     ]);
+    clickViewButton(fixture, 'Board');
 
-    clickViewButton(fixture, 'Map');
+    const cardNames = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('.tech-board__card-name') as NodeListOf<HTMLElement>)
+        .map((el) => el.textContent?.trim());
 
-    expect(fixture.nativeElement.querySelectorAll('.tech-map__edge').length).toBe(2);
+    expect(cardNames()).toEqual(['Core Technique']);
+
+    const toggle = Array.from(
+      fixture.nativeElement.querySelectorAll('.tech-board__controls .tech-viewbar__btn'),
+    ).find((b) => (b as HTMLElement).textContent?.includes('competitive horizon')) as HTMLButtonElement;
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(cardNames().sort()).toEqual(['Core Technique', 'Horizon Technique']);
   });
 
-  it('when details is not yet loaded, switching to Map primes with the first started technique exactly once', () => {
+  it('when details is not yet loaded, switching to Board primes with the first started technique exactly once', () => {
     const fixture = createFixture(
       [
         makeTechnique({ name: 'Two Pointers', started: false, problemCount: 0, problems: [] }),
@@ -795,33 +705,14 @@ describe('TechniqueListComponent — Map view', () => {
     const emitted: Technique[] = [];
     fixture.componentInstance.expand.subscribe((t) => emitted.push(t));
 
-    clickViewButton(fixture, 'Map');
+    clickViewButton(fixture, 'Board');
     expect(emitted.length).toBe(1);
     expect(emitted[0].name).toBe('Sliding Window');
 
     // Switching away and back does not re-emit — the priming is a one-shot per component
     // lifetime, guarded by the `primed` flag.
     clickViewButton(fixture, 'List');
-    clickViewButton(fixture, 'Map');
+    clickViewButton(fixture, 'Board');
     expect(emitted.length).toBe(1);
-  });
-
-  it("a stored 'tree' (the retired skill tree) reads as Map", () => {
-    localStorage.setItem('po.progress.techniqueView', 'tree');
-    const fixture = createFixture([makeTechnique()]);
-
-    expect(fixture.componentInstance.view()).toBe('map');
-    expect(fixture.nativeElement.querySelector('app-technique-map')).toBeTruthy();
-  });
-
-  it("setView('map') persists across a fresh fixture", () => {
-    const fixture = createFixture([makeTechnique()]);
-
-    fixture.componentInstance.setView('map');
-    fixture.detectChanges();
-
-    const fresh = createFixture([makeTechnique()]);
-    expect(fresh.componentInstance.view()).toBe('map');
-    expect(fresh.nativeElement.querySelector('app-technique-map')).toBeTruthy();
   });
 });

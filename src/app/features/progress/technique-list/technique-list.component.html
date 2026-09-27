@@ -10,27 +10,102 @@
     <button
       type="button"
       class="tech-viewbar__btn"
-      [class.tech-viewbar__btn--active]="view() === 'map'"
-      [attr.aria-pressed]="view() === 'map'"
-      (click)="setView('map')"
-    >Map</button>
+      [class.tech-viewbar__btn--active]="view() === 'board'"
+      [attr.aria-pressed]="view() === 'board'"
+      (click)="setView('board')"
+    >Board</button>
   </div>
 
-  @if (view() === 'map') {
-    <app-technique-map
-      [techniques]="techniques()"
-      [details]="details()"
-      [expandedName]="mapSelectedName()"
-      (select)="selectInMap($event)"
-    />
-    @if (mapSelected(); as t) {
+  @if (view() === 'board') {
+    <div class="tech-board">
+      <div class="tech-board__controls">
+        <label class="tech-board__control">
+          Sort
+          <select class="tech-board__select" #sortSelect (change)="setBoardSort(sortSelect.value)">
+            <option value="name" [selected]="boardSort() === 'name'">Name</option>
+            <option value="coverage" [selected]="boardSort() === 'coverage'">Coverage</option>
+            <option value="lastPracticed" [selected]="boardSort() === 'lastPracticed'">Last practiced</option>
+          </select>
+        </label>
+        <label class="tech-board__control">
+          Family
+          <select class="tech-board__select" #familySelect (change)="setBoardFamily(familySelect.value)">
+            <option value="" [selected]="boardFamily() === null">All</option>
+            @for (family of boardFamilies(); track family) {
+              <option [value]="family" [selected]="boardFamily() === family">{{ family }}</option>
+            }
+          </select>
+        </label>
+        <button
+          type="button"
+          class="tech-viewbar__btn"
+          [class.tech-viewbar__btn--active]="showHorizon()"
+          [attr.aria-pressed]="showHorizon()"
+          (click)="toggleHorizon()"
+        >Show competitive horizon</button>
+      </div>
+
+      <div class="tech-board__columns">
+        @for (col of boardColumns(); track col.key) {
+          <div class="tech-board__column">
+            <h4 class="tech-board__column-label">
+              {{ col.label }}
+              <span class="tech-board__column-count">{{ col.items.length }}</span>
+            </h4>
+            <ul class="tech-board__cards">
+              @for (t of col.items; track t.name) {
+                <li>
+                  <button
+                    type="button"
+                    class="tech-board__card"
+                    [attr.aria-pressed]="isBoardSelected(t)"
+                    (click)="selectInBoard(t)"
+                  >
+                    <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
+                    <span class="tech-board__card-name">{{ shortName(t.name) }}</span>
+                    <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
+                    @if (t.started) {
+                      <span class="chip" [class]="statusChipClass(t)">{{ statusChipLabel(t) }}</span>
+                      @if (variationChipLabel(t); as label) {
+                        <span class="chip chip--variation">{{ label }}</span>
+                      }
+                    } @else if (plannedTotalOf(t) === 0) {
+                      <span class="chip chip--no-plan">nothing planned yet</span>
+                    } @else {
+                      <span class="chip chip--not-started">not started</span>
+                    }
+                    @if (plannedTotalOf(t) > 0) {
+                      <span class="tech-row__bar-wrap" [attr.data-tip]="coverageTitle(t)">
+                        <span
+                          class="tech-row__bar"
+                          role="progressbar"
+                          aria-valuemin="0"
+                          [attr.aria-valuenow]="doneOf(t)"
+                          [attr.aria-valuemax]="ratioDenominatorOf(t)"
+                          [attr.aria-label]="coverageTitle(t)"
+                        >
+                          <span class="tech-row__bar-fill" [class]="barFillClass(t)" [style.width.%]="barFillPercent(t)"></span>
+                          <span class="tech-row__bar-tick" [style.left.%]="thresholdPercent(t)"></span>
+                        </span>
+                      </span>
+                    }
+                  </button>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (boardSelected(); as t) {
       @let stats = statsFor(t);
-      <div class="tech-row__detail tech-map__detail">
-        <h5 class="tech-map__detail-title">
+      <div class="tech-row__detail tech-board__detail">
+        <h5 class="tech-board__detail-title">
           {{ t.bestComfort || '—' }} {{ t.name }}
-          <span class="tech-map__detail-ratio">{{ doneOf(t) }}/{{ plannedTotalOf(t) }}</span>
+          <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
           @if (stats.greenCount > 0 || stats.lastTouched) {
-            <span class="tech-map__detail-stats">
+            <span class="tech-board__detail-stats">
               {{ stats.greenCount }} 🟢
               @if (stats.lastTouched) {
                 · {{ shortMonthDay(stats.lastTouched) }}
@@ -76,7 +151,7 @@
                   >
                     <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
                     <span class="tech-row__name">{{ t.name }}</span>
-                    <span class="tech-row__ratio">{{ doneOf(t) }}/{{ plannedTotalOf(t) }}</span>
+                    <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
                     @if (t.started) {
                       <span class="chip" [class]="statusChipClass(t)">{{ statusChipLabel(t) }}</span>
                       @if (variationChipLabel(t); as label) {
@@ -95,7 +170,7 @@
                           role="progressbar"
                           aria-valuemin="0"
                           [attr.aria-valuenow]="doneOf(t)"
-                          [attr.aria-valuemax]="plannedTotalOf(t)"
+                          [attr.aria-valuemax]="ratioDenominatorOf(t)"
                           [attr.aria-label]="coverageTitle(t)"
                         >
                           <span class="tech-row__bar-fill" [class]="barFillClass(t)" [style.width.%]="barFillPercent(t)"></span>

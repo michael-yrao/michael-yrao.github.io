@@ -295,13 +295,23 @@ describe('ProgressPageComponent', () => {
     expect(masteryTab.getAttribute('aria-selected')).toBe('false');
   });
 
-  it('the pipeline bar has no legend (round 2 item 6)', () => {
+  // ── Item 6: "Growth areas" section, above the Schedule card ────────────────────────
+  it('shows the growth-areas component on Overview, and its `open` emission switches to Mastery', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'mastery');
 
-    expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('.legend')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('app-growth-areas')).toBeTruthy();
+
+    const openBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'app-growth-areas .growth-card__btn',
+    );
+    expect(openBtn).toBeTruthy();
+    openBtn.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#tab-mastery').getAttribute('aria-selected')).toBe(
+      'true',
+    );
   });
 
   // ── Round 4: the pipeline, difficulty, and breadth bars all render through the ONE

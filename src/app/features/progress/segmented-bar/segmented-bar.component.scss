@@ -57,8 +57,10 @@ button.segbar__seg {
   span:last-child::after { content: ' ▸'; }
 }
 
-// The `mix` bar's legend row (swatch · label · count) — replaces in-bar text the 12px bar
-// can't carry, and doubles as the bigger click target (never the slim segments themselves).
+// The bar's legend row (swatch · label · count) — every variant renders one, since a segment
+// itself now carries only its count. On the slim `mix` bar (no room for in-segment text at
+// all) the legend is also the ONLY click target; a `stages` bar's own segments stay clickable
+// too, so the legend there is a second, bigger target for the same click.
 .segbar__legend {
   list-style: none;
   padding: 0;
