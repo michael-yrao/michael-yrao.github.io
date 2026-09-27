@@ -100,6 +100,78 @@ export function isMastered(t: Technique, stats: TechniqueStats | undefined): boo
   return graduatedCount >= t.minProblems;
 }
 
+// ── Done/planned bar (Sep 26, 2026 — ratio moved from problemCount/minProblems to
+// done/planned, with the old threshold shown as a tick instead of the denominator) ─────────
+const MIN_PERCENT = 0;
+const MAX_PERCENT = 100;
+
+function clampPercent(value: number): number {
+  return Math.min(MAX_PERCENT, Math.max(MIN_PERCENT, value));
+}
+
+/** y — every problem planned for the technique, done ones included. Prefers the exported
+ *  `plannedTotal`; falls back to `problemCount + planned.length` for an older contract
+ *  predating it, and to `problemCount` alone when `planned` is absent too. */
+export function plannedTotalOf(t: Technique): number {
+  if (t.plannedTotal !== undefined) return t.plannedTotal;
+  return t.problemCount + (t.planned?.length ?? 0);
+}
+
+/** z — problems credited to this technique with at least one rep, done ones included
+ *  (cse-progress's own `problemCount` tally). */
+export function doneOf(t: Technique): number {
+  return t.problemCount;
+}
+
+/** How many more done problems would reach the coverage threshold (x − z) — never negative;
+ *  0 once the technique is covered. */
+export function remainingToCover(t: Technique): number {
+  return Math.max(0, t.minProblems - doneOf(t));
+}
+
+/** The done/planned bar's fill, as a percent of the bar's own width. 0 when nothing is
+ *  planned (`plannedTotalOf` is 0); clamped to [0, 100] so a contract inconsistency (more done
+ *  than planned) never overflows the bar. */
+export function barFillPercent(t: Technique): number {
+  const planned = plannedTotalOf(t);
+  if (planned <= 0) return MIN_PERCENT;
+  return clampPercent((doneOf(t) / planned) * MAX_PERCENT);
+}
+
+/** Where the coverage-threshold tick sits on the same bar, as a percent. Clamped to 100 so a
+ *  threshold beyond what's planned (`isThresholdBeyondPlan`) still draws at the bar's end
+ *  instead of running off it; 0 when nothing is planned (the bar itself isn't rendered then). */
+export function thresholdPercent(t: Technique): number {
+  const planned = plannedTotalOf(t);
+  if (planned <= 0) return MIN_PERCENT;
+  return clampPercent((t.minProblems / planned) * MAX_PERCENT);
+}
+
+/** True when the coverage threshold (x) asks for more problems than are even planned (y) — a
+ *  real finding for the coach, surfaced as an honest caption rather than hidden. */
+export function isThresholdBeyondPlan(t: Technique): boolean {
+  return t.minProblems > plannedTotalOf(t);
+}
+
+/** The expanded detail's trailing clause — "N to go" (y − z), or "none left to do" once
+ *  nothing remains (Sep 27, 2026: "planned" was reading as two different numbers on one
+ *  screen — the ratio's denominator vs. this remaining count — so this clause drops the
+ *  word "planned" entirely and just says how much is left). */
+export function remainingPlanned(t: Technique): string {
+  const remaining = plannedTotalOf(t) - doneOf(t);
+  return remaining <= 0 ? 'none left to do' : `${remaining} to go`;
+}
+
+/** The bare "X of Y planned problem(s) done" sentence — shared by the list row's ratio hover
+ *  title, the Map node's SVG `<title>`, and the bar's aria-label (which appends
+ *  "; covered at Z" — see `TechniqueListComponent.barAriaLabel`). Singular "problem" only when
+ *  exactly one is planned. */
+export function ratioTitle(t: Technique): string {
+  const planned = plannedTotalOf(t);
+  const noun = planned === 1 ? 'problem' : 'problems';
+  return `${doneOf(t)} of ${planned} planned ${noun} done`;
+}
+
 const TRAILING_PARENTHETICAL = /\s*\([^()]*\)\s*$/;
 
 /** Strips a trailing "(...)" qualifier for a tight label, e.g. "Two Pointers (opposite

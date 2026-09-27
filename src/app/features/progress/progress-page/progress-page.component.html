@@ -292,7 +292,7 @@
                 />
                 @if (d.coverage; as cov) {
                   <p class="card__sub">
-                    Of the practiced: {{ cov.thin }} thin · {{ cov.variantGaps }} variant gaps
+                    Of the practiced: {{ cov.thin }} {{ cov.thin === 1 ? 'needs' : 'need' }} more problems · {{ cov.variantGaps }} {{ cov.variantGaps === 1 ? 'has' : 'have' }} a variation not tried
                   </p>
                 }
               </div>

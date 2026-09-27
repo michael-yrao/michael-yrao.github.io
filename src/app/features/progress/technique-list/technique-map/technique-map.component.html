@@ -80,16 +80,17 @@
           (keydown.enter)="onSelect(node.name)"
           (keydown.space)="$event.preventDefault(); onSelect(node.name)"
         >
+          <title>{{ ratioTitle(technique) }}</title>
           <rect class="tech-map__rect" [attr.width]="NODE_W" [attr.height]="NODE_H" rx="5" />
           <text class="tech-map__label" [attr.x]="NODE_W / 2" y="15" text-anchor="middle">{{ clampLabel(technique.name) }}</text>
-          <text class="tech-map__ratio" [attr.x]="NODE_W / 2" y="29" text-anchor="middle">{{ graduatedCountFor(node.name) }}/{{ technique.minProblems }} 🎓</text>
+          <text class="tech-map__ratio" [attr.x]="NODE_W / 2" y="29" text-anchor="middle">{{ doneOf(technique) }}/{{ plannedTotalOf(technique) }}</text>
         </g>
       }
     </g>
   </svg>
 </div>
 
-<p class="tech-map__legend">solid = graduated ≥ threshold · dashed outline = not started · dashed link = builds on another family</p>
+<p class="tech-map__legend">solid = enough problems graduated · dashed outline = not started · dashed link = builds on another family</p>
 
 @if (graph().droppedEdgeCount > 0) {
   <p class="tech-map__footnote">

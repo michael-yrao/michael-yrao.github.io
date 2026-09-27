@@ -2,13 +2,21 @@ import { vi } from 'vitest';
 
 import { ProblemProgress, Technique } from '../../../core/models/progress.model';
 import {
+  barFillPercent,
   comfortRank,
   deriveTechniqueStats,
+  doneOf,
   isMastered,
+  isThresholdBeyondPlan,
   parseStoredView,
+  plannedTotalOf,
+  ratioTitle,
   readStoredView,
+  remainingPlanned,
+  remainingToCover,
   shortName,
   TECHNIQUE_VIEW_STORAGE_KEY,
+  thresholdPercent,
   writeStoredView,
 } from './technique-view';
 
@@ -205,6 +213,116 @@ describe('isMastered', () => {
   it('is false when neither graduatedCount nor stats is available', () => {
     const t = makeTechnique({ minProblems: 1, graduatedCount: undefined });
     expect(isMastered(t, undefined)).toBe(false);
+  });
+});
+
+describe('plannedTotalOf', () => {
+  it('prefers the exported plannedTotal when present', () => {
+    const t = makeTechnique({ problemCount: 1, plannedTotal: 5, planned: [] });
+    expect(plannedTotalOf(t)).toBe(5);
+  });
+
+  it('falls back to problemCount + planned.length when plannedTotal is absent', () => {
+    const t = makeTechnique({
+      problemCount: 1,
+      plannedTotal: undefined,
+      planned: [
+        { lcNumber: 1, title: null, url: null, difficulty: null, trigger: null },
+        { lcNumber: 2, title: null, url: null, difficulty: null, trigger: null },
+      ],
+    });
+    expect(plannedTotalOf(t)).toBe(3);
+  });
+
+  it('falls back to problemCount alone when both plannedTotal and planned are absent (older contract)', () => {
+    const t = makeTechnique({ problemCount: 4, plannedTotal: undefined, planned: undefined });
+    expect(plannedTotalOf(t)).toBe(4);
+  });
+});
+
+describe('doneOf', () => {
+  it('is the technique\'s problemCount', () => {
+    expect(doneOf(makeTechnique({ problemCount: 7 }))).toBe(7);
+  });
+});
+
+describe('remainingToCover', () => {
+  it('is minProblems minus problemCount when positive', () => {
+    expect(remainingToCover(makeTechnique({ minProblems: 3, problemCount: 1 }))).toBe(2);
+  });
+
+  it('never goes negative once problemCount exceeds minProblems', () => {
+    expect(remainingToCover(makeTechnique({ minProblems: 2, problemCount: 5 }))).toBe(0);
+  });
+});
+
+describe('remainingPlanned', () => {
+  it('reads "N to go" when problems remain (plannedTotal minus problemCount)', () => {
+    const t = makeTechnique({ problemCount: 1, plannedTotal: 3, planned: [] });
+    expect(remainingPlanned(t)).toBe('2 to go');
+  });
+
+  it('reads "none left to do" once problemCount reaches plannedTotal', () => {
+    const t = makeTechnique({ problemCount: 3, plannedTotal: 3, planned: [] });
+    expect(remainingPlanned(t)).toBe('none left to do');
+  });
+});
+
+describe('barFillPercent', () => {
+  it('is problemCount / plannedTotal as a percent', () => {
+    const t = makeTechnique({ problemCount: 1, plannedTotal: 3, planned: [] });
+    expect(barFillPercent(t)).toBeCloseTo(33.33, 1);
+  });
+
+  it('is 0 when plannedTotal is 0 (nothing declared)', () => {
+    const t = makeTechnique({ problemCount: 0, plannedTotal: 0, planned: [] });
+    expect(barFillPercent(t)).toBe(0);
+  });
+
+  it('clamps to 100 rather than overflowing when problemCount exceeds plannedTotal', () => {
+    const t = makeTechnique({ problemCount: 5, plannedTotal: 2, planned: [] });
+    expect(barFillPercent(t)).toBe(100);
+  });
+});
+
+describe('thresholdPercent', () => {
+  it('is minProblems / plannedTotal as a percent (a non-clamped case, distinct from the clamp value)', () => {
+    const t = makeTechnique({ minProblems: 2, problemCount: 0, plannedTotal: 4, planned: [] });
+    expect(thresholdPercent(t)).toBe(50);
+  });
+
+  it('clamps to 100 when the threshold is beyond what is planned (x > y)', () => {
+    const t = makeTechnique({ minProblems: 3, problemCount: 0, plannedTotal: 2, planned: [] });
+    expect(thresholdPercent(t)).toBe(100);
+  });
+
+  it('is 0 when plannedTotal is 0 (nothing declared)', () => {
+    const t = makeTechnique({ minProblems: 2, problemCount: 0, plannedTotal: 0, planned: [] });
+    expect(thresholdPercent(t)).toBe(0);
+  });
+});
+
+describe('isThresholdBeyondPlan', () => {
+  it('is true once minProblems exceeds plannedTotal', () => {
+    const t = makeTechnique({ minProblems: 3, problemCount: 0, plannedTotal: 2, planned: [] });
+    expect(isThresholdBeyondPlan(t)).toBe(true);
+  });
+
+  it('is false when the threshold fits within what is planned', () => {
+    const t = makeTechnique({ minProblems: 3, problemCount: 1, plannedTotal: 3, planned: [] });
+    expect(isThresholdBeyondPlan(t)).toBe(false);
+  });
+});
+
+describe('ratioTitle', () => {
+  it('reads "X of Y planned problems done" (plural) when more than one is planned', () => {
+    const t = makeTechnique({ problemCount: 1, plannedTotal: 3, planned: [] });
+    expect(ratioTitle(t)).toBe('1 of 3 planned problems done');
+  });
+
+  it('singularizes "problem" when exactly one is planned', () => {
+    const t = makeTechnique({ problemCount: 0, plannedTotal: 1, planned: [] });
+    expect(ratioTitle(t)).toBe('0 of 1 planned problem done');
   });
 });
 

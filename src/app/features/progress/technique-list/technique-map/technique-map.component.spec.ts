@@ -36,6 +36,24 @@ function createFixture(
 }
 
 describe('TechniqueMapComponent', () => {
+  it('renders the node text as done/planned, not graduatedCount/minProblems', () => {
+    const fixture = createFixture([
+      makeTechnique({ name: 'A', problemCount: 1, minProblems: 3, plannedTotal: 3, graduatedCount: 0 }),
+    ]);
+
+    const ratio = fixture.nativeElement.querySelector('.tech-map__ratio');
+    expect(ratio?.textContent?.trim()).toBe('1/3');
+  });
+
+  it("each node carries an SVG <title> with the same 'X of Y planned problems done' sentence as the list row's ratio hover title", () => {
+    const fixture = createFixture([
+      makeTechnique({ name: 'A', problemCount: 1, minProblems: 3, plannedTotal: 3 }),
+    ]);
+
+    const title = fixture.nativeElement.querySelector('.tech-map__node title');
+    expect(title?.textContent?.trim()).toBe('1 of 3 planned problems done');
+  });
+
   it('renders one node per technique', () => {
     const fixture = createFixture([
       makeTechnique({ name: 'A', family: 'heap' }),

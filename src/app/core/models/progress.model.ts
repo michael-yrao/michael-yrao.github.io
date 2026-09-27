@@ -85,18 +85,20 @@ export interface Badge {
  *  competitive-programming horizon only. See cse-progress's study_guide.md. */
 export type TechniqueTier = 'core' | 'dp' | 'tier1' | 'tier2' | 'tier3';
 
-/** One `problems:` entry from techniques.yml's `queued` key, not yet in the tracker — the
- *  site's "in flight" view of a technique (cse-progress gamify.py's `planned_for()`). A number
- *  moves off this list and onto `Technique.problems` once it earns a tracker row.
- *  `title`/`url`/`difficulty` are null when the queued number has no Waiting Room row yet
- *  (gamify.py still emits the entry, alongside a warning). `url`'s host says which judge
- *  (LeetCode, NeetCode, Kattis, CSES, …) — see `judgeLabel` in technique-list.component.ts. */
+/** One problem declared under a technique in techniques.yml with no tracker row yet — the
+ *  site's "what's planned" view (cse-progress gamify.py's `planned_for()`). A number moves off
+ *  this list and onto `Technique.problems` once it earns a tracker row. `title`/`url`/
+ *  `difficulty` are null when the number has no Waiting Room row yet (gamify.py still emits
+ *  the entry, alongside a warning). `trigger` is the `queued:` value that will pull it onto
+ *  the schedule, or null for a declared problem with no queued trigger yet — the site doesn't
+ *  display it either way. `url`'s host says which judge (LeetCode, NeetCode, Kattis, CSES, …)
+ *  — see `judgeLabel` in technique-list.component.ts. */
 export interface PlannedProblem {
   lcNumber: number;
   title: string | null;
   url: string | null;
   difficulty: string | null;
-  trigger: string;
+  trigger: string | null;
 }
 
 /** One row of technique_coverage.md's Coverage table (cse-progress gamify.py's
@@ -108,9 +110,11 @@ export interface Technique {
   /** Has the learner solved anything under this technique — technique_coverage.py's
    *  `is_started`. false for a declared-but-not-yet-begun tier1/2/3/dp entry. */
   started: boolean;
-  /** The per-technique coverage bar (techniques.yml's min_problems — 1 for most, up to 5
-   *  for one) — makes `thin` self-explanatory as problemCount/minProblems instead of a
-   *  bare label. A not-started technique still carries its declared target (0/minProblems). */
+  /** The per-technique coverage threshold (techniques.yml's min_problems — 1 for most, up to
+   *  5 for one): how many done problems call the technique "covered". Rendered as a tick on
+   *  the done/planned bar (see `plannedTotal`), not the ratio's denominator — the ratio the
+   *  page shows is done/planned. A not-started technique still carries its declared
+   *  threshold. */
   minProblems: number;
   problemCount: number;
   problems: number[];
@@ -127,12 +131,24 @@ export interface Technique {
    *  falls back to deriving the count from `details` once loaded (0 until then) — see
    *  `deriveTechniqueStats`/`isMastered` in technique-view.ts. */
   graduatedCount?: number;
-  /** Problems queued for this technique but with no tracker row yet (cse-progress's
-   *  techniques.yml `queued` key, cross-referenced against the Waiting Room) — the "what's
-   *  in flight" view. Never counted in `problemCount`/`thin`/`graduatedCount`. Optional,
-   *  additive: an older contract predating it renders no "+N planned" chip and no Planned
-   *  group, same as today. */
+  /** Every problem declared under this technique in techniques.yml with no tracker row yet
+   *  (cse-progress gamify.py's `planned_for()`) — done problems are counted in `problemCount`
+   *  instead. Never counted in `problemCount`/`thin`/`graduatedCount`; counted into
+   *  `plannedTotal`. Optional, additive: an older contract predating it renders no Planned
+   *  group. */
   planned?: PlannedProblem[];
+  /** y — every problem planned for the technique, done ones included (cse-progress gamify.py's
+   *  `plannedTotal = problemCount + len(planned)`), so the page never has to re-derive it.
+   *  Optional, additive: an older contract predating it falls back to
+   *  `problemCount + (planned?.length ?? 0)`, or to `problemCount` alone when `planned` is
+   *  absent too — see `plannedTotalOf` in technique-view.ts. */
+  plannedTotal?: number;
+  /** Names of declared variations under this technique that have never been exercised and
+   *  are not queued (cse-progress gamify.py's `untriedVariations`) — lets the page name the
+   *  missing variation instead of a bare "variant gap". Optional, additive: an older contract
+   *  with `hasVariantGap: true` but no `untriedVariations` shows the variation chip with no
+   *  count or names (see feedback_site_plain_language.md's fallback rule). */
+  untriedVariations?: string[];
 }
 
 /** One row of the current week's Daily Schedule table (cse-progress gamify.py's
@@ -273,8 +289,9 @@ export interface ProgressSummary {
   onSchedule?: OnSchedule;
   trophyCase?: { graduated: TrophyGraduateSummary[]; retired: RetiredProblem[] };
   badges: Badge[];
-  /** Per-technique detail (name/family/problemCount/bestComfort/thin/hasVariantGap) — small
-   *  (~56 rows), rides the summary so the technique-breadth drill renders with no fetch. */
+  /** Per-technique detail (name/family/problemCount/plannedTotal/bestComfort/thin/
+   *  hasVariantGap/untriedVariations) — small (~56 rows), rides the summary so the
+   *  technique-breadth drill renders with no fetch. */
   techniques?: Technique[];
   /** Sorted distinct ISO study-day dates — small, rides the summary so the streak-calendar
    *  drill renders with no fetch. */

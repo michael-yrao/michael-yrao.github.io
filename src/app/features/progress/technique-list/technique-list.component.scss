@@ -54,6 +54,72 @@
   color: var(--color-text-muted);
 }
 
+// ── Legend line (once, above the list) + its ⓘ popover ──────────────────────────────────────
+// The ⓘ popover pattern (signal toggle + hover/focus-within/--open reveal, and the shared
+// bubble chrome below) is copied from today-board.component.ts's `infoOpen`/`toggleInfo` and
+// today-board.component.scss's `%popover-bubble` — a Sass placeholder is private to the
+// stylesheet that defines it and can't be `@extend`ed across component files without a shared
+// forwarding partial, so the declarations are duplicated here rather than `@use`d. Follow-up:
+// extract this into a shared partial both components `@use`. Twin: today-board.component.scss's
+// `%popover-bubble` / `.today-board__info-*`.
+.tech-list__legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--space-sm);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+.tech-list__info-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.tech-list__info {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-text-muted);
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  line-height: 1;
+  font-size: 0.65rem;
+  cursor: pointer;
+  padding: 0;
+  &:hover, &:focus-visible { border-color: var(--color-accent); color: var(--color-accent); outline: none; }
+}
+%popover-bubble {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  width: max-content;
+  max-width: 220px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-align: left;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+  z-index: 5;
+}
+.tech-list__info-bubble {
+  @extend %popover-bubble;
+  left: 0;
+  transform: none;
+}
+.tech-list__info-wrap:hover .tech-list__info-bubble,
+.tech-list__info-wrap:focus-within .tech-list__info-bubble,
+.tech-list__info-wrap--open .tech-list__info-bubble {
+  opacity: 1;
+  visibility: visible;
+}
+
 .tech-list__items {
   list-style: none;
   margin: 0;
@@ -106,14 +172,51 @@
   background: var(--color-bg-card);
   color: var(--color-text-muted);
 }
-.chip--thin { color: var(--color-medium); border-color: var(--color-medium); }
+.chip--needs-more { color: var(--color-medium); border-color: var(--color-medium); }
 .chip--covered { color: var(--color-easy); border-color: var(--color-easy); }
-.chip--gap { color: var(--color-hard); border-color: var(--color-hard); }
+.chip--no-plan { color: var(--color-text-muted); font-style: italic; }
+.chip--variation { color: var(--color-hard); border-color: var(--color-hard); }
 .chip--not-started { color: var(--color-text-muted); font-style: italic; }
-// Accent-dim, matching .tag--new's precedent — "planned" reads as the same family as "new".
-.chip--planned { background: var(--color-accent-dim); color: var(--color-accent); border-color: transparent; }
 
 .tech-row--not-started { opacity: 0.75; }
+
+// ── Done/planned bar (Sep 26, 2026 — ratio moved from problemCount/minProblems to
+// done/planned; the old threshold is now a tick on this bar) ───────────────────────────────
+// Forces the bar onto its own flex line under the row's wrapped comfort/name/ratio/chips/caret
+// line — the row is only ~260px wide on a 360px phone, so that content already wraps.
+.tech-row__bar-wrap {
+  flex: 1 0 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tech-row__bar {
+  position: relative;
+  display: block;
+  height: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  overflow: visible;
+}
+.tech-row__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  transition: width var(--transition-fast);
+}
+// The coverage-threshold tick — an absolutely positioned marker at thresholdPercent(t),
+// drawn slightly taller than the bar so it reads as a marker rather than part of the fill.
+.tech-row__bar-tick {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--color-text-muted);
+  transform: translateX(-1px);
+}
+.tech-row__bar-caption { font-size: 0.68rem; color: var(--color-medium); }
 
 // ── Expand-to-problems (round 3) ────────────────────────────────────────────
 .tech-row__detail {
@@ -123,6 +226,8 @@
   padding-top: var(--space-sm);
 }
 .tech-row__empty { margin: 0; color: var(--color-text-muted); font-size: 0.8rem; }
+.tech-row__summary { margin: 0 0 var(--space-xs); font-size: 0.8rem; color: var(--color-text); }
+.tech-row__variations { margin: 0 0 var(--space-sm); font-size: 0.8rem; color: var(--color-text-muted); }
 
 .tech-row__problems {
   list-style: none;
@@ -153,7 +258,8 @@
   @include prow.tag;
   @include prow.tag-difficulty;
 }
-// Sits where a tracked row's comfort glyph sits — same accent-dim family as .chip--planned.
+// Sits where a tracked row's comfort glyph sits — same accent-dim family as the viewbar's
+// active-state chrome above.
 .tag--planned { background: var(--color-accent-dim); color: var(--color-accent); border-color: transparent; }
 
 // ── Planned group (queued, no tracker row yet) ──────────────────────────────

@@ -71,31 +71,88 @@ function createFixture(
 describe('TechniqueListComponent', () => {
   afterEach(() => localStorage.clear());
 
-  it('shows the count/target ratio as problemCount/minProblems', () => {
-    const fixture = createFixture([makeTechnique({ problemCount: 1, minProblems: 3 })]);
+  it('shows the done/planned ratio as problemCount/plannedTotal', () => {
+    const fixture = createFixture([
+      makeTechnique({ problemCount: 1, minProblems: 3, plannedTotal: 3, planned: [] }),
+    ]);
 
     const ratio = fixture.nativeElement.querySelector('.tech-row__ratio');
     expect(ratio?.textContent).toContain('1/3');
   });
 
-  it('shows a "thin" chip when thin is true', () => {
-    const fixture = createFixture([makeTechnique({ thin: true })]);
-    expect(fixture.nativeElement.querySelector('.chip--thin')?.textContent).toContain('thin');
+  it('falls back to problemCount + planned.length when plannedTotal is absent', () => {
+    const fixture = createFixture([
+      makeTechnique({
+        problemCount: 1,
+        plannedTotal: undefined,
+        planned: [makePlanned({ lcNumber: 9001 }), makePlanned({ lcNumber: 9002 })],
+      }),
+    ]);
+
+    expect(fixture.nativeElement.querySelector('.tech-row__ratio')?.textContent).toContain('1/3');
+  });
+
+  it('falls back to problemCount alone when both plannedTotal and planned are absent (older contract)', () => {
+    const fixture = createFixture([
+      makeTechnique({ problemCount: 4, plannedTotal: undefined, planned: undefined }),
+    ]);
+
+    expect(fixture.nativeElement.querySelector('.tech-row__ratio')?.textContent).toContain('4/4');
+  });
+
+  it('shows "needs N more" when the technique still needs more done problems to be covered', () => {
+    const fixture = createFixture([
+      makeTechnique({ minProblems: 3, problemCount: 1, plannedTotal: 3, planned: [] }),
+    ]);
+    const chip = fixture.nativeElement.querySelector('.chip--needs-more');
+    expect(chip?.textContent).toContain('needs 2 more');
     expect(fixture.nativeElement.querySelector('.chip--covered')).toBeFalsy();
   });
 
-  it('shows a "covered" chip when thin is false', () => {
-    const fixture = createFixture([makeTechnique({ thin: false })]);
+  it('shows a "covered" chip once done problems reach the threshold', () => {
+    const fixture = createFixture([
+      makeTechnique({ minProblems: 2, problemCount: 2, plannedTotal: 2, planned: [] }),
+    ]);
     expect(fixture.nativeElement.querySelector('.chip--covered')?.textContent).toContain('covered');
-    expect(fixture.nativeElement.querySelector('.chip--thin')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.chip--needs-more')).toBeFalsy();
   });
 
-  it('shows a "not started" chip (and no thin/covered chip) for a not-started technique', () => {
-    const fixture = createFixture([makeTechnique({ started: false, problemCount: 0, problems: [] })]);
+  it('shows a "not started" chip (and no needs-more/covered/no-plan chip) for a not-started technique that still has something planned (y > 0)', () => {
+    const fixture = createFixture([
+      makeTechnique({ started: false, problemCount: 0, problems: [], plannedTotal: 2, planned: [] }),
+    ]);
 
     expect(fixture.nativeElement.querySelector('.chip--not-started')?.textContent).toContain('not started');
-    expect(fixture.nativeElement.querySelector('.chip--thin')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.chip--needs-more')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.chip--covered')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.chip--no-plan')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.tech-row__bar')).toBeTruthy();
+  });
+
+  // The y = 0 case (nothing planned at all) is only reachable for a NOT-started technique — a
+  // started one always has problemCount >= 1, so plannedTotalOf(t) can never be 0 there. This
+  // replaces an earlier version of this spec that (incorrectly) exercised it via a
+  // contradictory started: true + problemCount: 0 + plannedTotal: 0 fixture; see
+  // statusChipLabel's doc comment in technique-list.component.ts.
+  it('shows "nothing planned yet" (not "not started"), ratio 0/0, and no bar for a not-started technique with nothing planned (y = 0)', () => {
+    const fixture = createFixture([
+      makeTechnique({ started: false, problemCount: 0, problems: [], minProblems: 2, plannedTotal: 0, planned: [] }),
+    ]);
+
+    const chip = fixture.nativeElement.querySelector('.chip--no-plan');
+    expect(chip?.textContent).toContain('nothing planned yet');
+    expect(fixture.nativeElement.querySelector('.chip--not-started')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.tech-row__bar')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.tech-row__ratio')?.textContent).toContain('0/0');
+  });
+
+  it("the ratio carries a hover title with the same wording as ratioTitle()", () => {
+    const fixture = createFixture([
+      makeTechnique({ problemCount: 1, plannedTotal: 3, planned: [] }),
+    ]);
+
+    expect(fixture.nativeElement.querySelector('.tech-row__ratio')?.getAttribute('title'))
+      .toBe('1 of 3 planned problems done');
   });
 
   it('is collapsed by default: clicking the row toggles aria-expanded and reveals the detail panel', () => {
@@ -260,9 +317,10 @@ describe('TechniqueListComponent', () => {
 describe('TechniqueListComponent — planned problems', () => {
   afterEach(() => localStorage.clear());
 
-  it('shows a "+2 planned" chip, and both titles once expanded', () => {
+  it('has no row-level "+N planned" chip (removed — the ratio itself says y), and both titles show once expanded', () => {
     const fixture = createFixture([
       makeTechnique({
+        problemCount: 1,
         planned: [
           makePlanned({ lcNumber: 9001, title: 'Single Source Shortest Path, Negative Weights' }),
           makePlanned({ lcNumber: 9002, title: 'Currency Exchange' }),
@@ -270,7 +328,9 @@ describe('TechniqueListComponent — planned problems', () => {
       }),
     ]);
 
-    expect(fixture.nativeElement.querySelector('.chip--planned')?.textContent).toContain('+2 planned');
+    expect(fixture.nativeElement.querySelector('.tech-row__toggle')?.textContent).not.toContain('planned');
+    // No plannedTotal on the fixture -> fallback problemCount(1) + planned.length(2) = 3.
+    expect(fixture.nativeElement.querySelector('.tech-row__ratio')?.textContent).toContain('1/3');
 
     (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -282,8 +342,6 @@ describe('TechniqueListComponent — planned problems', () => {
 
   it('renders exactly as before when the technique carries no planned field (older contract)', () => {
     const fixture = createFixture([makeTechnique()]);
-
-    expect(fixture.nativeElement.querySelector('.chip--planned')).toBeFalsy();
 
     (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -324,6 +382,29 @@ describe('TechniqueListComponent — planned problems', () => {
     }).not.toThrow();
   });
 
+  it('a planned row with a null trigger (declared but not queued) renders identically to one with a trigger — the trigger is never displayed', () => {
+    // Each fixture's DOM is captured as a plain string before the next createFixture() call —
+    // TestBed.resetTestingModule() (inside createFixture) destroys earlier fixtures, so their
+    // nativeElement can't be queried again afterward (same constraint the Map-view "persists
+    // across a fresh fixture" spec above already works around).
+    const withTrigger = createFixture([
+      makeTechnique({ planned: [makePlanned({ lcNumber: 700, title: 'Has A Trigger', trigger: 'surplus>=1' })] }),
+    ]);
+    (withTrigger.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    withTrigger.detectChanges();
+    const withTriggerRow = withTrigger.nativeElement.querySelector('.tech-row__problem--planned')?.textContent;
+
+    const withoutTrigger = createFixture([
+      makeTechnique({ planned: [makePlanned({ lcNumber: 700, title: 'Has A Trigger', trigger: null })] }),
+    ]);
+    (withoutTrigger.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    withoutTrigger.detectChanges();
+    const withoutTriggerRow = withoutTrigger.nativeElement.querySelector('.tech-row__problem--planned')?.textContent;
+
+    expect(withTriggerRow).toBe(withoutTriggerRow);
+    expect(withoutTriggerRow).not.toContain('surplus');
+  });
+
   it('judgeLabel maps known judge hosts, strips a leading www., and falls back safely', () => {
     const fixture = createFixture([makeTechnique()]);
     const { componentInstance: c } = fixture;
@@ -351,6 +432,142 @@ describe('TechniqueListComponent — planned problems', () => {
     const row = fixture.nativeElement.querySelector('.tech-row__problem--planned');
     expect(row?.textContent).toContain('Kattis');
     expect(row?.textContent).not.toContain('#9001');
+  });
+});
+
+describe('TechniqueListComponent — done/planned bar', () => {
+  afterEach(() => localStorage.clear());
+
+  function bar(fixture: ReturnType<typeof createFixture>): HTMLElement {
+    return fixture.nativeElement.querySelector('.tech-row__bar') as HTMLElement;
+  }
+
+  it('renders the bar with progressbar semantics, fill width, and tick position', () => {
+    const fixture = createFixture([
+      makeTechnique({ minProblems: 3, problemCount: 1, plannedTotal: 3, planned: [] }),
+    ]);
+
+    const b = bar(fixture);
+    expect(b.getAttribute('role')).toBe('progressbar');
+    expect(b.getAttribute('aria-valuemin')).toBe('0');
+    expect(b.getAttribute('aria-valuenow')).toBe('1');
+    expect(b.getAttribute('aria-valuemax')).toBe('3');
+    expect(b.getAttribute('aria-label')).toBe('1 of 3 planned problems done; covered at 3');
+
+    const fill = b.querySelector('.tech-row__bar-fill') as HTMLElement;
+    const tick = b.querySelector('.tech-row__bar-tick') as HTMLElement;
+    expect(parseFloat(fill.style.width)).toBeCloseTo(33.33, 1);
+    expect(tick.style.left).toBe('100%');
+  });
+
+  it('draws the tick at the bar\'s end and shows the honest caption when the threshold is beyond what is planned (x > y)', () => {
+    const fixture = createFixture([
+      makeTechnique({ minProblems: 3, problemCount: 0, plannedTotal: 2, planned: [] }),
+    ]);
+
+    const tick = bar(fixture).querySelector('.tech-row__bar-tick') as HTMLElement;
+    expect(tick.style.left).toBe('100%');
+    expect(fixture.nativeElement.querySelector('.tech-row__bar-caption')?.textContent)
+      .toContain('covered at 3');
+    expect(fixture.nativeElement.querySelector('.tech-row__bar-caption')?.textContent)
+      .toContain('only 2 planned');
+  });
+
+  it('renders no bar and no caption when plannedTotal fits the threshold (x <= y)', () => {
+    const fixture = createFixture([
+      makeTechnique({ minProblems: 3, problemCount: 1, plannedTotal: 3, planned: [] }),
+    ]);
+    expect(fixture.nativeElement.querySelector('.tech-row__bar-caption')).toBeFalsy();
+  });
+
+  it('renders no bar at all when nothing is planned (y = 0)', () => {
+    const fixture = createFixture([
+      makeTechnique({ minProblems: 2, problemCount: 0, plannedTotal: 0, planned: [] }),
+    ]);
+    expect(bar(fixture)).toBeFalsy();
+  });
+
+  it('shows a single named untried variation', () => {
+    const fixture = createFixture([makeTechnique({ untriedVariations: ['iterative'], hasVariantGap: true })]);
+    expect(fixture.nativeElement.querySelector('.chip--variation')?.textContent).toContain('1 variation not tried');
+  });
+
+  it('shows the count for several named untried variations', () => {
+    const fixture = createFixture([
+      makeTechnique({ untriedVariations: ['iterative', 'recursive'], hasVariantGap: true }),
+    ]);
+    expect(fixture.nativeElement.querySelector('.chip--variation')?.textContent)
+      .toContain('2 variations not tried');
+  });
+
+  it('falls back to the generic "a variation not tried" chip (no count, no names) when hasVariantGap is true but untriedVariations is absent (older contract)', () => {
+    const fixture = createFixture([
+      makeTechnique({ hasVariantGap: true, untriedVariations: undefined }),
+    ]);
+    expect(fixture.nativeElement.querySelector('.chip--variation')?.textContent)
+      .toContain('a variation not tried');
+  });
+
+  it('shows no variation chip when hasVariantGap is false and untriedVariations is absent', () => {
+    const fixture = createFixture([makeTechnique({ hasVariantGap: false, untriedVariations: undefined })]);
+    expect(fixture.nativeElement.querySelector('.chip--variation')).toBeFalsy();
+  });
+
+  it('the expanded detail names untried variations, and states the covered/done/planned sentence', () => {
+    const fixture = createFixture([
+      makeTechnique({
+        minProblems: 3,
+        problemCount: 1,
+        plannedTotal: 3,
+        planned: [],
+        untriedVariations: ['iterative'],
+      }),
+    ]);
+
+    (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const detailText = fixture.nativeElement.querySelector('.tech-row__detail')?.textContent;
+    expect(detailText).toContain('Covered at 3 problems. 1 done, 2 to go.');
+    expect(detailText).toContain('Not tried yet: iterative');
+  });
+
+  it('singularizes "problem" in the covered sentence when the threshold is 1', () => {
+    const fixture = createFixture([
+      makeTechnique({ minProblems: 1, problemCount: 0, plannedTotal: 1, planned: [] }),
+    ]);
+
+    (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.tech-row__detail')?.textContent)
+      .toContain('Covered at 1 problem. 0 done, 1 to go.');
+  });
+
+  it('reads "none left to do" once nothing remains, instead of "0 to go"', () => {
+    const fixture = createFixture([
+      makeTechnique({ minProblems: 1, problemCount: 1, plannedTotal: 1, planned: [] }),
+    ]);
+
+    (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.tech-row__detail')?.textContent)
+      .toContain('Covered at 1 problem. 1 done, none left to do.');
+  });
+
+  it('states the legend as "ratio and bar = done of planned" so the ratio and the bar read the same way', () => {
+    const fixture = createFixture([makeTechnique()]);
+    expect(fixture.nativeElement.querySelector('.tech-list__legend-text')?.textContent)
+      .toBe('ratio and bar = done of planned · tick = enough to call it covered');
+  });
+
+  it('the info popover explains the ratio as well as the bar and tick', () => {
+    const fixture = createFixture([makeTechnique()]);
+    const button = fixture.nativeElement.querySelector('.tech-list__info') as HTMLButtonElement;
+    expect(button.getAttribute('aria-label')).toBe('What do the ratio, bar and tick mean?');
+    expect(fixture.nativeElement.querySelector('.tech-list__info-bubble')?.textContent)
+      .toContain('The ratio and the bar both read as done of everything planned');
   });
 });
 
@@ -418,6 +635,17 @@ describe('TechniqueListComponent — Map view', () => {
       fixture.nativeElement.querySelector(`.tech-map__node[aria-label="${name}"]`);
     expect(nodeFor('Mastered').classList.contains('tech-map__node--mastered')).toBe(true);
     expect(nodeFor('Below').classList.contains('tech-map__node--mastered')).toBe(false);
+  });
+
+  it("the Map detail heading's ratio matches the List view's done/planned ratio", () => {
+    const fixture = createFixture(
+      [makeTechnique({ name: 'Two Pointers', problemCount: 1, minProblems: 3, plannedTotal: 3, problems: [11] })],
+      [makeProblem({ lcNumber: 11 })],
+    );
+    clickViewButton(fixture, 'Map');
+    clickMapNode(fixture, 'Two Pointers');
+
+    expect(fixture.nativeElement.querySelector('.tech-map__detail-ratio')?.textContent).toContain('1/3');
   });
 
   it('a not-started technique renders --not-started', () => {

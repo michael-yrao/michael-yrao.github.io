@@ -3,7 +3,10 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 import { ProblemProgress, Technique } from '../../../../core/models/progress.model';
 import {
   deriveTechniqueStats,
+  doneOf,
   isMastered,
+  plannedTotalOf,
+  ratioTitle,
   shortName as shortNameFor,
   TechniqueStats,
 } from '../technique-view';
@@ -44,6 +47,12 @@ export class TechniqueMapComponent {
 
   readonly NODE_W = NODE_W;
   readonly NODE_H = NODE_H;
+
+  // Pure done/planned bar helpers (technique-view.ts) — bound directly as instance
+  // properties so the node-label template can call them per technique.
+  readonly doneOf = doneOf;
+  readonly plannedTotalOf = plannedTotalOf;
+  readonly ratioTitle = ratioTitle;
 
   readonly graph = computed(() => buildTechniqueGraph(this.techniques()));
 
@@ -87,11 +96,6 @@ export class TechniqueMapComponent {
 
   isMastered(name: string): boolean {
     return isMastered(this.techniqueFor(name), this.statsFor(name));
-  }
-
-  graduatedCountFor(name: string): number {
-    const t = this.techniqueFor(name);
-    return t.graduatedCount ?? this.statsFor(name).graduatedCount;
   }
 
   isSelected(name: string): boolean {

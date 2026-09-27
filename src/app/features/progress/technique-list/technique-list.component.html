@@ -28,7 +28,7 @@
       <div class="tech-row__detail tech-map__detail">
         <h5 class="tech-map__detail-title">
           {{ t.bestComfort || '—' }} {{ t.name }}
-          <span class="tech-map__detail-ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
+          <span class="tech-map__detail-ratio">{{ doneOf(t) }}/{{ plannedTotalOf(t) }}</span>
           @if (stats.greenCount > 0 || stats.lastTouched) {
             <span class="tech-map__detail-stats">
               {{ stats.greenCount }} 🟢
@@ -42,6 +42,22 @@
       </div>
     }
   } @else {
+    <div class="tech-list__legend">
+      <span class="tech-list__legend-text">ratio and bar = done of planned · tick = enough to call it covered</span>
+      <span class="tech-list__info-wrap" [class.tech-list__info-wrap--open]="infoOpen()">
+        <button
+          type="button"
+          class="tech-list__info"
+          aria-label="What do the ratio, bar and tick mean?"
+          aria-describedby="tech-list-bar-info"
+          (click)="toggleInfo()"
+        >ⓘ</button>
+        <span class="tech-list__info-bubble" id="tech-list-bar-info" role="tooltip">
+          The ratio and the bar both read as done of everything planned for this technique.
+          The tick marks how many done problems are enough to call it covered.
+        </span>
+      </span>
+    </div>
     @for (group of groups(); track group.tier) {
       <div class="tech-list__tier">
         <h3 class="tech-list__tier-label">{{ group.label }}</h3>
@@ -59,21 +75,38 @@
                   >
                     <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
                     <span class="tech-row__name">{{ t.name }}</span>
-                    <span class="tech-row__ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
-                    @if (plannedCount(t) > 0) {
-                      <span class="chip chip--planned">+{{ plannedCount(t) }} planned</span>
-                    }
+                    <span class="tech-row__ratio" [title]="ratioTitle(t)">{{ doneOf(t) }}/{{ plannedTotalOf(t) }}</span>
                     @if (t.started) {
-                      <span class="chip" [class.chip--thin]="t.thin" [class.chip--covered]="!t.thin">
-                        {{ t.thin ? 'thin' : 'covered' }}
-                      </span>
-                      @if (t.hasVariantGap) {
-                        <span class="chip chip--gap">variant gap</span>
+                      <span class="chip" [class]="statusChipClass(t)">{{ statusChipLabel(t) }}</span>
+                      @if (variationChipLabel(t); as label) {
+                        <span class="chip chip--variation">{{ label }}</span>
                       }
+                    } @else if (plannedTotalOf(t) === 0) {
+                      <span class="chip chip--no-plan">nothing planned yet</span>
                     } @else {
                       <span class="chip chip--not-started">not started</span>
                     }
                     <span class="tech-row__caret" [class.tech-row__caret--open]="isExpanded(t)">▸</span>
+                    @if (plannedTotalOf(t) > 0) {
+                      <span class="tech-row__bar-wrap">
+                        <span
+                          class="tech-row__bar"
+                          role="progressbar"
+                          aria-valuemin="0"
+                          [attr.aria-valuenow]="doneOf(t)"
+                          [attr.aria-valuemax]="plannedTotalOf(t)"
+                          [attr.aria-label]="barAriaLabel(t)"
+                        >
+                          <span class="tech-row__bar-fill" [style.width.%]="barFillPercent(t)"></span>
+                          <span class="tech-row__bar-tick" [style.left.%]="thresholdPercent(t)"></span>
+                        </span>
+                        @if (isThresholdBeyondPlan(t)) {
+                          <span class="tech-row__bar-caption">
+                            covered at {{ t.minProblems }} · only {{ plannedTotalOf(t) }} planned
+                          </span>
+                        }
+                      </span>
+                    }
                   </button>
                   @if (isExpanded(t)) {
                     <div class="tech-row__detail">
@@ -91,6 +124,13 @@
 </div>
 
 <ng-template #detail let-t>
+  <p class="tech-row__summary">
+    Covered at {{ t.minProblems }} problem{{ t.minProblems === 1 ? '' : 's' }}.
+    {{ doneOf(t) }} done, {{ remainingPlanned(t) }}.
+  </p>
+  @if (untriedVariationsFor(t).length) {
+    <p class="tech-row__variations">Not tried yet: {{ untriedVariationsFor(t).join(', ') }}</p>
+  }
   @if (!t.started) {
     <p class="tech-row__empty">Not started yet.</p>
   } @else {
@@ -142,11 +182,11 @@
   }
   @if (plannedCount(t) > 0) {
     <div class="tech-row__planned">
-      <h5 class="tech-row__planned-label">Planned</h5>
+      <h5 class="tech-row__planned-label">Still to do</h5>
       <ul class="tech-row__problems">
         @for (p of plannedFor(t); track p.lcNumber) {
           <li class="tech-row__problem tech-row__problem--planned">
-            <span class="tag tag--planned">planned</span>
+            <span class="tag tag--planned">to do</span>
             @let label = judgeLabel(p.url);
             @if (label && label !== 'LC') {
               <span class="tech-row__problem-num">{{ label }}</span>

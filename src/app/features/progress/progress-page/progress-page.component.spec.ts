@@ -56,6 +56,7 @@ function makeSummary(): ProgressSummary {
         started: true,
         minProblems: 3,
         problemCount: 1,
+        plannedTotal: 3,
         problems: [787],
         bestComfort: '🟢',
         hasGreen: true,
@@ -1018,7 +1019,7 @@ describe('ProgressPageComponent', () => {
 
   // ── Round 3: technique minProblems + click-to-expand-problems wiring (round 5: now on
   // the Mastery tab) ───────────────────────────────────────────────────────────────────
-  it("shows each technique's count/target ratio (problemCount/minProblems) on the Mastery tab", () => {
+  it("shows each technique's done/planned ratio on the Mastery tab (explicit plannedTotal, and the problemCount-only fallback)", () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
@@ -1026,8 +1027,23 @@ describe('ProgressPageComponent', () => {
     const ratios = Array.from(fixture.nativeElement.querySelectorAll('.tech-row__ratio')).map(
       (el) => (el as HTMLElement).textContent,
     );
+    // Bellman-Ford: problemCount 1, explicit plannedTotal 3 -> 1/3.
     expect(ratios).toContain('1/3');
+    // Frequency Counting: problemCount 2, no plannedTotal/planned -> falls back to
+    // problemCount alone (older-contract fallback), coincidentally still 2/2.
     expect(ratios).toContain('2/2');
+  });
+
+  it('the roadmap summary line agrees its verb with the count (plural "3 need", singular "1 has")', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'mastery');
+
+    // makeSummary()'s coverage is { thin: 3, variantGaps: 1 } — a plural and a singular count
+    // in the same sentence, so this catches a verb that agrees with only one of them.
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('3 need more problems');
+    expect(text).toContain('1 has a variation not tried');
   });
 
   it('expanding a technique row calls onTechniqueExpand, which fetches details via loadDetails()', () => {
