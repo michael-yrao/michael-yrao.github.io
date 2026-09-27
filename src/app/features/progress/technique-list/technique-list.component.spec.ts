@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { TechniqueListComponent } from './technique-list.component';
-import { ProblemProgress, Technique } from '../../../core/models/progress.model';
+import { PlannedProblem, ProblemProgress, Technique } from '../../../core/models/progress.model';
 
 function makeTechnique(overrides: Partial<Technique> = {}): Technique {
   return {
@@ -32,6 +32,17 @@ function makeProblem(overrides: Partial<ProblemProgress> = {}): ProblemProgress 
     streak: 1,
     repDates: [],
     timeline: [],
+    ...overrides,
+  };
+}
+
+function makePlanned(overrides: Partial<PlannedProblem> = {}): PlannedProblem {
+  return {
+    lcNumber: 9001,
+    title: 'Single Source Shortest Path, Negative Weights',
+    url: 'https://open.kattis.com/problems/shortestpath3',
+    difficulty: 'Easy',
+    trigger: 'surplus>=1',
     ...overrides,
   };
 }
@@ -172,6 +183,103 @@ describe('TechniqueListComponent', () => {
     const link: HTMLAnchorElement | null = row?.querySelector('.tech-row__problem-links a') ?? null;
     expect(link?.textContent?.trim()).toBe('↗');
     expect(link?.getAttribute('aria-label')).toBe('Open on LeetCode');
+  });
+});
+
+describe('TechniqueListComponent — planned problems', () => {
+  afterEach(() => localStorage.clear());
+
+  it('shows a "+2 planned" chip, and both titles once expanded', () => {
+    const fixture = createFixture([
+      makeTechnique({
+        planned: [
+          makePlanned({ lcNumber: 9001, title: 'Single Source Shortest Path, Negative Weights' }),
+          makePlanned({ lcNumber: 9002, title: 'Currency Exchange' }),
+        ],
+      }),
+    ]);
+
+    expect(fixture.nativeElement.querySelector('.chip--planned')?.textContent).toContain('+2 planned');
+
+    (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const detailText = fixture.nativeElement.querySelector('.tech-row__detail')?.textContent;
+    expect(detailText).toContain('Single Source Shortest Path, Negative Weights');
+    expect(detailText).toContain('Currency Exchange');
+  });
+
+  it('renders exactly as before when the technique carries no planned field (older contract)', () => {
+    const fixture = createFixture([makeTechnique()]);
+
+    expect(fixture.nativeElement.querySelector('.chip--planned')).toBeFalsy();
+
+    (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.tech-row__planned')).toBeFalsy();
+  });
+
+  it('a not-started technique with a planned problem shows it on expand, and loads no details', () => {
+    const fixture = createFixture([
+      makeTechnique({
+        started: false,
+        problemCount: 0,
+        problems: [],
+        planned: [makePlanned({ lcNumber: 753, title: 'Cracking the Safe' })],
+      }),
+    ]);
+    const emitted: Technique[] = [];
+    fixture.componentInstance.expand.subscribe((t) => emitted.push(t));
+
+    (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const detail = fixture.nativeElement.querySelector('.tech-row__detail');
+    expect(detail?.textContent).toContain('Not started yet.');
+    expect(detail?.textContent).toContain('Cracking the Safe');
+    expect(emitted.length).toBe(0);
+  });
+
+  it('a planned problem with a null title renders its number without throwing', () => {
+    expect(() => {
+      const fixture = createFixture([
+        makeTechnique({ planned: [makePlanned({ lcNumber: 981, title: null, url: null, difficulty: null })] }),
+      ]);
+      (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.tech-row__detail')?.textContent).toContain('#981');
+    }).not.toThrow();
+  });
+
+  it('judgeLabel maps known judge hosts, strips a leading www., and falls back safely', () => {
+    const fixture = createFixture([makeTechnique()]);
+    const { componentInstance: c } = fixture;
+
+    expect(c.judgeLabel('https://leetcode.com/problems/x/')).toBe('LC');
+    expect(c.judgeLabel('https://neetcode.io/problems/x')).toBe('NC');
+    expect(c.judgeLabel('https://open.kattis.com/problems/shortestpath3')).toBe('Kattis');
+    expect(c.judgeLabel('https://cses.fi/problemset/task/1673')).toBe('CSES');
+    expect(c.judgeLabel('https://www.leetcode.com/problems/x/')).toBe('LC');
+    expect(c.judgeLabel('https://www.codeforces.com/problemset/x')).toBe('codeforces.com');
+    expect(c.judgeLabel(null)).toBe('');
+    expect(c.judgeLabel('not a url')).toBe('');
+  });
+
+  it('a non-LeetCode planned problem shows the judge label instead of #<number>', () => {
+    const fixture = createFixture([
+      makeTechnique({
+        planned: [makePlanned({ lcNumber: 9001, url: 'https://open.kattis.com/problems/shortestpath3' })],
+      }),
+    ]);
+
+    (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const row = fixture.nativeElement.querySelector('.tech-row__problem--planned');
+    expect(row?.textContent).toContain('Kattis');
+    expect(row?.textContent).not.toContain('#9001');
   });
 });
 

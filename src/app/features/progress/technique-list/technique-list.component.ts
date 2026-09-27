@@ -11,7 +11,12 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
-import { ProblemProgress, Technique, TechniqueTier } from '../../../core/models/progress.model';
+import {
+  PlannedProblem,
+  ProblemProgress,
+  Technique,
+  TechniqueTier,
+} from '../../../core/models/progress.model';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-date';
 import {
@@ -45,6 +50,15 @@ const TIER_LABEL: Record<TechniqueTier, string> = {
   tier1: 'Tier 1 · above the interview-ROI line — not started',
   tier2: 'Tier 2 · below the ROI line (competitive) — not started',
   tier3: 'Tier 3 · below the ROI line (competitive) — not started',
+};
+
+// judgeLabel()'s host → short label map. Keyed by the bare hostname (no leading `www.` —
+// judgeLabel strips that before lookup). A host with no entry here falls back to itself.
+const JUDGE_HOST_LABELS: Readonly<Record<string, string>> = {
+  'leetcode.com': 'LC',
+  'neetcode.io': 'NC',
+  'open.kattis.com': 'Kattis',
+  'cses.fi': 'CSES',
 };
 
 /**
@@ -203,6 +217,31 @@ export class TechniqueListComponent {
     const byNumber = this.detailsByNumber();
     if (!byNumber) return null;
     return t.problems.map((n) => byNumber.get(n)).filter((p): p is ProblemProgress => !!p);
+  }
+
+  /** Empty array when the technique carries no `planned` key at all (an older contract) —
+   *  never absent, so callers never need their own `?? []`. */
+  plannedFor(t: Technique): PlannedProblem[] {
+    return t.planned ?? [];
+  }
+
+  plannedCount(t: Technique): number {
+    return this.plannedFor(t).length;
+  }
+
+  /** The judge a planned problem's `url` points at, for the detail row's number/label slot
+   *  (`Kattis` instead of `#9001`). Bare hostname with `www.` stripped when the host isn't in
+   *  `JUDGE_HOST_LABELS`; '' for a null or unparsable url — never throws. */
+  judgeLabel(url: string | null): string {
+    if (!url) return '';
+    let hostname: string;
+    try {
+      hostname = new URL(url).hostname;
+    } catch {
+      return '';
+    }
+    const bareHost = hostname.replace(/^www\./, '');
+    return JUDGE_HOST_LABELS[bareHost] ?? bareHost;
   }
 
   vizRoute(lcNumber: number): string | null {

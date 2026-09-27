@@ -60,6 +60,9 @@
                     <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
                     <span class="tech-row__name">{{ t.name }}</span>
                     <span class="tech-row__ratio">{{ t.problemCount }}/{{ t.minProblems }}</span>
+                    @if (plannedCount(t) > 0) {
+                      <span class="chip chip--planned">+{{ plannedCount(t) }} planned</span>
+                    }
                     @if (t.started) {
                       <span class="chip" [class.chip--thin]="t.thin" [class.chip--covered]="!t.thin">
                         {{ t.thin ? 'thin' : 'covered' }}
@@ -129,5 +132,32 @@
     } @else {
       <p class="tech-row__empty">No matching problems found.</p>
     }
+  }
+  @if (plannedCount(t) > 0) {
+    <div class="tech-row__planned">
+      <h5 class="tech-row__planned-label">Planned</h5>
+      <ul class="tech-row__problems">
+        @for (p of plannedFor(t); track p.lcNumber) {
+          <li class="tech-row__problem tech-row__problem--planned">
+            <span class="tag tag--planned">planned</span>
+            @let label = judgeLabel(p.url);
+            @if (label && label !== 'LC') {
+              <span class="tech-row__problem-num">{{ label }}</span>
+            } @else {
+              <span class="tech-row__problem-num">#{{ p.lcNumber }}</span>
+            }
+            <span class="tech-row__problem-title">{{ p.title }}</span>
+            @if (p.difficulty) {
+              <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
+            }
+            <span class="tech-row__problem-links">
+              @if (p.url) {
+                <a [href]="p.url" target="_blank" rel="noopener" aria-label="Open problem" title="Open problem">↗</a>
+              }
+            </span>
+          </li>
+        }
+      </ul>
+    </div>
   }
 </ng-template>

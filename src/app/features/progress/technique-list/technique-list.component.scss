@@ -111,6 +111,8 @@
 .chip--gap { color: var(--color-hard); border-color: var(--color-hard); }
 .chip--nogreen { color: var(--color-text-muted); }
 .chip--not-started { color: var(--color-text-muted); font-style: italic; }
+// Accent-dim, matching .tag--new's precedent — "planned" reads as the same family as "new".
+.chip--planned { background: var(--color-accent-dim); color: var(--color-accent); border-color: transparent; }
 
 .tech-row--not-started { opacity: 0.75; }
 
@@ -151,6 +153,19 @@
 .tag {
   @include prow.tag;
   @include prow.tag-difficulty;
+}
+// Sits where a tracked row's comfort glyph sits — same accent-dim family as .chip--planned.
+.tag--planned { background: var(--color-accent-dim); color: var(--color-accent); border-color: transparent; }
+
+// ── Planned group (queued, no tracker row yet) ──────────────────────────────
+.tech-row__planned { margin-top: var(--space-sm); }
+.tech-row__planned-label {
+  margin: 0 0 var(--space-xs);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
 }
 
 // ── Map view detail panel (round 6 — swimlanes replace the layered-DAG skill tree) ──────────

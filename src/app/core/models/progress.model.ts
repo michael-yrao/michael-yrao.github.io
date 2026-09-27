@@ -85,6 +85,20 @@ export interface Badge {
  *  competitive-programming horizon only. See cse-progress's study_guide.md. */
 export type TechniqueTier = 'core' | 'dp' | 'tier1' | 'tier2' | 'tier3';
 
+/** One `problems:` entry from techniques.yml's `queued` key, not yet in the tracker — the
+ *  site's "in flight" view of a technique (cse-progress gamify.py's `planned_for()`). A number
+ *  moves off this list and onto `Technique.problems` once it earns a tracker row.
+ *  `title`/`url`/`difficulty` are null when the queued number has no Waiting Room row yet
+ *  (gamify.py still emits the entry, alongside a warning). `url`'s host says which judge
+ *  (LeetCode, NeetCode, Kattis, CSES, …) — see `judgeLabel` in technique-list.component.ts. */
+export interface PlannedProblem {
+  lcNumber: number;
+  title: string | null;
+  url: string | null;
+  difficulty: string | null;
+  trigger: string;
+}
+
 /** One row of technique_coverage.md's Coverage table (cse-progress gamify.py's
  *  parse_techniques()) — the drill-through detail behind the technique-breadth header. */
 export interface Technique {
@@ -113,6 +127,12 @@ export interface Technique {
    *  falls back to deriving the count from `details` once loaded (0 until then) — see
    *  `deriveTechniqueStats`/`isMastered` in technique-view.ts. */
   graduatedCount?: number;
+  /** Problems queued for this technique but with no tracker row yet (cse-progress's
+   *  techniques.yml `queued` key, cross-referenced against the Waiting Room) — the "what's
+   *  in flight" view. Never counted in `problemCount`/`thin`/`graduatedCount`. Optional,
+   *  additive: an older contract predating it renders no "+N planned" chip and no Planned
+   *  group, same as today. */
+  planned?: PlannedProblem[];
 }
 
 /** One row of the current week's Daily Schedule table (cse-progress gamify.py's
