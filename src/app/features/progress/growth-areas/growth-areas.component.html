@@ -1,36 +1,11 @@
-<section class="growth-areas">
-  <h2 class="growth-areas__heading">Growth areas</h2>
-  <div class="growth-areas__grid">
-    <div class="growth-card growth-card--live po-card">
-      <h3 class="growth-card__title">Data Structures &amp; Algorithms</h3>
-      <div class="growth-card__stats">
-        <div class="growth-stat"><b>{{ dsaStats().streakDays }}</b><span>day streak</span></div>
-        <div class="growth-stat"><b>{{ dsaStats().problemsMastered }}</b><span>problems mastered</span></div>
-        @if (dsaStats().coverage; as cov) {
-          <div class="growth-stat"><b>{{ cov.started }}/{{ cov.total }}</b><span>techniques started</span></div>
-        }
-      </div>
-      <button type="button" class="growth-card__btn" (click)="onOpen()">Open mastery</button>
-    </div>
-
-    @for (area of comingSoonAreas; track area.id) {
-      <div class="growth-card growth-card--soon po-card">
-        <span class="growth-card__tag">Coming soon</span>
-        <h3 class="growth-card__title">{{ area.title }}</h3>
-        <p class="growth-card__summary">{{ area.summary }}</p>
-        @if (area.tracks.length) {
-          <ul class="growth-card__tracks">
-            @for (track of area.tracks; track track.name) {
-              <li>
-                <b>{{ track.name }}</b>
-                @if (track.detail) {
-                  <span> — {{ track.detail }}</span>
-                }
-              </li>
-            }
-          </ul>
-        }
-      </div>
-    }
-  </div>
-</section>
+<div class="growth-toggle" role="group" aria-label="Growth area">
+  @for (area of areas; track area.id) {
+    <button
+      type="button"
+      class="growth-toggle__btn"
+      [class.growth-toggle__btn--active]="selected() === area.id"
+      [attr.aria-pressed]="selected() === area.id"
+      (click)="onSelect(area.id)"
+    >{{ area.buttonLabel }}</button>
+  }
+</div>

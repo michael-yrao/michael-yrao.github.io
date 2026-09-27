@@ -2,9 +2,14 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { TodayBoardComponent, endNoteMeaning } from './today-board.component';
+import { SOLUTION_LINK_MODE_STORAGE_KEY } from './solution-link-mode';
 import { ProblemProgress, Schedule, ScheduleItem } from '../../../core/models/progress.model';
 import { LoadStatus } from '../../../core/services/progress.service';
 import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
+
+// Every fixture below reads the persisted link mode on construction — clear it after each
+// test so one test's GitHub-mode click never leaks into the next test's fixture.
+afterEach(() => localStorage.removeItem(SOLUTION_LINK_MODE_STORAGE_KEY));
 
 // Reuses the SAME local-date function the component uses (not a hand-rolled
 // `toISOString()`, which is UTC and can be off by a day) so "today" in the fixture always
@@ -629,6 +634,75 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.today-board__status--github')).toBeFalsy();
   });
 
+  // ── `github` link mode must never remove a link: GitHub wins when the row has a GitHub
+  // URL; otherwise it falls back to the walkthrough (when one exists); otherwise the plain
+  // span — never the "no link at all" gap the old always-null vizRoute() left in github mode.
+  it('in `github` link mode, picks GitHub when a GitHub URL exists, falls back to the walkthrough when it does not, and falls back further to the plain span when neither exists', () => {
+    const repoRef = { owner: 'someone', repo: 'their-log', branch: 'dev' };
+    // lcNumber 100 (Same Tree) has a real registered walkthrough route; 9999 does not (see
+    // makeSchedule()'s own comment).
+    const walkthroughItem = (overrides: Partial<ScheduleItem>): ScheduleItem => ({
+      lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🟢',
+      difficulty: 'Easy', done: true, ...overrides,
+    });
+    const noWalkthroughItem = (overrides: Partial<ScheduleItem>): ScheduleItem => ({
+      lcNumber: 9999, title: 'Unvisualized Problem', technique: 'Backtracking', startComfort: '🔴',
+      difficulty: 'Medium', done: false, ...overrides,
+    });
+
+    const cases = [
+      {
+        label: 'walkthrough + file + repo ref -> GitHub link',
+        item: walkthroughItem({ file: 'dsa/leetcode/trees/100_same_tree.py' }),
+        assert: (row: HTMLElement) => {
+          const badge = row.querySelector('.today-board__status--github');
+          expect(badge).toBeTruthy();
+          expect(badge!.textContent).not.toContain('</>');
+          expect(row.querySelector('.today-board__status--link:not(.today-board__status--github)')).toBeFalsy();
+        },
+      },
+      {
+        label: 'walkthrough but no file -> walkthrough link',
+        item: walkthroughItem({}),
+        assert: (row: HTMLElement) => {
+          const badge = row.querySelector('.today-board__status--link');
+          expect(badge).toBeTruthy();
+          expect(badge!.classList.contains('today-board__status--github')).toBe(false);
+          expect(badge!.textContent).toContain('</>');
+        },
+      },
+      {
+        label: 'neither walkthrough nor GitHub URL -> plain span',
+        item: noWalkthroughItem({}),
+        assert: (row: HTMLElement) => {
+          const badge = row.querySelector('.today-board__status')!;
+          expect(badge.tagName).toBe('SPAN');
+          expect(row.querySelector('.today-board__status--link')).toBeFalsy();
+        },
+      },
+    ];
+
+    for (const { item, assert } of cases) {
+      // Each case builds its own TestBed module (createFixture() configures one from scratch),
+      // so the prior iteration's module must be torn down first.
+      TestBed.resetTestingModule();
+      const schedule = makeSchedule();
+      schedule.days[0].items = [item];
+      const fixture = createFixture(schedule);
+      fixture.componentRef.setInput('repoRef', repoRef);
+      fixture.detectChanges();
+
+      const githubBtn = Array.from(
+        fixture.nativeElement.querySelectorAll('.today-board__link-mode-btn'),
+      ).find((b) => (b as HTMLElement).textContent?.trim() === 'GitHub') as HTMLButtonElement;
+      githubBtn.click();
+      fixture.detectChanges();
+
+      const row: HTMLElement = fixture.nativeElement.querySelector('.today-board__row');
+      assert(row);
+    }
+  });
+
   it("renders an ordinary row with no chips when tags are present but kind is absent (older/plain contract rows)", () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
@@ -1183,6 +1257,30 @@ describe('TodayBoardComponent — trend panel', () => {
     const fixture = createFixture(schedule, undefined, undefined, [variantA, variantB], 'ready', null);
 
     expect(fixture.componentInstance.problemFor(item)).toBe(variantB);
+  });
+
+  it('selecting another day and returning to the original closes an open trend panel', () => {
+    const fixture = createFixture(makeWeekSchedule());
+
+    const trendBtns: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.today-board__trend-btn'),
+    );
+    const sameTreeBtn = trendBtns.find((b) => b.getAttribute('aria-label') === 'Comfort history for #100')!;
+    sameTreeBtn.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.today-board__trend')).toBeTruthy();
+
+    const todayBtn = fixture.nativeElement.querySelector('.today-board__day-btn--today') as HTMLButtonElement;
+    const otherDayBtn = (
+      Array.from(fixture.nativeElement.querySelectorAll('.today-board__day-btn')) as HTMLButtonElement[]
+    ).find((b) => b !== todayBtn)!;
+
+    otherDayBtn.click();
+    fixture.detectChanges();
+    todayBtn.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.today-board__trend')).toBeFalsy();
   });
 
   it('opening a second row\'s trend panel closes the first (one open at a time)', () => {

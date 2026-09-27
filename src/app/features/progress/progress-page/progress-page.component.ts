@@ -26,7 +26,8 @@ import { TodayBoardComponent } from '../today-board/today-board.component';
 import { RecognitionPanelComponent } from '../recognition-panel/recognition-panel.component';
 import { SegmentedBarComponent, SegmentedBarSegment } from '../segmented-bar/segmented-bar.component';
 import { WorkloadChartComponent } from '../workload-chart/workload-chart.component';
-import { DsaGrowthStats, GrowthAreasComponent } from '../growth-areas/growth-areas.component';
+import { GrowthAreasComponent } from '../growth-areas/growth-areas.component';
+import { GROWTH_AREAS, GrowthArea } from '../growth-areas/growth-areas.data';
 import { Technique } from '../../../core/models/progress.model';
 
 type ComfortFilter = 'all' | Comfort;
@@ -137,6 +138,12 @@ export class ProgressPageComponent {
   readonly tabLabel = TAB_LABEL;
   readonly activeTab = signal<ProgressTab>('overview');
   private readonly tabButtons = viewChildren<ElementRef<HTMLButtonElement>>('tabBtn');
+
+  // Overview's growth-area toggle (DSA / System Design / AI Engineering) — not persisted.
+  readonly growthArea = signal<GrowthArea>('dsa');
+  readonly comingSoonCopy = computed(
+    () => GROWTH_AREAS.find((a) => a.id === this.growthArea())?.comingSoon ?? null,
+  );
 
   // Unified filter facet for the Explore list. The manual comfort chips set `{kind:'comfort'}`
   // (or null for the "All" chip); the pipeline/difficulty headline drills below set the rest.
@@ -261,24 +268,11 @@ export class ProgressPageComponent {
     if (!tb) return [];
     return (
       [
-        { key: 'horizon', label: 'Competitive-horizon', value: tb.horizon, cls: 'seg-horizon' },
-        { key: 'upcoming', label: 'Interview-upcoming', value: tb.upcoming, cls: 'seg-upcoming' },
-        { key: 'practiced', label: 'Practiced (started)', value: tb.practiced, cls: 'seg-practiced' },
+        { key: 'horizon', label: 'Beyond interviews', value: tb.horizon, cls: 'seg-horizon' },
+        { key: 'upcoming', label: 'To do for interviews', value: tb.upcoming, cls: 'seg-upcoming' },
+        { key: 'practiced', label: 'Started', value: tb.practiced, cls: 'seg-practiced' },
       ] satisfies SegmentedBarSegment[]
     ).filter((s) => s.value > 0);
-  });
-
-  // The Overview tab's "Growth areas" section (item 6) — its one live card's stats, entirely
-  // derived from the already-loaded summary (no fetch of its own). `problemsMastered` mirrors
-  // the streak hero's own tile (graduated + retired); `coverage` is null when the summary
-  // carries none, same fallback the hero's own coverage tile uses.
-  readonly dsaGrowthStats = computed<DsaGrowthStats>(() => {
-    const d = this.data();
-    return {
-      streakDays: d?.streak.current ?? 0,
-      problemsMastered: d ? d.pipeline.graduated + d.pipeline.retired : 0,
-      coverage: d?.coverage ? { started: d.coverage.started, total: d.coverage.total } : null,
-    };
   });
 
   private readonly repoParam;
@@ -313,7 +307,12 @@ export class ProgressPageComponent {
     // everything loadSummary reads/writes is invisible to it.
     effect(() => {
       const repo = this.repoParam();
-      untracked(() => this.progress.loadSummary(repo));
+      untracked(() => {
+        this.listFilter.set(null);
+        this.collapseAllRows();
+        this.attentionOpen.set(false);
+        this.progress.loadSummary(repo);
+      });
     });
   }
 
@@ -384,6 +383,7 @@ export class ProgressPageComponent {
    *  it no-ops if details are already loaded, per ProgressService). */
   selectTab(tab: ProgressTab): void {
     this.activeTab.set(tab);
+    this.collapseAllRows();
     if (tab === 'problems') this.progress.loadDetails();
   }
 
@@ -426,6 +426,7 @@ export class ProgressPageComponent {
    *  NOT fetch (details are already loaded once this row of chips is visible). */
   setComfortFilter(f: ComfortFilter): void {
     this.listFilter.set(f === 'all' ? null : { kind: 'comfort', value: f });
+    this.collapseAllRows();
   }
 
   isComfortFilterActive(f: ComfortFilter): boolean {
@@ -448,7 +449,11 @@ export class ProgressPageComponent {
   toggleAttention(): void {
     const next = !this.attentionOpen();
     this.attentionOpen.set(next);
-    if (next) this.progress.loadDetails();
+    if (next) {
+      this.progress.loadDetails();
+    } else {
+      this.collapseAllRows();
+    }
   }
 
   /** The inline attention list's Retry button (details load failed). */
@@ -500,5 +505,12 @@ export class ProgressPageComponent {
 
   isExpanded(p: ProblemProgress): boolean {
     return this.expandedKeys().has(rowKey(p));
+  }
+
+  /** Collapses every expanded Problems row — called whenever the filtered list itself is
+   *  about to change underneath it (a new comfort filter, a drill, a tab switch, a repo
+   *  swap), so a stale expanded row never lingers against rows it no longer belongs to. */
+  private collapseAllRows(): void {
+    this.expandedKeys.set(new Set());
   }
 }

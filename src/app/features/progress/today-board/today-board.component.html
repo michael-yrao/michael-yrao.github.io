@@ -4,7 +4,7 @@
 
 <ng-template #itemRowTpl let-item let-date="date">
   <li class="today-board__row" [class.today-board__row--done]="item.done">
-    @if (vizRoute(item.lcNumber); as route) {
+    @if (walkthroughRoute(item); as route) {
       <a
         [routerLink]="route"
         class="today-board__status today-board__status--link"
@@ -148,17 +148,38 @@
   @if (!days().length) {
     <p class="today-board__hint">No schedule loaded for this week.</p>
   } @else {
-    <div class="today-board__strip" role="group" aria-label="Select a day">
-      @for (day of days(); track day.date) {
+    <div class="today-board__strip">
+      <div class="today-board__day-group" role="group" aria-label="Select a day">
+        @for (day of days(); track day.date) {
+          <button
+            type="button"
+            class="today-board__day-btn"
+            [class.today-board__day-btn--today]="day.date === todayISO()"
+            [class.today-board__day-btn--active]="day.date === effectiveDate()"
+            [attr.aria-pressed]="day.date === effectiveDate()"
+            (click)="selectDay(day.date)"
+          >{{ dayButtonLabel(day) }}</button>
+        }
+      </div>
+      <div class="today-board__link-mode" role="group" aria-label="Solution links">
+        <span class="today-board__link-mode-label">Solution links</span>
         <button
           type="button"
-          class="today-board__day-btn"
-          [class.today-board__day-btn--today]="day.date === todayISO()"
-          [class.today-board__day-btn--active]="day.date === effectiveDate()"
-          [attr.aria-pressed]="day.date === effectiveDate()"
-          (click)="selectDay(day.date)"
-        >{{ dayButtonLabel(day) }}</button>
-      }
+          class="today-board__link-mode-btn"
+          [class.today-board__link-mode-btn--active]="linkMode() === 'site-first'"
+          [attr.aria-pressed]="linkMode() === 'site-first'"
+          title="Open the walkthrough on this site when there is one"
+          (click)="setLinkMode('site-first')"
+        >Site first</button>
+        <button
+          type="button"
+          class="today-board__link-mode-btn"
+          [class.today-board__link-mode-btn--active]="linkMode() === 'github'"
+          [attr.aria-pressed]="linkMode() === 'github'"
+          title="Always open the solution file on GitHub"
+          (click)="setLinkMode('github')"
+        >GitHub</button>
+      </div>
       <button type="button" class="today-board__expand-toggle" (click)="toggleExpanded()">
         {{ expanded() ? 'Collapse' : 'Expand week' }}
       </button>

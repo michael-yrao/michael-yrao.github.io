@@ -10,6 +10,7 @@ import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
+import { SolutionLinkMode, readStoredMode, writeStoredMode } from './solution-link-mode';
 
 interface Workload {
   units: number;
@@ -162,6 +163,16 @@ export class TodayBoardComponent {
   readonly selectedDate = signal<string | null>(null);
   // Collapsed (default) = just the selected day; expanded = the whole week stacked.
   readonly expanded = signal(false);
+
+  // A row's status-badge link source — 'site-first' (default) prefers the walkthrough,
+  // falling back to GitHub; 'github' always sends the learner to their own solution file.
+  // Persisted per viewer, same pattern as TechniqueListComponent's `view`.
+  readonly linkMode = signal<SolutionLinkMode>(readStoredMode());
+
+  setLinkMode(mode: SolutionLinkMode): void {
+    this.linkMode.set(mode);
+    writeStoredMode(mode);
+  }
 
   readonly days = computed(() => this.schedule()?.days ?? []);
   readonly todayISO = computed(() => todayLocalISO());
@@ -325,10 +336,22 @@ export class TodayBoardComponent {
 
   selectDay(date: string): void {
     this.selectedDate.set(date);
+    this.collapseAllRows();
   }
 
   toggleExpanded(): void {
     this.expanded.update((v) => !v);
+    this.collapseAllRows();
+  }
+
+  /** Closes any open outcome/trend/info popover — the outcome and trend keys are keyed by
+   *  (day, row), so a stale key from a day or layout that just changed underneath it must
+   *  never linger open; the units info bubble carries no such key, but it belongs to the same
+   *  "close every popover" moment (selecting a day, or expanding/collapsing the week). */
+  private collapseAllRows(): void {
+    this.openTrendKey.set(null);
+    this.openOutcomeKey.set(null);
+    this.infoOpen.set(false);
   }
 
   // Selector-strip button label — weekday abbreviation + day-of-month pulled straight out of
@@ -339,8 +362,14 @@ export class TodayBoardComponent {
     return `${weekdayAbbrev} ${dayOfMonth}`;
   }
 
-  vizRoute(lcNumber: number | null): string | null {
-    return vizRouteFor(lcNumber);
+  /** The status badge's walkthrough-route candidate. In 'site-first' mode this is always just
+   *  `vizRouteFor(item.lcNumber)`. In 'github' mode it defers to GitHub ONLY when the row
+   *  actually has a GitHub URL to defer to (`solutionUrl(item.file)` is non-null) — otherwise
+   *  a row with a walkthrough but no GitHub URL yet (no `file`, or no repo ref known yet)
+   *  would show no link at all instead of falling back to the walkthrough. */
+  walkthroughRoute(item: ScheduleItem): string | null {
+    const hasGithubFallback = this.linkMode() === 'github' && this.solutionUrl(item.file) != null;
+    return hasGithubFallback ? null : vizRouteFor(item.lcNumber);
   }
 
   /** The status badge's GitHub fallback link — the learner's own solution file on GitHub (see

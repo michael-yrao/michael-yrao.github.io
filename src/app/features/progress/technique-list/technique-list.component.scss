@@ -176,8 +176,6 @@
   background: var(--color-bg-card);
   color: var(--color-text-muted);
 }
-.chip--needs-more { color: var(--color-medium); border-color: var(--color-medium); }
-.chip--covered { color: var(--color-easy); border-color: var(--color-easy); }
 .chip--no-plan { color: var(--color-text-muted); font-style: italic; }
 .chip--variation { color: var(--color-hard); border-color: var(--color-hard); }
 .chip--not-started { color: var(--color-text-muted); font-style: italic; }
@@ -205,8 +203,8 @@
   overflow: visible;
 }
 // Change 2 (Sep 27, 2026) — colour carries the coverage state, from the same `coverageState`
-// the chip's colour reads (barFillClass/statusChipClass), so the two can't disagree. No base
-// background: `notBegun` gets neither class, and the bar is 0% wide then anyway.
+// `barFillClass` reads. No base background: `notBegun` gets neither class, and the bar is 0%
+// wide then anyway.
 .tech-row__bar-fill {
   display: block;
   height: 100%;

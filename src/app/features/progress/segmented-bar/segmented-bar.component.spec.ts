@@ -176,7 +176,7 @@ describe('SegmentedBarComponent', () => {
   });
 
   // ── item 5: every variant now carries a legend, not just 'mix' ─────────────────────
-  it("renders a legend for the default 'stages' variant too, with the segment itself showing only the count", () => {
+  it("renders a legend for the default 'stages' variant too, with the segment itself carrying no text", () => {
     const fixture = createFixture(makeSegments()); // default variant: stages
 
     const items = fixture.nativeElement.querySelectorAll('.segbar__legend li');
@@ -184,9 +184,9 @@ describe('SegmentedBarComponent', () => {
     expect(items[0].textContent).toContain('Alpha');
     expect(items[0].textContent).toContain('30');
 
-    const segTexts = Array.from(fixture.nativeElement.querySelectorAll('.segbar__seg-text')) as HTMLElement[];
-    expect(segTexts.map((el) => el.textContent?.trim())).toEqual(['30', '10', '60']);
-    expect(segTexts.every((el) => !el.textContent?.includes('Alpha'))).toBe(true);
+    const segs = Array.from(fixture.nativeElement.querySelectorAll('.segbar__bar .segbar__seg')) as HTMLElement[];
+    expect(segs.every((el) => el.textContent?.trim() === '')).toBe(true);
+    expect(fixture.nativeElement.querySelector('.segbar__seg-text')).toBeFalsy();
   });
 
   it('emits segmentClick from a stages-bar legend entry when clickable', () => {

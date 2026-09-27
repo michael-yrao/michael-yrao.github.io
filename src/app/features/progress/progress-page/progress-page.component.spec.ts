@@ -295,23 +295,24 @@ describe('ProgressPageComponent', () => {
     expect(masteryTab.getAttribute('aria-selected')).toBe('false');
   });
 
-  // ── Item 6: "Growth areas" section, above the Schedule card ────────────────────────
-  it('shows the growth-areas component on Overview, and its `open` emission switches to Mastery', () => {
+  // ── Overview's growth-area toggle: Schedule for DSA, a coming-soon card otherwise ──
+  it('shows the Schedule card for DSA and, after selecting another area, the coming-soon card instead', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('app-growth-areas')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.today-board-card')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).not.toContain('coming soon');
 
-    const openBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
-      'app-growth-areas .growth-card__btn',
-    );
-    expect(openBtn).toBeTruthy();
-    openBtn.click();
+    const buttons = Array.from(
+      fixture.nativeElement.querySelectorAll('app-growth-areas .growth-toggle__btn'),
+    ) as HTMLButtonElement[];
+    const systemDesignBtn = buttons.find((b) => b.textContent?.trim() === 'System Design');
+    expect(systemDesignBtn).toBeTruthy();
+    systemDesignBtn!.click();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('#tab-mastery').getAttribute('aria-selected')).toBe(
-      'true',
-    );
+    expect(fixture.nativeElement.querySelector('.today-board-card')).toBeFalsy();
+    expect(fixture.nativeElement.textContent).toContain('System Design — coming soon.');
   });
 
   // ── Round 4: the pipeline, difficulty, and breadth bars all render through the ONE
@@ -449,6 +450,43 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(1);
+  });
+
+  it('changing the comfort filter leaves no expanded row, even when the expanded row still matches the new filter', () => {
+    const problem: ProblemProgress = {
+      lcNumber: 206,
+      title: 'Reverse Linked List',
+      url: 'https://leetcode.com/problems/reverse-linked-list/',
+      difficulty: 'Easy',
+      category: 'linked-list',
+      comfort: '🎓',
+      level: 3,
+      streak: 3,
+      nextReview: '2026-10-01',
+      repDates: ['2026-09-01'],
+      timeline: [{ date: '2026-09-01', comfort: '🎓', level: 3 }],
+    };
+    progress.detailsStatus.set('ready');
+    progress.details.set([problem]);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'problems');
+
+    const row: HTMLButtonElement = fixture.nativeElement.querySelector('.problem__row');
+    row.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(1);
+
+    const chips = Array.from(fixture.nativeElement.querySelectorAll('.filters__btn')) as HTMLButtonElement[];
+    const gradChip = chips.find((b) => b.textContent?.trim() === '🎓')!;
+    gradChip.click();
+    fixture.detectChanges();
+
+    // The same row still matches the new filter (comfort 🎓) — its timeline disappearing
+    // proves the row's OWN expansion was reset, not just that it got filtered out.
+    expect(fixture.nativeElement.querySelector('.problem__row')).toBeTruthy();
+    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
   });
 
   // ── Round 5: .problem__row is a role="button" div (an <a> can't nest inside a real
@@ -771,10 +809,10 @@ describe('ProgressPageComponent', () => {
 
     // Third bar in Mastery: pipeline, difficulty, then breadth.
     const bar = fixture.nativeElement.querySelectorAll('app-segmented-bar')[2];
-    expect(bar.textContent).toContain('Practiced (started)');
+    expect(bar.textContent).toContain('Started');
     expect(bar.textContent).toContain('2');
-    expect(bar.textContent).toContain('Interview-upcoming');
-    expect(bar.textContent).toContain('Competitive-horizon');
+    expect(bar.textContent).toContain('To do for interviews');
+    expect(bar.textContent).toContain('Beyond interviews');
 
     // Both stage bars read still-ahead → earned: horizon, then upcoming, then practiced at
     // the right edge, same direction as the pipeline's 🎓/🏆.
@@ -799,16 +837,6 @@ describe('ProgressPageComponent', () => {
 
     expect(difficultyBar.querySelector('.segbar__bar--mix')).toBeTruthy();
     expect(difficultyBar.querySelector('.segbar__legend')).toBeTruthy();
-  });
-
-  it('the breadth bar shows a title and a caption explaining the interview-ROI split', () => {
-    const fixture = TestBed.createComponent(ProgressPageComponent);
-    fixture.detectChanges();
-    clickTab(fixture, 'mastery');
-
-    const bar = fixture.nativeElement.querySelectorAll('app-segmented-bar')[2];
-    expect(bar.querySelector('.segbar__title')?.textContent).toContain('Roadmap coverage');
-    expect(bar.querySelector('.segbar__caption')?.textContent).toContain('interview-ROI');
   });
 
   it('the streak calendar is not present until the Activity tab is opened', () => {
@@ -1042,18 +1070,6 @@ describe('ProgressPageComponent', () => {
     // Frequency Counting: problemCount 2, no plannedTotal/planned -> falls back to
     // problemCount alone (older-contract fallback), coincidentally still 2/2.
     expect(ratios).toContain('2/2');
-  });
-
-  it('the roadmap summary line agrees its verb with the count (plural "3 need", singular "1 has")', () => {
-    const fixture = TestBed.createComponent(ProgressPageComponent);
-    fixture.detectChanges();
-    clickTab(fixture, 'mastery');
-
-    // makeSummary()'s coverage is { thin: 3, variantGaps: 1 } — a plural and a singular count
-    // in the same sentence, so this catches a verb that agrees with only one of them.
-    const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('3 need more problems');
-    expect(text).toContain('1 has a variation not tried');
   });
 
   it('expanding a technique row calls onTechniqueExpand, which fetches details via loadDetails()', () => {

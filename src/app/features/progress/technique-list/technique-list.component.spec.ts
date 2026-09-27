@@ -100,23 +100,6 @@ describe('TechniqueListComponent', () => {
     expect(fixture.nativeElement.querySelector('.tech-row__ratio')?.textContent).toContain('4/4');
   });
 
-  it('shows "needs N more" when the technique still needs more done problems to be covered', () => {
-    const fixture = createFixture([
-      makeTechnique({ minProblems: 3, problemCount: 1, plannedTotal: 3, planned: [] }),
-    ]);
-    const chip = fixture.nativeElement.querySelector('.chip--needs-more');
-    expect(chip?.textContent).toContain('needs 2 more');
-    expect(fixture.nativeElement.querySelector('.chip--covered')).toBeFalsy();
-  });
-
-  it('shows a "covered" chip once done problems reach the threshold', () => {
-    const fixture = createFixture([
-      makeTechnique({ minProblems: 2, problemCount: 2, plannedTotal: 2, planned: [] }),
-    ]);
-    expect(fixture.nativeElement.querySelector('.chip--covered')?.textContent).toContain('covered');
-    expect(fixture.nativeElement.querySelector('.chip--needs-more')).toBeFalsy();
-  });
-
   it('shows a "not started" chip (and no needs-more/covered/no-plan chip) for a not-started technique that still has something planned (y > 0)', () => {
     const fixture = createFixture([
       makeTechnique({ started: false, problemCount: 0, problems: [], plannedTotal: 2, planned: [] }),
@@ -132,8 +115,7 @@ describe('TechniqueListComponent', () => {
   // The y = 0 case (nothing planned at all) is only reachable for a NOT-started technique — a
   // started one always has problemCount >= 1, so plannedTotalOf(t) can never be 0 there. This
   // replaces an earlier version of this spec that (incorrectly) exercised it via a
-  // contradictory started: true + problemCount: 0 + plannedTotal: 0 fixture; see
-  // statusChipLabel's doc comment in technique-list.component.ts.
+  // contradictory started: true + problemCount: 0 + plannedTotal: 0 fixture.
   //
   // The ratio itself reads 0/2 (not 0/0): `ratioDenominatorOf` raises the denominator to the
   // technique's own threshold (minProblems) whenever nothing is planned, so the ratio never
@@ -544,10 +526,10 @@ describe('TechniqueListComponent — done/planned bar', () => {
     expect(detailText).toContain('Not tried yet: iterative');
   });
 
-  it('states the legend as "ratio and bar = done of planned" plus the colour key, so the ratio and the bar read the same way', () => {
+  it('states the legend as "ratio and bar = done out of planned, or out of needed when that is more" plus the colour key, so the ratio and the bar read the same way', () => {
     const fixture = createFixture([makeTechnique()]);
     expect(fixture.nativeElement.querySelector('.tech-list__legend-text')?.textContent)
-      .toBe('ratio and bar = done of planned · tick = enough to call it covered · green = covered, amber = not yet');
+      .toBe('ratio and bar = done out of planned, or out of needed when that is more · tick = enough to call it covered · green = covered, amber = not yet');
   });
 
   it('the info popover explains the ratio, the bar/tick, and the colours', () => {
@@ -555,7 +537,7 @@ describe('TechniqueListComponent — done/planned bar', () => {
     const button = fixture.nativeElement.querySelector('.tech-list__info') as HTMLButtonElement;
     expect(button.getAttribute('aria-label')).toBe('What do the ratio, bar and tick mean?');
     const bubbleText = fixture.nativeElement.querySelector('.tech-list__info-bubble')?.textContent;
-    expect(bubbleText).toContain('The ratio and the bar both read as done of everything planned');
+    expect(bubbleText).toContain('The ratio and the bar both read as done out of everything planned for this technique, or out of the number needed when that is higher.');
     expect(bubbleText).toContain("green");
     expect(bubbleText).toContain("amber");
   });
@@ -568,20 +550,18 @@ describe('TechniqueListComponent — coverage colour (Change 2) and hover (Chang
     return fixture.nativeElement.querySelector('.tech-row__bar-fill') as HTMLElement;
   }
 
-  it('a covered technique gets the --covered fill class and the covered chip', () => {
+  it('a covered technique gets the --covered fill class', () => {
     const fixture = createFixture([
       makeTechnique({ minProblems: 2, problemCount: 2, plannedTotal: 2, planned: [] }),
     ]);
     expect(fill(fixture).classList.contains('tech-row__bar-fill--covered')).toBe(true);
-    expect(fixture.nativeElement.querySelector('.chip--covered')).toBeTruthy();
   });
 
-  it('an in-progress technique gets the --in-progress fill class and the needs-more chip', () => {
+  it('an in-progress technique gets the --in-progress fill class', () => {
     const fixture = createFixture([
       makeTechnique({ minProblems: 3, problemCount: 1, plannedTotal: 3, planned: [] }),
     ]);
     expect(fill(fixture).classList.contains('tech-row__bar-fill--in-progress')).toBe(true);
-    expect(fixture.nativeElement.querySelector('.chip--needs-more')).toBeTruthy();
   });
 
   it('a not-begun technique (y > 0, z = 0) gets neither fill modifier class', () => {
@@ -593,22 +573,6 @@ describe('TechniqueListComponent — coverage colour (Change 2) and hover (Chang
     const f = fill(fixture);
     expect(f.classList.contains('tech-row__bar-fill--covered')).toBe(false);
     expect(f.classList.contains('tech-row__bar-fill--in-progress')).toBe(false);
-  });
-
-  it("the chip class and the fill class never disagree — both derive from the same coverageState", () => {
-    const covered = createFixture([
-      makeTechnique({ minProblems: 2, problemCount: 2, plannedTotal: 2, planned: [] }),
-    ]);
-    expect(!!covered.nativeElement.querySelector('.chip--covered')).toBe(
-      fill(covered).classList.contains('tech-row__bar-fill--covered'),
-    );
-
-    const inProgress = createFixture([
-      makeTechnique({ minProblems: 3, problemCount: 1, plannedTotal: 3, planned: [] }),
-    ]);
-    expect(!!inProgress.nativeElement.querySelector('.chip--needs-more')).toBe(
-      fill(inProgress).classList.contains('tech-row__bar-fill--in-progress'),
-    );
   });
 
   it('the row carries exactly one data-tip, and no element inside the toggle button has a tabindex', () => {
@@ -714,5 +678,82 @@ describe('TechniqueListComponent — Board view', () => {
     clickViewButton(fixture, 'List');
     clickViewButton(fixture, 'Board');
     expect(emitted.length).toBe(1);
+  });
+
+  type BoardFixture = ReturnType<typeof createFixture>;
+  const clearsSelectionCases: [string, (fixture: BoardFixture) => void][] = [
+    [
+      'changing Family',
+      (fixture) => {
+        const familySelect = fixture.nativeElement.querySelectorAll('.tech-board__select')[1] as HTMLSelectElement;
+        familySelect.value = 'Arrays';
+        familySelect.dispatchEvent(new Event('change'));
+        fixture.detectChanges();
+      },
+    ],
+    [
+      'toggling the horizon',
+      (fixture) => {
+        const toggle = Array.from(
+          fixture.nativeElement.querySelectorAll('.tech-board__controls .tech-viewbar__btn'),
+        ).find((b) => (b as HTMLElement).textContent?.includes('competitive horizon')) as HTMLButtonElement;
+        toggle.click();
+        fixture.detectChanges();
+      },
+    ],
+    [
+      'switching to List and back to Board',
+      (fixture) => {
+        clickViewButton(fixture, 'List');
+        clickViewButton(fixture, 'Board');
+      },
+    ],
+  ];
+
+  it.each(clearsSelectionCases)('%s clears a selected board card\'s detail panel', (_label, act) => {
+    const fixture = createFixture(
+      [makeTechnique({ name: 'Two Pointers', problems: [11] })],
+      [makeProblem({ lcNumber: 11 })],
+    );
+    clickViewButton(fixture, 'Board');
+    clickBoardCard(fixture, 'Two Pointers');
+    expect(fixture.nativeElement.querySelector('.tech-board__detail')).toBeTruthy();
+
+    act(fixture);
+
+    expect(fixture.nativeElement.querySelector('.tech-board__detail')).toBeFalsy();
+  });
+
+  it('turning off the horizon resets a Family filter that only existed among tier2/tier3 techniques, and the board shows techniques again', () => {
+    const fixture = createFixture([
+      makeTechnique({ name: 'Core Technique', family: 'Core Family', tier: 'core' }),
+      makeTechnique({
+        name: 'Horizon Technique', family: 'Horizon Family', tier: 'tier2',
+        problemCount: 0, problems: [], started: false,
+      }),
+    ]);
+    clickViewButton(fixture, 'Board');
+
+    const horizonToggle = Array.from(
+      fixture.nativeElement.querySelectorAll('.tech-board__controls .tech-viewbar__btn'),
+    ).find((b) => (b as HTMLElement).textContent?.includes('competitive horizon')) as HTMLButtonElement;
+    horizonToggle.click();
+    fixture.detectChanges();
+
+    const familySelect = fixture.nativeElement.querySelectorAll('.tech-board__select')[1] as HTMLSelectElement;
+    familySelect.value = 'Horizon Family';
+    familySelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const cardNames = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('.tech-board__card-name') as NodeListOf<HTMLElement>)
+        .map((el) => el.textContent?.trim());
+    expect(cardNames()).toEqual(['Horizon Technique']);
+
+    horizonToggle.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.boardFamily()).toBeNull();
+    expect(cardNames()).toEqual(['Core Technique']);
   });
 });

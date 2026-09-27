@@ -1,87 +1,27 @@
-@use '../problem-row' as prow;
-
-// Three cards across on desktop, one per row on phone — the same breakpoint the rest of the
-// progress page uses (progress-page.component.scss's own responsive block), reused here via
-// `_problem-row.scss`'s already-public `$row-mobile-breakpoint` rather than a second 680px
-// literal.
-$growth-columns: 3;
-
-.growth-areas__heading {
-  margin: 0 0 var(--space-sm);
-  font-size: 1.1rem;
-}
-
-.growth-areas__grid {
-  display: grid;
-  grid-template-columns: repeat($growth-columns, 1fr);
-  gap: var(--space-md);
-}
-
-@media (max-width: prow.$row-mobile-breakpoint) {
-  .growth-areas__grid { grid-template-columns: 1fr; }
-}
-
-.growth-card__title {
-  margin: 0 0 var(--space-sm);
-  font-size: 1rem;
-}
-
-// ── Live DSA card ────────────────────────────────────────────────────────────
-.growth-card__stats {
+// Chrome copied from technique-list's own .tech-viewbar (same design tokens) — a slim
+// segmented control, not imported across components since each stylesheet stays independent.
+.growth-toggle {
   display: flex;
-  gap: var(--space-md);
-  flex-wrap: wrap;
+  gap: var(--space-xs);
   margin-bottom: var(--space-sm);
 }
-.growth-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 
-  b { font-size: 1.3rem; color: var(--color-text); }
-  span { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-muted); }
-}
-.growth-card__btn {
+.growth-toggle__btn {
+  appearance: none;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
   background: var(--color-bg-raised);
-  color: var(--color-text);
-  padding: var(--space-xs) var(--space-md);
-  font: inherit;
-  cursor: pointer;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
-
-  &:hover, &:focus-visible { border-color: var(--color-accent); background: var(--color-accent-dim); }
-  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
-}
-
-// ── Coming-soon cards — a muted, non-interactive preview of a pillar with no live data yet ──
-.growth-card--soon {
-  opacity: 0.75;
-}
-.growth-card__tag {
-  display: inline-block;
-  margin-bottom: var(--space-xs);
-  padding: 2px 8px;
-  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.growth-card__summary {
-  margin: 0 0 var(--space-sm);
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
-}
-.growth-card__tracks {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
 
-  li { margin-top: var(--space-xs); }
-  b { color: var(--color-text); }
+  &:hover, &:focus-visible { border-color: var(--color-accent); color: var(--color-text); outline: none; }
+}
+
+.growth-toggle__btn--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+  font-weight: 700;
 }

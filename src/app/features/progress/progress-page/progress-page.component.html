@@ -236,21 +236,27 @@
              loadDetails(), same on-demand pattern as the Mastery tab's technique expand. -->
         @if (isTabActive('overview')) {
           <div class="tabpanel" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview">
-            <app-growth-areas [dsaStats]="dsaGrowthStats()" (open)="selectTab('mastery')" />
+            <app-growth-areas [selected]="growthArea()" (select)="growthArea.set($event)" />
 
-            <div class="card po-card today-board-card">
-              <h2>Schedule</h2>
-              <app-today-board
-                [schedule]="d.schedule"
-                [effortCeiling]="d.effortCeiling"
-                [effortFloor]="d.effortFloor"
-                [details]="details()"
-                [detailsStatus]="detailsStatus()"
-                [detailsError]="detailsError()"
-                [repoRef]="repoRef()"
-                (trend)="onTrendExpand($event)"
-              />
-            </div>
+            @if (growthArea() === 'dsa') {
+              <div class="card po-card today-board-card">
+                <h2>Schedule</h2>
+                <app-today-board
+                  [schedule]="d.schedule"
+                  [effortCeiling]="d.effortCeiling"
+                  [effortFloor]="d.effortFloor"
+                  [details]="details()"
+                  [detailsStatus]="detailsStatus()"
+                  [detailsError]="detailsError()"
+                  [repoRef]="repoRef()"
+                  (trend)="onTrendExpand($event)"
+                />
+              </div>
+            } @else if (comingSoonCopy(); as copy) {
+              <div class="card po-card">
+                <p><b>{{ copy.title }} — coming soon.</b> {{ copy.body }}</p>
+              </div>
+            }
           </div>
         }
 
@@ -289,14 +295,8 @@
                   [segments]="breadthSegments()"
                   title="Roadmap coverage"
                   axisStart="not started"
-                  axisEnd="practiced"
-                  caption="How much of your full technique roadmap you've started, split by the interview-ROI line — practiced + interview-upcoming still pay interview dividends; competitive-horizon is depth beyond that."
+                  axisEnd="started"
                 />
-                @if (d.coverage; as cov) {
-                  <p class="card__sub">
-                    Of the practiced: {{ cov.thin }} {{ cov.thin === 1 ? 'needs' : 'need' }} more problems · {{ cov.variantGaps }} {{ cov.variantGaps === 1 ? 'has' : 'have' }} a variation not tried
-                  </p>
-                }
               </div>
             }
             @if (d.techniques) {

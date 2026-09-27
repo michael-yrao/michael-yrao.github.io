@@ -15,20 +15,13 @@
 
 // The difficulty-mix bar: slim, unlabeled — its labels live in the legend row below instead.
 .segbar__bar--mix { height: 12px; }
-.segbar__bar--mix .segbar__seg { min-width: 4px; padding: 0; }
+.segbar__bar--mix .segbar__seg { min-width: 4px; }
 
 .segbar__seg {
   appearance: none;
   border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
   height: 100%;
-  padding: 0 6px;
-  color: var(--color-seg-ink);
-  font-weight: 700;
-  font-size: 0.72rem;
+  min-width: 28px; // kept as a minimum click target, not for fitting text (no in-segment text any more)
   transition: width var(--transition-base), filter var(--transition-fast);
   overflow: hidden;
 }
@@ -36,12 +29,6 @@
 button.segbar__seg {
   cursor: pointer;
   &:hover, &:focus-visible { filter: brightness(1.12); outline: none; }
-}
-
-.segbar__seg-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 // The muted axis line under a `stages` bar, naming its two ends ("◂ unfamiliar / mastered ▸")

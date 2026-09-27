@@ -31,7 +31,6 @@ import {
   plannedTotalOf,
   ratioDenominatorOf,
   readStoredView,
-  remainingToCover,
   shortName as shortNameFor,
   TechniqueColumn,
   TechniqueSortKey,
@@ -137,7 +136,6 @@ export class TechniqueListComponent {
   readonly doneOf = doneOf;
   readonly plannedTotalOf = plannedTotalOf;
   readonly ratioDenominatorOf = ratioDenominatorOf;
-  readonly remainingToCover = remainingToCover;
   readonly barFillPercent = barFillPercent;
   readonly thresholdPercent = thresholdPercent;
   readonly coverageTitle = coverageTitle;
@@ -262,10 +260,19 @@ export class TechniqueListComponent {
 
   setBoardFamily(value: string): void {
     this.boardFamily.set(value === '' ? null : value);
+    this.boardSelectedName.set(null);
   }
 
   toggleHorizon(): void {
     this.showHorizon.update((v) => !v);
+    this.boardSelectedName.set(null);
+    // The horizon toggle can drop the currently-picked family out of scope (a family that
+    // only exists among the tier2/tier3 techniques it just hid) — fall back to All rather
+    // than leaving the board filtered to an option that no longer appears anywhere.
+    const family = this.boardFamily();
+    if (family !== null && !this.boardFamilies().includes(family)) {
+      this.boardFamily.set(null);
+    }
   }
 
   /** The techniques the horizon toggle lets through — the pool both the family filter's
@@ -308,6 +315,8 @@ export class TechniqueListComponent {
   setView(next: TechniqueView): void {
     this.view.set(next);
     writeStoredView(next);
+    this.boardSelectedName.set(null);
+    this.expandedNames.set(new Set());
   }
 
   toggle(t: Technique): void {
@@ -353,27 +362,9 @@ export class TechniqueListComponent {
     this.infoOpen.update((v) => !v);
   }
 
-  /** The started row's status chip text — driven purely by the done/planned numbers, never
-   *  the coach's own `thin` flag (that stays the coach's internal pull signal; see
-   *  feedback_site_plain_language.md). Only ever called for a started technique: a started
-   *  technique always has `problemCount >= 1`, so `plannedTotalOf(t)` can never be 0 here —
-   *  that case (nothing planned at all) is only reachable for a NOT-started technique, and is
-   *  handled directly in the template's not-started branch ("nothing planned yet" vs "not
-   *  started"), not here. */
-  statusChipLabel(t: Technique): string {
-    const remaining = this.remainingToCover(t);
-    return remaining > 0 ? `needs ${remaining} more` : 'covered';
-  }
-
-  /** The status chip's modifier class, derived from `coverageState` — the same source
-   *  `barFillClass` reads, so the chip and the bar's fill colour can never disagree. */
-  statusChipClass(t: Technique): string {
-    return coverageState(t) === 'covered' ? 'chip--covered' : 'chip--needs-more';
-  }
-
-  /** The done/planned bar's fill colour class (Change 2), derived from the same
-   *  `coverageState` as `statusChipClass`. '' for `notBegun` — the bar is 0% wide then
-   *  (`barFillPercent`), so no fill colour would be visible anyway. */
+  /** The done/planned bar's fill colour class (Change 2), derived from `coverageState`.
+   *  '' for `notBegun` — the bar is 0% wide then (`barFillPercent`), so no fill colour would
+   *  be visible anyway. */
   barFillClass(t: Technique): string {
     switch (coverageState(t)) {
       case 'covered':

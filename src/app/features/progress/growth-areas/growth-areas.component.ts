@@ -1,23 +1,12 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
-import { COMING_SOON_AREAS, ComingSoonArea } from './growth-areas.data';
-
-/** The live DSA stats the Overview's "Growth areas" section shows on its one live card —
- *  everything the parent already has loaded on `data()` (see `dsaGrowthStats` in
- *  progress-page.component.ts), so this component never fetches on its own. `coverage` is
- *  null when the summary carries none (an older contract, or none parsed). */
-export interface DsaGrowthStats {
-  readonly streakDays: number;
-  readonly problemsMastered: number;
-  readonly coverage: { readonly started: number; readonly total: number } | null;
-}
+import { GROWTH_AREAS, GrowthArea } from './growth-areas.data';
 
 /**
- * The Overview tab's "Growth areas" section (item 6): three cards stating the site's whole
- * intended scope, not just what's tracked today — Data Structures & Algorithms (live, backed
- * by `dsaStats`), System Design and AI Engineering (both static "coming soon" previews from
- * `growth-areas.data.ts`). Only the DSA card is interactive; a coming-soon card has no button
- * and no focus stop — there's nothing to open yet.
+ * The Overview tab's growth-area toggle: a slim segmented control (DSA / System Design / AI
+ * Engineering) sitting above the tab's own content. The page owns which area is selected and
+ * what renders for it (the Schedule card for DSA, a coming-soon paragraph otherwise) — this
+ * component only renders the three buttons and emits a selection.
  */
 @Component({
   selector: 'app-growth-areas',
@@ -26,12 +15,12 @@ export interface DsaGrowthStats {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GrowthAreasComponent {
-  readonly dsaStats = input.required<DsaGrowthStats>();
-  readonly open = output<void>();
+  readonly selected = input<GrowthArea>('dsa');
+  readonly select = output<GrowthArea>();
 
-  readonly comingSoonAreas: readonly ComingSoonArea[] = COMING_SOON_AREAS;
+  readonly areas = GROWTH_AREAS;
 
-  onOpen(): void {
-    this.open.emit();
+  onSelect(area: GrowthArea): void {
+    this.select.emit(area);
   }
 }

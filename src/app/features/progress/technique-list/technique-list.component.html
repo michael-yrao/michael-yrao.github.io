@@ -16,6 +16,24 @@
     >Board</button>
   </div>
 
+  <div class="tech-list__legend">
+    <span class="tech-list__legend-text">ratio and bar = done out of planned, or out of needed when that is more · tick = enough to call it covered · green = covered, amber = not yet</span>
+    <span class="tech-list__info-wrap" [class.tech-list__info-wrap--open]="infoOpen()">
+      <button
+        type="button"
+        class="tech-list__info"
+        aria-label="What do the ratio, bar and tick mean?"
+        aria-describedby="tech-list-bar-info"
+        (click)="toggleInfo()"
+      >ⓘ</button>
+      <span class="tech-list__info-bubble" id="tech-list-bar-info" role="tooltip">
+        The ratio and the bar both read as done out of everything planned for this technique, or out of the number needed when that is higher.
+        The tick marks how many done problems are enough to call it covered.
+        A green bar means it's covered; an amber bar means it isn't yet.
+      </span>
+    </span>
+  </div>
+
   @if (view() === 'board') {
     <div class="tech-board">
       <div class="tech-board__controls">
@@ -65,7 +83,6 @@
                     <span class="tech-board__card-name">{{ shortName(t.name) }}</span>
                     <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
                     @if (t.started) {
-                      <span class="chip" [class]="statusChipClass(t)">{{ statusChipLabel(t) }}</span>
                       @if (variationChipLabel(t); as label) {
                         <span class="chip chip--variation">{{ label }}</span>
                       }
@@ -117,23 +134,6 @@
       </div>
     }
   } @else {
-    <div class="tech-list__legend">
-      <span class="tech-list__legend-text">ratio and bar = done of planned · tick = enough to call it covered · green = covered, amber = not yet</span>
-      <span class="tech-list__info-wrap" [class.tech-list__info-wrap--open]="infoOpen()">
-        <button
-          type="button"
-          class="tech-list__info"
-          aria-label="What do the ratio, bar and tick mean?"
-          aria-describedby="tech-list-bar-info"
-          (click)="toggleInfo()"
-        >ⓘ</button>
-        <span class="tech-list__info-bubble" id="tech-list-bar-info" role="tooltip">
-          The ratio and the bar both read as done of everything planned for this technique.
-          The tick marks how many done problems are enough to call it covered.
-          A green bar means it's covered; an amber bar means it isn't yet.
-        </span>
-      </span>
-    </div>
     @for (group of groups(); track group.tier) {
       <div class="tech-list__tier">
         <h3 class="tech-list__tier-label">{{ group.label }}</h3>
@@ -153,7 +153,6 @@
                     <span class="tech-row__name">{{ t.name }}</span>
                     <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
                     @if (t.started) {
-                      <span class="chip" [class]="statusChipClass(t)">{{ statusChipLabel(t) }}</span>
                       @if (variationChipLabel(t); as label) {
                         <span class="chip chip--variation">{{ label }}</span>
                       }

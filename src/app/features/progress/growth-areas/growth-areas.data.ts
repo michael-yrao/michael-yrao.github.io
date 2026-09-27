@@ -1,38 +1,39 @@
-// Static copy for the Overview tab's "Growth areas" section (item 6) — the two pillars with
-// no live data yet. The DSA card's own numbers come from the live summary instead; see
-// `DsaGrowthStats` in growth-areas.component.ts.
+// Static copy for the Overview tab's growth-area toggle — the site's three pillars. DSA has
+// live data (the Schedule card the page renders directly); System Design and AI Engineering
+// are both "coming soon" — their copy lives here as `comingSoon`, null for DSA.
 
-/** One named track under a not-yet-live growth area (e.g. System Design's "Mock interviews").
- *  `detail` is a short gloss shown after the name, or null when the name speaks for itself. */
-export interface GrowthAreaTrack {
-  readonly name: string;
-  readonly detail: string | null;
-}
+export type GrowthArea = 'dsa' | 'system-design' | 'ai-engineering';
 
-export interface ComingSoonArea {
-  readonly id: 'system-design' | 'ai-engineering';
+/** A coming-soon area's copy: `title` is the bolded lead-in ("`{{ title }}` — coming soon."),
+ *  `body` is the sentence after it. */
+export interface ComingSoonCopy {
   readonly title: string;
-  readonly summary: string;
-  readonly tracks: readonly GrowthAreaTrack[];
+  readonly body: string;
 }
 
-export const COMING_SOON_AREAS: readonly ComingSoonArea[] = [
+export interface GrowthAreaOption {
+  readonly id: GrowthArea;
+  readonly buttonLabel: string;
+  /** null for DSA (live — no coming-soon copy needed). */
+  readonly comingSoon: ComingSoonCopy | null;
+}
+
+export const GROWTH_AREAS: readonly GrowthAreaOption[] = [
+  { id: 'dsa', buttonLabel: 'DSA', comingSoon: null },
   {
     id: 'system-design',
-    title: 'System Design',
-    summary: 'Designing larger systems end to end — the other half of the interview loop.',
-    tracks: [
-      { name: 'Mock interviews', detail: null },
-      {
-        name: 'Live samples',
-        detail: 'small working systems built with the technologies the designs call for',
-      },
-    ],
+    buttonLabel: 'System Design',
+    comingSoon: {
+      title: 'System Design',
+      body: 'Mock interviews, and live samples: small working systems built with the technologies the designs call for.',
+    },
   },
   {
     id: 'ai-engineering',
-    title: 'AI Engineering',
-    summary: 'Working through hands-on notebooks on model APIs, evals, RAG and agents.',
-    tracks: [],
+    buttonLabel: 'AI Engineering',
+    comingSoon: {
+      title: 'AI Engineering',
+      body: 'Hands-on notebooks on model APIs, evals, RAG and agents.',
+    },
   },
 ];

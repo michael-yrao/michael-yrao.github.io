@@ -19,18 +19,14 @@
           [style.width.%]="pct(seg.value)"
           [attr.title]="seg.label + ': ' + seg.value"
           (click)="onSegmentClick(seg)"
-        >
-          <span class="segbar__seg-text">{{ seg.value }}</span>
-        </button>
+        ></button>
       } @else {
         <span
           class="segbar__seg"
           [class]="seg.cls"
           [style.width.%]="pct(seg.value)"
           [attr.title]="seg.label + ': ' + seg.value"
-        >
-          <span class="segbar__seg-text">{{ seg.value }}</span>
-        </span>
+        ></span>
       }
     }
   </div>
