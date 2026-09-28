@@ -216,6 +216,16 @@ export interface Schedule {
   days: ScheduleDay[];
 }
 
+/** The full history export (`dashboard/schedule-history.json`) — every archived and live week
+ *  whose Daily Schedule table parses non-empty, ascending by `weekOf`. Fetched lazily via
+ *  `ProgressService.loadHistory()`, only once the Overview board steps back past the week the
+ *  summary already carries (see `Schedule` above). */
+export interface ScheduleHistory {
+  schemaVersion: number;
+  generatedAt: string;
+  weeks: Schedule[];
+}
+
 /** One scheduled day's effort-unit accounting (cse-progress gamify.py's workload export) —
  *  one entry per day that has a schedule header, live week or archive, sorted by date.
  *  `planned` is the header's stated units (null when the header states none); `done` sums

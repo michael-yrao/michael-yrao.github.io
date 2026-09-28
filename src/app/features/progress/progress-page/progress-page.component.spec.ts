@@ -11,8 +11,8 @@ import { ProgressService } from '../../../core/services/progress.service';
 import { TodayBoardComponent } from '../today-board/today-board.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
 import { GOLD_STANDARD_REPO, RepoRef } from '../../../core/services/github-file.service';
-import { ProgressSummary, ProblemProgress, Comfort } from '../../../core/models/progress.model';
-import { addDaysISO, todayLocalISO } from '../../../core/utils/local-date';
+import { ProgressSummary, ProblemProgress, Comfort, Schedule } from '../../../core/models/progress.model';
+import { addDaysISO, currentWeekStart, todayLocalISO } from '../../../core/utils/local-date';
 import { SOLUTION_LINK_MODE_STORAGE_KEY } from '../solution-link-mode';
 
 // A minimal, valid summary — enough for the 'ready' branch of every tab, including the two
@@ -105,8 +105,13 @@ function makeSummary(): ProgressSummary {
       },
     ],
     studyDays: ['2026-09-18', '2026-09-19', '2026-09-20'],
+    // `weekOf` must be the CURRENT week's Monday: the board now looks a schedule up by its
+    // own `weekOf` against the viewer's actual "today" (see TodayBoardComponent's
+    // weeksByStart/displayedSchedule) rather than always rendering whatever it's handed, so a
+    // stale hardcoded `weekOf` here would silently miss that lookup and fall back to a
+    // synthetic empty week instead of this fixture's own day (dated `todayLocalISO()` below).
     schedule: {
-      weekOf: '2026-09-21',
+      weekOf: currentWeekStart(todayLocalISO()),
       days: [
         {
           date: todayLocalISO(),
@@ -178,8 +183,12 @@ function makeProgressServiceStub() {
     detailsRefreshing: signal(false),
     details: signal<ProblemProgress[] | null>(null),
 
+    history: signal<Schedule[] | null>(null),
+    historyStatus: signal<'idle' | 'loading' | 'ready' | 'error'>('idle'),
+
     loadSummary: vi.fn(),
     loadDetails: vi.fn(),
+    loadHistory: vi.fn(),
     refresh: vi.fn(),
     // Delegates to the REAL ProgressService.parseRepo (a pure method — it never touches the
     // HttpClient it's constructed with) rather than reimplementing its parsing rule here, so

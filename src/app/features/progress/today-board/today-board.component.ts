@@ -6,7 +6,7 @@ import { ProblemProgress, Schedule, ScheduleDay, ScheduleItem } from '../../../c
 import { LoadStatus } from '../../../core/services/progress.service';
 import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
-import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
+import { addDaysISO, currentWeekStart, shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
@@ -21,6 +21,11 @@ interface Workload {
 
 const COMPLEXITY_GATE_TITLE = 'Complexity gate';
 const RE_ASK_SUFFIX = 're-asks';
+const DAYS_PER_WEEK = 7;
+// Monday-first, matching gamify.py's `day_date.strftime('%A')` — used only to label a
+// synthetic empty week's 7 days (see `emptyWeek` below), so no `Date` construction (and no
+// timezone risk) is needed to name them.
+const WEEKDAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
 
 /** A run of consecutive `kind === 'complexity'` items collapsed into one board row (the
  *  Sunday complexity re-ask block) — a purely local, derived shape, never part of the
@@ -57,6 +62,21 @@ function toGateRow(items: readonly ScheduleItem[]): ComplexityGateRow {
     doneCount,
     totalCount: items.length,
   };
+}
+
+/** A synthetic empty week — 7 real dates and weekday names in the same shape gamify.py emits,
+ *  `items: []`, `units: null` throughout. Used whenever the displayed week (current, or a
+ *  history gap once history has finished loading) has no real entry, so the strip and the
+ *  existing "Nothing scheduled." rendering need no special-casing for it. Pure. */
+function emptyWeek(weekOf: string): Schedule {
+  const days: ScheduleDay[] = WEEKDAY_NAMES.map((weekday, i) => ({
+    date: addDaysISO(weekOf, i),
+    weekday,
+    label: null,
+    units: null,
+    items: [],
+  }));
+  return { weekOf, days };
 }
 
 interface GroupAcc {
@@ -158,18 +178,107 @@ export class TodayBoardComponent {
    *  standard. */
   readonly repoRef = input<RepoRef | null>(null);
 
+  /** The archived weeks (`ProgressService.history`) — `null` until the board has asked for
+   *  them (see `prevWeek()`), an array (possibly empty) once that fetch has resolved. */
+  readonly history = input<Schedule[] | null>(null);
+  /** `ProgressService.historyStatus` — mirrors `detailsStatus`'s role for the trend panel:
+   *  `history` alone can't tell a still-loading fetch apart from one that failed, since both
+   *  leave it `null`. Used only by `isHistoryError` below. */
+  readonly historyStatus = input<LoadStatus>('idle');
+  /** Emitted when ◀ needs a week it doesn't have yet — the page wires this to
+   *  `ProgressService.loadHistory()`, the same click-triggered opt-in fetch as `trend`. */
+  readonly historyRequest = output<void>();
+
   // Which day the strip has explicitly selected (null = no explicit pick yet — fall back to
   // today, or the first day of the week if today isn't in it).
   readonly selectedDate = signal<string | null>(null);
   // Collapsed (default) = just the selected day; expanded = the whole week stacked.
   readonly expanded = signal(false);
+  // Which week is on screen — null means "the current week" (today's own Monday, recomputed
+  // live off the viewer's clock). Set only by prevWeek()/nextWeek().
+  readonly viewWeekOf = signal<string | null>(null);
 
   // A row's status-badge link source — one shared setting owned by the page header's
   // Settings panel (settings-menu.component.ts), not by this board.
   private readonly linkModeService = inject(SolutionLinkModeService);
 
-  readonly days = computed(() => this.schedule()?.days ?? []);
   readonly todayISO = computed(() => todayLocalISO());
+  readonly currentWeekOf = computed(() => currentWeekStart(this.todayISO()));
+
+  /** Every week the board currently has data for, keyed by its own `weekOf` — the live
+   *  summary plus whatever archived weeks history has delivered. The summary wins on a
+   *  matching `weekOf` (it's the freshest export); history only fills in weeks the summary
+   *  doesn't carry. */
+  readonly weeksByStart = computed<ReadonlyMap<string, Schedule>>(() => {
+    const map = new Map<string, Schedule>();
+    for (const week of this.history() ?? []) map.set(week.weekOf, week);
+    const summary = this.schedule();
+    if (summary) map.set(summary.weekOf, summary);
+    return map;
+  });
+
+  readonly sortedWeekStarts = computed(() => [...this.weeksByStart().keys()].sort());
+
+  /** Whether the archived-weeks fetch has resolved at least once — `history` stays `null`
+   *  until then (loading or never requested), and is always an array (possibly empty)
+   *  afterward, per `ProgressService.loadHistory()`'s 404-is-success handling. */
+  readonly historyLoaded = computed(() => this.history() !== null);
+
+  readonly displayedWeekOf = computed(() => this.viewWeekOf() ?? this.currentWeekOf());
+
+  /** The week actually on screen: a real entry from `weeksByStart` when one exists, else a
+   *  synthetic empty week — covering both the current week (no schedule generated yet) and a
+   *  past week history has finished loading but genuinely has no entry for (a gap: gamify.py
+   *  skips a week whose Daily Schedule table parses empty). Never used while that specific
+   *  week's history fetch is still in flight — see `isLoadingWeek()`. */
+  readonly displayedSchedule = computed<Schedule>(() => {
+    const weekOf = this.displayedWeekOf();
+    return this.weeksByStart().get(weekOf) ?? emptyWeek(weekOf);
+  });
+
+  /** True only while waiting on the history fetch FOR the displayed week specifically — the
+   *  current week never needs it (always resolvable via the synthetic fallback), a week
+   *  already found in `weeksByStart` never needs it either, and a failed fetch is
+   *  `isHistoryError`'s state to report, not this one's. */
+  readonly isLoadingWeek = computed(() => {
+    if (this.historyStatus() === 'error') return false;
+    return this.needsHistoryFor(this.displayedWeekOf());
+  });
+
+  /** True when the displayed week would otherwise be stuck on `isLoadingWeek` AND the
+   *  history fetch it's waiting on has actually failed — `history` alone stays `null` in
+   *  both the still-loading and the failed case, so `historyStatus` is what tells them apart. */
+  readonly isHistoryError = computed(
+    () => this.historyStatus() === 'error' && this.needsHistoryFor(this.displayedWeekOf()),
+  );
+
+  /** Shared by `isLoadingWeek`/`isHistoryError`: whether the given week needs the archived
+   *  history fetch to resolve before it can be shown at all (it's neither the current week
+   *  nor already on hand). */
+  private needsHistoryFor(weekOf: string): boolean {
+    if (weekOf === this.currentWeekOf()) return false;
+    if (this.weeksByStart().has(weekOf)) return false;
+    return !this.historyLoaded();
+  }
+
+  /** ◀ is enabled until history has loaded and confirmed there's nothing earlier than the
+   *  displayed week — before that we don't yet know the boundary, so a click can still fetch. */
+  readonly canGoPrev = computed(() => {
+    if (!this.historyLoaded()) return true;
+    const weeks = this.sortedWeekStarts();
+    return weeks.length > 0 && weeks[0] < this.displayedWeekOf();
+  });
+
+  /** ▶ is enabled either toward a later week already on hand, or simply toward "now" whenever
+   *  the displayed week is in the past — the latter needs no history fetch, since every week
+   *  up to and including the current one is always resolvable (real or synthetic). */
+  readonly canGoNext = computed(() => {
+    const displayed = this.displayedWeekOf();
+    if (displayed < this.currentWeekOf()) return true;
+    return this.sortedWeekStarts().some((w) => w > displayed);
+  });
+
+  readonly days = computed(() => this.displayedSchedule().days);
 
   readonly effectiveDate = computed<string | null>(() => {
     const list = this.days();
@@ -335,6 +444,39 @@ export class TodayBoardComponent {
 
   toggleExpanded(): void {
     this.expanded.update((v) => !v);
+    this.collapseAllRows();
+  }
+
+  /** Steps the board back one calendar week. Always moves (even into a week not yet on hand —
+   *  see `displayedSchedule()`'s gap/loading handling); when the target isn't in
+   *  `weeksByStart` and history hasn't loaded yet, also asks the page to fetch it. A week
+   *  that's still a gap once history HAS loaded is simply shown empty, never re-requested. */
+  prevWeek(): void {
+    const target = addDaysISO(this.displayedWeekOf(), -DAYS_PER_WEEK);
+    const alreadyKnown = this.weeksByStart().has(target);
+    this.setViewWeek(target);
+    if (!alreadyKnown && !this.historyLoaded()) this.historyRequest.emit();
+  }
+
+  /** Steps the board forward one calendar week — never past the current week (`canGoNext()`
+   *  guards that at the template). */
+  nextWeek(): void {
+    if (!this.canGoNext()) return;
+    this.setViewWeek(addDaysISO(this.displayedWeekOf(), DAYS_PER_WEEK));
+  }
+
+  /** The "Couldn't load past weeks." hint's Retry button — just re-emits `historyRequest`,
+   *  same idempotent `loadHistory()` `prevWeek()` already triggers. */
+  retryHistory(): void {
+    this.historyRequest.emit();
+  }
+
+  /** Shared by prevWeek()/nextWeek(): moving to a different week always drops the explicit
+   *  day pick (a day selected in the old week may not exist, or mean the same thing, in the
+   *  new one) and closes any open popover, same as selecting a day or toggling expand. */
+  private setViewWeek(weekOf: string): void {
+    this.viewWeekOf.set(weekOf);
+    this.selectedDate.set(null);
     this.collapseAllRows();
   }
 

@@ -106,3 +106,12 @@ export function weekStartISO(iso: string): string {
   const daysSinceMonday = utcDay === SUNDAY_UTC_DAY ? MONDAY_START_OFFSET : utcDay - 1;
   return addDaysISO(iso, -daysSinceMonday);
 }
+
+/** The Monday of the week containing `todayISO` — the Overview board's "current week" when
+ *  no explicit week is picked. Same Monday-start week arithmetic as `weekStartISO` above
+ *  (whose name generalizes to any date, not just "today"); kept as its own export so a call
+ *  site reads as intent ("what week is today in") rather than the general-purpose grouping
+ *  helper's name. */
+export function currentWeekStart(todayISO: string): string {
+  return weekStartISO(todayISO);
+}

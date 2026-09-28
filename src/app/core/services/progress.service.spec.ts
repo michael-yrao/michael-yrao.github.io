@@ -236,3 +236,38 @@ describe('ProgressService — missing progress-summary.json', () => {
     expect(calls.some((c) => c.url.includes('/contents/dashboard/progress.json'))).toBe(false);
   });
 });
+
+// schedule-history.json never lived at the repo root, so a missing file is a genuine 404 —
+// an adopter on an older gamify.py that hasn't generated it yet — never an error.
+describe('ProgressService — loadHistory on a missing schedule-history.json', () => {
+  it('maps a 404 to an empty, ready history with no error', () => {
+    const summaryPayload = {
+      schemaVersion: 1,
+      streak: { current: 1 },
+      pipeline: {},
+      totals: {},
+      problems: [],
+      badges: [],
+    };
+    const http = {
+      get: (url: string) => {
+        if (url.includes('schedule-history.json')) return throwError(() => ({ status: 404 }));
+        return of(summaryPayload);
+      },
+    };
+    TestBed.configureTestingModule({
+      providers: [ProgressService, { provide: HttpClient, useValue: http }],
+    });
+    const service = TestBed.inject(ProgressService);
+
+    service.loadSummary(null); // seeds `source`, which loadHistory() requires
+    service.loadHistory();
+
+    expect(service.history()).toEqual([]);
+    expect(service.historyStatus()).toBe('ready');
+    // The history 404 is handled entirely within loadHistory() — it never touches the
+    // summary's own status/error.
+    expect(service.status()).toBe('ready');
+    expect(service.error()).toBeNull();
+  });
+});

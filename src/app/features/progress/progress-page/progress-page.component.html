@@ -253,7 +253,10 @@
                   [detailsStatus]="detailsStatus()"
                   [detailsError]="detailsError()"
                   [repoRef]="repoRef()"
+                  [history]="history()"
+                  [historyStatus]="historyStatus()"
                   (trend)="onTrendExpand($event)"
+                  (historyRequest)="loadHistory()"
                 />
               </div>
             } @else if (comingSoonCopy(); as copy) {

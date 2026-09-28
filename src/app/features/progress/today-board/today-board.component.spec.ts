@@ -6,19 +6,23 @@ import { SOLUTION_LINK_MODE_STORAGE_KEY } from '../solution-link-mode';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemProgress, Schedule, ScheduleItem } from '../../../core/models/progress.model';
 import { LoadStatus } from '../../../core/services/progress.service';
-import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
+import { addDaysISO, currentWeekStart, shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
 
 // Every fixture below reads the persisted link mode on construction — clear it after each
 // test so one test's GitHub-mode click never leaks into the next test's fixture.
 afterEach(() => localStorage.removeItem(SOLUTION_LINK_MODE_STORAGE_KEY));
 
-// Reuses the SAME local-date function the component uses (not a hand-rolled
-// `toISOString()`, which is UTC and can be off by a day) so "today" in the fixture always
-// matches whatever the component computes, regardless of the machine's timezone or the
-// date the test actually runs on.
+// Reuses the SAME local-date functions the component uses (not a hand-rolled
+// `toISOString()`, which is UTC and can be off by a day) so "today" — and now "the current
+// week" — in the fixture always matches whatever the component computes, regardless of the
+// machine's timezone or the date the test actually runs on. `weekOf` must be the CURRENT
+// week's Monday: the component now looks a schedule up by its own `weekOf` against
+// `currentWeekStart(todayISO())` (see `weeksByStart`/`displayedSchedule`), so a fixture with
+// a stale, hardcoded `weekOf` would silently miss that lookup and render a synthetic empty
+// week instead of this fixture's own days.
 function makeSchedule(overrides: Partial<Schedule> = {}): Schedule {
   return {
-    weekOf: '2026-09-21',
+    weekOf: currentWeekStart(todayLocalISO()),
     days: [
       {
         date: todayLocalISO(),
@@ -165,43 +169,6 @@ describe('TodayBoardComponent', () => {
     const head = fixture.nativeElement.querySelector('.today-board__count');
     expect(head?.textContent).toContain('2 of 2 done');
     expect(fixture.nativeElement.querySelectorAll('.today-board__row--done').length).toBe(2);
-  });
-
-  it('falls back to the first day of the week when today is not in the schedule', () => {
-    const schedule = makeSchedule({
-      days: [
-        {
-          date: '1999-01-01', // deliberately not today, under any timezone
-          weekday: 'Monday',
-          label: 'Not today',
-          units: 5,
-          items: [{ lcNumber: 1, title: 'Two Sum', technique: 'Hash Map',
-                    startComfort: '🟢', difficulty: 'Easy', done: false }],
-        },
-      ],
-    });
-
-    const fixture = createFixture(schedule);
-
-    // First (only) day is selected by default and its item renders.
-    expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(1);
-    expect(fixture.nativeElement.textContent).toContain('Two Sum');
-    expect(fixture.nativeElement.querySelector('.today-board__hint')).toBeFalsy();
-  });
-
-  it('shows the friendly hint with no crash when schedule is null', () => {
-    const fixture = createFixture(null);
-
-    expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(0);
-    const hint = fixture.nativeElement.querySelector('.today-board__hint');
-    expect(hint?.textContent).toContain('No schedule loaded for this week.');
-  });
-
-  it('shows the friendly hint with no crash when schedule is undefined', () => {
-    const fixture = createFixture(undefined);
-
-    expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(0);
-    expect(fixture.nativeElement.querySelector('.today-board__hint')).toBeTruthy();
   });
 
   it('shows "Nothing scheduled." when the selected day exists but has no items', () => {
@@ -1139,6 +1106,157 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.today-board__row--gate')).toBeFalsy();
     expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('Re-ask A');
+  });
+});
+
+// ── The bug this feature fixes: the board must resolve to the VIEWER's own current week, not
+// whatever week the summary happens to carry (the summary can be stale by the time it's read). ─
+describe('TodayBoardComponent — current-week resolution', () => {
+  it('resolves to the current week, with today marked and active, no matter what the summary schedule carries', () => {
+    const today = todayLocalISO();
+    const currentWeekOf = currentWeekStart(today);
+    const currentWeekDates = Array.from({ length: 7 }, (_, i) => addDaysISO(currentWeekOf, i));
+    const weekSchedule = makeWeekSchedule();
+    const lastWeekOf = addDaysISO(currentWeekOf, -7);
+    const lastWeekSchedule: Schedule = {
+      weekOf: lastWeekOf,
+      days: [
+        {
+          date: lastWeekOf,
+          weekday: 'Monday',
+          label: null,
+          units: 5,
+          items: [{ lcNumber: 300, title: 'Stale Problem', technique: null,
+            startComfort: null, difficulty: null, done: false }],
+        },
+      ],
+    };
+
+    const cases: Array<{ schedule: Schedule | null; expectedDates: string[]; expectEmptyWeek: boolean }> = [
+      // The current week: the strip shows exactly the summary's own days.
+      { schedule: weekSchedule, expectedDates: weekSchedule.days.map((d) => d.date), expectEmptyWeek: false },
+      // Last week (the bug): falls back to the real current week, empty — not a stale Monday
+      // silently treated as today.
+      { schedule: lastWeekSchedule, expectedDates: currentWeekDates, expectEmptyWeek: true },
+      // No schedule at all: the same empty current week, never an error hint.
+      { schedule: null, expectedDates: currentWeekDates, expectEmptyWeek: true },
+    ];
+
+    for (const { schedule, expectedDates, expectEmptyWeek } of cases) {
+      TestBed.resetTestingModule();
+      const fixture = createFixture(schedule);
+
+      expect(fixture.componentInstance.days().map((d) => d.date)).toEqual(expectedDates);
+
+      const todayBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__day-btn--today');
+      const activeBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__day-btn--active');
+      expect(todayBtn).toBeTruthy();
+      expect(activeBtn).toBe(todayBtn);
+
+      if (!expectEmptyWeek) continue;
+
+      const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__expand-toggle');
+      toggle.click();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(0);
+      const hints: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.today-board__hint'));
+      expect(hints.length).toBe(7);
+      for (const hint of hints) expect(hint.textContent).toContain('Nothing scheduled.');
+    }
+  });
+});
+
+describe('TodayBoardComponent — week navigation', () => {
+  it('steps between known weeks with no fetch, asks for a week it does not have, and disables ◀/▶ at the known edges', () => {
+    const today = todayLocalISO();
+    const currentWeekOf = currentWeekStart(today);
+    const lastWeekOf = addDaysISO(currentWeekOf, -7);
+
+    // A minimal one-day week — enough to prove which week resolved and, for case (e), which
+    // day within it defaulted to selected.
+    function weekWithOneItem(weekOf: string): Schedule {
+      return {
+        weekOf,
+        days: [
+          {
+            date: weekOf,
+            weekday: 'Monday',
+            label: null,
+            units: 1,
+            items: [{ lcNumber: 500, title: 'Archived Problem', technique: null,
+              startComfort: null, difficulty: null, done: false }],
+          },
+        ],
+      };
+    }
+
+    function prevBtnOf(fixture: ReturnType<typeof createFixture>): HTMLButtonElement {
+      return fixture.nativeElement.querySelector('.today-board__week-nav-btn[aria-label="Previous week"]');
+    }
+
+    // (a) ◀ to a week the summary already carries: no historyRequest.
+    TestBed.resetTestingModule();
+    let fixture = createFixture(weekWithOneItem(lastWeekOf));
+    let requests = 0;
+    fixture.componentInstance.historyRequest.subscribe(() => requests++);
+    prevBtnOf(fixture).click();
+    fixture.detectChanges();
+    expect(requests).toBe(0);
+    expect(fixture.nativeElement.textContent).toContain('Archived Problem');
+
+    // (b) ◀ to a week nobody has yet (no schedule, history not loaded): emits historyRequest
+    // exactly once.
+    TestBed.resetTestingModule();
+    fixture = createFixture(null);
+    requests = 0;
+    fixture.componentInstance.historyRequest.subscribe(() => requests++);
+    prevBtnOf(fixture).click();
+    fixture.detectChanges();
+    expect(requests).toBe(1);
+
+    // (c) ▶ is disabled on the current week when no later week is known.
+    TestBed.resetTestingModule();
+    fixture = createFixture(null);
+    const nextBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.today-board__week-nav-btn[aria-label="Next week"]',
+    );
+    expect(nextBtn.disabled).toBe(true);
+
+    // (d) ◀ is disabled once history is ready and the displayed week is the earliest one known.
+    TestBed.resetTestingModule();
+    fixture = createFixture(null);
+    fixture.componentRef.setInput('history', [weekWithOneItem(lastWeekOf)]);
+    fixture.detectChanges();
+    prevBtnOf(fixture).click();
+    fixture.detectChanges();
+    expect(prevBtnOf(fixture).disabled).toBe(true);
+
+    // (e) A past week defaults to its first day (today is never in a genuinely past week).
+    TestBed.resetTestingModule();
+    fixture = createFixture(weekWithOneItem(lastWeekOf));
+    prevBtnOf(fixture).click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.effectiveDate()).toBe(lastWeekOf);
+
+    // (f) ◀ to a week nobody has yet, then the history fetch it triggered comes back an
+    // error (`history` stays null): the loading hint is replaced by the error hint + Retry,
+    // and Retry re-emits historyRequest.
+    TestBed.resetTestingModule();
+    fixture = createFixture(null);
+    requests = 0;
+    fixture.componentInstance.historyRequest.subscribe(() => requests++);
+    prevBtnOf(fixture).click();
+    fixture.componentRef.setInput('historyStatus', 'error');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("Couldn't load past weeks.");
+    expect(fixture.nativeElement.textContent).not.toContain('Loading history…');
+
+    const retryBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__expand-toggle');
+    retryBtn.click();
+    fixture.detectChanges();
+    expect(requests).toBe(2); // the initial ◀ fetch, plus this Retry
   });
 });
 

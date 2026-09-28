@@ -138,6 +138,11 @@ export class ProgressPageComponent {
   readonly detailsRefreshing = this.progress.detailsRefreshing;
   readonly details = this.progress.details;
 
+  // The Overview board's archived weeks — opt-in, fetched only once the board steps back
+  // past the week the summary already carries (see TodayBoardComponent.prevWeek()).
+  readonly history = this.progress.history;
+  readonly historyStatus = this.progress.historyStatus;
+
   readonly tabs = TAB_ORDER;
   readonly tabLabel = TAB_LABEL;
   readonly activeTab = signal<ProgressTab>('overview');
@@ -434,6 +439,13 @@ export class ProgressPageComponent {
    *  until a row's title is actually clicked open. */
   onTrendExpand(_item: ScheduleItem): void {
     this.progress.loadDetails();
+  }
+
+  /** The Overview board's ◀ stepped back to a week it doesn't have yet — same on-demand,
+   *  idempotent fetch pattern as onTrendExpand/loadDetails(), for schedule-history.json
+   *  instead. */
+  loadHistory(): void {
+    this.progress.loadHistory();
   }
 
   /** The manual comfort chips ("All" / 🔴 / 🟡 / 🟢 / 🎓) above the Explore list — these do

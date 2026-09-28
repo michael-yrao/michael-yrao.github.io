@@ -5,6 +5,8 @@ import {
   ProgressData,
   ProgressSummary,
   ProblemProgress,
+  Schedule,
+  ScheduleHistory,
   TrophyGraduateSummary,
   PROGRESS_SCHEMA_VERSION,
 } from '../models/progress.model';
@@ -37,6 +39,13 @@ const SUMMARY_FILE = 'dashboard/progress-summary.json';
 const DETAILS_FILE = 'dashboard/progress.json';
 const LEGACY_SUMMARY_FILE = 'progress-summary.json';
 const LEGACY_DETAILS_FILE = 'progress.json';
+
+// The Overview board's past-week navigation fetches this only when it steps back past the
+// week the summary already carries — a separate, opt-in file (like DETAILS_FILE) rather than
+// riding the summary, since a week's schedule runs ~17 KB and history can span months of
+// weeks. Never lived at the repo root, so unlike SUMMARY_FILE/DETAILS_FILE there is no legacy
+// fallback path.
+const HISTORY_FILE = 'dashboard/schedule-history.json';
 
 const NOT_FOUND_STATUS = 404;
 
@@ -108,11 +117,19 @@ export class ProgressService {
   readonly detailsError = signal<string | null>(null);
   readonly detailsRefreshing = signal(false);
 
+  // The Overview board's archived weeks — opt-in, fired only when the board steps back past
+  // the week the summary already carries (see TodayBoardComponent.prevWeek()). `null` until
+  // that first fetch resolves; ready() then always holds an array, even an empty one (an
+  // adopter on an older gamify.py with no history file yet — see loadHistory()'s 404 handling).
+  readonly history = signal<Schedule[] | null>(null);
+  readonly historyStatus = signal<LoadStatus>('idle');
+
   // Monotonic request ids: a slow earlier fetch must not overwrite a newer one (the ?repo
-  // param can change, and there is no HttpClient cancellation on a bare subscribe). Summary
-  // and details are independent request streams, so each gets its own sequence.
+  // param can change, and there is no HttpClient cancellation on a bare subscribe). Summary,
+  // details and history are independent request streams, so each gets its own sequence.
   private seq = 0;
   private detailsSeq = 0;
+  private historySeq = 0;
 
   readonly repoSlug = computed(() => {
     const s = this.source();
@@ -149,12 +166,14 @@ export class ProgressService {
   }
 
   /** Re-fetch the repo currently shown, bypassing caches. Used by the Refresh button.
-   *  Always re-loads the summary; re-loads details too, but only if they were opened. */
+   *  Always re-loads the summary; re-loads details and history too, but only if they were
+   *  opened. */
   refresh(): void {
     const cur = this.source();
     if (!cur) return;
     this.loadSummary(`${cur.owner}/${cur.repo}@${cur.branch}`, true);
     if (this.detailsStatus() === 'ready') this.loadDetails(true);
+    if (this.historyStatus() === 'ready') this.loadHistory(true);
   }
 
   /** Load the lightweight aggregate summary (progress-summary.json). This is what the
@@ -269,6 +288,43 @@ export class ProgressService {
         }
         this.details.set(result.problems);
         this.detailsStatus.set('ready');
+      });
+  }
+
+  /** Load the archived schedule weeks (schedule-history.json) for the repo currently shown.
+   *  Explicit opt-in only, fired by the Overview board's ◀ once it steps back to a week it
+   *  doesn't already have — never called from the navigation effect. Fetched with no legacy
+   *  fallback path (see `HISTORY_FILE`). A 404 means an adopter on an older gamify.py with no
+   *  history file yet: that's success (an empty history), not an error; any other failure
+   *  is. */
+  loadHistory(force = false): void {
+    const ref = this.source();
+    if (!ref) return;
+    if (!force && this.historyStatus() === 'ready') return;
+
+    const mine = ++this.historySeq;
+    this.historyStatus.set('loading');
+
+    this.github
+      .fetch$<ScheduleHistory>(ref, HISTORY_FILE, force)
+      .pipe(
+        map((full) => full.weeks),
+        catchError((err) => (err?.status === NOT_FOUND_STATUS ? of([]) : throwError(() => err))),
+      )
+      .subscribe({
+        next: (weeks) => {
+          if (mine !== this.historySeq) return; // a newer loadHistory() superseded this response
+          if (!Array.isArray(weeks)) {
+            this.historyStatus.set('error');
+            return;
+          }
+          this.history.set(weeks);
+          this.historyStatus.set('ready');
+        },
+        error: () => {
+          if (mine !== this.historySeq) return;
+          this.historyStatus.set('error');
+        },
       });
   }
 

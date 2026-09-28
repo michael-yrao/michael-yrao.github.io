@@ -1,4 +1,11 @@
-import { addDaysISO, daysBetweenISO, localISODate, shortMonthDay, weekStartISO } from './local-date';
+import {
+  addDaysISO,
+  currentWeekStart,
+  daysBetweenISO,
+  localISODate,
+  shortMonthDay,
+  weekStartISO,
+} from './local-date';
 
 describe('localISODate', () => {
   it('formats a Date as YYYY-MM-DD in local time, independent of the time of day', () => {
@@ -23,6 +30,22 @@ describe('weekStartISO', () => {
   it('walks back across a month boundary', () => {
     // 2026-10-01 is a Thursday; its week's Monday is 2026-09-28.
     expect(weekStartISO('2026-10-01')).toBe('2026-09-28');
+  });
+});
+
+describe('currentWeekStart', () => {
+  it('returns the Monday of the week containing the given date', () => {
+    const cases: Array<{ todayISO: string; expected: string }> = [
+      { todayISO: '2026-09-28', expected: '2026-09-28' }, // a Monday returns itself
+      { todayISO: '2026-09-27', expected: '2026-09-21' }, // a Sunday returns the Monday 6 days earlier
+      { todayISO: '2026-09-30', expected: '2026-09-28' }, // a mid-week day returns that week's Monday
+      { todayISO: '2027-01-03', expected: '2026-12-28' }, // a Sunday across a year rollover
+      { todayISO: '2026-09-01', expected: '2026-08-31' }, // a Tuesday across a month rollover
+    ];
+
+    for (const { todayISO, expected } of cases) {
+      expect(currentWeekStart(todayISO)).toBe(expected);
+    }
   });
 });
 

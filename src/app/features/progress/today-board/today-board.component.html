@@ -145,8 +145,29 @@
 </ng-template>
 
 <div class="today-board">
-  @if (!days().length) {
-    <p class="today-board__hint">No schedule loaded for this week.</p>
+  <div class="today-board__week-nav">
+    <button
+      type="button"
+      class="today-board__week-nav-btn"
+      aria-label="Previous week"
+      [disabled]="!canGoPrev()"
+      (click)="prevWeek()"
+    >◀</button>
+    <span class="today-board__week-label">Week of {{ shortMonthDay(displayedWeekOf()) }}</span>
+    <button
+      type="button"
+      class="today-board__week-nav-btn"
+      aria-label="Next week"
+      [disabled]="!canGoNext()"
+      (click)="nextWeek()"
+    >▶</button>
+  </div>
+
+  @if (isLoadingWeek()) {
+    <p class="today-board__hint">Loading history…</p>
+  } @else if (isHistoryError()) {
+    <p class="today-board__hint">Couldn't load past weeks.</p>
+    <button type="button" class="today-board__expand-toggle" (click)="retryHistory()">Retry</button>
   } @else {
     <div class="today-board__strip">
       <div class="today-board__day-group" role="group" aria-label="Select a day">
