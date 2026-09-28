@@ -1110,59 +1110,129 @@ describe('TodayBoardComponent', () => {
 });
 
 // ── The bug this feature fixes: the board must resolve to the VIEWER's own current week, not
-// whatever week the summary happens to carry (the summary can be stale by the time it's read). ─
+// whatever week the summary happens to carry (the summary can be stale by the time it's read) —
+// AND, when that leaves the current week missing from `weeksByStart`, it must ask for `history`
+// itself (the constructor's effect): the viewer never presses ◀ to reach a gap on the week
+// that's already on screen by default. ─────────────────────────────────────────────────────
 describe('TodayBoardComponent — current-week resolution', () => {
-  it('resolves to the current week, with today marked and active, no matter what the summary schedule carries', () => {
-    const today = todayLocalISO();
-    const currentWeekOf = currentWeekStart(today);
-    const currentWeekDates = Array.from({ length: 7 }, (_, i) => addDaysISO(currentWeekOf, i));
-    const weekSchedule = makeWeekSchedule();
-    const lastWeekOf = addDaysISO(currentWeekOf, -7);
-    const lastWeekSchedule: Schedule = {
-      weekOf: lastWeekOf,
-      days: [
-        {
-          date: lastWeekOf,
-          weekday: 'Monday',
-          label: null,
-          units: 5,
-          items: [{ lcNumber: 300, title: 'Stale Problem', technique: null,
-            startComfort: null, difficulty: null, done: false }],
-        },
-      ],
-    };
+  // Mirrors createFixture(), but subscribes to `historyRequest` BEFORE the first
+  // `detectChanges()` — the auto-request effect can fire on that very first tick, and a
+  // subscription added afterward (as createFixture()'s own callers do) would miss it.
+  function createFixtureCountingRequests(schedule: Schedule | null) {
+    TestBed.configureTestingModule({
+      imports: [TodayBoardComponent],
+      providers: [provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(TodayBoardComponent);
+    fixture.componentRef.setInput('schedule', schedule);
+    let requests = 0;
+    fixture.componentInstance.historyRequest.subscribe(() => requests++);
+    fixture.detectChanges();
+    return { fixture, getRequests: () => requests };
+  }
 
-    const cases: Array<{ schedule: Schedule | null; expectedDates: string[]; expectEmptyWeek: boolean }> = [
-      // The current week: the strip shows exactly the summary's own days.
-      { schedule: weekSchedule, expectedDates: weekSchedule.days.map((d) => d.date), expectEmptyWeek: false },
-      // Last week (the bug): falls back to the real current week, empty — not a stale Monday
-      // silently treated as today.
-      { schedule: lastWeekSchedule, expectedDates: currentWeekDates, expectEmptyWeek: true },
-      // No schedule at all: the same empty current week, never an error hint.
-      { schedule: null, expectedDates: currentWeekDates, expectEmptyWeek: true },
-    ];
+  type FixturePair = ReturnType<typeof createFixtureCountingRequests>;
 
-    for (const { schedule, expectedDates, expectEmptyWeek } of cases) {
+  function expectTodayActive(fixture: FixturePair['fixture']): void {
+    const todayBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__day-btn--today');
+    const activeBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__day-btn--active');
+    expect(todayBtn).toBeTruthy();
+    expect(activeBtn).toBe(todayBtn);
+  }
+
+  const today = todayLocalISO();
+  const currentWeekOf = currentWeekStart(today);
+  const currentWeekDates = Array.from({ length: 7 }, (_, i) => addDaysISO(currentWeekOf, i));
+  const weekSchedule = makeWeekSchedule();
+  const lastWeekOf = addDaysISO(currentWeekOf, -7);
+  const lastWeekSchedule: Schedule = {
+    weekOf: lastWeekOf,
+    days: [
+      {
+        date: lastWeekOf,
+        weekday: 'Monday',
+        label: null,
+        units: 5,
+        items: [{ lcNumber: 300, title: 'Stale Problem', technique: null,
+          startComfort: null, difficulty: null, done: false }],
+      },
+    ],
+  };
+  // What `history()` delivers once it resolves for the last-week-summary case: the current
+  // week's OWN real entry, dated today so `expectTodayActive` can tell it apart from the
+  // synthetic fallback.
+  const currentWeekFromHistory: Schedule = {
+    weekOf: currentWeekOf,
+    days: [
+      {
+        date: today,
+        weekday: 'Today',
+        label: null,
+        units: 3,
+        items: [{ lcNumber: 400, title: 'Fetched Problem', technique: null,
+          startComfort: null, difficulty: null, done: false }],
+      },
+    ],
+  };
+
+  const cases: ReadonlyArray<[string, Schedule | null, (pair: FixturePair) => void]> = [
+    [
+      'the summary holds the current week: renders it directly, no historyRequest',
+      weekSchedule,
+      ({ fixture, getRequests }) => {
+        expect(fixture.componentInstance.days().map((d) => d.date)).toEqual(weekSchedule.days.map((d) => d.date));
+        expectTodayActive(fixture);
+        expect(getRequests()).toBe(0);
+      },
+    ],
+    [
+      "the summary holds last week (history idle): emits historyRequest once and shows " +
+        "'Loading history…', then renders the fetched current week with no second emit",
+      lastWeekSchedule,
+      ({ fixture, getRequests }) => {
+        expect(getRequests()).toBe(1);
+        expect(fixture.nativeElement.textContent).toContain('Loading history…');
+
+        fixture.componentRef.setInput('historyStatus', 'ready');
+        fixture.componentRef.setInput('history', [currentWeekFromHistory]);
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.textContent).toContain('Fetched Problem');
+        expectTodayActive(fixture);
+        expect(getRequests()).toBe(1);
+      },
+    ],
+    [
+      'no summary at all: emits historyRequest once, then falls back to the synthetic empty ' +
+        'current week once history resolves empty (the 404 case)',
+      null,
+      ({ fixture, getRequests }) => {
+        expect(getRequests()).toBe(1);
+
+        fixture.componentRef.setInput('historyStatus', 'ready');
+        fixture.componentRef.setInput('history', []);
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.days().map((d) => d.date)).toEqual(currentWeekDates);
+        expectTodayActive(fixture);
+        expect(getRequests()).toBe(1);
+
+        const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__expand-toggle');
+        toggle.click();
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(0);
+        const hints: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.today-board__hint'));
+        expect(hints.length).toBe(7);
+        for (const hint of hints) expect(hint.textContent).toContain('Nothing scheduled.');
+      },
+    ],
+  ];
+
+  it('resolves to the current week, requesting history exactly when the summary does not already carry it', () => {
+    for (const [, schedule, verify] of cases) {
       TestBed.resetTestingModule();
-      const fixture = createFixture(schedule);
-
-      expect(fixture.componentInstance.days().map((d) => d.date)).toEqual(expectedDates);
-
-      const todayBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__day-btn--today');
-      const activeBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__day-btn--active');
-      expect(todayBtn).toBeTruthy();
-      expect(activeBtn).toBe(todayBtn);
-
-      if (!expectEmptyWeek) continue;
-
-      const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__expand-toggle');
-      toggle.click();
-      fixture.detectChanges();
-
-      expect(fixture.nativeElement.querySelectorAll('.today-board__row').length).toBe(0);
-      const hints: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.today-board__hint'));
-      expect(hints.length).toBe(7);
-      for (const hint of hints) expect(hint.textContent).toContain('Nothing scheduled.');
+      verify(createFixtureCountingRequests(schedule));
     }
   });
 });

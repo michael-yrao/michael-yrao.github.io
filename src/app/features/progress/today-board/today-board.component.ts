@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  untracked,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgTemplateOutlet } from '@angular/common';
 
@@ -142,7 +152,10 @@ export function endNoteMeaning(note: string): string | null {
  * the Overview tab carries a single schedule card instead of two.
  *
  * Entirely derived from the summary (`schedule`/`effortCeiling`/`effortFloor` all ride it
- * whole); no fetch, ever — this is the instant overview, not a drill.
+ * whole) whenever the displayed week is already on hand — no fetch, instant overview, not a
+ * drill. The one exception is `history`: an opt-in fetch (◀, or the constructor's own effect
+ * filling a stale-summary gap on the CURRENT week — see `needsHistoryFor`), never forced by
+ * merely rendering a week already on hand.
  *
  * ScheduleItem's `url` (round 5) carries the tracker's canonical LeetCode URL, joined by
  * lcNumber server-side (cse-progress gamify.py's problem_urls()) — the site's own
@@ -202,6 +215,23 @@ export class TodayBoardComponent {
   // Settings panel (settings-menu.component.ts), not by this board.
   private readonly linkModeService = inject(SolutionLinkModeService);
 
+  constructor() {
+    // The summary only regenerates on commit, so a viewer opening the board on a day with no
+    // fresh commit yet has a CURRENT week that's simply missing from `weeksByStart` — the same
+    // gap `prevWeek()` already asks `history()` to fill, just one the viewer never has to press
+    // ◀ to hit. Fires once per gap: `historyStatus` moves off 'idle' (to 'loading') as soon as
+    // the page's loadHistory() answers this, and every later run of this effect then returns
+    // before the emit.
+    effect(() => {
+      const currentWeekOf = this.currentWeekOf();
+      if (this.displayedWeekOf() !== currentWeekOf) return;
+      if (this.weeksByStart().has(currentWeekOf)) return;
+      if (this.history() !== null) return;
+      if (this.historyStatus() !== 'idle') return;
+      untracked(() => this.historyRequest.emit());
+    });
+  }
+
   readonly todayISO = computed(() => todayLocalISO());
   readonly currentWeekOf = computed(() => currentWeekStart(this.todayISO()));
 
@@ -236,10 +266,10 @@ export class TodayBoardComponent {
     return this.weeksByStart().get(weekOf) ?? emptyWeek(weekOf);
   });
 
-  /** True only while waiting on the history fetch FOR the displayed week specifically — the
-   *  current week never needs it (always resolvable via the synthetic fallback), a week
-   *  already found in `weeksByStart` never needs it either, and a failed fetch is
-   *  `isHistoryError`'s state to report, not this one's. */
+  /** True only while waiting on the history fetch FOR the displayed week specifically — a week
+   *  already found in `weeksByStart` never needs it (that covers the usual current-week case,
+   *  the summary is fresh), and a failed fetch is `isHistoryError`'s state to report, not this
+   *  one's. */
   readonly isLoadingWeek = computed(() => {
     if (this.historyStatus() === 'error') return false;
     return this.needsHistoryFor(this.displayedWeekOf());
@@ -253,10 +283,11 @@ export class TodayBoardComponent {
   );
 
   /** Shared by `isLoadingWeek`/`isHistoryError`: whether the given week needs the archived
-   *  history fetch to resolve before it can be shown at all (it's neither the current week
-   *  nor already on hand). */
+   *  history fetch to resolve before it can be shown at all (it's not already on hand, in the
+   *  live summary or in history) — the CURRENT week is not exempt: the summary only regenerates
+   *  on commit, so it can just as easily be the one missing (see the constructor's effect,
+   *  which requests history for exactly that gap). */
   private needsHistoryFor(weekOf: string): boolean {
-    if (weekOf === this.currentWeekOf()) return false;
     if (this.weeksByStart().has(weekOf)) return false;
     return !this.historyLoaded();
   }
