@@ -6,7 +6,7 @@ export const QUIZZES: QuizMeta[] = [
   {
     id: 'pattern-sense',
     title: 'Pattern Sense',
-    description: 'Read a real problem with the title hidden — name the technique it calls for. Build the recognition reflex that is half of every interview.',
+    description: 'Read a real problem with the title hidden — name the technique it calls for. Build the recognition reflex that is half of every problem.',
     algorithmNote: 'Every problem on this site becomes a quiz round: spot the cues (sorted input? contiguous run? hierarchy?) and pick the right tool.',
     algorithms: ['Recognition', 'All techniques'],
     status: 'available',

@@ -20,7 +20,7 @@ import { SOLUTION_LINK_MODE_STORAGE_KEY } from '../solution-link-mode';
 // landing's lead tile (schedule rides the summary too). The schedule's matching day uses the
 // SAME local-date function the component uses, so "today" always lines up with whatever
 // date the test actually runs on. `techniques` mixes a started 'core' entry with two
-// not-started entries (one above the interview-ROI line, one below) so the honest-
+// not-started entries (one above the intermediate/advanced line, one below) so the honest-
 // denominator breadth bar has something real to tier.
 function makeSummary(): ProgressSummary {
   return {
@@ -845,9 +845,9 @@ describe('ProgressPageComponent', () => {
     expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
-  it('the breadth bar tiers practiced / interview-upcoming / competitive-horizon honestly, self-labeled', () => {
-    // Fixture: 2 started ('core'), 1 not-started 'dp' (above the ROI line), 1 not-started
-    // 'tier3' (below the line) -> practiced=2, upcoming=1, horizon=1.
+  it('the breadth bar tiers practiced / intermediate / advanced honestly, self-labeled', () => {
+    // Fixture: 2 started ('core'), 1 not-started 'dp' (above the intermediate/advanced
+    // line), 1 not-started 'tier3' (below the line) -> practiced=2, upcoming=1, horizon=1.
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
@@ -856,8 +856,8 @@ describe('ProgressPageComponent', () => {
     const bar = fixture.nativeElement.querySelectorAll('app-segmented-bar')[2];
     expect(bar.textContent).toContain('Started');
     expect(bar.textContent).toContain('2');
-    expect(bar.textContent).toContain('To do for interviews');
-    expect(bar.textContent).toContain('Beyond interviews');
+    expect(bar.textContent).toContain('Intermediate');
+    expect(bar.textContent).toContain('Advanced');
 
     // Both stage bars read still-ahead → earned: horizon, then upcoming, then practiced at
     // the right edge, same direction as the pipeline's 🎓/🏆.

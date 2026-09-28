@@ -254,10 +254,10 @@ export class ProgressPageComponent {
     return Math.round(((os.totalActive - os.overdue) / os.totalActive) * 100);
   });
 
-  // The honest technique denominator (round-2 item 1): breadth tiered by the interview-ROI
-  // line rather than one flat fraction. "practiced" = started (any tier — in practice only
-  // 'core' is ever started); "upcoming" = not-started but ABOVE the line (dp + tier1);
-  // "horizon" = not-started and BELOW the line (tier2 + tier3, competitive-only).
+  // The honest technique denominator (round-2 item 1): breadth tiered by the
+  // intermediate/advanced line rather than one flat fraction. "practiced" = started (any
+  // tier — in practice only 'core' is ever started); "upcoming" = not-started but ABOVE
+  // the line (dp + tier1); "horizon" = not-started and BELOW the line (tier2 + tier3).
   readonly techniqueBreadth = computed(() => {
     const techs = this.data()?.techniques;
     if (!techs || !techs.length) return null;
@@ -274,8 +274,9 @@ export class ProgressPageComponent {
 
   // Round 4: the breadth bar rebuilt onto the shared segmented-bar component — same
   // definitions as techniqueBreadth() above (practiced=started; upcoming/horizon split by
-  // the interview-ROI line), just reshaped into self-labeling segments so it reads like the
-  // pipeline instead of needing its own vertical "ROI line" marker to be legible.
+  // the intermediate/advanced line), just reshaped into self-labeling segments so it reads
+  // like the pipeline instead of needing its own vertical "intermediate/advanced" marker to
+  // be legible.
   // Both stage bars read the same direction — still ahead → earned — so the earned segment
   // sits at the right edge here, same as the pipeline's 🎓/🏆.
   readonly breadthSegments = computed<SegmentedBarSegment[]>(() => {
@@ -283,8 +284,8 @@ export class ProgressPageComponent {
     if (!tb) return [];
     return (
       [
-        { key: 'horizon', label: 'Beyond interviews', value: tb.horizon, cls: 'seg-horizon' },
-        { key: 'upcoming', label: 'To do for interviews', value: tb.upcoming, cls: 'seg-upcoming' },
+        { key: 'horizon', label: 'Advanced', value: tb.horizon, cls: 'seg-horizon' },
+        { key: 'upcoming', label: 'Intermediate', value: tb.upcoming, cls: 'seg-upcoming' },
         { key: 'practiced', label: 'Started', value: tb.practiced, cls: 'seg-practiced' },
       ] satisfies SegmentedBarSegment[]
     ).filter((s) => s.value > 0);

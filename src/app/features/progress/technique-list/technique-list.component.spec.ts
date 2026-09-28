@@ -541,7 +541,7 @@ describe('TechniqueListComponent — Board view', () => {
 
     const toggle = Array.from(
       fixture.nativeElement.querySelectorAll('.tech-board__controls .tech-viewbar__btn'),
-    ).find((b) => (b as HTMLElement).textContent?.includes('competitive horizon')) as HTMLButtonElement;
+    ).find((b) => (b as HTMLElement).textContent?.includes('Show advanced')) as HTMLButtonElement;
     toggle.click();
     fixture.detectChanges();
 
@@ -586,7 +586,7 @@ describe('TechniqueListComponent — Board view', () => {
       (fixture) => {
         const toggle = Array.from(
           fixture.nativeElement.querySelectorAll('.tech-board__controls .tech-viewbar__btn'),
-        ).find((b) => (b as HTMLElement).textContent?.includes('competitive horizon')) as HTMLButtonElement;
+        ).find((b) => (b as HTMLElement).textContent?.includes('Show advanced')) as HTMLButtonElement;
         toggle.click();
         fixture.detectChanges();
       },
@@ -626,7 +626,7 @@ describe('TechniqueListComponent — Board view', () => {
 
     const horizonToggle = Array.from(
       fixture.nativeElement.querySelectorAll('.tech-board__controls .tech-viewbar__btn'),
-    ).find((b) => (b as HTMLElement).textContent?.includes('competitive horizon')) as HTMLButtonElement;
+    ).find((b) => (b as HTMLElement).textContent?.includes('Show advanced')) as HTMLButtonElement;
     horizonToggle.click();
     fixture.detectChanges();
 

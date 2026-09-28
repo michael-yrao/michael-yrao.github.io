@@ -52,19 +52,19 @@ interface TierGroup {
 }
 
 // Fixed order (not alphabetical — alphabetical would put 'core' after 'dp'), matching the
-// interview-ROI line: core (started) is always first; dp/tier1 are above the line; tier2/
-// tier3 are below it.
+// intermediate/advanced line: core (started) is always first; dp/tier1 are above the line;
+// tier2/tier3 are below it.
 const TIER_ORDER: TechniqueTier[] = ['core', 'dp', 'tier1', 'tier2', 'tier3'];
 const TIER_LABEL: Record<TechniqueTier, string> = {
   core: 'Core',
   dp: 'DP framework — not started',
-  tier1: 'Tier 1 · above the interview-ROI line — not started',
-  tier2: 'Tier 2 · below the ROI line (competitive) — not started',
-  tier3: 'Tier 3 · below the ROI line (competitive) — not started',
+  tier1: 'Tier 1 · intermediate — not started',
+  tier2: 'Tier 2 · advanced — not started',
+  tier3: 'Tier 3 · advanced — not started',
 };
 
-// A competitive-horizon technique (tier2/tier3) is hidden from the board by default — same
-// interview-ROI line TIER_LABEL already names — until the learner opts in via the toggle.
+// An advanced technique (tier2/tier3) is hidden from the board by default — same
+// intermediate/advanced line TIER_LABEL already names — until the learner opts in via the toggle.
 const HORIZON_TIERS: ReadonlySet<TechniqueTier> = new Set(['tier2', 'tier3']);
 
 interface BoardColumn {
