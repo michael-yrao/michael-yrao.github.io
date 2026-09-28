@@ -1,10 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 
 import { WorkloadDay } from '../../../core/models/progress.model';
 import { shortMonthDay, todayLocalISO, weekStartISO } from '../../../core/utils/local-date';
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
-
-type ChartView = 'daily' | 'weekly';
+import { ChartView, ProgressViewStateService } from '../progress-view-state.service';
 
 /** One rendered bar-pair (an outline "planned" rect layered under a solid "done" rect) — the
  *  same shape for both the daily and weekly series, so one template renders both. */
@@ -76,7 +75,10 @@ export class WorkloadChartComponent {
   readonly ceiling = input<number | null>(null);
   readonly floor = input<number | null>(null);
 
-  readonly view = signal<ChartView>('daily');
+  // Held on ProgressViewStateService (not a signal of this component's own) so the toggle
+  // survives the Activity tab's `@if`-gated destroy/recreate on a tab switch.
+  private readonly viewState = inject(ProgressViewStateService);
+  readonly view = this.viewState.workloadView;
 
   setView(next: ChartView): void {
     this.view.set(next);

@@ -21,6 +21,7 @@ import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
+import { ProgressViewStateService } from '../progress-view-state.service';
 
 interface Workload {
   units: number;
@@ -202,14 +203,19 @@ export class TodayBoardComponent {
    *  `ProgressService.loadHistory()`, the same click-triggered opt-in fetch as `trend`. */
   readonly historyRequest = output<void>();
 
+  // Week/day/expanded pick — held on ProgressViewStateService (not a signal of this
+  // component's own) so the state survives the Overview tab's `@if`-gated destroy/recreate on
+  // a tab switch. Property names stay the same as when these were local signals, so the
+  // template and existing specs keep working unchanged.
+  private readonly viewState = inject(ProgressViewStateService);
   // Which day the strip has explicitly selected (null = no explicit pick yet — fall back to
   // today, or the first day of the week if today isn't in it).
-  readonly selectedDate = signal<string | null>(null);
+  readonly selectedDate = this.viewState.scheduleSelectedDate;
   // Collapsed (default) = just the selected day; expanded = the whole week stacked.
-  readonly expanded = signal(false);
+  readonly expanded = this.viewState.scheduleExpanded;
   // Which week is on screen — null means "the current week" (today's own Monday, recomputed
   // live off the viewer's clock). Set only by prevWeek()/nextWeek().
-  readonly viewWeekOf = signal<string | null>(null);
+  readonly viewWeekOf = this.viewState.scheduleWeekOf;
 
   // A row's status-badge link source — one shared setting owned by the page header's
   // Settings panel (settings-menu.component.ts), not by this board.
