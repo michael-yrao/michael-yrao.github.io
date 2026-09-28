@@ -54,70 +54,22 @@
   color: var(--color-text-muted);
 }
 
-// ── Legend line (once, above the list) + its ⓘ popover ──────────────────────────────────────
-// The ⓘ popover pattern (signal toggle + hover/focus-within/--open reveal, and the shared
-// bubble chrome below) is copied from today-board.component.ts's `infoOpen`/`toggleInfo` and
-// today-board.component.scss's `%popover-bubble` — a Sass placeholder is private to the
-// stylesheet that defines it and can't be `@extend`ed across component files without a shared
-// forwarding partial, so the declarations are duplicated here rather than `@use`d. Follow-up:
-// extract this into a shared partial both components `@use`. Twin: today-board.component.scss's
-// `%popover-bubble` / `.today-board__info-*`.
+// ── Legend key (once, above the list) — three sample boxes naming what each box kind means
+// (Sep 27, 2026, replacing the earlier legend sentence + ⓘ popover) ─────────────────────────
 .tech-list__legend {
+  list-style: none;
+  margin: 0 0 var(--space-sm);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+.tech-list__legend-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: var(--space-sm);
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
-}
-.tech-list__info-wrap {
-  position: relative;
-  display: inline-flex;
-}
-.tech-list__info {
-  appearance: none;
-  border: 1px solid var(--color-border);
-  background: none;
-  color: var(--color-text-muted);
-  border-radius: 50%;
-  width: 15px;
-  height: 15px;
-  line-height: 1;
-  font-size: 0.65rem;
-  cursor: pointer;
-  padding: 0;
-  &:hover, &:focus-visible { border-color: var(--color-accent); color: var(--color-accent); outline: none; }
-}
-%popover-bubble {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  width: max-content;
-  max-width: 220px;
-  padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-raised);
-  color: var(--color-text);
-  font-size: 0.72rem;
-  line-height: 1.35;
-  text-align: left;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity var(--transition-fast);
-  z-index: 5;
-}
-.tech-list__info-bubble {
-  @extend %popover-bubble;
-  left: 0;
-  transform: none;
-}
-.tech-list__info-wrap:hover .tech-list__info-bubble,
-.tech-list__info-wrap:focus-within .tech-list__info-bubble,
-.tech-list__info-wrap--open .tech-list__info-bubble {
-  opacity: 1;
-  visibility: visible;
 }
 
 .tech-list__items {
@@ -133,10 +85,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg-raised);
-  // A not-started row's `opacity` below creates its own stacking context, trapping the
-  // coverage tooltip's z-index inside it — the next row would paint over the bubble. Lifting
-  // the hovered/focused row above its siblings fixes that without changing its stacking otherwise.
-  &:hover, &:focus-within { position: relative; z-index: 1; }
 }
 
 .tech-row__toggle {
@@ -182,91 +130,38 @@
 
 .tech-row--not-started { opacity: 0.75; }
 
-// ── Done/planned bar (Sep 26, 2026 — ratio moved from problemCount/minProblems to
-// done/planned; the old threshold is now a tick on this bar) ───────────────────────────────
-// Forces the bar onto its own flex line under the row's wrapped comfort/name/ratio/chips/caret
-// line — the row is only ~260px wide on a 360px phone, so that content already wraps.
-.tech-row__bar-wrap {
-  position: relative; // anchors the coverage tooltip (data-tip) below the bar
+// ── Coverage boxes (Sep 27, 2026 — replaces the done/planned bar, its tick, and its hover
+// tooltip: one small square per unit of the ratio's denominator, "show, don't tell") ──────────
+// Forces the box row onto its own flex line under the row's wrapped comfort/name/ratio/chips/
+// caret line — the row is only ~260px wide on a 360px phone, so that content already wraps.
+$tech-box-size: 10px;
+$tech-box-radius: 2px;
+$tech-box-gap: 3px;
+
+.tech-row__boxes {
   flex: 1 0 100%;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-wrap: wrap;
+  gap: $tech-box-gap;
 }
-.tech-row__bar {
-  position: relative;
-  display: block;
-  height: 6px;
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-card);
+.tech-row__box {
+  box-sizing: border-box;
+  width: $tech-box-size;
+  height: $tech-box-size;
+  border-radius: $tech-box-radius;
   border: 1px solid var(--color-border);
-  overflow: visible;
+  background: transparent;
 }
-// Change 2 (Sep 27, 2026) — colour carries the coverage state, from the same `coverageState`
-// `barFillClass` reads. No base background: `notBegun` gets neither class, and the bar is 0%
-// wide then anyway.
-.tech-row__bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: var(--radius-sm);
-  transition: width var(--transition-fast);
-}
-.tech-row__bar-fill--covered { background: var(--color-easy); }
-.tech-row__bar-fill--in-progress { background: var(--color-medium); }
-// The coverage-threshold tick, an absolutely positioned marker at thresholdPercent(t). Only
-// two backgrounds land under it: the dark track (`inProgress` — done hasn't reached the tick
-// yet) or the green fill (`covered` — the fill already reaches it). `--color-text` alone reads
-// ~1.6:1 on green (too close); a `--color-bg` ring fixes that (~10:1) without hurting the
-// track case.
-.tech-row__bar-tick {
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 2px;
-  background: var(--color-text);
-  box-shadow: 0 0 0 1px var(--color-bg);
-  transform: translateX(-1px);
-}
-
-// ── Coverage hover tooltip (Change 3) — same data-tip pattern as groundedness-meter's own
-// `[data-tip]::after` (twin), copied not shared (Sass placeholders don't `@extend` across
-// stylesheets). Left-aligned below the bar (not right-aligned, unlike the meter); reveals on
-// hovering/focusing the whole row toggle, not the bar-wrap, so one data-tip covers the ratio
-// too without a second focus stop.
-$tech-tooltip-show-delay: 150ms;
-$tech-tooltip-fade: 120ms;
-$tech-tooltip-gap: 4px;
-
-.tech-row__bar-wrap[data-tip]::after {
-  content: attr(data-tip);
-  position: absolute;
-  top: calc(100% + #{$tech-tooltip-gap});
-  left: 0;
-  max-width: min(40ch, 80vw);
-  white-space: normal;
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-raised);
-  box-shadow: var(--shadow-strong);
-  color: var(--color-text);
-  font-size: var(--text-xs);
-  line-height: 1.5;
-  text-align: left;
-  z-index: 20;
-  pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity $tech-tooltip-fade ease,
-    visibility 0s linear $tech-tooltip-fade;
-}
-.tech-row__toggle:hover .tech-row__bar-wrap[data-tip]::after,
-.tech-row__toggle:focus-visible .tech-row__bar-wrap[data-tip]::after {
-  opacity: 1;
-  visibility: visible;
-  transition-delay: $tech-tooltip-show-delay, 0s;
-}
+// 'done' — colour carries the coverage state, from the same `coverageState` `coverageBoxClass`
+// reads.
+.tech-row__box--covered { background: var(--color-easy); border-color: var(--color-easy); }
+.tech-row__box--in-progress { background: var(--color-medium); border-color: var(--color-medium); }
+// 'needed' — outlined with a clearly stronger border than the base/'extra' one, so it reads as
+// "still open" rather than merely "planned".
+.tech-row__box--needed { border-color: var(--color-text); }
+// 'extra' — faint: the base border colour again, but muted further so it visibly recedes behind
+// 'needed'.
+.tech-row__box--extra { border-color: var(--color-border); background: var(--color-bg-card); }
 
 // ── Expand-to-problems (round 3) ────────────────────────────────────────────
 .tech-row__detail {
@@ -385,8 +280,8 @@ $tech-tooltip-gap: 4px;
 }
 
 // One flex-wrap row per card, same shape as a list row's own .tech-row__toggle — comfort/
-// name/ratio/chips wrap together, and .tech-row__bar-wrap (its existing `flex: 1 0 100%`)
-// forces the bar onto its own line beneath them, reused as-is.
+// name/ratio/chips wrap together, and .tech-row__boxes (its existing `flex: 1 0 100%`)
+// forces the coverage boxes onto their own line beneath them, reused as-is.
 .tech-board__card {
   appearance: none;
   width: 100%;

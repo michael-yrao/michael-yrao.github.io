@@ -109,7 +109,6 @@ describe('TechniqueListComponent', () => {
     expect(fixture.nativeElement.querySelector('.chip--needs-more')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.chip--covered')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.chip--no-plan')).toBeFalsy();
-    expect(fixture.nativeElement.querySelector('.tech-row__bar')).toBeTruthy();
   });
 
   // The y = 0 case (nothing planned at all) is only reachable for a NOT-started technique — a
@@ -119,9 +118,9 @@ describe('TechniqueListComponent', () => {
   //
   // The ratio itself reads 0/2 (not 0/0): `ratioDenominatorOf` raises the denominator to the
   // technique's own threshold (minProblems) whenever nothing is planned, so the ratio never
-  // implies less is expected of the technique than really is — the chip and the (still hidden)
-  // bar stay keyed on `plannedTotalOf` alone, unaffected.
-  it('shows "nothing planned yet" (not "not started"), ratio 0/threshold, and no bar for a not-started technique with nothing planned (y = 0)', () => {
+  // implies less is expected of the technique than really is — the chip stays keyed on
+  // `plannedTotalOf` alone, unaffected.
+  it('shows "nothing planned yet" (not "not started") and ratio 0/threshold for a not-started technique with nothing planned (y = 0)', () => {
     const fixture = createFixture([
       makeTechnique({ started: false, problemCount: 0, problems: [], minProblems: 2, plannedTotal: 0, planned: [] }),
     ]);
@@ -129,7 +128,6 @@ describe('TechniqueListComponent', () => {
     const chip = fixture.nativeElement.querySelector('.chip--no-plan');
     expect(chip?.textContent).toContain('nothing planned yet');
     expect(fixture.nativeElement.querySelector('.chip--not-started')).toBeFalsy();
-    expect(fixture.nativeElement.querySelector('.tech-row__bar')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.tech-row__ratio')?.textContent).toContain('0/2');
   });
 
@@ -422,62 +420,19 @@ describe('TechniqueListComponent — planned problems', () => {
   });
 });
 
-describe('TechniqueListComponent — done/planned bar', () => {
+describe('TechniqueListComponent — coverage boxes', () => {
   afterEach(() => localStorage.clear());
 
-  function bar(fixture: ReturnType<typeof createFixture>): HTMLElement {
-    return fixture.nativeElement.querySelector('.tech-row__bar') as HTMLElement;
-  }
-
-  it('renders the bar with progressbar semantics, fill width, and tick position', () => {
+  it("renders one box per unit of the ratio's denominator, filled/outlined/faint by kind", () => {
     const fixture = createFixture([
-      makeTechnique({ minProblems: 3, problemCount: 1, plannedTotal: 3, planned: [] }),
+      makeTechnique({ name: 'Bellman-Ford', minProblems: 2, problemCount: 1, plannedTotal: 3, planned: [] }),
     ]);
 
-    const b = bar(fixture);
-    expect(b.getAttribute('role')).toBe('progressbar');
-    expect(b.getAttribute('aria-valuemin')).toBe('0');
-    expect(b.getAttribute('aria-valuenow')).toBe('1');
-    expect(b.getAttribute('aria-valuemax')).toBe('3');
-    expect(b.getAttribute('aria-label')).toBe('1 of 3 planned problems done · 2 more to be covered (3 needed)');
-
-    const fill = b.querySelector('.tech-row__bar-fill') as HTMLElement;
-    const tick = b.querySelector('.tech-row__bar-tick') as HTMLElement;
-    expect(parseFloat(fill.style.width)).toBeCloseTo(33.33, 1);
-    expect(tick.style.left).toBe('100%');
-  });
-
-  it('no bar caption element exists any more — the same finding now lives only in the hover (coverageTitle)', () => {
-    const fixture = createFixture([
-      makeTechnique({ minProblems: 3, problemCount: 0, plannedTotal: 2, planned: [] }),
-    ]);
-
-    const tick = bar(fixture).querySelector('.tech-row__bar-tick') as HTMLElement;
-    expect(tick.style.left).toBe('100%');
-    expect(fixture.nativeElement.querySelector('.tech-row__bar-caption')).toBeFalsy();
-    expect(fixture.nativeElement.querySelector('.tech-row__bar-wrap')?.getAttribute('data-tip'))
-      .toContain('only 2 planned');
-    // The finding now lives only in the data-tip attribute, never in the row's own rendered
-    // text content (an attribute isn't text content, but assert it directly rather than by
-    // implication).
-    expect(fixture.nativeElement.querySelector('.tech-row__toggle')?.textContent)
-      .not.toContain('only 2 planned');
-  });
-
-  it('the hover carries no "only N planned" clause when plannedTotal fits the threshold (x <= y)', () => {
-    const fixture = createFixture([
-      makeTechnique({ minProblems: 3, problemCount: 1, plannedTotal: 3, planned: [] }),
-    ]);
-    expect(fixture.nativeElement.querySelector('.tech-row__bar-caption')).toBeFalsy();
-    expect(fixture.nativeElement.querySelector('.tech-row__bar-wrap')?.getAttribute('data-tip'))
-      .not.toContain('only');
-  });
-
-  it('renders no bar at all when nothing is planned (y = 0)', () => {
-    const fixture = createFixture([
-      makeTechnique({ minProblems: 2, problemCount: 0, plannedTotal: 0, planned: [] }),
-    ]);
-    expect(bar(fixture)).toBeFalsy();
+    const row = fixture.nativeElement.querySelector('.tech-row') as HTMLElement;
+    const boxes = row.querySelector('.tech-row__boxes') as HTMLElement;
+    expect(boxes.querySelectorAll('.tech-row__box--in-progress').length).toBe(1);
+    expect(boxes.querySelectorAll('.tech-row__box--needed').length).toBe(1);
+    expect(boxes.querySelectorAll('.tech-row__box--extra').length).toBe(1);
   });
 
   it('shows a single named untried variation', () => {
@@ -526,73 +481,6 @@ describe('TechniqueListComponent — done/planned bar', () => {
     expect(detailText).toContain('Not tried yet: iterative');
   });
 
-  it('states the legend as "ratio and bar = done out of planned, or out of needed when that is more" plus the colour key, so the ratio and the bar read the same way', () => {
-    const fixture = createFixture([makeTechnique()]);
-    expect(fixture.nativeElement.querySelector('.tech-list__legend-text')?.textContent)
-      .toBe('ratio and bar = done out of planned, or out of needed when that is more · tick = enough to call it covered · green = covered, amber = not yet');
-  });
-
-  it('the info popover explains the ratio, the bar/tick, and the colours', () => {
-    const fixture = createFixture([makeTechnique()]);
-    const button = fixture.nativeElement.querySelector('.tech-list__info') as HTMLButtonElement;
-    expect(button.getAttribute('aria-label')).toBe('What do the ratio, bar and tick mean?');
-    const bubbleText = fixture.nativeElement.querySelector('.tech-list__info-bubble')?.textContent;
-    expect(bubbleText).toContain('The ratio and the bar both read as done out of everything planned for this technique, or out of the number needed when that is higher.');
-    expect(bubbleText).toContain("green");
-    expect(bubbleText).toContain("amber");
-  });
-});
-
-describe('TechniqueListComponent — coverage colour (Change 2) and hover (Change 3)', () => {
-  afterEach(() => localStorage.clear());
-
-  function fill(fixture: ReturnType<typeof createFixture>): HTMLElement {
-    return fixture.nativeElement.querySelector('.tech-row__bar-fill') as HTMLElement;
-  }
-
-  it('a covered technique gets the --covered fill class', () => {
-    const fixture = createFixture([
-      makeTechnique({ minProblems: 2, problemCount: 2, plannedTotal: 2, planned: [] }),
-    ]);
-    expect(fill(fixture).classList.contains('tech-row__bar-fill--covered')).toBe(true);
-  });
-
-  it('an in-progress technique gets the --in-progress fill class', () => {
-    const fixture = createFixture([
-      makeTechnique({ minProblems: 3, problemCount: 1, plannedTotal: 3, planned: [] }),
-    ]);
-    expect(fill(fixture).classList.contains('tech-row__bar-fill--in-progress')).toBe(true);
-  });
-
-  it('a not-begun technique (y > 0, z = 0) gets neither fill modifier class', () => {
-    const fixture = createFixture([
-      makeTechnique({
-        started: false, problemCount: 0, problems: [], minProblems: 2, plannedTotal: 2, planned: [],
-      }),
-    ]);
-    const f = fill(fixture);
-    expect(f.classList.contains('tech-row__bar-fill--covered')).toBe(false);
-    expect(f.classList.contains('tech-row__bar-fill--in-progress')).toBe(false);
-  });
-
-  it('the row carries exactly one data-tip, and no element inside the toggle button has a tabindex', () => {
-    const fixture = createFixture([
-      makeTechnique({ minProblems: 3, problemCount: 1, plannedTotal: 3, planned: [] }),
-    ]);
-    const row = fixture.nativeElement.querySelector('.tech-row') as HTMLElement;
-    expect(row.querySelectorAll('[data-tip]').length).toBe(1);
-
-    const toggle = row.querySelector('.tech-row__toggle') as HTMLElement;
-    expect(toggle.querySelectorAll('[tabindex]').length).toBe(0);
-  });
-
-  it('the bar-wrap carries the coverage hover as data-tip, matching coverageTitle', () => {
-    const fixture = createFixture([
-      makeTechnique({ minProblems: 3, problemCount: 1, plannedTotal: 3, planned: [] }),
-    ]);
-    expect(fixture.nativeElement.querySelector('.tech-row__bar-wrap')?.getAttribute('data-tip'))
-      .toBe('1 of 3 planned problems done · 2 more to be covered (3 needed)');
-  });
 });
 
 function clickViewButton(fixture: ReturnType<typeof createFixture>, label: 'List' | 'Board'): void {

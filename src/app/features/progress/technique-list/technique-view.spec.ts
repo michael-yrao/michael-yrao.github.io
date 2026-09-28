@@ -2,10 +2,11 @@ import { vi } from 'vitest';
 
 import { ProblemProgress, Technique } from '../../../core/models/progress.model';
 import {
-  barFillPercent,
   columnFor,
   comfortRank,
   compareTechniques,
+  CoverageBox,
+  coverageBoxes,
   coverageState,
   coverageTitle,
   deriveTechniqueStats,
@@ -21,7 +22,6 @@ import {
   shortName,
   TechniqueStats,
   TECHNIQUE_VIEW_STORAGE_KEY,
-  thresholdPercent,
   writeStoredView,
 } from './technique-view';
 
@@ -355,41 +355,37 @@ describe('coverageTitle', () => {
   });
 });
 
-describe('barFillPercent', () => {
-  it('is problemCount / plannedTotal as a percent', () => {
-    const t = makeTechnique({ problemCount: 1, plannedTotal: 3, planned: [] });
-    expect(barFillPercent(t)).toBeCloseTo(33.33, 1);
-  });
-
-  it('is 0 when plannedTotal is 0 (nothing declared)', () => {
-    const t = makeTechnique({ problemCount: 0, plannedTotal: 0, planned: [] });
-    expect(barFillPercent(t)).toBe(0);
-  });
-
-  it('clamps to 100 rather than overflowing when problemCount exceeds plannedTotal', () => {
-    const t = makeTechnique({ problemCount: 5, plannedTotal: 2, planned: [] });
-    expect(barFillPercent(t)).toBe(100);
-  });
-});
-
-describe('thresholdPercent', () => {
-  // x > y and y = 0 both raise the denominator to the threshold itself (ratioDenominatorOf),
-  // landing on the same 100% branch — one case for it, not two, per testing.md.
-  const cases: [string, Technique, number][] = [
+describe('coverageBoxes', () => {
+  const cases: [string, Technique, CoverageBox[]][] = [
     [
-      'minProblems / ratioDenominatorOf as a percent',
-      makeTechnique({ minProblems: 2, problemCount: 0, plannedTotal: 4, planned: [] }),
-      50,
+      'done 1 / threshold 2 / planned 3: one filled, one needed, one extra',
+      makeTechnique({ problemCount: 1, minProblems: 2, plannedTotal: 3, planned: [] }),
+      ['done', 'needed', 'extra'],
     ],
     [
-      'threshold beyond the plan (x > y): denominator = threshold, so 100%',
-      makeTechnique({ minProblems: 3, problemCount: 0, plannedTotal: 2, planned: [] }),
-      100,
+      'done 2 / threshold 1 / planned 2: covered, no needed box',
+      makeTechnique({ problemCount: 2, minProblems: 1, plannedTotal: 2, planned: [] }),
+      ['done', 'done'],
+    ],
+    [
+      'done 0 / threshold 1 / planned 0: nothing planned, one needed box',
+      makeTechnique({ problemCount: 0, minProblems: 1, plannedTotal: 0, planned: [] }),
+      ['needed'],
+    ],
+    [
+      'done 6 / threshold 8 / planned 8: no extra box',
+      makeTechnique({ problemCount: 6, minProblems: 8, plannedTotal: 8, planned: [] }),
+      ['done', 'done', 'done', 'done', 'done', 'done', 'needed', 'needed'],
+    ],
+    [
+      'done exceeds the denominator: clamped to the denominator, no negative counts',
+      makeTechnique({ problemCount: 10, minProblems: 2, plannedTotal: 3, planned: [] }),
+      ['done', 'done', 'done'],
     ],
   ];
 
   it.each(cases)('%s', (_label, t, expected) => {
-    expect(thresholdPercent(t)).toBe(expected);
+    expect(coverageBoxes(t)).toEqual(expected);
   });
 });
 

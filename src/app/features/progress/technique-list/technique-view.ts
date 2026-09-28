@@ -99,17 +99,11 @@ export function isMastered(t: Technique, stats: TechniqueStats | undefined): boo
   return graduatedCount >= t.minProblems;
 }
 
-// ── Done/planned bar (Sep 26, 2026 — ratio moved from problemCount/minProblems to
-// done/planned, with the old threshold shown as a tick instead of the denominator; Sep 27,
-// 2026 — `ratioDenominatorOf` raises that denominator to the threshold itself whenever fewer
-// problems are planned than the technique needs, so the ratio never implies less is expected
-// than actually is) ─────────────────────────────────────────────────────────────────────────
-const MIN_PERCENT = 0;
-const MAX_PERCENT = 100;
-
-function clampPercent(value: number): number {
-  return Math.min(MAX_PERCENT, Math.max(MIN_PERCENT, value));
-}
+// ── Done/planned ratio (Sep 26, 2026 — ratio moved from problemCount/minProblems to
+// done/planned; Sep 27, 2026 — `ratioDenominatorOf` raises that denominator to the threshold
+// itself whenever fewer problems are planned than the technique needs, so the ratio never
+// implies less is expected than actually is; Sep 27, 2026 — the bar/tick this section once fed
+// is replaced by `coverageBoxes`, below, one box per unit of the denominator) ──────────────────
 
 /** y — every problem planned for the technique, done ones included. Prefers the exported
  *  `plannedTotal`; falls back to `problemCount + planned.length` for an older contract
@@ -148,7 +142,7 @@ export function remainingToCover(t: Technique): number {
  *  (`isThresholdBeyondPlan`) — a covered technique never reads as merely in progress. */
 export type CoverageState = 'covered' | 'inProgress' | 'notBegun';
 
-/** The single source both the bar fill's colour class and the status chip's colour class
+/** The single source both a coverage box's colour class and the status chip's colour class
  *  read from (Change 2, Sep 27, 2026) — so the two can never disagree about a technique's
  *  coverage. */
 export function coverageState(t: Technique): CoverageState {
@@ -157,24 +151,24 @@ export function coverageState(t: Technique): CoverageState {
   return done > 0 ? 'inProgress' : 'notBegun';
 }
 
-/** The done/planned bar's fill, as a percent of the bar's own width, against
- *  `ratioDenominatorOf` (never bare `plannedTotalOf` — see that function). 0 when the
- *  denominator is 0 (nothing planned and no threshold either); clamped to [0, 100] so a
- *  contract inconsistency (more done than the denominator) never overflows the bar. */
-export function barFillPercent(t: Technique): number {
-  const denominator = ratioDenominatorOf(t);
-  if (denominator <= 0) return MIN_PERCENT;
-  return clampPercent((doneOf(t) / denominator) * MAX_PERCENT);
-}
+/** One box per unit of `ratioDenominatorOf`, in this fixed order: `'done'` (filled — capped at
+ *  the denominator so a contract inconsistency, more done than the denominator, never yields a
+ *  negative count elsewhere), `'needed'` (outlined — `remainingToCover`, still required to
+ *  reach the threshold), `'extra'` (faint — whatever is left of the denominator beyond that).
+ *  Sep 27, 2026 — replaces the done/planned bar and its tick with "show, don't tell": the
+ *  learner reads the counts directly off the boxes instead of a sentence explaining them. */
+export type CoverageBox = 'done' | 'needed' | 'extra';
 
-/** Where the coverage-threshold tick sits on the same bar, as a percent of
- *  `ratioDenominatorOf`. Since the denominator is never less than the threshold itself, this
- *  only ever reaches exactly 100 (the threshold sitting at the denominator's own value), never
- *  clamps past it; 0 when the denominator is 0 (the bar itself isn't rendered then). */
-export function thresholdPercent(t: Technique): number {
+export function coverageBoxes(t: Technique): readonly CoverageBox[] {
   const denominator = ratioDenominatorOf(t);
-  if (denominator <= 0) return MIN_PERCENT;
-  return clampPercent((t.minProblems / denominator) * MAX_PERCENT);
+  const doneCount = Math.min(doneOf(t), denominator);
+  const neededCount = remainingToCover(t);
+  const extraCount = Math.max(0, denominator - doneCount - neededCount);
+  return [
+    ...Array.from({ length: doneCount }, (): CoverageBox => 'done'),
+    ...Array.from({ length: neededCount }, (): CoverageBox => 'needed'),
+    ...Array.from({ length: extraCount }, (): CoverageBox => 'extra'),
+  ];
 }
 
 /** True when the coverage threshold (x) asks for more problems than are even planned (y) — a
@@ -208,16 +202,16 @@ function neededClause(t: Technique): string {
   return `${t.minProblems} needed: ${coverageFloor}, plus ${uncleanCount} while ${uncleanCount} ${subject} still shaky`;
 }
 
-// ── Coverage hover (Sep 27, 2026 — Change 3: the "covered at N" / bar-caption prose moves off
-// the row and into a hover, one sentence built from the same numbers) ──────────────────────
-/** The coverage hover's one sentence, read on hovering or focusing a row (Change 3). Built on
- *  `ratioTitle`'s bare clause, plus a second clause naming the coverage state — "covered
- *  (X needed)" once `coverageState` is 'covered', otherwise "N more to be covered (X needed)" —
- *  and, only when the threshold asks for more than is even planned (`isThresholdBeyondPlan`,
- *  the same finding the removed bar caption surfaced), a third, honest clause naming how much
- *  is planned. Nothing planned at all (y = 0) short-circuits to a bare admission instead. The
- *  "(X needed)" clause itself is `neededClause`, which explains the threshold's own breakdown
- *  when the coach exports `coverageFloor`/`uncleanCount`. */
+// ── Coverage sentence (Change 3, Sep 27, 2026; kept for the technique map's SVG <title> after
+// Sep 27, 2026 replaced the list/board's own hover and bar caption with `coverageBoxes` —
+// technique-map.component.ts still imports this one) ────────────────────────────────────────
+/** The technique map's per-node `<title>` sentence (Change 3). Built on `ratioTitle`'s bare
+ *  clause, plus a second clause naming the coverage state — "covered (X needed)" once
+ *  `coverageState` is 'covered', otherwise "N more to be covered (X needed)" — and, only when
+ *  the threshold asks for more than is even planned (`isThresholdBeyondPlan`), a third, honest
+ *  clause naming how much is planned. Nothing planned at all (y = 0) short-circuits to a bare
+ *  admission instead. The "(X needed)" clause itself is `neededClause`, which explains the
+ *  threshold's own breakdown when the coach exports `coverageFloor`/`uncleanCount`. */
 export function coverageTitle(t: Technique): string {
   const planned = plannedTotalOf(t);
   if (planned <= 0) return 'nothing planned yet';

@@ -23,11 +23,11 @@ import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-dat
 import { walkthroughRouteFor } from '../solution-link-mode';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import {
-  barFillPercent,
   columnFor,
   compareTechniques,
+  CoverageBox,
+  coverageBoxes,
   coverageState,
-  coverageTitle,
   deriveTechniqueStats,
   doneOf,
   plannedTotalOf,
@@ -38,7 +38,6 @@ import {
   TechniqueSortKey,
   TechniqueStats,
   TechniqueView,
-  thresholdPercent,
   writeStoredView,
 } from './technique-view';
 
@@ -137,14 +136,12 @@ export class TechniqueListComponent {
   // Settings panel) — read here for the detail template's problem-row link chain.
   private readonly linkModeService = inject(SolutionLinkModeService);
 
-  // Pure done/planned bar helpers (technique-view.ts) — bound directly as instance
-  // properties so the template can call them per row without a wrapper method each.
+  // Pure done/planned helpers (technique-view.ts) — bound directly as instance properties so
+  // the template can call them per row without a wrapper method each.
   readonly doneOf = doneOf;
   readonly plannedTotalOf = plannedTotalOf;
   readonly ratioDenominatorOf = ratioDenominatorOf;
-  readonly barFillPercent = barFillPercent;
-  readonly thresholdPercent = thresholdPercent;
-  readonly coverageTitle = coverageTitle;
+  readonly coverageBoxes = coverageBoxes;
 
   private readonly expandedNames = signal<ReadonlySet<string>>(new Set());
 
@@ -358,28 +355,12 @@ export class TechniqueListComponent {
     return this.plannedFor(t).length;
   }
 
-  /** The done/planned bar's ⓘ popover open state — same touch-friendly toggle pattern as
-   *  TodayBoardComponent's own `infoOpen`/`toggleInfo` (today-board.component.ts): click/tap
-   *  toggles it (for touch, where there's no hover), and the template also reveals it on
-   *  `:hover`/`:focus-within` in pure CSS for mouse/keyboard. */
-  readonly infoOpen = signal(false);
-
-  toggleInfo(): void {
-    this.infoOpen.update((v) => !v);
-  }
-
-  /** The done/planned bar's fill colour class (Change 2), derived from `coverageState`.
-   *  '' for `notBegun` — the bar is 0% wide then (`barFillPercent`), so no fill colour would
-   *  be visible anyway. */
-  barFillClass(t: Technique): string {
-    switch (coverageState(t)) {
-      case 'covered':
-        return 'tech-row__bar-fill--covered';
-      case 'inProgress':
-        return 'tech-row__bar-fill--in-progress';
-      default:
-        return '';
-    }
+  /** A coverage box's colour class (Change 2's rule, carried onto the boxes that replaced the
+   *  bar): a `'needed'`/`'extra'` box gets its own fixed class; a `'done'` box gets the covered
+   *  or in-progress colour, whichever `coverageState` says. */
+  coverageBoxClass(t: Technique, box: CoverageBox): string {
+    if (box !== 'done') return `tech-row__box--${box}`;
+    return coverageState(t) === 'covered' ? 'tech-row__box--covered' : 'tech-row__box--in-progress';
   }
 
   /** Names of declared variations never exercised and not queued — empty when the contract

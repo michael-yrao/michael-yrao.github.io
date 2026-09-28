@@ -16,23 +16,20 @@
     >Board</button>
   </div>
 
-  <div class="tech-list__legend">
-    <span class="tech-list__legend-text">ratio and bar = done out of planned, or out of needed when that is more · tick = enough to call it covered · green = covered, amber = not yet</span>
-    <span class="tech-list__info-wrap" [class.tech-list__info-wrap--open]="infoOpen()">
-      <button
-        type="button"
-        class="tech-list__info"
-        aria-label="What do the ratio, bar and tick mean?"
-        aria-describedby="tech-list-bar-info"
-        (click)="toggleInfo()"
-      >ⓘ</button>
-      <span class="tech-list__info-bubble" id="tech-list-bar-info" role="tooltip">
-        The ratio and the bar both read as done out of everything planned for this technique, or out of the number needed when that is higher.
-        The tick marks how many done problems are enough to call it covered.
-        A green bar means it's covered; an amber bar means it isn't yet.
-      </span>
-    </span>
-  </div>
+  <ul class="tech-list__legend">
+    <li class="tech-list__legend-item">
+      <span class="tech-row__box tech-row__box--covered" aria-hidden="true"></span>
+      done
+    </li>
+    <li class="tech-list__legend-item">
+      <span class="tech-row__box tech-row__box--needed" aria-hidden="true"></span>
+      needed to be covered
+    </li>
+    <li class="tech-list__legend-item">
+      <span class="tech-row__box tech-row__box--extra" aria-hidden="true"></span>
+      planned extra
+    </li>
+  </ul>
 
   @if (view() === 'board') {
     <div class="tech-board">
@@ -91,21 +88,14 @@
                     } @else {
                       <span class="chip chip--not-started">not started</span>
                     }
-                    @if (plannedTotalOf(t) > 0) {
-                      <span class="tech-row__bar-wrap" [attr.data-tip]="coverageTitle(t)">
-                        <span
-                          class="tech-row__bar"
-                          role="progressbar"
-                          aria-valuemin="0"
-                          [attr.aria-valuenow]="doneOf(t)"
-                          [attr.aria-valuemax]="ratioDenominatorOf(t)"
-                          [attr.aria-label]="coverageTitle(t)"
-                        >
-                          <span class="tech-row__bar-fill" [class]="barFillClass(t)" [style.width.%]="barFillPercent(t)"></span>
-                          <span class="tech-row__bar-tick" [style.left.%]="thresholdPercent(t)"></span>
-                        </span>
-                      </span>
-                    }
+                    <span
+                      class="tech-row__boxes"
+                      aria-hidden="true"
+                    >
+                      @for (box of coverageBoxes(t); track $index) {
+                        <span class="tech-row__box" [class]="coverageBoxClass(t, box)" aria-hidden="true"></span>
+                      }
+                    </span>
                   </button>
                 </li>
               }
@@ -162,21 +152,14 @@
                       <span class="chip chip--not-started">not started</span>
                     }
                     <span class="tech-row__caret" [class.tech-row__caret--open]="isExpanded(t)">▸</span>
-                    @if (plannedTotalOf(t) > 0) {
-                      <span class="tech-row__bar-wrap" [attr.data-tip]="coverageTitle(t)">
-                        <span
-                          class="tech-row__bar"
-                          role="progressbar"
-                          aria-valuemin="0"
-                          [attr.aria-valuenow]="doneOf(t)"
-                          [attr.aria-valuemax]="ratioDenominatorOf(t)"
-                          [attr.aria-label]="coverageTitle(t)"
-                        >
-                          <span class="tech-row__bar-fill" [class]="barFillClass(t)" [style.width.%]="barFillPercent(t)"></span>
-                          <span class="tech-row__bar-tick" [style.left.%]="thresholdPercent(t)"></span>
-                        </span>
-                      </span>
-                    }
+                    <span
+                      class="tech-row__boxes"
+                      aria-hidden="true"
+                    >
+                      @for (box of coverageBoxes(t); track $index) {
+                        <span class="tech-row__box" [class]="coverageBoxClass(t, box)" aria-hidden="true"></span>
+                      }
+                    </span>
                   </button>
                   @if (isExpanded(t)) {
                     <div class="tech-row__detail">
