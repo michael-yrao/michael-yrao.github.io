@@ -1,9 +1,21 @@
 @use '../problem-row' as prow;
 
+// Minimum width of a day-selector button before its grid column wraps onto a new row.
+$day-btn-min-width: 4.5rem;
+
 .today-board {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+}
+
+// ── Header row: done count (left) + week nav (right) ────────────────────────────────
+.today-board__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
 }
 
 // ── Week navigation row ──────────────────────────────────────────────────────────────
@@ -11,6 +23,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  margin-left: auto;
 }
 
 .today-board__week-nav-btn {
@@ -44,12 +57,13 @@
 
 // The day-selector buttons' own group — split out from `.today-board__strip` so only the
 // day buttons carry the "Select a day" group role (a group nested inside the outer strip's
-// own group announced confusingly). Same flex/wrap/gap as the strip, so the buttons still
-// line up and wrap exactly as before the split.
+// own group announced confusingly). The buttons stretch evenly to fill the strip's width and
+// wrap into equal-width columns on narrow screens.
 .today-board__day-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax($day-btn-min-width, 1fr));
   gap: var(--space-xs);
 }
 
@@ -203,22 +217,11 @@
   b { font-family: var(--font-mono); }
 }
 
-// ── Collapsed-mode head ─────────────────────────────────────────────────────────────
-.today-board__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-}
-
 .today-board__count {
   font-weight: 700;
   font-size: 1rem;
   color: var(--color-text);
 }
-
-.today-board__week-head { margin-bottom: var(--space-sm); }
 
 // ── Expanded-mode per-day stack (folded in from weekly-board) ───────────────────────
 .today-board__day {

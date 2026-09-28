@@ -315,7 +315,7 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.today-board-card')).toBeTruthy();
-    expect(fixture.nativeElement.textContent).not.toContain('coming soon');
+    expect(fixture.nativeElement.textContent).not.toContain('Coming soon');
 
     const buttons = Array.from(
       fixture.nativeElement.querySelectorAll('app-growth-areas .growth-toggle__btn'),
@@ -326,7 +326,7 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.today-board-card')).toBeFalsy();
-    expect(fixture.nativeElement.textContent).toContain('System Design — coming soon.');
+    expect(fixture.nativeElement.textContent).toContain('Coming soon');
   });
 
   // ── Round 4: the pipeline, difficulty, and breadth bars all render through the ONE

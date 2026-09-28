@@ -145,22 +145,31 @@
 </ng-template>
 
 <div class="today-board">
-  <div class="today-board__week-nav">
-    <button
-      type="button"
-      class="today-board__week-nav-btn"
-      aria-label="Previous week"
-      [disabled]="!canGoPrev()"
-      (click)="prevWeek()"
-    >◀</button>
-    <span class="today-board__week-label">Week of {{ shortMonthDay(displayedWeekOf()) }}</span>
-    <button
-      type="button"
-      class="today-board__week-nav-btn"
-      aria-label="Next week"
-      [disabled]="!canGoNext()"
-      (click)="nextWeek()"
-    >▶</button>
+  <div class="today-board__top">
+    @if (!isLoadingWeek() && !isHistoryError()) {
+      @if (expanded()) {
+        <span class="today-board__week-head"><span class="today-board__count">{{ weekCounts().done }} of {{ weekCounts().total }} done this week</span></span>
+      } @else if (selectedDay()) {
+        <span class="today-board__count">{{ doneCount() }} of {{ totalCount() }} done</span>
+      }
+    }
+    <div class="today-board__week-nav">
+      <button
+        type="button"
+        class="today-board__week-nav-btn"
+        aria-label="Previous week"
+        [disabled]="!canGoPrev()"
+        (click)="prevWeek()"
+      >◀</button>
+      <span class="today-board__week-label">Week of {{ shortMonthDay(displayedWeekOf()) }}</span>
+      <button
+        type="button"
+        class="today-board__week-nav-btn"
+        aria-label="Next week"
+        [disabled]="!canGoNext()"
+        (click)="nextWeek()"
+      >▶</button>
+    </div>
   </div>
 
   @if (isLoadingWeek()) {
@@ -215,15 +224,9 @@
             </span>
           </div>
         }
-        <div class="today-board__head">
-          <span class="today-board__count">{{ doneCount() }} of {{ totalCount() }} done</span>
-        </div>
         <ng-container [ngTemplateOutlet]="dayItemsTpl" [ngTemplateOutletContext]="{ $implicit: day }" />
       }
     } @else {
-      <div class="today-board__head today-board__week-head">
-        <span class="today-board__count">{{ weekCounts().done }} of {{ weekCounts().total }} done this week</span>
-      </div>
       @for (day of days(); track day.date) {
         <div class="today-board__day" [class.today-board__day--today]="day.date === todayISO()">
           <div class="today-board__day-head">

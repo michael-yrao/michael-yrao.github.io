@@ -30,7 +30,7 @@ import { SettingsMenuComponent } from '../settings-menu/settings-menu.component'
 import { SegmentedBarComponent, SegmentedBarSegment } from '../segmented-bar/segmented-bar.component';
 import { WorkloadChartComponent } from '../workload-chart/workload-chart.component';
 import { GrowthAreasComponent } from '../growth-areas/growth-areas.component';
-import { GROWTH_AREAS, GrowthArea } from '../growth-areas/growth-areas.data';
+import { GrowthArea } from '../growth-areas/growth-areas.data';
 import { Technique } from '../../../core/models/progress.model';
 
 type ComfortFilter = 'all' | Comfort;
@@ -156,9 +156,6 @@ export class ProgressPageComponent {
 
   // Overview's growth-area toggle (DSA / System Design / AI Engineering) — not persisted.
   readonly growthArea = signal<GrowthArea>('dsa');
-  readonly comingSoonCopy = computed(
-    () => GROWTH_AREAS.find((a) => a.id === this.growthArea())?.comingSoon ?? null,
-  );
 
   // Unified filter facet for the Explore list. The manual comfort chips set `{kind:'comfort'}`
   // (or null for the "All" chip); the pipeline/difficulty headline drills below set the rest.
