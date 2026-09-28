@@ -27,7 +27,6 @@ import {
   compareTechniques,
   CoverageBox,
   coverageBoxes,
-  coverageState,
   deriveTechniqueStats,
   doneOf,
   plannedTotalOf,
@@ -355,12 +354,14 @@ export class TechniqueListComponent {
     return this.plannedFor(t).length;
   }
 
-  /** A coverage box's colour class (Change 2's rule, carried onto the boxes that replaced the
-   *  bar): a `'needed'`/`'extra'` box gets its own fixed class; a `'done'` box gets the covered
-   *  or in-progress colour, whichever `coverageState` says. */
-  coverageBoxClass(t: Technique, box: CoverageBox): string {
-    if (box !== 'done') return `tech-row__box--${box}`;
-    return coverageState(t) === 'covered' ? 'tech-row__box--covered' : 'tech-row__box--in-progress';
+  /** A coverage box's classes (Sep 27, 2026 — two independent marks, replacing Change 2's
+   *  single coverage-state colour): a fill class for `box.fill` (`'empty'` needs none — the
+   *  base box style already reads as empty), plus `tech-row__box--counted` while
+   *  `box.countsTowardCovered`, whatever the fill — never reads `coverageState`. */
+  coverageBoxClass(box: CoverageBox): string {
+    const fillClass = box.fill === 'empty' ? null : `tech-row__box--${box.fill}`;
+    const countedClass = box.countsTowardCovered ? 'tech-row__box--counted' : null;
+    return [fillClass, countedClass].filter((c): c is string => c !== null).join(' ');
   }
 
   /** Names of declared variations never exercised and not queued — empty when the contract

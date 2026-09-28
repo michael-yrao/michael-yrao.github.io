@@ -18,15 +18,15 @@
 
   <ul class="tech-list__legend">
     <li class="tech-list__legend-item">
-      <span class="tech-row__box tech-row__box--covered" aria-hidden="true"></span>
+      <span class="tech-row__box tech-row__box--clean" aria-hidden="true"></span>
       done
     </li>
     <li class="tech-list__legend-item">
-      <span class="tech-row__box tech-row__box--needed" aria-hidden="true"></span>
+      <span class="tech-row__box tech-row__box--counted" aria-hidden="true"></span>
       needed to be covered
     </li>
     <li class="tech-list__legend-item">
-      <span class="tech-row__box tech-row__box--extra" aria-hidden="true"></span>
+      <span class="tech-row__box" aria-hidden="true"></span>
       planned extra
     </li>
   </ul>
@@ -93,7 +93,7 @@
                       aria-hidden="true"
                     >
                       @for (box of coverageBoxes(t); track $index) {
-                        <span class="tech-row__box" [class]="coverageBoxClass(t, box)" aria-hidden="true"></span>
+                        <span class="tech-row__box" [class]="coverageBoxClass(box)" aria-hidden="true"></span>
                       }
                     </span>
                   </button>
@@ -157,7 +157,7 @@
                       aria-hidden="true"
                     >
                       @for (box of coverageBoxes(t); track $index) {
-                        <span class="tech-row__box" [class]="coverageBoxClass(t, box)" aria-hidden="true"></span>
+                        <span class="tech-row__box" [class]="coverageBoxClass(box)" aria-hidden="true"></span>
                       }
                     </span>
                   </button>

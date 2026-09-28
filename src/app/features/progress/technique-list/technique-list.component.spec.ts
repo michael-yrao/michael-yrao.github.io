@@ -423,16 +423,18 @@ describe('TechniqueListComponent — planned problems', () => {
 describe('TechniqueListComponent — coverage boxes', () => {
   afterEach(() => localStorage.clear());
 
-  it("renders one box per unit of the ratio's denominator, filled/outlined/faint by kind", () => {
+  it('renders each box\'s fill (clean/shaky) independently of its white counted-toward-covered border', () => {
     const fixture = createFixture([
-      makeTechnique({ name: 'Bellman-Ford', minProblems: 2, problemCount: 1, plannedTotal: 3, planned: [] }),
+      makeTechnique({
+        name: 'Greedy', minProblems: 8, problemCount: 6, plannedTotal: 8, planned: [], uncleanCount: 4,
+      }),
     ]);
 
     const row = fixture.nativeElement.querySelector('.tech-row') as HTMLElement;
     const boxes = row.querySelector('.tech-row__boxes') as HTMLElement;
-    expect(boxes.querySelectorAll('.tech-row__box--in-progress').length).toBe(1);
-    expect(boxes.querySelectorAll('.tech-row__box--needed').length).toBe(1);
-    expect(boxes.querySelectorAll('.tech-row__box--extra').length).toBe(1);
+    expect(boxes.querySelectorAll('.tech-row__box--clean').length).toBe(2);
+    expect(boxes.querySelectorAll('.tech-row__box--shaky').length).toBe(4);
+    expect(boxes.querySelectorAll('.tech-row__box--counted').length).toBe(8);
   });
 
   it('shows a single named untried variation', () => {

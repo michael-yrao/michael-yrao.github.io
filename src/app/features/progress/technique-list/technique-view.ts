@@ -151,24 +151,40 @@ export function coverageState(t: Technique): CoverageState {
   return done > 0 ? 'inProgress' : 'notBegun';
 }
 
-/** One box per unit of `ratioDenominatorOf`, in this fixed order: `'done'` (filled — capped at
- *  the denominator so a contract inconsistency, more done than the denominator, never yields a
- *  negative count elsewhere), `'needed'` (outlined — `remainingToCover`, still required to
- *  reach the threshold), `'extra'` (faint — whatever is left of the denominator beyond that).
- *  Sep 27, 2026 — replaces the done/planned bar and its tick with "show, don't tell": the
- *  learner reads the counts directly off the boxes instead of a sentence explaining them. */
-export type CoverageBox = 'done' | 'needed' | 'extra';
+/** One box per unit of `ratioDenominatorOf`, in this fixed order, carrying two independent
+ *  marks (Sep 27, 2026 — replaces the single-colour `'done' | 'needed' | 'extra'` box, which
+ *  painted every done box the technique's own coverage colour even when some of its problems
+ *  were still shaky):
+ *  - `fill` — how that problem is going: `'clean'` for a done problem with no outstanding
+ *    shakiness, `'shaky'` for a done problem still 🟡/🔴 (`t.uncleanCount`, oldest-first has no
+ *    meaning here — it's a plain count), `'empty'` for a box beyond what's done.
+ *  - `countsTowardCovered` — true while the box's index is still within `t.minProblems`,
+ *    regardless of fill; false once the box sits beyond the threshold (a planned-extra box, or a
+ *    done box beyond it).
+ *  `done` and `shaky` are each capped so neither can go negative nor exceed what's actually
+ *  done, so a contract inconsistency (more `uncleanCount` than `problemCount`, or more done than
+ *  the denominator) never yields a negative count. */
+export interface CoverageBox {
+  readonly fill: 'clean' | 'shaky' | 'empty';
+  readonly countsTowardCovered: boolean;
+}
+
+function fillFor(index: number, clean: number, done: number): CoverageBox['fill'] {
+  if (index < clean) return 'clean';
+  if (index < done) return 'shaky';
+  return 'empty';
+}
 
 export function coverageBoxes(t: Technique): readonly CoverageBox[] {
   const denominator = ratioDenominatorOf(t);
-  const doneCount = Math.min(doneOf(t), denominator);
-  const neededCount = remainingToCover(t);
-  const extraCount = Math.max(0, denominator - doneCount - neededCount);
-  return [
-    ...Array.from({ length: doneCount }, (): CoverageBox => 'done'),
-    ...Array.from({ length: neededCount }, (): CoverageBox => 'needed'),
-    ...Array.from({ length: extraCount }, (): CoverageBox => 'extra'),
-  ];
+  const done = Math.min(doneOf(t), denominator);
+  const shaky = Math.min(Math.max(t.uncleanCount ?? 0, 0), done);
+  const clean = done - shaky;
+
+  return Array.from({ length: denominator }, (_, index) => ({
+    fill: fillFor(index, clean, done),
+    countsTowardCovered: index < t.minProblems,
+  }));
 }
 
 /** True when the coverage threshold (x) asks for more problems than are even planned (y) — a

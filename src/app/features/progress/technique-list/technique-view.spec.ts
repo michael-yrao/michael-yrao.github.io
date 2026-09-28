@@ -356,31 +356,40 @@ describe('coverageTitle', () => {
 });
 
 describe('coverageBoxes', () => {
+  const clean = (countsTowardCovered: boolean): CoverageBox => ({ fill: 'clean', countsTowardCovered });
+  const shaky = (countsTowardCovered: boolean): CoverageBox => ({ fill: 'shaky', countsTowardCovered });
+  const empty = (countsTowardCovered: boolean): CoverageBox => ({ fill: 'empty', countsTowardCovered });
+
   const cases: [string, Technique, CoverageBox[]][] = [
     [
-      'done 1 / threshold 2 / planned 3: one filled, one needed, one extra',
-      makeTechnique({ problemCount: 1, minProblems: 2, plannedTotal: 3, planned: [] }),
-      ['done', 'needed', 'extra'],
+      'Greedy: done 6 (2 clean, 4 shaky) / threshold 8 / denominator 8',
+      makeTechnique({ problemCount: 6, minProblems: 8, plannedTotal: 8, planned: [], uncleanCount: 4 }),
+      [clean(true), clean(true), shaky(true), shaky(true), shaky(true), shaky(true), empty(true), empty(true)],
     ],
     [
-      'done 2 / threshold 1 / planned 2: covered, no needed box',
-      makeTechnique({ problemCount: 2, minProblems: 1, plannedTotal: 2, planned: [] }),
-      ['done', 'done'],
+      'Bellman-Ford: done 1 (clean) / threshold 2 / denominator 3',
+      makeTechnique({ problemCount: 1, minProblems: 2, plannedTotal: 3, planned: [], uncleanCount: 0 }),
+      [clean(true), empty(true), empty(false)],
     ],
     [
-      'done 0 / threshold 1 / planned 0: nothing planned, one needed box',
+      'Grid DFS: done 2 (clean) / threshold 1 / denominator 2',
+      makeTechnique({ problemCount: 2, minProblems: 1, plannedTotal: 2, planned: [], uncleanCount: 0 }),
+      [clean(true), clean(false)],
+    ],
+    [
+      'nothing planned: done 0 / threshold 1 / denominator 1',
       makeTechnique({ problemCount: 0, minProblems: 1, plannedTotal: 0, planned: [] }),
-      ['needed'],
+      [empty(true)],
     ],
     [
-      'done 6 / threshold 8 / planned 8: no extra box',
-      makeTechnique({ problemCount: 6, minProblems: 8, plannedTotal: 8, planned: [] }),
-      ['done', 'done', 'done', 'done', 'done', 'done', 'needed', 'needed'],
+      'older payload, uncleanCount absent: done 3 (clean) / threshold 2 / denominator 4',
+      makeTechnique({ problemCount: 3, minProblems: 2, plannedTotal: 4, planned: [], uncleanCount: undefined }),
+      [clean(true), clean(true), clean(false), empty(false)],
     ],
     [
-      'done exceeds the denominator: clamped to the denominator, no negative counts',
-      makeTechnique({ problemCount: 10, minProblems: 2, plannedTotal: 3, planned: [] }),
-      ['done', 'done', 'done'],
+      'uncleanCount exceeding done: clamped to done, never a negative clean count',
+      makeTechnique({ problemCount: 2, minProblems: 1, plannedTotal: 3, planned: [], uncleanCount: 5 }),
+      [shaky(true), shaky(false), empty(false)],
     ],
   ];
 

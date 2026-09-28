@@ -144,24 +144,25 @@ $tech-box-gap: 3px;
   flex-wrap: wrap;
   gap: $tech-box-gap;
 }
+// Base = an 'empty' box not counting toward the threshold ("planned extra"): faint border,
+// muted fill — every other look below is a modifier layered on top of this.
 .tech-row__box {
   box-sizing: border-box;
   width: $tech-box-size;
   height: $tech-box-size;
   border-radius: $tech-box-radius;
   border: 1px solid var(--color-border);
-  background: transparent;
+  background: var(--color-bg-card);
 }
-// 'done' — colour carries the coverage state, from the same `coverageState` `coverageBoxClass`
-// reads.
-.tech-row__box--covered { background: var(--color-easy); border-color: var(--color-easy); }
-.tech-row__box--in-progress { background: var(--color-medium); border-color: var(--color-medium); }
-// 'needed' — outlined with a clearly stronger border than the base/'extra' one, so it reads as
-// "still open" rather than merely "planned".
-.tech-row__box--needed { border-color: var(--color-text); }
-// 'extra' — faint: the base border colour again, but muted further so it visibly recedes behind
-// 'needed'.
-.tech-row__box--extra { border-color: var(--color-border); background: var(--color-bg-card); }
+// Fill — how that problem is going ('empty' needs no class, it's the base above). Each sets its
+// own border colour to match its fill, so a filled box that doesn't count toward the threshold
+// still reads as one solid colour rather than gaining a contrasting outline.
+.tech-row__box--clean { background: var(--color-easy); border-color: var(--color-easy); }
+.tech-row__box--shaky { background: var(--color-medium); border-color: var(--color-medium); }
+// Border — counts toward the threshold, independent of fill: a clearly stronger border than the
+// faint base one, layered after the fill rules above so it always wins the border colour,
+// whether the box is empty, clean or shaky.
+.tech-row__box--counted { border-color: var(--color-text); }
 
 // ── Expand-to-problems (round 3) ────────────────────────────────────────────
 .tech-row__detail {
