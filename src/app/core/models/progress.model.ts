@@ -198,6 +198,12 @@ export interface ScheduleItem {
   /** Same as `ProblemProgress.file` — the row's own solution file path (null for a row with
    *  no lcNumber, or no file yet); optional, additive. */
   file?: string | null;
+  /** ISO date the row was moved to when it wasn't done on its planned day: the Next cell of a
+   *  row that isn't struck (cse-progress effort_budget.deferred_to() — see
+   *  schedule-item-deferred-to-sep29). null once the row is done, or when it was never
+   *  deferred. Optional, additive: an older contract predating it renders every row as before
+   *  (never "moved"). */
+  deferredTo?: string | null;
 }
 
 export interface ScheduleDay {

@@ -12,11 +12,23 @@ import {
 import { RouterLink } from '@angular/router';
 import { NgTemplateOutlet } from '@angular/common';
 
-import { ProblemProgress, Schedule, ScheduleDay, ScheduleItem } from '../../../core/models/progress.model';
+import {
+  ProblemProgress,
+  Schedule,
+  ScheduleDay,
+  ScheduleItem,
+  WorkloadDay,
+} from '../../../core/models/progress.model';
 import { LoadStatus } from '../../../core/services/progress.service';
 import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
-import { addDaysISO, currentWeekStart, shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
+import {
+  addDaysISO,
+  currentWeekStart,
+  shortMonthDay,
+  todayLocalISO,
+  weekdayShort,
+} from '../../../core/utils/local-date';
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
@@ -28,9 +40,21 @@ interface Workload {
   ceiling: number;
   pct: number;
   band: WorkloadBand;
+  /** The day's DONE units (from the `workload` input's matching `WorkloadDay`) — null when
+   *  there's no entry for the day, or its `done` is 0: both render as "no done fill" (round 7,
+   *  §Text f/g). */
+  done: number | null;
+  /** `done / ceiling` as a percent, clamped like `pct` — the solid fill drawn inside the
+   *  planned fill. null exactly when `done` is null. */
+  donePct: number | null;
 }
 
 const COMPLEXITY_GATE_TITLE = 'Complexity gate';
+const MOVED_GLYPH = '↷';
+// A literal `</>` can't be written inline in the template's interpolation (`{{ '</>' }}`) — the
+// `</` reads to the HTML parser as a closing tag before Angular's interpolation is tokenized —
+// so the walkthrough badge's own glyph lives here instead and the template references it.
+const WALKTHROUGH_GLYPH = '</>';
 const RE_ASK_SUFFIX = 're-asks';
 const DAYS_PER_WEEK = 7;
 // Monday-first, matching gamify.py's `day_date.strftime('%A')` — used only to label a
@@ -57,6 +81,21 @@ export type BoardRow = ScheduleItem | ComplexityGateRow;
 
 function isGateRow(row: BoardRow): row is ComplexityGateRow {
   return (row as ComplexityGateRow).isGate === true;
+}
+
+/** A row is "moved" when it wasn't done on its planned day and carries a `deferredTo` date —
+ *  the row that stays on its own day, unstruck, when the actual rep landed elsewhere (see
+ *  schedule-item-deferred-to-sep29). The `moved` TAG alone never triggers this: only the
+ *  `deferredTo` field does (a gate row's own `ScheduleItem`s could still carry a `moved` tag
+ *  from an unrelated round with no marker of its own). */
+function isMovedItem(item: ScheduleItem): boolean {
+  return !item.done && !!item.deferredTo;
+}
+
+/** `isMovedItem` lifted to a `BoardRow` — a gate row is never moved (`deferredTo` only ever
+ *  lives on a plain `ScheduleItem`), so this is what the per-day/week moved counts below use. */
+function isMovedRow(row: BoardRow): boolean {
+  return !isGateRow(row) && isMovedItem(row);
 }
 
 function toGateRow(items: readonly ScheduleItem[]): ComplexityGateRow {
@@ -175,6 +214,11 @@ export class TodayBoardComponent {
   readonly schedule = input<Schedule | null | undefined>();
   readonly effortCeiling = input<number | undefined>();
   readonly effortFloor = input<number | undefined>();
+  /** The summary's full per-day effort-unit history (`ProgressSummary.workload`) — looked up
+   *  by the selected day's own date so the workload bar can draw a done fill inside the
+   *  planned one (round 7, §Text f/g). Optional/additive: absent renders the bar exactly as
+   *  before (planned fill only, unchanged label). */
+  readonly workload = input<WorkloadDay[] | undefined>();
 
   /** The full problems[] (from ProgressService.details), for the per-row trend join — same
    *  on-demand shape as TechniqueListComponent's `details` input. `null` until the parent's
@@ -348,23 +392,35 @@ export class TodayBoardComponent {
   // defined identically on ScheduleItem and ComplexityGateRow, so no type guard is needed here.
   readonly doneCount = computed(() => this.selectedDayRows().filter((r) => r.done).length);
   readonly totalCount = computed(() => this.selectedDayRows().length);
+  // A gate row is never moved (isMovedRow), so this stays a straight count with no type guard.
+  readonly movedCount = computed(() => this.selectedDayRows().filter((r) => isMovedRow(r)).length);
 
-  /** Week done/total = the sum of every day's grouped rows (gate row = 1). Same counting rule
-   *  as `doneCount`/`totalCount` above, summed across `boardRowsByDate()` instead of just the
-   *  selected day — used by the expanded view's week-total line. */
+  /** Week done/total/moved = the sum of every day's grouped rows (gate row = 1). Same counting
+   *  rule as `doneCount`/`totalCount`/`movedCount` above, summed across `boardRowsByDate()`
+   *  instead of just the selected day — used by the expanded view's week-total line. */
   readonly weekCounts = computed(() => {
     let done = 0;
     let total = 0;
+    let moved = 0;
     for (const rows of this.boardRowsByDate().values()) {
       total += rows.length;
       done += rows.filter((r) => r.done).length;
+      moved += rows.filter((r) => isMovedRow(r)).length;
     }
-    return { done, total };
+    return { done, total, moved };
+  });
+
+  /** The `workload` input's entry for the selected day, by date — null when the input is
+   *  absent or carries no matching entry (an older contract, or a day outside its window). */
+  readonly selectedDayWorkload = computed<WorkloadDay | null>(() => {
+    const day = this.selectedDay();
+    if (!day) return null;
+    return this.workload()?.find((w) => w.date === day.date) ?? null;
   });
 
   // null when there's no board/day, or the day carries no units, or ceiling is unknown —
   // "empty/no-board day -> no bar" (round 2 item 3).
-  readonly workload = computed<Workload | null>(() => {
+  readonly workloadBar = computed<Workload | null>(() => {
     const day = this.selectedDay();
     const ceiling = this.effortCeiling();
     if (!day || day.units == null || ceiling == null || ceiling <= 0) return null;
@@ -372,7 +428,12 @@ export class TodayBoardComponent {
     const floor = this.effortFloor();
     const pct = Math.min(100, (units / ceiling) * 100);
     const band = workloadBand(units, ceiling, floor);
-    return { units, ceiling, pct, band };
+    // A done fill only draws when the day actually has done units (round 7, §Text f/g) — no
+    // matching workload entry, or one with `done === 0`, renders exactly like before.
+    const doneUnits = this.selectedDayWorkload()?.done ?? 0;
+    const done = doneUnits > 0 ? doneUnits : null;
+    const donePct = done != null ? Math.min(100, (done / ceiling) * 100) : null;
+    return { units, ceiling, pct, band, done, donePct };
   });
 
   // The units-explainer popover (round 4 item 2 — replaces the native `title` tooltip, which
@@ -552,16 +613,41 @@ export class TodayBoardComponent {
 
   /** The status badge's aria-label when it's the walkthrough link: "Solution walkthrough for
    *  #N, done|not done" — the badge now carries the row's done-ness too, since it replaces
-   *  the separate leading check. */
+   *  the separate leading check. A moved row's badge carries no walkthrough/done meaning any
+   *  more, so `movedAriaLabel` takes over instead. */
   statusAriaLabel(item: ScheduleItem): string {
+    if (isMovedItem(item)) return this.movedAriaLabel(item);
     return `Solution walkthrough for #${item.lcNumber}, ${item.done ? 'done' : 'not done'}`;
   }
 
   /** The status badge's aria-label when it's the GitHub solution-file link (no walkthrough
    *  route, but the row carries a `file` and the repo ref is known) — mirrors
-   *  `statusAriaLabel` above, done-ness in place of the walkthrough's. */
+   *  `statusAriaLabel` above, done-ness (or moved-ness) in place of the walkthrough's. */
   githubAriaLabel(item: ScheduleItem): string {
+    if (isMovedItem(item)) return this.movedAriaLabel(item);
     return `Solution source for #${item.lcNumber} on GitHub, ${item.done ? 'done' : 'not done'}`;
+  }
+
+  /** The status badge's glyph — `↷` for a moved row (in place of whatever `fallback` this
+   *  badge form would otherwise show: `</>`, `✓`/`○`), unchanged otherwise. Shared by all
+   *  three badge forms (walkthrough link, GitHub link, plain span) in the template. */
+  statusGlyph(item: ScheduleItem, fallback: string): string {
+    return isMovedItem(item) ? MOVED_GLYPH : fallback;
+  }
+
+  /** The status badge's aria-label for a moved row, and the plain (non-link) badge's
+   *  aria-label once moved — "Moved to Thu Oct 1" (weekday, month, day of `deferredTo`). Only
+   *  ever called once `isMovedItem(item)` is already known true, so `deferredTo` is non-null;
+   *  the `''` fallback is defensive, never expected to render. */
+  movedAriaLabel(item: ScheduleItem): string {
+    if (!item.deferredTo) return '';
+    return `Moved to ${weekdayShort(item.deferredTo)} ${shortMonthDay(item.deferredTo)}`;
+  }
+
+  /** The chip after a moved row's title — the new day's short weekday (e.g. `Thu`). Same
+   *  non-null caveat as `movedAriaLabel` above. */
+  movedChip(item: ScheduleItem): string {
+    return item.deferredTo ? weekdayShort(item.deferredTo) : '';
   }
 
   /** Rows for one day, used by both the collapsed (selected-day) and expanded (7-day) views. */
@@ -569,11 +655,16 @@ export class TodayBoardComponent {
     return this.boardRowsByDate().get(day.date) ?? [];
   }
 
-  /** Done/total for one day, counting a gate row as ONE item — same rule as the collapsed
-   *  view's doneCount/totalCount. Used by the expanded view's day headers. */
-  dayCounts(day: ScheduleDay): { done: number; total: number } {
+  /** Done/total/moved for one day, counting a gate row as ONE item (never moved) — same rule
+   *  as the collapsed view's doneCount/totalCount/movedCount. Used by the expanded view's day
+   *  headers. */
+  dayCounts(day: ScheduleDay): { done: number; total: number; moved: number } {
     const rows = this.rowsFor(day);
-    return { done: rows.filter((r) => r.done).length, total: rows.length };
+    return {
+      done: rows.filter((r) => r.done).length,
+      total: rows.length,
+      moved: rows.filter((r) => isMovedRow(r)).length,
+    };
   }
 
   /** trackBy for board rows: a gate row has no lcNumber of its own, so it tracks by its
@@ -586,5 +677,7 @@ export class TodayBoardComponent {
   protected readonly shortMonthDay = shortMonthDay;
   protected readonly endNoteMeaning = endNoteMeaning;
   protected readonly isGateRow = isGateRow;
+  protected readonly isMovedItem = isMovedItem;
+  protected readonly walkthroughGlyph = WALKTHROUGH_GLYPH;
   protected readonly gateTitle = COMPLEXITY_GATE_TITLE;
 }

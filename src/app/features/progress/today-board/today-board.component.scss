@@ -3,6 +3,10 @@
 // Minimum width of a day-selector button before its grid column wraps onto a new row.
 $day-btn-min-width: 4.5rem;
 
+// The planned workload fill's opacity once a solid done fill is drawn inside it — the "lighter
+// band colour" the planned extent becomes so the done fill still reads as the one that's solid.
+$workload-planned-opacity: 0.35;
+
 .today-board {
   display: flex;
   flex-direction: column;
@@ -115,12 +119,19 @@ $day-btn-min-width: 4.5rem;
 
 // ── Workload bar ─────────────────────────────────────────────────────────────────────
 .today-board__workload-bar {
+  position: relative;
   height: 8px;
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--color-bg-raised);
 }
+// Absolutely positioned (not the single-child default flow) so a second fill — the done fill,
+// drawn later in the DOM — layers directly on top of the planned fill instead of stacking
+// below it.
 .today-board__workload-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: block;
   height: 100%;
   transition: width var(--transition-base);
@@ -128,6 +139,10 @@ $day-btn-min-width: 4.5rem;
 .today-board__workload-fill--light { background: var(--color-easy); }
 .today-board__workload-fill--moderate { background: var(--color-medium); }
 .today-board__workload-fill--heavy { background: var(--color-hard); }
+// The planned fill once a solid done fill is drawn inside it (today-board's `workloadBar()`
+// only sets this when `done` is truthy) — dimmed to the "lighter band colour" so the done fill
+// on top of it reads as the reached portion.
+.today-board__workload-fill--planned { opacity: $workload-planned-opacity; }
 .today-board__workload-label {
   display: inline-flex;
   align-items: center;
@@ -281,6 +296,12 @@ $day-btn-min-width: 4.5rem;
   .today-board__title { text-decoration: line-through; }
 }
 
+// A moved row dims the same way a done row does, but was never actually worked — no
+// line-through, since the rep itself hasn't happened yet (it's due on the new day instead).
+.today-board__row--moved {
+  .today-board__num, .today-board__title, .tag, .today-board__links, .today-board__comfort, .today-board__gate-sub, .today-board__gate-progress { opacity: 0.6; }
+}
+
 // The leading status badge: one box replaces both the old ✓/○ check and the after-title
 // `</>` walkthrough link. Link when a walkthrough route exists, plain span otherwise; a gate
 // row (no single lcNumber) is always the span.
@@ -355,6 +376,10 @@ $day-btn-min-width: 4.5rem;
 // A 🆕 intake row's chip — accent-dim so it reads as "new" without a new color.
 .tag--new { background: var(--color-accent-dim); color: var(--color-accent); border-color: transparent; }
 .tag--probe { font-style: italic; }
+
+// The moved-to-day chip (e.g. "Thu") after a moved row's title — same pill chrome as `.tag`,
+// but its own class since it's not a difficulty/kind tag.
+.today-board__moved { @include prow.tag; }
 
 // LeetCode stays alone at the row's right edge — pushed there by the flex row's own wrap,
 // never adjacent to the leading status badge (the walkthrough link, when there is one).

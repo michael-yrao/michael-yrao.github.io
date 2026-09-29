@@ -4,7 +4,7 @@ import { provideRouter } from '@angular/router';
 import { TodayBoardComponent, endNoteMeaning } from './today-board.component';
 import { SOLUTION_LINK_MODE_STORAGE_KEY } from '../solution-link-mode';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
-import { ProblemProgress, Schedule, ScheduleItem } from '../../../core/models/progress.model';
+import { ProblemProgress, Schedule, ScheduleItem, WorkloadDay } from '../../../core/models/progress.model';
 import { LoadStatus } from '../../../core/services/progress.service';
 import { addDaysISO, currentWeekStart, shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
 
@@ -102,6 +102,7 @@ function createFixture(
   details?: ProblemProgress[] | null,
   detailsStatus?: LoadStatus,
   detailsError?: string | null,
+  workload?: WorkloadDay[],
 ) {
   // RouterLink (the status badge's walkthrough link, rendered when a schedule item's
   // lcNumber has a visualizer route) needs an injectable ActivatedRoute the moment it's
@@ -117,6 +118,7 @@ function createFixture(
   if (details !== undefined) fixture.componentRef.setInput('details', details);
   if (detailsStatus !== undefined) fixture.componentRef.setInput('detailsStatus', detailsStatus);
   if (detailsError !== undefined) fixture.componentRef.setInput('detailsError', detailsError);
+  if (workload !== undefined) fixture.componentRef.setInput('workload', workload);
   fixture.detectChanges();
   return fixture;
 }
@@ -354,6 +356,33 @@ describe('TodayBoardComponent', () => {
     const label = fixture.nativeElement.querySelector('.today-board__workload-label');
     expect(label?.textContent).toContain('Light');
     expect(fixture.nativeElement.querySelector('.today-board__workload-fill--light')).toBeTruthy();
+  });
+
+  it('draws a done fill and states "N of M units done · ceiling C · Band" only when the day has a matching workload entry with done > 0', () => {
+    const cases: { workload: WorkloadDay[] | undefined; expectedLabel: string; expectedFillCount: number }[] = [
+      {
+        workload: [{ date: todayLocalISO(), planned: 7.7, done: 7.3, built: 7.7, partial: false }],
+        expectedLabel: '7.3 of 7.7 units done · ceiling 8 · Heavy',
+        expectedFillCount: 2, // the dimmed planned fill + the solid done fill on top of it.
+      },
+      {
+        workload: undefined,
+        expectedLabel: '7.7 / 8 units · Heavy', // unchanged: no matching entry -> no done fill.
+        expectedFillCount: 1,
+      },
+    ];
+
+    for (const { workload, expectedLabel, expectedFillCount } of cases) {
+      TestBed.resetTestingModule();
+      const schedule = makeSchedule();
+      schedule.days[0].units = 7.7; // 7.7 / 8 = 96.25% >= 90% -> Heavy, in both cases.
+
+      const fixture = createFixture(schedule, 8, undefined, undefined, undefined, undefined, workload);
+
+      const label = fixture.nativeElement.querySelector('.today-board__workload-label');
+      expect(label?.textContent).toContain(expectedLabel);
+      expect(fixture.nativeElement.querySelectorAll('.today-board__workload-fill').length).toBe(expectedFillCount);
+    }
   });
 
   it('renders no workload bar when the day has no board (empty/no-board day -> no bar)', () => {
@@ -695,6 +724,36 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.tag--probe')?.textContent).toContain('probe');
     expect(fixture.nativeElement.querySelector('.today-board__moved')).toBeFalsy();
     expect(fixture.nativeElement.textContent).not.toContain('→');
+  });
+
+  // ── Round 7: a `deferredTo` row (not done) renders as "moved" ──────────────────────
+  it('renders ↷, a "Thu" chip, and no line-through for a moved row, with "4 of 5 done · 1 moved"', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 1, title: 'A', technique: null, startComfort: null, difficulty: null, done: true },
+      { lcNumber: 2, title: 'B', technique: null, startComfort: null, difficulty: null, done: true },
+      { lcNumber: 3, title: 'C', technique: null, startComfort: null, difficulty: null, done: true },
+      { lcNumber: 4, title: 'D', technique: null, startComfort: null, difficulty: null, done: true },
+      // 2026-10-01 is a Thursday — deliberately not done, deferred off this day.
+      { lcNumber: 202, title: 'Moved Problem', technique: null, startComfort: null, difficulty: null,
+        done: false, deferredTo: '2026-10-01' },
+    ];
+
+    const fixture = createFixture(schedule);
+
+    const movedRow: HTMLElement = fixture.nativeElement.querySelector('.today-board__row--moved');
+    expect(movedRow).toBeTruthy();
+    // No line-through: only `.today-board__row--done` carries that rule, and this row isn't it.
+    expect(movedRow.classList.contains('today-board__row--done')).toBe(false);
+
+    const badge = movedRow.querySelector('.today-board__status');
+    expect(badge?.textContent?.trim()).toBe('↷');
+    expect(badge?.getAttribute('aria-label')).toBe('Moved to Thu Oct 1');
+
+    expect(movedRow.querySelector('.today-board__moved')?.textContent?.trim()).toBe('Thu');
+
+    const count = fixture.nativeElement.querySelector('.today-board__count');
+    expect(count?.textContent?.replace(/\s+/g, ' ').trim()).toContain('4 of 5 done · 1 moved');
   });
 
   // ── Round 5: consecutive kind === 'complexity' items collapse into one gate row ─────

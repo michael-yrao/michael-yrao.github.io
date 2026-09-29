@@ -54,6 +54,17 @@ export function shortMonthDay(iso: string): string {
   return `${month} ${day}`;
 }
 
+const WEEKDAY_ABBREVIATIONS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
+/** Short weekday abbreviation ("Sun".."Sat") of a fixed `YYYY-MM-DD` date, via `Date.UTC` —
+ *  same drift-free approach as `weekStartISO` below: a bare `new Date(iso)` reads UTC midnight
+ *  in the viewer's own zone and can name the wrong day. Returns the input unchanged when it
+ *  doesn't match the `YYYY-MM-DD` shape. */
+export function weekdayShort(iso: string): string {
+  if (!ISO_DATE_SHAPE.test(iso)) return iso;
+  return WEEKDAY_ABBREVIATIONS[new Date(toUTCMillis(iso)).getUTCDay()];
+}
+
 const YEAR_SLICE_START = 0;
 const YEAR_SLICE_END = 4;
 const DAYS_PER_WEEK = 7;

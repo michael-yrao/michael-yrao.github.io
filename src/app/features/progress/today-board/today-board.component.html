@@ -3,14 +3,18 @@
 </ng-template>
 
 <ng-template #itemRowTpl let-item let-date="date">
-  <li class="today-board__row" [class.today-board__row--done]="item.done">
+  <li
+    class="today-board__row"
+    [class.today-board__row--done]="item.done"
+    [class.today-board__row--moved]="isMovedItem(item)"
+  >
     @if (walkthroughRoute(item); as route) {
       <a
         [routerLink]="route"
         class="today-board__status today-board__status--link"
         title="Solution walkthrough"
         [attr.aria-label]="statusAriaLabel(item)"
-        >&lt;/&gt;</a
+        >{{ statusGlyph(item, walkthroughGlyph) }}</a
       >
     } @else if (solutionUrl(item.file); as src) {
       <a
@@ -20,12 +24,14 @@
         [attr.aria-label]="githubAriaLabel(item)"
         target="_blank"
         rel="noopener"
-        >{{ item.done ? '✓' : '○' }}</a
+        >{{ statusGlyph(item, item.done ? '✓' : '○') }}</a
       >
     } @else {
-      <span class="today-board__status" [attr.aria-label]="item.done ? 'done' : 'not done'">{{
-        item.done ? '✓' : '○'
-      }}</span>
+      <span
+        class="today-board__status"
+        [attr.aria-label]="isMovedItem(item) ? movedAriaLabel(item) : (item.done ? 'done' : 'not done')"
+        >{{ statusGlyph(item, item.done ? '✓' : '○') }}</span
+      >
     }
     @if (item.endComfort) {
       @if (item.endNote || item.nextReview) {
@@ -68,6 +74,9 @@
       <span class="today-board__num">#{{ item.lcNumber }}</span>
     }
     <span class="today-board__title">{{ item.title }}</span>
+    @if (isMovedItem(item)) {
+      <span class="today-board__moved">{{ movedChip(item) }}</span>
+    }
     @if (item.kind === 'new') {
       <span class="tag tag--new">new</span>
     }
@@ -148,9 +157,19 @@
   <div class="today-board__top">
     @if (!isLoadingWeek() && !isHistoryError()) {
       @if (expanded()) {
-        <span class="today-board__week-head"><span class="today-board__count">{{ weekCounts().done }} of {{ weekCounts().total }} done this week</span></span>
+        <span class="today-board__week-head"
+          ><span class="today-board__count"
+            >{{ weekCounts().done }} of {{ weekCounts().total }} done this week@if (weekCounts().moved > 0) {
+              · {{ weekCounts().moved }} moved
+            }</span
+          ></span
+        >
       } @else if (selectedDay()) {
-        <span class="today-board__count">{{ doneCount() }} of {{ totalCount() }} done</span>
+        <span class="today-board__count"
+          >{{ doneCount() }} of {{ totalCount() }} done@if (movedCount() > 0) {
+            · {{ movedCount() }} moved
+          }</span
+        >
       }
     }
     <div class="today-board__week-nav">
@@ -198,17 +217,30 @@
 
     @if (!expanded()) {
       @if (selectedDay(); as day) {
-        @if (workload(); as w) {
+        @if (workloadBar(); as w) {
           <div class="today-board__workload">
             <div class="today-board__workload-bar">
               <span
                 class="today-board__workload-fill"
-                [class]="'today-board__workload-fill--' + w.band.toLowerCase()"
+                [class]="
+                  'today-board__workload-fill--' + w.band.toLowerCase() + (w.done ? ' today-board__workload-fill--planned' : '')
+                "
                 [style.width.%]="w.pct"
               ></span>
+              @if (w.done) {
+                <span
+                  class="today-board__workload-fill"
+                  [class]="'today-board__workload-fill--' + w.band.toLowerCase()"
+                  [style.width.%]="w.donePct"
+                ></span>
+              }
             </div>
             <span class="today-board__workload-label">
-              {{ w.units }} / {{ w.ceiling }} units · {{ w.band }}
+              @if (w.done) {
+                {{ w.done }} of {{ w.units }} units done · ceiling {{ w.ceiling }} · {{ w.band }}
+              } @else {
+                {{ w.units }} / {{ w.ceiling }} units · {{ w.band }}
+              }
               <span class="today-board__info-wrap" [class.today-board__info-wrap--open]="infoOpen()">
                 <button
                   type="button"
@@ -235,7 +267,11 @@
             @if (day.date === todayISO()) {
               <span class="today-board__badge">Today</span>
             }
-            <span class="today-board__day-count">{{ dayCounts(day).done }} of {{ dayCounts(day).total }} done</span>
+            <span class="today-board__day-count"
+              >{{ dayCounts(day).done }} of {{ dayCounts(day).total }} done@if (dayCounts(day).moved > 0) {
+                · {{ dayCounts(day).moved }} moved
+              }</span
+            >
           </div>
           <ng-container [ngTemplateOutlet]="dayItemsTpl" [ngTemplateOutletContext]="{ $implicit: day }" />
         </div>
