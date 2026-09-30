@@ -139,9 +139,9 @@ $workload-planned-opacity: 0.35;
 .today-board__workload-fill--light { background: var(--color-easy); }
 .today-board__workload-fill--moderate { background: var(--color-medium); }
 .today-board__workload-fill--heavy { background: var(--color-hard); }
-// The planned fill once a solid done fill is drawn inside it (today-board's `workloadBar()`
-// only sets this when `done` is truthy) — dimmed to the "lighter band colour" so the done fill
-// on top of it reads as the reached portion.
+// The planned fill — always drawn, dimmed to the "lighter band colour"; when `workloadBar()`
+// also has a done fill, it's drawn on top of this one and reads as the reached portion. With no
+// done fill, this dimmed band is the only fill shown.
 .today-board__workload-fill--planned { opacity: $workload-planned-opacity; }
 .today-board__workload-label {
   display: inline-flex;
@@ -316,6 +316,13 @@ $workload-planned-opacity: 0.35;
   border-color: var(--color-easy);
   color: var(--color-easy);
 }
+// Moved carries through to the badge the same way done does — it's not in the row--moved dim
+// list above, so it stays full-strength, coloured to flag the row as moved-off-day rather than
+// earned.
+.today-board__row--moved .today-board__status {
+  border-color: var(--color-hard);
+  color: var(--color-hard);
+}
 // Hover/focus-visible only apply to the link form — the plain span isn't interactive.
 // Scoped under `.today-board__row` so this beats the done rule above on specificity (both
 // compile with Angular's emulated `[_ngcontent-*]` attribute added to every compound
@@ -376,10 +383,6 @@ $workload-planned-opacity: 0.35;
 // A 🆕 intake row's chip — accent-dim so it reads as "new" without a new color.
 .tag--new { background: var(--color-accent-dim); color: var(--color-accent); border-color: transparent; }
 .tag--probe { font-style: italic; }
-
-// The moved-to-day chip (e.g. "Thu") after a moved row's title — same pill chrome as `.tag`,
-// but its own class since it's not a difficulty/kind tag.
-.today-board__moved { @include prow.tag; }
 
 // LeetCode stays alone at the row's right edge — pushed there by the flex row's own wrap,
 // never adjacent to the leading status badge (the walkthrough link, when there is one).

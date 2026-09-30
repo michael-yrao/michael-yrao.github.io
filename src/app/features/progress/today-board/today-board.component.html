@@ -74,9 +74,6 @@
       <span class="today-board__num">#{{ item.lcNumber }}</span>
     }
     <span class="today-board__title">{{ item.title }}</span>
-    @if (isMovedItem(item)) {
-      <span class="today-board__moved">{{ movedChip(item) }}</span>
-    }
     @if (item.kind === 'new') {
       <span class="tag tag--new">new</span>
     }
@@ -223,7 +220,7 @@
               <span
                 class="today-board__workload-fill"
                 [class]="
-                  'today-board__workload-fill--' + w.band.toLowerCase() + (w.done ? ' today-board__workload-fill--planned' : '')
+                  'today-board__workload-fill--' + w.band.toLowerCase() + ' today-board__workload-fill--planned'
                 "
                 [style.width.%]="w.pct"
               ></span>

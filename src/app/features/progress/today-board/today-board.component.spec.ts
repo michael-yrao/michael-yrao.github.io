@@ -358,7 +358,7 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.today-board__workload-fill--light')).toBeTruthy();
   });
 
-  it('draws a done fill and states "N of M units done · ceiling C · Band" only when the day has a matching workload entry with done > 0', () => {
+  it('draws the dimmed planned fill always, and a solid done fill only when the day has a matching workload entry with done > 0', () => {
     const cases: { workload: WorkloadDay[] | undefined; expectedLabel: string; expectedFillCount: number }[] = [
       {
         workload: [{ date: todayLocalISO(), planned: 7.7, done: 7.3, built: 7.7, partial: false }],
@@ -368,7 +368,7 @@ describe('TodayBoardComponent', () => {
       {
         workload: undefined,
         expectedLabel: '7.7 / 8 units · Heavy', // unchanged: no matching entry -> no done fill.
-        expectedFillCount: 1,
+        expectedFillCount: 1, // just the dimmed planned fill.
       },
     ];
 
@@ -382,6 +382,9 @@ describe('TodayBoardComponent', () => {
       const label = fixture.nativeElement.querySelector('.today-board__workload-label');
       expect(label?.textContent).toContain(expectedLabel);
       expect(fixture.nativeElement.querySelectorAll('.today-board__workload-fill').length).toBe(expectedFillCount);
+      // The planned fill carries the dimmed-band class unconditionally, whether or not a done
+      // fill is drawn on top of it.
+      expect(fixture.nativeElement.querySelectorAll('.today-board__workload-fill--planned').length).toBe(1);
     }
   });
 
@@ -727,7 +730,7 @@ describe('TodayBoardComponent', () => {
   });
 
   // ── Round 7: a `deferredTo` row (not done) renders as "moved" ──────────────────────
-  it('renders ↷, a "Thu" chip, and no line-through for a moved row, with "4 of 5 done · 1 moved"', () => {
+  it('renders ↷ with no chip and no line-through for a moved row, with "4 of 5 done · 1 moved"', () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
       { lcNumber: 1, title: 'A', technique: null, startComfort: null, difficulty: null, done: true },
@@ -750,7 +753,7 @@ describe('TodayBoardComponent', () => {
     expect(badge?.textContent?.trim()).toBe('↷');
     expect(badge?.getAttribute('aria-label')).toBe('Moved to Thu Oct 1');
 
-    expect(movedRow.querySelector('.today-board__moved')?.textContent?.trim()).toBe('Thu');
+    expect(movedRow.querySelector('.today-board__moved')).toBeFalsy();
 
     const count = fixture.nativeElement.querySelector('.today-board__count');
     expect(count?.textContent?.replace(/\s+/g, ' ').trim()).toContain('4 of 5 done · 1 moved');

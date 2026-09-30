@@ -644,12 +644,6 @@ export class TodayBoardComponent {
     return `Moved to ${weekdayShort(item.deferredTo)} ${shortMonthDay(item.deferredTo)}`;
   }
 
-  /** The chip after a moved row's title — the new day's short weekday (e.g. `Thu`). Same
-   *  non-null caveat as `movedAriaLabel` above. */
-  movedChip(item: ScheduleItem): string {
-    return item.deferredTo ? weekdayShort(item.deferredTo) : '';
-  }
-
   /** Rows for one day, used by both the collapsed (selected-day) and expanded (7-day) views. */
   rowsFor(day: ScheduleDay): BoardRow[] {
     return this.boardRowsByDate().get(day.date) ?? [];
