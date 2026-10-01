@@ -25,13 +25,8 @@
   --color-window:      rgba(6, 182, 212, 0.25);
   --color-eliminated:  #1e293b;
 
-  // Segmented-bar tokens — the fixed dark segment-label ink, and the roadmap's three
-  // categorical state colours (not-started neutral, next warm, practiced accent), not a
-  // ramp, validated as a categorical palette with the dataviz skill's validate_palette.js.
-  // Dark ink reads on all three.
-  --color-seg-ink:             #0b1220;
-  --color-roadmap-horizon:     #94a3b8;
-  --color-roadmap-upcoming:    #fbbf24;
+  // Bar tokens — the fixed dark segment-label ink, and the roadmap coverage rows' started fill.
+  --color-seg-ink:            #0b1220;
   --color-roadmap-practiced:   #06b6d4;
 
   // Typography

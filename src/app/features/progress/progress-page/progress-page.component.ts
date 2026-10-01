@@ -31,6 +31,8 @@ import { SegmentedBarComponent, SegmentedBarSegment } from '../segmented-bar/seg
 import { WorkloadChartComponent } from '../workload-chart/workload-chart.component';
 import { GrowthAreasComponent } from '../growth-areas/growth-areas.component';
 import { GrowthArea } from '../growth-areas/growth-areas.data';
+import { RoadmapCoverageComponent } from '../roadmap-coverage/roadmap-coverage.component';
+import { countRoadmapLevels } from '../roadmap-coverage/roadmap-levels';
 import { Technique } from '../../../core/models/progress.model';
 
 type ComfortFilter = 'all' | Comfort;
@@ -117,6 +119,7 @@ const PIPELINE_COMFORT: Record<string, Comfort> = {
     TodayBoardComponent,
     RecognitionPanelComponent,
     SegmentedBarComponent,
+    RoadmapCoverageComponent,
     WorkloadChartComponent,
     GrowthAreasComponent,
     SettingsMenuComponent,
@@ -251,42 +254,9 @@ export class ProgressPageComponent {
     return Math.round(((os.totalActive - os.overdue) / os.totalActive) * 100);
   });
 
-  // The honest technique denominator (round-2 item 1): breadth tiered by the
-  // intermediate/advanced line rather than one flat fraction. "practiced" = started (any
-  // tier — in practice only 'core' is ever started); "upcoming" = not-started but ABOVE
-  // the line (dp + tier1); "horizon" = not-started and BELOW the line (tier2 + tier3).
-  readonly techniqueBreadth = computed(() => {
-    const techs = this.data()?.techniques;
-    if (!techs || !techs.length) return null;
-    let practiced = 0;
-    let upcoming = 0;
-    let horizon = 0;
-    for (const t of techs) {
-      if (t.started) practiced++;
-      else if (t.tier === 'dp' || t.tier === 'tier1') upcoming++;
-      else horizon++;
-    }
-    return { practiced, upcoming, horizon, total: techs.length };
-  });
-
-  // Round 4: the breadth bar rebuilt onto the shared segmented-bar component — same
-  // definitions as techniqueBreadth() above (practiced=started; upcoming/horizon split by
-  // the intermediate/advanced line), just reshaped into self-labeling segments so it reads
-  // like the pipeline instead of needing its own vertical "intermediate/advanced" marker to
-  // be legible.
-  // Both stage bars read the same direction — still ahead → earned — so the earned segment
-  // sits at the right edge here, same as the pipeline's 🎓/🏆.
-  readonly breadthSegments = computed<SegmentedBarSegment[]>(() => {
-    const tb = this.techniqueBreadth();
-    if (!tb) return [];
-    return (
-      [
-        { key: 'horizon', label: 'Advanced', value: tb.horizon, cls: 'seg-horizon' },
-        { key: 'upcoming', label: 'Intermediate', value: tb.upcoming, cls: 'seg-upcoming' },
-        { key: 'practiced', label: 'Started', value: tb.practiced, cls: 'seg-practiced' },
-      ] satisfies SegmentedBarSegment[]
-    ).filter((s) => s.value > 0);
-  });
+  // Roadmap coverage: techniques counted per level (core / intermediate / advanced), each
+  // with how many are started - see roadmap-levels.ts for the tier-to-level map.
+  readonly roadmapLevels = computed(() => countRoadmapLevels(this.data()?.techniques ?? []));
 
   private readonly repoParam;
 

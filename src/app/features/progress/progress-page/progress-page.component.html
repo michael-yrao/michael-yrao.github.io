@@ -296,14 +296,9 @@
               }
             </div>
 
-            @if (techniqueBreadth(); as tb) {
+            @if (roadmapLevels().length) {
               <div class="card po-card">
-                <app-segmented-bar
-                  [segments]="breadthSegments()"
-                  title="Roadmap coverage"
-                  axisStart="not started"
-                  axisEnd="started"
-                />
+                <app-roadmap-coverage [rows]="roadmapLevels()" />
               </div>
             }
             @if (d.techniques) {

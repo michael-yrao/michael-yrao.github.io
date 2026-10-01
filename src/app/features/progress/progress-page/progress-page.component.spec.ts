@@ -10,6 +10,7 @@ import { By } from '@angular/platform-browser';
 import { ProgressService } from '../../../core/services/progress.service';
 import { TodayBoardComponent } from '../today-board/today-board.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
+import { RoadmapCoverageComponent } from '../roadmap-coverage/roadmap-coverage.component';
 import { GOLD_STANDARD_REPO, RepoRef } from '../../../core/services/github-file.service';
 import { ProgressSummary, ProblemProgress, Comfort, Schedule } from '../../../core/models/progress.model';
 import { addDaysISO, currentWeekStart, todayLocalISO } from '../../../core/utils/local-date';
@@ -339,11 +340,10 @@ describe('ProgressPageComponent', () => {
     clickTab(fixture, 'mastery');
 
     const bars = fixture.nativeElement.querySelectorAll('app-segmented-bar');
-    expect(bars.length).toBe(3); // pipeline + difficulty (same card) + breadth (own card)
+    expect(bars.length).toBe(2); // pipeline + difficulty (same card)
     const pipelineCard = bars[0].closest('.card');
     expect(pipelineCard).toBeTruthy();
     expect(pipelineCard!.contains(bars[1])).toBe(true);
-    expect(pipelineCard!.contains(bars[2])).toBe(false);
     // No separate "Difficulty mix" h2 card heading — only the inline h3 inside the pipeline card.
     const h2s = Array.from(fixture.nativeElement.querySelectorAll('h2')) as HTMLElement[];
     expect(h2s.some((h) => h.textContent === 'Difficulty mix')).toBe(false);
@@ -845,40 +845,30 @@ describe('ProgressPageComponent', () => {
     expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
-  it('the breadth bar tiers practiced / intermediate / advanced honestly, self-labeled', () => {
-    // Fixture: 2 started ('core'), 1 not-started 'dp' (above the intermediate/advanced
-    // line), 1 not-started 'tier3' (below the line) -> practiced=2, upcoming=1, horizon=1.
+  it('renders the roadmap coverage card on the Mastery tab with the fixture\'s level rows', () => {
+    // Fixture: 2 started 'core', 1 not-started 'dp' (Intermediate), 1 not-started 'tier3' (Advanced).
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    // Third bar in Mastery: pipeline, difficulty, then breadth.
-    const bar = fixture.nativeElement.querySelectorAll('app-segmented-bar')[2];
-    expect(bar.textContent).toContain('Started');
-    expect(bar.textContent).toContain('2');
-    expect(bar.textContent).toContain('Intermediate');
-    expect(bar.textContent).toContain('Advanced');
-
-    // Both stage bars read still-ahead → earned: horizon, then upcoming, then practiced at
-    // the right edge, same direction as the pipeline's 🎓/🏆.
-    const segs = Array.from(bar.querySelectorAll('.segbar__seg')) as HTMLElement[];
-    expect(segs.map((s) => Array.from(s.classList).find((c) => c.startsWith('seg-')))).toEqual([
-      'seg-horizon',
-      'seg-upcoming',
-      'seg-practiced',
+    const card = fixture.debugElement.query(By.directive(RoadmapCoverageComponent));
+    expect(card).toBeTruthy();
+    expect((card.componentInstance as RoadmapCoverageComponent).rows()).toEqual([
+      { key: 'core', label: 'Core', started: 2, total: 2 },
+      { key: 'intermediate', label: 'Intermediate', started: 0, total: 1 },
+      { key: 'advanced', label: 'Advanced', started: 0, total: 1 },
     ]);
   });
 
-  it('the pipeline and roadmap bars each carry an axis; the difficulty bar is a mix variant with a legend', () => {
+  it('the pipeline bar carries an axis; the difficulty bar is a mix variant with a legend', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
     const bars = fixture.nativeElement.querySelectorAll('app-segmented-bar');
-    const [pipelineBar, difficultyBar, roadmapBar] = Array.from(bars) as HTMLElement[];
+    const [pipelineBar, difficultyBar] = Array.from(bars) as HTMLElement[];
 
     expect(pipelineBar.querySelector('.segbar__axis')).toBeTruthy();
-    expect(roadmapBar.querySelector('.segbar__axis')).toBeTruthy();
 
     expect(difficultyBar.querySelector('.segbar__bar--mix')).toBeTruthy();
     expect(difficultyBar.querySelector('.segbar__legend')).toBeTruthy();
