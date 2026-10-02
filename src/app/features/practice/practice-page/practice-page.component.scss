@@ -1,17 +1,43 @@
 $value-max-height: 12rem;
 $statement-max-height: 18rem;
+$content-max-width: 60rem;
+$split-breakpoint: 900px;
+$nav-height: 56px;
+$problem-pane-fraction: 1fr;
+$work-pane-fraction: 1fr;
+$output-max-height: 40%;
 
 .practice {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  max-width: 60rem;
-  margin: 0 auto;
   padding: var(--space-lg) var(--space-md);
   color: var(--color-text);
 }
 
-.practice__message { margin: 0; }
+.practice__message,
+.practice__skeleton {
+  width: 100%;
+  max-width: $content-max-width;
+  margin-inline: auto;
+}
+
+.practice__message { margin-block: 0; }
+
+.practice__split,
+.practice__problem,
+.practice__work,
+.practice__output {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: $content-max-width;
+  margin-inline: auto;
+}
+.practice__problem,
+.practice__work,
+.practice__output { max-width: none; margin-inline: 0; }
 
 .practice__skeleton {
   height: 12rem;
@@ -33,7 +59,7 @@ $statement-max-height: 18rem;
   font-size: var(--text-xl);
   a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
 }
-.practice__num { font-family: var(--font-mono); color: var(--color-text-muted); }
+.practice__num { margin-right: var(--space-sm); font-family: var(--font-mono); color: var(--color-text-muted); }
 
 .practice__statement,
 .practice__value {
@@ -130,3 +156,40 @@ summary.practice__row-head { cursor: pointer; }
 .practice__mark--pass { color: var(--color-found); }
 .practice__mark--fail { color: var(--color-hard); }
 .practice__case { font-family: var(--font-mono); }
+
+// Two panes under the nav: the problem on the left, the editor and its results on the right.
+@media (min-width: $split-breakpoint) {
+  .practice {
+    height: calc(100vh - #{$nav-height});
+    overflow: hidden;
+  }
+
+  .practice__split {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-width: none;
+    display: grid;
+    grid-template-columns: $problem-pane-fraction $work-pane-fraction;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .practice__problem { overflow: auto; }
+  .practice__statement { max-height: none; flex: 0 0 auto; }
+
+  .practice__work { min-height: 0; }
+  .practice__toolbar { flex: 0 0 auto; }
+
+  .practice__output {
+    flex: 0 1 auto;
+    max-height: $output-max-height;
+    overflow: auto;
+  }
+
+  app-code-editor {
+    flex: 1 1 0;
+    min-height: 0;
+    --editor-height: 100%;
+    --editor-min-height: 0;
+    --editor-max-height: none;
+  }
+}

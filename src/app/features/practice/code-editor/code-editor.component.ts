@@ -19,14 +19,21 @@ const INDENT = '    ';
 const TAB_SIZE = INDENT.length;
 
 // Theme tokens come from the site's CSS custom properties, so the editor follows the light
-// and dark themes with no second palette.
+// and dark themes with no second palette. The size comes from three custom properties that a
+// parent can override from a media query; the fallbacks are the stacked layout's values.
 const editorTheme = EditorView.theme({
   '&': {
     color: 'var(--color-text)',
     backgroundColor: 'var(--color-bg-card)',
     fontSize: 'var(--text-sm)',
+    height: 'var(--editor-height, auto)',
   },
-  '.cm-scroller': { fontFamily: 'var(--font-mono)', minHeight: '16rem', maxHeight: '32rem' },
+  '.cm-scroller': {
+    fontFamily: 'var(--font-mono)',
+    overflow: 'auto',
+    minHeight: 'var(--editor-min-height, 16rem)',
+    maxHeight: 'var(--editor-max-height, 32rem)',
+  },
   '.cm-content': { caretColor: 'var(--color-accent)' },
   '&.cm-focused .cm-cursor': { borderLeftColor: 'var(--color-accent)' },
   '&.cm-focused': { outline: '2px solid var(--color-accent)' },
@@ -44,7 +51,8 @@ const editorTheme = EditorView.theme({
 
 /** CodeMirror 6 wrapper for the practice page. Deliberately has no autocomplete and no
  *  bracket closing: the learner practises without them. `initialText` is read once, when the
- *  view is created; later changes go through `setText`. */
+ *  view is created; later changes go through `setText`. A parent fills its container by
+ *  setting `--editor-height: 100%`, `--editor-min-height: 0` and `--editor-max-height: none`. */
 @Component({
   selector: 'app-code-editor',
   template: '',

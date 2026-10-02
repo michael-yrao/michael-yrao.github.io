@@ -547,24 +547,29 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.today-board__status--link')).toBeFalsy();
   });
 
-  it('renders the Run practice link only for a row whose number is in practiceNumbers', () => {
+  it.each([
+    { lcNumber: 39, isPracticed: true },
+    { lcNumber: 40, isPracticed: false },
+  ])('draws one problem link per row: Run for a practiced number, else the LeetCode link ()', ({ lcNumber, isPracticed }) => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
-      { lcNumber: 39, title: 'Combination Sum', technique: null, startComfort: null,
-        difficulty: null, done: false },
-      { lcNumber: 40, title: 'Combination Sum II', technique: null, startComfort: null,
-        difficulty: null, done: false },
+      { lcNumber, title: 'Combination Sum', technique: null, startComfort: null,
+        difficulty: null, url: 'https://leetcode.com/problems/combination-sum/', done: false },
     ];
     const fixture = createFixture(schedule);
     fixture.componentRef.setInput('practiceNumbers', new Set([39]));
     fixture.detectChanges();
 
-    const links: HTMLAnchorElement[] = Array.from(
-      fixture.nativeElement.querySelectorAll('a[title="Run code"]'),
-    );
-    expect(links.length).toBe(1);
-    expect(links[0].textContent?.trim()).toBe('Run');
-    expect(links[0].getAttribute('href')).toBe('/practice/39');
+    const run: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a[title="Run code"]');
+    const external = fixture.nativeElement.querySelector('a[title="LeetCode"]');
+    if (isPracticed) {
+      expect(run?.textContent?.trim()).toBe('Run');
+      expect(run?.getAttribute('href')).toBe('/practice/39');
+      expect(external).toBeFalsy();
+      return;
+    }
+    expect(external).toBeTruthy();
+    expect(run).toBeFalsy();
   });
 
   // ── Round 5: kind === 'new' / 'probe' chips; the 'moved' tag renders no marker ──────

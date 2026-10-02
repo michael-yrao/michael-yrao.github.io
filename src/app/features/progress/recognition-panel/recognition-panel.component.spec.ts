@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { RecognitionPanelComponent } from './recognition-panel.component';
 import { Probes } from '../../../core/models/progress.model';
@@ -50,6 +51,25 @@ describe('RecognitionPanelComponent', () => {
 
     const link = fixture.nativeElement.querySelector('.recognition__link');
     expect(link?.getAttribute('href')).toContain('leetcode.com');
+  });
+
+  it('draws one problem link per probe row: Run when the number is in practiceNumbers, else the external link', () => {
+    TestBed.configureTestingModule({ imports: [RecognitionPanelComponent], providers: [provideRouter([])] });
+    const fixture = TestBed.createComponent(RecognitionPanelComponent);
+    fixture.componentRef.setInput('probes', makeProbes());
+    fixture.componentRef.setInput('practiceNumbers', new Set([1]));
+    fixture.detectChanges();
+
+    // recent() lists newest first: #200 then #1.
+    const [external, practiced]: HTMLElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.recognition__row'),
+    );
+    const run = practiced.querySelector('a[title="Run code"]');
+    expect(run?.textContent?.trim()).toBe('Run');
+    expect(run?.getAttribute('href')).toBe('/practice/1');
+    expect(practiced.querySelector('a[title="LeetCode"]')).toBeFalsy();
+    expect(external.querySelector('a[title="LeetCode"]')).toBeTruthy();
+    expect(external.querySelector('a[title="Run code"]')).toBeFalsy();
   });
 
   it('shows the disposable/cold/counted-only-here note when there are probes', () => {

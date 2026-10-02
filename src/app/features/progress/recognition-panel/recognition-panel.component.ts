@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { Probes } from '../../../core/models/progress.model';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
@@ -16,10 +17,12 @@ const CLEAN_LOW = 0.7;
   selector: 'app-recognition-panel',
   templateUrl: './recognition-panel.component.html',
   styleUrls: ['./recognition-panel.component.scss'],
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecognitionPanelComponent {
   readonly probes = input<Probes | null | undefined>();
+  readonly practiceNumbers = input<ReadonlySet<number>>(new Set());
 
   readonly cleanPct = computed(() => {
     const p = this.probes();

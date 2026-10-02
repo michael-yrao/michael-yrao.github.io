@@ -6,82 +6,90 @@
   } @else if (contractStatus() !== 'ready') {
     <div class="practice__skeleton" role="status" aria-busy="true"></div>
   } @else if (problem(); as p) {
-    <h1 class="practice__heading">
-      <span class="practice__num">#{{ p.number }}</span>
-      @if (p.url) {
-        <a [href]="p.url" target="_blank" rel="noopener">{{ p.title }}</a>
-      } @else {
-        {{ p.title }}
-      }
-    </h1>
-
-    <pre class="practice__statement">{{ p.statement }}</pre>
-
-    <app-code-editor #editor [initialText]="initialText()" (textChange)="onTextChange($event)" />
-
-    <div class="practice__toolbar">
-      <button type="button" class="practice__btn practice__btn--primary" [disabled]="isBusy()" (click)="run()">Run</button>
-      @if (isLoadingPython()) {
-        <span class="practice__status">Loading Python</span>
-      }
-      @if (runState()) {
-        <span class="practice__summary">{{ passedCount() }} / {{ p.cases.length }}</span>
-      }
-      <span class="practice__spacer"></span>
-      <button type="button" class="practice__btn" (click)="reset()">Reset</button>
-      <button type="button" class="practice__btn" (click)="copy()">Copy code</button>
-      @if (copyMark(); as mark) {
-        <span class="practice__copy-mark" [class.practice__copy-mark--fail]="mark === '✗'">{{ mark }}</span>
-      }
-    </div>
-
-    @if (runState()?.runError; as runError) {
-      <div class="practice__block">
-        <span class="practice__label practice__label--bad">Error</span>
-        <pre class="practice__value">{{ runError }}</pre>
-      </div>
-    }
-
-    <ul class="practice__results">
-      @for (row of rows(); track row.index) {
-        <li class="practice__row" [class.practice__row--pass]="row.isPass">
-          @if (row.isPass) {
-            <div class="practice__row-head">
-              <span class="practice__mark practice__mark--pass">{{ row.mark }}</span>
-              <span class="practice__case">Case {{ row.index + 1 }}</span>
-            </div>
+    <div class="practice__split">
+      <div class="practice__problem">
+        <h1 class="practice__heading">
+          <span class="practice__num">#{{ p.number }}</span>
+          @if (p.url) {
+            <a [href]="p.url" target="_blank" rel="noopener">{{ p.title }}</a>
           } @else {
-            <details>
-              <summary class="practice__row-head">
-                <span class="practice__mark practice__mark--fail">{{ row.mark }}</span>
-                <span class="practice__case">Case {{ row.index + 1 }}</span>
-                @if (row.word) {
-                  <span class="practice__word">{{ row.word }}</span>
-                }
-              </summary>
-              <div class="practice__detail">
-                <span class="practice__label">Input</span>
-                <pre class="practice__value">{{ row.input }}</pre>
-                <span class="practice__label">Expected</span>
-                <pre class="practice__value">{{ row.expected }}</pre>
-                @if (row.got !== null) {
-                  <span class="practice__label">Got</span>
-                  <pre class="practice__value">{{ row.got }}</pre>
-                }
-                @if (row.errorMessage !== null && row.word) {
-                  <span class="practice__label practice__label--bad">{{ row.word }}</span>
-                  <pre class="practice__value">{{ row.errorMessage }}</pre>
-                }
-                @if (row.stdout) {
-                  <span class="practice__label">stdout</span>
-                  <pre class="practice__value">{{ row.stdout }}</pre>
-                }
-              </div>
-            </details>
+            {{ p.title }}
           }
-        </li>
-      }
-    </ul>
+        </h1>
+
+        <pre class="practice__statement">{{ p.statement }}</pre>
+      </div>
+
+      <div class="practice__work">
+        <app-code-editor #editor [initialText]="initialText()" (textChange)="onTextChange($event)" />
+
+        <div class="practice__toolbar">
+          <button type="button" class="practice__btn practice__btn--primary" [disabled]="isBusy()" (click)="run()">Run</button>
+          @if (isLoadingPython()) {
+            <span class="practice__status">Loading Python</span>
+          }
+          @if (runState()) {
+            <span class="practice__summary">{{ passedCount() }} / {{ p.cases.length }}</span>
+          }
+          <span class="practice__spacer"></span>
+          <button type="button" class="practice__btn" (click)="reset()">Reset</button>
+          <button type="button" class="practice__btn" (click)="copy()">Copy code</button>
+          @if (copyMark(); as mark) {
+            <span class="practice__copy-mark" [class.practice__copy-mark--fail]="mark === '✗'">{{ mark }}</span>
+          }
+        </div>
+
+        <div class="practice__output">
+          @if (runState()?.runError; as runError) {
+            <div class="practice__block">
+              <span class="practice__label practice__label--bad">Error</span>
+              <pre class="practice__value">{{ runError }}</pre>
+            </div>
+          }
+
+          <ul class="practice__results">
+            @for (row of rows(); track row.index) {
+              <li class="practice__row" [class.practice__row--pass]="row.isPass">
+                @if (row.isPass) {
+                  <div class="practice__row-head">
+                    <span class="practice__mark practice__mark--pass">{{ row.mark }}</span>
+                    <span class="practice__case">Case {{ row.index + 1 }}</span>
+                  </div>
+                } @else {
+                  <details>
+                    <summary class="practice__row-head">
+                      <span class="practice__mark practice__mark--fail">{{ row.mark }}</span>
+                      <span class="practice__case">Case {{ row.index + 1 }}</span>
+                      @if (row.word) {
+                        <span class="practice__word">{{ row.word }}</span>
+                      }
+                    </summary>
+                    <div class="practice__detail">
+                      <span class="practice__label">Input</span>
+                      <pre class="practice__value">{{ row.input }}</pre>
+                      <span class="practice__label">Expected</span>
+                      <pre class="practice__value">{{ row.expected }}</pre>
+                      @if (row.got !== null) {
+                        <span class="practice__label">Got</span>
+                        <pre class="practice__value">{{ row.got }}</pre>
+                      }
+                      @if (row.errorMessage !== null && row.word) {
+                        <span class="practice__label practice__label--bad">{{ row.word }}</span>
+                        <pre class="practice__value">{{ row.errorMessage }}</pre>
+                      }
+                      @if (row.stdout) {
+                        <span class="practice__label">stdout</span>
+                        <pre class="practice__value">{{ row.stdout }}</pre>
+                      }
+                    </div>
+                  </details>
+                }
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
   } @else {
     <p class="practice__message">No practice cases for #{{ rawNumber() }} in {{ ref()?.owner }}/{{ ref()?.repo }}.</p>
   }

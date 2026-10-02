@@ -166,6 +166,26 @@ describe('TechniqueListComponent', () => {
     expect(emitted.length).toBe(0);
   });
 
+  it('draws one problem link per row: Run when the number is in practiceNumbers, else the external link', () => {
+    const fixture = createFixture(
+      [makeTechnique({ problems: [11, 12] })],
+      [makeProblem({ lcNumber: 11 }), makeProblem({ lcNumber: 12, title: 'Other', url: 'https://leetcode.com/problems/other/' })],
+    );
+    fixture.componentRef.setInput('practiceNumbers', new Set([11]));
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const rows: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.tech-row__problems li'));
+    const [practiced, external] = rows;
+    const run = practiced.querySelector('a[title="Run code"]');
+    expect(run?.textContent?.trim()).toBe('Run');
+    expect(run?.getAttribute('href')).toBe('/practice/11');
+    expect(practiced.querySelector('a[title="LeetCode"]')).toBeFalsy();
+    expect(external.querySelector('a[title="LeetCode"]')).toBeTruthy();
+    expect(external.querySelector('a[title="Run code"]')).toBeFalsy();
+  });
+
   it('emits expand exactly once when a started technique is expanded for the first time', () => {
     const fixture = createFixture([makeTechnique()], null);
     const emitted: Technique[] = [];

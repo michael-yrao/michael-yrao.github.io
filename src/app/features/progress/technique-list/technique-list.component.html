@@ -218,7 +218,9 @@
               <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
             }
             <span class="tech-row__problem-links">
-              @if (p.url) {
+              @if (practiceNumbers().has(p.lcNumber)) {
+                <a [routerLink]="['/practice', p.lcNumber]" queryParamsHandling="preserve" aria-label="Run code" title="Run code">Run</a>
+              } @else if (p.url) {
                 <a [href]="p.url" target="_blank" rel="noopener" aria-label="Open on LeetCode" title="LeetCode">↗</a>
               }
             </span>

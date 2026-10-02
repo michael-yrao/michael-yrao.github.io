@@ -77,19 +77,6 @@
         >
       }
       <span class="problem__links">
-        @if (p.url) {
-          <a
-            [href]="p.url"
-            target="_blank"
-            rel="noopener"
-            aria-label="Open on LeetCode"
-            title="LeetCode"
-            (click)="$event.stopPropagation()"
-            (keydown.enter)="$event.stopPropagation()"
-            (keydown.space)="$event.stopPropagation()"
-            >↗</a
-          >
-        }
         @if (practiceNumbers().has(p.lcNumber)) {
           <a
             [routerLink]="['/practice', p.lcNumber]"
@@ -100,6 +87,18 @@
             (keydown.enter)="$event.stopPropagation()"
             (keydown.space)="$event.stopPropagation()"
             >Run</a
+          >
+        } @else if (p.url) {
+          <a
+            [href]="p.url"
+            target="_blank"
+            rel="noopener"
+            aria-label="Open on LeetCode"
+            title="LeetCode"
+            (click)="$event.stopPropagation()"
+            (keydown.enter)="$event.stopPropagation()"
+            (keydown.space)="$event.stopPropagation()"
+            >↗</a
           >
         }
       </span>
@@ -320,6 +319,7 @@
                   [techniques]="d.techniques"
                   [details]="details()"
                   [repoRef]="repoRef()"
+                  [practiceNumbers]="practiceNumbers()"
                   (expand)="onTechniqueExpand($event)"
                 />
               </div>
@@ -334,7 +334,7 @@
             <div class="card po-card">
               <h2>Recognition</h2>
               <p class="card__sub">Does the practiced pool still teach recognition? The free diagnostic.</p>
-              <app-recognition-panel [probes]="d.probes" />
+              <app-recognition-panel [probes]="d.probes" [practiceNumbers]="practiceNumbers()" />
             </div>
           </div>
         }

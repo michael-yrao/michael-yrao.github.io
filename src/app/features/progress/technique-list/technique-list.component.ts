@@ -129,6 +129,7 @@ export class TechniqueListComponent {
    *  relative to it, so the GitHub fallback link is built from it, never from the gold
    *  standard. Same shape as TodayBoardComponent's own `repoRef` input. */
   readonly repoRef = input<RepoRef | null>(null);
+  readonly practiceNumbers = input<ReadonlySet<number>>(new Set());
   readonly expand = output<Technique>();
 
   // The shared, page-header-level Solution Links setting (settings-menu.component.ts's ⚙
