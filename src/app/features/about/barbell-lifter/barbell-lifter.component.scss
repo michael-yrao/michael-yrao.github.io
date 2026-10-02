@@ -29,16 +29,25 @@ svg {
 
 .body,
 .bar,
-.mouth {
+.mouth,
+.ground {
   fill: none;
   stroke: var(--color-text);
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.body,
+.body {
+  stroke-width: 5;
+}
+
 .bar {
-  stroke-width: 4;
+  stroke-width: 3;
+}
+
+.ground {
+  stroke: var(--color-text-muted);
+  stroke-width: 2;
 }
 
 .mouth {

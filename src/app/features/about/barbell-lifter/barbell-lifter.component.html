@@ -1,20 +1,24 @@
 <button type="button" class="lifter" aria-label="Add a plate to the barbell" (click)="onLift()">
   <svg viewBox="0 0 160 160" aria-hidden="true" focusable="false">
+    <line class="ground" x1="44" y1="149" x2="116" y2="149" />
+    <g class="body">
+      <polyline [attr.points]="leftLeg()" />
+      <polyline [attr.points]="rightLeg()" />
+    </g>
     <g class="bob">
       <g class="squat" [style.transform]="squatTransform()">
         <g class="body">
-          <line x1="80" y1="81" x2="80" y2="108" />
-          <line x1="80" y1="108" x2="68" y2="140" />
-          <line x1="80" y1="108" x2="92" y2="140" />
-          <line x1="80" y1="86" [attr.x2]="leftHandX" [attr.y2]="barY" />
-          <line x1="80" y1="86" [attr.x2]="rightHandX" [attr.y2]="barY" />
+          <line x1="80" y1="80" x2="80" y2="108" />
+          <line x1="68" y1="85" x2="92" y2="85" />
+          <polyline [attr.points]="leftArm()" />
+          <polyline [attr.points]="rightArm()" />
         </g>
-        <circle class="head" cx="80" cy="68" r="13" />
+        <circle class="head" cx="80" cy="68" r="12" />
         <circle class="eye" cx="75" cy="66" r="2" />
         <circle class="eye" cx="85" cy="66" r="2" />
         @if (isStraining()) {
           <path class="mouth" d="M73 75 L76.5 72.5 L80 75 L83.5 72.5 L87 75" />
-          <path class="sweat" d="M98 56 Q103 62 98 66 Q93 62 98 56 Z" />
+          <path class="sweat" d="M98 58 Q103 64 98 68 Q93 64 98 58 Z" />
         } @else {
           <line class="mouth" x1="74" y1="74" x2="86" y2="74" />
         }
@@ -25,7 +29,7 @@
             [attr.x]="plate.x"
             [attr.y]="plate.y"
             [attr.width]="plateWidth"
-            [attr.height]="plateHeight"
+            [attr.height]="plate.height"
             rx="1.5"
           />
         }
@@ -39,7 +43,7 @@
                 [attr.x]="plate.x"
                 [attr.y]="plate.y"
                 [attr.width]="plateWidth"
-                [attr.height]="plateHeight"
+                [attr.height]="plate.height"
                 rx="1.5"
               />
             }
