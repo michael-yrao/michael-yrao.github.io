@@ -20,7 +20,7 @@
         <div class="practice__statement">
           @for (block of statementBlocks(); track $index) {
             @if (block.text !== null) {
-              <div class="practice__segment">{{ block.text }}</div>
+              <div class="practice__segment">@for (run of block.runs; track $index) {@if (run.isCode) {<code class="practice__code">{{ run.text }}</code>} @else {{{ run.text }}}}</div>
             }
             @if (block.figure; as figure) {
               <figure class="practice__figure">
@@ -70,40 +70,33 @@
           <ul class="practice__results">
             @for (row of rows(); track row.index) {
               <li class="practice__row" [class.practice__row--pass]="row.isPass">
-                @if (row.isPass) {
-                  <div class="practice__row-head">
-                    <span class="practice__mark practice__mark--pass">{{ row.mark }}</span>
+                <details>
+                  <summary class="practice__row-head">
+                    <span class="practice__mark" [class.practice__mark--pass]="row.isPass" [class.practice__mark--fail]="!row.isPass">{{ row.mark }}</span>
                     <span class="practice__case">Case {{ row.index + 1 }}</span>
+                    @if (row.word) {
+                      <span class="practice__word">{{ row.word }}</span>
+                    }
+                  </summary>
+                  <div class="practice__detail">
+                    <span class="practice__label">Input</span>
+                    <pre class="practice__value">{{ row.input }}</pre>
+                    <span class="practice__label">Expected</span>
+                    <pre class="practice__value">{{ row.expected }}</pre>
+                    @if (row.got !== null) {
+                      <span class="practice__label">Got</span>
+                      <pre class="practice__value">{{ row.got }}</pre>
+                    }
+                    @if (row.errorMessage !== null && row.word) {
+                      <span class="practice__label practice__label--bad">{{ row.word }}</span>
+                      <pre class="practice__value">{{ row.errorMessage }}</pre>
+                    }
+                    @if (row.stdout) {
+                      <span class="practice__label">stdout</span>
+                      <pre class="practice__value">{{ row.stdout }}</pre>
+                    }
                   </div>
-                } @else {
-                  <details>
-                    <summary class="practice__row-head">
-                      <span class="practice__mark practice__mark--fail">{{ row.mark }}</span>
-                      <span class="practice__case">Case {{ row.index + 1 }}</span>
-                      @if (row.word) {
-                        <span class="practice__word">{{ row.word }}</span>
-                      }
-                    </summary>
-                    <div class="practice__detail">
-                      <span class="practice__label">Input</span>
-                      <pre class="practice__value">{{ row.input }}</pre>
-                      <span class="practice__label">Expected</span>
-                      <pre class="practice__value">{{ row.expected }}</pre>
-                      @if (row.got !== null) {
-                        <span class="practice__label">Got</span>
-                        <pre class="practice__value">{{ row.got }}</pre>
-                      }
-                      @if (row.errorMessage !== null && row.word) {
-                        <span class="practice__label practice__label--bad">{{ row.word }}</span>
-                        <pre class="practice__value">{{ row.errorMessage }}</pre>
-                      }
-                      @if (row.stdout) {
-                        <span class="practice__label">stdout</span>
-                        <pre class="practice__value">{{ row.stdout }}</pre>
-                      }
-                    </div>
-                  </details>
-                }
+                </details>
               </li>
             }
           </ul>

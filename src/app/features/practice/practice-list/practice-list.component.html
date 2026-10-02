@@ -1,0 +1,22 @@
+<section class="practice-list">
+  <app-page-header [breadcrumb]="breadcrumb" heading="Practice" />
+
+  @if (invalidSlug(); as message) {
+    <p class="practice-list__message">{{ message }}</p>
+  } @else if (status() === 'error') {
+    <p class="practice-list__message">{{ error() }}</p>
+  } @else if (status() !== 'ready') {
+    <div class="practice-list__skeleton" role="status" aria-busy="true"></div>
+  } @else {
+    <ul class="practice-list__rows">
+      @for (row of rows(); track row.number) {
+        <li>
+          <a class="practice-list__row" [routerLink]="['/practice', row.number]" queryParamsHandling="preserve">
+            <span class="practice-list__num">#{{ row.number }}</span>&ngsp;
+            <span class="practice-list__title">{{ row.title }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+</section>

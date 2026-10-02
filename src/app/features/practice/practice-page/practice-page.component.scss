@@ -1,6 +1,8 @@
 $value-max-height: 12rem;
 $statement-max-height: 18rem;
 $content-max-width: 60rem;
+// The nav bar's content width (.po-nav__inner), so the page lines up with the logo and the menu button.
+$page-max-width: 1280px;
 $split-breakpoint: 900px;
 $nav-height: 56px;
 $problem-pane-fraction: 1fr;
@@ -13,7 +15,9 @@ $figure-max-height: 14rem;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  padding: var(--space-lg) var(--space-md);
+  max-width: $page-max-width;
+  margin-inline: auto;
+  padding: var(--space-lg) var(--space-xl);
   color: var(--color-text);
 }
 
@@ -81,6 +85,15 @@ $figure-max-height: 14rem;
 // A block that ends in a line break would lose its last blank line (a trailing break at the
 // end of a block draws nothing). A zero-width character after it keeps that line.
 .practice__segment::after { content: '\200b'; }
+
+// An inline code span: a raised chip that adds no vertical size, so line height and wrapping hold.
+.practice__code {
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-raised);
+  color: var(--color-accent);
+  font: inherit;
+}
 
 // An example's input drawn inside the statement card, under its own example's text. The art
 // box caps the drawing so a small graph is not blown up to the pane's width.

@@ -53,6 +53,13 @@ export const routes: Routes = [
       import('./features/events/events.routes').then((m) => m.EVENTS_ROUTES),
   },
   {
+    path: 'practice',
+    loadComponent: () =>
+      import('./features/practice/practice-list/practice-list.component').then(
+        (m) => m.PracticeListComponent,
+      ),
+  },
+  {
     path: 'practice/:number',
     loadComponent: () =>
       import('./features/practice/practice-page/practice-page.component').then(

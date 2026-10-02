@@ -33,7 +33,11 @@ const RUN_STATE: RunState = {
   status: 'done',
   runError: null,
   results: [
-    { index: 0, verdict: 'pass', outcome: null },
+    {
+      index: 0,
+      verdict: 'pass',
+      outcome: { status: 'ok', hasJson: true, gotJson: [[1], [2]], gotRepr: '[[1], [2]]', stdout: 'hello' },
+    },
     {
       index: 1,
       verdict: 'fail',
@@ -106,7 +110,7 @@ describe('PracticePageComponent', () => {
   });
   afterEach(() => localStorage.removeItem(DRAFT_KEY));
 
-  it('draws a ✓ row for a pass and a ✗ row with Input / Expected / Got for a fail', () => {
+  it('draws every case as an expandable row: a pass shows Input / Expected / Got / stdout, a fail Input / Expected / Got', () => {
     const fixture = setUp('90', [PROBLEM]);
     const root: HTMLElement = fixture.nativeElement;
 
@@ -118,10 +122,12 @@ describe('PracticePageComponent', () => {
       '✓',
       '✗',
     ]);
-    const labels = Array.from(rows[1].querySelectorAll('.practice__label')).map((l) =>
-      l.textContent?.trim(),
-    );
-    expect(labels).toEqual(['Input', 'Expected', 'Got']);
+    const labelsOf = (row: Element) =>
+      Array.from(row.querySelectorAll('.practice__label')).map((l) => l.textContent?.trim());
+    expect(rows.every((row) => row.querySelector('details') !== null)).toBe(true);
+    expect(labelsOf(rows[0])).toEqual(['Input', 'Expected', 'Got', 'stdout']);
+    expect(rows[0].querySelector('.practice__detail pre:last-of-type')?.textContent).toBe('hello');
+    expect(labelsOf(rows[1])).toEqual(['Input', 'Expected', 'Got']);
     expect(root.querySelector('.practice__summary')?.textContent?.trim()).toBe('1 / 2');
   });
 
@@ -154,6 +160,14 @@ describe('PracticePageComponent', () => {
     ]);
     expect(card.querySelectorAll('app-graph-visualizer').length).toBe(2);
     expect(root.querySelector('.practice__figure-caption')).toBeNull();
+  });
+
+  it('draws a backtick-marked span as inline code with the backticks gone', () => {
+    const problem: PracticeProblem = { ...PROBLEM, statement: 'Given `nums`, return subsets.' };
+    const root: HTMLElement = setUp('90', [problem]).nativeElement;
+
+    expect(root.querySelector('code.practice__code')?.textContent).toBe('nums');
+    expect(root.querySelector('.practice__statement')?.textContent).not.toContain('`');
   });
 
   it('shows the not-found state and no editor for a number absent from the contract', () => {

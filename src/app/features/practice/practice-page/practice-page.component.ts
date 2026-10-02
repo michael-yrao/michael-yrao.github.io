@@ -3,10 +3,8 @@ import {
   Component,
   DestroyRef,
   computed,
-  effect,
   inject,
   signal,
-  untracked,
   ViewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -15,19 +13,15 @@ import { Subscription, map } from 'rxjs';
 
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
 import { RunState } from '../../../core/runner/runner.model';
-import {
-  LoadStatus,
-  invalidSlugMessage,
-  parseRepoSlug,
-  sameRef,
-} from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { figureStateFor } from '../../../core/practice/example-figure';
+import { TextRun, splitInlineCode } from '../../../core/practice/inline-code';
 import { splitStatement } from '../../../core/practice/statement-segments';
 import { GraphState, GridState } from '../../../core/models/algorithm.model';
 import { GraphVisualizerComponent } from '../../../shared/visualizers/graph-visualizer/graph-visualizer.component';
 import { GridVisualizerComponent } from '../../../shared/visualizers/grid-visualizer/grid-visualizer.component';
 import { CodeEditorComponent } from '../code-editor/code-editor.component';
+import { injectPracticeContract } from '../practice-contract';
 import { clearDraft, draftKey, loadDraft, saveDraft } from '../practice-draft';
 import { countPassed, toResultRow } from '../practice-results';
 
@@ -49,6 +43,8 @@ export interface ExampleFigure {
  *  `Example N:` the statement never names, captioned since no text names it. */
 export interface StatementBlock {
   readonly text: string | null;
+  /** The text split into plain and inline-code runs; empty when there is no text. */
+  readonly runs: readonly TextRun[];
   readonly figure: ExampleFigure | null;
   readonly isCaptioned: boolean;
 }
@@ -77,26 +73,17 @@ export class PracticePageComponent {
   // that would land in the initial bundle.
   @ViewChild('editor') private editor?: CodeEditorComponent;
 
-  private readonly repoParam = toSignal(
-    this.route.queryParamMap.pipe(map((params) => params.get('repo'))),
-    { initialValue: this.route.snapshot.queryParamMap.get('repo') },
-  );
+  private readonly contract = injectPracticeContract();
   private readonly numberParam = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('number'))),
     { initialValue: this.route.snapshot.paramMap.get('number') },
   );
 
-  readonly ref = computed(() => parseRepoSlug(this.repoParam()));
-  readonly invalidSlug = computed(() =>
-    this.ref() ? null : invalidSlugMessage(this.repoParam()),
-  );
+  readonly ref = this.contract.ref;
+  readonly invalidSlug = this.contract.invalidSlug;
   readonly rawNumber = computed(() => this.numberParam() ?? '');
-  /** The root-scoped service may still hold another ref's state (the Progress page shares
-   *  it) until this page's `load(ref)` lands; until then this page is loading. */
-  readonly contractStatus = computed<LoadStatus>(() =>
-    sameRef(this.practice.ref(), this.ref()) ? this.practice.status() : 'loading',
-  );
-  readonly error = this.practice.error;
+  readonly contractStatus = this.contract.status;
+  readonly error = this.contract.error;
 
   readonly problem = computed(() => {
     const number = parseProblemNumber(this.numberParam());
@@ -127,12 +114,13 @@ export class PracticePageComponent {
     }));
     const placed = segments.map((s, i) => ({
       text: s.text,
+      runs: splitInlineCode(s.text),
       figure: placements.find((p) => p.index === i)?.figure ?? null,
       isCaptioned: false,
     }));
     const unplaced = placements
       .filter((p) => p.index < 0)
-      .map((p) => ({ text: null, figure: p.figure, isCaptioned: true }));
+      .map((p) => ({ text: null, runs: [], figure: p.figure, isCaptioned: true }));
     return [...placed, ...unplaced];
   });
 
@@ -178,11 +166,6 @@ export class PracticePageComponent {
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    effect(() => {
-      const ref = this.ref();
-      if (!ref) return;
-      untracked(() => this.practice.load(ref));
-    });
     this.destroyRef.onDestroy(() => this.flushPendingSave());
     this.destroyRef.onDestroy(() => {
       if (this.copyTimer) clearTimeout(this.copyTimer);

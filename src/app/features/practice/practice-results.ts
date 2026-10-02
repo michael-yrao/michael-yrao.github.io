@@ -19,7 +19,7 @@ export interface ResultRow {
   readonly word: string | null;
   readonly input: string;
   readonly expected: string;
-  /** The `Got` value, only for a wrong answer. */
+  /** The `Got` value, whenever the case returned one (a pass included). */
   readonly got: string | null;
   /** The Python error text, only for an error or recursion verdict that carries one. */
   readonly errorMessage: string | null;
@@ -33,7 +33,7 @@ function toJson(value: unknown): string {
 
 function gotText(result: CaseResult): string | null {
   const outcome = result.outcome;
-  if (result.verdict !== 'fail' || outcome?.status !== 'ok') return null;
+  if (outcome?.status !== 'ok') return null;
   return outcome.hasJson ? toJson(outcome.gotJson) : outcome.gotRepr;
 }
 
