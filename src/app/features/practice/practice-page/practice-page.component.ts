@@ -8,21 +8,23 @@ import {
   ViewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
-import { Subscription, map } from 'rxjs';
+import { NgClass } from '@angular/common';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
 
+import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
+import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
 import { RunState } from '../../../core/runner/runner.model';
 import { PracticeService } from '../../../core/services/practice.service';
-import { figureStateFor } from '../../../core/practice/example-figure';
-import { TextRun, splitInlineCode } from '../../../core/practice/inline-code';
-import { reflowProse } from '../../../core/practice/reflow';
-import { splitStatement } from '../../../core/practice/statement-segments';
-import { GraphState, GridState } from '../../../core/models/algorithm.model';
-import { GraphVisualizerComponent } from '../../../shared/visualizers/graph-visualizer/graph-visualizer.component';
-import { GridVisualizerComponent } from '../../../shared/visualizers/grid-visualizer/grid-visualizer.component';
+import { ShowcaseService } from '../../../core/services/showcase.service';
+import { showcaseKey } from '../../../core/showcase/showcase-key';
 import { CodeEditorComponent } from '../code-editor/code-editor.component';
+import { PracticeDescriptionComponent } from '../practice-description/practice-description.component';
 import { injectPracticeContract } from '../practice-contract';
+import { CatalogueNeighbors, buildCatalogue, neighborsOf } from '../practice-catalogue';
+import { PracticeTab } from '../practice-route';
+import { SolutionWalkthroughComponent } from '../solution-walkthrough/solution-walkthrough.component';
 import { clearDraft, draftKey, loadDraft, saveDraft } from '../practice-draft';
 import { countPassed, toResultRow } from '../practice-results';
 import {
@@ -43,23 +45,9 @@ const COPY_FAIL_MARK = '✗';
 const POSITIVE_INTEGER = /^[1-9]\d*$/;
 const PERCENT = 100;
 
-/** One example case's input drawn as a diagram, captioned by its place among the examples. */
-export interface ExampleFigure {
-  readonly number: number;
-  readonly caption: string;
-  readonly state: GraphState | GridState;
-}
-
-/** One block of the statement card, in reading order: a segment's text with the diagram drawn
- *  right under it when the segment is that diagram's example, or (text null) a diagram whose
- *  `Example N:` the statement never names, captioned since no text names it. */
-export interface StatementBlock {
-  readonly text: string | null;
-  /** The text split into plain and inline-code runs; empty when there is no text. */
-  readonly runs: readonly TextRun[];
-  readonly figure: ExampleFigure | null;
-  readonly isCaptioned: boolean;
-}
+const DESCRIPTION_TAB: PracticeTab = 'description';
+const SOLUTION_TAB: PracticeTab = 'solution';
+const NO_NEIGHBORS: CatalogueNeighbors = { prev: null, next: null };
 
 /** The route's `:number` as a positive integer, or null (the not-found state). */
 function parseProblemNumber(raw: string | null): number | null {
@@ -73,12 +61,19 @@ function parseProblemNumber(raw: string | null): number | null {
   templateUrl: './practice-page.component.html',
   styleUrls: ['./practice-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CodeEditorComponent, GraphVisualizerComponent, GridVisualizerComponent],
+  imports: [
+    NgClass,
+    RouterLink,
+    CodeEditorComponent,
+    PracticeDescriptionComponent,
+    SolutionWalkthroughComponent,
+  ],
 })
 export class PracticePageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly practice = inject(PracticeService);
   private readonly runner = inject(PythonRunnerService);
+  private readonly showcase = inject(ShowcaseService);
   private readonly destroyRef = inject(DestroyRef);
 
   // A decorator query, not viewChild(): the signal-query helper is another runtime symbol
@@ -86,10 +81,11 @@ export class PracticePageComponent {
   @ViewChild('editor') private editor?: CodeEditorComponent;
 
   private readonly contract = injectPracticeContract();
-  private readonly numberParam = toSignal(
-    this.route.paramMap.pipe(map((params) => params.get('number'))),
-    { initialValue: this.route.snapshot.paramMap.get('number') },
-  );
+  private readonly params = toSignal(this.route.paramMap, {
+    initialValue: this.route.snapshot.paramMap,
+  });
+  private readonly numberParam = computed(() => this.params().get('number'));
+  private readonly tabParam = computed(() => this.params().get('tab'));
 
   readonly ref = this.contract.ref;
   readonly invalidSlug = this.contract.invalidSlug;
@@ -97,46 +93,56 @@ export class PracticePageComponent {
   readonly contractStatus = this.contract.status;
   readonly error = this.contract.error;
 
+  /** The contract's own message (bad slug or failed load), as the list page shows it. */
+  readonly contractMessage = computed(() => {
+    const invalid = this.invalidSlug();
+    if (invalid) return invalid;
+    return this.contractStatus() === 'error' ? this.error() : null;
+  });
+
+  readonly number = computed(() => parseProblemNumber(this.numberParam()));
+
+  /** The contract's problem for the number, once the contract is ready. */
   readonly problem = computed(() => {
-    const number = parseProblemNumber(this.numberParam());
+    const number = this.number();
     if (number === null || this.contractStatus() !== 'ready') return null;
     return this.practice.problemFor(number);
   });
 
-  /** A diagram per `example: true` case whose arguments fit the problem's `figure`, in case
-   *  order. Empty when the problem has no figure. */
-  readonly exampleFigures = computed<readonly ExampleFigure[]>(() => {
-    const problem = this.problem();
-    const figure = problem?.figure;
-    if (!problem || !figure) return [];
-    const examples = problem.cases.filter((c) => c.example);
-    return examples.flatMap((c, i) => {
-      const state = figureStateFor(figure, c.args);
-      return state ? [{ number: i + 1, caption: `Example ${i + 1}`, state }] : [];
-    });
+  /** The number's static algorithm, when `ALL_ALGORITHMS` has it: the Solution tab's source. */
+  readonly meta = computed(() => {
+    const number = this.number();
+    if (number === null) return null;
+    return ALL_ALGORITHMS.find((algorithm) => algorithm.lcNumber === number) ?? null;
   });
 
-  /** The statement's segments in order, each example carrying its own diagram; a diagram whose
-   *  `Example N:` the statement lacks follows the last segment, so none is dropped. */
-  readonly statementBlocks = computed<readonly StatementBlock[]>(() => {
-    const segments = splitStatement(this.problem()?.statement ?? '');
-    const placements = this.exampleFigures().map((figure) => ({
-      figure,
-      index: segments.findIndex((s) => s.exampleNumber === figure.number),
-    }));
-    const placed = segments.map((s, i) => {
-      const text = reflowProse(s.text);
-      return {
-        text,
-        runs: splitInlineCode(text),
-        figure: placements.find((p) => p.index === i)?.figure ?? null,
-        isCaptioned: false,
-      };
-    });
-    const unplaced = placements
-      .filter((p) => p.index < 0)
-      .map((p) => ({ text: null, runs: [], figure: p.figure, isCaptioned: true }));
-    return [...placed, ...unplaced];
+  /** Either source has the number, so the page can draw; a static-only number never waits for
+   *  the contract. */
+  readonly hasProblem = computed(() => this.problem() !== null || this.meta() !== null);
+
+  readonly activeTab = computed<PracticeTab>(() =>
+    this.tabParam() === SOLUTION_TAB && this.meta() !== null ? SOLUTION_TAB : DESCRIPTION_TAB,
+  );
+
+  /** The contract's title wins, as in the catalogue. */
+  readonly title = computed(() => this.problem()?.title ?? this.meta()?.title ?? '');
+  /** The contract's URL, else the showcase entry's for the first variant, else the number's. */
+  readonly titleUrl = computed(() =>
+    leetCodeUrlFor(this.problem()?.url ?? this.firstVariantEntryUrl(), this.meta()?.lcNumber),
+  );
+
+  private readonly firstVariantEntryUrl = computed(() => {
+    const meta = this.meta();
+    const variant = meta?.solutions[0];
+    if (!meta || !variant || !this.showcase.data()) return undefined;
+    return this.showcase.entryFor(showcaseKey(meta, variant))?.url;
+  });
+
+  readonly neighbors = computed(() => {
+    const number = this.number();
+    const problems = this.contractStatus() === 'ready' ? (this.practice.data()?.problems ?? []) : [];
+    if (number === null) return NO_NEIGHBORS;
+    return neighborsOf(buildCatalogue(ALL_ALGORITHMS, problems), number);
   });
 
   private readonly key = computed(() => {
@@ -191,6 +197,9 @@ export class PracticePageComponent {
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    // The title link may come from the showcase entry, so load it for the Description tab too.
+    // A no-op if already loaded/loading this session.
+    this.showcase.load();
     this.destroyRef.onDestroy(() => this.flushPendingSave());
     this.destroyRef.onDestroy(() => {
       if (this.copyTimer) clearTimeout(this.copyTimer);

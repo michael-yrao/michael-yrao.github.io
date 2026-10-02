@@ -196,7 +196,7 @@
                 <span class="bo-pill bo-pill--miss">On your miss ledger</span>
               }
               @if (vizLink(); as link) {
-                <a class="bo-link" [routerLink]="link">See #{{ q.lcNumber }} step by step →</a>
+                <a class="bo-link" [routerLink]="link" queryParamsHandling="preserve">See #{{ q.lcNumber }} step by step →</a>
               } @else if (leetCodeLink(); as lcLink) {
                 <a class="bo-link" [href]="lcLink" target="_blank" rel="noopener noreferrer"
                   >View on LeetCode →</a

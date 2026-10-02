@@ -21,8 +21,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    // Sits at the bar's left edge (space-between puts the ☰ at the right); the centre
-    // stays free for the absolutely-centred problem-context button.
+    // Sits at the bar's left edge (space-between puts the ☰ at the right).
     margin: 0;
     text-decoration: none;
     color: var(--color-text);
@@ -40,86 +39,6 @@
       font-style: normal;
       color: var(--color-accent);
     }
-  }
-
-  // On a phone the centred problem-context button would sit on top of the brand
-  // text, so the text yields to it (the mark alone still identifies the site).
-  $phone-width: 600px;
-  @media (max-width: $phone-width) {
-    &__inner:has(.po-nav__context) &__wordmark { display: none; }
-  }
-
-  // ── Problem context button (appears when scrolled past description) ──
-  &__context {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    white-space: nowrap;
-    animation: navCtxFadeIn 180ms ease both;
-    // Button reset
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 5px 10px;
-    border-radius: var(--radius-sm);
-    transition: background 150ms;
-
-    &:hover {
-      background: var(--hover-tint);
-    }
-
-    &.open {
-      background: var(--hover-tint-strong);
-    }
-  }
-
-  &__ctx-num {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--color-text-muted);
-  }
-
-  &__ctx-title {
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: var(--color-text);
-    letter-spacing: -0.01em;
-  }
-
-  &__ctx-chevron {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-    transition: transform 200ms ease;
-    display: inline-block;
-
-    &.open {
-      transform: rotate(90deg);
-    }
-  }
-
-  // ── Description popover ──────────────────────────────────────
-  &__popover {
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 560px;
-    max-width: calc(100vw - 32px);
-    background: rgba(var(--color-bg-rgb), 0.98);
-    border: 1px solid var(--color-border);
-    border-top: none;
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-    padding: var(--space-lg);
-    max-height: 65vh;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-border) transparent;
-    z-index: 101;
-    box-shadow: var(--shadow-strong);
-    animation: popoverIn 140ms ease both;
   }
 
   // ── Hamburger: opens the menu drawer, always visible (no breakpoint) ──
@@ -155,10 +74,6 @@
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-strong);
     z-index: 101;
-    // Same fade + rise feel as the description popover's `popoverIn`, at a
-    // left-aligned rest position rather than a centered one — reusing
-    // `popoverIn` verbatim would bake its translateX(-50%) into this panel's
-    // final frame (fill-mode `both`) and permanently shift it off its anchor.
     animation: drawerIn 140ms ease both;
   }
 
@@ -202,105 +117,6 @@
   position: fixed;
   inset: 0;
   z-index: 99;
-}
-
-// ── Popover content ──────────────────────────────────────────────
-.po-popover {
-  &__desc {
-    margin: 0 0 var(--space-md);
-    line-height: 1.7;
-    color: var(--color-text);
-    font-size: 0.9rem;
-  }
-
-  &__examples {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-md);
-  }
-
-  &__example {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-  }
-
-  &__ex-header {
-    padding: 5px var(--space-md);
-    background: var(--color-bg-raised);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
-  }
-
-  &__ex-body {
-    padding: var(--space-sm) var(--space-md);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    background: var(--color-bg-card);
-  }
-
-  &__ex-row {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-  }
-
-  &__ex-label {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
-    min-width: 48px;
-    flex-shrink: 0;
-  }
-
-  &__ex-code {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--color-accent);
-  }
-
-  &__ex-note {
-    font-size: 0.82rem;
-    color: var(--color-text-muted);
-    font-style: italic;
-  }
-
-  &__constraints {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-
-    li {
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      color: var(--color-text-muted);
-      background: var(--color-bg-raised);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      padding: 2px 9px;
-    }
-  }
-}
-
-@keyframes navCtxFadeIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-
-@keyframes popoverIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 @keyframes drawerIn {

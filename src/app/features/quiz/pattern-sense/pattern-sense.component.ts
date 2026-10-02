@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
+import { vizRouteFor } from '../../../core/data/viz-route';
 import { AlgorithmMeta, Category, CATEGORY_LABELS } from '../../../core/models/algorithm.model';
 import { RouterLink } from '@angular/router';
 import { NgClass } from '@angular/common';
@@ -87,6 +88,11 @@ export class PatternSenseComponent {
 
   get correctLabel(): string {
     return this.current ? CATEGORY_LABELS[this.current.category] : '';
+  }
+
+  /** The current problem's walkthrough route; null when the deck is empty. */
+  get solutionRoute(): string | null {
+    return vizRouteFor(this.current?.lcNumber);
   }
 
   get recognitionCue(): string {

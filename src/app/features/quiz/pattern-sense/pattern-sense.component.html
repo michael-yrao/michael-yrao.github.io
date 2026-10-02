@@ -46,10 +46,11 @@
         @if (!revealed) {
           Mystery problem — which technique does it call for?
         }
-        @if (revealed) {
+        @if (revealed && solutionRoute; as route) {
           <a
             class="ps-scenario__title-link"
-            [routerLink]="['/algorithms', current.category, current.id]"
+            [routerLink]="route"
+            queryParamsHandling="preserve"
           >#{{ current.lcNumber }} · {{ current.title }} →</a>
         }
       </div>
@@ -103,10 +104,13 @@
           }
         </div>
         <div class="ps-reveal__actions">
-          <a
-            class="ps-see-algo"
-            [routerLink]="['/algorithms', current.category, current.id]"
-          >See it step by step →</a>
+          @if (solutionRoute; as route) {
+            <a
+              class="ps-see-algo"
+              [routerLink]="route"
+              queryParamsHandling="preserve"
+            >See it step by step →</a>
+          }
           <button class="ps-next" (click)="next()">Next problem →</button>
         </div>
       </section>

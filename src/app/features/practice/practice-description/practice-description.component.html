@@ -1,0 +1,66 @@
+@if (hasStatement()) {
+  <div class="practice-description__statement">
+    @for (block of statementBlocks(); track $index) {
+      @if (block.text !== null) {
+        <div class="practice-description__segment">@for (run of block.runs; track $index) {@if (run.isCode) {<code class="practice-description__code">{{ run.text }}</code>} @else {{{ run.text }}}}</div>
+      }
+      @if (block.figure; as figure) {
+        <figure class="practice-description__figure">
+          @if (block.isCaptioned) {
+            <figcaption class="practice-description__figure-caption">{{ figure.caption }}</figcaption>
+          }
+          <div class="practice-description__figure-art">
+            @if (figure.state.type === 'graph') {
+              <app-graph-visualizer [state]="figure.state" />
+            } @else {
+              <app-grid-visualizer [state]="figure.state" />
+            }
+          </div>
+        </figure>
+      }
+    }
+  </div>
+} @else if (meta(); as algorithm) {
+  @if (algorithm.description) {
+    <section class="practice-description__section">
+      <p class="prob-description">{{ algorithm.description }}</p>
+      @if (algorithm.examples.length) {
+        <div class="prob-examples">
+          @for (ex of algorithm.examples; track ex; let i = $index) {
+            <div class="prob-example">
+              <div class="prob-example__header">Example {{ i + 1 }}</div>
+              <div class="prob-example__body">
+                <div class="prob-example__row">
+                  <span class="prob-example__label">Input</span>
+                  <code class="prob-example__code">{{ ex.input }}</code>
+                </div>
+                <div class="prob-example__row">
+                  <span class="prob-example__label">Output</span>
+                  <code class="prob-example__code">{{ ex.output }}</code>
+                </div>
+                @if (ex.explanation) {
+                  <div class="prob-example__row">
+                    <span class="prob-example__label">Why</span>
+                    <span class="prob-example__explanation">{{ ex.explanation }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+      @if (algorithm.constraints.length) {
+        <ul class="prob-constraints">
+          @for (c of algorithm.constraints; track c) {
+            <li>{{ c }}</li>
+          }
+        </ul>
+      }
+    </section>
+  }
+}
+@if (meta()?.hint; as hint) {
+  <section class="practice-description__section">
+    <app-hint-card [hint]="hint"></app-hint-card>
+  </section>
+}

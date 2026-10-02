@@ -1,5 +1,4 @@
 $value-max-height: 12rem;
-$statement-max-height: 18rem;
 $content-max-width: 60rem;
 // The nav bar's content width (.po-nav__inner), so the page lines up with the logo and the menu button.
 $page-max-width: 1280px;
@@ -8,8 +7,6 @@ $nav-height: 56px;
 $divider-width: 0.75rem;
 $divider-line-width: 2px;
 $output-max-height: 40%;
-$figure-max-width: 28rem;
-$figure-max-height: 14rem;
 
 .practice {
   display: flex;
@@ -69,7 +66,6 @@ $figure-max-height: 14rem;
 }
 .practice__num { margin-right: var(--space-sm); font-family: var(--font-mono); color: var(--color-text-muted); }
 
-.practice__statement,
 .practice__value {
   margin: 0;
   padding: var(--space-sm) var(--space-md);
@@ -80,46 +76,60 @@ $figure-max-height: 14rem;
   font-size: var(--text-sm);
   white-space: pre-wrap;
   overflow: auto;
-}
-.practice__statement { max-height: $statement-max-height; }
-.practice__value { max-height: $value-max-height; }
-
-// A block that ends in a line break would lose its last blank line (a trailing break at the
-// end of a block draws nothing). A zero-width character after it keeps that line.
-.practice__segment::after { content: '\200b'; }
-
-// An inline code span: a raised chip that adds no vertical size, so line height and wrapping hold.
-.practice__code {
-  padding: 0 var(--space-xs);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-raised);
-  color: var(--color-accent);
-  font: inherit;
+  max-height: $value-max-height;
 }
 
-// An example's input drawn inside the statement card, under its own example's text. The art
-// box caps the drawing so a small graph is not blown up to the pane's width.
-.practice__figure {
+.practice__header {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin: var(--space-sm) 0;
-  white-space: normal;
-}
-.practice__figure-caption {
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-}
-.practice__figure-art {
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
   width: 100%;
-  max-width: $figure-max-width;
-
-  // The visualizers carry their own roomy padding and a 300px tall canvas; tighten both here.
-  ::ng-deep .gv { padding: var(--space-md); }
-  ::ng-deep .gv__svg { max-height: $figure-max-height; }
+  max-width: $content-max-width;
+  margin-inline: auto;
 }
+.practice__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-md);
+}
+.practice__neighbor-nav {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.neighbor-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+
+  &:hover { border-color: var(--color-accent); color: var(--color-accent); text-decoration: none; }
+}
+
+// The left pane's Description | Solution switch.
+.practice__tabs {
+  display: flex;
+  gap: var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
+}
+.practice__tab {
+  padding: var(--space-xs) var(--space-md);
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+
+  &:hover { color: var(--color-text); text-decoration: none; }
+  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+}
+.practice__tab--active { border-bottom-color: var(--color-accent); color: var(--color-text); }
 
 .practice__toolbar {
   display: flex;
@@ -219,7 +229,11 @@ summary.practice__row-head { cursor: pointer; }
     grid-template-columns: minmax(0, var(--problem-track, 50fr)) $divider-width minmax(0, var(--work-track, 50fr));
     grid-template-rows: minmax(0, 1fr);
   }
+  // No editor to share the row with: the left pane takes the full width.
+  .practice__split--solo { grid-template-columns: minmax(0, 1fr); }
   .practice__split--dragging { user-select: none; }
+
+  .practice__header { max-width: none; }
 
   .practice__divider {
     display: block;
@@ -246,7 +260,9 @@ summary.practice__row-head { cursor: pointer; }
   .practice__problem,
   .practice__work { min-width: 0; }
   .practice__problem { overflow: auto; }
-  .practice__statement { max-height: none; flex: 0 0 auto; }
+  .practice__tabs,
+  app-practice-description,
+  app-solution-walkthrough { flex: 0 0 auto; }
 
   .practice__work { min-height: 0; }
   .practice__toolbar { flex: 0 0 auto; }

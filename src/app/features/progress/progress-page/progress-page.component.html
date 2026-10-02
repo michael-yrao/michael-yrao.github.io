@@ -38,6 +38,7 @@
       @if (walkthroughRoute(p); as route) {
         <a
           [routerLink]="route"
+          queryParamsHandling="preserve"
           class="problem__status problem__status--link"
           title="Solution walkthrough"
           [attr.aria-label]="'Solution walkthrough for #' + p.lcNumber"

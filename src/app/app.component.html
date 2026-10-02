@@ -15,19 +15,6 @@
       ☰
     </button>
 
-    @if (currentCtx(); as ctx) {
-      <button
-        class="po-nav__context"
-        [class.open]="isDescriptionOpen()"
-        (click)="toggleDescription($event)"
-        aria-label="Toggle problem description"
-        >
-        <span class="po-nav__ctx-num">#{{ ctx.num }}</span>
-        <span class="po-nav__ctx-title">{{ ctx.title }}</span>
-        <span class="po-nav__ctx-chevron" [class.open]="isDescriptionOpen()">›</span>
-      </button>
-    }
-
     <!-- Menu drawer: two sections — primary (Progress, Practice, Library, Events), secondary (Coach, Human) -->
     @if (isDrawerOpen()) {
       <div class="po-nav__drawer" id="po-nav-menu">
@@ -86,51 +73,10 @@
       </div>
     }
   </div>
-
-  <!-- Description popover, anchored below the nav -->
-  @if (isDescriptionOpen()) {
-    @if (currentCtx(); as ctx) {
-      <div class="po-nav__popover">
-        <p class="po-popover__desc">{{ ctx.description }}</p>
-        @if (ctx.examples.length) {
-          <div class="po-popover__examples">
-            @for (ex of ctx.examples; track ex; let i = $index) {
-              <div class="po-popover__example">
-                <div class="po-popover__ex-header">Example {{ i + 1 }}</div>
-                <div class="po-popover__ex-body">
-                  <div class="po-popover__ex-row">
-                    <span class="po-popover__ex-label">Input</span>
-                    <code class="po-popover__ex-code">{{ ex.input }}</code>
-                  </div>
-                  <div class="po-popover__ex-row">
-                    <span class="po-popover__ex-label">Output</span>
-                    <code class="po-popover__ex-code">{{ ex.output }}</code>
-                  </div>
-                  @if (ex.explanation) {
-                    <div class="po-popover__ex-row">
-                      <span class="po-popover__ex-label">Why</span>
-                      <span class="po-popover__ex-note">{{ ex.explanation }}</span>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        }
-        @if (ctx.constraints.length) {
-          <ul class="po-popover__constraints">
-            @for (c of ctx.constraints; track c) {
-              <li>{{ c }}</li>
-            }
-          </ul>
-        }
-      </div>
-    }
-  }
 </nav>
 
-<!-- Backdrop: closes popover/drawer on outside click -->
-@if (isBackdropVisible()) {
+<!-- Backdrop: closes the drawer on outside click -->
+@if (isDrawerOpen()) {
   <div class="po-nav__backdrop" (click)="closeAll()"></div>
 }
 

@@ -8,7 +8,7 @@ import {
   Technique,
   CHEAT_SHEETS_SCHEMA_VERSION,
 } from '../models/cheat-sheet.model';
-import { ALL_ALGORITHMS } from '../data/algorithms.data';
+import { vizRouteFor } from '../data/viz-route';
 import { GitHubFileService, RepoRef, parseRepoSlug } from './github-file.service';
 
 export type CheatSheetLoadStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -174,9 +174,9 @@ export class CheatSheetService {
   /** Resolves a `keyProblems` entry to this site's own visualizer route when `ALL_ALGORITHMS`
    *  has that LeetCode number, else to a best-effort LeetCode URL derived from the title. */
   resolveProblemLink(lcNumber: number, title: string): ProblemLink {
-    const algorithm = ALL_ALGORITHMS.find((a) => a.lcNumber === lcNumber);
-    if (algorithm) {
-      return { kind: 'internal', commands: ['/algorithms', algorithm.category, algorithm.id] };
+    const route = vizRouteFor(lcNumber);
+    if (route) {
+      return { kind: 'internal', commands: [route] };
     }
     return { kind: 'external', url: `https://leetcode.com/problems/${this.slugify(title)}/` };
   }

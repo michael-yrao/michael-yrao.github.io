@@ -193,6 +193,7 @@
             @if (walkthroughRoute(p); as route) {
               <a
                 [routerLink]="route"
+                queryParamsHandling="preserve"
                 class="tech-row__problem-status tech-row__problem-status--link"
                 title="Solution walkthrough"
                 [attr.aria-label]="'Solution walkthrough for #' + p.lcNumber"

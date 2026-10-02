@@ -16,7 +16,7 @@ const SKELETON_ROW_COUNT = 6;
 /**
  * The problem page's code panel: the showcase fetch's loading/error/ready states, the
  * Grounded/Ungrounded badge and attempt metadata, and the code viewer wired to the resolved
- * active step range. Purely presentational — the caller (problem-page) owns fetching and
+ * active step range. Purely presentational — the caller (solution walkthrough) owns fetching and
  * computing `entry`/`rows`/`groundedness`.
  */
 @Component({

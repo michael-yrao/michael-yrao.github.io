@@ -2,13 +2,6 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
-import { NavContextService, NavContextEntry } from './core/services/nav-context.service';
-
-// Standard fixture for the nav-context popover tests below — only the fields
-// the popover template and isDescriptionOpen actually read need real values.
-function makeCtx(num: number): NavContextEntry {
-  return { num, title: `Problem ${num}`, description: 'desc', examples: [], constraints: [] };
-}
 
 // A minimal routed target so clicking a real nav link (routerLink, not a
 // synthetic call) resolves instead of throwing NG04002 for an unmatched URL.
@@ -21,7 +14,6 @@ class BlankComponent {}
 
 describe('AppComponent', () => {
   let fixture: ComponentFixture<AppComponent>;
-  let navCtx: NavContextService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -29,7 +21,6 @@ describe('AppComponent', () => {
       providers: [provideRouter([{ path: '**', component: BlankComponent }])],
     });
     fixture = TestBed.createComponent(AppComponent);
-    navCtx = TestBed.inject(NavContextService);
   });
 
   it('should create the app', () => {
@@ -159,40 +150,6 @@ describe('AppComponent', () => {
       backdrop.click();
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
-    });
-  });
-
-  describe('Description popover', () => {
-    it('stays closed after ctx clears, even once a new ctx arrives', () => {
-      navCtx.set(makeCtx(1));
-      fixture.detectChanges();
-      const contextButton = fixture.nativeElement.querySelector('.po-nav__context') as HTMLButtonElement;
-      contextButton.click();
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__popover')).toBeTruthy();
-
-      navCtx.clear();
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__popover')).toBeFalsy();
-
-      // The bug: a plain "user asked for it" boolean survived the clear and
-      // reopened as soon as ANY ctx (even a different problem) arrived again.
-      navCtx.set(makeCtx(2));
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__popover')).toBeFalsy();
-    });
-
-    it('reopens for the same problem it was toggled open for', () => {
-      navCtx.set(makeCtx(1));
-      fixture.detectChanges();
-      const contextButton = fixture.nativeElement.querySelector('.po-nav__context') as HTMLButtonElement;
-      contextButton.click();
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__popover')).toBeTruthy();
-
-      contextButton.click();
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__popover')).toBeFalsy();
     });
   });
 });

@@ -97,7 +97,7 @@
             <div class="cs-problems">
               @for (p of keyProblems(); track $index) {
                 @if (p.link.kind === 'internal') {
-                  <a class="cs-problem" [routerLink]="p.link.commands">
+                  <a class="cs-problem" [routerLink]="p.link.commands" queryParamsHandling="preserve">
                     <span class="cs-problem__num">#{{ p.lcNumber }}</span>
                     <span class="cs-problem__title">{{ p.title }}</span>
                     <span class="cs-problem__arrow">→</span>

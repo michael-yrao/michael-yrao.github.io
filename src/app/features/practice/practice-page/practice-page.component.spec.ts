@@ -1,6 +1,6 @@
 import { Component, input, output, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 
@@ -9,6 +9,7 @@ import { PythonRunnerService } from '../../../core/runner/python-runner.service'
 import { RunState } from '../../../core/runner/runner.model';
 import { GOLD_STANDARD_REPO, LoadStatus } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
+import { ShowcaseService } from '../../../core/services/showcase.service';
 import { CodeEditorComponent } from '../code-editor/code-editor.component';
 import { PracticePageComponent } from './practice-page.component';
 
@@ -58,11 +59,15 @@ class StubEditorComponent {
   }
 }
 
-function makePracticeStub(problems: readonly PracticeProblem[]) {
+function makePracticeStub(
+  problems: readonly PracticeProblem[],
+  status: LoadStatus = 'ready',
+  error: string | null = null,
+) {
   const data: PracticeData = { schemaVersion: 1, generatedAt: '2026-10-01', problems };
   return {
-    status: signal<LoadStatus>('ready'),
-    error: signal<string | null>(null),
+    status: signal<LoadStatus>(status),
+    error: signal<string | null>(error),
     data: signal<PracticeData | null>(data),
     ref: signal(GOLD_STANDARD_REPO),
     load: vi.fn(),
@@ -70,13 +75,20 @@ function makePracticeStub(problems: readonly PracticeProblem[]) {
   };
 }
 
-function setUp(number: string, problems: readonly PracticeProblem[]) {
+function setUp(
+  number: string,
+  problems: readonly PracticeProblem[],
+  status: LoadStatus = 'ready',
+  error: string | null = null,
+) {
   const params = convertToParamMap({ number });
   const query = convertToParamMap({});
   TestBed.configureTestingModule({
     imports: [PracticePageComponent],
     providers: [
-      { provide: PracticeService, useValue: makePracticeStub(problems) },
+      provideRouter([]),
+      { provide: PracticeService, useValue: makePracticeStub(problems, status, error) },
+      { provide: ShowcaseService, useValue: { data: signal(null), load: vi.fn(), entryFor: () => null } },
       { provide: PythonRunnerService, useValue: { run: () => of(RUN_STATE) } },
       {
         provide: ActivatedRoute,
@@ -136,55 +148,37 @@ describe('PracticePageComponent', () => {
     expect(root.querySelector('.practice__summary')?.textContent?.trim()).toBe('1 / 2');
   });
 
-  it('draws each example diagram under its own example text, without a caption', () => {
-    const statement =
-      'Find the tree.\n\nExample 1:\n    Input: n = 2\n\nExample 2:\n    Input: n = 3\n\nConstraints:\n    n >= 1';
-    const problem: PracticeProblem = {
-      ...PROBLEM,
-      statement,
-      figure: { kind: 'graph', directed: false, edgesArg: 1, nodeCountArg: 0 },
-      cases: [
-        { args: [2, [[0, 1]]], expected: 1, example: true },
-        { args: [3, [[0, 1], [1, 2]]], expected: 2, example: true },
-      ],
-    };
-    const root: HTMLElement = setUp('90', [problem]).nativeElement;
+  const PANES: readonly {
+    readonly name: string;
+    readonly number: string;
+    readonly problems: readonly PracticeProblem[];
+    readonly hasSolutionTab: boolean;
+    readonly hasEditor: boolean;
+  }[] = [
+    { name: 'a contract-only problem', number: '90', problems: [PROBLEM], hasSolutionTab: false, hasEditor: true },
+    { name: 'a static-only problem', number: '1', problems: [], hasSolutionTab: true, hasEditor: false },
+    {
+      name: 'a problem in both sources',
+      number: '20',
+      problems: [{ ...PROBLEM, number: 20, title: 'Valid Parentheses' }],
+      hasSolutionTab: true,
+      hasEditor: true,
+    },
+  ];
 
-    const card = root.querySelector('.practice__statement')!;
-    const order = Array.from(card.children).map((child) =>
-      child.tagName === 'FIGURE' ? 'figure' : child.textContent?.trim().split('\n')[0],
-    );
-    expect(order).toEqual([
-      'Find the tree.',
-      'Example 1:',
-      'figure',
-      '',
-      'Example 2:',
-      'figure',
-      'Constraints:',
-    ]);
-    expect(card.querySelectorAll('app-graph-visualizer').length).toBe(2);
-    expect(root.querySelector('.practice__figure-caption')).toBeNull();
-  });
+  it.each(PANES)(
+    'on the default tab, $name has the Solution tab and editor pane it should, and no tag or complexity',
+    ({ number, problems, hasSolutionTab, hasEditor }) => {
+      const root: HTMLElement = setUp(number, problems).nativeElement;
 
-  it('draws a backtick-marked span as inline code with the backticks gone', () => {
-    const problem: PracticeProblem = { ...PROBLEM, statement: 'Given `nums`, return subsets.' };
-    const root: HTMLElement = setUp('90', [problem]).nativeElement;
-
-    expect(root.querySelector('code.practice__code')?.textContent).toBe('nums');
-    expect(root.querySelector('.practice__statement')?.textContent).not.toContain('`');
-  });
-
-  it('joins a hard-wrapped paragraph with a space and keeps an indented example line', () => {
-    const statement = 'Given an array\nof numbers, sum it.\n\nExample 1:\n    Input: n = 2';
-    const problem: PracticeProblem = { ...PROBLEM, statement };
-    const root: HTMLElement = setUp('90', [problem]).nativeElement;
-
-    const text = root.querySelector('.practice__statement')?.textContent ?? '';
-    expect(text).toContain('Given an array of numbers, sum it.');
-    expect(text).not.toContain('array\nof');
-    expect(text).toContain('Example 1:\n    Input: n = 2');
-  });
+      const tabs = Array.from(root.querySelectorAll('.practice__tab')).map((a) => a.textContent?.trim());
+      expect(tabs.includes('Solution')).toBe(hasSolutionTab);
+      expect(root.querySelector('app-code-editor') !== null).toBe(hasEditor);
+      expect(root.querySelector('.practice__divider') !== null).toBe(hasEditor);
+      expect(root.querySelector('.meta-tag')).toBeNull();
+      expect(root.querySelector('.complexity')).toBeNull();
+    },
+  );
 
   it('shows the not-found state and no editor for a number absent from the contract', () => {
     const fixture = setUp('91', [PROBLEM]);
@@ -194,6 +188,13 @@ describe('PracticePageComponent', () => {
       'No practice cases for #91 in michael-yrao/cse-progress.',
     );
     expect(root.querySelector('app-code-editor')).toBeNull();
+  });
+
+  it('shows the contract error above a static-only problem and still draws the page', () => {
+    const root: HTMLElement = setUp('1', [], 'error', 'Contract load failed').nativeElement;
+
+    expect(root.querySelector('.practice__message')?.textContent?.trim()).toBe('Contract load failed');
+    expect(root.querySelector('.practice__tab')).not.toBeNull();
   });
 
   it('Reset restores the stub in the editor and clears the stored draft', () => {

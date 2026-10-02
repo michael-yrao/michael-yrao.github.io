@@ -1,7 +1,9 @@
+@use '../../filter-chips' as chips;
+
 // The nav bar's content width (.po-nav__inner), so the page lines up with the logo and the menu button.
 $page-max-width: 1280px;
 $row-num-width: 64px;
-$skeleton-height: 12rem;
+$row-mark-width: 28px;
 
 .practice-list {
   max-width: $page-max-width;
@@ -15,20 +17,14 @@ $skeleton-height: 12rem;
 
 .practice-list__message { margin: 0; }
 
-.practice-list__skeleton {
-  height: $skeleton-height;
-  border-radius: var(--radius-md);
-  background: var(--color-bg-card);
-  animation: practice-list-pulse 1.2s ease-in-out infinite;
+.practice-list__count {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
-@keyframes practice-list-pulse {
-  50% { opacity: 0.5; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .practice-list__skeleton { animation: none; }
-}
+@include chips.filter-chips;
 
 .practice-list__rows {
   display: flex;
@@ -41,7 +37,7 @@ $skeleton-height: 12rem;
 
 .practice-list__row {
   display: grid;
-  grid-template-columns: $row-num-width 1fr;
+  grid-template-columns: $row-num-width 1fr auto $row-mark-width $row-mark-width;
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
@@ -60,7 +56,49 @@ $skeleton-height: 12rem;
   color: var(--color-text-muted);
 }
 
+.practice-list__title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
 .practice-list__title {
   font-size: 0.95rem;
   font-weight: 500;
+}
+
+.practice-list__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.practice-list__cat {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  margin-right: var(--space-xs);
+}
+
+.practice-list__tag {
+  padding: 1px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.practice-list__diff { white-space: nowrap; }
+
+.practice-list__mark {
+  text-align: center;
+  color: var(--color-accent);
+  font-size: 0.9rem;
+
+  &--run { font-family: var(--font-mono); }
 }

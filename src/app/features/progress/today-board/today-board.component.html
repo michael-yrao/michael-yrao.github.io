@@ -11,6 +11,7 @@
     @if (walkthroughRoute(item); as route) {
       <a
         [routerLink]="route"
+        queryParamsHandling="preserve"
         class="today-board__status today-board__status--link"
         title="Solution walkthrough"
         [attr.aria-label]="statusAriaLabel(item)"
