@@ -17,11 +17,7 @@
   &__photo {
     width: 160px;
     height: 160px;
-    border-radius: 50%;
-    object-fit: cover;
-    object-position: center top;
     flex-shrink: 0;
-    border: 2px solid var(--color-border);
   }
 
   &__text {

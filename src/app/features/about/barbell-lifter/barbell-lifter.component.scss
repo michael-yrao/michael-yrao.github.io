@@ -1,0 +1,151 @@
+:host {
+  display: block;
+}
+
+.lifter {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  display: block;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--color-bg-card);
+  border: 2px solid var(--color-border);
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-accent);
+  }
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.body,
+.bar,
+.mouth {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.body,
+.bar {
+  stroke-width: 4;
+}
+
+.mouth {
+  stroke-width: 2;
+}
+
+.bar {
+  transition: d 0.25s ease-out;
+}
+
+.head {
+  fill: var(--color-bg-card);
+  stroke: var(--color-text);
+  stroke-width: 3;
+}
+
+.eye {
+  fill: var(--color-text);
+}
+
+.sweat {
+  fill: var(--color-accent);
+}
+
+.squat {
+  transition: transform 0.25s ease-out;
+}
+
+.bob {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+.plate {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: y 0.25s ease-out;
+  animation: pop-in 0.2s ease-out;
+}
+
+.plate--0,
+.spill__plate--0 {
+  fill: var(--color-easy);
+}
+
+.plate--1,
+.spill__plate--1 {
+  fill: var(--color-medium);
+}
+
+.plate--2,
+.spill__plate--2 {
+  fill: var(--color-hard);
+}
+
+.plate--3,
+.spill__plate--3 {
+  fill: var(--color-trophy);
+}
+
+.spill {
+  animation: spill 0.7s ease-in forwards;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes spill {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(60px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bob,
+  .plate,
+  .spill {
+    animation: none;
+  }
+
+  .bar,
+  .squat,
+  .plate {
+    transition: none;
+  }
+
+  .spill {
+    display: none;
+  }
+}

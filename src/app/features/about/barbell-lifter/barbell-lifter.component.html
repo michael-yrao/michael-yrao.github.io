@@ -1,0 +1,51 @@
+<button type="button" class="lifter" aria-label="Add a plate to the barbell" (click)="onLift()">
+  <svg viewBox="0 0 160 160" aria-hidden="true" focusable="false">
+    <g class="bob">
+      <g class="squat" [style.transform]="squatTransform()">
+        <g class="body">
+          <line x1="80" y1="81" x2="80" y2="108" />
+          <line x1="80" y1="108" x2="68" y2="140" />
+          <line x1="80" y1="108" x2="92" y2="140" />
+          <line x1="80" y1="86" [attr.x2]="leftHandX" [attr.y2]="barY" />
+          <line x1="80" y1="86" [attr.x2]="rightHandX" [attr.y2]="barY" />
+        </g>
+        <circle class="head" cx="80" cy="68" r="13" />
+        <circle class="eye" cx="75" cy="66" r="2" />
+        <circle class="eye" cx="85" cy="66" r="2" />
+        @if (isStraining()) {
+          <path class="mouth" d="M73 75 L76.5 72.5 L80 75 L83.5 72.5 L87 75" />
+          <path class="sweat" d="M98 56 Q103 62 98 66 Q93 62 98 56 Z" />
+        } @else {
+          <line class="mouth" x1="74" y1="74" x2="86" y2="74" />
+        }
+        <path class="bar" [attr.d]="barPath()" />
+        @for (plate of plates(); track plate.key) {
+          <rect
+            class="plate plate--{{ plate.index }}"
+            [attr.x]="plate.x"
+            [attr.y]="plate.y"
+            [attr.width]="plateWidth"
+            [attr.height]="plateHeight"
+            rx="1.5"
+          />
+        }
+      </g>
+      @if (state().isSpilling) {
+        <g [style.transform]="spillTransform">
+          <g class="spill" (animationend)="onSpillEnd()">
+            @for (plate of spillPlates; track plate.key) {
+              <rect
+                class="spill__plate spill__plate--{{ plate.index }}"
+                [attr.x]="plate.x"
+                [attr.y]="plate.y"
+                [attr.width]="plateWidth"
+                [attr.height]="plateHeight"
+                rx="1.5"
+              />
+            }
+          </g>
+        </g>
+      }
+    </g>
+  </svg>
+</button>
