@@ -14,6 +14,7 @@ import { PracticePageComponent } from './practice-page.component';
 
 const STUB = 'class Solution:\n    pass\n';
 const DRAFT_KEY = 'po-practice-draft:michael-yrao/cse-progress:90';
+const SPLIT_KEY = 'po-practice-split';
 
 const PROBLEM: PracticeProblem = {
   number: 90,
@@ -107,8 +108,12 @@ describe('PracticePageComponent', () => {
   beforeEach(() => {
     setTextSpy.mockClear();
     localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(SPLIT_KEY);
   });
-  afterEach(() => localStorage.removeItem(DRAFT_KEY));
+  afterEach(() => {
+    localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(SPLIT_KEY);
+  });
 
   it('draws every case as an expandable row: a pass shows Input / Expected / Got / stdout, a fail Input / Expected / Got', () => {
     const fixture = setUp('90', [PROBLEM]);
@@ -188,5 +193,22 @@ describe('PracticePageComponent', () => {
 
     expect(setTextSpy).toHaveBeenCalledWith(STUB);
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('ArrowRight on the divider widens the problem pane by one step and stores it; a double-click resets to 50', () => {
+    const fixture = setUp('90', [PROBLEM]);
+    const divider: HTMLElement = fixture.nativeElement.querySelector('.practice__divider');
+
+    divider.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    fixture.detectChanges();
+
+    expect(divider.getAttribute('aria-valuenow')).toBe('52');
+    expect(localStorage.getItem(SPLIT_KEY)).toBe('0.52');
+
+    divider.dispatchEvent(new MouseEvent('dblclick'));
+    fixture.detectChanges();
+
+    expect(divider.getAttribute('aria-valuenow')).toBe('50');
+    expect(localStorage.getItem(SPLIT_KEY)).toBe('0.5');
   });
 });

@@ -24,12 +24,23 @@ import { CodeEditorComponent } from '../code-editor/code-editor.component';
 import { injectPracticeContract } from '../practice-contract';
 import { clearDraft, draftKey, loadDraft, saveDraft } from '../practice-draft';
 import { countPassed, toResultRow } from '../practice-results';
+import {
+  DEFAULT_PROBLEM_SHARE,
+  KEYBOARD_STEP,
+  MAX_PROBLEM_SHARE,
+  MIN_PROBLEM_SHARE,
+  clampShare,
+  loadShare,
+  saveShare,
+  shareFromPointer,
+} from '../practice-split';
 
 const DRAFT_SAVE_DELAY_MS = 500;
 const COPY_FEEDBACK_MS = 1500;
 const COPY_OK_MARK = '✓';
 const COPY_FAIL_MARK = '✗';
 const POSITIVE_INTEGER = /^[1-9]\d*$/;
+const PERCENT = 100;
 
 /** One example case's input drawn as a diagram, captioned by its place among the examples. */
 export interface ExampleFigure {
@@ -161,6 +172,16 @@ export class PracticePageComponent {
   readonly passedCount = computed(() => countPassed(this.runState()?.results ?? []));
   readonly copyMark = signal<string | null>(null);
 
+  /** The left pane's fraction of the split's width, read once from the viewer's saved value. */
+  readonly problemShare = signal(loadShare());
+  readonly isDragging = signal(false);
+  readonly minPercent = MIN_PROBLEM_SHARE * PERCENT;
+  readonly maxPercent = MAX_PROBLEM_SHARE * PERCENT;
+  readonly sharePercent = computed(() => Math.round(this.problemShare() * PERCENT));
+  /** Grid track sizes in percent weights, which always sum to at least 1fr. */
+  readonly problemTrack = computed(() => `${this.problemShare() * PERCENT}fr`);
+  readonly workTrack = computed(() => `${(1 - this.problemShare()) * PERCENT}fr`);
+
   private runSubscription: Subscription | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
@@ -216,6 +237,43 @@ export class PracticePageComponent {
       return;
     }
     navigator.clipboard.writeText(this.text()).then(() => this.showCopyMark(COPY_OK_MARK), failCopy);
+  }
+
+  startDrag(event: PointerEvent): void {
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    event.preventDefault();
+    this.isDragging.set(true);
+  }
+
+  drag(event: PointerEvent): void {
+    if (!this.isDragging()) return;
+    const split = (event.currentTarget as HTMLElement).parentElement;
+    if (!split) return;
+    const { left, width } = split.getBoundingClientRect();
+    this.problemShare.set(shareFromPointer(event.clientX, left, width));
+  }
+
+  endDrag(): void {
+    if (!this.isDragging()) return;
+    this.isDragging.set(false);
+    saveShare(this.problemShare());
+  }
+
+  onDividerKey(event: KeyboardEvent): void {
+    const direction = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
+    if (direction === 0) return;
+    event.preventDefault();
+    this.setShare(this.problemShare() + direction * KEYBOARD_STEP);
+  }
+
+  resetShare(): void {
+    this.setShare(DEFAULT_PROBLEM_SHARE);
+  }
+
+  private setShare(share: number): void {
+    const next = clampShare(share);
+    this.problemShare.set(next);
+    saveShare(next);
   }
 
   private showCopyMark(mark: string): void {

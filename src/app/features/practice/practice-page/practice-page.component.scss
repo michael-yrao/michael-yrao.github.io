@@ -5,8 +5,8 @@ $content-max-width: 60rem;
 $page-max-width: 1280px;
 $split-breakpoint: 900px;
 $nav-height: 56px;
-$problem-pane-fraction: 1fr;
-$work-pane-fraction: 1fr;
+$divider-width: 0.75rem;
+$divider-line-width: 2px;
 $output-max-height: 40%;
 $figure-max-width: 28rem;
 $figure-max-height: 14rem;
@@ -44,6 +44,8 @@ $figure-max-height: 14rem;
 .practice__problem,
 .practice__work,
 .practice__output { max-width: none; margin-inline: 0; }
+
+.practice__divider { display: none; }
 
 .practice__skeleton {
   height: 12rem;
@@ -212,10 +214,37 @@ summary.practice__row-head { cursor: pointer; }
     min-height: 0;
     max-width: none;
     display: grid;
-    grid-template-columns: $problem-pane-fraction $work-pane-fraction;
+    // minmax(0, …) tracks: a pane's content (a long editor line) can never widen its track.
+    // The track weights come from the template's --problem-track / --work-track bindings.
+    grid-template-columns: minmax(0, var(--problem-track, 50fr)) $divider-width minmax(0, var(--work-track, 50fr));
     grid-template-rows: minmax(0, 1fr);
   }
+  .practice__split--dragging { user-select: none; }
 
+  .practice__divider {
+    display: block;
+    position: relative;
+    cursor: col-resize;
+    touch-action: none;
+    outline: none;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset-block: 0;
+      left: 50%;
+      width: $divider-line-width;
+      transform: translateX(-50%);
+      background: var(--color-border);
+      transition: background var(--transition-fast);
+    }
+    &:hover::before,
+    &:focus-visible::before,
+    .practice__split--dragging &::before { background: var(--color-accent); }
+  }
+
+  .practice__problem,
+  .practice__work { min-width: 0; }
   .practice__problem { overflow: auto; }
   .practice__statement { max-height: none; flex: 0 0 auto; }
 
