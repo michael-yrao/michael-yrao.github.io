@@ -16,6 +16,7 @@ import { RunState } from '../../../core/runner/runner.model';
 import { PracticeService } from '../../../core/services/practice.service';
 import { figureStateFor } from '../../../core/practice/example-figure';
 import { TextRun, splitInlineCode } from '../../../core/practice/inline-code';
+import { reflowProse } from '../../../core/practice/reflow';
 import { splitStatement } from '../../../core/practice/statement-segments';
 import { GraphState, GridState } from '../../../core/models/algorithm.model';
 import { GraphVisualizerComponent } from '../../../shared/visualizers/graph-visualizer/graph-visualizer.component';
@@ -123,12 +124,15 @@ export class PracticePageComponent {
       figure,
       index: segments.findIndex((s) => s.exampleNumber === figure.number),
     }));
-    const placed = segments.map((s, i) => ({
-      text: s.text,
-      runs: splitInlineCode(s.text),
-      figure: placements.find((p) => p.index === i)?.figure ?? null,
-      isCaptioned: false,
-    }));
+    const placed = segments.map((s, i) => {
+      const text = reflowProse(s.text);
+      return {
+        text,
+        runs: splitInlineCode(text),
+        figure: placements.find((p) => p.index === i)?.figure ?? null,
+        isCaptioned: false,
+      };
+    });
     const unplaced = placements
       .filter((p) => p.index < 0)
       .map((p) => ({ text: null, runs: [], figure: p.figure, isCaptioned: true }));

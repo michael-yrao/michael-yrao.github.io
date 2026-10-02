@@ -175,6 +175,17 @@ describe('PracticePageComponent', () => {
     expect(root.querySelector('.practice__statement')?.textContent).not.toContain('`');
   });
 
+  it('joins a hard-wrapped paragraph with a space and keeps an indented example line', () => {
+    const statement = 'Given an array\nof numbers, sum it.\n\nExample 1:\n    Input: n = 2';
+    const problem: PracticeProblem = { ...PROBLEM, statement };
+    const root: HTMLElement = setUp('90', [problem]).nativeElement;
+
+    const text = root.querySelector('.practice__statement')?.textContent ?? '';
+    expect(text).toContain('Given an array of numbers, sum it.');
+    expect(text).not.toContain('array\nof');
+    expect(text).toContain('Example 1:\n    Input: n = 2');
+  });
+
   it('shows the not-found state and no editor for a number absent from the contract', () => {
     const fixture = setUp('91', [PROBLEM]);
     const root: HTMLElement = fixture.nativeElement;
