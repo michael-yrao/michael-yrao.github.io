@@ -130,8 +130,6 @@ export const redundantConnectionMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['Union Find'],
-  timeComplexity: 'O(n · α(n))',
-  spaceComplexity: 'O(n)',
   description: 'Given a graph that started as a tree with one extra edge added, find and return the redundant edge. If multiple answers exist, return the last one in the input.',
   examples: [
     {
@@ -155,6 +153,6 @@ export const redundantConnectionMeta: AlgorithmMeta = {
   ],
   hint: "Process edges one by one with Union Find. The first edge whose two endpoints share the same root creates the cycle — that's the redundant edge.",
   solutions: [
-    { label: 'Union Find', variant: 'union-find', generateSteps },
+    { label: 'Union Find', variant: 'union-find', generateSteps, timeComplexity: 'O(n · α(n))', spaceComplexity: 'O(n)' },
   ],
 };

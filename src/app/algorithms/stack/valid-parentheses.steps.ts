@@ -250,12 +250,16 @@ const stackSolution: SolutionVariant = {
   label: 'Stack',
   variant: 'stack',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
 };
 
 const stackSetSolution: SolutionVariant = {
   label: 'Stack + Set',
   variant: 'stack-set',
   generateSteps: generateSetSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
 };
 
 export const validParenthesesMeta: AlgorithmMeta = {
@@ -265,8 +269,6 @@ export const validParenthesesMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'stack',
   tags: ['Stack', 'String'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given a string s containing only the characters \'(\', \')\', \'{\', \'}\', \'[\' and \']\', determine if the string is valid. A string is valid if every open bracket is closed by the same bracket type, in the correct order.',
   examples: [

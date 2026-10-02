@@ -199,6 +199,8 @@ const solution: SolutionVariant = {
   label: 'Two Pointer Alternating Merge',
   variant: 'alternating',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
 };
 
 export const mergeStringsAlternatelyMeta: AlgorithmMeta = {
@@ -208,8 +210,6 @@ export const mergeStringsAlternatelyMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'two-pointers',
   tags: ['Two Pointers', 'String'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given two strings word1 and word2, merge them by adding letters in alternating order starting with word1. If one string is longer, append its remaining letters to the end of the merged string.',
   examples: [

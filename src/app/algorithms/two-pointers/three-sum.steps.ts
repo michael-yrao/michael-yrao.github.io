@@ -169,6 +169,8 @@ const solution: SolutionVariant = {
   label: 'Sort + Two Pointers',
   variant: 'sort-two-pointers',
   generateSteps,
+  timeComplexity: 'O(n²)',
+  spaceComplexity: 'O(n)',
 };
 
 export const threeSumMeta: AlgorithmMeta = {
@@ -178,8 +180,6 @@ export const threeSumMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'two-pointers',
   tags: ['Array', 'Two Pointers', 'Sorting'],
-  timeComplexity: 'O(n²)',
-  spaceComplexity: 'O(n)',
   description:
     'Given an integer array nums, return all the triplets [nums[i], nums[j], nums[k]] such that i, j, and k are distinct indices, nums[i] + nums[j] + nums[k] == 0, and the solution set contains no duplicate triplets.',
   examples: [

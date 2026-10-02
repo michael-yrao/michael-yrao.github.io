@@ -198,8 +198,6 @@ export const pacificAtlanticWaterFlowMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['DFS', 'BFS', 'Matrix'],
-  timeComplexity: 'O(m × n)',
-  spaceComplexity: 'O(m × n)',
   description:
     'There is an m × n rectangular island that borders both the Pacific Ocean (top and left edges) and the Atlantic Ocean (bottom and right edges). Rain water flows to neighboring cells with height ≤ current height, and can flow off the island edges into the ocean. Return a list of grid coordinates where water can flow to both the Pacific and Atlantic oceans.',
   examples: [
@@ -226,6 +224,8 @@ export const pacificAtlanticWaterFlowMeta: AlgorithmMeta = {
       label: 'DFS (Reverse)',
       variant: 'reverse-dfs',
       generateSteps: generateDfsSteps,
+      timeComplexity: 'O(m × n)',
+      spaceComplexity: 'O(m × n)',
     },
   ],
 };

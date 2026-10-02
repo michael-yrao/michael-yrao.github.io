@@ -147,8 +147,8 @@ export interface SolutionVariant {
   /** Kebab-case approach id; joins to the showcase entry via `${lcNumber}:${variant}`. */
   variant: string;
   generateSteps: () => Step[];
-  timeComplexity?: string;
-  spaceComplexity?: string;
+  timeComplexity: string;
+  spaceComplexity: string;
 }
 
 export interface AlgorithmMeta {
@@ -158,8 +158,6 @@ export interface AlgorithmMeta {
   difficulty: Difficulty;
   category: Category;
   tags: string[];
-  timeComplexity: string;
-  spaceComplexity: string;
   description: string;
   examples: ProblemExample[];
   constraints: string[];

@@ -128,8 +128,6 @@ export const diameterOfBinaryTreeMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'trees',
   tags: ['Tree', 'DFS'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(h)',
   description: 'Given the root of a binary tree, return the length of the diameter of the tree. The diameter is the length of the longest path between any two nodes — this path may or may not pass through the root.',
   examples: [
     {
@@ -148,6 +146,8 @@ export const diameterOfBinaryTreeMeta: AlgorithmMeta = {
       label: 'Postorder DFS',
       variant: 'postorder',
       generateSteps,
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(h)',
     },
   ],
 };

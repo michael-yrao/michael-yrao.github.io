@@ -127,8 +127,6 @@ export const binaryTreeRightSideViewMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'trees',
   tags: ['Tree', 'BFS', 'Queue', 'DFS'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description: 'Given the root of a binary tree, imagine yourself standing on the right side of it. Return the values of the nodes you can see ordered from top to bottom.',
   examples: [
     {
@@ -151,6 +149,8 @@ export const binaryTreeRightSideViewMeta: AlgorithmMeta = {
       label: 'BFS (level-by-level, take last of each level)',
       variant: 'bfs-last',
       generateSteps,
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(n)',
     },
   ],
 };

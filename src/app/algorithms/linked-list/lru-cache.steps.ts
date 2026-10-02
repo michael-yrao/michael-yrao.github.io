@@ -173,8 +173,6 @@ export const lruCacheMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'linked-list',
   tags: ['Hash Table', 'Linked List', 'Design', 'Doubly-Linked List'],
-  timeComplexity: 'O(1)',
-  spaceComplexity: 'O(capacity)',
   description:
     'Design a Least Recently Used (LRU) cache with a fixed capacity. get(key) returns the value or -1; put(key, value) inserts/updates and evicts the least-recently-used key when over capacity. Both must run in O(1) average time.',
   examples: [

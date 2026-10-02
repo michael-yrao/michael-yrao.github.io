@@ -115,6 +115,8 @@ const solution: SolutionVariant = {
   label: 'Carry Propagation',
   variant: 'carry',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const plusOneMeta: AlgorithmMeta = {
@@ -124,8 +126,6 @@ export const plusOneMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'arrays-hash',
   tags: ['Array', 'Math'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'You are given a large integer represented as an integer array digits, where each digits[i] is the i-th digit of the integer. Increment the large integer by one and return the resulting array of digits.',
   examples: [

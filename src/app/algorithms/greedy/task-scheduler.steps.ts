@@ -327,8 +327,6 @@ export const taskSchedulerMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'greedy',
   tags: ['Array', 'Hash Table', 'Greedy', 'Heap', 'Counting'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given CPU tasks labeled A–Z and a cooldown n, each interval runs one task or idles. Two identical tasks must be at least n intervals apart. Return the minimum number of intervals to finish all tasks.',
   examples: [

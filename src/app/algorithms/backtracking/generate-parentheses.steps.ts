@@ -18,8 +18,6 @@ export const generateParenthesesMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'backtracking',
   tags: ['Backtracking', 'String', 'Recursion'],
-  timeComplexity: 'O(4ⁿ / √n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given n pairs of parentheses, generate all combinations of well-formed (valid) parentheses.',
   examples: [

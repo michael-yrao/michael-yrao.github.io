@@ -10,8 +10,6 @@ export const largestRectangleInHistogramMeta: AlgorithmMeta = {
   difficulty: 'Hard',
   category: 'stack',
   tags: ['Stack', 'Monotonic Stack', 'Array'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given an array heights where heights[i] is the height of a histogram bar of width 1, return the area of the largest rectangle that fits entirely within the histogram.',
   examples: [

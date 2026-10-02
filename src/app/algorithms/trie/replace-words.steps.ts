@@ -10,8 +10,6 @@ export const replaceWordsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'trie',
   tags: ['Trie', 'String', 'Hash Map'],
-  timeComplexity: 'O(D + S)',
-  spaceComplexity: 'O(D)',
   description:
     'Given a dictionary of word roots and a sentence, replace every word in the sentence that has one of the roots as a prefix with that root (the shortest one, if more than one matches), and return the resulting sentence.',
   examples: [

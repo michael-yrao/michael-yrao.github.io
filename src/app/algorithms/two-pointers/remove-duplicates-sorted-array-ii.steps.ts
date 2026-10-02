@@ -118,6 +118,8 @@ const solution: SolutionVariant = {
   label: 'Two Pointers',
   variant: 'two-pointers',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const removeDuplicatesSortedArrayIIMeta: AlgorithmMeta = {
@@ -127,8 +129,6 @@ export const removeDuplicatesSortedArrayIIMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'two-pointers',
   tags: ['Array', 'Two Pointers'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given an integer array nums sorted in non-decreasing order, remove some duplicates in-place such that each unique element appears at most twice. Return k, the number of elements in the modified prefix.',
   examples: [

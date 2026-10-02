@@ -10,8 +10,6 @@ export const partitionLabelsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'greedy',
   tags: ['Greedy', 'Hash Map', 'String'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given a string s, partition it into as many parts as possible so that each letter appears in at most one part, and return the size of each part (concatenating the parts in order reproduces s).',
   examples: [

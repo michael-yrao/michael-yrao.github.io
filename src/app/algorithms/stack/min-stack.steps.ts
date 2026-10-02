@@ -10,8 +10,6 @@ export const minStackMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'stack',
   tags: ['Stack', 'Design'],
-  timeComplexity: 'O(1) per operation',
-  spaceComplexity: 'O(n)',
   description:
     'Design a stack supporting push, pop, top, and getMin — each operation must run in O(1) time.',
   examples: [

@@ -129,8 +129,6 @@ export const balancedBinaryTreeMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'trees',
   tags: ['Tree', 'DFS', 'Recursion'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(h)',
   description: 'Given a binary tree, determine if it is height-balanced. A height-balanced binary tree is one in which the depth of the two subtrees of every node never differs by more than one.',
   examples: [
     {
@@ -149,6 +147,8 @@ export const balancedBinaryTreeMeta: AlgorithmMeta = {
       label: 'Postorder DFS',
       variant: 'postorder',
       generateSteps,
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(h)',
     },
   ],
 };

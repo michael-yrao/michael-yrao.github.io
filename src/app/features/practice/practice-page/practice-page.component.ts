@@ -23,8 +23,11 @@ import { CodeEditorComponent } from '../code-editor/code-editor.component';
 import { PracticeDescriptionComponent } from '../practice-description/practice-description.component';
 import { injectPracticeContract } from '../practice-contract';
 import { CatalogueNeighbors, buildCatalogue, neighborsOf } from '../practice-catalogue';
-import { PracticeTab } from '../practice-route';
-import { SolutionWalkthroughComponent } from '../solution-walkthrough/solution-walkthrough.component';
+import { PracticeTab, WALKTHROUGH_TABS } from '../practice-route';
+import { SolutionCodeComponent } from '../solution-code/solution-code.component';
+import { StepVisualizerComponent } from '../step-visualizer/step-visualizer.component';
+import { VariantBarComponent } from '../variant-bar/variant-bar.component';
+import { WalkthroughStateService } from '../walkthrough-state.service';
 import { clearDraft, draftKey, loadDraft, saveDraft } from '../practice-draft';
 import { countPassed, toResultRow } from '../practice-results';
 import {
@@ -46,7 +49,6 @@ const POSITIVE_INTEGER = /^[1-9]\d*$/;
 const PERCENT = 100;
 
 const DESCRIPTION_TAB: PracticeTab = 'description';
-const SOLUTION_TAB: PracticeTab = 'solution';
 const NO_NEIGHBORS: CatalogueNeighbors = { prev: null, next: null };
 
 /** The route's `:number` as a positive integer, or null (the not-found state). */
@@ -66,8 +68,11 @@ function parseProblemNumber(raw: string | null): number | null {
     RouterLink,
     CodeEditorComponent,
     PracticeDescriptionComponent,
-    SolutionWalkthroughComponent,
+    VariantBarComponent,
+    StepVisualizerComponent,
+    SolutionCodeComponent,
   ],
+  providers: [WalkthroughStateService],
 })
 export class PracticePageComponent {
   private readonly route = inject(ActivatedRoute);
@@ -109,7 +114,7 @@ export class PracticePageComponent {
     return this.practice.problemFor(number);
   });
 
-  /** The number's static algorithm, when `ALL_ALGORITHMS` has it: the Solution tab's source. */
+  /** The number's static algorithm, when `ALL_ALGORITHMS` has it: the Visualizer and Code tabs' source. */
   readonly meta = computed(() => {
     const number = this.number();
     if (number === null) return null;
@@ -120,9 +125,10 @@ export class PracticePageComponent {
    *  the contract. */
   readonly hasProblem = computed(() => this.problem() !== null || this.meta() !== null);
 
-  readonly activeTab = computed<PracticeTab>(() =>
-    this.tabParam() === SOLUTION_TAB && this.meta() !== null ? SOLUTION_TAB : DESCRIPTION_TAB,
-  );
+  readonly activeTab = computed<PracticeTab>(() => {
+    const tab = WALKTHROUGH_TABS.find((candidate) => candidate === this.tabParam());
+    return tab !== undefined && this.meta() !== null ? tab : DESCRIPTION_TAB;
+  });
 
   /** The contract's title wins, as in the catalogue. */
   readonly title = computed(() => this.problem()?.title ?? this.meta()?.title ?? '');
@@ -197,7 +203,10 @@ export class PracticePageComponent {
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    // The title link may come from the showcase entry, so load it for the Description tab too.
+    inject(WalkthroughStateService).connect(this.meta);
+    // The title link and the Code tab both read the showcase, so load it for every tab.
+    // Gold-standard only — the walkthrough never reads `?repo=` (a step generator is a
+    // hand-written trace of one specific attempt, so it cannot follow anyone else's code).
     // A no-op if already loaded/loading this session.
     this.showcase.load();
     this.destroyRef.onDestroy(() => this.flushPendingSave());

@@ -216,12 +216,16 @@ const twoPointerSolution: SolutionVariant = {
   label: 'Clean Then Scan',
   variant: 'clean-then-scan',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
 };
 
 const noCleaningSolution: SolutionVariant = {
   label: 'No Cleaning',
   variant: 'no-cleaning',
   generateSteps: generateNoCleaningSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const validPalindromeMeta: AlgorithmMeta = {
@@ -231,8 +235,6 @@ export const validPalindromeMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'two-pointers',
   tags: ['Two Pointers', 'String'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'A phrase is a palindrome if, after converting all uppercase letters to lowercase and removing all non-alphanumeric characters, it reads the same forward and backward. Given a string s, return true if it is a palindrome, or false otherwise.',
   examples: [

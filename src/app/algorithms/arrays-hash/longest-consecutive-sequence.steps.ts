@@ -173,6 +173,8 @@ const solution: SolutionVariant = {
   label: 'HashSet',
   variant: 'hashset',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
 };
 
 // ── Solution 2: HashMap (endpoint run-length merge) ───────────────────────────
@@ -247,6 +249,8 @@ const mapSolution: SolutionVariant = {
   label: 'HashMap (endpoint merge)',
   variant: 'endpoint-map',
   generateSteps: generateStepsMap,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
 };
 
 export const longestConsecutiveSequenceMeta: AlgorithmMeta = {
@@ -256,8 +260,6 @@ export const longestConsecutiveSequenceMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'arrays-hash',
   tags: ['Array', 'Hash Set', 'Hash Map'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given an unsorted array of integers nums, return the length of the longest consecutive elements sequence. You must write an algorithm that runs in O(n) time.',
   examples: [

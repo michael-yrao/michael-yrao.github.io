@@ -130,6 +130,8 @@ const slidingWindowSolution: SolutionVariant = {
   label: 'Sliding Window Set',
   variant: 'window-set',
   generateSteps: generateSlidingWindowSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(min(n,k))',
 };
 
 export const containsDuplicateIIMeta: AlgorithmMeta = {
@@ -139,8 +141,6 @@ export const containsDuplicateIIMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'sliding-window',
   tags: ['Array', 'Hash Map', 'Sliding Window'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(min(n,k))',
   description:
     'Given an integer array nums and an integer k, return true if there are two distinct indices i and j in the array such that nums[i] == nums[j] and |i - j| <= k.',
   examples: [

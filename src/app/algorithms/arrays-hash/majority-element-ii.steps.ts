@@ -253,8 +253,6 @@ export const majorityElementIIMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'arrays-hash',
   tags: ['Array', 'Hash Map', 'Boyer-Moore'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given an integer array of size n, find all elements that appear more than ⌊n/3⌋ times. There can be at most two such elements.',
   examples: [

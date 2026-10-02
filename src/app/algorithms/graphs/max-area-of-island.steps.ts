@@ -143,6 +143,8 @@ const solution: SolutionVariant = {
   label: 'DFS with Visited Set',
   variant: 'dfs-visited',
   generateSteps,
+  timeComplexity: 'O(m × n)',
+  spaceComplexity: 'O(m × n)',
 };
 
 export const maxAreaOfIslandMeta: AlgorithmMeta = {
@@ -152,8 +154,6 @@ export const maxAreaOfIslandMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['BFS', 'DFS', 'Matrix'],
-  timeComplexity: 'O(m × n)',
-  spaceComplexity: 'O(m × n)',
   description:
     'You are given an m × n binary matrix grid. An island is a group of 1s connected 4-directionally. The area of an island is the number of cells with value 1 in the island. Return the maximum area of an island in grid, or 0 if there is no island.',
   examples: [

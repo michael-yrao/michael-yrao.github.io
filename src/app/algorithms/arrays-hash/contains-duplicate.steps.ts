@@ -176,8 +176,6 @@ export const containsDuplicateMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'arrays-hash',
   tags: ['Hash Set', 'Array'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given an integer array nums, return true if any value appears at least twice in the array, and false if every element is distinct.',
   examples: [
@@ -187,7 +185,7 @@ export const containsDuplicateMeta: AlgorithmMeta = {
   constraints: ['1 ≤ nums.length ≤ 10⁵', '-10⁹ ≤ nums[i] ≤ 10⁹'],
   hint: 'You need to know if you\'ve seen a value before. What data structure lets you check membership in O(1)?',
   solutions: [
-    { label: 'Set Iteration', variant: 'set-iteration', generateSteps: generateSetIterationSteps },
-    { label: 'Length Check', variant: 'length-check', generateSteps: generateLenComparisonSteps },
+    { label: 'Set Iteration', variant: 'set-iteration', generateSteps: generateSetIterationSteps, timeComplexity: 'O(n)', spaceComplexity: 'O(n)' },
+    { label: 'Length Check', variant: 'length-check', generateSteps: generateLenComparisonSteps, timeComplexity: 'O(n)', spaceComplexity: 'O(n)' },
   ],
 };

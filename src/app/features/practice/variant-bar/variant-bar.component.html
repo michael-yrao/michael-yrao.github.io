@@ -1,0 +1,19 @@
+@if (state.hasMultipleSolutions()) {
+  <div class="solution-tabs" role="tablist" aria-label="Solution variants">
+    @for (sol of state.meta()?.solutions; track sol; let i = $index) {
+      <button
+        role="tab"
+        class="solution-tab"
+        [class.active]="i === state.activeSolutionIndex()"
+        [attr.aria-selected]="i === state.activeSolutionIndex()"
+        (click)="state.selectVariant(i)"
+      >
+        {{ sol.label }}
+      </button>
+    }
+  </div>
+}
+@if (state.activeSolution(); as variant) {
+  <span class="complexity">⏱ {{ variant.timeComplexity }}</span>
+  <span class="complexity">💾 {{ variant.spaceComplexity }}</span>
+}

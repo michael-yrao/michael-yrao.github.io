@@ -310,8 +310,6 @@ export const validPalindromeIIIMeta: AlgorithmMeta = {
   difficulty: 'Hard',
   category: 'dynamic-programming',
   tags: ['String', 'Dynamic Programming', 'Backtracking', 'Memoization'],
-  timeComplexity: 'O(n²·k)',
-  spaceComplexity: 'O(n²·k)',
   description:
     'Given a string s and an integer k, return true if s is a k-palindrome. A string is k-palindrome if it can be transformed into a palindrome by removing at most k characters from it.',
   examples: [

@@ -159,6 +159,8 @@ const solution: SolutionVariant = {
   label: 'Three Reversals',
   variant: 'three-reversals',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const rotateArrayMeta: AlgorithmMeta = {
@@ -168,8 +170,6 @@ export const rotateArrayMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'arrays-hash',
   tags: ['Array', 'Math', 'Two Pointers'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given an integer array nums, rotate the array to the right by k steps, where k is non-negative. Do it in-place with O(1) extra space.',
   examples: [

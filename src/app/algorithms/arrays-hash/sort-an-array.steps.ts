@@ -178,6 +178,8 @@ const solution: SolutionVariant = {
   label: 'Merge Sort (Divide & Conquer)',
   variant: 'merge-sort',
   generateSteps,
+  timeComplexity: 'O(n log n)',
+  spaceComplexity: 'O(n)',
 };
 
 export const sortAnArrayMeta: AlgorithmMeta = {
@@ -187,8 +189,6 @@ export const sortAnArrayMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'arrays-hash',
   tags: ['Array', 'Merge Sort', 'Heap Sort'],
-  timeComplexity: 'O(n log n)',
-  spaceComplexity: 'O(n)',
   description:
     'Sort an array of integers in ascending order in O(n log n) time with minimal space. Must not use built-in sort functions.',
   examples: [

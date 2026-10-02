@@ -135,6 +135,8 @@ const solution: SolutionVariant = {
   label: 'Binary Search on Answer Space',
   variant: 'answer-space',
   generateSteps,
+  timeComplexity: 'O(n log m)',
+  spaceComplexity: 'O(1)',
 };
 
 export const kokoEatingBananasMeta: AlgorithmMeta = {
@@ -144,8 +146,6 @@ export const kokoEatingBananasMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'binary-search',
   tags: ['Array', 'Binary Search'],
-  timeComplexity: 'O(n log m)',
-  spaceComplexity: 'O(1)',
   description:
     'Given n piles of bananas and h hours before guards return, find the minimum eating speed k (bananas/hour) such that Koko can eat all bananas in h hours. Each hour she picks one pile and eats up to k bananas from it.',
   examples: [

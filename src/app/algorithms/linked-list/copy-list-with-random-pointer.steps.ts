@@ -188,8 +188,6 @@ export const copyListWithRandomPointerMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'linked-list',
   tags: ['Linked List', 'Hash Table'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'A linked list of length n is given where each node has an extra random pointer that can point to any node or null. Construct a deep copy: n brand-new nodes whose next and random pointers mirror the original structure but reference only the new nodes.',
   examples: [

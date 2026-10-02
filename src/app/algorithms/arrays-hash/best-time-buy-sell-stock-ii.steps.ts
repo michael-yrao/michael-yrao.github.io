@@ -97,6 +97,8 @@ const solution: SolutionVariant = {
   label: 'Greedy (Collect Every Upward Move)',
   variant: 'greedy',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const bestTimeBuySellStockIiMeta: AlgorithmMeta = {
@@ -106,8 +108,6 @@ export const bestTimeBuySellStockIiMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'arrays-hash',
   tags: ['Array', 'Greedy'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given an integer array prices where prices[i] is the price of a stock on day i, find the maximum profit you can achieve. You may buy and sell the stock multiple times (but must sell before buying again).',
   examples: [

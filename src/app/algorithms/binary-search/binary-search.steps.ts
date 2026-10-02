@@ -219,8 +219,6 @@ export const binarySearchMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'binary-search',
   tags: ['Binary Search', 'Array'],
-  timeComplexity: 'O(log n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given a sorted array of integers nums and an integer target, return the index of target if it exists, or -1 if it does not. You must write an algorithm with O(log n) runtime — no linear scan allowed.',
   examples: [
@@ -243,7 +241,7 @@ export const binarySearchMeta: AlgorithmMeta = {
   ],
   hint: 'The array is sorted. If the middle element is too big, where can the target possibly be? If it\'s too small, where can it be?',
   solutions: [
-    { label: 'Iterative', variant: 'iterative', generateSteps: generateIterativeSteps },
-    { label: 'Recursive', variant: 'recursive', generateSteps: generateRecursiveSteps },
+    { label: 'Iterative', variant: 'iterative', generateSteps: generateIterativeSteps, timeComplexity: 'O(log n)', spaceComplexity: 'O(1)' },
+    { label: 'Recursive', variant: 'recursive', generateSteps: generateRecursiveSteps, timeComplexity: 'O(log n)', spaceComplexity: 'O(log n)' },
   ],
 };

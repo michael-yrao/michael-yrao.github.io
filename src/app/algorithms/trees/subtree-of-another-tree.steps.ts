@@ -152,8 +152,6 @@ export const subtreeOfAnotherTreeMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'trees',
   tags: ['Tree', 'DFS', 'String Matching'],
-  timeComplexity: 'O(m·n)',
-  spaceComplexity: 'O(m+n)',
   description: 'Given the roots of two binary trees root and subRoot, return true if there is a subtree of root with the same structure and node values as subRoot and false otherwise.',
   examples: [
     {
@@ -173,6 +171,8 @@ export const subtreeOfAnotherTreeMeta: AlgorithmMeta = {
       label: 'BFS + DFS',
       variant: 'bfs-dfs',
       generateSteps,
+      timeComplexity: 'O(m·n)',
+      spaceComplexity: 'O(m+n)',
     },
   ],
 };

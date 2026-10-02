@@ -106,8 +106,6 @@ export const sameTreeMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'trees',
   tags: ['Tree', 'DFS', 'BFS', 'Recursion'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(h)',
   description: 'Given the roots of two binary trees p and q, write a function to check if they are the same or not. Two binary trees are considered the same if they are structurally identical, and the nodes have the same value.',
   examples: [
     {
@@ -131,6 +129,8 @@ export const sameTreeMeta: AlgorithmMeta = {
       label: 'Preorder DFS (Recursive)',
       variant: 'preorder',
       generateSteps,
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(h)',
     },
   ],
 };

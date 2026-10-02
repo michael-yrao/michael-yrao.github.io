@@ -10,8 +10,6 @@ export const gasStationMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'greedy',
   tags: ['Greedy', 'Array'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given circular arrays gas and cost for n gas stations, return the starting station index that lets a car with an unlimited tank complete the circuit once, or -1 if no such start exists (guaranteed unique when one does).',
   examples: [

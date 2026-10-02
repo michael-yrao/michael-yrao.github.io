@@ -10,8 +10,6 @@ export const mergeIntervalsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'greedy',
   tags: ['Intervals', 'Sorting', 'Array'],
-  timeComplexity: 'O(n log n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given an array of intervals, merge all overlapping intervals and return an array of the non-overlapping intervals that cover all the intervals in the input.',
   examples: [

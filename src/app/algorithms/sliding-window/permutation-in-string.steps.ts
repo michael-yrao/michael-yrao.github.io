@@ -151,6 +151,8 @@ const solution: SolutionVariant = {
   label: 'Fixed-Size Sliding Window + Freq Array',
   variant: 'fixed-window',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const permutationInStringMeta: AlgorithmMeta = {
@@ -160,8 +162,6 @@ export const permutationInStringMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'sliding-window',
   tags: ['Hash Map', 'Sliding Window', 'Two Pointers'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given two strings s1 and s2, return true if s2 contains a permutation of s1, or false otherwise. In other words, return true if one of s1\'s permutations is a substring of s2.',
   examples: [

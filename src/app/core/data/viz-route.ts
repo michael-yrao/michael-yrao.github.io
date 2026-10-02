@@ -5,7 +5,7 @@ import { ALL_ALGORITHMS } from './algorithms.data';
 // the visualizer library. Shared so both components look up the same map rather than each
 // rebuilding it.
 export const VIZ_ROUTE = new Map<number, string>(
-  ALL_ALGORITHMS.map((a) => [a.lcNumber, `/practice/${a.lcNumber}/solution`]),
+  ALL_ALGORITHMS.map((a) => [a.lcNumber, `/practice/${a.lcNumber}/visualizer`]),
 );
 
 export function vizRouteFor(lcNumber: number | null | undefined): string | null {

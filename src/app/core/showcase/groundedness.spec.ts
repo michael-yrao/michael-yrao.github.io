@@ -16,8 +16,6 @@ function makeMeta(overrides: Partial<AlgorithmMeta> = {}): AlgorithmMeta {
     difficulty: 'Medium',
     category: 'graphs',
     tags: [],
-    timeComplexity: 'O(n)',
-    spaceComplexity: 'O(n)',
     description: '',
     examples: [],
     constraints: [],
@@ -61,6 +59,8 @@ describe('groundednessOf', () => {
       label: 'BFS',
       variant: 'bfs',
       generateSteps: () => [makeStep({ anchor: { match: 'while queue' } })],
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(n)',
     };
 
     const result = groundednessOf(meta, variant, makeShowcase());
@@ -70,7 +70,13 @@ describe('groundednessOf', () => {
 
   it('is legacy, not a failure, when the variant has no id', () => {
     const meta = makeMeta();
-    const variant = { label: 'BFS', variant: '', generateSteps: () => [] };
+    const variant = {
+      label: 'BFS',
+      variant: '',
+      generateSteps: () => [],
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(n)',
+    };
 
     const result = groundednessOf(meta, variant, makeShowcase());
 
@@ -79,7 +85,13 @@ describe('groundednessOf', () => {
 
   it('fails with "no showcase entry for <key>" when the entry is missing', () => {
     const meta = makeMeta();
-    const variant = { label: 'DFS', variant: 'dfs', generateSteps: () => [] };
+    const variant = {
+      label: 'DFS',
+      variant: 'dfs',
+      generateSteps: () => [],
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(n)',
+    };
 
     const result = groundednessOf(meta, variant, makeShowcase());
 
@@ -96,6 +108,8 @@ describe('groundednessOf', () => {
       label: 'BFS',
       variant: 'bfs',
       generateSteps: () => [makeStep({ anchor: { match: 'while stack' } })],
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(n)',
     };
 
     const result = groundednessOf(meta, variant, makeShowcase());
@@ -115,8 +129,16 @@ describe('computeGroundedness', () => {
           label: 'BFS',
           variant: 'bfs',
           generateSteps: () => [makeStep({ anchor: { match: 'while queue' } })],
+          timeComplexity: 'O(n)',
+          spaceComplexity: 'O(n)',
         },
-        { label: 'DFS', variant: '', generateSteps: () => [] }, // legacy: no variant id
+        {
+          label: 'DFS',
+          variant: '', // legacy: no variant id
+          generateSteps: () => [],
+          timeComplexity: 'O(n)',
+          spaceComplexity: 'O(n)',
+        },
       ],
     });
 
@@ -131,7 +153,15 @@ describe('computeGroundedness', () => {
 
   it('collects failures across algorithms, keyed by showcase key', () => {
     const meta = makeMeta({
-      solutions: [{ label: 'DFS', variant: 'dfs', generateSteps: () => [] }],
+      solutions: [
+        {
+          label: 'DFS',
+          variant: 'dfs',
+          generateSteps: () => [],
+          timeComplexity: 'O(n)',
+          spaceComplexity: 'O(n)',
+        },
+      ],
     });
 
     const report = computeGroundedness([meta], makeShowcase());

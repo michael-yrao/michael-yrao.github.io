@@ -165,8 +165,6 @@ export const designTwitterMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'heap',
   tags: ['Heap', 'Priority Queue', 'Hash Map', 'Design'],
-  timeComplexity: 'getNewsFeed O(t log t)',
-  spaceComplexity: 'O(users + tweets)',
   description:
     'Design a simplified Twitter: users can postTweet, follow/unfollow other users, and getNewsFeed — the 10 most recent tweet IDs from the user and everyone they follow, newest first.',
   examples: [

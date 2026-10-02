@@ -10,8 +10,6 @@ export const carFleetMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'stack',
   tags: ['Stack', 'Sorting', 'Array'],
-  timeComplexity: 'O(n log n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given target, and arrays position and speed for n cars travelling toward target where a car cannot pass another but can catch up and travel alongside it, return the number of car fleets that will arrive at target.',
   examples: [

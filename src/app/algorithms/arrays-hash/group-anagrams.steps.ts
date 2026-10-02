@@ -168,12 +168,16 @@ const solution: SolutionVariant = {
   label: 'Sort Key HashMap',
   variant: 'sort-key-map',
   generateSteps,
+  timeComplexity: 'O(n·k log k)',
+  spaceComplexity: 'O(n·k)',
 };
 
 const altSolution: SolutionVariant = {
   label: 'defaultdict',
   variant: 'defaultdict',
   generateSteps: generateAltSteps,
+  timeComplexity: 'O(n·k log k)',
+  spaceComplexity: 'O(n·k)',
 };
 
 export const groupAnagramsMeta: AlgorithmMeta = {
@@ -183,8 +187,6 @@ export const groupAnagramsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'arrays-hash',
   tags: ['Hash Map', 'String', 'Sorting'],
-  timeComplexity: 'O(n·k log k)',
-  spaceComplexity: 'O(n·k)',
   description:
     'Given an array of strings strs, group the anagrams together. You can return the answer in any order. An anagram is a word or phrase formed by rearranging the letters of a different word or phrase, using all the original letters exactly once.',
   examples: [

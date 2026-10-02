@@ -18,8 +18,6 @@ export const validArrangementOfPairsMeta: AlgorithmMeta = {
   difficulty: 'Hard',
   category: 'graphs',
   tags: ['Graph', 'Eulerian Path', 'Hash Map'],
-  timeComplexity: 'O(E)',
-  spaceComplexity: 'O(E)',
   description:
     'Given pairs[i] = [start_i, end_i], return any arrangement using every pair exactly once such that each pair\'s start equals the previous pair\'s end.',
   examples: [

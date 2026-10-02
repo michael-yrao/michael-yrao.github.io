@@ -185,8 +185,6 @@ export const invertBinaryTreeMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'trees',
   tags: ['Tree', 'DFS', 'BFS', 'Recursion'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(h)',
   description: 'Given the root of a binary tree, invert the tree, and return its root.',
   examples: [
     {
@@ -205,6 +203,8 @@ export const invertBinaryTreeMeta: AlgorithmMeta = {
       label: 'Postorder DFS (Recursive)',
       variant: 'postorder',
       generateSteps,
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(h)',
     },
   ],
 };

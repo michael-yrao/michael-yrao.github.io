@@ -225,6 +225,8 @@ const solution: SolutionVariant = {
   label: 'Find Pivot + Binary Search',
   variant: 'pivot-then-search',
   generateSteps,
+  timeComplexity: 'O(log n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const searchInRotatedSortedArrayMeta: AlgorithmMeta = {
@@ -234,8 +236,6 @@ export const searchInRotatedSortedArrayMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'binary-search',
   tags: ['Array', 'Binary Search'],
-  timeComplexity: 'O(log n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given the integer array nums sorted in ascending order and then possibly rotated at an unknown pivot, and an integer target, return the index of target if it is in nums, or -1 if it is not.',
   examples: [

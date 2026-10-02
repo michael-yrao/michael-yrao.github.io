@@ -10,8 +10,6 @@ export const jumpGameMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'greedy',
   tags: ['Greedy', 'Array'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given an integer array nums where nums[i] is the maximum jump length from index i, determine whether you can reach the last index starting from index 0.',
   examples: [

@@ -226,6 +226,8 @@ const solution: SolutionVariant = {
   label: 'Two-Phase Binary Search',
   variant: 'two-phase',
   generateSteps,
+  timeComplexity: 'O(log(m·n))',
+  spaceComplexity: 'O(1)',
 };
 
 export const searchA2DMatrixMeta: AlgorithmMeta = {
@@ -235,8 +237,6 @@ export const searchA2DMatrixMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'binary-search',
   tags: ['Array', 'Binary Search', 'Matrix'],
-  timeComplexity: 'O(log(m·n))',
-  spaceComplexity: 'O(1)',
   description:
     'You are given an m × n integer matrix where each row is sorted in non-decreasing order and the first integer of each row is greater than the last integer of the previous row. Given an integer target, return true if target is in the matrix or false otherwise. You must write a solution in O(log(m * n)) time complexity.',
   examples: [

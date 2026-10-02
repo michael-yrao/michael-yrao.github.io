@@ -191,6 +191,8 @@ const solution: SolutionVariant = {
   label: 'Sort + Two Nested Loops + Two Pointers',
   variant: 'sort-two-pointers',
   generateSteps,
+  timeComplexity: 'O(n³)',
+  spaceComplexity: 'O(n)',
 };
 
 export const fourSumMeta: AlgorithmMeta = {
@@ -200,8 +202,6 @@ export const fourSumMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'two-pointers',
   tags: ['Array', 'Two Pointers', 'Sorting'],
-  timeComplexity: 'O(n³)',
-  spaceComplexity: 'O(n)',
   description:
     'Given an array nums of n integers and an integer target, return an array of all unique quadruplets [nums[a], nums[b], nums[c], nums[d]] such that the four indices are distinct and their values sum to target.',
   examples: [

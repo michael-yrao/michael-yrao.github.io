@@ -10,8 +10,6 @@ export const magneticForceBetweenTwoBallsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'binary-search',
   tags: ['Binary Search', 'Sorting', 'Greedy'],
-  timeComplexity: 'O(n log n + n log R)',
-  spaceComplexity: 'O(1)',
   description:
     'Given basket positions and m balls, place the balls into baskets to maximize the minimum distance between any two balls, and return that maximum possible minimum distance.',
   examples: [

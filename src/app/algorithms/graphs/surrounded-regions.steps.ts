@@ -325,8 +325,6 @@ export const surroundedRegionsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['BFS', 'Union Find', 'Matrix'],
-  timeComplexity: 'O(m × n)',
-  spaceComplexity: 'O(m × n)',
   description:
     "Given an m × n board of 'X' and 'O', capture all 'O' regions completely surrounded by 'X'. A region is surrounded if none of its 'O' cells touch the board edge. Flip captured cells to 'X' in-place.",
   examples: [

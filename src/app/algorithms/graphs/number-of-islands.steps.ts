@@ -241,8 +241,6 @@ export const numberOfIslandsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['BFS', 'DFS', 'Matrix'],
-  timeComplexity: 'O(m × n)',
-  spaceComplexity: 'O(m × n)',
   description:
     'Given an m × n 2D grid of \'1\'s (land) and \'0\'s (water), return the number of islands. An island is formed by connecting adjacent land cells horizontally or vertically, and is surrounded by water on all sides.',
   examples: [
@@ -260,7 +258,7 @@ export const numberOfIslandsMeta: AlgorithmMeta = {
   constraints: ['m == grid.length', 'n == grid[i].length', '1 ≤ m, n ≤ 300', 'grid[i][j] is \'0\' or \'1\''],
   hint: 'When you find a land cell, how do you make sure you count its entire island as one? Think about marking cells so you never visit the same land twice.',
   solutions: [
-    { label: 'BFS', variant: 'bfs', generateSteps: generateBfsSteps },
-    { label: 'DFS', variant: 'dfs', generateSteps: generateDfsSteps },
+    { label: 'BFS', variant: 'bfs', generateSteps: generateBfsSteps, timeComplexity: 'O(m × n)', spaceComplexity: 'O(m × n)' },
+    { label: 'DFS', variant: 'dfs', generateSteps: generateDfsSteps, timeComplexity: 'O(m × n)', spaceComplexity: 'O(m × n)' },
   ],
 };

@@ -266,8 +266,6 @@ export const maximumSubarrayMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'greedy',
   tags: ['Array', "Kadane's Algorithm", 'Dynamic Programming'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given an integer array nums, find the subarray with the largest sum, and return its sum.',
   examples: [

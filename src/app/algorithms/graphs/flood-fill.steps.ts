@@ -150,8 +150,6 @@ export const floodFillMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'graphs',
   tags: ['BFS', 'DFS', 'Matrix'],
-  timeComplexity: 'O(m × n)',
-  spaceComplexity: 'O(m × n)',
   description:
     'You are given an image represented by an m × n grid of integers, where image[i][j] is the pixel value. Starting from pixel (sr, sc), perform a flood fill: change the starting pixel to the new color, then repeat for every horizontally or vertically adjacent pixel that shares the original color of the starting pixel. Return the modified image.',
   examples: [
@@ -179,6 +177,8 @@ export const floodFillMeta: AlgorithmMeta = {
       label: 'BFS (Queue)',
       variant: 'bfs',
       generateSteps: generateBfsSteps,
+      timeComplexity: 'O(m × n)',
+      spaceComplexity: 'O(m × n)',
     },
   ],
 };

@@ -214,6 +214,8 @@ const solution: SolutionVariant = {
   label: 'HashMap + Min-Heap',
   variant: 'min-heap',
   generateSteps,
+  timeComplexity: 'O(n log k)',
+  spaceComplexity: 'O(n)',
 };
 
 export const topKFrequentElementsMeta: AlgorithmMeta = {
@@ -223,8 +225,6 @@ export const topKFrequentElementsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'arrays-hash',
   tags: ['Array', 'Hash Map', 'Bucket Sort', 'Heap'],
-  timeComplexity: 'O(n log k)',
-  spaceComplexity: 'O(n)',
   description:
     'Given an integer array nums and an integer k, return the k most frequent elements. You may return the answer in any order.',
   examples: [

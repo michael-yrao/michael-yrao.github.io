@@ -447,12 +447,16 @@ const multiPassSolution: SolutionVariant = {
   label: 'Multi-Pass (Row → Col → Box)',
   variant: 'multi-pass',
   generateSteps: generateMultiPassSteps,
+  timeComplexity: 'O(1)',
+  spaceComplexity: 'O(1)',
 };
 
 const singleLoopSolution: SolutionVariant = {
   label: 'Single-Loop with 3 Maps',
   variant: 'single-loop',
   generateSteps: generateSingleLoopSteps,
+  timeComplexity: 'O(1)',
+  spaceComplexity: 'O(1)',
 };
 
 export const validSudokuMeta: AlgorithmMeta = {
@@ -462,8 +466,6 @@ export const validSudokuMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'arrays-hash',
   tags: ['Array', 'Hash Set', 'Matrix'],
-  timeComplexity: 'O(1)',
-  spaceComplexity: 'O(1)',
   description:
     'Determine if a 9x9 Sudoku board is valid. Each row, column, and 3x3 sub-box must contain the digits 1-9 without repetition. Only filled cells need to be validated.',
   examples: [

@@ -234,12 +234,16 @@ const iterativeSolution: SolutionVariant = {
   label: 'Iterative',
   variant: 'iterative',
   generateSteps: generateIterativeSteps,
+  timeComplexity: 'O(m+n)',
+  spaceComplexity: 'O(1)',
 };
 
 const recursiveSolution: SolutionVariant = {
   label: 'Recursive',
   variant: 'recursive',
   generateSteps: generateRecursiveSteps,
+  timeComplexity: 'O(m+n)',
+  spaceComplexity: 'O(m+n)',
 };
 
 export const mergeTwoSortedListsMeta: AlgorithmMeta = {
@@ -249,8 +253,6 @@ export const mergeTwoSortedListsMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'linked-list',
   tags: ['Linked List', 'Recursion'],
-  timeComplexity: 'O(m+n)',
-  spaceComplexity: 'O(1)',
   description:
     'You are given the heads of two sorted linked lists list1 and list2. Merge the two lists into one sorted list. The list should be made by splicing together the nodes of the first two lists. Return the head of the merged linked list.',
   examples: [

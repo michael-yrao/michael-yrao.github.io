@@ -265,12 +265,16 @@ const prefixSolution: SolutionVariant = {
   label: 'Prefix Arrays',
   variant: 'prefix-arrays',
   generateSteps: generatePrefixSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
 };
 
 const twoPointerSolution: SolutionVariant = {
   label: 'Two Pointers',
   variant: 'two-pointers',
   generateSteps: generateTwoPointerSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const trappingRainWaterMeta: AlgorithmMeta = {
@@ -280,8 +284,6 @@ export const trappingRainWaterMeta: AlgorithmMeta = {
   difficulty: 'Hard',
   category: 'two-pointers',
   tags: ['Array', 'Two Pointers', 'Dynamic Programming'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.',
   examples: [

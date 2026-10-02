@@ -124,8 +124,6 @@ export const binaryTreeLevelOrderTraversalMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'trees',
   tags: ['Tree', 'BFS', 'Queue'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description: 'Given the root of a binary tree, return the level order traversal of its nodes\' values (i.e., from left to right, level by level).',
   examples: [
     {
@@ -144,6 +142,8 @@ export const binaryTreeLevelOrderTraversalMeta: AlgorithmMeta = {
       label: 'BFS (Queue)',
       variant: 'bfs',
       generateSteps,
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(n)',
     },
   ],
 };

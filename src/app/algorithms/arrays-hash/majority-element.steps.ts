@@ -189,12 +189,16 @@ const freqMapSolution: SolutionVariant = {
   label: 'Frequency Map',
   variant: 'freq-map',
   generateSteps: generateFreqMapSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
 };
 
 const boyerMooreSolution: SolutionVariant = {
   label: 'Boyer-Moore',
   variant: 'boyer-moore',
   generateSteps: generateBoyerMooreSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const majorityElementMeta: AlgorithmMeta = {
@@ -204,8 +208,6 @@ export const majorityElementMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'arrays-hash',
   tags: ['Array', 'Hash Map', 'Boyer-Moore'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given an array nums of size n, return the majority element. The majority element is the element that appears more than ⌊n/2⌋ times. You may assume the majority element always exists in the array.',
   examples: [

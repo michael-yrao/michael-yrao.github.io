@@ -135,6 +135,8 @@ const solution: SolutionVariant = {
   label: 'Vertical Scan',
   variant: 'vertical-scan',
   generateSteps,
+  timeComplexity: 'O(m·n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const longestCommonPrefixMeta: AlgorithmMeta = {
@@ -144,8 +146,6 @@ export const longestCommonPrefixMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'arrays-hash',
   tags: ['String', 'Trie'],
-  timeComplexity: 'O(m·n)',
-  spaceComplexity: 'O(1)',
   description:
     'Write a function to find the longest common prefix string amongst an array of strings. If there is no common prefix, return an empty string "".',
   examples: [

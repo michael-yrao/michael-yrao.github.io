@@ -180,8 +180,6 @@ export const encodeAndDecodeStringsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'arrays-hash',
   tags: ['Array', 'String', 'Design'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Design an algorithm to encode a list of strings into a single string, transmit it, and decode it back into the original list. The encoding must survive any characters — including delimiters and digits — appearing inside the strings.',
   examples: [

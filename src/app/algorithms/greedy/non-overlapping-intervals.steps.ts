@@ -10,8 +10,6 @@ export const nonOverlappingIntervalsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'greedy',
   tags: ['Intervals', 'Greedy', 'Sorting'],
-  timeComplexity: 'O(n log n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given an array of intervals, return the minimum number of intervals you must remove so that the rest are non-overlapping (intervals that only touch at an endpoint do not count as overlapping).',
   examples: [

@@ -14,7 +14,9 @@ describe('practicePageMatcher', () => {
     tab: string | null;
   }> = [
     { path: 'practice/22', number: '22', tab: null },
-    { path: 'practice/22/solution', number: '22', tab: 'solution' },
+    { path: 'practice/22/visualizer', number: '22', tab: 'visualizer' },
+    { path: 'practice/22/code', number: '22', tab: 'code' },
+    { path: 'practice/22/solution', number: null, tab: null },
     { path: 'practice/22/bogus', number: null, tab: null },
     { path: 'practice', number: null, tab: null },
     { path: 'practice/22/solution/x', number: null, tab: null },

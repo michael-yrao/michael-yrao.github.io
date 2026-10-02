@@ -1,0 +1,10 @@
+<app-grounded-code-panel
+  [status]="showcase.status()"
+  [error]="showcase.error()"
+  [entry]="entry()"
+  [rows]="rows()"
+  [activeRange]="activeRange()"
+  [groundedness]="groundedness()"
+  [label]="state.activeSolution()?.label || 'Solution'"
+  (retry)="retryShowcase()"
+></app-grounded-code-panel>

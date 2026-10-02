@@ -112,8 +112,6 @@ export const kthLargestInStreamMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'heap',
   tags: ['Heap', 'Priority Queue', 'Design', 'Stream'],
-  timeComplexity: 'O(log k) per add',
-  spaceComplexity: 'O(k)',
   description:
     'Design a class that, given an integer k and a stream of values, returns the kth largest element after each new value is added. (The kth largest in the sorted order of all values so far, with duplicates counted.)',
   examples: [

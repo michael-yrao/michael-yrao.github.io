@@ -106,6 +106,8 @@ const solution: SolutionVariant = {
   label: 'Two Pointers',
   variant: 'two-pointers',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const removeDuplicatesSortedArrayMeta: AlgorithmMeta = {
@@ -115,8 +117,6 @@ export const removeDuplicatesSortedArrayMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'two-pointers',
   tags: ['Array', 'Two Pointers'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given an integer array nums sorted in non-decreasing order, remove the duplicates in-place such that each unique element appears only once. Return k, the number of unique elements.',
   examples: [

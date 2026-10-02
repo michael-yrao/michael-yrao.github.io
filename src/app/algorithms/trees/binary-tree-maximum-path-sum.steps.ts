@@ -127,8 +127,6 @@ export const binaryTreeMaximumPathSumMeta: AlgorithmMeta = {
   difficulty: 'Hard',
   category: 'trees',
   tags: ['Tree', 'DFS', 'Dynamic Programming', 'Recursion'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(h)',
   description:
     'A path is a sequence of nodes connected by edges, each node used at most once; it need not pass through the root. Return the maximum path sum of any non-empty path.',
   examples: [

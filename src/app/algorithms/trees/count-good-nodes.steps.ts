@@ -144,8 +144,6 @@ export const countGoodNodesMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'trees',
   tags: ['Tree', 'DFS'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(h)',
   description: 'Given a binary tree root, a node X in the tree is named good if in the path from root to X there are no nodes with a value greater than X. Return the number of good nodes in the binary tree.',
   examples: [
     {
@@ -164,6 +162,8 @@ export const countGoodNodesMeta: AlgorithmMeta = {
       label: 'Iterative DFS',
       variant: 'iterative-dfs',
       generateSteps,
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(h)',
     },
   ],
 };

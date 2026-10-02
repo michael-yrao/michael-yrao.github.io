@@ -207,8 +207,6 @@ export const nextGreaterElementIMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'stack',
   tags: ['Stack', 'Monotonic Stack', 'Hash Map', 'Array'],
-  timeComplexity: 'O(n + m)',
-  spaceComplexity: 'O(n)',
   description:
     'You are given two distinct 0-indexed integer arrays nums1 and nums2, where nums1 is a subset of nums2. For each element in nums1, find its next greater element in nums2 — the first element to its right that is greater. If none exists, the answer is -1.',
   examples: [

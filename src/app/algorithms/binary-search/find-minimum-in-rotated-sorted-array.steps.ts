@@ -100,6 +100,8 @@ const solution: SolutionVariant = {
   label: 'Binary Search on Minimum',
   variant: 'min-boundary',
   generateSteps,
+  timeComplexity: 'O(log n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const findMinimumInRotatedSortedArrayMeta: AlgorithmMeta = {
@@ -109,8 +111,6 @@ export const findMinimumInRotatedSortedArrayMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'binary-search',
   tags: ['Array', 'Binary Search'],
-  timeComplexity: 'O(log n)',
-  spaceComplexity: 'O(1)',
   description:
     'Suppose an array of length n sorted in ascending order is rotated between 1 and n times. Given the sorted rotated array nums of unique elements, return the minimum element of this array. You must write an algorithm that runs in O(log n) time.',
   examples: [

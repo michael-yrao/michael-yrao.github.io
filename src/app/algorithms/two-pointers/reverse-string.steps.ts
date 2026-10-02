@@ -110,6 +110,8 @@ const solution: SolutionVariant = {
   label: 'Two Pointers',
   variant: 'two-pointers',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const reverseStringMeta: AlgorithmMeta = {
@@ -119,8 +121,6 @@ export const reverseStringMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'two-pointers',
   tags: ['Two Pointers', 'String'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Write a function that reverses a string. The input string is given as an array of characters s. You must do this by modifying the input array in-place with O(1) extra memory.',
   examples: [

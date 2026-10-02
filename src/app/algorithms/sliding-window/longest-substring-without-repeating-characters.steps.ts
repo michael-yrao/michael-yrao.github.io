@@ -10,8 +10,6 @@ export const longestSubstringWithoutRepeatingCharactersMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'sliding-window',
   tags: ['Sliding Window', 'Hash Set', 'String'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(min(n, alphabet))',
   description:
     'Given a string s, return the length of the longest substring without repeating characters, where a substring is a contiguous non-empty run of characters.',
   examples: [

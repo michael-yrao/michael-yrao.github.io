@@ -98,8 +98,6 @@ export const kClosestPointsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'heap',
   tags: ['Heap', 'Priority Queue', 'Math', 'Sorting'],
-  timeComplexity: 'O(n log k)',
-  spaceComplexity: 'O(k)',
   description:
     'Given an array of points on the X-Y plane and an integer k, return the k closest points to the origin (0, 0), measured by Euclidean distance. The answer may be returned in any order.',
   examples: [

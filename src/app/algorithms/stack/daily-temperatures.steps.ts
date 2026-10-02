@@ -10,8 +10,6 @@ export const dailyTemperaturesMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'stack',
   tags: ['Stack', 'Monotonic Stack', 'Array'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given an array of daily temperatures, return an array answer where answer[i] is the number of days you must wait after day i to see a warmer temperature, or 0 if no such day exists.',
   examples: [

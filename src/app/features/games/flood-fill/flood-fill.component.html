@@ -4,7 +4,7 @@
       Pick a color to flood the board outward from the top-left corner.
       Conquer the whole board in <strong>{{ maxMoves }}</strong> moves — par is <strong>{{ greedyBest }}</strong>.
     </p>
-    <a routerLink="/practice/102/solution" queryParamsHandling="preserve" class="algo-link">
+    <a routerLink="/practice/102/visualizer" queryParamsHandling="preserve" class="algo-link">
       Uses BFS — each ripple is one level, see Level Order Traversal →
     </a>
   </app-page-header>
@@ -167,19 +167,19 @@
           <div class="algo-breakdown__links">
             <span class="algo-breakdown__links-label">The problems behind this game</span>
             <a
-              routerLink="/practice/102/solution"
+              routerLink="/practice/102/visualizer"
               queryParamsHandling="preserve"
               class="problem-link"
               title="The purest BFS problem — each queue round is exactly one level, like each ripple here"
             >LC 102 · Binary Tree Level Order Traversal</a>
             <a
-              routerLink="/practice/200/solution"
+              routerLink="/practice/200/visualizer"
               queryParamsHandling="preserve"
               class="problem-link"
               title="Same grid + 4-neighbor expansion as this game — solvable with BFS or DFS"
             >LC 200 · Number of Islands</a>
             <a
-              routerLink="/practice/733/solution"
+              routerLink="/practice/733/visualizer"
               queryParamsHandling="preserve"
               class="problem-link"
               title="The exact operation this game performs — BFS paint from a start pixel"

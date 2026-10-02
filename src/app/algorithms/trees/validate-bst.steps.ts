@@ -128,8 +128,6 @@ export const validateBstMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'trees',
   tags: ['Tree', 'DFS', 'BST'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(h)',
   description: 'Given the root of a binary tree, determine if it is a valid binary search tree (BST). A valid BST requires that every node\'s left subtree contains only nodes with values strictly less than the node\'s value, and every node\'s right subtree contains only nodes with values strictly greater.',
   examples: [
     {
@@ -148,6 +146,8 @@ export const validateBstMeta: AlgorithmMeta = {
       label: 'Iterative DFS with Bounds',
       variant: 'iterative-bounds',
       generateSteps,
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(h)',
     },
   ],
 };

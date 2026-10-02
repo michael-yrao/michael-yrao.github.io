@@ -1,4 +1,4 @@
-import { AlgorithmMeta, Category, ProblemExample } from '../models/algorithm.model';
+import { AlgorithmMeta, Category } from '../models/algorithm.model';
 import { twoSumMeta } from '../../algorithms/arrays-hash/two-sum.steps';
 import { containsDuplicateMeta } from '../../algorithms/arrays-hash/contains-duplicate.steps';
 import { validAnagramMeta } from '../../algorithms/arrays-hash/valid-anagram.steps';
@@ -122,31 +122,6 @@ import { courseScheduleIvMeta } from '../../algorithms/graphs/course-schedule-iv
 import { validArrangementOfPairsMeta } from '../../algorithms/graphs/valid-arrangement-of-pairs.steps';
 import { generateParenthesesMeta } from '../../algorithms/backtracking/generate-parentheses.steps';
 import { subsetsMeta } from '../../algorithms/backtracking/subsets.steps';
-
-const stub = (
-  id: string,
-  lcNumber: number,
-  title: string,
-  difficulty: AlgorithmMeta['difficulty'],
-  category: Category,
-  tags: string[],
-  time: string,
-  space: string
-): AlgorithmMeta => ({
-  id,
-  lcNumber,
-  title,
-  difficulty,
-  category,
-  tags,
-  timeComplexity: time,
-  spaceComplexity: space,
-  description: '',
-  examples: [] as ProblemExample[],
-  constraints: [],
-  hint: 'Visualization coming soon.',
-  solutions: [{ label: '', variant: 'stub', generateSteps: () => [] }],
-});
 
 export const ALL_ALGORITHMS: AlgorithmMeta[] = [
   // ── Arrays & Hash ─────────────────────────────────────────────────────────

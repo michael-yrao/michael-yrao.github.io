@@ -18,8 +18,6 @@ export const subsetsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'backtracking',
   tags: ['Backtracking', 'Array', 'Recursion'],
-  timeComplexity: 'O(n · 2ⁿ)',
-  spaceComplexity: 'O(n · 2ⁿ)',
   description:
     'Given an array of unique integers, return all possible subsets (the power set); the result must not contain duplicate subsets.',
   examples: [

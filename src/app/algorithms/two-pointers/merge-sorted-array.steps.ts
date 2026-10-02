@@ -137,6 +137,8 @@ const solution: SolutionVariant = {
   label: 'Merge from Back',
   variant: 'merge-from-back',
   generateSteps,
+  timeComplexity: 'O(m+n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const mergeSortedArrayMeta: AlgorithmMeta = {
@@ -146,8 +148,6 @@ export const mergeSortedArrayMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'two-pointers',
   tags: ['Array', 'Two Pointers', 'Sorting'],
-  timeComplexity: 'O(m+n)',
-  spaceComplexity: 'O(1)',
   description:
     'You are given two integer arrays nums1 and nums2, sorted in non-decreasing order, and two integers m and n. Merge nums2 into nums1 as one sorted array in-place. nums1 has length m+n with the last n elements set to 0.',
   examples: [

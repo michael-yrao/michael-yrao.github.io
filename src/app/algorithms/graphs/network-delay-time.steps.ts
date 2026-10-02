@@ -162,8 +162,6 @@ export const networkDelayTimeMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['Graph', 'Shortest Path', 'Dijkstra', 'Heap'],
-  timeComplexity: 'O(E log V)',
-  spaceComplexity: 'O(V + E)',
   description:
     'n nodes (1..n) with directed travel times times[i] = (u, v, w). Send a signal from node k; return the minimum time for all nodes to receive it, or -1 if some node never does.',
   examples: [

@@ -10,8 +10,6 @@ export const jumpGameIiMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'greedy',
   tags: ['Greedy', 'Array'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given a 0-indexed array nums where nums[i] is the maximum jump length forward from index i, return the minimum number of jumps needed to reach the last index (reaching it is guaranteed).',
   examples: [

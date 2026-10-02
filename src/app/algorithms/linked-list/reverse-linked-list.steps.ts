@@ -268,8 +268,6 @@ export const reverseLinkedListMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'linked-list',
   tags: ['Linked List', 'Two Pointers', 'Recursion'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description: 'Given the head of a singly linked list, reverse the list, and return the reversed list.',
   examples: [
     { input: 'head = [1,2,3,4,5]', output: '[5,4,3,2,1]' },
@@ -282,7 +280,7 @@ export const reverseLinkedListMeta: AlgorithmMeta = {
   ],
   hint: 'To reverse a node\'s pointer, you need to know both where it currently points AND what was behind it. How many pointers do you need to track those things?',
   solutions: [
-    { label: 'Iterative', variant: 'iterative', generateSteps: generateIterativeSteps },
-    { label: 'Recursive', variant: 'recursive', generateSteps: generateRecursiveSteps },
+    { label: 'Iterative', variant: 'iterative', generateSteps: generateIterativeSteps, timeComplexity: 'O(n)', spaceComplexity: 'O(1)' },
+    { label: 'Recursive', variant: 'recursive', generateSteps: generateRecursiveSteps, timeComplexity: 'O(n)', spaceComplexity: 'O(n)' },
   ],
 };

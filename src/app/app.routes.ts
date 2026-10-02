@@ -62,7 +62,7 @@ export const routes: Routes = [
       ),
   },
   {
-    // '/practice/:number' and '/practice/:number/solution' are one route, so switching
+    // '/practice/:number' and its '/visualizer' and '/code' tabs are one route, so switching
     // tabs reuses the page component and the editor text and run results survive.
     matcher: practicePageMatcher,
     loadComponent: () =>

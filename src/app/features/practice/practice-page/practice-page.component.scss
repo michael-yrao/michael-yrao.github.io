@@ -113,7 +113,7 @@ $output-max-height: 40%;
   &:hover { border-color: var(--color-accent); color: var(--color-accent); text-decoration: none; }
 }
 
-// The left pane's Description | Solution switch.
+// The left pane's Description | Visualizer | Code switch.
 .practice__tabs {
   display: flex;
   gap: var(--space-xs);
@@ -262,7 +262,9 @@ summary.practice__row-head { cursor: pointer; }
   .practice__problem { overflow: auto; }
   .practice__tabs,
   app-practice-description,
-  app-solution-walkthrough { flex: 0 0 auto; }
+  app-variant-bar,
+  app-step-visualizer,
+  app-solution-code { flex: 0 0 auto; }
 
   .practice__work { min-height: 0; }
   .practice__toolbar { flex: 0 0 auto; }

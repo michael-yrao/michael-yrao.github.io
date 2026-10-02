@@ -322,18 +322,24 @@ const twoPassSolution: SolutionVariant = {
   label: 'Two-Pass',
   variant: 'two-pass',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 const onePassSolution: SolutionVariant = {
   label: 'One-Pass Two-Pointer',
   variant: 'one-pass',
   generateSteps: generateStepsOnePass,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 const recursionSolution: SolutionVariant = {
   label: 'Recursion',
   variant: 'recursion',
   generateSteps: generateStepsRecursion,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
 };
 
 export const removeNthFromEndMeta: AlgorithmMeta = {
@@ -343,8 +349,6 @@ export const removeNthFromEndMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'linked-list',
   tags: ['Linked List', 'Two Pointers', 'Recursion'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given the head of a linked list, remove the nth node from the end of the list and return its head.',
   examples: [

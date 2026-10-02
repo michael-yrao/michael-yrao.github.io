@@ -242,6 +242,9 @@ const solution: SolutionVariant = {
   label: 'Sort Potions + Binary Search (Min Boundary)',
   variant: 'sort-min-boundary',
   generateSteps,
+  // n spells, m potions: sort the potions, then one binary search per spell.
+  timeComplexity: 'O((n + m) log m)',
+  spaceComplexity: 'O(n)',
 };
 
 export const successfulPairsSpellsPotionsMeta: AlgorithmMeta = {
@@ -251,8 +254,6 @@ export const successfulPairsSpellsPotionsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'binary-search',
   tags: ['Array', 'Binary Search', 'Sorting'],
-  timeComplexity: 'O(n log n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given spells, potions, and a success threshold, find for each spell how many potions form a successful pair (spell*potion >= success). Return an array of counts.',
   examples: [

@@ -105,8 +105,6 @@ export const subarraySumEqualsKMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'arrays-hash',
   tags: ['Array', 'Hash Map', 'Prefix Sum'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given an integer array nums and an integer k, return the total number of contiguous subarrays whose sum equals k.',
   examples: [

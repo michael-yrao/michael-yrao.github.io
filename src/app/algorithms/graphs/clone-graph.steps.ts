@@ -141,6 +141,8 @@ const solution: SolutionVariant = {
   label: 'DFS + HashMap (oldToNew)',
   variant: 'dfs-map',
   generateSteps,
+  timeComplexity: 'O(V+E)',
+  spaceComplexity: 'O(V)',
 };
 
 export const cloneGraphMeta: AlgorithmMeta = {
@@ -150,8 +152,6 @@ export const cloneGraphMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['DFS', 'BFS', 'Hash Map'],
-  timeComplexity: 'O(V+E)',
-  spaceComplexity: 'O(V)',
   description:
     'Given a reference to a node in a connected undirected graph, return a deep copy (clone) of the graph. Each node contains an integer value and a list of its neighbors.',
   examples: [

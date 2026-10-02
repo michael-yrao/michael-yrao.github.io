@@ -106,6 +106,8 @@ const solution: SolutionVariant = {
   label: 'Two Pointers',
   variant: 'two-pointers',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const containerWithMostWaterMeta: AlgorithmMeta = {
@@ -115,8 +117,6 @@ export const containerWithMostWaterMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'arrays-hash',
   tags: ['Array', 'Two Pointers', 'Greedy'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'You are given an integer array height of length n. There are n vertical lines drawn such that the two endpoints of the ith line are (i, 0) and (i, height[i]). Find two lines that together with the x-axis form a container that holds the most water. Return the maximum amount of water a container can store.',
   examples: [

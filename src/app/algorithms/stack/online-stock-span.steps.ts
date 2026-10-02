@@ -146,8 +146,6 @@ export const onlineStockSpanMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'stack',
   tags: ['Stack', 'Monotonic Stack', 'Design'],
-  timeComplexity: 'O(1) amortized',
-  spaceComplexity: 'O(n)',
   description:
     "Design a StockSpanner that, for each daily price, returns the stock's span: the maximum number of consecutive days (ending today, going backward) whose price was less than or equal to today's price. Implement next(price), called once per day in order.",
   examples: [

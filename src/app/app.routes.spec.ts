@@ -36,7 +36,7 @@ describe('app routes', () => {
   const algorithmRedirects: ReadonlyArray<{ from: string; to: string }> = [
     { from: '/algorithms?repo=a/b', to: '/practice?repo=a%2Fb' },
     { from: '/algorithms/stack?repo=a/b', to: '/practice?repo=a%2Fb' },
-    { from: '/algorithms/stack/valid-parentheses?repo=a/b', to: '/practice/20/solution?repo=a%2Fb' },
+    { from: '/algorithms/stack/valid-parentheses?repo=a/b', to: '/practice/20/visualizer?repo=a%2Fb' },
     { from: '/algorithms/stack/nope?repo=a/b', to: '/practice?repo=a%2Fb' },
     { from: '/algorithms/toString/nope?repo=a/b', to: '/practice?repo=a%2Fb' },
   ];

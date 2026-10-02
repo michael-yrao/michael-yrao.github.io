@@ -99,8 +99,6 @@ export const lowestCommonAncestorBstMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'trees',
   tags: ['Tree', 'DFS', 'BST'],
-  timeComplexity: 'O(h)',
-  spaceComplexity: 'O(1)',
   description: 'Given a binary search tree (BST), find the lowest common ancestor (LCA) node of two given nodes in the BST. The LCA is defined as the lowest node that has both p and q as descendants (a node can be a descendant of itself).',
   examples: [
     {
@@ -121,6 +119,8 @@ export const lowestCommonAncestorBstMeta: AlgorithmMeta = {
       label: 'Iterative BST Traversal',
       variant: 'iterative',
       generateSteps,
+      timeComplexity: 'O(h)',
+      spaceComplexity: 'O(1)',
     },
   ],
 };

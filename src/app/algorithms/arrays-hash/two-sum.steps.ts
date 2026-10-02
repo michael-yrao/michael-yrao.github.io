@@ -113,6 +113,8 @@ const hashMapSolution: SolutionVariant = {
   label: 'Hash Map',
   variant: 'hash-map',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
 };
 
 export const twoSumMeta: AlgorithmMeta = {
@@ -122,8 +124,6 @@ export const twoSumMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'arrays-hash',
   tags: ['Hash Map', 'Array'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target. Each input has exactly one solution, and you may not use the same element twice. You can return the answer in any order.',
   examples: [

@@ -10,8 +10,6 @@ export const insertIntervalMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'greedy',
   tags: ['Intervals', 'Array'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given a list of non-overlapping intervals sorted by start and a new interval, insert the new interval into the list so the result stays sorted and non-overlapping, merging where needed, and return the resulting list.',
   examples: [

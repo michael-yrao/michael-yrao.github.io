@@ -57,19 +57,29 @@
           @if (meta()) {
             <a
               class="practice__tab"
-              [class.practice__tab--active]="activeTab() === 'solution'"
-              [attr.aria-current]="activeTab() === 'solution' ? 'page' : null"
-              [routerLink]="['/practice', number(), 'solution']"
+              [class.practice__tab--active]="activeTab() === 'visualizer'"
+              [attr.aria-current]="activeTab() === 'visualizer' ? 'page' : null"
+              [routerLink]="['/practice', number(), 'visualizer']"
               queryParamsHandling="preserve"
-              >Solution</a
+              >Visualizer</a
+            >
+            <a
+              class="practice__tab"
+              [class.practice__tab--active]="activeTab() === 'code'"
+              [attr.aria-current]="activeTab() === 'code' ? 'page' : null"
+              [routerLink]="['/practice', number(), 'code']"
+              queryParamsHandling="preserve"
+              >Code</a
             >
           }
         </div>
 
-        @if (activeTab() === 'solution') {
-          @if (meta(); as algorithm) {
-            <app-solution-walkthrough [meta]="algorithm" />
-          }
+        @if (activeTab() === 'visualizer') {
+          <app-variant-bar />
+          <app-step-visualizer />
+        } @else if (activeTab() === 'code') {
+          <app-variant-bar />
+          <app-solution-code />
         } @else {
           <app-practice-description [problem]="problem()" [meta]="meta()" />
         }

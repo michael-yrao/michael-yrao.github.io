@@ -131,6 +131,8 @@ const slidingWindowSolution: SolutionVariant = {
   label: 'Sliding Window',
   variant: 'two-pointers',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const bestTimeBuySellMeta: AlgorithmMeta = {
@@ -140,8 +142,6 @@ export const bestTimeBuySellMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'sliding-window',
   tags: ['Sliding Window', 'Array', 'Greedy'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'You are given an array prices where prices[i] is the price of a stock on day i. Choose a single day to buy and a later day to sell to maximize profit. Return the maximum profit, or 0 if no profit is possible.',
   examples: [

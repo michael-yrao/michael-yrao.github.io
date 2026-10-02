@@ -185,6 +185,8 @@ const solution: SolutionVariant = {
   label: 'Two Pointers + Skip Check',
   variant: 'skip-check',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const validPalindromeIIMeta: AlgorithmMeta = {
@@ -194,8 +196,6 @@ export const validPalindromeIIMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'two-pointers',
   tags: ['Two Pointers', 'String', 'Greedy'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given a string s, return true if the s can be palindrome after deleting at most one character from it.',
   examples: [

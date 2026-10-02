@@ -10,8 +10,6 @@ export const slidingWindowMaximumMeta: AlgorithmMeta = {
   difficulty: 'Hard',
   category: 'stack',
   tags: ['Deque', 'Monotonic Queue', 'Sliding Window'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(k)',
   description:
     'Given an array nums and a sliding window of size k moving from left to right one position at a time, return an array of the maximum value in the window at each position.',
   examples: [

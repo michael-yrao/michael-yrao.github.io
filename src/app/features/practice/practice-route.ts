@@ -1,18 +1,20 @@
 import { UrlMatcher, UrlMatchResult, UrlSegment } from '@angular/router';
 
-export type PracticeTab = 'description' | 'solution';
+/** The tabs after `practice/<number>` that need the static algorithm (`meta`). */
+export const WALKTHROUGH_TABS = ['visualizer', 'code'] as const;
+
+export type PracticeTab = 'description' | (typeof WALKTHROUGH_TABS)[number];
 
 const PRACTICE_SEGMENT = 'practice';
-const SOLUTION_SEGMENT = 'solution';
 /** `practice/<number>`. */
 const SEGMENTS_WITHOUT_TAB = 2;
-/** `practice/<number>/solution`. */
+/** `practice/<number>/visualizer` or `practice/<number>/code`. */
 const SEGMENTS_WITH_TAB = 3;
 
 /**
- * Matches `practice/:number` and `practice/:number/solution` as ONE route, so switching tabs
- * reuses the page component instance. `posParams` carries `number` and, on the solution tab,
- * `tab`. Any other shape does not match.
+ * Matches `practice/:number`, `practice/:number/visualizer` and `practice/:number/code` as ONE
+ * route, so switching tabs reuses the page component instance. `posParams` carries `number` and,
+ * on the visualizer and code tabs, `tab`. Any other shape does not match.
  */
 export const practicePageMatcher: UrlMatcher = (segments: UrlSegment[]): UrlMatchResult | null => {
   const isShapeValid =
@@ -21,6 +23,6 @@ export const practicePageMatcher: UrlMatcher = (segments: UrlSegment[]): UrlMatc
 
   const [, number, tab] = segments;
   if (tab === undefined) return { consumed: segments, posParams: { number } };
-  if (tab.path !== SOLUTION_SEGMENT) return null;
+  if (!WALKTHROUGH_TABS.some((walkthroughTab) => walkthroughTab === tab.path)) return null;
   return { consumed: segments, posParams: { number, tab } };
 };

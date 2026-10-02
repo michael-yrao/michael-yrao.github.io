@@ -152,27 +152,28 @@ describe('PracticePageComponent', () => {
     readonly name: string;
     readonly number: string;
     readonly problems: readonly PracticeProblem[];
-    readonly hasSolutionTab: boolean;
+    readonly hasVisualizerAndCodeTabs: boolean;
     readonly hasEditor: boolean;
   }[] = [
-    { name: 'a contract-only problem', number: '90', problems: [PROBLEM], hasSolutionTab: false, hasEditor: true },
-    { name: 'a static-only problem', number: '1', problems: [], hasSolutionTab: true, hasEditor: false },
+    { name: 'a contract-only problem', number: '90', problems: [PROBLEM], hasVisualizerAndCodeTabs: false, hasEditor: true },
+    { name: 'a static-only problem', number: '1', problems: [], hasVisualizerAndCodeTabs: true, hasEditor: false },
     {
       name: 'a problem in both sources',
       number: '20',
       problems: [{ ...PROBLEM, number: 20, title: 'Valid Parentheses' }],
-      hasSolutionTab: true,
+      hasVisualizerAndCodeTabs: true,
       hasEditor: true,
     },
   ];
 
   it.each(PANES)(
-    'on the default tab, $name has the Solution tab and editor pane it should, and no tag or complexity',
-    ({ number, problems, hasSolutionTab, hasEditor }) => {
+    'on the default tab, $name has the Visualizer and Code tabs and editor pane it should, and no tag or complexity',
+    ({ number, problems, hasVisualizerAndCodeTabs, hasEditor }) => {
       const root: HTMLElement = setUp(number, problems).nativeElement;
 
       const tabs = Array.from(root.querySelectorAll('.practice__tab')).map((a) => a.textContent?.trim());
-      expect(tabs.includes('Solution')).toBe(hasSolutionTab);
+      expect(tabs.includes('Visualizer') && tabs.includes('Code')).toBe(hasVisualizerAndCodeTabs);
+      expect(tabs.includes('Visualizer') || tabs.includes('Code')).toBe(hasVisualizerAndCodeTabs);
       expect(root.querySelector('app-code-editor') !== null).toBe(hasEditor);
       expect(root.querySelector('.practice__divider') !== null).toBe(hasEditor);
       expect(root.querySelector('.meta-tag')).toBeNull();

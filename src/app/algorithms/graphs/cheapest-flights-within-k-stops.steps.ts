@@ -191,8 +191,6 @@ export const cheapestFlightsWithinKStopsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['Graph', 'Dynamic Programming', 'Shortest Path', 'Bellman-Ford'],
-  timeComplexity: 'O(k · E)',
-  spaceComplexity: 'O(n)',
   description:
     'n cities are connected by directed weighted flights. Given src, dst, and k, return the cheapest price from src to dst using at most k stops, or -1 if unreachable.',
   examples: [

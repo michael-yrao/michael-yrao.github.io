@@ -1,0 +1,90 @@
+@if (state.hasVisualization()) {
+  <section class="step-visualizer__section">
+    <div class="section-label">Visualization</div>
+    @if (!state.isStarted()) {
+      <div class="viz-prompt">
+        <button class="viz-prompt__btn" (click)="state.startViz()">
+          ▶ Start Visualization
+        </button>
+        <p class="viz-prompt__sub">
+          Step through the algorithm with plain-English explanations at every decision
+          point
+        </p>
+      </div>
+    }
+    @if (state.isStarted()) {
+      <div class="viz-stage">
+        <button
+          type="button"
+          class="viz-help-btn"
+          [class.active]="state.isWhyShown()"
+          [attr.aria-pressed]="state.isWhyShown()"
+          (click)="state.toggleWhy()"
+          title="{{ state.isWhyShown() ? 'Hide' : 'Show' }} the 'Why this step?' explanation"
+          aria-label="Toggle explanation"
+        >
+          ?
+        </button>
+        <div class="viz-canvas">
+          @switch (state.stateType()) {
+            @case ('array') {
+              <app-array-visualizer [state]="$any(state.currentState())"></app-array-visualizer>
+            }
+            @case ('grid') {
+              <app-grid-visualizer [state]="$any(state.currentState())"></app-grid-visualizer>
+            }
+            @case ('linked-list') {
+              <app-linked-list-visualizer
+                [state]="$any(state.currentState())"
+              ></app-linked-list-visualizer>
+            }
+            @case ('tree') {
+              <app-tree-visualizer [state]="$any(state.currentState())"></app-tree-visualizer>
+            }
+            @case ('graph') {
+              <app-graph-visualizer [state]="$any(state.currentState())"></app-graph-visualizer>
+            }
+          }
+        </div>
+        <!-- end .viz-canvas -->
+      </div>
+      <!-- end .viz-stage -->
+      <!-- 'Why this step?' — toggled by the ? button; sits in normal flow
+        below the canvas so it reserves space instead of covering the viz. -->
+      @if (state.isWhyShown()) {
+        <div class="viz-why">
+          <app-explanation-card
+            [explanation]="state.currentStep()?.explanation || ''"
+            [stepIndex]="state.currentStepIndex()"
+          ></app-explanation-card>
+        </div>
+      }
+      <!-- Footer dock: step controls + outer-scope variables -->
+      <div class="viz-footer">
+        @if (state.currentStep()?.variables?.length) {
+          <div class="var-watch">
+            <span class="var-watch__label">Variables</span>
+            @for (v of state.currentStep()!.variables; track v) {
+              <span class="var-watch__item" [class.var-watch__item--hl]="v.highlight">
+                <span class="var-watch__name">{{ v.name }}</span>
+                <span class="var-watch__sep">=</span>
+                <span class="var-watch__val">{{ v.value }}</span>
+              </span>
+            }
+          </div>
+        }
+        <app-step-controls
+          [currentStep]="state.currentStepIndex()"
+          [totalSteps]="state.steps().length"
+          (stepChange)="state.onStepChange($event)"
+          (reset)="state.onReset()"
+        ></app-step-controls>
+      </div>
+    }
+  </section>
+} @else {
+  <div class="no-viz">
+    <span>⬡</span>
+    <p>Visualization coming soon for this problem.</p>
+  </div>
+}

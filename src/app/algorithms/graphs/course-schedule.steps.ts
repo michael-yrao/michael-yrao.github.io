@@ -299,6 +299,8 @@ const solutionBFS: SolutionVariant = {
   label: "Kahn's BFS Topological Sort",
   variant: 'topological',
   generateSteps: generateStepsBFS,
+  timeComplexity: 'O(V+E)',
+  spaceComplexity: 'O(V+E)',
 };
 
 export const courseScheduleMeta: AlgorithmMeta = {
@@ -308,8 +310,6 @@ export const courseScheduleMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['Topological Sort', 'BFS', 'Cycle Detection'],
-  timeComplexity: 'O(V+E)',
-  spaceComplexity: 'O(V+E)',
   description:
     'There are numCourses courses labeled 0 to numCourses-1. Given prerequisites[i] = [a, b] meaning you must take b before a, return true if you can finish all courses (i.e., no cycle exists), or false otherwise.',
   examples: [

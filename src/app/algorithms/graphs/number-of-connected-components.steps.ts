@@ -295,8 +295,6 @@ export const numberOfConnectedComponentsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['BFS', 'Union Find'],
-  timeComplexity: 'O(n + e)',
-  spaceComplexity: 'O(n + e)',
   description:
     'Given n nodes (0 to n−1) and a list of undirected edges, return the number of connected components in the graph.',
   examples: [

@@ -311,6 +311,8 @@ const solution: SolutionVariant = {
   label: 'Find Middle + Reverse + Merge',
   variant: 'mid-reverse-merge',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const reorderListMeta: AlgorithmMeta = {
@@ -320,8 +322,6 @@ export const reorderListMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'linked-list',
   tags: ['Linked List', 'Two Pointers', 'Stack'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'You are given the head of a singly linked-list L0 → L1 → … → Ln-1 → Ln. Reorder it to: L0 → Ln → L1 → Ln-1 → L2 → Ln-2 → … You may not modify the values in the nodes — only nodes themselves may be changed.',
   examples: [

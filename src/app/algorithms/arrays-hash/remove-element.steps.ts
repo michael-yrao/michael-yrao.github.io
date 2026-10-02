@@ -163,6 +163,8 @@ const solution: SolutionVariant = {
   label: 'Two Pointer (Write Position)',
   variant: 'write-pointer',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const removeElementMeta: AlgorithmMeta = {
@@ -172,8 +174,6 @@ export const removeElementMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'arrays-hash',
   tags: ['Array', 'Two Pointers'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given an integer array nums and an integer val, remove all occurrences of val in nums in-place. Return the number of elements k in nums which are not equal to val. The first k elements of nums must contain only non-val elements.',
   examples: [

@@ -406,8 +406,6 @@ export const implementTrieMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'trie',
   tags: ['Trie', 'Design', 'Hash Map', 'String'],
-  timeComplexity: 'O(L) per op',
-  spaceComplexity: 'O(total chars)',
   description:
     'Implement a trie (prefix tree) supporting insert(word), search(word) — true only if the exact word was inserted — and startsWith(prefix) — true if any inserted word has the given prefix. Each node holds a children map (char → node) and an isEnd flag.',
   examples: [

@@ -10,8 +10,6 @@ export const evaluateReversePolishNotationMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'stack',
   tags: ['Stack', 'Array', 'Math'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given an array of strings tokens representing an arithmetic expression in Reverse Polish Notation, evaluate the expression and return its integer value.',
   examples: [

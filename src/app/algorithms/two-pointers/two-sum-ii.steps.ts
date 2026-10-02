@@ -113,6 +113,8 @@ const solution: SolutionVariant = {
   label: 'Two Pointers',
   variant: 'two-pointers',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const twoSumIIMeta: AlgorithmMeta = {
@@ -122,8 +124,6 @@ export const twoSumIIMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'two-pointers',
   tags: ['Array', 'Two Pointers', 'Binary Search'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given a 1-indexed array of integers numbers that is already sorted in non-decreasing order, find two numbers such that they add up to a specific target number. Return their indices as a 1-indexed array [index1, index2].',
   examples: [

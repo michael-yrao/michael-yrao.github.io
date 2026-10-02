@@ -101,8 +101,6 @@ export const lastStoneWeightMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'heap',
   tags: ['Heap', 'Priority Queue', 'Array'],
-  timeComplexity: 'O(n log n)',
-  spaceComplexity: 'O(n)',
   description:
     'You are given an array of stones where stones[i] is the weight of the ith stone. Each turn, smash the two heaviest stones together: if equal, both are destroyed; otherwise the lighter is destroyed and the heavier becomes their difference. Return the weight of the last remaining stone, or 0 if none remain.',
   examples: [

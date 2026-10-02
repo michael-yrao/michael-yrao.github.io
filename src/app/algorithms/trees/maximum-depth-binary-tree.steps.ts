@@ -118,8 +118,6 @@ export const maximumDepthBinaryTreeMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'trees',
   tags: ['Tree', 'DFS', 'BFS', 'Recursion'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(h)',
   description: 'Given the root of a binary tree, return its maximum depth. The maximum depth is the number of nodes along the longest path from the root node down to the farthest leaf node.',
   examples: [
     {
@@ -138,6 +136,8 @@ export const maximumDepthBinaryTreeMeta: AlgorithmMeta = {
       label: 'Postorder DFS (Recursive)',
       variant: 'postorder',
       generateSteps,
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(h)',
     },
   ],
 };

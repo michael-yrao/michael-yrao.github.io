@@ -269,8 +269,6 @@ export const minCostConnectAllPointsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['Graph', 'Minimum Spanning Tree', 'Prim', 'Heap'],
-  timeComplexity: 'O(n²)',
-  spaceComplexity: 'O(n)',
   description:
     'Given points on a 2D plane, connect all of them with minimum total cost, where the cost between two points is their Manhattan distance. All points are connected when exactly one simple path exists between any two.',
   examples: [

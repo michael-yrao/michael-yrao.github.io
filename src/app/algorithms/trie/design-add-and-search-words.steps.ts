@@ -214,8 +214,6 @@ export const designAddAndSearchWordsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'trie',
   tags: ['Trie', 'DFS', 'Design', 'Backtracking'],
-  timeComplexity: 'O(len) add',
-  spaceComplexity: 'O(total chars)',
   description:
     'Design WordDictionary supporting addWord(word) and search(word), where search may contain "." matching any single letter.',
   examples: [

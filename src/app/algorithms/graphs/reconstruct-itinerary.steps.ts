@@ -18,8 +18,6 @@ export const reconstructItineraryMeta: AlgorithmMeta = {
   difficulty: 'Hard',
   category: 'graphs',
   tags: ['Graph', 'Eulerian Path', 'DFS'],
-  timeComplexity: 'O(E log E)',
-  spaceComplexity: 'O(E)',
   description:
     'Given tickets[i] = [from, to] representing flights, reconstruct the itinerary that uses every ticket exactly once, starting from "JFK", returning the lexicographically smallest valid itinerary.',
   examples: [

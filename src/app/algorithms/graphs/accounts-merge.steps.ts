@@ -18,8 +18,6 @@ export const accountsMergeMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['Graph', 'Union-Find', 'Hash Map'],
-  timeComplexity: 'O(NK log NK)',
-  spaceComplexity: 'O(NK)',
   description:
     'Given a list of accounts where each account is a name followed by emails, merge the accounts that share at least one email into a single account with the name and all emails sorted.',
   examples: [

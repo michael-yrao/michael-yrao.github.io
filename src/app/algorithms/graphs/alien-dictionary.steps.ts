@@ -18,8 +18,6 @@ export const alienDictionaryMeta: AlgorithmMeta = {
   difficulty: 'Hard',
   category: 'graphs',
   tags: ['Graph', 'Topological Sort', 'BFS'],
-  timeComplexity: 'O(C)',
-  spaceComplexity: 'O(1)',
   description:
     "Given a list of words from an alien language sorted lexicographically by that language's unknown letter order, return a string of the unique letters in that order — any valid order if several exist, or an empty string if none exists.",
   examples: [

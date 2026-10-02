@@ -18,8 +18,6 @@ export const wordLadderMeta: AlgorithmMeta = {
   difficulty: 'Hard',
   category: 'graphs',
   tags: ['Graph', 'BFS', 'Hash Map', 'String'],
-  timeComplexity: 'O(n · L²)',
-  spaceComplexity: 'O(n · L²)',
   description:
     'Given a beginWord, an endWord, and a wordList, return the number of words in the shortest transformation sequence from beginWord to endWord, changing one letter at a time and passing only through words in wordList.',
   examples: [

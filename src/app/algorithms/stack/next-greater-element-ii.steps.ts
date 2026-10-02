@@ -143,8 +143,6 @@ export const nextGreaterElementIIMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'stack',
   tags: ['Array', 'Stack', 'Monotonic Stack'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given a circular integer array nums (the element after the last is the first), return the next greater number for every element. The next greater number of x is the first greater number found while traversing forward circularly; −1 if none exists.',
   examples: [

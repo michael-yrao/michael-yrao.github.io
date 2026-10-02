@@ -10,8 +10,6 @@ export const findFirstAndLastPositionMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'binary-search',
   tags: ['Binary Search', 'Array'],
-  timeComplexity: 'O(log n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given an array nums sorted in non-decreasing order, find the starting and ending position of a given target value, returning [-1, -1] if target is not found — in O(log n) time.',
   examples: [

@@ -10,8 +10,6 @@ export const happyNumberMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'arrays-hash',
   tags: ['Hash Set', 'Math'],
-  timeComplexity: 'O(log n)',
-  spaceComplexity: 'O(log n)',
   description:
     'Determine whether a positive integer n is happy: repeatedly replace it with the sum of the squares of its digits until it reaches 1 (happy), or it enters a cycle that never includes 1 (not happy).',
   examples: [

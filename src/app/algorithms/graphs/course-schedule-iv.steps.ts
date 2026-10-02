@@ -18,8 +18,6 @@ export const courseScheduleIvMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['Graph', 'Floyd-Warshall', 'Topological Sort'],
-  timeComplexity: 'O(n³ + q)',
-  spaceComplexity: 'O(n²)',
   description:
     'Given numCourses courses and a list of transitive prerequisite pairs, answer queries asking whether one course is a prerequisite — direct or indirect — of another.',
   examples: [

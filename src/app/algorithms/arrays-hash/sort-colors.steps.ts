@@ -219,12 +219,16 @@ const dutchFlagSolution: SolutionVariant = {
   label: 'Dutch Flag',
   variant: 'dutch-flag',
   generateSteps: generateDutchFlagSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 const bucketSortSolution: SolutionVariant = {
   label: 'Bucket Sort',
   variant: 'bucket-sort',
   generateSteps: generateBucketSortSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const sortColorsMeta: AlgorithmMeta = {
@@ -234,8 +238,6 @@ export const sortColorsMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'arrays-hash',
   tags: ['Array', 'Two Pointers', 'Dutch Flag'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
   description:
     'Given an array nums with n objects colored red, white, or blue (represented as 0, 1, and 2), sort them in-place so that objects of the same color are adjacent, with the colors in the order red, white, and blue. You must solve this without using the built-in sort function.',
   examples: [

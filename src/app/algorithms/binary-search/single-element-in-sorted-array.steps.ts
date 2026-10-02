@@ -139,6 +139,8 @@ const solution: SolutionVariant = {
   label: 'Binary Search on Pair Parity',
   variant: 'pair-parity',
   generateSteps,
+  timeComplexity: 'O(log n)',
+  spaceComplexity: 'O(1)',
 };
 
 export const singleElementSortedArrayMeta: AlgorithmMeta = {
@@ -148,8 +150,6 @@ export const singleElementSortedArrayMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'binary-search',
   tags: ['Array', 'Binary Search'],
-  timeComplexity: 'O(log n)',
-  spaceComplexity: 'O(1)',
   description:
     'You are given a sorted array where every element appears exactly twice, except for one element which appears exactly once. Find that single element. Your solution must run in O(log n) time and O(1) space.',
   examples: [

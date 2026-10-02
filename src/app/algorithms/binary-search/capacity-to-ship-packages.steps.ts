@@ -168,6 +168,8 @@ const solution: SolutionVariant = {
   label: 'Binary Search on Capacity',
   variant: 'capacity-search',
   generateSteps,
+  timeComplexity: 'O(n log m)',
+  spaceComplexity: 'O(1)',
 };
 
 export const capacityToShipPackagesMeta: AlgorithmMeta = {
@@ -177,8 +179,6 @@ export const capacityToShipPackagesMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'binary-search',
   tags: ['Array', 'Binary Search'],
-  timeComplexity: 'O(n log m)',
-  spaceComplexity: 'O(1)',
   description:
     'A conveyor belt has packages to ship within days days. The i-th package weighs weights[i]. Each day load packages in order without exceeding the ship capacity. Return the least weight capacity to ship all packages within days days.',
   examples: [

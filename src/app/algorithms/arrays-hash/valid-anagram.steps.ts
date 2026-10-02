@@ -179,12 +179,16 @@ const hashMapSolution: SolutionVariant = {
   label: 'Hash Map',
   variant: 'hash-map',
   generateSteps,
+  timeComplexity: 'O(n)',
+  spaceComplexity: 'O(n)',
 };
 
 const sortedSolution: SolutionVariant = {
   label: 'Sort',
   variant: 'sort',
   generateSteps: generateSortedSteps,
+  timeComplexity: 'O(n log n)',
+  spaceComplexity: 'O(n)',
 };
 
 export const validAnagramMeta: AlgorithmMeta = {
@@ -194,8 +198,6 @@ export const validAnagramMeta: AlgorithmMeta = {
   difficulty: 'Easy',
   category: 'arrays-hash',
   tags: ['Hash Map', 'String', 'Sorting'],
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
   description:
     'Given two strings s and t, return true if t is an anagram of s, and false otherwise. An anagram uses all the original letters exactly once, just rearranged.',
   examples: [

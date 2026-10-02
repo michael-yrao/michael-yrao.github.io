@@ -120,8 +120,6 @@ export const constructTreePreorderInorderMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'trees',
   tags: ['Tree', 'Array', 'Divide and Conquer', 'Recursion'],
-  timeComplexity: 'O(n²)',
-  spaceComplexity: 'O(n)',
   description:
     'Given preorder and inorder traversals of a binary tree with unique values, construct and return the tree.',
   examples: [

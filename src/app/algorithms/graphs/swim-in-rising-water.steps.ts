@@ -18,8 +18,6 @@ export const swimInRisingWaterMeta: AlgorithmMeta = {
   difficulty: 'Hard',
   category: 'graphs',
   tags: ['Graph', 'Dijkstra', 'Heap', 'Grid'],
-  timeComplexity: 'O(n² log n)',
-  spaceComplexity: 'O(n²)',
   description:
     'Given an n x n grid of elevations, find the minimum time t such that a path of 4-directionally adjacent cells, each with elevation at most t, connects the top-left cell to the bottom-right cell.',
   examples: [

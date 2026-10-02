@@ -157,6 +157,8 @@ const bfsSolution: SolutionVariant = {
   label: 'Multi-Source BFS',
   variant: 'multi-source-bfs',
   generateSteps,
+  timeComplexity: 'O(m × n)',
+  spaceComplexity: 'O(m × n)',
 };
 
 export const rottingOrangesMeta: AlgorithmMeta = {
@@ -166,8 +168,6 @@ export const rottingOrangesMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['BFS', 'Matrix'],
-  timeComplexity: 'O(m × n)',
-  spaceComplexity: 'O(m × n)',
   description:
     'You are given an m × n grid where each cell is 0 (empty), 1 (fresh orange), or 2 (rotten orange). Every minute, any fresh orange 4-directionally adjacent to a rotten orange becomes rotten. Return the minimum number of minutes until no fresh oranges remain, or -1 if impossible.',
   examples: [

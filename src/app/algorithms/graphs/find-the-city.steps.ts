@@ -18,8 +18,6 @@ export const findTheCityMeta: AlgorithmMeta = {
   difficulty: 'Medium',
   category: 'graphs',
   tags: ['Graph', 'Floyd-Warshall', 'Shortest Path'],
-  timeComplexity: 'O(n³)',
-  spaceComplexity: 'O(n²)',
   description:
     'Given a weighted, bidirectional graph of n cities and a distance threshold, return the city reachable from the fewest other cities within that threshold, breaking ties by returning the city with the greatest number.',
   examples: [
