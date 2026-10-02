@@ -179,7 +179,7 @@ describe('TechniqueListComponent', () => {
     const rows: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.tech-row__problems li'));
     const [practiced, external] = rows;
     const run = practiced.querySelector('a[title="Run code"]');
-    expect(run?.textContent?.trim()).toBe('Run');
+    expect(run?.textContent?.trim()).toBe('>_');
     expect(run?.getAttribute('href')).toBe('/practice/11');
     expect(practiced.querySelector('a[title="LeetCode"]')).toBeFalsy();
     expect(external.querySelector('a[title="LeetCode"]')).toBeTruthy();

@@ -6,6 +6,8 @@ $nav-height: 56px;
 $problem-pane-fraction: 1fr;
 $work-pane-fraction: 1fr;
 $output-max-height: 40%;
+$figure-max-width: 28rem;
+$figure-max-height: 14rem;
 
 .practice {
   display: flex;
@@ -75,6 +77,34 @@ $output-max-height: 40%;
 }
 .practice__statement { max-height: $statement-max-height; }
 .practice__value { max-height: $value-max-height; }
+
+// A block that ends in a line break would lose its last blank line (a trailing break at the
+// end of a block draws nothing). A zero-width character after it keeps that line.
+.practice__segment::after { content: '\200b'; }
+
+// An example's input drawn inside the statement card, under its own example's text. The art
+// box caps the drawing so a small graph is not blown up to the pane's width.
+.practice__figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: var(--space-sm) 0;
+  white-space: normal;
+}
+.practice__figure-caption {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+.practice__figure-art {
+  width: 100%;
+  max-width: $figure-max-width;
+
+  // The visualizers carry their own roomy padding and a 300px tall canvas; tighten both here.
+  ::ng-deep .gv { padding: var(--space-md); }
+  ::ng-deep .gv__svg { max-height: $figure-max-height; }
+}
 
 .practice__toolbar {
   display: flex;

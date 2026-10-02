@@ -2,15 +2,50 @@
 
   <!-- SVG graph -->
   <svg [attr.viewBox]="viewBox" class="gv__svg" xmlns="http://www.w3.org/2000/svg">
+    @if (state.directed) {
+      <defs>
+        @for (s of EDGE_STATES; track s) {
+          <marker
+            [attr.id]="markerId(s)"
+            viewBox="0 0 10 10"
+            refX="10"
+            refY="5"
+            markerWidth="10"
+            markerHeight="10"
+            markerUnits="userSpaceOnUse"
+            orient="auto"
+            >
+            <path d="M 0 0 L 10 5 L 0 10 z" [ngClass]="'gv__arrow gv__arrow--' + s" />
+          </marker>
+        }
+      </defs>
+    }
     <!-- Edges drawn first (behind nodes) -->
-    @for (edge of state.edges; track edge) {
-      <line
-        [attr.x1]="edgeLine(edge.from, edge.to).x1"
-        [attr.y1]="edgeLine(edge.from, edge.to).y1"
-        [attr.x2]="edgeLine(edge.from, edge.to).x2"
-        [attr.y2]="edgeLine(edge.from, edge.to).y2"
-        [ngClass]="'gv__edge gv__edge--' + edge.state"
-        />
+    @for (drawn of drawnEdges; track drawn.edge) {
+      @if (drawn.layout.shape.kind === 'line') {
+        <line
+          [attr.x1]="drawn.layout.shape.x1"
+          [attr.y1]="drawn.layout.shape.y1"
+          [attr.x2]="drawn.layout.shape.x2"
+          [attr.y2]="drawn.layout.shape.y2"
+          [attr.marker-end]="markerRef(drawn.edge.state)"
+          [ngClass]="'gv__edge gv__edge--' + drawn.edge.state"
+          />
+      } @else {
+        <path
+          [attr.d]="drawn.layout.shape.d"
+          [attr.marker-end]="markerRef(drawn.edge.state)"
+          [ngClass]="'gv__edge gv__edge--' + drawn.edge.state"
+          />
+      }
+      @if (drawn.edge.label !== undefined) {
+        <text
+          class="gv__edge-label"
+          [attr.x]="drawn.layout.label.x"
+          [attr.y]="drawn.layout.label.y"
+          dy="0.35em"
+          >{{ drawn.edge.label }}</text>
+      }
     }
     <!-- Nodes -->
     @for (node of state.nodes; track node) {

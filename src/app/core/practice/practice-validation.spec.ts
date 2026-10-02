@@ -22,6 +22,8 @@ describe('isPracticeProblem', () => {
     { name: 'unknown compare', value: makeProblem({ compare: 'sorted' }), isValid: false },
     { name: 'case args not an array', value: makeProblem({ cases: [{ args: 'x', expected: 1, example: true }] }), isValid: false },
     { name: 'case with no expected', value: makeProblem({ cases: [{ args: [], example: true }] }), isValid: false },
+    { name: 'a valid graph figure', value: makeProblem({ figure: { kind: 'graph', directed: true, edgesArg: 1, nodeCountArg: null } }), isValid: true },
+    { name: 'a malformed figure (non-integer index)', value: makeProblem({ figure: { kind: 'grid', gridArg: '0' } }), isValid: false },
     { name: 'non-boolean example', value: makeProblem({ cases: [{ args: [], expected: 1, example: 'yes' }] }), isValid: false },
   ];
 

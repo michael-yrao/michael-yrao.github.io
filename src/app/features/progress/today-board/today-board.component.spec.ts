@@ -563,7 +563,7 @@ describe('TodayBoardComponent', () => {
     const run: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a[title="Run code"]');
     const external = fixture.nativeElement.querySelector('a[title="LeetCode"]');
     if (isPracticed) {
-      expect(run?.textContent?.trim()).toBe('Run');
+      expect(run?.textContent?.trim()).toBe('>_');
       expect(run?.getAttribute('href')).toBe('/practice/39');
       expect(external).toBeFalsy();
       return;

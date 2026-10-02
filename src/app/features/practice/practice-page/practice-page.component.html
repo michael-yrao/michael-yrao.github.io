@@ -17,7 +17,27 @@
           }
         </h1>
 
-        <pre class="practice__statement">{{ p.statement }}</pre>
+        <div class="practice__statement">
+          @for (block of statementBlocks(); track $index) {
+            @if (block.text !== null) {
+              <div class="practice__segment">{{ block.text }}</div>
+            }
+            @if (block.figure; as figure) {
+              <figure class="practice__figure">
+                @if (block.isCaptioned) {
+                  <figcaption class="practice__figure-caption">{{ figure.caption }}</figcaption>
+                }
+                <div class="practice__figure-art">
+                  @if (figure.state.type === 'graph') {
+                    <app-graph-visualizer [state]="figure.state" />
+                  } @else {
+                    <app-grid-visualizer [state]="figure.state" />
+                  }
+                </div>
+              </figure>
+            }
+          }
+        </div>
       </div>
 
       <div class="practice__work">

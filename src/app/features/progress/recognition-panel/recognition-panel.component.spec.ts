@@ -65,7 +65,7 @@ describe('RecognitionPanelComponent', () => {
       fixture.nativeElement.querySelectorAll('.recognition__row'),
     );
     const run = practiced.querySelector('a[title="Run code"]');
-    expect(run?.textContent?.trim()).toBe('Run');
+    expect(run?.textContent?.trim()).toBe('>_');
     expect(run?.getAttribute('href')).toBe('/practice/1');
     expect(practiced.querySelector('a[title="LeetCode"]')).toBeFalsy();
     expect(external.querySelector('a[title="LeetCode"]')).toBeTruthy();

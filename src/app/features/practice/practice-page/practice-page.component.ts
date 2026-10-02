@@ -22,6 +22,11 @@ import {
   sameRef,
 } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
+import { figureStateFor } from '../../../core/practice/example-figure';
+import { splitStatement } from '../../../core/practice/statement-segments';
+import { GraphState, GridState } from '../../../core/models/algorithm.model';
+import { GraphVisualizerComponent } from '../../../shared/visualizers/graph-visualizer/graph-visualizer.component';
+import { GridVisualizerComponent } from '../../../shared/visualizers/grid-visualizer/grid-visualizer.component';
 import { CodeEditorComponent } from '../code-editor/code-editor.component';
 import { clearDraft, draftKey, loadDraft, saveDraft } from '../practice-draft';
 import { countPassed, toResultRow } from '../practice-results';
@@ -31,6 +36,22 @@ const COPY_FEEDBACK_MS = 1500;
 const COPY_OK_MARK = '✓';
 const COPY_FAIL_MARK = '✗';
 const POSITIVE_INTEGER = /^[1-9]\d*$/;
+
+/** One example case's input drawn as a diagram, captioned by its place among the examples. */
+export interface ExampleFigure {
+  readonly number: number;
+  readonly caption: string;
+  readonly state: GraphState | GridState;
+}
+
+/** One block of the statement card, in reading order: a segment's text with the diagram drawn
+ *  right under it when the segment is that diagram's example, or (text null) a diagram whose
+ *  `Example N:` the statement never names, captioned since no text names it. */
+export interface StatementBlock {
+  readonly text: string | null;
+  readonly figure: ExampleFigure | null;
+  readonly isCaptioned: boolean;
+}
 
 /** The route's `:number` as a positive integer, or null (the not-found state). */
 function parseProblemNumber(raw: string | null): number | null {
@@ -44,7 +65,7 @@ function parseProblemNumber(raw: string | null): number | null {
   templateUrl: './practice-page.component.html',
   styleUrls: ['./practice-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CodeEditorComponent],
+  imports: [CodeEditorComponent, GraphVisualizerComponent, GridVisualizerComponent],
 })
 export class PracticePageComponent {
   private readonly route = inject(ActivatedRoute);
@@ -81,6 +102,38 @@ export class PracticePageComponent {
     const number = parseProblemNumber(this.numberParam());
     if (number === null || this.contractStatus() !== 'ready') return null;
     return this.practice.problemFor(number);
+  });
+
+  /** A diagram per `example: true` case whose arguments fit the problem's `figure`, in case
+   *  order. Empty when the problem has no figure. */
+  readonly exampleFigures = computed<readonly ExampleFigure[]>(() => {
+    const problem = this.problem();
+    const figure = problem?.figure;
+    if (!problem || !figure) return [];
+    const examples = problem.cases.filter((c) => c.example);
+    return examples.flatMap((c, i) => {
+      const state = figureStateFor(figure, c.args);
+      return state ? [{ number: i + 1, caption: `Example ${i + 1}`, state }] : [];
+    });
+  });
+
+  /** The statement's segments in order, each example carrying its own diagram; a diagram whose
+   *  `Example N:` the statement lacks follows the last segment, so none is dropped. */
+  readonly statementBlocks = computed<readonly StatementBlock[]>(() => {
+    const segments = splitStatement(this.problem()?.statement ?? '');
+    const placements = this.exampleFigures().map((figure) => ({
+      figure,
+      index: segments.findIndex((s) => s.exampleNumber === figure.number),
+    }));
+    const placed = segments.map((s, i) => ({
+      text: s.text,
+      figure: placements.find((p) => p.index === i)?.figure ?? null,
+      isCaptioned: false,
+    }));
+    const unplaced = placements
+      .filter((p) => p.index < 0)
+      .map((p) => ({ text: null, figure: p.figure, isCaptioned: true }));
+    return [...placed, ...unplaced];
   });
 
   private readonly key = computed(() => {

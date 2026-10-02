@@ -125,6 +125,37 @@ describe('PracticePageComponent', () => {
     expect(root.querySelector('.practice__summary')?.textContent?.trim()).toBe('1 / 2');
   });
 
+  it('draws each example diagram under its own example text, without a caption', () => {
+    const statement =
+      'Find the tree.\n\nExample 1:\n    Input: n = 2\n\nExample 2:\n    Input: n = 3\n\nConstraints:\n    n >= 1';
+    const problem: PracticeProblem = {
+      ...PROBLEM,
+      statement,
+      figure: { kind: 'graph', directed: false, edgesArg: 1, nodeCountArg: 0 },
+      cases: [
+        { args: [2, [[0, 1]]], expected: 1, example: true },
+        { args: [3, [[0, 1], [1, 2]]], expected: 2, example: true },
+      ],
+    };
+    const root: HTMLElement = setUp('90', [problem]).nativeElement;
+
+    const card = root.querySelector('.practice__statement')!;
+    const order = Array.from(card.children).map((child) =>
+      child.tagName === 'FIGURE' ? 'figure' : child.textContent?.trim().split('\n')[0],
+    );
+    expect(order).toEqual([
+      'Find the tree.',
+      'Example 1:',
+      'figure',
+      '',
+      'Example 2:',
+      'figure',
+      'Constraints:',
+    ]);
+    expect(card.querySelectorAll('app-graph-visualizer').length).toBe(2);
+    expect(root.querySelector('.practice__figure-caption')).toBeNull();
+  });
+
   it('shows the not-found state and no editor for a number absent from the contract', () => {
     const fixture = setUp('91', [PROBLEM]);
     const root: HTMLElement = fixture.nativeElement;

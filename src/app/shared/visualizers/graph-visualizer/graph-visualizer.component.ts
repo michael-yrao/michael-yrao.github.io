@@ -1,6 +1,19 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
-import { GraphState } from '../../../core/models/algorithm.model';
+import { GraphEdge, GraphEdgeState, GraphState } from '../../../core/models/algorithm.model';
 import { NgClass } from '@angular/common';
+import { EdgeLayout, LOOP_REACH, NODE_RADIUS, layoutEdges } from './graph-geometry';
+
+/** One id per component instance, so two visualizers on a page never share a marker id. */
+let nextInstanceId = 0;
+
+const EDGE_STATES: readonly GraphEdgeState[] = ['default', 'active', 'visited', 'found'];
+const VIEWBOX_PAD = NODE_RADIUS + 18;
+const LOOP_VIEWBOX_PAD = NODE_RADIUS + LOOP_REACH + 24;
+
+export interface DrawnEdge {
+  readonly edge: GraphEdge;
+  readonly layout: EdgeLayout;
+}
 
 @Component({
     selector: 'app-graph-visualizer',
@@ -12,12 +25,15 @@ import { NgClass } from '@angular/common';
 export class GraphVisualizerComponent {
   @Input() state!: GraphState;
 
-  readonly NODE_R = 22;
+  readonly NODE_R = NODE_RADIUS;
+  readonly EDGE_STATES = EDGE_STATES;
+  private readonly instanceId = nextInstanceId++;
 
   get viewBox(): string {
     const xs = this.state.nodes.map(n => n.x);
     const ys = this.state.nodes.map(n => n.y);
-    const pad = this.NODE_R + 18;
+    const hasLoop = this.state.edges.some(e => e.from === e.to);
+    const pad = hasLoop ? LOOP_VIEWBOX_PAD : VIEWBOX_PAD;
     const minX = Math.min(...xs) - pad;
     const minY = Math.min(...ys) - pad;
     const w = Math.max(...xs) - minX + pad;
@@ -25,20 +41,18 @@ export class GraphVisualizerComponent {
     return `${minX} ${minY} ${w} ${h}`;
   }
 
-  edgeLine(from: string | number, to: string | number) {
-    const f = this.state.nodes.find(n => n.id === from);
-    const t = this.state.nodes.find(n => n.id === to);
-    if (!f || !t) return { x1: 0, y1: 0, x2: 0, y2: 0 };
-    const dx = t.x - f.x;
-    const dy = t.y - f.y;
-    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-    const off = this.NODE_R + 3;
-    return {
-      x1: f.x + (dx / dist) * off,
-      y1: f.y + (dy / dist) * off,
-      x2: t.x - (dx / dist) * off,
-      y2: t.y - (dy / dist) * off,
-    };
+  /** Every edge with its drawn shape and label position. */
+  get drawnEdges(): DrawnEdge[] {
+    const layouts = layoutEdges(this.state.nodes, this.state.edges);
+    return this.state.edges.map((edge, i) => ({ edge, layout: layouts[i] }));
+  }
+
+  markerId(edgeState: GraphEdgeState): string {
+    return `gv-arrow-${this.instanceId}-${edgeState}`;
+  }
+
+  markerRef(edgeState: GraphEdgeState): string | null {
+    return this.state.directed ? `url(#${this.markerId(edgeState)})` : null;
   }
 
   hashmapEntries(): [string, number | string][] {

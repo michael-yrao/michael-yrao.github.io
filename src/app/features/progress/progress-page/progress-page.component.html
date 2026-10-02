@@ -81,12 +81,13 @@
           <a
             [routerLink]="['/practice', p.lcNumber]"
             queryParamsHandling="preserve"
+            class="practice-link"
             aria-label="Run code"
             title="Run code"
             (click)="$event.stopPropagation()"
             (keydown.enter)="$event.stopPropagation()"
             (keydown.space)="$event.stopPropagation()"
-            >Run</a
+            >{{ practiceGlyph }}</a
           >
         } @else if (p.url) {
           <a

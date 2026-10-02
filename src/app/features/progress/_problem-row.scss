@@ -110,6 +110,9 @@ $row-mobile-breakpoint: 680px;
   margin-left: auto;
 
   a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
+
+  // The `>_` practice link: two characters that must read as one mark.
+  .practice-link { font-family: var(--font-mono); white-space: nowrap; }
 }
 
 @mixin tag {

@@ -16,6 +16,7 @@
 
   // ── Edges ─────────────────────────────────────────────────────
   &__edge {
+    fill: none;
     stroke-width: 2.5;
     stroke-linecap: round;
     transition: stroke 200ms, stroke-width 200ms, stroke-opacity 200ms;
@@ -24,6 +25,28 @@
     &--active   { stroke: var(--color-accent); stroke-width: 3.5; }
     &--visited  { stroke: #334155; }
     &--found    { stroke: var(--color-found); }
+  }
+
+  // ── Arrowheads: one marker per edge state, filled with that state's edge colour ──
+  &__arrow {
+    &--default  { fill: var(--color-border); }
+    &--active   { fill: var(--color-accent); }
+    &--visited  { fill: #334155; }
+    &--found    { fill: var(--color-found); }
+  }
+
+  &__edge-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    text-anchor: middle;
+    fill: var(--color-text);
+    // A halo in the card colour keeps the number legible where it crosses a line.
+    paint-order: stroke;
+    stroke: var(--color-bg-card);
+    stroke-width: 3px;
+    pointer-events: none;
+    user-select: none;
   }
 
   // ── Nodes ─────────────────────────────────────────────────────

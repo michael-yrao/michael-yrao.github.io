@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 
 import { Probes } from '../../../core/models/progress.model';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
+import { PRACTICE_GLYPH } from '../practice-link';
 
 const CLEAN_HIGH = 0.85;
 const CLEAN_LOW = 0.7;
@@ -46,4 +47,5 @@ export class RecognitionPanelComponent {
   readonly recent = computed(() => [...(this.probes()?.items ?? [])].reverse());
 
   protected readonly leetCodeUrlFor = leetCodeUrlFor;
+  protected readonly practiceGlyph = PRACTICE_GLYPH;
 }

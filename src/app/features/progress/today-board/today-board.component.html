@@ -85,7 +85,7 @@
     }
     <span class="today-board__links">
       @if (item.lcNumber && practiceNumbers().has(item.lcNumber)) {
-        <a [routerLink]="['/practice', item.lcNumber]" queryParamsHandling="preserve" aria-label="Run code" title="Run code">Run</a>
+        <a [routerLink]="['/practice', item.lcNumber]" queryParamsHandling="preserve" aria-label="Run code" title="Run code" class="practice-link">{{ practiceGlyph }}</a>
       } @else if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
         <a [href]="lc" target="_blank" rel="noopener" aria-label="Open on LeetCode" title="LeetCode">↗</a>
       }

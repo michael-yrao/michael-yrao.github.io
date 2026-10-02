@@ -21,6 +21,7 @@ import {
 import { fileUrl, RepoRef } from '../../../core/services/github-file.service';
 import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-date';
 import { walkthroughRouteFor } from '../solution-link-mode';
+import { PRACTICE_GLYPH } from '../practice-link';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import {
   columnFor,
@@ -130,6 +131,7 @@ export class TechniqueListComponent {
    *  standard. Same shape as TodayBoardComponent's own `repoRef` input. */
   readonly repoRef = input<RepoRef | null>(null);
   readonly practiceNumbers = input<ReadonlySet<number>>(new Set());
+  protected readonly practiceGlyph = PRACTICE_GLYPH;
   readonly expand = output<Technique>();
 
   // The shared, page-header-level Solution Links setting (settings-menu.component.ts's ⚙

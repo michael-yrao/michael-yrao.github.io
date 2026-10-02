@@ -16,6 +16,22 @@ export interface PracticeCase {
   readonly example: boolean;
 }
 
+/** Which args of a case hold a graph's edge list, drawn as an example diagram. */
+export interface GraphFigure {
+  readonly kind: 'graph';
+  readonly directed: boolean;
+  readonly edgesArg: number;
+  readonly nodeCountArg: number | null;
+}
+
+/** Which arg of a case holds a matrix, drawn as an example diagram. */
+export interface GridFigure {
+  readonly kind: 'grid';
+  readonly gridArg: number;
+}
+
+export type PracticeFigure = GraphFigure | GridFigure;
+
 export interface PracticeProblem {
   readonly number: number;
   readonly title: string;
@@ -24,6 +40,8 @@ export interface PracticeProblem {
   readonly stub: string;
   readonly entry: PracticeEntry;
   readonly compare: CompareMode;
+  /** Optional: absent or null when the problem has no example diagram. */
+  readonly figure?: PracticeFigure | null;
   readonly cases: readonly PracticeCase[];
 }
 

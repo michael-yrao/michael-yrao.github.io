@@ -97,6 +97,8 @@ export interface GraphEdge {
   from: string | number;
   to: string | number;
   state: GraphEdgeState;
+  /** Text drawn at the edge's midpoint (e.g. a weight). */
+  label?: string;
 }
 
 export interface GraphState {

@@ -22,10 +22,10 @@
                 <a
                   [routerLink]="['/practice', item.lcNumber]"
                   queryParamsHandling="preserve"
-                  class="recognition__link"
+                  class="recognition__link practice-link"
                   aria-label="Run code"
                   title="Run code"
-                >Run</a>
+                >{{ practiceGlyph }}</a>
               } @else if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
                 <a
                   [href]="lc"

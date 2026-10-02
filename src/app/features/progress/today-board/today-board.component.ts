@@ -32,6 +32,7 @@ import {
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
+import { PRACTICE_GLYPH } from '../practice-link';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProgressViewStateService } from '../progress-view-state.service';
 
@@ -676,5 +677,6 @@ export class TodayBoardComponent {
   protected readonly isGateRow = isGateRow;
   protected readonly isMovedItem = isMovedItem;
   protected readonly walkthroughGlyph = WALKTHROUGH_GLYPH;
+  protected readonly practiceGlyph = PRACTICE_GLYPH;
   protected readonly gateTitle = COMPLEXITY_GATE_TITLE;
 }

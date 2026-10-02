@@ -20,6 +20,7 @@ import { PracticeService } from '../../../core/services/practice.service';
 import { Comfort, OnSchedule, ProblemProgress, ScheduleItem } from '../../../core/models/progress.model';
 import { daysBetweenISO, todayLocalISO } from '../../../core/utils/local-date';
 import { walkthroughRouteFor } from '../solution-link-mode';
+import { PRACTICE_GLYPH } from '../practice-link';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { BadgeGridComponent } from '../badge-grid/badge-grid.component';
@@ -264,6 +265,7 @@ export class ProgressPageComponent {
   // The practice contract rides along on this page only to decide which rows get a Run link; a
   // failed load simply leaves the set empty and surfaces nothing here.
   private readonly practice = inject(PracticeService);
+  protected readonly practiceGlyph = PRACTICE_GLYPH;
   readonly practiceNumbers = computed<ReadonlySet<number>>(
     () => new Set(this.practice.data()?.problems.map((problem) => problem.number) ?? []),
   );
