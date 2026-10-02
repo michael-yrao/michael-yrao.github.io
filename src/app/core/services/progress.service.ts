@@ -19,6 +19,7 @@ import {
   parseRepoSlug,
   sameRef,
   httpErrorMessage,
+  invalidSlugMessage,
 } from './github-file.service';
 
 // The dashboard renders any repo that follows the cse-coach schema. This is the default
@@ -335,7 +336,7 @@ export class ProgressService {
     this.seq++; // invalidate any in-flight fetch from a previously valid repo
     this.source.set(null);
     this.status.set('error');
-    this.error.set(`'${raw}' isn't a repo slug — use owner/name or owner/name@branch.`);
+    this.error.set(invalidSlugMessage(raw));
     this.data.set(null);
   }
 

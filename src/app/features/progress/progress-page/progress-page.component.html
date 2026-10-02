@@ -90,6 +90,18 @@
             >↗</a
           >
         }
+        @if (practiceNumbers().has(p.lcNumber)) {
+          <a
+            [routerLink]="['/practice', p.lcNumber]"
+            queryParamsHandling="preserve"
+            aria-label="Run code"
+            title="Run code"
+            (click)="$event.stopPropagation()"
+            (keydown.enter)="$event.stopPropagation()"
+            (keydown.space)="$event.stopPropagation()"
+            >Run</a
+          >
+        }
       </span>
       <span class="problem__caret" [class.problem__caret--open]="isExpanded(p)">▸</span>
     </div>
@@ -255,6 +267,7 @@
                   [repoRef]="repoRef()"
                   [history]="history()"
                   [historyStatus]="historyStatus()"
+                  [practiceNumbers]="practiceNumbers()"
                   (trend)="onTrendExpand($event)"
                   (historyRequest)="loadHistory()"
                 />

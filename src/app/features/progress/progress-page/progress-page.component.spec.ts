@@ -8,6 +8,7 @@ import { vi } from 'vitest';
 import { ProgressPageComponent, ProgressTab } from './progress-page.component';
 import { By } from '@angular/platform-browser';
 import { ProgressService } from '../../../core/services/progress.service';
+import { PracticeService } from '../../../core/services/practice.service';
 import { TodayBoardComponent } from '../today-board/today-board.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
 import { RoadmapCoverageComponent } from '../roadmap-coverage/roadmap-coverage.component';
@@ -236,6 +237,11 @@ describe('ProgressPageComponent', () => {
       imports: [ProgressPageComponent],
       providers: [
         { provide: ProgressService, useValue: progress },
+        // The page also loads the practice contract; keep it off the (absent) HttpClient.
+        {
+          provide: PracticeService,
+          useValue: { data: signal(null), ref: signal(null), load: vi.fn() },
+        },
         { provide: ActivatedRoute, useValue: makeActivatedRouteStub() },
         // A real (empty) router — RouterLink (vizRoute links) needs a working Router, not
         // just a navigate() stub.
@@ -1323,6 +1329,7 @@ describe('ProgressPageComponent', () => {
 // HttpClient.get() past CALL_CAP throws synchronously with a clear message, so a real loop
 // fails fast instead of spinning forever.
 const CALL_CAP = 5;
+const PRACTICE_FILE = 'dashboard/practice.json';
 
 function makeCountingHttp() {
   const calls: string[] = [];
@@ -1357,7 +1364,8 @@ describe('ProgressPageComponent — effect loop regression (real ProgressService
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges(); // constructs the effect and flushes it (synchronously, to stability)
 
-    expect(http.calls.length).toBe(1);
+    // The practice contract's own fetch is counted apart: it is not the summary under test.
+    expect(http.calls.filter((url) => !url.includes(PRACTICE_FILE)).length).toBe(1);
   });
 });
 
@@ -1406,6 +1414,6 @@ describe('ProgressPageComponent — smoke test (real ProgressService, resolving 
     expect(fixture.nativeElement.querySelectorAll('.hero').length).toBeGreaterThan(0);
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
     expect(http.calls.length).toBeLessThanOrEqual(CALL_CAP);
-    expect(http.calls.length).toBe(1);
+    expect(http.calls.filter((url) => !url.includes(PRACTICE_FILE)).length).toBe(1);
   });
 });

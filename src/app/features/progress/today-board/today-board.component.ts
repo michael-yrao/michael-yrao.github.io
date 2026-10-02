@@ -236,6 +236,9 @@ export class TodayBoardComponent {
    *  standard. */
   readonly repoRef = input<RepoRef | null>(null);
 
+  /** LeetCode numbers with a practice contract entry — only these rows get the Run link. */
+  readonly practiceNumbers = input<ReadonlySet<number>>(new Set());
+
   /** The archived weeks (`ProgressService.history`) — `null` until the board has asked for
    *  them (see `prevWeek()`), an array (possibly empty) once that fetch has resolved. */
   readonly history = input<Schedule[] | null>(null);

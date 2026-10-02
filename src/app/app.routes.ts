@@ -53,6 +53,13 @@ export const routes: Routes = [
       import('./features/events/events.routes').then((m) => m.EVENTS_ROUTES),
   },
   {
+    path: 'practice/:number',
+    loadComponent: () =>
+      import('./features/practice/practice-page/practice-page.component').then(
+        (m) => m.PracticePageComponent,
+      ),
+  },
+  {
     // '/progress' is the same page as '/', kept only for old links: redirect
     // rather than loading PROGRESS_ROUTES a second time. A string redirectTo
     // keeps query params (?repo=); see app.routes.spec.ts.

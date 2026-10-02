@@ -547,6 +547,26 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.today-board__status--link')).toBeFalsy();
   });
 
+  it('renders the Run practice link only for a row whose number is in practiceNumbers', () => {
+    const schedule = makeSchedule();
+    schedule.days[0].items = [
+      { lcNumber: 39, title: 'Combination Sum', technique: null, startComfort: null,
+        difficulty: null, done: false },
+      { lcNumber: 40, title: 'Combination Sum II', technique: null, startComfort: null,
+        difficulty: null, done: false },
+    ];
+    const fixture = createFixture(schedule);
+    fixture.componentRef.setInput('practiceNumbers', new Set([39]));
+    fixture.detectChanges();
+
+    const links: HTMLAnchorElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('a[title="Run code"]'),
+    );
+    expect(links.length).toBe(1);
+    expect(links[0].textContent?.trim()).toBe('Run');
+    expect(links[0].getAttribute('href')).toBe('/practice/39');
+  });
+
   // ── Round 5: kind === 'new' / 'probe' chips; the 'moved' tag renders no marker ──────
   it("renders a 'new' chip after the title for kind === 'new', with no difficulty tag when difficulty is null", () => {
     // The real regenerated-contract row: url IS present for a 🆕 row (gamify.py reads the

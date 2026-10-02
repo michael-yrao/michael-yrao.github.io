@@ -15,7 +15,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 
 import { ProgressService } from '../../../core/services/progress.service';
-import { fileUrl } from '../../../core/services/github-file.service';
+import { fileUrl, sameRef } from '../../../core/services/github-file.service';
+import { PracticeService } from '../../../core/services/practice.service';
 import { Comfort, OnSchedule, ProblemProgress, ScheduleItem } from '../../../core/models/progress.model';
 import { daysBetweenISO, todayLocalISO } from '../../../core/utils/local-date';
 import { walkthroughRouteFor } from '../solution-link-mode';
@@ -260,6 +261,13 @@ export class ProgressPageComponent {
 
   private readonly repoParam;
 
+  // The practice contract rides along on this page only to decide which rows get a Run link; a
+  // failed load simply leaves the set empty and surfaces nothing here.
+  private readonly practice = inject(PracticeService);
+  readonly practiceNumbers = computed<ReadonlySet<number>>(
+    () => new Set(this.practice.data()?.problems.map((problem) => problem.number) ?? []),
+  );
+
   // ── Inline repo picker ──────────────────────────────────────────────────────────────
   readonly repoInputValue = signal('');
   readonly repoInputInvalid = signal(false);
@@ -295,6 +303,17 @@ export class ProgressPageComponent {
         this.collapseAllRows();
         this.attentionOpen.set(false);
         this.progress.loadSummary(repo);
+      });
+    });
+    // Load the practice contract for the resolved repo. The same-ref guard holds whatever the
+    // status, so a 404 is not refetched in a loop (PracticeService.load itself refetches a
+    // same-ref errored load); `untracked` keeps load()'s own signal writes out of the effect.
+    effect(() => {
+      const ref = this.repoRef();
+      if (!ref) return;
+      untracked(() => {
+        if (sameRef(ref, this.practice.ref())) return;
+        this.practice.load(ref);
       });
     });
   }

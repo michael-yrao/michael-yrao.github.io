@@ -53,6 +53,12 @@ export function parseRepoSlug(raw: string | null | undefined): RepoRef | null {
   return { owner: parts[0], repo: parts[1], branch: branch || DEFAULT_BRANCH };
 }
 
+/** The message for a `?repo=` value `parseRepoSlug` rejected — shared by the Progress and
+ *  Practice pages so a malformed slug reads the same on both. */
+export function invalidSlugMessage(raw: string | null | undefined): string {
+  return `'${raw}' isn't a repo slug — use owner/name or owner/name@branch.`;
+}
+
 export function sameRef(a: RepoRef | null, b: RepoRef | null): boolean {
   if (!a || !b) return a === b;
   return a.owner === b.owner && a.repo === b.repo && a.branch === b.branch;

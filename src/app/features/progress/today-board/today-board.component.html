@@ -87,6 +87,9 @@
       @if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
         <a [href]="lc" target="_blank" rel="noopener" aria-label="Open on LeetCode" title="LeetCode">↗</a>
       }
+      @if (item.lcNumber && practiceNumbers().has(item.lcNumber)) {
+        <a [routerLink]="['/practice', item.lcNumber]" queryParamsHandling="preserve" aria-label="Run code" title="Run code">Run</a>
+      }
       @if (item.lcNumber) {
         <button type="button" class="today-board__trend-btn" title="Comfort history"
           [attr.aria-label]="trendAriaLabel(item)"
