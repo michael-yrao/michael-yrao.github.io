@@ -1,6 +1,11 @@
-export interface RunEntry {
-  readonly className: string;
-  readonly method: string;
+import { PracticeEntry, ResultSpec, TypeSpec } from '../models/practice.model';
+
+export type RunEntry = PracticeEntry;
+
+/** One case as the worker receives it: `ops` is present only for an 'ops' entry. */
+export interface RunCase {
+  readonly args: readonly unknown[];
+  readonly ops?: readonly string[];
 }
 
 /** What one case did inside the worker. `hasJson` is false only when the return value cannot be
@@ -44,7 +49,21 @@ export interface RunRequest {
   readonly id: number;
   readonly code: string;
   readonly entry: RunEntry;
-  readonly cases: readonly { readonly args: readonly unknown[] }[];
+  readonly result?: ResultSpec | null;
+  readonly types?: TypeSpec | null;
+  readonly cases: readonly RunCase[];
+}
+
+/** The JSON the driver's `run_case` takes: the entry's fields, one case, and the problem's
+ *  `result` and `types`. */
+export function buildCaseSpec(request: RunRequest, testCase: RunCase): string {
+  return JSON.stringify({
+    ...request.entry,
+    args: testCase.args,
+    ops: testCase.ops,
+    result: request.result,
+    types: request.types,
+  });
 }
 
 export type WorkerMessage =

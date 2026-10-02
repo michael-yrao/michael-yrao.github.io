@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import { PYTHON_DRIVER } from './python-driver';
-import { CaseOutcome, RunRequest, WorkerMessage } from './runner.model';
+import { CaseOutcome, RunRequest, WorkerMessage, buildCaseSpec } from './runner.model';
 
 const PYODIDE_INDEX_URL = 'https://cdn.jsdelivr.net/pyodide/v314.0.7/full/';
 
@@ -16,7 +16,7 @@ interface PyodideModule {
 
 interface DriverApi {
   readonly defineSolution: (code: string) => string;
-  readonly runCase: (className: string, method: string, argsJson: string) => string;
+  readonly runCase: (caseSpecJson: string) => string;
 }
 
 let driverPromise: Promise<DriverApi> | null = null;
@@ -53,7 +53,7 @@ function errorText(error: unknown): string {
 }
 
 async function handleRun(request: RunRequest): Promise<void> {
-  const { id, code, entry, cases } = request;
+  const { id, code, cases } = request;
 
   let driver: DriverApi;
   try {
@@ -74,8 +74,7 @@ async function handleRun(request: RunRequest): Promise<void> {
   }
 
   cases.forEach((testCase, index) => {
-    const argsJson = JSON.stringify(testCase.args);
-    const outcome = JSON.parse(driver.runCase(entry.className, entry.method, argsJson)) as CaseOutcome;
+    const outcome = JSON.parse(driver.runCase(buildCaseSpec(request, testCase))) as CaseOutcome;
     post({ id, type: 'case', index, outcome });
   });
   post({ id, type: 'done' });

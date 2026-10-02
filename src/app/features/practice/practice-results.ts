@@ -31,6 +31,18 @@ function toJson(value: unknown): string {
   return JSON.stringify(value) ?? String(value);
 }
 
+/** An argument list as it reads in a call: `1, [2, 3]`. */
+function callArgs(args: readonly unknown[]): string {
+  return args.map(toJson).join(', ');
+}
+
+/** The case's input: one line per op, `name(args)`, for an ops case; else one line per argument. */
+function inputText(testCase: PracticeCase): string {
+  const { ops, args } = testCase;
+  if (!ops) return args.map(toJson).join('\n');
+  return ops.map((name, index) => `${name}(${callArgs((args[index] as readonly unknown[]) ?? [])})`).join('\n');
+}
+
 function gotText(result: CaseResult): string | null {
   const outcome = result.outcome;
   if (outcome?.status !== 'ok') return null;
@@ -51,7 +63,7 @@ export function toResultRow(result: CaseResult, cases: readonly PracticeCase[]):
     isPass,
     mark: isPass ? PASS_MARK : FAIL_MARK,
     word: VERDICT_WORDS[result.verdict] ?? null,
-    input: testCase ? testCase.args.map(toJson).join('\n') : '',
+    input: testCase ? inputText(testCase) : '',
     expected: testCase ? toJson(testCase.expected) : '',
     got: gotText(result),
     errorMessage: errorText(result),
