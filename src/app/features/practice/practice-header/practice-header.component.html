@@ -1,0 +1,54 @@
+<header class="practice-header">
+  <div class="practice-header__title-row">
+    <h1 class="practice-header__heading">
+      <span class="practice-header__num">#{{ number() }}</span>
+      @if (titleUrl(); as url) {
+        <a [href]="url" target="_blank" rel="noopener">{{ title() }}</a>
+      } @else {
+        {{ title() }}
+      }
+    </h1>
+    @if (difficulty(); as level) {
+      <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
+    }
+  </div>
+  <div class="practice-header__neighbor-nav">
+    @if (neighbors().prev; as prev) {
+      <a
+        [routerLink]="neighborCommands()(prev.number)"
+        queryParamsHandling="preserve"
+        class="neighbor-btn"
+        >← {{ prev.number }}</a
+      >
+    }
+    @if (neighbors().next; as next) {
+      <a
+        [routerLink]="neighborCommands()(next.number)"
+        queryParamsHandling="preserve"
+        class="neighbor-btn"
+        >{{ next.number }} →</a
+      >
+    }
+  </div>
+</header>
+
+<div class="practice-header__tabs">
+  <a
+    class="practice-header__tab"
+    [class.practice-header__tab--active]="activeTab() === 'description'"
+    [attr.aria-current]="activeTab() === 'description' ? 'page' : null"
+    [routerLink]="['/practice', number()]"
+    queryParamsHandling="preserve"
+    >Description</a
+  >
+  @if (hasSolution()) {
+    <a
+      class="practice-header__tab"
+      [class.practice-header__tab--active]="activeTab() === 'solution'"
+      [attr.aria-current]="activeTab() === 'solution' ? 'page' : null"
+      [routerLink]="['/practice', number(), 'solution']"
+      queryParamsHandling="preserve"
+      >Solution</a
+    >
+  }
+</div>

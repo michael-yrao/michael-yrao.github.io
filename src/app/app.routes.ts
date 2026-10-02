@@ -1,7 +1,5 @@
 import { Routes } from '@angular/router';
 
-import { practicePageMatcher } from './features/practice/practice-route';
-
 export const routes: Routes = [
   {
     // Progress is the landing page, and the only route that loads PROGRESS_ROUTES —
@@ -62,12 +60,17 @@ export const routes: Routes = [
       ),
   },
   {
-    // '/practice/:number' and its '/visualizer' and '/code' tabs are one route, so switching
-    // tabs reuses the page component and the editor text and run results survive.
-    matcher: practicePageMatcher,
+    path: 'practice/:number',
     loadComponent: () =>
       import('./features/practice/practice-page/practice-page.component').then(
         (m) => m.PracticePageComponent,
+      ),
+  },
+  {
+    path: 'practice/:number/solution',
+    loadComponent: () =>
+      import('./features/practice/solution-page/solution-page.component').then(
+        (m) => m.SolutionPageComponent,
       ),
   },
   {

@@ -152,28 +152,30 @@ describe('PracticePageComponent', () => {
     readonly name: string;
     readonly number: string;
     readonly problems: readonly PracticeProblem[];
-    readonly hasVisualizerAndCodeTabs: boolean;
+    readonly hasSolutionTab: boolean;
     readonly hasEditor: boolean;
   }[] = [
-    { name: 'a contract-only problem', number: '90', problems: [PROBLEM], hasVisualizerAndCodeTabs: false, hasEditor: true },
-    { name: 'a static-only problem', number: '1', problems: [], hasVisualizerAndCodeTabs: true, hasEditor: false },
+    { name: 'a contract-only problem', number: '90', problems: [PROBLEM], hasSolutionTab: false, hasEditor: true },
+    { name: 'a static-only problem', number: '1', problems: [], hasSolutionTab: true, hasEditor: false },
     {
       name: 'a problem in both sources',
       number: '20',
       problems: [{ ...PROBLEM, number: 20, title: 'Valid Parentheses' }],
-      hasVisualizerAndCodeTabs: true,
+      hasSolutionTab: true,
       hasEditor: true,
     },
   ];
 
   it.each(PANES)(
-    'on the default tab, $name has the Visualizer and Code tabs and editor pane it should, and no tag or complexity',
-    ({ number, problems, hasVisualizerAndCodeTabs, hasEditor }) => {
+    '$name has the Solution tab and editor pane it should, and no tag or complexity',
+    ({ number, problems, hasSolutionTab, hasEditor }) => {
       const root: HTMLElement = setUp(number, problems).nativeElement;
 
-      const tabs = Array.from(root.querySelectorAll('.practice__tab')).map((a) => a.textContent?.trim());
-      expect(tabs.includes('Visualizer') && tabs.includes('Code')).toBe(hasVisualizerAndCodeTabs);
-      expect(tabs.includes('Visualizer') || tabs.includes('Code')).toBe(hasVisualizerAndCodeTabs);
+      const solutionTab = Array.from(root.querySelectorAll('a.practice-header__tab')).find(
+        (a) => a.textContent?.trim() === 'Solution',
+      );
+      expect(solutionTab !== undefined).toBe(hasSolutionTab);
+      if (solutionTab) expect(solutionTab.getAttribute('href')).toBe('/practice/' + number + '/solution');
       expect(root.querySelector('app-code-editor') !== null).toBe(hasEditor);
       expect(root.querySelector('.practice__divider') !== null).toBe(hasEditor);
       expect(root.querySelector('.meta-tag')).toBeNull();
@@ -195,7 +197,7 @@ describe('PracticePageComponent', () => {
     const root: HTMLElement = setUp('1', [], 'error', 'Contract load failed').nativeElement;
 
     expect(root.querySelector('.practice__message')?.textContent?.trim()).toBe('Contract load failed');
-    expect(root.querySelector('.practice__tab')).not.toBeNull();
+    expect(root.querySelector('.practice-header__tab')).not.toBeNull();
   });
 
   it('Reset restores the stub in the editor and clears the stored draft', () => {

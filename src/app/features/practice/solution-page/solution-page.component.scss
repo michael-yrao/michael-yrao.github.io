@@ -1,0 +1,122 @@
+$content-max-width: 60rem;
+// The nav bar's content width (.po-nav__inner), so the page lines up with the logo and the menu button.
+$page-max-width: 1280px;
+// The visualizer and the code sit side by side once the page is at least this wide.
+$split-breakpoint: 900px;
+$panel-max-height: calc(100vh - 180px);
+
+.solution {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: $page-max-width;
+  margin-inline: auto;
+  padding: var(--space-lg) var(--space-xl);
+  color: var(--color-text);
+}
+
+.solution__message,
+.solution__skeleton {
+  width: 100%;
+  max-width: $content-max-width;
+  margin-inline: auto;
+}
+
+.solution__message { margin-block: 0; }
+
+.solution__skeleton {
+  height: 12rem;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  animation: solution-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes solution-pulse {
+  50% { opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .solution__skeleton { animation: none; }
+}
+
+// The variant bar on the left, the panel toggles on the right.
+.solution__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+app-variant-bar {
+  flex: 1 1 auto;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.solution__toggles {
+  display: flex;
+  gap: 4px;
+}
+
+.panel-toggle {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms, color 150ms, border-color 150ms, opacity 150ms;
+
+  &.active {
+    background: var(--color-bg-raised);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  &:not(.active) {
+    opacity: 0.45;
+    text-decoration: line-through;
+    text-decoration-color: var(--color-text-muted);
+  }
+
+  &:hover {
+    opacity: 1;
+    text-decoration: none;
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+}
+
+// One column below the breakpoint; both panels share the row above it.
+.solution__panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.solution__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+@media (min-width: $split-breakpoint) {
+  .solution__panels--both { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .solution__panel {
+    max-height: $panel-max-height;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+    padding-right: 4px;
+  }
+}

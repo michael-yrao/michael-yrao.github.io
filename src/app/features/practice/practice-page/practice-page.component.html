@@ -3,39 +3,15 @@
     @if (contractMessage(); as message) {
       <p class="practice__message">{{ message }}</p>
     }
-    <header class="practice__header">
-      <div class="practice__title-row">
-        <h1 class="practice__heading">
-          <span class="practice__num">#{{ number() }}</span>
-          @if (titleUrl(); as url) {
-            <a [href]="url" target="_blank" rel="noopener">{{ title() }}</a>
-          } @else {
-            {{ title() }}
-          }
-        </h1>
-        @if (meta()?.difficulty; as level) {
-          <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
-        }
-      </div>
-      <div class="practice__neighbor-nav">
-        @if (neighbors().prev; as prev) {
-          <a
-            [routerLink]="['/practice', prev.number]"
-            queryParamsHandling="preserve"
-            class="neighbor-btn"
-            >← {{ prev.number }}</a
-          >
-        }
-        @if (neighbors().next; as next) {
-          <a
-            [routerLink]="['/practice', next.number]"
-            queryParamsHandling="preserve"
-            class="neighbor-btn"
-            >{{ next.number }} →</a
-          >
-        }
-      </div>
-    </header>
+    <app-practice-header
+      [number]="number()"
+      [title]="title()"
+      [titleUrl]="titleUrl()"
+      [difficulty]="meta()?.difficulty ?? null"
+      [neighbors]="neighbors()"
+      activeTab="description"
+      [hasSolution]="meta() !== null"
+    />
 
     <div
       class="practice__split"
@@ -45,44 +21,7 @@
       [style.--work-track]="workTrack()"
     >
       <div class="practice__problem">
-        <div class="practice__tabs">
-          <a
-            class="practice__tab"
-            [class.practice__tab--active]="activeTab() === 'description'"
-            [attr.aria-current]="activeTab() === 'description' ? 'page' : null"
-            [routerLink]="['/practice', number()]"
-            queryParamsHandling="preserve"
-            >Description</a
-          >
-          @if (meta()) {
-            <a
-              class="practice__tab"
-              [class.practice__tab--active]="activeTab() === 'visualizer'"
-              [attr.aria-current]="activeTab() === 'visualizer' ? 'page' : null"
-              [routerLink]="['/practice', number(), 'visualizer']"
-              queryParamsHandling="preserve"
-              >Visualizer</a
-            >
-            <a
-              class="practice__tab"
-              [class.practice__tab--active]="activeTab() === 'code'"
-              [attr.aria-current]="activeTab() === 'code' ? 'page' : null"
-              [routerLink]="['/practice', number(), 'code']"
-              queryParamsHandling="preserve"
-              >Code</a
-            >
-          }
-        </div>
-
-        @if (activeTab() === 'visualizer') {
-          <app-variant-bar />
-          <app-step-visualizer />
-        } @else if (activeTab() === 'code') {
-          <app-variant-bar />
-          <app-solution-code />
-        } @else {
-          <app-practice-description [problem]="problem()" [meta]="meta()" />
-        }
+        <app-practice-description [problem]="problem()" [meta]="meta()" />
       </div>
 
       @if (problem(); as p) {

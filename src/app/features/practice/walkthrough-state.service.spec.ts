@@ -45,6 +45,18 @@ const CASES: ReadonlyArray<{
     },
   },
   {
+    name: 'togglePanel flips only the named panel, starting with the visualizer on and the code off',
+    check: (service) => {
+      expect([service.isVizShown(), service.isCodeShown()]).toEqual([true, false]);
+
+      service.togglePanel('code');
+      expect([service.isVizShown(), service.isCodeShown()]).toEqual([true, true]);
+
+      service.togglePanel('viz');
+      expect([service.isVizShown(), service.isCodeShown()]).toEqual([false, true]);
+    },
+  },
+  {
     name: 'toggleWhy persists to localStorage',
     check: (service) => {
       expect(service.isWhyShown()).toBe(true);

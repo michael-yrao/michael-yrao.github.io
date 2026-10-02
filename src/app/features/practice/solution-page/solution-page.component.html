@@ -1,0 +1,63 @@
+<section class="solution">
+  @if (hasProblem()) {
+    @if (contractMessage(); as message) {
+      <p class="solution__message">{{ message }}</p>
+    }
+    <app-practice-header
+      [number]="number()"
+      [title]="title()"
+      [titleUrl]="titleUrl()"
+      [difficulty]="meta()?.difficulty ?? null"
+      [neighbors]="neighbors()"
+      activeTab="solution"
+      [hasSolution]="meta() !== null"
+    />
+
+    <app-practice-description [problem]="problem()" [meta]="meta()" />
+
+    @if (meta()) {
+      <div class="solution__controls">
+        <app-variant-bar />
+        <div class="solution__toggles">
+          <button
+            type="button"
+            class="panel-toggle"
+            [class.active]="walkthrough.isVizShown()"
+            [attr.aria-pressed]="walkthrough.isVizShown()"
+            (click)="walkthrough.togglePanel('viz')"
+          >
+            Visualizer
+          </button>
+          <button
+            type="button"
+            class="panel-toggle"
+            [class.active]="walkthrough.isCodeShown()"
+            [attr.aria-pressed]="walkthrough.isCodeShown()"
+            (click)="walkthrough.togglePanel('code')"
+          >
+            Code
+          </button>
+        </div>
+      </div>
+
+      @if (walkthrough.isVizShown() || walkthrough.isCodeShown()) {
+        <div class="solution__panels" [class.solution__panels--both]="hasBothPanels()">
+          @if (walkthrough.isVizShown()) {
+            <div class="solution__panel"><app-step-visualizer /></div>
+          }
+          @if (walkthrough.isCodeShown()) {
+            <div class="solution__panel"><app-solution-code /></div>
+          }
+        </div>
+      }
+    }
+  } @else if (invalidSlug(); as message) {
+    <p class="solution__message">{{ message }}</p>
+  } @else if (contractStatus() === 'error') {
+    <p class="solution__message">{{ error() }}</p>
+  } @else if (contractStatus() !== 'ready') {
+    <div class="solution__skeleton" role="status" aria-busy="true"></div>
+  } @else {
+    <p class="solution__message">No practice cases for #{{ rawNumber() }} in {{ ref()?.owner }}/{{ ref()?.repo }}.</p>
+  }
+</section>

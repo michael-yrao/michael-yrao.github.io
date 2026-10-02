@@ -7,27 +7,14 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { NgClass } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 
-import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
-import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
 import { RunState } from '../../../core/runner/runner.model';
-import { PracticeService } from '../../../core/services/practice.service';
-import { ShowcaseService } from '../../../core/services/showcase.service';
-import { showcaseKey } from '../../../core/showcase/showcase-key';
 import { CodeEditorComponent } from '../code-editor/code-editor.component';
 import { PracticeDescriptionComponent } from '../practice-description/practice-description.component';
-import { injectPracticeContract } from '../practice-contract';
-import { CatalogueNeighbors, buildCatalogue, neighborsOf } from '../practice-catalogue';
-import { PracticeTab, WALKTHROUGH_TABS } from '../practice-route';
-import { SolutionCodeComponent } from '../solution-code/solution-code.component';
-import { StepVisualizerComponent } from '../step-visualizer/step-visualizer.component';
-import { VariantBarComponent } from '../variant-bar/variant-bar.component';
-import { WalkthroughStateService } from '../walkthrough-state.service';
+import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
+import { injectPracticeProblem } from '../practice-problem';
 import { clearDraft, draftKey, loadDraft, saveDraft } from '../practice-draft';
 import { countPassed, toResultRow } from '../practice-results';
 import {
@@ -45,111 +32,37 @@ const DRAFT_SAVE_DELAY_MS = 500;
 const COPY_FEEDBACK_MS = 1500;
 const COPY_OK_MARK = '✓';
 const COPY_FAIL_MARK = '✗';
-const POSITIVE_INTEGER = /^[1-9]\d*$/;
 const PERCENT = 100;
-
-const DESCRIPTION_TAB: PracticeTab = 'description';
-const NO_NEIGHBORS: CatalogueNeighbors = { prev: null, next: null };
-
-/** The route's `:number` as a positive integer, or null (the not-found state). */
-function parseProblemNumber(raw: string | null): number | null {
-  if (raw === null || !POSITIVE_INTEGER.test(raw)) return null;
-  const parsed = Number(raw);
-  return Number.isSafeInteger(parsed) ? parsed : null;
-}
 
 @Component({
   selector: 'app-practice-page',
   templateUrl: './practice-page.component.html',
   styleUrls: ['./practice-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    NgClass,
-    RouterLink,
-    CodeEditorComponent,
-    PracticeDescriptionComponent,
-    VariantBarComponent,
-    StepVisualizerComponent,
-    SolutionCodeComponent,
-  ],
-  providers: [WalkthroughStateService],
+  imports: [CodeEditorComponent, PracticeDescriptionComponent, PracticeHeaderComponent],
 })
 export class PracticePageComponent {
-  private readonly route = inject(ActivatedRoute);
-  private readonly practice = inject(PracticeService);
   private readonly runner = inject(PythonRunnerService);
-  private readonly showcase = inject(ShowcaseService);
   private readonly destroyRef = inject(DestroyRef);
 
   // A decorator query, not viewChild(): the signal-query helper is another runtime symbol
   // that would land in the initial bundle.
   @ViewChild('editor') private editor?: CodeEditorComponent;
 
-  private readonly contract = injectPracticeContract();
-  private readonly params = toSignal(this.route.paramMap, {
-    initialValue: this.route.snapshot.paramMap,
-  });
-  private readonly numberParam = computed(() => this.params().get('number'));
-  private readonly tabParam = computed(() => this.params().get('tab'));
-
-  readonly ref = this.contract.ref;
-  readonly invalidSlug = this.contract.invalidSlug;
-  readonly rawNumber = computed(() => this.numberParam() ?? '');
-  readonly contractStatus = this.contract.status;
-  readonly error = this.contract.error;
-
-  /** The contract's own message (bad slug or failed load), as the list page shows it. */
-  readonly contractMessage = computed(() => {
-    const invalid = this.invalidSlug();
-    if (invalid) return invalid;
-    return this.contractStatus() === 'error' ? this.error() : null;
-  });
-
-  readonly number = computed(() => parseProblemNumber(this.numberParam()));
-
-  /** The contract's problem for the number, once the contract is ready. */
-  readonly problem = computed(() => {
-    const number = this.number();
-    if (number === null || this.contractStatus() !== 'ready') return null;
-    return this.practice.problemFor(number);
-  });
-
-  /** The number's static algorithm, when `ALL_ALGORITHMS` has it: the Visualizer and Code tabs' source. */
-  readonly meta = computed(() => {
-    const number = this.number();
-    if (number === null) return null;
-    return ALL_ALGORITHMS.find((algorithm) => algorithm.lcNumber === number) ?? null;
-  });
-
-  /** Either source has the number, so the page can draw; a static-only number never waits for
-   *  the contract. */
-  readonly hasProblem = computed(() => this.problem() !== null || this.meta() !== null);
-
-  readonly activeTab = computed<PracticeTab>(() => {
-    const tab = WALKTHROUGH_TABS.find((candidate) => candidate === this.tabParam());
-    return tab !== undefined && this.meta() !== null ? tab : DESCRIPTION_TAB;
-  });
-
-  /** The contract's title wins, as in the catalogue. */
-  readonly title = computed(() => this.problem()?.title ?? this.meta()?.title ?? '');
-  /** The contract's URL, else the showcase entry's for the first variant, else the number's. */
-  readonly titleUrl = computed(() =>
-    leetCodeUrlFor(this.problem()?.url ?? this.firstVariantEntryUrl(), this.meta()?.lcNumber),
-  );
-
-  private readonly firstVariantEntryUrl = computed(() => {
-    const meta = this.meta();
-    const variant = meta?.solutions[0];
-    if (!meta || !variant || !this.showcase.data()) return undefined;
-    return this.showcase.entryFor(showcaseKey(meta, variant))?.url;
-  });
-
-  readonly neighbors = computed(() => {
-    const number = this.number();
-    const problems = this.contractStatus() === 'ready' ? (this.practice.data()?.problems ?? []) : [];
-    if (number === null) return NO_NEIGHBORS;
-    return neighborsOf(buildCatalogue(ALL_ALGORITHMS, problems), number);
-  });
+  private readonly view = injectPracticeProblem();
+  readonly ref = this.view.ref;
+  readonly invalidSlug = this.view.invalidSlug;
+  readonly rawNumber = this.view.rawNumber;
+  readonly contractStatus = this.view.contractStatus;
+  readonly error = this.view.error;
+  readonly contractMessage = this.view.contractMessage;
+  readonly number = this.view.number;
+  readonly problem = this.view.problem;
+  readonly meta = this.view.meta;
+  readonly hasProblem = this.view.hasProblem;
+  readonly title = this.view.title;
+  readonly titleUrl = this.view.titleUrl;
+  readonly neighbors = this.view.neighbors;
 
   private readonly key = computed(() => {
     const ref = this.ref();
@@ -203,12 +116,6 @@ export class PracticePageComponent {
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    inject(WalkthroughStateService).connect(this.meta);
-    // The title link and the Code tab both read the showcase, so load it for every tab.
-    // Gold-standard only — the walkthrough never reads `?repo=` (a step generator is a
-    // hand-written trace of one specific attempt, so it cannot follow anyone else's code).
-    // A no-op if already loaded/loading this session.
-    this.showcase.load();
     this.destroyRef.onDestroy(() => this.flushPendingSave());
     this.destroyRef.onDestroy(() => {
       if (this.copyTimer) clearTimeout(this.copyTimer);

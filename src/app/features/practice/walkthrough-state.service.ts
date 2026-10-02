@@ -23,8 +23,8 @@ function loadShowWhy(): boolean {
 }
 
 /**
- * The walkthrough's state for one practice page, shared by the Visualizer and Code tabs so
- * stepping in one is seen in the other and switching tabs loses nothing. Provided by the page,
+ * The walkthrough's state for one solution page, shared by the Visualizer and Code panels so
+ * stepping in one is seen in the other and toggling a panel loses nothing. Provided by the page,
  * so it lives exactly as long as the page; the page hands it the problem's `meta` via `connect`.
  */
 @Injectable()
@@ -35,6 +35,10 @@ export class WalkthroughStateService {
   readonly meta = computed(() => this.metaSource()());
 
   readonly isWhyShown = signal(loadShowWhy());
+
+  /** Which of the solution page's two panels are drawn: the visualizer by default. */
+  readonly isVizShown = signal(true);
+  readonly isCodeShown = signal(false);
 
   /** The learner's variant choice, tagged with its problem. */
   private readonly selection = signal<{ id: string; index: number } | null>(null);
@@ -81,6 +85,11 @@ export class WalkthroughStateService {
     } catch {
       /* ignore */
     }
+  }
+
+  togglePanel(panel: 'viz' | 'code'): void {
+    const shown = panel === 'viz' ? this.isVizShown : this.isCodeShown;
+    shown.set(!shown());
   }
 
   selectVariant(index: number): void {

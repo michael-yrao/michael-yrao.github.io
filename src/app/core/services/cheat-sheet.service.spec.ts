@@ -227,7 +227,7 @@ describe('CheatSheetService', () => {
 
       const link = service.resolveProblemLink(1, 'Two Sum');
 
-      expect(link).toEqual({ kind: 'internal', commands: ['/practice/1/visualizer'] });
+      expect(link).toEqual({ kind: 'internal', commands: ['/practice/1/solution'] });
     });
 
     it('falls back to a derived LeetCode URL when the lcNumber has no visualizer', () => {
