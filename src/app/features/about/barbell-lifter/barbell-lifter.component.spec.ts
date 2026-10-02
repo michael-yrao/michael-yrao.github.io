@@ -37,4 +37,16 @@ describe('BarbellLifterComponent', () => {
     fixture.detectChanges();
     expect(root.querySelector('.spill')).toBeNull();
   });
+
+  it('draws a distinct, non-empty mouth at every plate count', () => {
+    const mouths = [root.querySelector('.mouth')!.getAttribute('d')];
+    for (let plate = 1; plate <= MAX_PLATES_PER_SIDE; plate++) {
+      click(1);
+      mouths.push(root.querySelector('.mouth')!.getAttribute('d'));
+    }
+
+    expect(mouths.length).toBe(MAX_PLATES_PER_SIDE + 1);
+    expect(mouths.every((d) => !!d)).toBe(true);
+    expect(new Set(mouths).size).toBe(MAX_PLATES_PER_SIDE + 1);
+  });
 });

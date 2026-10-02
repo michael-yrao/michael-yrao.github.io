@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import { addPlate, INITIAL_LIFTER_STATE, MAX_PLATES_PER_SIDE } from './lifter-state';
 
-const BAR_Y_PX = 40;
+const BAR_Y_PX = 45;
 const BAR_LEFT_X_PX = 18;
 const BAR_RIGHT_X_PX = 142;
 const BAR_CENTRE_X_PX = (BAR_LEFT_X_PX + BAR_RIGHT_X_PX) / 2;
 const BAR_SAG_PER_PLATE_PX = 2;
-const BAR_PRESS_PER_PLATE_PX = 2.5;
+const BAR_PRESS_PER_PLATE_PX = 1.5;
 const SQUAT_PER_PLATE_PX = 3;
 const PLATE_WIDTH_PX = 6;
 const PLATE_STEP_PX = 8;
@@ -14,24 +14,30 @@ const PLATE_HEIGHTS_PX: readonly number[] = [28, 24, 20, 16];
 const LEFT_PLATE_INNER_X_PX = 50;
 const RIGHT_PLATE_INNER_X_PX = 110;
 const SWEAT_FROM_PLATE_COUNT = 3;
+const MOUTH_PATHS: readonly string[] = [
+  'M73 72 Q80 79 87 72', // smile
+  'M74 73 Q80 76.5 86 73', // small smile
+  'M74 74 L86 74', // flat
+  'M74 76 Q80 71.5 86 76', // frown
+  'M73 75 L76.5 72.5 L80 75 L83.5 72.5 L87 75', // grimace
+];
 
 const CENTRE_X_PX = 80;
 const HIP_Y_PX = 108;
 const SHOULDER_Y_PX = 85;
-const LEFT_SHOULDER_X_PX = 68;
-const RIGHT_SHOULDER_X_PX = 92;
-const LEFT_HAND_X_PX = 56;
-const RIGHT_HAND_X_PX = 104;
-const ELBOW_OUT_BASE_PX = 7;
-const ELBOW_OUT_PER_PLATE_PX = 2;
-const ELBOW_DROP_PX = 4;
+const LEFT_SHOULDER_X_PX = 70;
+const RIGHT_SHOULDER_X_PX = 90;
+const LEFT_HAND_X_PX = 60;
+const RIGHT_HAND_X_PX = 100;
+const ELBOW_OUT_BASE_PX = 4;
+const ELBOW_OUT_PER_PLATE_PX = 1.5;
 
 const FOOT_Y_PX = 144;
-const LEFT_FOOT_X_PX = 60;
-const RIGHT_FOOT_X_PX = 100;
+const LEFT_FOOT_X_PX = 68;
+const RIGHT_FOOT_X_PX = 92;
 const TOE_LENGTH_PX = 8;
-const KNEE_OUT_BASE_PX = 6;
-const KNEE_OUT_PER_PLATE_PX = 2.5;
+const KNEE_OUT_BASE_PX = 3;
+const KNEE_OUT_PER_PLATE_PX = 1.5;
 
 type Side = 'left' | 'right';
 type Point = readonly [number, number];
@@ -90,7 +96,7 @@ function armPoints(shoulderX: number, handX: number, direction: number, plateCou
   const barY = barBaseY(plateCount);
   const elbowOut = ELBOW_OUT_BASE_PX + plateCount * ELBOW_OUT_PER_PLATE_PX;
   const elbowX = (shoulderX + handX) / 2 + direction * elbowOut;
-  const elbowY = (SHOULDER_Y_PX + barY) / 2 + ELBOW_DROP_PX;
+  const elbowY = (SHOULDER_Y_PX + barY) / 2;
   return toPoints([
     [shoulderX, SHOULDER_Y_PX],
     [elbowX, elbowY],
@@ -153,6 +159,7 @@ export class BarbellLifterComponent {
   readonly rightLeg = computed(() => legPoints(RIGHT_FOOT_X_PX, 1, this.plateCount()));
   readonly squatOffset = computed(() => this.plateCount() * SQUAT_PER_PLATE_PX);
   readonly squatTransform = computed(() => `translateY(${this.squatOffset()}px)`);
+  readonly mouthPath = computed(() => MOUTH_PATHS[this.plateCount()]);
   readonly isStraining = computed(() => this.plateCount() >= SWEAT_FROM_PLATE_COUNT);
 
   onLift(): void {

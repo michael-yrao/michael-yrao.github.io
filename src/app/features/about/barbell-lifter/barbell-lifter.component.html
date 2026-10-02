@@ -9,18 +9,16 @@
       <g class="squat" [style.transform]="squatTransform()">
         <g class="body">
           <line x1="80" y1="80" x2="80" y2="108" />
-          <line x1="68" y1="85" x2="92" y2="85" />
+          <line x1="70" y1="85" x2="90" y2="85" />
           <polyline [attr.points]="leftArm()" />
           <polyline [attr.points]="rightArm()" />
         </g>
         <circle class="head" cx="80" cy="68" r="12" />
         <circle class="eye" cx="75" cy="66" r="2" />
         <circle class="eye" cx="85" cy="66" r="2" />
+        <path class="mouth" [attr.d]="mouthPath()" />
         @if (isStraining()) {
-          <path class="mouth" d="M73 75 L76.5 72.5 L80 75 L83.5 72.5 L87 75" />
-          <path class="sweat" d="M98 58 Q103 64 98 68 Q93 64 98 58 Z" />
-        } @else {
-          <line class="mouth" x1="74" y1="74" x2="86" y2="74" />
+          <path class="sweat" d="M93 54 Q96 58 93 60 Q90 58 93 54 Z" />
         }
         <path class="bar" [attr.d]="barPath()" />
         @for (plate of plates(); track plate.key) {
