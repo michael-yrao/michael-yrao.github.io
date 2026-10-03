@@ -14,7 +14,7 @@
   </div>
   <div class="practice-header__neighbor-nav">
     @if (showInterview()) {
-      <app-interview-bar (startRequested)="interviewStart.emit()" />
+      <app-interview-bar [problemLabel]="'#' + number() + ' ' + title()" (startRequested)="interviewStart.emit()" />
     }
     @if (!isInSession() && neighbors().prev; as prev) {
       <a

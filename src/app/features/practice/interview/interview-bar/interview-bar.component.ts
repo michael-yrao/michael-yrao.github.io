@@ -1,9 +1,12 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, inject, input, output, signal } from '@angular/core';
 
+import { inviteEmailHref, inviteTitle } from '../invite-share';
 import { InterviewRole, InterviewSessionService, SessionStatus } from '../interview-session.service';
 import { NAME_MAX_LENGTH } from '../session-message';
 
 const COPY_FEEDBACK_MS = 1500;
+
+const NAME_INPUT_SELECTOR = '.interview-bar__name';
 
 type CopyMark = 'ok' | 'fail';
 
@@ -41,10 +44,23 @@ export class InterviewBarComponent {
   protected readonly session = inject(InterviewSessionService);
   /** The Interview button was pressed; the page owns what starting a session needs. */
   readonly startRequested = output<void>();
+  /** The problem's number and title, for the share title and the email subject. */
+  readonly problemLabel = input('');
+
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
 
   protected readonly statusView = computed(() => STATUS_VIEWS[this.session.status()] ?? null);
 
   protected readonly nameMaxLength = NAME_MAX_LENGTH;
+  /** The Share button needs the browser's share sheet; absent on e.g. Firefox desktop. */
+  protected readonly canShare = typeof navigator.share === 'function';
+  protected readonly emailHref = computed(() => {
+    const url = this.session.inviteUrl();
+    return url ? inviteEmailHref(url, this.problemLabel()) : null;
+  });
+  /** A stored name shows as a label; no name yet starts in the editing field. */
+  protected readonly isEditingName = signal(!this.session.myName());
   protected readonly copyMark = signal<CopyMark | null>(null);
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -63,8 +79,38 @@ export class InterviewBarComponent {
     });
   }
 
-  protected onNameInput(event: Event): void {
-    this.session.setMyName((event.target as HTMLInputElement).value);
+  /** Enter or blur: stores the name and shows the label; an empty name stays in the field. */
+  protected commitName(event: Event): void {
+    if (!this.isEditingName()) return;
+    const value = (event.target as HTMLInputElement).value;
+    if (!value.trim()) return;
+    this.session.setMyName(value);
+    this.isEditingName.set(false);
+  }
+
+  /** Escape: puts the last stored name back and shows the label, if there is a name. */
+  protected cancelNameEdit(event: Event): void {
+    (event.target as HTMLInputElement).value = this.session.myName();
+    if (this.session.myName()) this.isEditingName.set(false);
+  }
+
+  protected startNameEdit(): void {
+    this.isEditingName.set(true);
+    afterNextRender(
+      () => this.host.nativeElement.querySelector<HTMLInputElement>(NAME_INPUT_SELECTOR)?.select(),
+      { injector: this.injector },
+    );
+  }
+
+  protected shareInvite(): void {
+    const url = this.session.inviteUrl();
+    if (!url) return;
+    navigator.share({ title: inviteTitle(this.problemLabel()), url }).catch((err: unknown) => {
+      // AbortError: the person closed the share menu.
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      console.error('Interview share: navigator.share failed', err);
+      this.showCopyMark('fail');
+    });
   }
 
   protected copyInvite(): void {

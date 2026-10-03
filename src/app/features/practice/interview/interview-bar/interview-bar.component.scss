@@ -26,6 +26,7 @@ $name-width: 9rem;
   &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 }
 .interview-bar__btn--icon {
+  text-decoration: none;
   display: inline-flex;
   align-items: center;
   padding: var(--space-xs);
@@ -62,6 +63,16 @@ $name-width: 9rem;
 }
 
 .interview-bar__name { width: $name-width; }
+.interview-bar__name-label {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+}
 
 .interview-bar__dot {
   width: $dot-size;

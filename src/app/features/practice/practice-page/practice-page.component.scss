@@ -292,4 +292,8 @@ $tab-underline-width: 2px;
     .practice__label { writing-mode: vertical-rl; }
     .practice__chevron { margin-left: 0; }
   }
+
+  // The problem pane folds sideways, so its chevron points right when folded and left when open.
+  .practice__problem .practice__chevron { transform: rotate(-90deg); }
+  .practice__problem [aria-expanded='true'] > .practice__chevron { transform: rotate(90deg); }
 }
