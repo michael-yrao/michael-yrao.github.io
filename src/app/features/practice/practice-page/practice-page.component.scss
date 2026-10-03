@@ -5,6 +5,8 @@ $nav-height: 56px;
 $divider-width: 0.75rem;
 $divider-line-width: 2px;
 $output-max-height: 40%;
+$icon-size: 1.1rem;
+$tab-underline-width: 2px;
 
 .practice {
   display: flex;
@@ -89,6 +91,13 @@ $output-max-height: 40%;
   &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
+.practice__btn--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xs);
+  svg { width: $icon-size; height: $icon-size; }
+}
 .practice__btn--primary {
   background: var(--color-accent);
   border-color: var(--color-accent);
@@ -105,8 +114,8 @@ $output-max-height: 40%;
 }
 .practice__summary { color: var(--color-text); font-weight: 600; }
 
-.practice__copy-mark { color: var(--color-found); }
-.practice__copy-mark--fail { color: var(--color-hard); }
+.practice__icon--ok { color: var(--color-found); }
+.practice__icon--fail { color: var(--color-hard); }
 
 .practice__block,
 .practice__detail {
@@ -124,27 +133,39 @@ $output-max-height: 40%;
 }
 .practice__label--bad { color: var(--color-hard); }
 
-.practice__results {
+.practice__value--bad { color: var(--color-hard); }
+
+.practice__output-head {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.practice__tabs {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-xs);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  border-bottom: 1px solid var(--color-border);
 }
-.practice__row {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-raised);
-  padding: var(--space-xs) var(--space-md);
-}
-.practice__row-head {
-  display: flex;
+.practice__tab {
+  display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  border: 0;
+  border-bottom: $tab-underline-width solid transparent;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
   font-size: 0.9rem;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  &:hover { color: var(--color-text); }
+  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 }
-summary.practice__row-head { cursor: pointer; }
+.practice__tab--active { border-bottom-color: var(--color-accent); color: var(--color-text); }
+
 .practice__mark--pass { color: var(--color-found); }
 .practice__mark--fail { color: var(--color-hard); }
 .practice__case { font-family: var(--font-mono); }

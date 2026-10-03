@@ -33,6 +33,7 @@ $split-breakpoint: 900px;
   font-size: var(--text-xl);
   a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
 }
+.practice-header__arrow { color: var(--color-accent); margin-left: var(--space-xs); }
 .practice-header__num { margin-right: var(--space-sm); font-family: var(--font-mono); color: var(--color-text-muted); }
 
 .neighbor-btn {

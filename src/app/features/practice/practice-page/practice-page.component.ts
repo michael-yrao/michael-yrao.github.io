@@ -16,7 +16,7 @@ import { PracticeDescriptionComponent } from '../practice-description/practice-d
 import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
 import { injectPracticeProblem } from '../practice-problem';
 import { clearDraft, draftKey, loadDraft, saveDraft } from '../practice-draft';
-import { countPassed, toResultRow } from '../practice-results';
+import { countPassed, defaultCaseIndex, toResultRow } from '../practice-results';
 import {
   DEFAULT_PROBLEM_SHARE,
   KEYBOARD_STEP,
@@ -99,6 +99,13 @@ export class PracticePageComponent {
     return (this.runState()?.results ?? []).map((result) => toResultRow(result, cases));
   });
   readonly passedCount = computed(() => countPassed(this.runState()?.results ?? []));
+  /** The tab the learner clicked; null until they click, so the default follows the first failure. */
+  readonly selectedCase = signal<number | null>(null);
+  readonly activeIndex = computed(() => {
+    const selected = this.selectedCase();
+    return selected !== null && selected < this.rows().length ? selected : defaultCaseIndex(this.rows());
+  });
+  readonly activeRow = computed(() => this.rows()[this.activeIndex()] ?? null);
   readonly copyMark = signal<string | null>(null);
 
   /** The left pane's fraction of the split's width, read once from the viewer's saved value. */
@@ -135,6 +142,7 @@ export class PracticePageComponent {
     const problem = this.problem();
     if (!problem || this.isBusy()) return;
     this.runSubscription?.unsubscribe();
+    this.selectedCase.set(null);
     this.runSubscription = this.runner.run(this.text(), problem).subscribe({
       next: (state) => this.runState.set(state),
       error: (err: unknown) => {

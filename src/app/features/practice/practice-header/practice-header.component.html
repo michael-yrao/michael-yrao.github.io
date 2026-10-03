@@ -3,7 +3,7 @@
     <h1 class="practice-header__heading">
       <span class="practice-header__num">#{{ number() }}</span>
       @if (titleUrl(); as url) {
-        <a [href]="url" target="_blank" rel="noopener">{{ title() }}</a>
+        <a [href]="url" target="_blank" rel="noopener">{{ title() }}<span class="practice-header__arrow" aria-hidden="true">↗</span></a>
       } @else {
         {{ title() }}
       }

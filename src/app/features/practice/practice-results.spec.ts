@@ -1,6 +1,31 @@
 import { PracticeCase } from '../../core/models/practice.model';
 import { CaseResult } from '../../core/runner/runner.model';
-import { toResultRow } from './practice-results';
+import { ResultRow, defaultCaseIndex, toResultRow } from './practice-results';
+
+function rowOf(index: number, isPass: boolean): ResultRow {
+  return {
+    index,
+    isPass,
+    mark: isPass ? '✓' : '✗',
+    word: null,
+    input: '',
+    expected: '',
+    got: null,
+    errorMessage: null,
+    stdout: '',
+  };
+}
+
+describe('defaultCaseIndex', () => {
+  it.each([
+    { name: 'all pass falls back to the first case', passes: [true, true], expected: 0 },
+    { name: 'picks the first failure', passes: [true, false, false], expected: 1 },
+  ])('$name', ({ passes, expected }) => {
+    const rows = passes.map((isPass, index) => rowOf(index, isPass));
+
+    expect(defaultCaseIndex(rows)).toBe(expected);
+  });
+});
 
 describe('toResultRow', () => {
   it('draws an ops case as one input line per op, with expected and got as lists', () => {

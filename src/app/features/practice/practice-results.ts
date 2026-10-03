@@ -71,6 +71,12 @@ export function toResultRow(result: CaseResult, cases: readonly PracticeCase[]):
   };
 }
 
+/** The case to show first: the first failure, else the first case (also 0 for an empty list). */
+export function defaultCaseIndex(rows: readonly ResultRow[]): number {
+  const firstFailure = rows.findIndex((row) => !row.isPass);
+  return firstFailure === -1 ? 0 : firstFailure;
+}
+
 export function countPassed(results: readonly CaseResult[]): number {
   return results.filter((result) => result.verdict === 'pass').length;
 }

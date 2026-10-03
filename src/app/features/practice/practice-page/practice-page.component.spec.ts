@@ -111,7 +111,7 @@ function setUp(
 
 function click(root: HTMLElement, label: string): void {
   const button = Array.from(root.querySelectorAll('button')).find(
-    (b) => b.textContent?.trim() === label,
+    (b) => b.getAttribute('aria-label') === label,
   );
   button!.click();
 }
@@ -127,24 +127,26 @@ describe('PracticePageComponent', () => {
     localStorage.removeItem(SPLIT_KEY);
   });
 
-  it('draws every case as an expandable row: a pass shows Input / Expected / Got / stdout, a fail Input / Expected / Got', () => {
+  it('draws a tab per case with the first failure selected; clicking a tab shows that case in full', () => {
     const fixture = setUp('90', [PROBLEM]);
     const root: HTMLElement = fixture.nativeElement;
 
     click(root, 'Run');
     fixture.detectChanges();
 
-    const rows = Array.from(root.querySelectorAll('.practice__row'));
-    expect(rows.map((row) => row.querySelector('.practice__mark')?.textContent?.trim())).toEqual([
-      '✓',
-      '✗',
-    ]);
-    const labelsOf = (row: Element) =>
-      Array.from(row.querySelectorAll('.practice__label')).map((l) => l.textContent?.trim());
-    expect(rows.every((row) => row.querySelector('details') !== null)).toBe(true);
-    expect(labelsOf(rows[0])).toEqual(['Input', 'Expected', 'Got', 'stdout']);
-    expect(rows[0].querySelector('.practice__detail pre:last-of-type')?.textContent).toBe('hello');
-    expect(labelsOf(rows[1])).toEqual(['Input', 'Expected', 'Got']);
+    const tabs = Array.from(root.querySelectorAll<HTMLElement>('[role="tab"]'));
+    const labelsOfPanel = () =>
+      Array.from(root.querySelectorAll('[role="tabpanel"] .practice__label')).map((l) => l.textContent?.trim());
+    expect(tabs.map((tab) => tab.querySelector('.practice__mark')?.textContent?.trim())).toEqual(['✓', '✗']);
+    expect(tabs[1].getAttribute('aria-selected')).toBe('true');
+    expect(labelsOfPanel()).toEqual(['Input', 'Expected', 'Got']);
+
+    tabs[0].click();
+    fixture.detectChanges();
+
+    expect(tabs[0].getAttribute('aria-selected')).toBe('true');
+    expect(labelsOfPanel()).toEqual(['Input', 'Expected', 'Got', 'stdout']);
+    expect(root.querySelector('[role="tabpanel"] pre:last-of-type')?.textContent).toBe('hello');
     expect(root.querySelector('.practice__summary')?.textContent?.trim()).toBe('1 / 2');
   });
 

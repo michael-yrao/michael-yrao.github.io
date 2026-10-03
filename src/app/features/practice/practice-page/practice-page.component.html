@@ -46,63 +46,98 @@
           <app-code-editor #editor [initialText]="initialText()" (textChange)="onTextChange($event)" />
 
           <div class="practice__toolbar">
-            <button type="button" class="practice__btn practice__btn--primary" [disabled]="isBusy()" (click)="run()">Run</button>
+            <button type="button" class="practice__btn practice__btn--icon practice__btn--primary" aria-label="Run" title="Run" [disabled]="isBusy()" (click)="run()">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
+              </svg>
+            </button>
             @if (isLoadingPython()) {
               <span class="practice__status">Loading Python</span>
             }
-            @if (runState()) {
-              <span class="practice__summary">{{ passedCount() }} / {{ p.cases.length }}</span>
-            }
             <span class="practice__spacer"></span>
-            <button type="button" class="practice__btn" (click)="reset()">Reset</button>
-            <button type="button" class="practice__btn" (click)="copy()">Copy code</button>
-            @if (copyMark(); as mark) {
-              <span class="practice__copy-mark" [class.practice__copy-mark--fail]="mark === '✗'">{{ mark }}</span>
-            }
-          </div>
-
-          <div class="practice__output">
-            @if (runState()?.runError; as runError) {
-              <div class="practice__block">
-                <span class="practice__label practice__label--bad">Error</span>
-                <pre class="practice__value">{{ runError }}</pre>
-              </div>
-            }
-
-            <ul class="practice__results">
-              @for (row of rows(); track row.index) {
-                <li class="practice__row" [class.practice__row--pass]="row.isPass">
-                  <details>
-                    <summary class="practice__row-head">
-                      <span class="practice__mark" [class.practice__mark--pass]="row.isPass" [class.practice__mark--fail]="!row.isPass">{{ row.mark }}</span>
-                      <span class="practice__case">Case {{ row.index + 1 }}</span>
-                      @if (row.word) {
-                        <span class="practice__word">{{ row.word }}</span>
-                      }
-                    </summary>
-                    <div class="practice__detail">
-                      <span class="practice__label">Input</span>
-                      <pre class="practice__value">{{ row.input }}</pre>
-                      <span class="practice__label">Expected</span>
-                      <pre class="practice__value">{{ row.expected }}</pre>
-                      @if (row.got !== null) {
-                        <span class="practice__label">Got</span>
-                        <pre class="practice__value">{{ row.got }}</pre>
-                      }
-                      @if (row.errorMessage !== null && row.word) {
-                        <span class="practice__label practice__label--bad">{{ row.word }}</span>
-                        <pre class="practice__value">{{ row.errorMessage }}</pre>
-                      }
-                      @if (row.stdout) {
-                        <span class="practice__label">stdout</span>
-                        <pre class="practice__value">{{ row.stdout }}</pre>
-                      }
-                    </div>
-                  </details>
-                </li>
+            <button type="button" class="practice__btn practice__btn--icon" aria-label="Reset" title="Reset" (click)="reset()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M3 12a9 9 0 1 0 3-6.7" />
+                <path d="M3 4v5h5" />
+              </svg>
+            </button>
+            <button type="button" class="practice__btn practice__btn--icon" aria-label="Copy code" title="Copy code" (click)="copy()">
+              @switch (copyMark()) {
+                @case ('✓') {
+                  <svg class="practice__icon--ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <path d="M5 12.5l4.5 4.5L19 7.5" />
+                  </svg>
+                }
+                @case ('✗') {
+                  <svg class="practice__icon--fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                }
+                @default {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <rect x="9" y="9" width="11" height="11" rx="2" />
+                    <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+                  </svg>
+                }
               }
-            </ul>
+            </button>
           </div>
+
+          @if (runState()) {
+            <section class="practice__output" aria-label="Output">
+              <div class="practice__output-head">
+                <span class="practice__label">Output</span>
+                <span class="practice__summary">{{ passedCount() }} / {{ p.cases.length }}</span>
+              </div>
+
+              @if (runState()?.runError; as runError) {
+                <div class="practice__block">
+                  <span class="practice__label practice__label--bad">Error</span>
+                  <pre class="practice__value">{{ runError }}</pre>
+                </div>
+              }
+
+              <div class="practice__tabs" role="tablist" aria-label="Cases">
+                @for (row of rows(); track row.index) {
+                  <button
+                    type="button"
+                    role="tab"
+                    class="practice__tab"
+                    [class.practice__tab--active]="row.index === activeIndex()"
+                    [attr.aria-selected]="row.index === activeIndex()"
+                    (click)="selectedCase.set(row.index)"
+                  >
+                    <span class="practice__mark" [class.practice__mark--pass]="row.isPass" [class.practice__mark--fail]="!row.isPass">{{ row.mark }}</span>
+                    <span class="practice__case">Case {{ row.index + 1 }}</span>
+                    @if (row.word) {
+                      <span class="practice__word">{{ row.word }}</span>
+                    }
+                  </button>
+                }
+              </div>
+
+              @if (activeRow(); as row) {
+                <div class="practice__detail" role="tabpanel">
+                  <span class="practice__label">Input</span>
+                  <pre class="practice__value">{{ row.input }}</pre>
+                  <span class="practice__label">Expected</span>
+                  <pre class="practice__value">{{ row.expected }}</pre>
+                  @if (row.got !== null) {
+                    <span class="practice__label">Got</span>
+                    <pre class="practice__value" [class.practice__value--bad]="!row.isPass">{{ row.got }}</pre>
+                  }
+                  @if (row.errorMessage !== null && row.word) {
+                    <span class="practice__label practice__label--bad">{{ row.word }}</span>
+                    <pre class="practice__value">{{ row.errorMessage }}</pre>
+                  }
+                  @if (row.stdout) {
+                    <span class="practice__label">stdout</span>
+                    <pre class="practice__value">{{ row.stdout }}</pre>
+                  }
+                </div>
+              }
+            </section>
+          }
         </div>
       }
     </div>
