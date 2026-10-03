@@ -1,7 +1,5 @@
 .bo-page {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: var(--space-xl) var(--space-lg) var(--space-2xl);
+  padding: var(--space-xl) var(--page-gutter) var(--space-2xl);
 }
 
 // ── Loading / error / empty-deck states ──────────────────────────
