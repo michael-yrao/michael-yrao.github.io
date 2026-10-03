@@ -3,10 +3,12 @@
  * `define_solution(code)` (returns '' on success, else the formatted Python error) and then
  * `run_case(case_spec_json)` per case (returns one JSON outcome string, shaped like
  * `CaseOutcome`). The case spec is the entry's fields plus `args`, `ops`, `result` and `types`
- * (see `buildCaseSpec`). Kept as source text so the worker stays short; no backticks or
+ * (see `buildCaseSpec`). The solution's namespace starts with LeetCode's pre-imported modules
+ * and node classes. Kept as source text so the worker stays short; no backticks or
  * dollar-brace sequences may appear below.
  */
 export const PYTHON_DRIVER = String.raw`
+import builtins
 import collections
 import contextlib
 import io
@@ -16,6 +18,28 @@ import traceback
 
 _solution = {}
 _DEFAULT_RECURSION_LIMIT = sys.getrecursionlimit()
+
+_PRELUDE_SOURCE = """
+from typing import *
+from collections import *
+from heapq import *
+from bisect import *
+from itertools import *
+from functools import *
+from math import *
+import collections, heapq, bisect, itertools, functools, math, string, re, random, operator
+"""
+
+
+def _prelude_names():
+    # LeetCode's Python environment pre-imports these, so the learner never writes the imports.
+    names = {}
+    exec(_PRELUDE_SOURCE, names)
+    # A star import must never shadow a builtin: math's pow would break pow(a, b, mod).
+    return {name: value for name, value in names.items() if not name.startswith("_") and not hasattr(builtins, name)}
+
+
+_PRELUDE = _prelude_names()
 
 
 class CodecError(Exception):
@@ -47,8 +71,8 @@ class _Node:
 def define_solution(code):
     # A previous run's sys.setrecursionlimit must not leak into this one (the worker is reused).
     sys.setrecursionlimit(_DEFAULT_RECURSION_LIMIT)
-    # LeetCode predefines these node classes; the learner's own definition shadows the seed.
-    namespace = {"__name__": "solution", "ListNode": _ListNode, "TreeNode": _TreeNode, "Node": _Node}
+    # LeetCode predefines its imports and these node classes; the learner's own definition shadows the seed.
+    namespace = {**_PRELUDE, "__name__": "solution", "ListNode": _ListNode, "TreeNode": _TreeNode, "Node": _Node}
     try:
         exec(compile(code, "solution.py", "exec"), namespace)
     except BaseException as error:

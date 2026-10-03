@@ -268,6 +268,30 @@ class Codec:
     testCase: { args: [[1, 2, 3, null, null, 4, 5]] },
     expected: [1, 2, 3, null, null, 4, 5],
   },
+  {
+    name: "the prelude imports LeetCode's modules without shadowing a builtin",
+    code: `
+class Solution:
+    def usePrelude(self, nums: List[int]) -> int:
+        queue = deque(nums)
+        counts = defaultdict(int)
+        for value in nums:
+            counts[value] += 1
+        heap = []
+        for value in nums:
+            heappush(heap, value)
+
+        @lru_cache(None)
+        def double(value):
+            return value * 2
+
+        first = queue.popleft()
+        return [double(first), counts[first], heap[0], bisect_left([1, 3, 5], 3), inf > 10**9, pow(2, 10, 1000)]
+`,
+    entry: { className: 'Solution', method: 'usePrelude' },
+    testCase: { args: [[4, 2, 4]] },
+    expected: [8, 2, 2, 1, true, 24],
+  },
 ];
 
 describe('PYTHON_DRIVER', () => {

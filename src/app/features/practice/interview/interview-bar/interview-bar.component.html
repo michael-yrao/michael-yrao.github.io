@@ -1,0 +1,59 @@
+@switch (session.role()) {
+  @case ('none') {
+    <button type="button" class="interview-bar__btn" (click)="startRequested.emit()">Interview</button>
+  }
+  @default {
+    <div class="interview-bar">
+      @for (slot of slots(); track slot.role) {
+        <span class="interview-bar__slot">
+          <span class="interview-bar__chip">{{ slot.label }}</span>
+          @if (slot.isMine) {
+            <input
+              class="interview-bar__name"
+              type="text"
+              placeholder="Your name"
+              aria-label="Your name"
+              [attr.maxlength]="nameMaxLength"
+              [value]="session.myName()"
+              (input)="onNameInput($event)"
+            />
+          } @else {
+            <span class="interview-bar__peer-name">{{ session.peerName() || '—' }}</span>
+          }
+        </span>
+      }
+      @if (session.inviteUrl(); as url) {
+        <input class="interview-bar__invite" type="text" readonly [value]="url" />
+        <button type="button" class="interview-bar__btn interview-bar__btn--icon" aria-label="Copy invite link" title="Copy invite link" (click)="copyInvite()">
+          @switch (copyMark()) {
+            @case ('ok') {
+              <svg class="interview-bar__icon--ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+            }
+            @case ('fail') {
+              <svg class="interview-bar__icon--fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            }
+            @default {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <rect x="9" y="9" width="11" height="11" rx="2" />
+                <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+              </svg>
+            }
+          }
+        </button>
+      }
+      @if (statusView(); as status) {
+        <span class="interview-bar__status">
+          <span class="interview-bar__dot" [class]="'interview-bar__dot--' + status.tone"></span>
+          {{ status.label }}
+        </span>
+      }
+      @if (session.role() === 'interviewer') {
+        <button type="button" class="interview-bar__btn" (click)="session.end()">End</button>
+      }
+    </div>
+  }
+}

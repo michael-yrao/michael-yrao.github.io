@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 
+import { interviewSolutionGuard } from './features/practice/interview/interview-solution.guard';
+
 export const routes: Routes = [
   {
     // Progress is the landing page, and the only route that loads PROGRESS_ROUTES —
@@ -68,6 +70,7 @@ export const routes: Routes = [
   },
   {
     path: 'practice/:number/solution',
+    canActivate: [interviewSolutionGuard],
     loadComponent: () =>
       import('./features/practice/solution-page/solution-page.component').then(
         (m) => m.SolutionPageComponent,

@@ -11,12 +11,16 @@ import {
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { indentUnit, syntaxHighlighting } from '@codemirror/language';
 import { python } from '@codemirror/lang-python';
-import { EditorState } from '@codemirror/state';
-import { EditorView, keymap, lineNumbers } from '@codemirror/view';
+import { EditorState, Extension } from '@codemirror/state';
+import { EditorView, KeyBinding, keymap, lineNumbers } from '@codemirror/view';
 import { darkHighlightStyle } from './editor-highlight';
 
 const INDENT = '    ';
 const TAB_SIZE = INDENT.length;
+const RUN_SHORTCUT_KEY = 'Mod-Enter';
+
+// The page's document listener owns Ctrl/Cmd+Enter (run); CodeMirror's insertBlankLine must not take it.
+const isNotRunShortcut = (binding: KeyBinding): boolean => binding.key !== RUN_SHORTCUT_KEY;
 
 // Theme tokens come from the site's CSS custom properties, so the editor follows the light
 // and dark themes with no second palette. The size comes from three custom properties that a
@@ -50,7 +54,8 @@ const editorTheme = EditorView.theme({
 });
 
 /** CodeMirror 6 wrapper for the practice page. Deliberately has no autocomplete and no
- *  bracket closing: the learner practises without them. `initialText` is read once, when the
+ *  bracket closing: the learner practises without them. Long lines wrap, and Mod-Enter is left
+ *  unbound so it bubbles to the page, whose run shortcut it is. `initialText` is read once, when the
  *  view is created; later changes go through `setText`. A parent fills its container by
  *  setting `--editor-height: 100%`, `--editor-min-height: 0` and `--editor-max-height: none`. */
 @Component({
@@ -61,6 +66,8 @@ const editorTheme = EditorView.theme({
 })
 export class CodeEditorComponent implements AfterViewInit, OnDestroy {
   readonly initialText = input.required<string>();
+  /** Extra extensions (a session's shared-document sync), read once, when the view is created. */
+  readonly extensions = input<readonly Extension[]>([]);
   readonly textChange = output<string>();
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -76,12 +83,14 @@ export class CodeEditorComponent implements AfterViewInit, OnDestroy {
         extensions: [
           lineNumbers(),
           history(),
-          keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+          EditorView.lineWrapping,
+          keymap.of([...defaultKeymap.filter(isNotRunShortcut), ...historyKeymap, indentWithTab]),
           indentUnit.of(INDENT),
           EditorState.tabSize.of(TAB_SIZE),
           python(),
           syntaxHighlighting(darkHighlightStyle),
           editorTheme,
+          ...this.extensions(),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) this.textChange.emit(update.state.doc.toString());
           }),

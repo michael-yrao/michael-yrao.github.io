@@ -28,6 +28,7 @@ const PROBLEM: PracticeProblem = {
   cases: [
     { args: [[1, 2]], expected: [[1], [2]], example: true },
     { args: [[3]], expected: [[3]], example: false },
+    { args: [[4]], expected: [[4]], example: false },
   ],
 };
 
@@ -49,6 +50,7 @@ const RUN_STATE: RunState = {
 };
 
 const setTextSpy = vi.fn();
+const runSpy = vi.fn();
 
 @Component({ selector: 'app-code-editor', template: '' })
 class StubEditorComponent {
@@ -80,6 +82,7 @@ function setUp(
   problems: readonly PracticeProblem[],
   status: LoadStatus = 'ready',
   error: string | null = null,
+  isRealEditor = false,
 ) {
   const params = convertToParamMap({ number });
   const query = convertToParamMap({});
@@ -89,7 +92,7 @@ function setUp(
       provideRouter([]),
       { provide: PracticeService, useValue: makePracticeStub(problems, status, error) },
       { provide: ShowcaseService, useValue: { data: signal(null), load: vi.fn(), entryFor: () => null } },
-      { provide: PythonRunnerService, useValue: { run: () => of(RUN_STATE) } },
+      { provide: PythonRunnerService, useValue: { run: runSpy } },
       {
         provide: ActivatedRoute,
         useValue: {
@@ -100,10 +103,12 @@ function setUp(
       },
     ],
   });
-  TestBed.overrideComponent(PracticePageComponent, {
-    remove: { imports: [CodeEditorComponent] },
-    add: { imports: [StubEditorComponent] },
-  });
+  if (!isRealEditor) {
+    TestBed.overrideComponent(PracticePageComponent, {
+      remove: { imports: [CodeEditorComponent] },
+      add: { imports: [StubEditorComponent] },
+    });
+  }
   const fixture = TestBed.createComponent(PracticePageComponent);
   fixture.detectChanges();
   return fixture;
@@ -119,6 +124,8 @@ function click(root: HTMLElement, label: string): void {
 describe('PracticePageComponent', () => {
   beforeEach(() => {
     setTextSpy.mockClear();
+    runSpy.mockReset();
+    runSpy.mockReturnValue(of(RUN_STATE));
     localStorage.removeItem(DRAFT_KEY);
     localStorage.removeItem(SPLIT_KEY);
   });
@@ -147,8 +154,65 @@ describe('PracticePageComponent', () => {
     expect(tabs[0].getAttribute('aria-selected')).toBe('true');
     expect(labelsOfPanel()).toEqual(['Input', 'Expected', 'Got', 'stdout']);
     expect(root.querySelector('[role="tabpanel"] pre:last-of-type')?.textContent).toBe('hello');
-    expect(root.querySelector('.practice__summary')?.textContent?.trim()).toBe('1 / 2');
+    expect(root.querySelector('.practice__summary')?.textContent?.trim()).toBe('1 / 3');
   });
+
+  it("Ctrl+' runs only the first two cases and opens their tabs", () => {
+    const fixture = setUp('90', [PROBLEM]);
+    const root: HTMLElement = fixture.nativeElement;
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: "'", ctrlKey: true, bubbles: true }));
+    fixture.detectChanges();
+
+    expect(runSpy).toHaveBeenCalledTimes(1);
+    expect(runSpy.mock.calls[0][1].cases.length).toBe(2);
+    expect(root.querySelectorAll('[role="tab"]').length).toBe(2);
+  });
+
+  const COLLAPSIBLE_PANES: readonly {
+    readonly label: string;
+    readonly bodyId: string;
+    readonly isRunFirst: boolean;
+    readonly isEditorKept: boolean;
+  }[] = [
+    { label: 'Problem', bodyId: 'practice-problem-body', isRunFirst: false, isEditorKept: false },
+    { label: 'Code', bodyId: 'practice-code-body', isRunFirst: false, isEditorKept: true },
+    { label: 'Output', bodyId: 'practice-output-body', isRunFirst: true, isEditorKept: false },
+  ];
+
+  it.each(COLLAPSIBLE_PANES)(
+    'the $label head collapses its body and a second click restores it',
+    ({ label, bodyId, isRunFirst, isEditorKept }) => {
+      const fixture = setUp('90', [PROBLEM], 'ready', null, isEditorKept);
+      const root: HTMLElement = fixture.nativeElement;
+      if (isRunFirst) {
+        click(root, 'Run');
+        fixture.detectChanges();
+      }
+      const head = Array.from(root.querySelectorAll<HTMLElement>('.practice__pane-head')).find(
+        (button) => button.querySelector('.practice__label')?.textContent?.trim() === label,
+      )!;
+      const body = () => root.querySelector<HTMLElement>('#' + bodyId);
+      const editorBefore = root.querySelector('.cm-editor');
+
+      head.click();
+      fixture.detectChanges();
+
+      expect(head.getAttribute('aria-expanded')).toBe('false');
+      expect(body()?.hidden ?? true).toBe(true);
+      if (isEditorKept) {
+        expect(editorBefore).not.toBeNull();
+        expect(root.querySelector('.cm-editor')).toBe(editorBefore);
+      }
+
+      head.click();
+      fixture.detectChanges();
+
+      expect(head.getAttribute('aria-expanded')).toBe('true');
+      expect(body()).not.toBeNull();
+      expect(body()!.hidden).toBe(false);
+    },
+  );
 
   const PANES: readonly {
     readonly name: string;

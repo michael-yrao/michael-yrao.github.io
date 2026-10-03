@@ -11,42 +11,74 @@
       [neighbors]="neighbors()"
       activeTab="description"
       [hasSolution]="meta() !== null"
+      [isCandidate]="isCandidate()"
+      [isInSession]="isInSession()"
+      [showInterview]="true"
+      (interviewStart)="startInterview()"
     />
 
     <div
       class="practice__split"
       [class.practice__split--solo]="!problem()"
+      [class.practice__split--problem-closed]="!isProblemOpen()"
       [class.practice__split--dragging]="isDragging()"
       [style.--problem-track]="problemTrack()"
       [style.--work-track]="workTrack()"
     >
-      <div class="practice__problem">
-        <app-practice-description [problem]="problem()" [meta]="meta()" />
+      <div class="practice__problem" [class.practice__problem--closed]="!isProblemOpen()">
+        <button type="button" class="practice__pane-head" [attr.aria-expanded]="isProblemOpen()" aria-controls="practice-problem-body" (click)="toggleProblem()">
+          <span class="practice__label">Problem</span>
+          <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+        <div id="practice-problem-body" [hidden]="!isProblemOpen()">
+          <app-practice-description [problem]="problem()" [meta]="meta()" />
+        </div>
       </div>
 
       @if (problem(); as p) {
-        <div
-          class="practice__divider"
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Resize panes"
-          tabindex="0"
-          [attr.aria-valuemin]="minPercent"
-          [attr.aria-valuemax]="maxPercent"
-          [attr.aria-valuenow]="sharePercent()"
-          (pointerdown)="startDrag($event)"
-          (pointermove)="drag($event)"
-          (pointerup)="endDrag()"
-          (pointercancel)="endDrag()"
-          (keydown)="onDividerKey($event)"
-          (dblclick)="resetShare()"
-        ></div>
+        @if (isProblemOpen()) {
+          <div
+            class="practice__divider"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize panes"
+            tabindex="0"
+            [attr.aria-valuemin]="minPercent"
+            [attr.aria-valuemax]="maxPercent"
+            [attr.aria-valuenow]="sharePercent()"
+            (pointerdown)="startDrag($event)"
+            (pointermove)="drag($event)"
+            (pointerup)="endDrag()"
+            (pointercancel)="endDrag()"
+            (keydown)="onDividerKey($event)"
+            (dblclick)="resetShare()"
+          ></div>
+        }
 
-        <div class="practice__work">
-          <app-code-editor #editor [initialText]="initialText()" (textChange)="onTextChange($event)" />
+        <div class="practice__work" [class.practice__work--code-closed]="!isCodeOpen()">
+          <button type="button" class="practice__pane-head" [attr.aria-expanded]="isCodeOpen()" aria-controls="practice-code-body" (click)="toggleCode()">
+            <span class="practice__label">Code</span>
+            <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          <div id="practice-code-body" class="practice__code-body" [hidden]="!isCodeOpen()">
+            @if (!isInSession()) {
+              <app-code-editor #editor [initialText]="initialText()" (textChange)="onTextChange($event)" />
+            } @else if (session.sharedDoc(); as shared) {
+              <app-code-editor
+                #editor
+                [initialText]="shared.doc"
+                [extensions]="sessionExtensions()"
+                (textChange)="onTextChange($event)"
+              />
+            }
+          </div>
 
           <div class="practice__toolbar">
-            <button type="button" class="practice__btn practice__btn--icon practice__btn--primary" aria-label="Run" title="Run" [disabled]="isBusy()" (click)="run()">
+            <button type="button" class="practice__btn practice__btn--icon practice__btn--primary" aria-label="Run" title="Run (Ctrl+Enter)" [disabled]="isBusy()" (click)="run()">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
                 <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
               </svg>
@@ -83,61 +115,68 @@
             </button>
           </div>
 
-          @if (runState()) {
-            <section class="practice__output" aria-label="Output">
-              <div class="practice__output-head">
-                <span class="practice__label">Output</span>
-                <span class="practice__summary">{{ passedCount() }} / {{ p.cases.length }}</span>
-              </div>
-
-              @if (runState()?.runError; as runError) {
-                <div class="practice__block">
-                  <span class="practice__label practice__label--bad">Error</span>
-                  <pre class="practice__value">{{ runError }}</pre>
-                </div>
+          <section class="practice__output" aria-label="Output">
+            <button type="button" class="practice__pane-head" [attr.aria-expanded]="isOutputOpen()" aria-controls="practice-output-body" [disabled]="!runState()" (click)="toggleOutput()">
+              <span class="practice__label">Output</span>
+              @if (runState()) {
+                <span class="practice__summary">{{ passedCount() }} / {{ runCaseCount() }}</span>
               }
+              <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
 
-              <div class="practice__tabs" role="tablist" aria-label="Cases">
-                @for (row of rows(); track row.index) {
-                  <button
-                    type="button"
-                    role="tab"
-                    class="practice__tab"
-                    [class.practice__tab--active]="row.index === activeIndex()"
-                    [attr.aria-selected]="row.index === activeIndex()"
-                    (click)="selectedCase.set(row.index)"
-                  >
-                    <span class="practice__mark" [class.practice__mark--pass]="row.isPass" [class.practice__mark--fail]="!row.isPass">{{ row.mark }}</span>
-                    <span class="practice__case">Case {{ row.index + 1 }}</span>
-                    @if (row.word) {
-                      <span class="practice__word">{{ row.word }}</span>
+            @if (isOutputOpen() && runState()) {
+              <div id="practice-output-body" class="practice__output-body">
+                @if (runState()?.runError; as runError) {
+                  <div class="practice__block">
+                    <span class="practice__label practice__label--bad">Error</span>
+                    <pre class="practice__value">{{ runError }}</pre>
+                  </div>
+                }
+
+                <div class="practice__tabs" role="tablist" aria-label="Cases">
+                  @for (row of rows(); track row.index) {
+                    <button
+                      type="button"
+                      role="tab"
+                      class="practice__tab"
+                      [class.practice__tab--active]="row.index === activeIndex()"
+                      [attr.aria-selected]="row.index === activeIndex()"
+                      (click)="selectedCase.set(row.index)"
+                    >
+                      <span class="practice__mark" [class.practice__mark--pass]="row.isPass" [class.practice__mark--fail]="!row.isPass">{{ row.mark }}</span>
+                      <span class="practice__case">Case {{ row.index + 1 }}</span>
+                      @if (row.word) {
+                        <span class="practice__word">{{ row.word }}</span>
+                      }
+                    </button>
+                  }
+                </div>
+
+                @if (activeRow(); as row) {
+                  <div class="practice__detail" role="tabpanel">
+                    <span class="practice__label">Input</span>
+                    <pre class="practice__value">{{ row.input }}</pre>
+                    <span class="practice__label">Expected</span>
+                    <pre class="practice__value">{{ row.expected }}</pre>
+                    @if (row.got !== null) {
+                      <span class="practice__label">Got</span>
+                      <pre class="practice__value" [class.practice__value--bad]="!row.isPass">{{ row.got }}</pre>
                     }
-                  </button>
+                    @if (row.errorMessage !== null && row.word) {
+                      <span class="practice__label practice__label--bad">{{ row.word }}</span>
+                      <pre class="practice__value">{{ row.errorMessage }}</pre>
+                    }
+                    @if (row.stdout) {
+                      <span class="practice__label">stdout</span>
+                      <pre class="practice__value">{{ row.stdout }}</pre>
+                    }
+                  </div>
                 }
               </div>
-
-              @if (activeRow(); as row) {
-                <div class="practice__detail" role="tabpanel">
-                  <span class="practice__label">Input</span>
-                  <pre class="practice__value">{{ row.input }}</pre>
-                  <span class="practice__label">Expected</span>
-                  <pre class="practice__value">{{ row.expected }}</pre>
-                  @if (row.got !== null) {
-                    <span class="practice__label">Got</span>
-                    <pre class="practice__value" [class.practice__value--bad]="!row.isPass">{{ row.got }}</pre>
-                  }
-                  @if (row.errorMessage !== null && row.word) {
-                    <span class="practice__label practice__label--bad">{{ row.word }}</span>
-                    <pre class="practice__value">{{ row.errorMessage }}</pre>
-                  }
-                  @if (row.stdout) {
-                    <span class="practice__label">stdout</span>
-                    <pre class="practice__value">{{ row.stdout }}</pre>
-                  }
-                </div>
-              }
-            </section>
-          }
+            }
+          </section>
         </div>
       }
     </div>

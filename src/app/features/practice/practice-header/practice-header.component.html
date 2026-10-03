@@ -8,12 +8,15 @@
         {{ title() }}
       }
     </h1>
-    @if (difficulty(); as level) {
+    @if (!isCandidate() && difficulty(); as level) {
       <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
     }
   </div>
   <div class="practice-header__neighbor-nav">
-    @if (neighbors().prev; as prev) {
+    @if (showInterview()) {
+      <app-interview-bar (startRequested)="interviewStart.emit()" />
+    }
+    @if (!isInSession() && neighbors().prev; as prev) {
       <a
         [routerLink]="neighborCommands()(prev.number)"
         queryParamsHandling="preserve"
@@ -21,7 +24,7 @@
         >← {{ prev.number }}</a
       >
     }
-    @if (neighbors().next; as next) {
+    @if (!isInSession() && neighbors().next; as next) {
       <a
         [routerLink]="neighborCommands()(next.number)"
         queryParamsHandling="preserve"
@@ -41,12 +44,14 @@
     queryParamsHandling="preserve"
     >Description</a
   >
-  @if (hasSolution()) {
+  @if (!isCandidate() && hasSolution()) {
     <a
       class="practice-header__tab"
       [class.practice-header__tab--active]="activeTab() === 'solution'"
       [attr.aria-current]="activeTab() === 'solution' ? 'page' : null"
       [routerLink]="['/practice', number(), 'solution']"
+      [target]="isInSession() ? '_blank' : undefined"
+      [attr.rel]="isInSession() ? 'noopener' : null"
       queryParamsHandling="preserve"
       >Solution</a
     >
