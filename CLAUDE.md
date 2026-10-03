@@ -47,6 +47,7 @@ When adding or reconstructing a visualizer:
   (e.g. `validTree_20260619_UnionFind`) are the same approach practiced again — collapse those to one
   variant per distinct approach, using the cleanest/most-commented instance.
 - If a solution is missing from cse-progress, ask before writing one from scratch.
+- The end-to-end procedure — the practice spec in cse-progress and this site's solution — is `<cse-progress>/.claude/skills/practice-problem/SKILL.md`.
 
 ## Visualizer quality bar
 
