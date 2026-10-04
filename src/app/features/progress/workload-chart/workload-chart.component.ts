@@ -37,6 +37,7 @@ const BAND_COLOR: Readonly<Record<WorkloadBand, string>> = {
   Light: 'var(--color-easy)',
   Moderate: 'var(--color-medium)',
   Heavy: 'var(--color-hard)',
+  Over: 'var(--color-over)',
 };
 // A done bar with no known ceiling can't be banded — a neutral fill rather than an
 // arbitrary guess at Light/Moderate/Heavy.

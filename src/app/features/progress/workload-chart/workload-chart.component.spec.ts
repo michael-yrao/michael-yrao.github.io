@@ -47,11 +47,12 @@ describe('WorkloadChartComponent', () => {
 
   it("bands a done bar's fill by workloadBand against the given ceiling/floor", () => {
     // ceiling 8, floor 3: 2 <= floor -> Light; 5 is between floor and 0.9*8=7.2 -> Moderate;
-    // 7.5 >= 7.2 -> Heavy.
+    // 7.5 >= 7.2 -> Heavy; 9 > 8 -> Over.
     const workload = [
       makeDay({ date: addDaysISO(BASE_DATE, 0), done: 2 }),
       makeDay({ date: addDaysISO(BASE_DATE, 1), done: 5 }),
       makeDay({ date: addDaysISO(BASE_DATE, 2), done: 7.5 }),
+      makeDay({ date: addDaysISO(BASE_DATE, 3), done: 9 }),
     ];
     const fixture = createFixture(workload, 8, 3);
 
@@ -59,6 +60,7 @@ describe('WorkloadChartComponent', () => {
     expect(bars[0].querySelector('.wlchart__done')?.getAttribute('fill')).toBe('var(--color-easy)');
     expect(bars[1].querySelector('.wlchart__done')?.getAttribute('fill')).toBe('var(--color-medium)');
     expect(bars[2].querySelector('.wlchart__done')?.getAttribute('fill')).toBe('var(--color-hard)');
+    expect(bars[3].querySelector('.wlchart__done')?.getAttribute('fill')).toBe('var(--color-over)');
   });
 
   it('renders no done bar (planned outline only) for a day later than today', () => {
@@ -108,7 +110,7 @@ describe('WorkloadChartComponent', () => {
     expect(svg.getAttribute('viewBox')).toBe(`0 0 ${svg.getAttribute('width')} ${svg.getAttribute('height')}`);
   });
 
-  it('shows the three band names (Light/Moderate/Heavy) in the legend when a ceiling is given', () => {
+  it('shows the four band names (Light/Moderate/Heavy/Over) in the legend when a ceiling is given', () => {
     const workload = [makeDay({ date: addDaysISO(BASE_DATE, 0) })];
     const fixture = createFixture(workload, 8, 3);
 
@@ -116,6 +118,7 @@ describe('WorkloadChartComponent', () => {
     expect(legendText).toContain('Light');
     expect(legendText).toContain('Moderate');
     expect(legendText).toContain('Heavy');
+    expect(legendText).toContain('Over');
     expect(legendText).not.toContain('no ceiling known');
   });
 

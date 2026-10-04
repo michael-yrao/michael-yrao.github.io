@@ -126,6 +126,7 @@
 .wlchart__swatch--light { background: var(--color-easy); }
 .wlchart__swatch--moderate { background: var(--color-medium); }
 .wlchart__swatch--heavy { background: var(--color-hard); }
+.wlchart__swatch--over { background: var(--color-over); }
 // Only shown when `ceiling()` is null — a done bar can't be banded without one, so it falls
 // back to this neutral fill (see WorkloadChartComponent.colorFor).
 .wlchart__swatch--unbanded { background: var(--color-accent); }
