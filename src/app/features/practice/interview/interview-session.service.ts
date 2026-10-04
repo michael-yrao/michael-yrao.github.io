@@ -1,438 +1,748 @@
-import { Injectable, Signal, inject, signal } from '@angular/core';
+import { Injectable, Signal, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Update, collab, getSyncedVersion, receiveUpdates, sendableUpdates } from '@codemirror/collab';
-import { ChangeSet, Extension, Text } from '@codemirror/state';
-import { EditorView, ViewPlugin } from '@codemirror/view';
+import { Update } from '@codemirror/collab';
+import { Extension, Text } from '@codemirror/state';
 
-import { JOIN_PARAM } from './interview-params';
-import { Authority, authorityVersion, createAuthority, receivePush } from './collab-authority';
+import { Authority } from './collab-authority';
+import { HostKeys, generateHostKeys, parsePackedKey, parsePublicKey } from './host-key';
+import { HOST_PARAM, JOIN_PARAM } from './interview-params';
 import { Host, PEER_FACTORY, Transport } from './peer-transport';
-import { InitMessage, NAME_MAX_LENGTH, SessionMessage, WireUpdate, parseSessionMessage } from './session-message';
+import { ClientConnection, ClientHooks, ClientIdentity, dialWithTimeout } from './session-client';
+import { AuthorityChange, HostEvents, SessionHost } from './session-host';
+import { EditorSync, sessionExtensions } from './session-editor';
+import { sessionIdFromPublicKey } from './session-id';
+import { InitMessage, NAME_MAX_LENGTH, Participant, RevisedDoc, WireUpdate } from './session-message';
+import { clearSession, loadSession, pruneExpiredSessions, saveSession } from './session-store';
+import {
+  RECONNECT_DELAY_MS,
+  buildRoleUrl,
+  errorType,
+  isUnavailableId,
+  loadName,
+  saveName,
+  sessionPageUrl,
+} from './session-support';
+import { applyUpdates, decodeUpdates, textOf, toWire } from './wire-updates';
 
-export { JOIN_PARAM, isCandidateParams } from './interview-params';
+export { JOIN_PARAM, HOST_PARAM, isCandidateParams } from './interview-params';
+export { CONNECT_TIMEOUT_MS } from './session-client';
+export { RECONNECT_DELAY_MS } from './session-support';
 export type InterviewRole = 'none' | 'interviewer' | 'candidate';
-export type SessionStatus = 'idle' | 'connecting' | 'waiting' | 'open' | 'closed' | 'error';
+export type SessionStatus = 'idle' | 'connecting' | 'waiting' | 'open' | 'reconnecting' | 'closed' | 'error';
 export interface SharedDoc {
   readonly problem: number;
   readonly version: number;
   readonly doc: string;
+  /** 0 for the first doc a side sets; every later init or takeover adds 1, so the page can re-create its editor. */
+  readonly epoch: number;
 }
 
 const INTERVIEWER_START_VERSION = 0;
-const NAME_STORAGE_KEY = 'po-interview-name';
-export const CONNECT_TIMEOUT_MS = 20_000;
+/** How long interviewers keep failing to dial or host the session id before the connection counts as failed. */
+export const RECLAIM_TIMEOUT_MS = 60_000;
+const FIRST_EPOCH = 0;
 
-function loadName(): string {
-  try {
-    return localStorage.getItem(NAME_STORAGE_KEY)?.trim().slice(0, NAME_MAX_LENGTH) ?? '';
-  } catch (err) {
-    console.error(`Interview name: could not read ${NAME_STORAGE_KEY}`, err);
-    return '';
-  }
-}
-
-function saveName(name: string): void {
-  try {
-    localStorage.setItem(NAME_STORAGE_KEY, name);
-  } catch (err) {
-    console.error(`Interview name: could not save ${NAME_STORAGE_KEY}`, err);
-  }
-}
-
-function toWire(update: Update): WireUpdate {
-  return { clientID: update.clientID, changes: update.changes.toJSON() };
-}
-
-function fromWire(wire: WireUpdate): Update {
-  return { clientID: wire.clientID, changes: ChangeSet.fromJSON(wire.changes) };
-}
-
-/** Decodes peer updates; a changeset that will not decode is logged and the whole batch dropped. */
-function decodeUpdates(wire: readonly WireUpdate[]): readonly Update[] | null {
-  try {
-    return wire.map(fromWire);
-  } catch (error) {
-    console.error('Dropped session updates that would not decode', error);
-    return null;
-  }
-}
+type AttemptOutcome = 'done' | 'retry' | 'superseded';
+type SessionRole = 'interviewer' | 'candidate';
 
 /**
- * One interview session. The interviewer's page is the `@codemirror/collab` authority; both
- * editors are collab clients. The service owns the PeerJS lifecycle (through `PEER_FACTORY`),
- * message routing and the extensions that wire an editor into the session.
+ * One interview session. Every interviewer tab runs the same loop: dial the session id as a client,
+ * else try to host it (the broker grants the id to one tab, so it is the lock), and repeat until one
+ * of the two holds. The hosting tab's page is the `@codemirror/collab` authority; every editor is a
+ * collab client. Each connection starts with a challenge/proof handshake, so no code or name leaves a
+ * client before the host has proved it holds the session's private key.
+ *
+ * The session survives a reload or a lost host: the link carries the key, and each tab saves its synced
+ * document under its own role. The candidate re-dials on a drop.
  */
 @Injectable({ providedIn: 'root' })
 export class InterviewSessionService {
   private readonly factory = inject(PEER_FACTORY);
   private readonly router = inject(Router);
-  private readonly clientID = crypto.randomUUID();
+  /** This tab's collab clientID, and its id in the roster. */
+  readonly selfId = crypto.randomUUID();
 
   private readonly roleState = signal<InterviewRole>('none');
   private readonly statusState = signal<SessionStatus>('idle');
   private readonly inviteUrlState = signal<string | null>(null);
+  private readonly hostUrlState = signal<string | null>(null);
   private readonly sharedDocState = signal<SharedDoc | null>(null);
+  private readonly problemState = signal<number | null>(null);
   private readonly myNameState = signal<string>(loadName());
-  private readonly peerNameState = signal<string | null>(null);
+  private readonly rosterState = signal<readonly Participant[]>([]);
 
   readonly role: Signal<InterviewRole> = this.roleState.asReadonly();
   readonly status: Signal<SessionStatus> = this.statusState.asReadonly();
   readonly inviteUrl: Signal<string | null> = this.inviteUrlState.asReadonly();
+  /** The interviewer's private link (it carries the key); null for the candidate. */
+  readonly hostUrl: Signal<string | null> = this.hostUrlState.asReadonly();
   readonly sharedDoc: Signal<SharedDoc | null> = this.sharedDocState.asReadonly();
+  /** The problem the session is pinned to; null when there is no session. */
+  readonly problem: Signal<number | null> = this.problemState.asReadonly();
+  /** False while a tab is waiting to reconnect: an edit then would be dropped by the next init. */
+  readonly isEditable: Signal<boolean> = computed(() => this.statusState() !== 'reconnecting');
   readonly myName: Signal<string> = this.myNameState.asReadonly();
-  /** Null until the other side has sent a name. */
-  readonly peerName: Signal<string | null> = this.peerNameState.asReadonly();
+  /** Everyone in the session as the host last announced it; empty until the first roster arrives. */
+  readonly roster: Signal<readonly Participant[]> = this.rosterState.asReadonly();
 
-  private host: Host | null = null;
-  private transport: Transport | null = null;
-  private authority: Authority | null = null;
-  private joinedPeerId: string | null = null;
+  private sessionHost: SessionHost | null = null;
+  private connection: ClientConnection | null = null;
+  private hostKeys: HostKeys | null = null;
+  private publicKey: CryptoKey | null = null;
+  private sessionId: string | null = null;
+  /** The raw `?host=` / `?join=` value this session was opened from. */
+  private linkValue: string | null = null;
   private pageProblem = 0;
+  private stubFn: () => string = () => '';
 
-  /** Every accepted update from version `logBase` on. Never trimmed, so a re-created editor can replay it. */
-  private log: readonly Update[] = [];
-  private logBase = INTERVIEWER_START_VERSION;
-  private view: EditorView | null = null;
-  private isPushScheduled = false;
-  private isPushInFlight = false;
+  /** Bumped by every start, resume, join and end; async work that finds it changed has been superseded. */
+  private generation = 0;
+  private wakeRetryWait: (() => void) | null = null;
+  private redialTimer: ReturnType<typeof setTimeout> | null = null;
+  /** When the current run of failures began; cleared only by a verified proof or by hosting. */
+  private failingSince: number | null = null;
+
+  /** The document as of the last accepted update, advanced one batch at a time. */
+  private syncedText: Text | null = null;
+  /** The session revision of `syncedText`: the init's revision plus the updates applied since. */
+  private syncedRev = 0;
+  private readonly editor = new EditorSync({
+    isReadOnly: () => !this.isEditable(),
+    send: (version, updates) => this.sendPush(version, updates),
+  });
+
+  private readonly clientHooks: ClientHooks = {
+    getName: () => this.myNameState(),
+    getDoc: () => this.helloDoc(),
+    onVerified: () => {
+      this.failingSince = null;
+    },
+    onInit: (init) => this.handleInit(init),
+    onUpdates: (updates) => this.handleUpdates(updates),
+    onRoster: (participants) => this.setRoster(participants),
+    onEnd: () => this.handleEndFromHost(),
+    onClosed: (connection) => this.handleClientClosed(connection),
+  };
+
+  private readonly hostEvents: HostEvents = {
+    onRoster: (participants) => this.setRoster(participants),
+    onAuthority: (authority, change, rev) => this.applyAuthority(authority, change, rev),
+    onEndRequested: () => this.end(),
+  };
 
   async start(problem: number, stub: string, inviteBase: string): Promise<void> {
-    this.roleState.set('interviewer');
-    this.statusState.set('connecting');
-    this.peerNameState.set(null);
-    this.authority = createAuthority(Text.of(stub.split('\n')));
-    this.log = [];
-    this.logBase = INTERVIEWER_START_VERSION;
-    this.sharedDocState.set({ problem, version: INTERVIEWER_START_VERSION, doc: stub });
-    try {
-      this.host = await this.factory.host(
-        (transport) => this.acceptConnection(transport, problem),
-        (error) => this.fail('Peer error', error),
-      );
-    } catch (error) {
-      this.fail('Could not open a peer', error);
-      return;
-    }
-    const url = new URL(inviteBase);
-    url.searchParams.set(JOIN_PARAM, this.host.id);
-    this.inviteUrlState.set(url.toString());
-    if (this.statusState() === 'connecting') {
-      this.statusState.set('waiting');
-    }
-  }
-
-  async join(peerId: string, problem: number): Promise<void> {
+    const generation = this.beginSession('interviewer', problem, null);
     this.pageProblem = problem;
-    if (this.joinedPeerId === peerId) {
+    this.stubFn = () => stub;
+    try {
+      const keys = await generateHostKeys();
+      const sessionId = await sessionIdFromPublicKey(keys.publicRaw);
+      if (generation !== this.generation) {
+        return;
+      }
+      this.adoptIdentity(keys, sessionId, inviteBase);
+      pruneExpiredSessions();
+      // The stub is saved as the authority source: the host loop reads it back as the saved doc.
+      saveSession('interviewer', sessionId, problem, stub, 0);
+    } catch (error) {
+      if (generation === this.generation) {
+        this.fail('Could not create the interview keys', error);
+      }
       return;
     }
-    this.joinedPeerId = peerId;
-    this.peerNameState.set(null);
-    this.roleState.set('candidate');
-    this.statusState.set('connecting');
+    await this.runInterviewerLoop(generation, null);
+  }
+
+  /** Joins as an interviewer from a host link: hosts the session if nobody does, otherwise joins the host. */
+  async resume(packed: string, problem: number, stubFn: () => string): Promise<void> {
+    if (this.linkValue === packed && this.roleState() === 'interviewer') {
+      return;
+    }
+    const generation = this.generation;
+    const keys = await parsePackedKey(packed);
+    if (generation !== this.generation) {
+      return;
+    }
+    if (keys === null) {
+      console.error('Interview resume: the host link is not a valid interviewer key');
+      return;
+    }
+    const sessionId = await sessionIdFromPublicKey(keys.publicRaw);
+    if (generation !== this.generation) {
+      return;
+    }
+    const pageUrl = window.location.href;
+    this.stubFn = stubFn;
+    const begun = this.beginSession('interviewer', problem, packed);
+    this.pageProblem = problem;
+    pruneExpiredSessions();
+    // The saved problem, not the page's, decides which problem the links name.
+    const sessionProblem = loadSession('interviewer', sessionId)?.problem ?? problem;
+    this.problemState.set(sessionProblem);
+    this.adoptIdentity(keys, sessionId, sessionPageUrl(pageUrl, sessionProblem));
+    await this.runInterviewerLoop(begun, null);
+  }
+
+  async join(publicRaw: string, problem: number): Promise<void> {
+    this.pageProblem = problem;
+    if (this.linkValue === publicRaw && this.roleState() === 'candidate') {
+      return;
+    }
+    const generation = this.beginSession('candidate', problem, publicRaw);
     try {
-      const transport = await this.connectWithTimeout(peerId);
-      this.transport = transport;
-      transport.onMessage((data) => this.handleCandidateMessage(parseSessionMessage(data)));
-      transport.onClose(() => this.handleCandidateClose(transport));
+      const publicKey = await parsePublicKey(publicRaw);
+      if (publicKey === null) {
+        this.fail('Interview join: the link is not a valid interview key');
+        return;
+      }
+      const sessionId = await sessionIdFromPublicKey(publicRaw);
+      if (generation !== this.generation) {
+        return;
+      }
+      this.publicKey = publicKey;
+      this.sessionId = sessionId;
     } catch (error) {
-      this.fail('Could not connect to the interviewer', error);
+      if (generation === this.generation) {
+        this.fail('Could not read the interview link', error);
+      }
+      return;
     }
+    // No host yet is not a failure: the candidate keeps trying until one answers or the session is superseded.
+    await this.redialCandidate(generation);
   }
 
+  /** Ends the session for everyone. An interviewer's End also resets this tab and strips `?host=` from the address. */
   end(): void {
-    const isInterviewer = this.roleState() === 'interviewer';
-    const transport = this.transport;
-    this.transport = null;
-    this.statusState.set('closed');
-    transport?.send({ type: 'end' } satisfies SessionMessage);
-    transport?.close();
-    this.host?.destroy();
-    this.host = null;
-    if (isInterviewer) {
-      this.resetToStart();
+    const role = this.roleState();
+    const { sessionHost, connection, sessionId } = this;
+    this.cancelPending();
+    this.sessionHost = null;
+    this.connection = null;
+    if (role !== 'interviewer') {
+      this.setStatus('closed');
+      connection?.close();
+      return;
     }
+    if (sessionHost !== null) {
+      sessionHost.end();
+    } else {
+      connection?.endSession();
+    }
+    this.finishInterviewerSession(sessionId);
   }
 
-  /** Sets this side's name (trimmed, cut to the limit), stores it and sends it to the other side. */
+  /** Sets this side's name (trimmed, cut to the limit), stores it and tells the session. */
   setMyName(name: string): void {
     const clean = name.trim().slice(0, NAME_MAX_LENGTH);
     this.myNameState.set(clean);
     saveName(clean);
-    this.sendName();
+    this.sessionHost?.refreshRoster();
+    this.connection?.sendName(clean);
   }
 
   collabExtensions(): readonly Extension[] {
     const startVersion = this.sharedDocState()?.version ?? INTERVIEWER_START_VERSION;
-    const register = (view: EditorView) => this.registerView(view);
-    const unregister = (view: EditorView) => this.unregisterView(view);
-    const onUpdate = () => this.schedulePush();
-    const plugin = ViewPlugin.fromClass(
-      class {
-        constructor(private readonly view: EditorView) {
-          register(view);
-        }
-        update(): void {
-          onUpdate();
-        }
-        destroy(): void {
-          unregister(this.view);
-        }
-      },
-    );
-    return [collab({ startVersion, clientID: this.clientID }), plugin];
+    return sessionExtensions(startVersion, this.selfId, !this.isEditable(), {
+      onRegister: (view) => this.editor.register(view),
+      onUnregister: (view) => this.editor.unregister(view),
+      onUpdate: () => this.editor.schedulePush(),
+    });
   }
 
-  /** Dials the interviewer; a connect that outlasts `CONNECT_TIMEOUT_MS` fails, and a late transport is closed unused. */
-  private connectWithTimeout(peerId: string): Promise<Transport> {
-    return new Promise<Transport>((resolve, reject) => {
-      let isTimedOut = false;
-      const timer = setTimeout(() => {
-        isTimedOut = true;
-        reject(new Error(`No answer from the interviewer within ${CONNECT_TIMEOUT_MS} ms`));
-      }, CONNECT_TIMEOUT_MS);
-      this.factory.connect(peerId).then(
-        (transport) => {
-          clearTimeout(timer);
-          if (isTimedOut) {
-            transport.close();
-            return;
-          }
-          resolve(transport);
-        },
-        (error: unknown) => {
-          clearTimeout(timer);
-          reject(error);
-        },
-      );
-    });
+  // ---- session lifecycle ----
+
+  /** Resets to a fresh session of `role` and returns its generation; the identity-dependent work follows. */
+  private beginSession(role: SessionRole, problem: number, linkValue: string | null): number {
+    this.cancelPending();
+    this.closeTransports();
+    this.resetSessionState();
+    this.linkValue = linkValue;
+    this.problemState.set(problem);
+    this.roleState.set(role);
+    this.setStatus('connecting');
+    return this.generation;
+  }
+
+  /** Takes the keys and session id as this session's identity and builds the two links on `pageUrl`. */
+  private adoptIdentity(keys: HostKeys, sessionId: string, pageUrl: string): void {
+    this.hostKeys = keys;
+    this.publicKey = keys.publicKey;
+    this.sessionId = sessionId;
+    this.linkValue = keys.packed;
+    this.hostUrlState.set(buildRoleUrl(pageUrl, HOST_PARAM, keys.packed, JOIN_PARAM));
+    this.inviteUrlState.set(buildRoleUrl(pageUrl, JOIN_PARAM, keys.publicRaw, HOST_PARAM));
+  }
+
+  /** Cancels the pending retry wait and re-dial timer and supersedes any in-flight async work. */
+  private cancelPending(): void {
+    this.generation += 1;
+    this.wakeRetryWait?.();
+    this.wakeRetryWait = null;
+    if (this.redialTimer !== null) {
+      clearTimeout(this.redialTimer);
+      this.redialTimer = null;
+    }
+  }
+
+  /** Closes the client connection and the hosted Peer without telling anyone the session ended. */
+  private closeTransports(): void {
+    const { connection, sessionHost } = this;
+    this.connection = null;
+    this.sessionHost = null;
+    connection?.close();
+    sessionHost?.shutdown();
+  }
+
+  /** Everything a session owns except its role, status and problem. */
+  private resetSessionState(): void {
+    this.editor.reset(INTERVIEWER_START_VERSION);
+    this.inviteUrlState.set(null);
+    this.hostUrlState.set(null);
+    this.sharedDocState.set(null);
+    this.rosterState.set([]);
+    this.hostKeys = null;
+    this.publicKey = null;
+    this.sessionId = null;
+    this.linkValue = null;
+    this.syncedText = null;
+    this.syncedRev = 0;
+    this.failingSince = null;
   }
 
   /** Puts the service back in its starting state, as after construction. */
   private resetToStart(): void {
+    this.closeTransports();
+    this.resetSessionState();
     this.roleState.set('none');
-    this.statusState.set('idle');
-    this.inviteUrlState.set(null);
-    this.sharedDocState.set(null);
-    this.peerNameState.set(null);
-    this.authority = null;
-    this.log = [];
-    this.logBase = INTERVIEWER_START_VERSION;
-    this.isPushScheduled = false;
-    this.isPushInFlight = false;
-    this.transport = null;
+    this.problemState.set(null);
+    this.setStatus('idle');
   }
 
-  private sendName(): void {
-    this.transport?.send({ type: 'name', name: this.myNameState() } satisfies SessionMessage);
-  }
-
-  // ---- editor wiring ----
-
-  private registerView(view: EditorView): void {
-    this.view = view;
-    // A dispatch is not allowed while the view is still being built; replay the gap right after.
-    queueMicrotask(() => this.syncView());
-  }
-
-  private unregisterView(view: EditorView): void {
-    if (this.view === view) {
-      this.view = null;
+  /** An interviewer's session is over: forget its saved doc, reset, and drop `?host=` so a reload no longer resumes it. */
+  private finishInterviewerSession(sessionId: string | null): void {
+    if (sessionId !== null) {
+      clearSession('interviewer', sessionId);
     }
+    this.resetToStart();
+    this.router
+      .navigate([], { queryParams: { [HOST_PARAM]: null }, queryParamsHandling: 'merge', replaceUrl: true })
+      .catch((err: unknown) => console.error('Interview end: could not drop the host link from the address', err));
   }
 
-  /** Brings the registered view up to the log. Idempotent: it applies only what the view has not yet seen. */
-  private syncView(): void {
-    const view = this.view;
-    if (view === null) {
+  private setStatus(status: SessionStatus): void {
+    this.statusState.set(status);
+    this.editor.applyReadOnly();
+  }
+
+  private isSynced(): boolean {
+    const status = this.statusState();
+    return status === 'open' || status === 'waiting';
+  }
+
+  /** An interviewer who is synced shows Connected while a candidate is in the roster, Waiting otherwise. */
+  private refreshInterviewerStatus(): void {
+    if (this.roleState() !== 'interviewer' || !this.isSynced()) {
       return;
     }
-    const behind = this.log.slice(getSyncedVersion(view.state) - this.logBase);
-    if (behind.length === 0) {
-      return;
+    this.setStatus(this.rosterState().some((participant) => participant.role === 'candidate') ? 'open' : 'waiting');
+  }
+
+  private setRoster(participants: readonly Participant[]): void {
+    this.rosterState.set(participants);
+    this.refreshInterviewerStatus();
+  }
+
+  private fail(context: string, error?: unknown): void {
+    if (error === undefined) {
+      console.error(context);
+    } else {
+      console.error(context, error);
     }
+    this.setStatus('error');
+  }
+
+  // ---- the interviewer loop ----
+
+  /**
+   * Dials the session id; failing that, tries to host it; on `unavailable-id` waits and starts over.
+   * Ends when this tab hosts or is connected, when superseded, or once `RECLAIM_TIMEOUT_MS` of failures
+   * (counted across handshake failures too) has run out.
+   */
+  private async runInterviewerLoop(generation: number, takeover: RevisedDoc | null): Promise<void> {
+    this.failingSince ??= Date.now();
     try {
-      view.dispatch(receiveUpdates(view.state, behind));
+      for (;;) {
+        if (this.hasReclaimExpired()) {
+          this.fail('Interview: could not reach or host the session before the time limit');
+          return;
+        }
+        const outcome = await this.attemptDialOrHost(generation, takeover);
+        if (outcome !== 'retry') {
+          return;
+        }
+        await this.waitBeforeRetry();
+        if (generation !== this.generation) {
+          return;
+        }
+      }
     } catch (error) {
-      console.error('Could not apply session updates to the editor', error);
+      if (generation === this.generation) {
+        this.fail('Could not open a peer', error);
+      }
     }
   }
 
-  private schedulePush(): void {
-    if (this.isPushScheduled) {
-      return;
+  private hasReclaimExpired(): boolean {
+    return this.failingSince !== null && Date.now() - this.failingSince >= RECLAIM_TIMEOUT_MS;
+  }
+
+  private async attemptDialOrHost(generation: number, takeover: RevisedDoc | null): Promise<AttemptOutcome> {
+    const sessionId = this.sessionId;
+    if (sessionId === null) {
+      return 'superseded';
     }
-    this.isPushScheduled = true;
-    // An editor update listener must not dispatch, so the push runs on the next microtask.
-    queueMicrotask(() => {
-      this.isPushScheduled = false;
-      this.pushLocalUpdates();
+    const transport = await this.tryDial(sessionId);
+    if (generation !== this.generation) {
+      transport?.close();
+      return 'superseded';
+    }
+    if (transport !== null) {
+      this.attachClient(transport);
+      return 'done';
+    }
+    return this.tryHost(generation, sessionId, takeover);
+  }
+
+  private async tryDial(sessionId: string): Promise<Transport | null> {
+    try {
+      return await dialWithTimeout(this.factory, sessionId);
+    } catch (error) {
+      if (errorType(error) !== 'peer-unavailable') {
+        console.error('Interview: could not dial the session', error);
+      }
+      return null;
+    }
+  }
+
+  private async tryHost(generation: number, sessionId: string, takeover: RevisedDoc | null): Promise<AttemptOutcome> {
+    const keys = this.hostKeys;
+    if (keys === null) {
+      return 'superseded';
+    }
+    const saved = loadSession('interviewer', sessionId);
+    const sessionHost = new SessionHost(
+      {
+        sessionId,
+        keys,
+        selfId: this.selfId,
+        savedDoc: saved?.doc ?? null,
+        savedRev: saved?.rev ?? 0,
+        takeoverDoc: takeover?.doc ?? null,
+        takeoverRev: takeover?.rev ?? 0,
+        getName: () => this.myNameState(),
+        getProblem: () => this.problemState(),
+        stubFn: () => this.stubFn(),
+      },
+      this.hostEvents,
+    );
+    let peer: Host;
+    try {
+      peer = await this.factory.host(
+        sessionId,
+        (transport) => sessionHost.accept(transport),
+        (error) => this.handleHostError(sessionHost, error),
+        () => this.handleBrokerDisconnected(sessionHost),
+      );
+    } catch (error) {
+      if (generation !== this.generation) {
+        return 'superseded';
+      }
+      if (isUnavailableId(error)) {
+        return 'retry';
+      }
+      throw error;
+    }
+    if (generation !== this.generation) {
+      peer.destroy();
+      return 'superseded';
+    }
+    this.startHosting(sessionHost, peer);
+    return 'done';
+  }
+
+  private startHosting(sessionHost: SessionHost, peer: Host): void {
+    this.sessionHost = sessionHost;
+    this.failingSince = null;
+    sessionHost.attach(peer);
+    if (this.statusState() === 'connecting' || this.statusState() === 'reconnecting') {
+      this.setStatus('waiting');
+    }
+    this.refreshInterviewerStatus();
+  }
+
+  /** Resolves after `RECONNECT_DELAY_MS`, or at once when `cancelPending` wakes it. */
+  private waitBeforeRetry(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        this.wakeRetryWait = null;
+        resolve();
+      }, RECONNECT_DELAY_MS);
+      this.wakeRetryWait = () => {
+        clearTimeout(timer);
+        resolve();
+      };
     });
   }
 
-  private pushLocalUpdates(): void {
-    const view = this.view;
-    if (view === null || this.isPushInFlight) {
+  // ---- the hosting tab ----
+
+  private handleHostError(sessionHost: SessionHost, error: unknown): void {
+    if (this.sessionHost !== sessionHost) {
       return;
     }
-    const updates = sendableUpdates(view.state);
-    if (updates.length === 0) {
-      return;
+    // Before the generic failure path: a taken id means another tab holds the lock, so this one steps down.
+    const reaction = sessionHost.reactToPeerError(error);
+    if (reaction === 'demote') {
+      this.demote();
+    } else if (reaction === 'fatal') {
+      this.fail('Peer error', error);
     }
-    const version = getSyncedVersion(view.state);
-    if (this.roleState() === 'interviewer') {
-      this.acceptPush(version, updates);
-      return;
-    }
-    if (this.transport === null || this.statusState() !== 'open') {
-      return;
-    }
-    this.isPushInFlight = true;
-    this.transport.send({ type: 'push', version, updates: updates.map(toWire) } satisfies SessionMessage);
   }
 
-  // ---- interviewer ----
+  private handleBrokerDisconnected(sessionHost: SessionHost): void {
+    if (this.sessionHost === sessionHost) {
+      sessionHost.reconnectBroker();
+    }
+  }
 
-  private acceptConnection(transport: Transport, problem: number): void {
-    if (this.transport !== null) {
-      transport.close();
+  /** Another tab holds the session id: close this host's transports (no `end`), drop the authority, rejoin as a client. */
+  private demote(): void {
+    const sessionHost = this.sessionHost;
+    if (sessionHost === null) {
       return;
     }
-    const authority = this.authority;
-    if (authority === null) {
-      transport.close();
+    console.error('Interview host: another tab holds the session id; rejoining as a client');
+    this.cancelPending();
+    this.sessionHost = null;
+    sessionHost.shutdown();
+    this.editor.reset(INTERVIEWER_START_VERSION);
+    this.rosterState.set([]);
+    this.setStatus('reconnecting');
+    void this.runInterviewerLoop(this.generation, this.syncedDoc());
+  }
+
+  /** The authority was adopted or moved on: keep the log, the synced text and the saved copy in step. */
+  private applyAuthority(authority: Authority, change: AuthorityChange, rev: number): void {
+    this.syncedText = authority.doc;
+    this.syncedRev = rev;
+    this.editor.setLog(authority.updates);
+    if (change === 'adopted') {
+      this.adoptSharedDoc(authority);
+    }
+    this.persist();
+    this.editor.syncView();
+  }
+
+  private adoptSharedDoc(authority: Authority): void {
+    const problem = this.problemState();
+    if (problem === null) {
       return;
     }
-    this.transport = transport;
-    this.statusState.set('open');
-    transport.onMessage((data) => this.handleInterviewerMessage(parseSessionMessage(data)));
-    transport.onClose(() => this.handleInterviewerClose(transport));
-    transport.send({
-      type: 'init',
+    const previous = this.sharedDocState();
+    this.editor.dropView();
+    this.editor.reset(INTERVIEWER_START_VERSION);
+    this.sharedDocState.set({
       problem,
-      version: authorityVersion(authority),
+      version: INTERVIEWER_START_VERSION,
       doc: authority.doc.toString(),
-    } satisfies InitMessage);
-    this.sendName();
+      epoch: previous === null ? FIRST_EPOCH : previous.epoch + 1,
+    });
   }
 
-  private handleInterviewerClose(transport: Transport): void {
-    if (this.transport !== transport) {
+  // ---- the client side (candidate or interviewer) ----
+
+  private attachClient(transport: Transport): void {
+    const identity = this.clientIdentity();
+    if (identity === null) {
+      transport.close();
       return;
     }
-    this.transport = null;
-    // The host stays alive, so a reconnecting candidate flips the status back to open.
-    this.statusState.set('closed');
+    this.connection = new ClientConnection(transport, identity, this.clientHooks);
   }
 
-  private handleInterviewerMessage(message: SessionMessage | null): void {
-    if (message === null) {
-      return;
+  private clientIdentity(): ClientIdentity | null {
+    const { sessionId, publicKey } = this;
+    const role = this.roleState();
+    if (sessionId === null || publicKey === null || role === 'none') {
+      return null;
     }
-    if (message.type === 'name') {
-      this.peerNameState.set(message.name);
-      return;
-    }
-    if (message.type !== 'push') {
-      console.error('Unexpected message from the candidate', message.type);
-      return;
-    }
-    const updates = decodeUpdates(message.updates);
-    if (updates !== null) {
-      this.acceptPush(message.version, updates);
-    }
+    return { sessionId, publicKey, privateKey: this.hostKeys?.privateKey ?? null, clientId: this.selfId, role };
   }
 
-  /** Pushes into the authority; what it accepts goes to the candidate and back into the interviewer's own editor. */
-  private acceptPush(version: number, updates: readonly Update[]): void {
-    const authority = this.authority;
-    if (authority === null) {
-      return;
-    }
-    let result;
-    try {
-      result = receivePush(authority, version, updates);
-    } catch (error) {
-      console.error('Dropped a push that does not fit the document', error);
-      return;
-    }
-    if (result.accepted.length === 0) {
-      return;
-    }
-    this.authority = result.authority;
-    this.log = result.authority.updates;
-    this.transport?.send({ type: 'updates', updates: result.accepted.map(toWire) } satisfies SessionMessage);
-    this.syncView();
+  /** The synced text with its revision, or null before the first init or adoption. */
+  private syncedDoc(): RevisedDoc | null {
+    return this.syncedText === null ? null : { doc: this.syncedText.toString(), rev: this.syncedRev };
   }
 
-  // ---- candidate ----
-
-  private handleCandidateMessage(message: SessionMessage | null): void {
-    if (message === null) {
-      return;
+  /**
+   * What the hello carries: the live editor's text, else the synced doc, else the saved doc for this role, else
+   * nothing. The revision is the synced one even when the live text has unsynced local edits.
+   */
+  private helloDoc(): RevisedDoc | null {
+    const liveText = this.editor.liveText();
+    if (liveText !== null) {
+      return { doc: liveText, rev: this.syncedRev };
     }
-    switch (message.type) {
-      case 'init':
-        this.receiveInit(message);
-        return;
-      case 'updates':
-        this.receiveUpdateBatch(message.updates);
-        return;
-      case 'name':
-        this.peerNameState.set(message.name);
-        return;
-      case 'end':
-        this.endFromPeer();
-        return;
-      default:
-        console.error('Unexpected message from the interviewer', message.type);
+    const synced = this.syncedDoc();
+    if (synced !== null) {
+      return synced;
     }
+    const sessionId = this.sessionId;
+    const saved = sessionId === null ? null : loadSession(this.storedRole(), sessionId);
+    return saved === null ? null : { doc: saved.doc, rev: saved.rev };
   }
 
-  private receiveInit(init: InitMessage): void {
-    if (this.sharedDocState() !== null) {
-      console.error('Dropped a second init');
-      return;
-    }
-    this.logBase = init.version;
-    this.log = [];
-    this.sharedDocState.set({ problem: init.problem, version: init.version, doc: init.doc });
-    this.statusState.set('open');
-    this.sendName();
-    if (init.problem !== this.pageProblem) {
-      Promise.resolve(this.router.navigate(['/practice', init.problem], { queryParamsHandling: 'preserve' })).catch(
-        (error) => console.error('Could not navigate to the session problem', error),
-      );
-    }
+  private storedRole(): SessionRole {
+    return this.roleState() === 'candidate' ? 'candidate' : 'interviewer';
   }
 
-  private receiveUpdateBatch(wire: readonly WireUpdate[]): void {
+  /** Saves the synced text under this tab's role so a reloaded tab can send it in its hello. */
+  private persist(): void {
+    const { syncedText, sessionId } = this;
+    const problem = this.problemState();
+    if (syncedText === null || sessionId === null || problem === null) {
+      return;
+    }
+    saveSession(this.storedRole(), sessionId, problem, syncedText.toString(), this.syncedRev);
+  }
+
+  private handleInit(init: InitMessage): void {
+    const previous = this.sharedDocState();
+    const epoch = previous === null ? FIRST_EPOCH : previous.epoch + 1;
+    this.editor.dropView();
+    this.editor.reset(init.version);
+    this.syncedText = textOf(init.doc);
+    this.syncedRev = init.rev;
+    this.sharedDocState.set({ problem: init.problem, version: init.version, doc: init.doc, epoch });
+    this.problemState.set(init.problem);
+    this.setStatus(this.roleState() === 'candidate' ? 'open' : 'waiting');
+    this.refreshInterviewerStatus();
+    this.persist();
+    this.navigateToSessionProblem(init.problem);
+  }
+
+  private navigateToSessionProblem(problem: number): void {
+    if (problem === this.pageProblem) {
+      return;
+    }
+    Promise.resolve(this.router.navigate(['/practice', problem], { queryParamsHandling: 'preserve' })).catch((error) =>
+      console.error('Could not navigate to the session problem', error),
+    );
+  }
+
+  private handleUpdates(wire: readonly WireUpdate[]): void {
     const updates = decodeUpdates(wire);
-    if (updates === null) {
+    const base = this.syncedText;
+    if (updates === null || base === null) {
       return;
     }
-    this.log = [...this.log, ...updates];
-    this.isPushInFlight = false;
-    this.syncView();
-    this.schedulePush();
+    try {
+      this.syncedText = applyUpdates(base, updates);
+    } catch (error) {
+      console.error('Dropped session updates that do not fit the document', error);
+      return;
+    }
+    this.syncedRev += updates.length;
+    this.editor.appendAccepted(updates);
+    this.persist();
+    this.editor.syncView();
+    this.editor.schedulePush();
   }
 
-  private endFromPeer(): void {
-    const transport = this.transport;
-    this.transport = null;
-    this.statusState.set('closed');
-    transport?.close();
+  /** The host ended the session: the candidate lands on Ended, an interviewer client resets like the one who ended it. */
+  private handleEndFromHost(): void {
+    const role = this.roleState();
+    const { connection, sessionId } = this;
+    this.cancelPending();
+    this.connection = null;
+    connection?.close();
+    if (role === 'interviewer') {
+      this.finishInterviewerSession(sessionId);
+      return;
+    }
+    if (sessionId !== null) {
+      clearSession('candidate', sessionId);
+    }
+    this.setStatus('closed');
   }
 
-  private handleCandidateClose(transport: Transport): void {
-    if (this.transport === transport) {
-      this.transport = null;
-      this.statusState.set('closed');
+  private handleClientClosed(connection: ClientConnection): void {
+    if (this.connection !== connection) {
+      return;
+    }
+    this.connection = null;
+    this.editor.clearPending();
+    this.rosterState.set([]);
+    this.setStatus('reconnecting');
+    this.scheduleReconnect();
+  }
+
+  /** At most one reconnect runs: a pending timer blocks another, and the old connection's late close is ignored. */
+  private scheduleReconnect(): void {
+    if (this.redialTimer !== null) {
+      return;
+    }
+    const generation = this.generation;
+    this.redialTimer = setTimeout(() => {
+      this.redialTimer = null;
+      void this.reconnect(generation);
+    }, RECONNECT_DELAY_MS);
+  }
+
+  private async reconnect(generation: number): Promise<void> {
+    if (generation !== this.generation) {
+      return;
+    }
+    if (this.roleState() === 'interviewer') {
+      await this.runInterviewerLoop(generation, this.syncedDoc());
+      return;
+    }
+    await this.redialCandidate(generation);
+  }
+
+  private async redialCandidate(generation: number): Promise<void> {
+    const sessionId = this.sessionId;
+    if (sessionId === null) {
+      return;
+    }
+    try {
+      const transport = await dialWithTimeout(this.factory, sessionId);
+      if (generation !== this.generation) {
+        transport.close();
+        return;
+      }
+      this.editor.reset(INTERVIEWER_START_VERSION);
+      this.attachClient(transport);
+    } catch (error) {
+      console.error('Reconnect attempt failed', error);
+      if (generation === this.generation) {
+        this.scheduleReconnect();
+      }
     }
   }
 
-  private fail(context: string, error: unknown): void {
-    console.error(context, error);
-    this.statusState.set('error');
+  // ---- pushing local edits ----
+
+  /** Hands the view's pending updates to the host: applied at once on the hosting tab, sent and awaited on a client. */
+  private sendPush(version: number, updates: readonly Update[]): boolean {
+    if (this.sessionHost !== null) {
+      this.sessionHost.pushLocal(version, updates);
+      return false;
+    }
+    if (this.connection === null || !this.isSynced()) {
+      return false;
+    }
+    this.connection.sendPush(version, updates.map(toWire));
+    return true;
   }
 }

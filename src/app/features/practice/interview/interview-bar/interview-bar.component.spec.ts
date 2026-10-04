@@ -1,17 +1,27 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 
 import { InterviewSessionService } from '../interview-session.service';
+import { Participant } from '../session-message';
 import { InterviewBarComponent } from './interview-bar.component';
 
 const INVITE_URL = 'https://example.com/practice/1?repo=me/notes&join=abc';
+const HOST_URL = 'https://example.com/practice/1?repo=me/notes&host=secret';
 const NAME_INPUT = 'input[aria-label="Your name"]';
 const SHARE_BUTTON = '[aria-label="Share invite link"]';
 const EDIT_BUTTON = '[aria-label="Edit name"]';
 const NAME_LABEL = '.interview-bar__name-label';
+const EMAIL_TOGGLE = '[aria-label="Email links"]';
+const CANDIDATE_EMAIL_INPUT = 'input[aria-label="Candidate email"]';
+const CANDIDATE_EMAIL_LINK = '[aria-label="Email candidate link"]';
+const BACK_LINK = 'a.interview-bar__btn';
+const SLOT = '.interview-bar__slot';
+const SLOT_CHIP = '.interview-bar__chip';
+const SELF_ID = 'me';
 
-function setup(storedName: string, hasShare: boolean) {
+function setup(storedName: string, hasShare: boolean, isInSession = true, roster: readonly Participant[] = []) {
   TestBed.resetTestingModule();
   const myName = signal(storedName);
   const setMyName = vi.fn((name: string) => myName.set(name.trim()));
@@ -19,20 +29,49 @@ function setup(storedName: string, hasShare: boolean) {
     role: signal('interviewer'),
     status: signal('open'),
     inviteUrl: signal<string | null>(INVITE_URL),
-    peerName: signal(''),
+    hostUrl: signal<string | null>(HOST_URL),
+    problem: signal<number | null>(1),
+    roster: signal<readonly Participant[]>(roster),
+    selfId: SELF_ID,
     myName,
     setMyName,
-    end: () => undefined,
+    end: vi.fn(),
   };
   Object.defineProperty(navigator, 'share', { value: hasShare ? () => Promise.resolve() : undefined, configurable: true });
-  TestBed.configureTestingModule({ providers: [{ provide: InterviewSessionService, useValue: stub }] });
+  TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: InterviewSessionService, useValue: stub }] });
   const fixture = TestBed.createComponent(InterviewBarComponent);
+  fixture.componentRef.setInput('isInSession', isInSession);
   fixture.detectChanges();
-  return { fixture, setMyName };
+  return { fixture, setMyName, end: stub.end };
 }
 
 const query = (fixture: ComponentFixture<InterviewBarComponent>, selector: string): HTMLElement | null =>
   (fixture.nativeElement as HTMLElement).querySelector(selector);
+
+const ROSTER_CASES: readonly {
+  name: string;
+  roster: readonly Participant[];
+  chips: readonly string[];
+  inputSlot: number;
+}[] = [
+  {
+    name: '1 interviewer and no candidate',
+    roster: [{ id: SELF_ID, role: 'interviewer', name: 'Alex' }],
+    chips: ['Interviewer', 'Candidate'],
+    inputSlot: 0,
+  },
+  {
+    name: '3 interviewers and a candidate',
+    roster: [
+      { id: 'a', role: 'interviewer', name: 'Ann' },
+      { id: SELF_ID, role: 'interviewer', name: 'Alex' },
+      { id: 'b', role: 'interviewer', name: 'Bo' },
+      { id: 'c', role: 'candidate', name: 'Cy' },
+    ],
+    chips: ['Interviewer', 'Interviewer', 'Interviewer', 'Candidate'],
+    inputSlot: 1,
+  },
+];
 
 describe('InterviewBarComponent', () => {
   afterEach(() => Reflect.deleteProperty(navigator, 'share'));
@@ -71,5 +110,46 @@ describe('InterviewBarComponent', () => {
     fixture.detectChanges();
     expect(setMyName).not.toHaveBeenCalled();
     expect(query(fixture, NAME_INPUT)).not.toBeNull();
+  });
+
+  it.each(ROSTER_CASES)('the roster renders N interviewer slots plus the candidate slot: $name', ({ roster, chips, inputSlot }) => {
+    const { fixture } = setup('', false, true, roster);
+    const slots = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll(SLOT));
+
+    expect(slots.map((slot) => slot.querySelector(SLOT_CHIP)?.textContent?.trim())).toEqual(chips);
+    expect(slots.map((slot) => slot.querySelector(NAME_INPUT) !== null)).toEqual(slots.map((_, index) => index === inputSlot));
+  });
+
+  it('gives an invalid email address no href and aria-disabled, and a valid or blank one a mailto', () => {
+    const { fixture } = setup('Alex', false);
+    query(fixture, EMAIL_TOGGLE)!.click();
+    fixture.detectChanges();
+    const input = query(fixture, CANDIDATE_EMAIL_INPUT) as HTMLInputElement;
+    const link = () => query(fixture, CANDIDATE_EMAIL_LINK)!;
+    const type = (value: string) => {
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    };
+
+    type('not-an-email');
+    expect(link().getAttribute('href')).toBeNull();
+    expect(link().getAttribute('aria-disabled')).toBe('true');
+
+    type('sam@example.com');
+    expect(link().getAttribute('href')).toMatch(/^mailto:sam%40example\.com\?/);
+
+    type('');
+    expect(link().getAttribute('href')).toMatch(/^mailto:\?/);
+  });
+
+  it('off the session problem shows only Back to interview, linking the host link', () => {
+    const { fixture } = setup('Alex', false, false);
+
+    const back = query(fixture, BACK_LINK)!;
+    expect(back.textContent?.trim()).toBe('Back to interview');
+    expect(back.getAttribute('href')).toBe('/practice/1?repo=me%2Fnotes&host=secret');
+    expect(query(fixture, EMAIL_TOGGLE)).toBeNull();
+    expect(query(fixture, NAME_INPUT)).toBeNull();
   });
 });

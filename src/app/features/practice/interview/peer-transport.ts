@@ -8,15 +8,29 @@ export interface Transport {
   close(): void;
 }
 
-/** An open Peer waiting for a candidate. */
+/** An open Peer waiting for connections. */
 export interface Host {
   readonly id: string;
   destroy(): void;
+  /** Re-registers the id with the broker after it was lost. A no-op unless the Peer is disconnected. */
+  reconnect(): void;
+  /** True while the Peer has lost its broker registration. */
+  isDisconnected(): boolean;
 }
 
 export interface PeerFactory {
-  /** Opens a Peer and hands over each incoming connection once it is open. */
-  host(onConnection: (transport: Transport) => void, onError: (error: unknown) => void): Promise<Host>;
+  /**
+   * Opens a Peer registered under `id` and hands over each incoming connection once it is open.
+   * An id that is already taken rejects with an error whose `type` is `'unavailable-id'`; the same
+   * error reaches `onError` when a `reconnect()` finds the id taken. `onDisconnected` fires when the
+   * Peer loses its broker registration (open connections stay up).
+   */
+  host(
+    id: string,
+    onConnection: (transport: Transport) => void,
+    onError: (error: unknown) => void,
+    onDisconnected: () => void,
+  ): Promise<Host>;
   /** Opens a Peer and dials `peerId`; closing the transport also destroys that Peer. */
   connect(peerId: string): Promise<Transport>;
 }
@@ -30,18 +44,23 @@ interface PeerConnection {
   on(event: 'error', handler: (error: unknown) => void): void;
 }
 interface PeerLike {
+  readonly disconnected: boolean;
+  readonly destroyed: boolean;
   connect(id: string, options: { serialization: 'json' }): PeerConnection;
   destroy(): void;
+  reconnect(): void;
   on(event: 'open', handler: (id: string) => void): void;
+  on(event: 'disconnected', handler: () => void): void;
   on(event: 'connection', handler: (connection: PeerConnection) => void): void;
   on(event: 'error', handler: (error: unknown) => void): void;
 }
 
 const SERIALIZATION = 'json' as const;
 
-async function openPeer(): Promise<{ peer: PeerLike; id: string }> {
+/** Opens a Peer under `requestedId`, or under a random id the broker picks when none is given. */
+async function openPeer(requestedId?: string): Promise<{ peer: PeerLike; id: string }> {
   const { Peer } = await import('peerjs');
-  const peer = new Peer() as unknown as PeerLike;
+  const peer = (requestedId === undefined ? new Peer() : new Peer(requestedId)) as unknown as PeerLike;
   try {
     const id = await new Promise<string>((resolve, reject) => {
       peer.on('open', resolve);
@@ -74,13 +93,24 @@ function wrap(connection: PeerConnection, onClosed: () => void): Transport {
 }
 
 const peerjsFactory: PeerFactory = {
-  async host(onConnection, onError) {
-    const { peer, id } = await openPeer();
+  async host(requestedId, onConnection, onError, onDisconnected) {
+    const { peer, id } = await openPeer(requestedId);
     peer.on('error', onError);
+    peer.on('disconnected', onDisconnected);
     peer.on('connection', (connection) => {
       connection.on('open', () => onConnection(wrap(connection, () => undefined)));
     });
-    return { id, destroy: () => peer.destroy() };
+    return {
+      id,
+      destroy: () => peer.destroy(),
+      // PeerJS throws when the Peer is not disconnected or is already destroyed.
+      reconnect: () => {
+        if (peer.disconnected && !peer.destroyed) {
+          peer.reconnect();
+        }
+      },
+      isDisconnected: () => peer.disconnected,
+    };
   },
 
   async connect(peerId) {

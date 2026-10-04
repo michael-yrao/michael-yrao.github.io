@@ -67,27 +67,30 @@
           <div id="practice-code-body" class="practice__code-body" [hidden]="!isCodeOpen()">
             @if (!isInSession()) {
               <app-code-editor #editor [initialText]="initialText()" (textChange)="onTextChange($event)" />
-            } @else if (session.sharedDoc(); as shared) {
-              <app-code-editor
-                #editor
-                [initialText]="shared.doc"
-                [extensions]="sessionExtensions()"
-                (textChange)="onTextChange($event)"
-              />
+            } @else {
+              @for (shared of sessionDocs(); track shared.epoch) {
+                <app-code-editor
+                  #editor
+                  [initialText]="shared.doc"
+                  [extensions]="sessionExtensions()"
+                  (textChange)="onTextChange($event)"
+                />
+              }
             }
           </div>
 
           <div class="practice__toolbar">
-            <button type="button" class="practice__btn practice__btn--icon practice__btn--primary" aria-label="Run" title="Run (Ctrl+Enter)" [disabled]="isBusy()" (click)="run()">
+            <button type="button" class="practice__btn practice__btn--icon practice__btn--primary" aria-label="Run" title="Run (Ctrl+')" [disabled]="isBusy()" (click)="runSample()">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
                 <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
               </svg>
             </button>
+            <button type="button" class="practice__btn" title="Run all cases (Ctrl+Enter)" [disabled]="isBusy()" (click)="run()">Run all</button>
             @if (isLoadingPython()) {
               <span class="practice__status">Loading Python</span>
             }
             <span class="practice__spacer"></span>
-            <button type="button" class="practice__btn practice__btn--icon" aria-label="Reset" title="Reset" (click)="reset()">
+            <button type="button" class="practice__btn practice__btn--icon" aria-label="Reset" title="Reset" [disabled]="isInSession() && !session.isEditable()" (click)="reset()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                 <path d="M3 12a9 9 0 1 0 3-6.7" />
                 <path d="M3 4v5h5" />

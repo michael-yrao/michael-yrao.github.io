@@ -1,4 +1,5 @@
 import { Component, input, output, signal } from '@angular/core';
+import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
@@ -11,6 +12,8 @@ import { GOLD_STANDARD_REPO, LoadStatus } from '../../../core/services/github-fi
 import { PracticeService } from '../../../core/services/practice.service';
 import { ShowcaseService } from '../../../core/services/showcase.service';
 import { CodeEditorComponent } from '../code-editor/code-editor.component';
+import { InterviewSessionService } from '../interview/interview-session.service';
+import { SAMPLE_CASE_COUNT } from '../practice-shortcuts';
 import { PracticePageComponent } from './practice-page.component';
 
 const STUB = 'class Solution:\n    pass\n';
@@ -83,6 +86,7 @@ function setUp(
   status: LoadStatus = 'ready',
   error: string | null = null,
   isRealEditor = false,
+  sessionStub?: object,
 ) {
   const params = convertToParamMap({ number });
   const query = convertToParamMap({});
@@ -93,6 +97,7 @@ function setUp(
       { provide: PracticeService, useValue: makePracticeStub(problems, status, error) },
       { provide: ShowcaseService, useValue: { data: signal(null), load: vi.fn(), entryFor: () => null } },
       { provide: PythonRunnerService, useValue: { run: runSpy } },
+      ...(sessionStub ? [{ provide: InterviewSessionService, useValue: sessionStub }] : []),
       {
         provide: ActivatedRoute,
         useValue: {
@@ -154,7 +159,46 @@ describe('PracticePageComponent', () => {
     expect(tabs[0].getAttribute('aria-selected')).toBe('true');
     expect(labelsOfPanel()).toEqual(['Input', 'Expected', 'Got', 'stdout']);
     expect(root.querySelector('[role="tabpanel"] pre:last-of-type')?.textContent).toBe('hello');
-    expect(root.querySelector('.practice__summary')?.textContent?.trim()).toBe('1 / 3');
+    expect(root.querySelector('.practice__summary')?.textContent?.trim()).toBe(`1 / ${SAMPLE_CASE_COUNT}`);
+  });
+
+  const RUN_BUTTONS: readonly { readonly name: string; readonly isPrimary: boolean; readonly caseCount: number }[] = [
+    { name: 'the play button', isPrimary: true, caseCount: SAMPLE_CASE_COUNT },
+    { name: 'Run all', isPrimary: false, caseCount: PROBLEM.cases.length },
+  ];
+
+  it.each(RUN_BUTTONS)('$name runs $caseCount cases', ({ isPrimary, caseCount }) => {
+    const root: HTMLElement = setUp('90', [PROBLEM]).nativeElement;
+    const button = Array.from(root.querySelectorAll('button')).find((b) =>
+      isPrimary ? b.getAttribute('aria-label') === 'Run' : b.textContent?.trim() === 'Run all',
+    )!;
+
+    button.click();
+
+    expect(runSpy).toHaveBeenCalledTimes(1);
+    expect(runSpy.mock.calls[0][1].cases.length).toBe(caseCount);
+  });
+
+  it('on a problem other than the session problem is a normal practice page showing the draft', () => {
+    const OTHER_PROBLEM = 5;
+    localStorage.setItem(DRAFT_KEY, 'my draft');
+    const sessionStub = {
+      role: signal('interviewer'),
+      status: signal('open'),
+      problem: signal<number | null>(OTHER_PROBLEM),
+      isEditable: signal(true),
+      sharedDoc: signal({ problem: OTHER_PROBLEM, version: 0, doc: 'session code', epoch: 0 }),
+      inviteUrl: signal<string | null>('https://example.com/practice/5?join=abc'),
+      hostUrl: signal<string | null>('https://example.com/practice/5?host=secret'),
+      myName: signal('Alex'),
+      collabExtensions: () => [],
+      end: () => undefined,
+    };
+    const fixture = setUp('90', [PROBLEM], 'ready', null, false, sessionStub);
+
+    const editor = fixture.debugElement.query(By.directive(StubEditorComponent));
+    expect(fixture.componentInstance.isInSession()).toBe(false);
+    expect(editor.componentInstance.initialText()).toBe('my draft');
   });
 
   it("Ctrl+' runs only the first two cases and opens their tabs", () => {

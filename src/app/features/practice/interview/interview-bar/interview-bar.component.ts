@@ -1,19 +1,44 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, inject, input, output, signal } from '@angular/core';
 
-import { inviteEmailHref, inviteTitle } from '../invite-share';
-import { InterviewRole, InterviewSessionService, SessionStatus } from '../interview-session.service';
+import { Router, RouterLink, UrlTree } from '@angular/router';
+
+import { hostEmailHref, inviteEmailHref, inviteTitle } from '../invite-share';
+import { InterviewSessionService, SessionStatus } from '../interview-session.service';
 import { NAME_MAX_LENGTH } from '../session-message';
 
 const COPY_FEEDBACK_MS = 1500;
 
 const NAME_INPUT_SELECTOR = '.interview-bar__name';
+const EMAIL_STORAGE_KEY = 'po-interview-email';
 
 type CopyMark = 'ok' | 'fail';
 
 interface ParticipantSlot {
-  readonly role: Exclude<InterviewRole, 'none'>;
-  readonly label: string;
+  /** The participant's id, or a fixed key for a slot nobody holds yet. */
+  readonly key: string;
+  readonly label: 'Interviewer' | 'Candidate';
   readonly isMine: boolean;
+  readonly name: string;
+}
+
+const EMPTY_INTERVIEWER_KEY = 'interviewer';
+const EMPTY_CANDIDATE_KEY = 'candidate';
+
+function loadEmail(): string {
+  try {
+    return localStorage.getItem(EMAIL_STORAGE_KEY)?.trim() ?? '';
+  } catch (err) {
+    console.error(`Interview email: could not read ${EMAIL_STORAGE_KEY}`, err);
+    return '';
+  }
+}
+
+function saveEmail(email: string): void {
+  try {
+    localStorage.setItem(EMAIL_STORAGE_KEY, email);
+  } catch (err) {
+    console.error(`Interview email: could not save ${EMAIL_STORAGE_KEY}`, err);
+  }
 }
 
 type StatusTone = 'waiting' | 'open' | 'closed' | 'error';
@@ -28,17 +53,19 @@ const STATUS_VIEWS: Readonly<Partial<Record<SessionStatus, StatusView>>> = {
   connecting: { label: 'Waiting', tone: 'waiting' },
   waiting: { label: 'Waiting', tone: 'waiting' },
   open: { label: 'Connected', tone: 'open' },
+  reconnecting: { label: 'Reconnecting', tone: 'waiting' },
   closed: { label: 'Ended', tone: 'closed' },
   error: { label: 'Connection failed', tone: 'error' },
 };
 
-/** The header's interview controls: the Interview button, then in a session the two participant
+/** The header's interview controls: the Interview button, then in a session the participant
  *  slots (role chip and name), the invite link (interviewer), the connection status and End (interviewer). */
 @Component({
   selector: 'app-interview-bar',
   templateUrl: './interview-bar.component.html',
   styleUrls: ['./interview-bar.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterLink],
 })
 export class InterviewBarComponent {
   protected readonly session = inject(InterviewSessionService);
@@ -46,31 +73,73 @@ export class InterviewBarComponent {
   readonly startRequested = output<void>();
   /** The problem's number and title, for the share title and the email subject. */
   readonly problemLabel = input('');
+  /** False when the session is pinned to another problem: only a way back is shown. */
+  readonly isInSession = input(false);
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
+  private readonly router = inject(Router);
 
   protected readonly statusView = computed(() => STATUS_VIEWS[this.session.status()] ?? null);
 
   protected readonly nameMaxLength = NAME_MAX_LENGTH;
   /** The Share button needs the browser's share sheet; absent on e.g. Firefox desktop. */
   protected readonly canShare = typeof navigator.share === 'function';
-  protected readonly emailHref = computed(() => {
+  protected readonly isEmailPanelOpen = signal(false);
+  protected readonly candidateEmail = signal('');
+  protected readonly isCandidateEmailValid = signal(true);
+  protected readonly hostEmail = signal(loadEmail());
+  protected readonly isHostEmailValid = signal(true);
+  /** Null (no href) while the typed address is invalid. */
+  protected readonly candidateEmailHref = computed(() => {
     const url = this.session.inviteUrl();
-    return url ? inviteEmailHref(url, this.problemLabel()) : null;
+    if (!url || !this.isCandidateEmailValid()) return null;
+    return inviteEmailHref(url, this.problemLabel(), this.candidateEmail());
+  });
+  protected readonly hostEmailLink = computed(() => {
+    const hostUrl = this.session.hostUrl();
+    const inviteUrl = this.session.inviteUrl();
+    if (!hostUrl || !inviteUrl || !this.isHostEmailValid()) return null;
+    return hostEmailHref(hostUrl, inviteUrl, this.problemLabel(), this.hostEmail());
+  });
+  /** The interviewer's way back to the pinned problem: the host link, as a router target. */
+  protected readonly hostBackTarget = computed<UrlTree | null>(() => {
+    const hostUrl = this.session.hostUrl();
+    if (!hostUrl) return null;
+    const { pathname, search } = new URL(hostUrl);
+    return this.router.parseUrl(pathname + search);
   });
   /** A stored name shows as a label; no name yet starts in the editing field. */
   protected readonly isEditingName = signal(!this.session.myName());
   protected readonly copyMark = signal<CopyMark | null>(null);
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
 
-  /** Interviewer first, then candidate; the slot of this side's own role holds the name input. */
+  /**
+   * One slot per interviewer in the roster, then the candidate. The slot whose participant is this tab
+   * holds the name input. Before the roster arrives it is this tab's own slot plus the other role's.
+   */
   protected readonly slots = computed<readonly ParticipantSlot[]>(() => {
+    const roster = this.session.roster();
+    const selfId = this.session.selfId;
     const role = this.session.role();
-    return [
-      { role: 'interviewer', label: 'Interviewer', isMine: role === 'interviewer' },
-      { role: 'candidate', label: 'Candidate', isMine: role === 'candidate' },
-    ];
+    const interviewers = roster.filter((participant) => participant.role === 'interviewer');
+    const candidate = roster.find((participant) => participant.role === 'candidate');
+    const interviewerSlots: readonly ParticipantSlot[] =
+      interviewers.length > 0
+        ? interviewers.map((participant) => ({
+            key: participant.id,
+            label: 'Interviewer',
+            isMine: participant.id === selfId,
+            name: participant.name,
+          }))
+        : [{ key: EMPTY_INTERVIEWER_KEY, label: 'Interviewer', isMine: role === 'interviewer', name: '' }];
+    const candidateSlot: ParticipantSlot = {
+      key: candidate?.id ?? EMPTY_CANDIDATE_KEY,
+      label: 'Candidate',
+      isMine: candidate === undefined ? role === 'candidate' : candidate.id === selfId,
+      name: candidate?.name ?? '',
+    };
+    return [...interviewerSlots, candidateSlot];
   });
 
   constructor() {
@@ -92,6 +161,33 @@ export class InterviewBarComponent {
   protected cancelNameEdit(event: Event): void {
     (event.target as HTMLInputElement).value = this.session.myName();
     if (this.session.myName()) this.isEditingName.set(false);
+  }
+
+  /** Ends the session for everyone; the service resets and drops `?host=` from the address. */
+  protected endSession(): void {
+    this.session.end();
+  }
+
+  protected toggleEmailPanel(): void {
+    this.isEmailPanelOpen.update((isOpen) => !isOpen);
+  }
+
+  protected onCandidateEmailInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.candidateEmail.set(input.value);
+    this.isCandidateEmailValid.set(input.validity.valid);
+  }
+
+  protected onHostEmailInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.hostEmail.set(input.value);
+    this.isHostEmailValid.set(input.validity.valid);
+  }
+
+  /** Remembers the interviewer's address once the field settles on a valid value. */
+  protected saveHostEmail(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.validity.valid) saveEmail(input.value.trim());
   }
 
   protected startNameEdit(): void {

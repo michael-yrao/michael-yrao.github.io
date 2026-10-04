@@ -3,8 +3,17 @@
     <button type="button" class="interview-bar__btn" (click)="startRequested.emit()">Interview</button>
   }
   @default {
+    @if (!isInSession()) {
+      @if (session.role() === 'interviewer') {
+        @if (hostBackTarget(); as target) {
+          <a class="interview-bar__btn" [routerLink]="target">Back to interview</a>
+        }
+      } @else {
+        <a class="interview-bar__btn" [routerLink]="['/practice', session.problem()]" queryParamsHandling="preserve">Back to interview</a>
+      }
+    } @else {
     <div class="interview-bar">
-      @for (slot of slots(); track slot.role) {
+      @for (slot of slots(); track slot.key) {
         <span class="interview-bar__slot">
           <span class="interview-bar__chip">{{ slot.label }}</span>
           @if (slot.isMine) {
@@ -30,7 +39,7 @@
               </button>
             }
           } @else {
-            <span class="interview-bar__peer-name">{{ session.peerName() || '—' }}</span>
+            <span class="interview-bar__peer-name">{{ slot.name || '—' }}</span>
           }
         </span>
       }
@@ -64,12 +73,38 @@
             </svg>
           </button>
         }
-        <a class="interview-bar__btn interview-bar__btn--icon" aria-label="Email invite link" title="Email invite link" [href]="emailHref()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-            <rect x="3" y="5" width="18" height="14" rx="2" />
-            <path d="M3 7l9 6 9-6" />
-          </svg>
-        </a>
+        <span class="interview-bar__email">
+          <button type="button" class="interview-bar__btn interview-bar__btn--icon" aria-label="Email links" title="Email links" [attr.aria-expanded]="isEmailPanelOpen()" (click)="toggleEmailPanel()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="M3 7l9 6 9-6" />
+            </svg>
+          </button>
+          @if (isEmailPanelOpen()) {
+            <div class="interview-bar__email-panel">
+              <div class="interview-bar__email-row">
+                <span class="interview-bar__chip">Candidate</span>
+                <input class="interview-bar__email-input" type="email" placeholder="Email (optional)" aria-label="Candidate email" [value]="candidateEmail()" (input)="onCandidateEmailInput($event)" />
+                <a class="interview-bar__btn interview-bar__btn--icon" aria-label="Email candidate link" title="Email candidate link" [attr.href]="candidateEmailHref()" [attr.aria-disabled]="candidateEmailHref() ? null : 'true'">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                    <path d="M3 7l9 6 9-6" />
+                  </svg>
+                </a>
+              </div>
+              <div class="interview-bar__email-row">
+                <span class="interview-bar__chip">Interviewer</span>
+                <input class="interview-bar__email-input" type="email" placeholder="Email (optional)" aria-label="Interviewer email" [value]="hostEmail()" (input)="onHostEmailInput($event)" (change)="saveHostEmail($event)" />
+                <a class="interview-bar__btn interview-bar__btn--icon" aria-label="Email interviewer link" title="Email interviewer link" [attr.href]="hostEmailLink()" [attr.aria-disabled]="hostEmailLink() ? null : 'true'">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                    <path d="M3 7l9 6 9-6" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          }
+        </span>
       }
       @if (statusView(); as status) {
         <span class="interview-bar__status">
@@ -78,8 +113,9 @@
         </span>
       }
       @if (session.role() === 'interviewer') {
-        <button type="button" class="interview-bar__btn" (click)="session.end()">End</button>
+        <button type="button" class="interview-bar__btn" (click)="endSession()">End</button>
       }
     </div>
+    }
   }
 }

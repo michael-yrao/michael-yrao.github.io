@@ -84,3 +84,34 @@ $name-width: 9rem;
 .interview-bar__dot--open { background: var(--color-found); }
 .interview-bar__dot--closed { background: var(--color-text-muted); }
 .interview-bar__dot--error { background: var(--color-hard); }
+
+.interview-bar__email { position: relative; display: inline-flex; }
+.interview-bar__email-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-raised);
+}
+.interview-bar__email-row { display: flex; align-items: center; gap: var(--space-sm); }
+.interview-bar__email-row .interview-bar__chip { width: 5.5rem; }
+.interview-bar__email-input {
+  width: $invite-width;
+  max-width: 100%;
+  padding: 4px var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  &:invalid { border-color: var(--color-hard); }
+}
+.interview-bar__btn[aria-disabled='true'] { opacity: 0.5; pointer-events: none; }
