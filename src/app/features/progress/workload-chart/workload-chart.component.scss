@@ -123,10 +123,36 @@
   opacity: 0.85;
 }
 
-.wlchart__swatch--light { background: var(--color-easy); }
-.wlchart__swatch--moderate { background: var(--color-medium); }
-.wlchart__swatch--heavy { background: var(--color-hard); }
-.wlchart__swatch--over { background: var(--color-over); }
+// One continuous strip in place of per-band swatches: bars are filled from this same gradient
+// (see workloadColor), with the four band names spread along it.
+.wlchart__scale {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 160px;
+  max-width: 100%;
+}
+
+.wlchart__gradient {
+  display: block;
+  height: 8px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right in oklch,
+    var(--color-easy),
+    var(--color-medium),
+    var(--color-hard),
+    var(--color-over),
+    var(--color-over-deep)
+  );
+}
+
+.wlchart__scale-words {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+}
+
 // Only shown when `ceiling()` is null — a done bar can't be banded without one, so it falls
 // back to this neutral fill (see WorkloadChartComponent.colorFor).
 .wlchart__swatch--unbanded { background: var(--color-accent); }

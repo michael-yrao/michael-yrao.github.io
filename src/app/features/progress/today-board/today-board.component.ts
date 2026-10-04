@@ -30,6 +30,7 @@ import {
   weekdayShort,
 } from '../../../core/utils/local-date';
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
+import { workloadColor } from '../../../core/utils/workload-color';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
 import { PRACTICE_GLYPH } from '../practice-link';
@@ -41,6 +42,8 @@ interface Workload {
   ceiling: number;
   pct: number;
   band: WorkloadBand;
+  /** Gradient colour for `units / ceiling` — both fills use it. */
+  color: string;
   /** The day's DONE units (from the `workload` input's matching `WorkloadDay`) — null when
    *  there's no entry for the day, or its `done` is 0: both render as "no done fill" (round 7,
    *  §Text f/g). */
@@ -437,7 +440,8 @@ export class TodayBoardComponent {
     const doneUnits = this.selectedDayWorkload()?.done ?? 0;
     const done = doneUnits > 0 ? doneUnits : null;
     const donePct = done != null ? Math.min(100, (done / ceiling) * 100) : null;
-    return { units, ceiling, pct, band, done, donePct };
+    const color = workloadColor(units, ceiling, floor);
+    return { units, ceiling, pct, band, color, done, donePct };
   });
 
   // The units-explainer popover (round 4 item 2 — replaces the native `title` tooltip, which

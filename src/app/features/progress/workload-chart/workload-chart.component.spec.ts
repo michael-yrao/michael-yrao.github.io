@@ -57,10 +57,17 @@ describe('WorkloadChartComponent', () => {
     const fixture = createFixture(workload, 8, 3);
 
     const bars = fixture.nativeElement.querySelectorAll('.wlchart__bar');
-    expect(bars[0].querySelector('.wlchart__done')?.getAttribute('fill')).toBe('var(--color-easy)');
-    expect(bars[1].querySelector('.wlchart__done')?.getAttribute('fill')).toBe('var(--color-medium)');
-    expect(bars[2].querySelector('.wlchart__done')?.getAttribute('fill')).toBe('var(--color-hard)');
-    expect(bars[3].querySelector('.wlchart__done')?.getAttribute('fill')).toBe('var(--color-over)');
+    expect(bars[0].querySelector('.wlchart__done')?.getAttribute('style')).toContain('var(--color-easy)');
+    expect(bars[1].querySelector('.wlchart__done')?.getAttribute('style')).toContain(
+      'color-mix(in oklch, var(--color-easy)',
+    );
+    expect(bars[2].querySelector('.wlchart__done')?.getAttribute('style')).toContain(
+      'color-mix(in oklch, var(--color-hard)',
+    );
+    // 9 / 8 = 1.125 sits between the over (1.0) and deep-over (1.5) stops -> a color-mix.
+    expect(bars[3].querySelector('.wlchart__done')?.getAttribute('style')).toContain(
+      'color-mix(in oklch, var(--color-over) 75%, var(--color-over-deep))',
+    );
   });
 
   it('renders no done bar (planned outline only) for a day later than today', () => {

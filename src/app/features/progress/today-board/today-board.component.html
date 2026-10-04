@@ -221,16 +221,14 @@
           <div class="today-board__workload">
             <div class="today-board__workload-bar">
               <span
-                class="today-board__workload-fill"
-                [class]="
-                  'today-board__workload-fill--' + w.band.toLowerCase() + ' today-board__workload-fill--planned'
-                "
+                class="today-board__workload-fill today-board__workload-fill--planned"
+                [style.background]="w.color"
                 [style.width.%]="w.pct"
               ></span>
               @if (w.done) {
                 <span
                   class="today-board__workload-fill"
-                  [class]="'today-board__workload-fill--' + w.band.toLowerCase()"
+                  [style.background]="w.color"
                   [style.width.%]="w.donePct"
                 ></span>
               }
