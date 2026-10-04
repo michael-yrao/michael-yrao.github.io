@@ -36,6 +36,8 @@ describe('isPracticeProblem', () => {
     { name: 'random-list and tree-node codecs', value: makeProblem({ types: { args: ['random-list', 'tree-node'], result: 'tree-node' } }), isValid: true },
     { name: 'tree-value and graph-node codecs', value: makeProblem({ types: { args: ['tree-node', 'tree-value'], result: 'graph-node' } }), isValid: true },
     { name: 'tree-value as a result codec with a null arg', value: makeProblem({ types: { args: [null], result: 'tree-value' } }), isValid: true },
+    { name: 'number-inf as a result codec', value: makeProblem({ types: { args: [null], result: 'number-inf' } }), isValid: true },
+    { name: 'number-inf as an arg codec (result-only)', value: makeProblem({ types: { args: ['number-inf'], result: null } }), isValid: false },
     { name: 'unknown arg codec', value: makeProblem({ types: { args: ['linked-list'], result: null } }), isValid: false },
     { name: 'unknown result codec', value: makeProblem({ types: { args: [], result: 'matrix' } }), isValid: false },
     { name: 'types args not an array', value: makeProblem({ types: { args: 'list-node', result: null } }), isValid: false },

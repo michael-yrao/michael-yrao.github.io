@@ -1,4 +1,4 @@
-import { PracticeCase } from '../../core/models/practice.model';
+import { Codec, PracticeCase } from '../../core/models/practice.model';
 import { CaseResult, CaseVerdict } from '../../core/runner/runner.model';
 
 export const PASS_MARK = '✓';
@@ -31,6 +31,15 @@ function toJson(value: unknown): string {
   return JSON.stringify(value) ?? String(value);
 }
 
+const INFINITY_SPELLINGS: Readonly<Record<string, string>> = { Infinity: 'inf', '-Infinity': '-inf' };
+
+/** Compact JSON, except the 'number-inf' strings read as Python's `inf` / `-inf`, unquoted. */
+function toInfJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(toInfJson).join(',')}]`;
+  if (typeof value === 'string' && value in INFINITY_SPELLINGS) return INFINITY_SPELLINGS[value];
+  return toJson(value);
+}
+
 /** An argument list as it reads in a call: `1, [2, 3]`. */
 function callArgs(args: readonly unknown[]): string {
   return args.map(toJson).join(', ');
@@ -43,10 +52,10 @@ function inputText(testCase: PracticeCase): string {
   return ops.map((name, index) => `${name}(${callArgs((args[index] as readonly unknown[]) ?? [])})`).join('\n');
 }
 
-function gotText(result: CaseResult): string | null {
+function gotText(result: CaseResult, format: (value: unknown) => string): string | null {
   const outcome = result.outcome;
   if (outcome?.status !== 'ok') return null;
-  return outcome.hasJson ? toJson(outcome.gotJson) : outcome.gotRepr;
+  return outcome.hasJson ? format(outcome.gotJson) : outcome.gotRepr;
 }
 
 function errorText(result: CaseResult): string | null {
@@ -55,8 +64,13 @@ function errorText(result: CaseResult): string | null {
   return outcome.message;
 }
 
-export function toResultRow(result: CaseResult, cases: readonly PracticeCase[]): ResultRow {
+export function toResultRow(
+  result: CaseResult,
+  cases: readonly PracticeCase[],
+  resultCodec: Codec | null = null,
+): ResultRow {
   const testCase = cases[result.index];
+  const format = resultCodec === 'number-inf' ? toInfJson : toJson;
   const isPass = result.verdict === 'pass';
   return {
     index: result.index,
@@ -64,8 +78,8 @@ export function toResultRow(result: CaseResult, cases: readonly PracticeCase[]):
     mark: isPass ? PASS_MARK : FAIL_MARK,
     word: VERDICT_WORDS[result.verdict] ?? null,
     input: testCase ? inputText(testCase) : '',
-    expected: testCase ? toJson(testCase.expected) : '',
-    got: gotText(result),
+    expected: testCase ? format(testCase.expected) : '',
+    got: gotText(result, format),
     errorMessage: errorText(result),
     stdout: result.outcome?.stdout ?? '',
   };

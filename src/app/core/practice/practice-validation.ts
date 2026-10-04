@@ -9,7 +9,10 @@ const CODECS: readonly Codec[] = [
   'tree-node',
   'tree-value',
   'graph-node',
+  'number-inf',
 ];
+/** Codecs that only decode a result; they can't build an argument. */
+const RESULT_ONLY_CODECS: readonly Codec[] = ['number-inf'];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -80,13 +83,17 @@ function isCodecOrNull(value: unknown): boolean {
   return value === undefined || value === null || CODECS.includes(value as Codec);
 }
 
+function isArgCodecOrNull(value: unknown): boolean {
+  return isCodecOrNull(value) && !RESULT_ONLY_CODECS.includes(value as Codec);
+}
+
 /** An absent or null `types` is valid (plain JSON); a present one has an `args` array of known
  *  codecs or nulls and a known-codec-or-null `result`. */
 function isValidTypes(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (!isRecord(value)) return false;
   const args = value['args'];
-  return Array.isArray(args) && args.every(isCodecOrNull) && isCodecOrNull(value['result']);
+  return Array.isArray(args) && args.every(isArgCodecOrNull) && isCodecOrNull(value['result']);
 }
 
 /** Structural guard for one practice problem: number, title, nullable url, nullable statement,

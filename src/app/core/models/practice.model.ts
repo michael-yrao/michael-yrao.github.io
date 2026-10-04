@@ -30,7 +30,8 @@ export type Codec =
   | 'random-list'
   | 'tree-node'
   | 'tree-value'
-  | 'graph-node';
+  | 'graph-node'
+  | 'number-inf';
 
 /** One codec (or null for plain JSON) per positional argument, and one for the result. */
 export interface TypeSpec {

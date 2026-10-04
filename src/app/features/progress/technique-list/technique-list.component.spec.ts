@@ -418,6 +418,7 @@ describe('TechniqueListComponent — planned problems', () => {
     expect(c.judgeLabel('https://open.kattis.com/problems/shortestpath3')).toBe('Kattis');
     expect(c.judgeLabel('https://cses.fi/problemset/task/1673')).toBe('CSES');
     expect(c.judgeLabel('https://www.hellointerview.com/learn/code/intervals/can-attend-meetings')).toBe('HelloInterview');
+    expect(c.judgeLabel('https://progressiveoverflow.com/practice/9001')).toBe('progressiveoverflow');
     expect(c.judgeLabel('https://www.leetcode.com/problems/x/')).toBe('LC');
     expect(c.judgeLabel('https://www.codeforces.com/problemset/x')).toBe('codeforces.com');
     expect(c.judgeLabel(null)).toBe('');

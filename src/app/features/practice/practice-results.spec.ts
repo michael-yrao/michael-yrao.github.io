@@ -47,4 +47,18 @@ describe('toResultRow', () => {
     expect(row.expected).toBe('[null,null,1]');
     expect(row.got).toBe('[null,null,1]');
   });
+
+  it("draws a 'number-inf' result with Python's inf spelling, unquoted, nested lists included", () => {
+    const testCase: PracticeCase = { args: [3], expected: ['-Infinity', 2, 'Infinity'], example: true };
+    const result: CaseResult = {
+      index: 0,
+      verdict: 'fail',
+      outcome: { status: 'ok', hasJson: true, gotJson: ['-Infinity', 2, ['Infinity']], gotRepr: '', stdout: '' },
+    };
+
+    const row = toResultRow(result, [testCase], 'number-inf');
+
+    expect(row.expected).toBe('[-inf,2,inf]');
+    expect(row.got).toBe('[-inf,2,[inf]]');
+  });
 });

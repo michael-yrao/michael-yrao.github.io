@@ -191,6 +191,18 @@ class Solution:
     expected: [[2, 4], [1, 3], [2, 4], [1, 3]],
   },
   {
+    name: 'number-inf: infinities in the result decode to strings, nested lists included',
+    code: `
+class Solution:
+    def distances(self, n):
+        return [-inf, 2, [inf, True]]
+`,
+    entry: { className: 'Solution', method: 'distances' },
+    types: { args: [null], result: 'number-inf' },
+    testCase: { args: [3] },
+    expected: ['-Infinity', 2, ['Infinity', true]],
+  },
+  {
     name: 'result arg: the mutated argument is what is compared',
     code: `
 class Solution:

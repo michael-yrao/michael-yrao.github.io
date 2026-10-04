@@ -93,6 +93,7 @@ const JUDGE_HOST_LABELS: Readonly<Record<string, string>> = {
   'open.kattis.com': 'Kattis',
   'cses.fi': 'CSES',
   'hellointerview.com': 'HelloInterview',
+  'progressiveoverflow.com': 'progressiveoverflow',
 };
 
 /**

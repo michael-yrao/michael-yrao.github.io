@@ -273,6 +273,19 @@ def _decode_unsupported(value):
     raise CodecError("list-node-cycle: this codec only builds arguments and cannot decode a result")
 
 
+_POSITIVE_INFINITY = float("inf")
+
+
+def _decode_number_inf(value):
+    if isinstance(value, list):
+        return [_decode_number_inf(item) for item in value]
+    if isinstance(value, float) and value == _POSITIVE_INFINITY:
+        return "Infinity"
+    if isinstance(value, float) and value == -_POSITIVE_INFINITY:
+        return "-Infinity"
+    return value
+
+
 _ENCODERS = {
     "list-node": _encode_list_node,
     "list-node-cycle": _encode_list_node_cycle,
@@ -288,6 +301,7 @@ _DECODERS = {
     "tree-node": _decode_tree_node,
     "tree-value": _decode_tree_value,
     "graph-node": _decode_graph_node,
+    "number-inf": _decode_number_inf,
 }
 
 
