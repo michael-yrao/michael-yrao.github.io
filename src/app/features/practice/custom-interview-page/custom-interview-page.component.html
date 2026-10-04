@@ -1,0 +1,83 @@
+<section class="practice" [class.custom--setup]="!isInSession()">
+  @if (session.role() !== 'none') {
+    <div class="custom__bar">
+      <app-interview-bar [isInSession]="isInSession()" [problemLabel]="problemLabel()" />
+    </div>
+  }
+
+  @if (isInSession()) {
+    <div class="practice__split custom__split" [style.--problem-track]="problemTrack" [style.--work-track]="workTrack">
+      <div class="practice__problem">
+        @if (session.custom(); as custom) {
+          <h1 class="custom__title">{{ custom.title }}</h1>
+        }
+        <app-practice-description [problem]="descriptionProblem()" />
+      </div>
+
+      <div class="practice__work">
+        <div class="practice__code-body">
+          @for (shared of sessionDocs(); track shared.epoch) {
+            <app-code-editor
+              [initialText]="shared.doc"
+              [extensions]="sessionExtensions()"
+              (textChange)="onSessionTextChange($event)"
+            />
+          }
+        </div>
+
+        <div class="practice__toolbar">
+          <button type="button" class="practice__btn practice__btn--icon practice__btn--primary" aria-label="Run" title="Run (Ctrl+Enter)" [disabled]="isBusy()" (click)="run()">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+              <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
+            </svg>
+          </button>
+          @if (isLoadingPython()) {
+            <span class="practice__status">Loading Python</span>
+          }
+        </div>
+
+        <section class="practice__output" aria-label="Output">
+          <span class="practice__label">Output</span>
+          @if (runState(); as state) {
+            <div class="practice__output-body">
+              @if (state.stdout) {
+                <div class="practice__block">
+                  <span class="practice__label">stdout</span>
+                  <pre class="practice__value">{{ state.stdout }}</pre>
+                </div>
+              }
+              @if (state.error !== null) {
+                <div class="practice__block">
+                  <span class="practice__label practice__label--bad">error</span>
+                  <pre class="practice__value">{{ state.error }}</pre>
+                </div>
+              }
+              @if (state.isTimedOut) {
+                <span class="practice__word">{{ timeLimitWord }}</span>
+              }
+            </div>
+          }
+        </section>
+      </div>
+    </div>
+  } @else {
+    <div class="custom__setup">
+      <h1 class="custom__heading">Your own problem</h1>
+      <label class="custom__field">
+        <span class="practice__label">Title</span>
+        <input class="custom__input" type="text" [attr.maxlength]="titleMaxLength" [value]="draft().title" (input)="onTitleInput($event)" />
+      </label>
+      <label class="custom__field">
+        <span class="practice__label">Problem</span>
+        <textarea class="custom__input custom__textarea" [attr.maxlength]="statementMaxLength" [value]="draft().statement" (input)="onStatementInput($event)"></textarea>
+      </label>
+      <div class="custom__field" role="group" aria-labelledby="custom-starter-label">
+        <span id="custom-starter-label" class="practice__label">Starter code</span>
+        <app-code-editor [initialText]="draft().starter" (textChange)="onStarterChange($event)" />
+      </div>
+      <div class="practice__toolbar">
+        <button type="button" class="practice__btn practice__btn--primary" [disabled]="!canStart()" (click)="startInterview()">Start interview</button>
+      </div>
+    </div>
+  }
+</section>

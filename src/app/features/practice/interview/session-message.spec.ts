@@ -1,9 +1,10 @@
-import { Participant, SessionMessage, parseSessionMessage } from './session-message';
+import { Participant, STATEMENT_MAX_LENGTH, SessionMessage, TITLE_MAX_LENGTH, parseSessionMessage } from './session-message';
 
 const UPDATE = { clientID: 'a', changes: [0, [0, 'x']] };
 const NONCE = 'N'.repeat(43);
 const SIGNATURE = 'S'.repeat(86);
-const PARTICIPANT: Participant = { id: 'c1', role: 'candidate', name: 'Ada' };
+const PARTICIPANT: Participant = { id: 'c1', role: 'candidate', name: 'Ada', isAway: true, awayCount: 2, pasteCount: 1 };
+const CUSTOM = { title: 'Two sum', statement: 'Return the indices.', signature: SIGNATURE };
 const HELLO = { type: 'hello', id: 'c1', role: 'candidate', name: 'Ada', doc: 'x', rev: 3 };
 
 const CASES: readonly { name: string; data: unknown; expected: SessionMessage | null }[] = [
@@ -25,6 +26,34 @@ const CASES: readonly { name: string; data: unknown; expected: SessionMessage | 
     expected: { type: 'updates', updates: [UPDATE] },
   },
   { name: 'end parses', data: { type: 'end' }, expected: { type: 'end' } },
+  {
+    name: 'init with a valid custom problem parses',
+    data: { type: 'init', problem: 0, version: 2, rev: 7, doc: 'x', custom: CUSTOM },
+    expected: { type: 'init', problem: 0, version: 2, rev: 7, doc: 'x', custom: CUSTOM },
+  },
+  {
+    name: 'init with an over-length custom title is null',
+    data: { type: 'init', problem: 0, version: 2, rev: 7, doc: 'x', custom: { ...CUSTOM, title: 't'.repeat(TITLE_MAX_LENGTH + 1) } },
+    expected: null,
+  },
+  {
+    name: 'init with an over-length custom statement is null',
+    data: { type: 'init', problem: 0, version: 2, rev: 7, doc: 'x', custom: { ...CUSTOM, statement: 's'.repeat(STATEMENT_MAX_LENGTH + 1) } },
+    expected: null,
+  },
+  {
+    name: 'init with a custom problem missing its signature is null',
+    data: { type: 'init', problem: 0, version: 2, rev: 7, doc: 'x', custom: { title: CUSTOM.title, statement: CUSTOM.statement } },
+    expected: null,
+  },
+  {
+    name: 'init with a custom problem whose signature is malformed is null',
+    data: { type: 'init', problem: 0, version: 2, rev: 7, doc: 'x', custom: { ...CUSTOM, signature: 'S' } },
+    expected: null,
+  },
+  { name: 'away parses', data: { type: 'away', isAway: true }, expected: { type: 'away', isAway: true } },
+  { name: 'away with a non-boolean isAway is null', data: { type: 'away', isAway: 'yes' }, expected: null },
+  { name: 'paste parses', data: { type: 'paste' }, expected: { type: 'paste' } },
   { name: 'name parses', data: { type: 'name', name: 'Ada' }, expected: { type: 'name', name: 'Ada' } },
   { name: 'name over the limit after trim is null', data: { type: 'name', name: ` ${'a'.repeat(41)} ` }, expected: null },
   { name: 'non-string name is null', data: { type: 'name', name: 5 }, expected: null },
@@ -46,6 +75,11 @@ const CASES: readonly { name: string; data: unknown; expected: SessionMessage | 
     data: HELLO,
     expected: { type: 'hello', id: 'c1', role: 'candidate', name: 'Ada', doc: 'x', rev: 3 },
   },
+  {
+    name: 'hello with a valid custom problem parses',
+    data: { ...HELLO, custom: CUSTOM },
+    expected: { type: 'hello', id: 'c1', role: 'candidate', name: 'Ada', doc: 'x', rev: 3, custom: CUSTOM },
+  },
   { name: 'hello without a rev is null', data: { ...HELLO, rev: undefined }, expected: null },
   { name: 'hello with a negative rev is null', data: { ...HELLO, rev: -1 }, expected: null },
   { name: 'hello with a bad signature is null', data: { ...HELLO, signature: 'S' }, expected: null },
@@ -58,6 +92,9 @@ const CASES: readonly { name: string; data: unknown; expected: SessionMessage | 
     data: { type: 'roster', participants: [PARTICIPANT] },
     expected: { type: 'roster', participants: [PARTICIPANT] },
   },
+  { name: 'roster with a negative awayCount is null', data: { type: 'roster', participants: [{ ...PARTICIPANT, awayCount: -1 }] }, expected: null },
+  { name: 'roster with a fractional pasteCount is null', data: { type: 'roster', participants: [{ ...PARTICIPANT, pasteCount: 1.5 }] }, expected: null },
+  { name: 'roster with a non-boolean isAway is null', data: { type: 'roster', participants: [{ ...PARTICIPANT, isAway: 1 }] }, expected: null },
   { name: 'roster with a bad participant is null', data: { type: 'roster', participants: [{ ...PARTICIPANT, id: '' }] }, expected: null },
   { name: 'unknown type is null', data: { type: 'nope' }, expected: null },
   { name: 'missing field is null', data: { type: 'init', problem: 5, rev: 0, doc: 'x' }, expected: null },

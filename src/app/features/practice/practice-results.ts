@@ -4,8 +4,11 @@ import { CaseResult, CaseVerdict } from '../../core/runner/runner.model';
 export const PASS_MARK = '✓';
 export const FAIL_MARK = '✗';
 
+/** The word beside a run that hit the time limit. */
+export const TIME_LIMIT_WORD = 'Time limit';
+
 const VERDICT_WORDS: Readonly<Partial<Record<CaseVerdict, string>>> = {
-  'time-limit': 'Time limit',
+  'time-limit': TIME_LIMIT_WORD,
   recursion: 'Recursion limit',
   error: 'Error',
 };

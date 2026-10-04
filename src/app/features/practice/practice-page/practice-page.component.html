@@ -10,7 +10,7 @@
       [difficulty]="meta()?.difficulty ?? null"
       [neighbors]="neighbors()"
       activeTab="description"
-      [hasSolution]="meta() !== null"
+      [hasSolution]="hasSolution()"
       [isCandidate]="isCandidate()"
       [isInSession]="isInSession()"
       [showInterview]="true"

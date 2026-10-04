@@ -3,7 +3,8 @@
  * `define_solution(code)` (returns '' on success, else the formatted Python error) and then
  * `run_case(case_spec_json)` per case (returns one JSON outcome string, shaped like
  * `CaseOutcome`). The case spec is the entry's fields plus `args`, `ops`, `result` and `types`
- * (see `buildCaseSpec`). The solution's namespace starts with LeetCode's pre-imported modules
+ * (see `buildCaseSpec`). `run_free(code)` instead runs code once in a fresh namespace and returns
+ * the JSON `{"stdout", "error"}`. Both namespaces start with LeetCode's pre-imported modules
  * and node classes. Kept as source text so the worker stays short; no backticks or
  * dollar-brace sequences may appear below.
  */
@@ -68,19 +69,40 @@ class _Node:
         self.neighbors = neighbors if neighbors is not None else []
 
 
+def _fresh_namespace():
+    # LeetCode predefines its imports and these node classes; the learner's own definition shadows the seed.
+    return {**_PRELUDE, "__name__": "solution", "ListNode": _ListNode, "TreeNode": _TreeNode, "Node": _Node}
+
+
+def _format_error(error):
+    # Skip this frame so the message starts at the learner's code.
+    return "".join(traceback.format_exception(type(error), error, error.__traceback__.tb_next)).strip()
+
+
 def define_solution(code):
     # A previous run's sys.setrecursionlimit must not leak into this one (the worker is reused).
     sys.setrecursionlimit(_DEFAULT_RECURSION_LIMIT)
-    # LeetCode predefines its imports and these node classes; the learner's own definition shadows the seed.
-    namespace = {**_PRELUDE, "__name__": "solution", "ListNode": _ListNode, "TreeNode": _TreeNode, "Node": _Node}
+    namespace = _fresh_namespace()
     try:
         exec(compile(code, "solution.py", "exec"), namespace)
     except BaseException as error:
-        # Skip this frame so the message starts at the learner's code.
-        return "".join(traceback.format_exception(type(error), error, error.__traceback__.tb_next)).strip()
+        return _format_error(error)
     _solution.clear()
     _solution.update(namespace)
     return ""
+
+
+def run_free(code):
+    # Runs the code once for its printed output; the case runner's _solution is left alone.
+    sys.setrecursionlimit(_DEFAULT_RECURSION_LIMIT)
+    out = io.StringIO()
+    error_text = ""
+    try:
+        with contextlib.redirect_stdout(out):
+            exec(compile(code, "solution.py", "exec"), _fresh_namespace())
+    except BaseException as error:
+        error_text = _format_error(error)
+    return json.dumps({"stdout": out.getvalue(), "error": error_text})
 
 
 def _method_name(cls, method):

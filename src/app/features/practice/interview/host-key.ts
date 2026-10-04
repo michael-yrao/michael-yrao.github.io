@@ -28,6 +28,7 @@ const BITS_PER_BYTE = 8;
 const BITS_PER_CHAR = 6;
 const BASE64_BLOCK_CHARS = 4;
 const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/;
+const CUSTOM_PREFIX = 'custom';
 const PROBE = new TextEncoder().encode('po-host-key-probe');
 
 const KEY_ALGORITHM: EcKeyImportParams = { name: 'ECDSA', namedCurve: 'P-256' };
@@ -157,38 +158,60 @@ function challengeBytes(purpose: SignaturePurpose, nonce: string, sessionId: str
   return new TextEncoder().encode(`${purpose}:${nonce}:${sessionId}`);
 }
 
+/** The title's length leads, so moving text across the title/statement boundary changes the signed bytes. */
+function customBytes(sessionId: string, title: string, statement: string): Uint8Array<ArrayBuffer> {
+  return new TextEncoder().encode(`${CUSTOM_PREFIX}:${sessionId}:${title.length}:${title}:${statement}`);
+}
+
+async function signBytes(privateKey: CryptoKey, bytes: Uint8Array<ArrayBuffer>): Promise<string> {
+  const signature = await crypto.subtle.sign(SIGN_ALGORITHM, privateKey, bytes);
+  return encodeBase64Url(new Uint8Array(signature));
+}
+
+async function verifyBytes(publicKey: CryptoKey, signature: string, bytes: Uint8Array<ArrayBuffer>, what: string): Promise<boolean> {
+  if (!isBase64Url(signature, SIGNATURE_LENGTH)) {
+    console.error(`${what}: the signature is not base64url of the expected length`);
+    return false;
+  }
+  try {
+    return await crypto.subtle.verify(SIGN_ALGORITHM, publicKey, decodeBase64Url(signature), bytes);
+  } catch (err) {
+    console.error(`${what}: could not verify the signature`, err);
+    return false;
+  }
+}
+
 /** Signs the UTF-8 of `${purpose}:${nonce}:${sessionId}`. */
-export async function signChallenge(
+export function signChallenge(
   privateKey: CryptoKey,
   purpose: SignaturePurpose,
   nonce: string,
   sessionId: string,
 ): Promise<string> {
-  const signature = await crypto.subtle.sign(SIGN_ALGORITHM, privateKey, challengeBytes(purpose, nonce, sessionId));
-  return encodeBase64Url(new Uint8Array(signature));
+  return signBytes(privateKey, challengeBytes(purpose, nonce, sessionId));
 }
 
 /** True only for a valid signature over the same purpose, nonce and session id; false (never throws) otherwise. */
-export async function verifyChallenge(
+export function verifyChallenge(
   publicKey: CryptoKey,
   purpose: SignaturePurpose,
   nonce: string,
   sessionId: string,
   signature: string,
 ): Promise<boolean> {
-  if (!isBase64Url(signature, SIGNATURE_LENGTH)) {
-    console.error('Challenge: the signature is not base64url of the expected length');
-    return false;
-  }
-  try {
-    return await crypto.subtle.verify(
-      SIGN_ALGORITHM,
-      publicKey,
-      decodeBase64Url(signature),
-      challengeBytes(purpose, nonce, sessionId),
-    );
-  } catch (err) {
-    console.error('Challenge: could not verify the signature', err);
-    return false;
-  }
+  return verifyBytes(publicKey, signature, challengeBytes(purpose, nonce, sessionId), 'Challenge');
+}
+
+/** Signs a custom problem for one session, so only the interviewer key can make a problem the host will take. */
+export function signCustom(privateKey: CryptoKey, sessionId: string, title: string, statement: string): Promise<string> {
+  return signBytes(privateKey, customBytes(sessionId, title, statement));
+}
+
+/** True only for the interviewer's signature over this session's title and statement; false (never throws) otherwise. */
+export function verifyCustom(
+  publicKey: CryptoKey,
+  sessionId: string,
+  custom: { readonly title: string; readonly statement: string; readonly signature: string },
+): Promise<boolean> {
+  return verifyBytes(publicKey, custom.signature, customBytes(sessionId, custom.title, custom.statement), 'Custom problem');
 }

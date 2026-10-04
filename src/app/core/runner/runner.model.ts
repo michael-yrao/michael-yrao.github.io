@@ -66,8 +66,23 @@ export function buildCaseSpec(request: RunRequest, testCase: RunCase): string {
   });
 }
 
+/** A free run: the code runs once and only its printed output comes back. */
+export interface FreeRunRequest {
+  readonly id: number;
+  readonly kind: 'free';
+  readonly code: string;
+}
+
+export interface FreeRunState {
+  readonly status: RunStatus;
+  readonly stdout: string;
+  readonly error: string | null;
+  readonly isTimedOut: boolean;
+}
+
 export type WorkerMessage =
   | { readonly id: number; readonly type: 'ready' }
+  | { readonly id: number; readonly type: 'free-result'; readonly stdout: string; readonly error: string | null }
   | { readonly id: number; readonly type: 'case'; readonly index: number; readonly outcome: CaseOutcome }
   | { readonly id: number; readonly type: 'run-error'; readonly message: string }
   | { readonly id: number; readonly type: 'done' };

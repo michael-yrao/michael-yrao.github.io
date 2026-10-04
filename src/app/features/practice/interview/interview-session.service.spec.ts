@@ -1,319 +1,49 @@
-import { Injector } from '@angular/core';
-import { Router } from '@angular/router';
-import { EditorState } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
-
-import { HostKeys, createNonce, generateHostKeys, signChallenge } from './host-key';
-import {
-  CONNECT_TIMEOUT_MS,
-  InterviewSessionService,
-  RECLAIM_TIMEOUT_MS,
-  RECONNECT_DELAY_MS,
-} from './interview-session.service';
-import { Host, PEER_FACTORY, PeerFactory, Transport } from './peer-transport';
-import { sessionIdFromPublicKey } from './session-id';
+import { generateHostKeys, parsePackedKey } from './host-key';
+import { CONNECT_TIMEOUT_MS, RECLAIM_TIMEOUT_MS, RECONNECT_DELAY_MS } from './interview-session.service';
+import { Host, PeerFactory, Transport } from './peer-transport';
+import { SessionHost } from './session-host';
+import { NO_MARKS } from './session-message';
+import { hostPeerIdFromPacked, sessionIdFromPublicKey } from './session-id';
 import { saveSession } from './session-store';
+import {
+  COARSE_STEP_MS,
+  OTHER_PROBLEM,
+  PAGE_URL,
+  PROBLEM,
+  REACH_MS,
+  SETTLE_MS,
+  SETTLE_STEP_MS,
+  STUB,
+  createNetwork,
+  createPeer,
+  dialAsImpostor,
+  endAllServices,
+  holdAsImpostor,
+  hostIdOf,
+  joinCandidate,
+  linkParam,
+  mountEditor,
+  resumeInterviewer,
+  settle,
+  settleJustAfterDial,
+  startHost,
+  useFakeClock,
+} from './testing/session-network';
 
-const STUB = 'stub';
-const PROBLEM = 7;
-const OTHER_PROBLEM = 3;
-const PAGE_URL = 'https://site.test/practice/7';
-/** Fake time one `settle` covers by default: enough steps for a handshake's crypto and 0 ms hops, under the reconnect delay. */
-const SETTLE_MS = 1_000;
-const SETTLE_STEP_MS = 20;
-const COARSE_STEP_MS = 500;
 /** A drop, the reconnect delay twice over (a lost race retries once), and a handshake. */
-const TAKEOVER_MS = RECONNECT_DELAY_MS * 3 + SETTLE_MS;
-/** Node's own setImmediate, left unfaked and untyped by the DOM lib. */
-const realSetImmediate = (globalThis as unknown as { setImmediate: (callback: () => void) => void }).setImmediate;
+const TAKEOVER_MS = RECONNECT_DELAY_MS * 3 + REACH_MS;
 const HOST_STRIP_ARGS = [[], { queryParams: { host: null }, queryParamsHandling: 'merge', replaceUrl: true }];
-
-/** The WebCrypto calls the handshake makes; each is counted while it is in flight. */
-const CRYPTO_METHODS = ['generateKey', 'exportKey', 'importKey', 'sign', 'verify', 'digest'] as const;
-/** Real time a settle waits for in-flight crypto before failing: a hung call, not a slow machine. */
-const CRYPTO_WAIT_CAP_MS = 10_000;
-let pendingCrypto = 0;
-
-/** Counts every in-flight WebCrypto call, so `settle` can wait for a condition instead of a fixed number of yields. */
-function trackCrypto(): void {
-  pendingCrypto = 0;
-  const subtle = crypto.subtle as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>;
-  CRYPTO_METHODS.forEach((method) => {
-    const original = subtle[method].bind(subtle);
-    vi.spyOn(subtle, method).mockImplementation(async (...args: unknown[]) => {
-      pendingCrypto += 1;
-      try {
-        return await original(...args);
-      } finally {
-        pendingCrypto -= 1;
-      }
-    });
-  });
-}
-
-const yieldToEventLoop = (): Promise<void> => new Promise<void>((resolve) => realSetImmediate(resolve));
-
-/** Yields to the real event loop until no WebCrypto call is in flight; fails clearly if one never returns. */
-async function drainCrypto(): Promise<void> {
-  const startedAt = performance.now();
-  while (pendingCrypto > 0) {
-    if (performance.now() - startedAt > CRYPTO_WAIT_CAP_MS) {
-      throw new Error(`${pendingCrypto} WebCrypto call(s) still in flight after ${CRYPTO_WAIT_CAP_MS} ms of real time`);
-    }
-    await yieldToEventLoop();
-  }
-}
-
-/**
- * WebCrypto settles on the real event loop, so only timers and the clock are faked. `settle` advances fake time
- * in steps and, after each, waits (in real time) until every in-flight crypto call has returned, so how long the
- * machine takes to run crypto never changes how many handshake hops fit in the fake time.
- */
-function useFakeClock(): void {
-  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
-  trackCrypto();
-}
-
-async function settle(ms: number = SETTLE_MS, step: number = SETTLE_STEP_MS): Promise<void> {
-  let remaining = ms;
-  do {
-    const advance = Math.min(step, remaining);
-    await vi.advanceTimersByTimeAsync(advance);
-    await yieldToEventLoop();
-    await drainCrypto();
-    remaining -= advance;
-  } while (remaining > 0);
-}
-
-/** An open connection's two ends; delivery is a macrotask, and a message undelivered at close is discarded. */
-interface Pair {
-  readonly hostSide: Transport;
-  readonly clientSide: Transport;
-  readonly close: () => void;
-  readonly isClosed: () => boolean;
-}
-
-function createPair(): Pair {
-  const handlers = [
-    { message: null as null | ((data: unknown) => void), close: null as null | (() => void) },
-    { message: null as null | ((data: unknown) => void), close: null as null | (() => void) },
-  ];
-  let isClosed = false;
-  const close = () => {
-    if (isClosed) {
-      return;
-    }
-    isClosed = true;
-    handlers.forEach((side) => setTimeout(() => side.close?.()));
-  };
-  const endpoint = (self: number): Transport => ({
-    send: (message) => {
-      const data = JSON.parse(JSON.stringify(message));
-      setTimeout(() => {
-        if (!isClosed) {
-          handlers[1 - self].message?.(data);
-        }
-      });
-    },
-    onMessage: (handler) => (handlers[self].message = handler),
-    onClose: (handler) => (handlers[self].close = handler),
-    close,
-  });
-  return { hostSide: endpoint(0), clientSide: endpoint(1), close, isClosed: () => isClosed };
-}
-
-interface Registration {
-  readonly onConnection: (transport: Transport) => void;
-  readonly onError: (error: unknown) => void;
-  readonly onDisconnected: () => void;
-}
-
-/** One id's registration with the fake broker. */
-interface FakeHost {
-  readonly host: Host;
-  /** The broker forgets the id and tells the host; open transports stay up. */
-  dropRegistration(): void;
-  openTransports(): number;
-}
-
-/** An in-memory stand-in for the PeerJS broker: one holder per id, as the real broker grants it. */
-function createNetwork() {
-  interface Entry extends FakeHost {
-    readonly pairs: Pair[];
-    readonly registration: Registration;
-  }
-  const registry = new Map<string, Entry>();
-  const allPairs: Pair[] = [];
-
-  function register(id: string, registration: Registration): Entry {
-    const pairs: Pair[] = [];
-    let isDisconnected = false;
-    let isDestroyed = false;
-    const release = () => {
-      if (registry.get(id) === entry) {
-        registry.delete(id);
-      }
-    };
-    const reconnectNow = () => {
-      if (!isDisconnected || isDestroyed) {
-        return;
-      }
-      if (registry.has(id)) {
-        registration.onError({ type: 'unavailable-id' });
-        return;
-      }
-      registry.set(id, entry);
-      isDisconnected = false;
-    };
-    const host: Host = {
-      id,
-      destroy: () => {
-        isDestroyed = true;
-        release();
-        pairs.forEach((pair) => pair.close());
-      },
-      reconnect: () => {
-        setTimeout(reconnectNow);
-      },
-      isDisconnected: () => isDisconnected,
-    };
-    const entry: Entry = {
-      host,
-      pairs,
-      registration,
-      dropRegistration: () => {
-        release();
-        isDisconnected = true;
-        registration.onDisconnected();
-      },
-      openTransports: () => pairs.filter((pair) => !pair.isClosed()).length,
-    };
-    registry.set(id, entry);
-    return entry;
-  }
-
-  const factory: PeerFactory = {
-    host: async (id, onConnection, onError, onDisconnected) => {
-      if (registry.has(id)) {
-        throw { type: 'unavailable-id' };
-      }
-      return register(id, { onConnection, onError, onDisconnected }).host;
-    },
-    connect: async (id) => {
-      const target = registry.get(id);
-      if (target === undefined) {
-        throw { type: 'peer-unavailable' };
-      }
-      const pair = createPair();
-      target.pairs.push(pair);
-      allPairs.push(pair);
-      target.registration.onConnection(pair.hostSide);
-      return pair.clientSide;
-    },
-  };
-
-  return {
-    factory,
-    /** Closes every open transport; registrations stay. */
-    dropAll: () => allPairs.forEach((pair) => pair.close()),
-    holder: (id: string): FakeHost | undefined => registry.get(id),
-    holders: (): number => registry.size,
-    /** Registers `id` for a scripted holder that is not a service. */
-    hold: (id: string, onConnection: (transport: Transport) => void): void => {
-      register(id, { onConnection, onError: () => undefined, onDisconnected: () => undefined });
-    },
-  };
-}
-
-type Network = ReturnType<typeof createNetwork>;
-
-/** Every service a test made, ended in cleanup so no re-dial timer outlives its test. */
-const services: InterviewSessionService[] = [];
-
-function createPeer(factory: PeerFactory) {
-  const navigate = vi.fn().mockResolvedValue(true);
-  const injector = Injector.create({
-    providers: [
-      { provide: PEER_FACTORY, useValue: factory },
-      { provide: Router, useValue: { navigate } },
-      { provide: InterviewSessionService, useClass: InterviewSessionService },
-    ],
-  });
-  const service = injector.get(InterviewSessionService);
-  services.push(service);
-  return { service, navigate };
-}
-
-function linkParam(url: string | null, name: 'join' | 'host'): string {
-  const value = new URL(url ?? '').searchParams.get(name);
-  if (value === null) {
-    throw new Error(`the link has no ${name} value`);
-  }
-  return value;
-}
-
-/** An interviewer who started the session and, with no other host, hosts it. */
-async function startHost(factory: PeerFactory, problem: number = PROBLEM) {
-  const peer = createPeer(factory);
-  await peer.service.start(problem, STUB, PAGE_URL);
-  const joinValue = linkParam(peer.service.inviteUrl(), 'join');
-  return {
-    ...peer,
-    joinValue,
-    hostValue: linkParam(peer.service.hostUrl(), 'host'),
-    sessionId: await sessionIdFromPublicKey(joinValue),
-  };
-}
-
-async function resumeInterviewer(factory: PeerFactory, hostValue: string) {
-  const peer = createPeer(factory);
-  await peer.service.resume(hostValue, PROBLEM, () => STUB);
-  return peer;
-}
-
-async function joinCandidate(factory: PeerFactory, joinValue: string, problem: number = PROBLEM) {
-  const peer = createPeer(factory);
-  await peer.service.join(joinValue, problem);
-  return peer;
-}
-
-/** The host puts itself first in every roster, so its id is the first entry on every tab. */
-function hostIdOf(service: InterviewSessionService): string | undefined {
-  return service.roster()[0]?.id;
-}
-
-function mountEditor(service: InterviewSessionService): EditorView {
-  const shared = service.sharedDoc();
-  if (shared === null) {
-    throw new Error('no shared doc to mount');
-  }
-  return new EditorView({
-    state: EditorState.create({ doc: shared.doc, extensions: service.collabExtensions() }),
-    parent: document.body,
-  });
-}
-
-/** A holder that answers a challenge with a proof signed by `wrongKeys` and records everything it receives. */
-function holdAsImpostor(network: Network, sessionId: string, wrongKeys: HostKeys): { received: unknown[] } {
-  const received: unknown[] = [];
-  network.hold(sessionId, (transport) => {
-    transport.onMessage((data) => {
-      received.push(data);
-      const message = data as { type?: string; nonce?: string };
-      if (message.type === 'challenge' && message.nonce !== undefined) {
-        void signChallenge(wrongKeys.privateKey, 'proof', message.nonce, sessionId).then((signature) =>
-          transport.send({ type: 'proof', signature, nonce: createNonce() }),
-        );
-      }
-    });
-  });
-  return { received };
-}
+const SECOND_HOST_DOC = 'second-host-doc';
+/** Above any revision the first host has reached, so the second host's saved doc wins the choice of authority. */
+const SECOND_HOST_REV = 5;
+const HOST_PEER_ID_PREFIX = 'po-h-';
 
 interface Scenario {
   readonly name: string;
   readonly run: () => Promise<void>;
 }
+
+const messageTypes = (received: readonly unknown[]): string[] => received.map((message) => (message as { type: string }).type);
 
 const SCENARIOS: readonly Scenario[] = [
   {
@@ -323,7 +53,7 @@ const SCENARIOS: readonly Scenario[] = [
       const network = createNetwork();
       const interviewer = await startHost(network.factory);
       const candidate = await joinCandidate(network.factory, interviewer.joinValue);
-      await settle();
+      await settle(REACH_MS);
 
       const interviewerView = mountEditor(interviewer.service);
       interviewerView.dispatch({ changes: { from: 0, insert: 'gap-' } });
@@ -345,21 +75,21 @@ const SCENARIOS: readonly Scenario[] = [
   },
   {
     // plan test 9
-    name: 'a reconnecting candidate is sent the current text, not the stub',
+    name: 'a candidate who replaces a gone one is sent the current text, not the stub',
     run: async () => {
       const network = createNetwork();
       const interviewer = await startHost(network.factory);
-      await joinCandidate(network.factory, interviewer.joinValue);
-      await settle();
+      const first = await joinCandidate(network.factory, interviewer.joinValue);
+      await settle(REACH_MS);
       mountEditor(interviewer.service).dispatch({ changes: { from: 0, insert: 'edit-' } });
       await settle();
 
-      network.dropAll();
+      first.service.end();
       await settle();
       expect(interviewer.service.status()).toBe('waiting');
 
       const second = await joinCandidate(network.factory, interviewer.joinValue);
-      await settle();
+      await settle(REACH_MS);
       expect(second.service.sharedDoc()).toEqual({ problem: PROBLEM, version: 1, doc: 'edit-stub', epoch: 0 });
       expect(interviewer.service.status()).toBe('open');
     },
@@ -371,7 +101,7 @@ const SCENARIOS: readonly Scenario[] = [
       const network = createNetwork();
       const interviewer = await startHost(network.factory);
       const candidate = await joinCandidate(network.factory, interviewer.joinValue, OTHER_PROBLEM);
-      await settle();
+      await settle(REACH_MS);
 
       expect(candidate.service.sharedDoc()?.problem).toBe(PROBLEM);
       expect(candidate.navigate).toHaveBeenCalledWith(['/practice', PROBLEM], { queryParamsHandling: 'preserve' });
@@ -388,11 +118,11 @@ const SCENARIOS: readonly Scenario[] = [
       interviewer.service.setMyName('  Ada  ');
       const joinValue = linkParam(interviewer.service.inviteUrl(), 'join');
       await candidate.service.join(joinValue, PROBLEM);
-      await settle();
+      await settle(REACH_MS);
 
       const expected = [
-        { id: interviewer.service.selfId, role: 'interviewer', name: 'Ada' },
-        { id: candidate.service.selfId, role: 'candidate', name: '' },
+        { id: interviewer.service.selfId, role: 'interviewer', name: 'Ada', ...NO_MARKS },
+        { id: candidate.service.selfId, role: 'candidate', name: '', ...NO_MARKS },
       ];
       expect(interviewer.service.roster()).toEqual(expected);
       expect(candidate.service.roster()).toEqual(expected);
@@ -406,42 +136,40 @@ const SCENARIOS: readonly Scenario[] = [
   },
   {
     // plan test 9
-    name: 'a connect that never settles keeps the candidate connecting after the time limit, and a late transport is closed',
+    name: 'a candidate dial that never settles is the only outstanding dial, and a late transport is closed',
     run: async () => {
       const keys = await generateHostKeys();
       const lateTransport = { send: vi.fn(), onMessage: vi.fn(), onClose: vi.fn(), close: vi.fn() };
-      let settleConnect: (transport: Transport) => void = () => undefined;
-      let dialedAt: number | null = null;
+      const unsettledDials: ((transport: Transport) => void)[] = [];
+      let dialedAt = 0;
       const factory: PeerFactory = {
-        host: async () => {
-          throw new Error('unused');
-        },
-        connect: () =>
-          new Promise<Transport>((resolve) => {
-            dialedAt = Date.now();
-            settleConnect = resolve;
-          }),
+        host: async (id) => ({ id, destroy: () => undefined, reconnect: () => undefined, isDisconnected: () => false }),
+        connect: (id) =>
+          id.startsWith(HOST_PEER_ID_PREFIX)
+            ? Promise.reject({ type: 'peer-unavailable' })
+            : new Promise<Transport>((resolve) => {
+                dialedAt = Date.now();
+                unsettledDials.push(resolve);
+              }),
       };
-      const candidate = createPeer(factory).service;
-      void candidate.join(keys.publicRaw, PROBLEM);
+      void createPeer(factory).service.resume(keys.packed, PROBLEM, () => STUB);
       await settle();
-      if (dialedAt === null) {
-        throw new Error('the candidate never dialled');
-      }
+      expect(unsettledDials.length).toBe(1);
 
+      // Several dial ticks pass inside the connect timeout, and none starts a second dial.
       await settle(dialedAt + CONNECT_TIMEOUT_MS - 1 - Date.now());
-      expect(candidate.status()).toBe('connecting');
-      await settle(1);
-      expect(candidate.status()).toBe('connecting');
+      expect(unsettledDials.length).toBe(1);
 
-      settleConnect(lateTransport);
+      await settle(1);
+      unsettledDials[0](lateTransport);
       await settle(0);
       expect(lateTransport.close).toHaveBeenCalledTimes(1);
       expect(lateTransport.onMessage).not.toHaveBeenCalled();
     },
   },
   {
-    name: 'a candidate who arrives before any host keeps connecting, then connects once a host appears',
+    // plan test 2
+    name: 'the candidate listens, a host dials, the handshake completes and init arrives',
     run: async () => {
       const network = createNetwork();
       const keys = await generateHostKeys();
@@ -450,7 +178,7 @@ const SCENARIOS: readonly Scenario[] = [
       expect(candidate.service.status()).toBe('connecting');
 
       await resumeInterviewer(network.factory, keys.packed);
-      await settle(RECONNECT_DELAY_MS + SETTLE_MS);
+      await settle(REACH_MS);
 
       expect(candidate.service.status()).toBe('open');
       expect(candidate.service.sharedDoc()).toMatchObject({ problem: PROBLEM, doc: STUB });
@@ -458,11 +186,11 @@ const SCENARIOS: readonly Scenario[] = [
   },
   {
     // plan test 9
-    name: 'ending as the interviewer returns the service to its starting state',
+    name: 'ending as the interviewer returns the service to its starting state, and no dial survives it',
     run: async () => {
       const network = createNetwork();
+      const connect = vi.spyOn(network.factory, 'connect');
       const interviewer = await startHost(network.factory);
-      await joinCandidate(network.factory, interviewer.joinValue);
       await settle();
 
       interviewer.service.end();
@@ -473,6 +201,10 @@ const SCENARIOS: readonly Scenario[] = [
         interviewer.service.inviteUrl(),
       ]).toEqual(['none', 'idle', null, null]);
       expect(interviewer.navigate).toHaveBeenCalledWith(...HOST_STRIP_ARGS);
+
+      const dialsAtEnd = connect.mock.calls.length;
+      await settle(RECONNECT_DELAY_MS * 2);
+      expect(connect.mock.calls.length).toBe(dialsAtEnd);
     },
   },
   {
@@ -482,13 +214,15 @@ const SCENARIOS: readonly Scenario[] = [
       const network = createNetwork();
       const interviewer = await startHost(network.factory);
       const candidate = await joinCandidate(network.factory, interviewer.joinValue);
-      await settle();
+      await settle(REACH_MS);
       const interviewerView = mountEditor(interviewer.service);
       interviewerView.dispatch({ changes: { from: 0, insert: 'edit-' } });
       await settle();
       mountEditor(candidate.service);
       await settle();
 
+      // Just after a dial tick, so the next dial is a full delay away.
+      await settleJustAfterDial(interviewer.hostedAt);
       network.dropAll();
       await settle();
       expect([candidate.service.status(), candidate.service.isEditable()]).toEqual(['reconnecting', false]);
@@ -505,22 +239,23 @@ const SCENARIOS: readonly Scenario[] = [
   },
   {
     // plan test 9
-    name: 'ending a reconnecting candidate stops the re-dial',
+    name: 'ending a candidate releases its registration, and no host dial reaches it afterwards',
     run: async () => {
       const network = createNetwork();
-      const connect = vi.spyOn(network.factory, 'connect');
-      const interviewer = await startHost(network.factory);
-      const candidate = await joinCandidate(network.factory, interviewer.joinValue);
-      await settle();
+      const host = await startHost(network.factory);
+      const candidate = await joinCandidate(network.factory, host.joinValue);
+      await settle(REACH_MS);
+      expect(network.holder(host.sessionId)).toBeDefined();
 
-      network.dropAll();
-      await settle();
-      expect(candidate.service.status()).toBe('reconnecting');
-
-      const dialsBeforeEnd = connect.mock.calls.length;
       candidate.service.end();
+      expect(network.holder(host.sessionId)).toBeUndefined();
       await settle(RECONNECT_DELAY_MS * 2);
-      expect([candidate.service.status(), connect.mock.calls.length]).toEqual(['closed', dialsBeforeEnd]);
+
+      expect([candidate.service.status(), network.holder(host.sessionId), host.service.status()]).toEqual([
+        'closed',
+        undefined,
+        'waiting',
+      ]);
     },
   },
   {
@@ -531,7 +266,7 @@ const SCENARIOS: readonly Scenario[] = [
       const host = await startHost(network.factory);
       const client = await resumeInterviewer(network.factory, host.hostValue);
       const candidate = await joinCandidate(network.factory, host.joinValue);
-      await settle();
+      await settle(REACH_MS);
       expect(candidate.service.status()).toBe('open');
 
       client.service.end();
@@ -542,6 +277,54 @@ const SCENARIOS: readonly Scenario[] = [
       expect(client.navigate).toHaveBeenCalledWith(...HOST_STRIP_ARGS);
     },
   },
+  {
+    // plan test 5
+    name: 'a second verified host replaces the first: the candidate takes its init and never shows reconnecting',
+    run: async () => {
+      const network = createNetwork();
+      const first = await startHost(network.factory);
+      const candidate = await joinCandidate(network.factory, first.joinValue);
+      await settle(REACH_MS);
+      await settleJustAfterDial(first.hostedAt);
+
+      // The fake broker grants one holder per id, so the second host is driven directly with the same keys.
+      const keys = await parsePackedKey(first.hostValue);
+      if (keys === null) {
+        throw new Error('the host link did not parse');
+      }
+      const second = new SessionHost(
+        {
+          sessionId: first.sessionId,
+          keys,
+          selfId: 'second-host',
+          savedDoc: SECOND_HOST_DOC,
+          savedRev: SECOND_HOST_REV,
+          takeoverDoc: null,
+          takeoverRev: 0,
+          getName: () => '',
+          getProblem: () => PROBLEM,
+          stubFn: () => STUB,
+          candidateSeat: NO_MARKS,
+          getCustom: () => null,
+          dialCandidate: () => Promise.reject({ type: 'peer-unavailable' }),
+        },
+        { onRoster: () => undefined, onAuthority: () => undefined, onEndRequested: () => undefined, onCustomAdopted: () => undefined },
+      );
+      second.attach({ id: 'second', destroy: () => undefined, reconnect: () => undefined, isDisconnected: () => false });
+      onTestFinished(() => second.shutdown());
+      second.accept(await network.factory.connect(first.sessionId), true);
+
+      const statuses = new Set<string>();
+      for (let elapsed = 0; elapsed < SETTLE_MS; elapsed += SETTLE_STEP_MS) {
+        await settle(SETTLE_STEP_MS);
+        statuses.add(candidate.service.status());
+      }
+
+      expect([...statuses]).toEqual(['open']);
+      expect(candidate.service.sharedDoc()).toEqual({ problem: PROBLEM, version: 0, doc: SECOND_HOST_DOC, epoch: 1 });
+      expect(first.service.roster().some((participant) => participant.role === 'candidate')).toBe(false);
+    },
+  },
 ];
 
 describe('InterviewSessionService peer contract', () => {
@@ -550,35 +333,55 @@ describe('InterviewSessionService peer contract', () => {
   });
 });
 
-interface ImpostorCase {
-  readonly name: string;
-  readonly dial: (network: Network, keys: HostKeys) => Promise<unknown>;
-}
+describe('InterviewSessionService handshake (plan tests 3 and 4)', () => {
+  it('an impostor holding the host peer id: an interviewer closes, sends no hello, and re-dials', async () => {
+    const network = createNetwork();
+    const keys = await generateHostKeys();
+    const sessionId = await sessionIdFromPublicKey(keys.publicRaw);
+    const hostPeerId = await hostPeerIdFromPacked(keys.packed);
+    const impostor = holdAsImpostor(network, hostPeerId, sessionId, await generateHostKeys());
+    const connect = vi.spyOn(network.factory, 'connect');
 
-const IMPOSTOR_CASES: readonly ImpostorCase[] = [
-  { name: 'a candidate', dial: (network, keys) => joinCandidate(network.factory, keys.publicRaw) },
-  { name: 'an interviewer', dial: (network, keys) => resumeInterviewer(network.factory, keys.packed) },
-];
+    await resumeInterviewer(network.factory, keys.packed);
+    await settle();
+    const dialsBeforeRedial = connect.mock.calls.length;
+    expect(messageTypes(impostor.received)).toEqual(['challenge']);
 
-describe('InterviewSessionService handshake (plan test 4)', () => {
-  it.each(IMPOSTOR_CASES)(
-    'an impostor holding the session id: $name closes, sends no hello, and re-dials',
-    async ({ dial }) => {
-      const network = createNetwork();
-      const keys = await generateHostKeys();
-      const impostor = holdAsImpostor(network, await sessionIdFromPublicKey(keys.publicRaw), await generateHostKeys());
-      const connect = vi.spyOn(network.factory, 'connect');
+    await settle(RECONNECT_DELAY_MS);
+    expect(connect.mock.calls.length).toBe(dialsBeforeRedial + 1);
+    expect(impostor.received.some((message) => (message as { type: string }).type === 'hello')).toBe(false);
+  });
 
-      await dial(network, keys);
-      await settle();
-      const dialsBeforeRedial = connect.mock.calls.length;
-      expect(impostor.received.map((message) => (message as { type: string }).type)).toEqual(['challenge']);
+  it('a dialer without the key reaches the candidate: closed, no hello, the candidate keeps listening for a real host', async () => {
+    const network = createNetwork();
+    const keys = await generateHostKeys();
+    const sessionId = await sessionIdFromPublicKey(keys.publicRaw);
+    const candidate = await joinCandidate(network.factory, keys.publicRaw);
 
-      await settle(RECONNECT_DELAY_MS);
-      expect(connect.mock.calls.length).toBe(dialsBeforeRedial + 1);
-      expect(impostor.received.some((message) => (message as { type: string }).type === 'hello')).toBe(false);
-    },
-  );
+    const impostor = await dialAsImpostor(network, sessionId, await generateHostKeys());
+    await settle();
+
+    expect(messageTypes(impostor.received)).toEqual(['challenge']);
+    expect(impostor.isClosed()).toBe(true);
+    expect([candidate.service.status(), network.holder(sessionId) !== undefined]).toEqual(['connecting', true]);
+
+    await resumeInterviewer(network.factory, keys.packed);
+    await settle(REACH_MS);
+    expect(candidate.service.status()).toBe('open');
+  });
+
+  it('a stranger holding the session id registration does not stop an interviewer from hosting', async () => {
+    const network = createNetwork();
+    const keys = await generateHostKeys();
+    network.hold(await sessionIdFromPublicKey(keys.publicRaw), () => undefined);
+    const interviewer = createPeer(network.factory).service;
+
+    void interviewer.resume(keys.packed, PROBLEM, () => STUB);
+    await settle();
+    await settle(RECLAIM_TIMEOUT_MS + RECONNECT_DELAY_MS, COARSE_STEP_MS);
+
+    expect(interviewer.status()).toBe('waiting');
+  });
 });
 
 const TAKEOVER: readonly Scenario[] = [
@@ -587,11 +390,12 @@ const TAKEOVER: readonly Scenario[] = [
     name: 'the host drops: one interviewer client hosts with its synced doc; the other clients reconnect and get init',
     run: async () => {
       const network = createNetwork();
-      const a = await startHost(network.factory);
+      const hostTab = network.tab();
+      const a = await startHost(hostTab.factory);
       const b = await resumeInterviewer(network.factory, a.hostValue);
       const d = await resumeInterviewer(network.factory, a.hostValue);
       const c = await joinCandidate(network.factory, a.joinValue);
-      await settle();
+      await settle(REACH_MS);
       mountEditor(a.service).dispatch({ changes: { from: 0, insert: 'edit-' } });
       await settle();
       const clients = [b.service, d.service, c.service];
@@ -599,10 +403,11 @@ const TAKEOVER: readonly Scenario[] = [
 
       // So the new host starts from its synced doc, not a saved one.
       localStorage.clear();
-      network.holder(a.sessionId)?.host.destroy();
+      hostTab.kill();
       await settle(TAKEOVER_MS);
 
-      expect(network.holders()).toBe(1);
+      // The new host's registration and the candidate's.
+      expect(network.holders()).toBe(2);
       const hostId = hostIdOf(b.service);
       expect([b.service.selfId, d.service.selfId]).toContain(hostId);
       clients.forEach((client, index) => {
@@ -619,20 +424,22 @@ const TAKEOVER: readonly Scenario[] = [
     name: 'a host that returns with a stale saved doc takes the candidate newer text instead of overwriting it',
     run: async () => {
       const network = createNetwork();
-      const a = await startHost(network.factory);
+      const firstTab = network.tab();
+      const secondTab = network.tab();
+      const a = await startHost(firstTab.factory);
       const candidate = await joinCandidate(network.factory, a.joinValue);
-      await settle();
+      await settle(REACH_MS);
 
-      // A drops; B takes over from the saved doc, and the candidate re-dials B and keeps coding.
-      network.holder(a.sessionId)?.host.destroy();
-      await resumeInterviewer(network.factory, a.hostValue);
+      // A drops; B takes over from the saved doc, and the candidate keeps coding on B's connection.
+      firstTab.kill();
+      await resumeInterviewer(secondTab.factory, a.hostValue);
       await settle(TAKEOVER_MS);
       mountEditor(candidate.service).dispatch({ changes: { from: 0, insert: 'newer-' } });
       await settle();
 
       // B leaves; A comes back with its own stale saved doc (this browser's storage held B's, so A's is put back).
       saveSession('interviewer', a.sessionId, PROBLEM, STUB, 0);
-      network.holder(a.sessionId)?.host.destroy();
+      secondTab.kill();
       const returned = await resumeInterviewer(network.factory, a.hostValue);
       await settle(TAKEOVER_MS);
 
@@ -667,16 +474,17 @@ const TAKEOVER: readonly Scenario[] = [
       const network = createNetwork();
       const a = await startHost(network.factory);
       const c = await joinCandidate(network.factory, a.joinValue);
-      await settle();
-      const formerHost = network.holder(a.sessionId);
+      await settle(REACH_MS);
+      const formerHost = network.holder(a.hostPeerId);
       expect(a.service.sharedDoc()?.epoch).toBe(0);
 
       formerHost?.dropRegistration();
       const b = await resumeInterviewer(network.factory, a.hostValue);
       await settle(TAKEOVER_MS);
 
-      const holder = network.holder(a.sessionId);
-      expect(network.holders()).toBe(1);
+      const holder = network.holder(a.hostPeerId);
+      // The new host's registration and the candidate's.
+      expect(network.holders()).toBe(2);
       expect(holder).not.toBe(formerHost);
       expect(formerHost?.openTransports()).toBe(0);
       expect(hostIdOf(a.service)).toBe(b.service.selfId);
@@ -761,7 +569,7 @@ describe('InterviewSessionService resume (plan test 9)', () => {
     await interviewer.resume(keys.packed, pageProblem, stubFn);
 
     const candidate = await joinCandidate(network.factory, linkParam(interviewer.inviteUrl(), 'join'), pageProblem);
-    await settle();
+    await settle(REACH_MS);
 
     expect(candidate.service.sharedDoc()).toMatchObject({ problem: savedProblem, doc: 'saved' });
     const hostUrl = new URL(interviewer.hostUrl() ?? '');
@@ -775,11 +583,13 @@ describe('InterviewSessionService resume (plan test 9)', () => {
 
 beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  // A test page is not guaranteed focus, and a candidate without it counts as away.
+  vi.spyOn(document, 'hasFocus').mockReturnValue(true);
   useFakeClock();
 });
 
 afterEach(() => {
-  services.splice(0).forEach((service) => service.end());
+  endAllServices();
   vi.useRealTimers();
   vi.restoreAllMocks();
   localStorage.clear();

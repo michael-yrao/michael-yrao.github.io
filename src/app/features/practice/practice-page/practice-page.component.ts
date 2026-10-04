@@ -15,6 +15,7 @@ import { PythonRunnerService } from '../../../core/runner/python-runner.service'
 import type { PracticeProblem } from '../../../core/models/practice.model';
 import { RunState } from '../../../core/runner/runner.model';
 import { CodeEditorComponent } from '../code-editor/code-editor.component';
+import { lockedProblem } from '../interview/candidate-lock';
 import { HOST_PARAM, JOIN_PARAM, InterviewSessionService } from '../interview/interview-session.service';
 import { PracticeDescriptionComponent } from '../practice-description/practice-description.component';
 import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
@@ -80,6 +81,13 @@ export class PracticePageComponent {
     () => this.session.role() !== 'none' && this.session.problem() === this.number(),
   );
   readonly isCandidate = computed(() => this.session.role() === 'candidate');
+
+  /** The header's Solution tab: hidden while a live candidate lock names this problem. Re-reads
+   *  storage whenever the problem number changes. */
+  protected readonly hasSolution = computed(() => {
+    const number = this.number();
+    return this.meta() !== null && !(number !== null && lockedProblem() === number);
+  });
 
   /** The session's shared document as a list of at most one, so the editor block can be keyed on its epoch. */
   protected readonly sessionDocs = computed(() => {

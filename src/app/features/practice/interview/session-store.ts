@@ -1,3 +1,5 @@
+import { CustomProblem, isCustomProblem } from './session-message';
+
 /** A role's saved session, so a reloaded tab can resume it. */
 export interface StoredSession {
   readonly problem: number;
@@ -5,6 +7,8 @@ export interface StoredSession {
   /** The session revision of `doc`. */
   readonly rev: number;
   readonly savedAt: number;
+  /** The interviewer's own problem, when the session has one. */
+  readonly custom?: CustomProblem;
 }
 
 export type StoredRole = 'interviewer' | 'candidate';
@@ -37,7 +41,8 @@ function isStoredSession(value: unknown): value is StoredSession {
     Number.isInteger(record['rev']) &&
     record['rev'] >= 0 &&
     typeof record['savedAt'] === 'number' &&
-    Number.isFinite(record['savedAt'])
+    Number.isFinite(record['savedAt']) &&
+    (record['custom'] === undefined || isCustomProblem(record['custom']))
   );
 }
 
@@ -81,10 +86,11 @@ export function saveSession(
   problem: number,
   doc: string,
   rev: number,
+  custom: CustomProblem | null = null,
   now: number = Date.now(),
 ): void {
   const key = keyFor(role, peerId);
-  const entry: StoredSession = { problem, doc, rev, savedAt: now };
+  const entry: StoredSession = { problem, doc, rev, savedAt: now, ...(custom === null ? {} : { custom }) };
   try {
     localStorage.setItem(key, JSON.stringify(entry));
   } catch (err) {

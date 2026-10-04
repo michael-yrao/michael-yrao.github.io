@@ -1,12 +1,17 @@
 import { Update } from '@codemirror/collab';
 
 import { Authority, authorityVersion, createAuthority, receivePush } from './collab-authority';
-import { HostKeys, createNonce, signChallenge, verifyChallenge } from './host-key';
+import { HostKeys, createNonce, signChallenge, verifyChallenge, verifyCustom } from './host-key';
+import { CandidateDialer } from './candidate-listener';
 import { Host, Transport } from './peer-transport';
 import {
+  CUSTOM_PROBLEM,
+  CandidateSeat,
+  CustomProblem,
   HelloMessage,
   InitMessage,
   NAME_MAX_LENGTH,
+  NO_MARKS,
   Participant,
   RevisedDoc,
   SessionMessage,
@@ -59,6 +64,12 @@ export interface HostConfig {
   readonly getName: () => string;
   readonly getProblem: () => number | null;
   readonly stubFn: () => string;
+  /** The candidate's marks as the last host knew them, so a takeover keeps the counts. */
+  readonly candidateSeat: CandidateSeat;
+  /** The session's own problem as this tab knows it, or null. */
+  readonly getCustom: () => CustomProblem | null;
+  /** Dials the candidate's listening id through a fresh Peer (never the hosting one) and resolves with the open transport. */
+  readonly dialCandidate: () => Promise<Transport>;
 }
 
 export type AuthorityChange = 'adopted' | 'advanced';
@@ -69,6 +80,8 @@ export interface HostEvents {
   onAuthority(authority: Authority, change: AuthorityChange, rev: number): void;
   /** A ready interviewer asked to end the session. */
   onEndRequested(): void;
+  /** The host had no custom problem and took the first one a hello carried. */
+  onCustomAdopted(custom: CustomProblem): void;
 }
 
 /** What the service should do about a Peer error. */
@@ -85,15 +98,26 @@ interface ConnectionRecord {
   readonly hello: RevisedDoc | null;
   /** Closes the connection if it never reaches `ready`; null once it has. */
   readonly handshakeTimer: ReturnType<typeof setTimeout> | null;
+  /** True when this host dialed the connection (to the candidate's id) rather than received it. */
+  readonly isDialed: boolean;
 }
 
 function cleanName(name: string): string {
   return name.trim().slice(0, NAME_MAX_LENGTH);
 }
 
+/** The seat after the candidate's `away` report: a repeat changes nothing, and only a new absence is counted. */
+function withAway(seat: CandidateSeat, isAway: boolean): CandidateSeat {
+  if (seat.isAway === isAway) {
+    return seat;
+  }
+  return { ...seat, isAway, awayCount: isAway ? seat.awayCount + 1 : seat.awayCount };
+}
+
 /**
  * The authority side of a session: it answers each connection's challenge, admits participants
  * whose hello checks out, keeps the roster, owns the canonical document and relays accepted updates.
+ * Interviewers dial it; it dials the candidate, for as long as the roster has none (see `CandidateDialer`).
  */
 export class SessionHost {
   private peer: Host | null = null;
@@ -104,20 +128,40 @@ export class SessionHost {
   private isClosed = false;
   private brokerRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private endGraceTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Held outside the connection records, so it survives the candidate reconnecting. */
+  private candidateSeat: CandidateSeat;
+
+  private readonly dialer: CandidateDialer;
 
   constructor(
     private readonly config: HostConfig,
     private readonly events: HostEvents,
-  ) {}
+  ) {
+    this.candidateSeat = config.candidateSeat;
+    this.dialer = new CandidateDialer({
+      dial: config.dialCandidate,
+      isNeeded: () => this.isCandidateNeeded(),
+      onTransport: (transport) => this.accept(transport, true),
+    });
+  }
 
-  /** The Peer is registered: from here the host is live, so it adopts a doc if it can and announces the roster. */
+  /** The Peer is registered: from here the host is live, so it adopts a doc if it can, announces the roster and looks for the candidate. */
   attach(peer: Host): void {
     this.peer = peer;
     this.adoptIfPossible();
     this.events.onRoster(this.roster());
+    this.dialer.start();
   }
 
-  accept(transport: Transport): void {
+  /** No candidate in the roster, and no dialed connection still mid-handshake. */
+  private isCandidateNeeded(): boolean {
+    const hasCandidate = this.records.some((record) => record.participant?.role === 'candidate');
+    const hasPendingDial = this.records.some((record) => record.isDialed && record.phase !== 'ready');
+    return !hasCandidate && !hasPendingDial;
+  }
+
+  /** Takes an open connection, received or dialed; either way the other side starts with its challenge. */
+  accept(transport: Transport, isDialed = false): void {
     if (this.isClosed) {
       transport.close();
       return;
@@ -125,7 +169,7 @@ export class SessionHost {
     const handshakeTimer = setTimeout(() => this.abandonStuckHandshake(transport), HANDSHAKE_TIMEOUT_MS);
     this.records = [
       ...this.records,
-      { transport, hostNonce: null, phase: 'new', participant: null, hello: null, handshakeTimer },
+      { transport, hostNonce: null, phase: 'new', participant: null, hello: null, handshakeTimer, isDialed },
     ];
     transport.onMessage((data) => this.handleMessage(transport, data));
     transport.onClose(() => this.handleClose(transport));
@@ -212,6 +256,7 @@ export class SessionHost {
   /** Marked closed before the Peer is destroyed: destroying it emits 'disconnected', which must not re-register the id. */
   private markClosed(): void {
     this.isClosed = true;
+    this.dialer.stop();
     if (this.brokerRetryTimer !== null) {
       clearTimeout(this.brokerRetryTimer);
       this.brokerRetryTimer = null;
@@ -219,8 +264,10 @@ export class SessionHost {
   }
 
   private roster(): readonly Participant[] {
-    const self: Participant = { id: this.config.selfId, role: 'interviewer', name: this.config.getName() };
-    const others = this.records.flatMap((record) => (record.participant === null ? [] : [record.participant]));
+    const self: Participant = { id: this.config.selfId, role: 'interviewer', name: this.config.getName(), ...NO_MARKS };
+    const others = this.records.flatMap((record) =>
+      record.participant === null ? [] : [record.participant.role === 'candidate' ? { ...record.participant, ...this.candidateSeat } : record.participant],
+    );
     return [self, ...others];
   }
 
@@ -296,6 +343,12 @@ export class SessionHost {
       case 'name':
         this.renameParticipant(record, message.name);
         return;
+      case 'away':
+        this.updateSeat(record, withAway(this.candidateSeat, message.isAway), message.type);
+        return;
+      case 'paste':
+        this.updateSeat(record, { ...this.candidateSeat, pasteCount: this.candidateSeat.pasteCount + 1 }, message.type);
+        return;
       case 'end':
         if (record.participant?.role === 'interviewer') {
           this.events.onEndRequested();
@@ -305,6 +358,18 @@ export class SessionHost {
         return;
       default:
         console.error('Unexpected message from a participant', message.type);
+    }
+  }
+
+  /** Takes the candidate's report into the seat and tells everyone; a report from anyone else is ignored. */
+  private updateSeat(record: ConnectionRecord, seat: CandidateSeat, type: string): void {
+    if (record.participant?.role !== 'candidate') {
+      console.error('Interview host: ignored a candidate mark from a connection that is not the candidate', type);
+      return;
+    }
+    if (seat !== this.candidateSeat) {
+      this.candidateSeat = seat;
+      this.broadcastRoster();
     }
   }
 
@@ -342,6 +407,7 @@ export class SessionHost {
       transport.close();
       return;
     }
+    const custom = await this.verifiedCustom(hello);
     if (this.isClosed || this.find(transport) === undefined) {
       return;
     }
@@ -350,7 +416,24 @@ export class SessionHost {
       transport.close();
       return;
     }
-    this.markReady(transport, hello);
+    this.markReady(transport, hello, custom);
+  }
+
+  /**
+   * The hello's custom problem when this host could take it (it has none, the session is the custom
+   * problem, and the interviewer key signed it), else null. The hello is admitted either way.
+   */
+  private async verifiedCustom(hello: HelloMessage): Promise<CustomProblem | null> {
+    const { custom } = hello;
+    if (custom === undefined || this.config.getCustom() !== null || this.config.getProblem() !== CUSTOM_PROBLEM) {
+      return null;
+    }
+    const { keys, sessionId } = this.config;
+    if (await verifyCustom(keys.publicKey, sessionId, custom)) {
+      return custom;
+    }
+    console.error('Interview host: ignored a custom problem that the interviewer key did not sign');
+    return null;
   }
 
   private async isInterviewerHelloValid(hello: HelloMessage, hostNonce: string): Promise<boolean> {
@@ -369,11 +452,15 @@ export class SessionHost {
     return isIdTaken || isSecondCandidate;
   }
 
-  private markReady(transport: Transport, hello: HelloMessage): void {
-    const participant: Participant = { id: hello.id, role: hello.role, name: cleanName(hello.name) };
+  private markReady(transport: Transport, hello: HelloMessage, custom: CustomProblem | null): void {
+    const participant: Participant = { id: hello.id, role: hello.role, name: cleanName(hello.name), ...NO_MARKS };
     clearTimeout(this.find(transport)?.handshakeTimer ?? undefined);
     const revised = hello.doc === null ? null : { doc: hello.doc, rev: hello.rev };
     this.patch(transport, { phase: 'ready', participant, hello: revised, handshakeTimer: null });
+    // Before the init goes out, so this connection's init already carries the problem.
+    if (custom !== null && this.config.getCustom() === null) {
+      this.events.onCustomAdopted(custom);
+    }
     if (this.authority === null) {
       this.adoptIfPossible();
     } else if (revised !== null && revised.rev > this.currentRev(this.authority)) {
@@ -431,12 +518,14 @@ export class SessionHost {
     if (problem === null) {
       return;
     }
+    const custom = this.config.getCustom();
     transport.send({
       type: 'init',
       problem,
       version: authorityVersion(authority),
       rev: this.currentRev(authority),
       doc: authority.doc.toString(),
+      ...(custom === null ? {} : { custom }),
     } satisfies InitMessage);
   }
 

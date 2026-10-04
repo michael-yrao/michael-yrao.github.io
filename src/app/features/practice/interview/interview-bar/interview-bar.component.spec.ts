@@ -4,7 +4,7 @@ import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 
 import { InterviewSessionService } from '../interview-session.service';
-import { Participant } from '../session-message';
+import { CandidateSeat, NO_MARKS, Participant } from '../session-message';
 import { InterviewBarComponent } from './interview-bar.component';
 
 const INVITE_URL = 'https://example.com/practice/1?repo=me/notes&join=abc';
@@ -56,21 +56,38 @@ const ROSTER_CASES: readonly {
 }[] = [
   {
     name: '1 interviewer and no candidate',
-    roster: [{ id: SELF_ID, role: 'interviewer', name: 'Alex' }],
+    roster: [{ id: SELF_ID, role: 'interviewer', name: 'Alex', ...NO_MARKS }],
     chips: ['Interviewer', 'Candidate'],
     inputSlot: 0,
   },
   {
     name: '3 interviewers and a candidate',
     roster: [
-      { id: 'a', role: 'interviewer', name: 'Ann' },
-      { id: SELF_ID, role: 'interviewer', name: 'Alex' },
-      { id: 'b', role: 'interviewer', name: 'Bo' },
-      { id: 'c', role: 'candidate', name: 'Cy' },
+      { id: 'a', role: 'interviewer', name: 'Ann', ...NO_MARKS },
+      { id: SELF_ID, role: 'interviewer', name: 'Alex', ...NO_MARKS },
+      { id: 'b', role: 'interviewer', name: 'Bo', ...NO_MARKS },
+      { id: 'c', role: 'candidate', name: 'Cy', ...NO_MARKS },
     ],
     chips: ['Interviewer', 'Interviewer', 'Interviewer', 'Candidate'],
     inputSlot: 1,
   },
+];
+
+const AWAY_MARK = '[aria-label="Times away"]';
+const PASTE_MARK = '[aria-label="Large pastes"]';
+const ACTIVE_MARK_CLASS = 'interview-bar__mark--active';
+
+const MARK_CASES: readonly {
+  name: string;
+  seat: CandidateSeat;
+  away: string | null;
+  paste: string | null;
+  isAwayActive: boolean;
+}[] = [
+  { name: 'all-zero marks show neither', seat: NO_MARKS, away: null, paste: null, isAwayActive: false },
+  { name: 'awayCount 2 shows only the away mark', seat: { ...NO_MARKS, awayCount: 2 }, away: '2', paste: null, isAwayActive: false },
+  { name: 'pasteCount 3 shows only the paste mark', seat: { ...NO_MARKS, pasteCount: 3 }, away: null, paste: '3', isAwayActive: false },
+  { name: 'isAway puts the away mark in the accent', seat: { isAway: true, awayCount: 1, pasteCount: 0 }, away: '1', paste: null, isAwayActive: true },
 ];
 
 describe('InterviewBarComponent', () => {
@@ -118,6 +135,15 @@ describe('InterviewBarComponent', () => {
 
     expect(slots.map((slot) => slot.querySelector(SLOT_CHIP)?.textContent?.trim())).toEqual(chips);
     expect(slots.map((slot) => slot.querySelector(NAME_INPUT) !== null)).toEqual(slots.map((_, index) => index === inputSlot));
+  });
+
+  it.each(MARK_CASES)('the candidate slot draws its marks: $name', ({ seat, away, paste, isAwayActive }) => {
+    const { fixture } = setup('', false, true, [{ id: 'c', role: 'candidate', name: 'Cy', ...seat }]);
+
+    const awayMark = query(fixture, AWAY_MARK);
+    expect(awayMark?.textContent?.trim() ?? null).toBe(away);
+    expect(query(fixture, PASTE_MARK)?.textContent?.trim() ?? null).toBe(paste);
+    expect(awayMark?.classList.contains(ACTIVE_MARK_CLASS) ?? false).toBe(isAwayActive);
   });
 
   it('gives an invalid email address no href and aria-disabled, and a valid or blank one a mailto', () => {

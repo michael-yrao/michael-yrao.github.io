@@ -64,4 +64,12 @@ describe('app routes', () => {
 
     expect(router.url).toBe('/practice/20/solution');
   });
+
+  it('resolves /practice/custom to its own route, not /practice/:number', async () => {
+    const router = TestBed.inject(Router);
+
+    await router.navigateByUrl('/practice/custom');
+
+    expect(router.routerState.snapshot.root.firstChild?.routeConfig?.path).toBe('practice/custom');
+  });
 });

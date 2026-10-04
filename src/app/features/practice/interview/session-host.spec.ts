@@ -1,10 +1,10 @@
 import type { Mock } from 'vitest';
 
-import { HostKeys, createNonce, generateHostKeys, signChallenge } from './host-key';
+import { HostKeys, createNonce, generateHostKeys, signChallenge, signCustom } from './host-key';
 import { Host, Transport } from './peer-transport';
 import { CONNECT_TIMEOUT_MS } from './session-client';
 import { AuthorityInputs, HostConfig, HostEvents, SessionHost, chooseAuthorityDoc } from './session-host';
-import { HelloMessage, InitMessage, ParticipantRole, RevisedDoc } from './session-message';
+import { CUSTOM_PROBLEM, CandidateSeat, CustomProblem, HelloMessage, InitMessage, NO_MARKS, Participant, ParticipantRole, RevisedDoc } from './session-message';
 
 const SESSION_ID = 'po-session';
 const SELF_ID = 'host-tab';
@@ -14,18 +14,24 @@ interface FakeTransport extends Transport {
   readonly send: Mock<(message: unknown) => void>;
   readonly close: Mock<() => void>;
   deliver(data: unknown): void;
+  /** The connection drops: runs the close handler the host registered. */
+  drop(): void;
 }
 
 function createFakeTransport(): FakeTransport {
   let messageHandler: (data: unknown) => void = () => undefined;
+  let closeHandler: () => void = () => undefined;
   return {
     send: vi.fn(),
     onMessage: (handler) => {
       messageHandler = handler;
     },
-    onClose: () => undefined,
+    onClose: (handler) => {
+      closeHandler = handler;
+    },
     close: vi.fn(),
     deliver: (data) => messageHandler(data),
+    drop: () => closeHandler(),
   };
 }
 
@@ -35,9 +41,12 @@ let otherKeys: HostKeys;
 const sentTypes = (transport: FakeTransport): string[] =>
   transport.send.mock.calls.map(([message]) => (message as { type: string }).type);
 
+/** Every host a test made, shut down in cleanup so no dial timer outlives its test. */
+const hosts: SessionHost[] = [];
+
 function createHost(overrides: Partial<HostConfig> = {}) {
   const peer: Host = { id: SESSION_ID, destroy: vi.fn(), reconnect: vi.fn(), isDisconnected: () => false };
-  const events: HostEvents = { onRoster: vi.fn(), onAuthority: vi.fn(), onEndRequested: vi.fn() };
+  const events: HostEvents = { onRoster: vi.fn(), onAuthority: vi.fn(), onEndRequested: vi.fn(), onCustomAdopted: vi.fn() };
   const config: HostConfig = {
     sessionId: SESSION_ID,
     keys,
@@ -49,11 +58,15 @@ function createHost(overrides: Partial<HostConfig> = {}) {
     getName: () => 'Host',
     getProblem: () => 1,
     stubFn: () => STUB_TEXT,
+    candidateSeat: NO_MARKS,
+    getCustom: () => null,
+    dialCandidate: () => Promise.reject({ type: 'peer-unavailable' }),
     ...overrides,
   };
   const host = new SessionHost(config, events);
   host.attach(peer);
-  return { host, peer };
+  hosts.push(host);
+  return { host, peer, events };
 }
 
 type Signer = 'none' | 'host' | 'other';
@@ -65,6 +78,7 @@ async function handshake(
   role: ParticipantRole,
   signer: Signer,
   content: RevisedDoc = { doc: 'print(1)', rev: 0 },
+  custom?: CustomProblem,
 ): Promise<FakeTransport> {
   const transport = createFakeTransport();
   host.accept(transport);
@@ -73,7 +87,7 @@ async function handshake(
   const hostNonce = (transport.send.mock.calls[0][0] as { nonce: string }).nonce;
   const signingKey = signer === 'host' ? keys.privateKey : otherKeys.privateKey;
   const signature = signer === 'none' ? undefined : await signChallenge(signingKey, 'hello', hostNonce, SESSION_ID);
-  const hello: HelloMessage = { type: 'hello', id, role, name: id, ...content, ...(signature === undefined ? {} : { signature }) };
+  const hello: HelloMessage = { type: 'hello', id, role, name: id, ...content, ...(signature === undefined ? {} : { signature }), ...(custom === undefined ? {} : { custom }) };
   transport.deliver(hello);
   return transport;
 }
@@ -110,6 +124,83 @@ const HELLO_CASES: readonly {
   },
 ];
 
+/** Admits `id` as `role` and waits until the host has answered its hello. */
+async function admit(host: SessionHost, id: string, role: ParticipantRole): Promise<FakeTransport> {
+  const transport = await handshake(host, id, role, role === 'interviewer' ? 'host' : 'none');
+  await vi.waitFor(() => expect(isDone(transport)).toBe(true));
+  return transport;
+}
+
+const NUMBERED_PROBLEM = 1;
+const CUSTOM_TITLE = 'Own problem';
+const CUSTOM_STATEMENT = 'Print hello.';
+
+/** A custom problem whose signature comes from `signer`'s key. */
+async function customSignedBy(signer: HostKeys): Promise<CustomProblem> {
+  const signature = await signCustom(signer.privateKey, SESSION_ID, CUSTOM_TITLE, CUSTOM_STATEMENT);
+  return { title: CUSTOM_TITLE, statement: CUSTOM_STATEMENT, signature };
+}
+
+const CUSTOM_ADOPTION_CASES: readonly { name: string; problem: number; signer: () => HostKeys; isAdopted: boolean }[] = [
+  { name: 'an invalid signature is not adopted and the init has no custom', problem: CUSTOM_PROBLEM, signer: () => otherKeys, isAdopted: false },
+  { name: 'a validly signed custom is adopted and in the init', problem: CUSTOM_PROBLEM, signer: () => keys, isAdopted: true },
+  { name: 'a validly signed custom in a numbered-problem session is not adopted', problem: NUMBERED_PROBLEM, signer: () => keys, isAdopted: false },
+];
+
+const AWAY = (isAway: boolean) => ({ type: 'away', isAway });
+const PASTE = { type: 'paste' };
+
+const SEAT_CASES: readonly {
+  name: string;
+  seed?: CandidateSeat;
+  run: (host: SessionHost) => Promise<void>;
+  expected: CandidateSeat;
+}[] = [
+  {
+    name: 'away true, a repeat, false, true counts two absences',
+    run: async (host) => {
+      const candidate = await admit(host, 'c1', 'candidate');
+      [AWAY(true), AWAY(true), AWAY(false), AWAY(true)].forEach((message) => candidate.deliver(message));
+    },
+    expected: { isAway: true, awayCount: 2, pasteCount: 0 },
+  },
+  {
+    name: 'each paste counts',
+    run: async (host) => {
+      const candidate = await admit(host, 'c1', 'candidate');
+      [PASTE, PASTE].forEach((message) => candidate.deliver(message));
+    },
+    expected: { isAway: false, awayCount: 0, pasteCount: 2 },
+  },
+  {
+    name: 'the counts survive the candidate reconnecting',
+    run: async (host) => {
+      const first = await admit(host, 'c1', 'candidate');
+      [AWAY(true), PASTE].forEach((message) => first.deliver(message));
+      first.drop();
+      await admit(host, 'c2', 'candidate');
+    },
+    expected: { isAway: true, awayCount: 1, pasteCount: 1 },
+  },
+  {
+    name: 'a mark from an interviewer connection is ignored',
+    run: async (host) => {
+      await admit(host, 'c1', 'candidate');
+      const interviewer = await admit(host, 'i1', 'interviewer');
+      [AWAY(true), PASTE].forEach((message) => interviewer.deliver(message));
+    },
+    expected: NO_MARKS,
+  },
+  {
+    name: 'a seed from the config shows in the roster',
+    seed: { isAway: true, awayCount: 3, pasteCount: 2 },
+    run: async (host) => {
+      await admit(host, 'c1', 'candidate');
+    },
+    expected: { isAway: true, awayCount: 3, pasteCount: 2 },
+  },
+];
+
 const BASE_INPUTS: AuthorityInputs = { saved: null, takeover: null, hellos: [], hasPendingHandshake: false };
 const revised = (doc: string, rev: number): RevisedDoc => ({ doc, rev });
 
@@ -134,6 +225,7 @@ describe('SessionHost', () => {
   });
   beforeEach(() => vi.spyOn(console, 'error').mockImplementation(() => undefined));
   afterEach(() => {
+    hosts.splice(0).forEach((host) => host.shutdown());
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -149,12 +241,44 @@ describe('SessionHost', () => {
     host.shutdown();
   });
 
+  it.each(SEAT_CASES)('the candidate seat: $name', async ({ seed, run, expected }) => {
+    const { host, events } = createHost(seed === undefined ? {} : { candidateSeat: seed });
+    await run(host);
+
+    const roster = (events.onRoster as Mock<(participants: readonly Participant[]) => void>).mock.lastCall?.[0] ?? [];
+    expect(roster.find((participant) => participant.role === 'candidate')).toMatchObject(expected);
+    roster
+      .filter((participant) => participant.role !== 'candidate')
+      .forEach((participant) => expect(participant).toMatchObject(NO_MARKS));
+    host.shutdown();
+  });
+
   it.each(AUTHORITY_CASES)('chooseAuthorityDoc: $name', ({ inputs, expected, isStubUsed }) => {
     const stubFn = vi.fn(() => STUB_TEXT);
 
     expect(chooseAuthorityDoc(inputs, stubFn)).toEqual(expected);
     expect(stubFn).toHaveBeenCalledTimes(isStubUsed ? 1 : 0);
   });
+
+  it.each(CUSTOM_ADOPTION_CASES)(
+    'unfixed: markReady adopted any hello custom: $name',
+    async ({ problem, signer, isAdopted }) => {
+      let adopted: CustomProblem | null = null;
+      const { host, events } = createHost({ getProblem: () => problem, getCustom: () => adopted });
+      vi.mocked(events.onCustomAdopted).mockImplementation((custom) => {
+        adopted = custom;
+      });
+      const custom = await customSignedBy(signer());
+      const candidate = await handshake(host, 'c1', 'candidate', 'none', undefined, custom);
+      await vi.waitFor(() => expect(isDone(candidate)).toBe(true));
+
+      expect(events.onCustomAdopted).toHaveBeenCalledTimes(isAdopted ? 1 : 0);
+      expect(initsOf(candidate)).toHaveLength(1);
+      expect(initsOf(candidate)[0].custom).toEqual(isAdopted ? custom : undefined);
+      expect(candidate.close).not.toHaveBeenCalled();
+      host.shutdown();
+    },
+  );
 
   it('a hello newer than the authority re-adopts and re-inits every ready participant (unfixed: markReady took the else branch and sent only the stale init)', async () => {
     const { host } = createHost({ savedDoc: 'saved', savedRev: 5 });

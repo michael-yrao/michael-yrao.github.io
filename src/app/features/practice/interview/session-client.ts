@@ -1,6 +1,7 @@
 import { createNonce, signChallenge, verifyChallenge } from './host-key';
 import { PeerFactory, Transport } from './peer-transport';
 import {
+  CustomProblem,
   HelloMessage,
   InitMessage,
   Participant,
@@ -55,8 +56,10 @@ export interface ClientHooks {
   getName(): string;
   /** This side's best current text for the hello, with the revision it belongs to, or null when it has none. */
   getDoc(): RevisedDoc | null;
-  /** The host's proof verified: the connection is to the real session. */
-  onVerified(): void;
+  /** The interviewer's own problem as this side knows it, or null. */
+  getCustom(): CustomProblem | null;
+  /** The host's proof verified: `connection` is to the real session. */
+  onVerified(connection: ClientConnection): void;
   onInit(init: InitMessage): void;
   onUpdates(updates: readonly WireUpdate[]): void;
   onRoster(participants: readonly Participant[]): void;
@@ -105,6 +108,16 @@ export class ClientConnection {
 
   sendName(name: string): void {
     this.sendWhenReady({ type: 'name', name });
+  }
+
+  /** The candidate's tab went away or came back. */
+  sendAway(isAway: boolean): void {
+    this.sendWhenReady({ type: 'away', isAway });
+  }
+
+  /** The candidate pasted a large block into the editor. */
+  sendPaste(): void {
+    this.sendWhenReady({ type: 'paste' });
   }
 
   /**
@@ -207,7 +220,7 @@ export class ClientConnection {
     }
     this.phase = 'ready';
     clearTimeout(this.proofTimer);
-    this.hooks.onVerified();
+    this.hooks.onVerified(this);
     await this.sendHello(proof.nonce);
   }
 
@@ -219,6 +232,7 @@ export class ClientConnection {
         return;
       }
       const revised = this.hooks.getDoc();
+      const custom = this.hooks.getCustom();
       const hello: HelloMessage = {
         type: 'hello',
         id: clientId,
@@ -227,6 +241,7 @@ export class ClientConnection {
         doc: revised?.doc ?? null,
         rev: revised?.rev ?? 0,
         ...(signature === undefined ? {} : { signature }),
+        ...(custom === null ? {} : { custom }),
       };
       this.transport.send(hello);
     } catch (error) {

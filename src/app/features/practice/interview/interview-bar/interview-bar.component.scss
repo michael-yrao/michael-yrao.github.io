@@ -47,6 +47,16 @@ $name-width: 9rem;
   font-size: var(--text-sm);
   color: var(--color-text);
 }
+.interview-bar__mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  svg { width: $icon-size; height: $icon-size; }
+}
+.interview-bar__mark--active { color: var(--color-accent); }
 .interview-bar__icon--ok { color: var(--color-found); }
 .interview-bar__icon--fail { color: var(--color-hard); }
 .interview-bar__name,

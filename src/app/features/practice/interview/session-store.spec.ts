@@ -29,8 +29,8 @@ describe('session store', () => {
 
   it.each(ROLES)('%s and the other role save and load the same peer id independently, and clear only its own', (role) => {
     const other: StoredRole = role === 'interviewer' ? 'candidate' : 'interviewer';
-    saveSession(role, PEER_ID, 1, 'mine', 0, NOW);
-    saveSession(other, PEER_ID, 2, 'theirs', 0, NOW);
+    saveSession(role, PEER_ID, 1, 'mine', 0, null, NOW);
+    saveSession(other, PEER_ID, 2, 'theirs', 0, null, NOW);
 
     expect(loadSession(role, PEER_ID, NOW)?.doc).toBe('mine');
     expect(loadSession(other, PEER_ID, NOW)?.doc).toBe('theirs');

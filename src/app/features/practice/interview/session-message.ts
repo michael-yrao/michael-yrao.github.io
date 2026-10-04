@@ -12,6 +12,23 @@ export interface RevisedDoc {
   readonly rev: number;
 }
 
+/** The problem number a session uses when the interviewer wrote the problem themselves. */
+export const CUSTOM_PROBLEM = 0;
+
+/** The longest custom problem title the wire accepts. */
+export const TITLE_MAX_LENGTH = 120;
+
+/** The longest custom problem statement the wire accepts. */
+export const STATEMENT_MAX_LENGTH = 20_000;
+
+/** A problem the interviewer wrote: shown as plain text, fixed when the session starts. */
+export interface CustomProblem {
+  readonly title: string;
+  readonly statement: string;
+  /** The interviewer key's signature over the session id, title and statement. */
+  readonly signature: string;
+}
+
 export interface InitMessage {
   readonly type: 'init';
   readonly problem: number;
@@ -19,6 +36,8 @@ export interface InitMessage {
   /** The session revision at `version`. */
   readonly rev: number;
   readonly doc: string;
+  /** The interviewer's own problem, when the session has one. */
+  readonly custom?: CustomProblem;
 }
 export interface PushMessage {
   readonly type: 'push';
@@ -40,10 +59,31 @@ export interface NameMessage {
 
 export type ParticipantRole = 'interviewer' | 'candidate';
 
-export interface Participant {
+/** What the candidate's browser reported about the candidate's attention; the host keeps it across reconnects. */
+export interface CandidateSeat {
+  readonly isAway: boolean;
+  readonly awayCount: number;
+  readonly pasteCount: number;
+}
+
+/** The marks of every participant who is not the candidate. */
+export const NO_MARKS: CandidateSeat = { isAway: false, awayCount: 0, pasteCount: 0 };
+
+export interface Participant extends CandidateSeat {
   readonly id: string;
   readonly role: ParticipantRole;
   readonly name: string;
+}
+
+/** Candidate to host: the tab is now hidden or unfocused (`true`), or back (`false`). */
+export interface AwayMessage {
+  readonly type: 'away';
+  readonly isAway: boolean;
+}
+
+/** Candidate to host: a large paste into the editor. */
+export interface PasteMessage {
+  readonly type: 'paste';
 }
 
 /** The host's first message on every connection: a nonce the client must sign. */
@@ -71,6 +111,8 @@ export interface HelloMessage {
   readonly rev: number;
   /** An interviewer's signature over the host nonce; absent for the candidate. */
   readonly signature?: string;
+  /** The interviewer's own problem, when this tab holds one. */
+  readonly custom?: CustomProblem;
 }
 
 export interface RosterMessage {
@@ -84,6 +126,8 @@ export type SessionMessage =
   | UpdatesMessage
   | EndMessage
   | NameMessage
+  | AwayMessage
+  | PasteMessage
   | ChallengeMessage
   | ProofMessage
   | HelloMessage
@@ -130,27 +174,83 @@ function isParticipantId(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= PARTICIPANT_ID_MAX_LENGTH;
 }
 
-function isParticipant(value: unknown): value is Participant {
-  return isRecord(value) && isParticipantId(value['id']) && isRole(value['role']) && isName(value['name']);
+function isLengthInRange(value: unknown, max: number): value is string {
+  return typeof value === 'string' && value.length > 0 && value.length <= max;
+}
+
+export function isCustomProblem(value: unknown): value is CustomProblem {
+  return (
+    isRecord(value) &&
+    isLengthInRange(value['title'], TITLE_MAX_LENGTH) &&
+    isLengthInRange(value['statement'], STATEMENT_MAX_LENGTH) &&
+    isBase64UrlOfLength(value['signature'], SIGNATURE_LENGTH)
+  );
+}
+
+/** An absent `custom` is valid; a present one must be a whole custom problem. */
+function isOptionalCustom(value: unknown): boolean {
+  return value === undefined || isCustomProblem(value);
+}
+
+/** A fresh `custom` field for a message, or nothing when the peer sent none; never the peer's own object. */
+function customField(value: unknown): { readonly custom?: CustomProblem } {
+  return isCustomProblem(value) ? { custom: { title: value.title, statement: value.statement, signature: value.signature } } : {};
+}
+
+function parseParticipant(value: unknown): Participant | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const { id, role, name, isAway, awayCount, pasteCount } = value;
+  if (!isParticipantId(id) || !isRole(role) || !isName(name) || typeof isAway !== 'boolean' || !isCount(awayCount) || !isCount(pasteCount)) {
+    return null;
+  }
+  return { id, role, name, isAway, awayCount, pasteCount };
+}
+
+function parseRoster(list: unknown): RosterMessage | null {
+  if (!Array.isArray(list)) {
+    return null;
+  }
+  const participants = list.map(parseParticipant);
+  return participants.every((participant) => participant !== null) ? { type: 'roster', participants } : null;
 }
 
 function parseHello(data: Record<string, unknown>): HelloMessage | null {
-  const { id, role, name, doc, rev, signature } = data;
+  const { id, role, name, doc, rev, signature, custom } = data;
   const isDocValid = doc === null || typeof doc === 'string';
   const isSignatureValid = signature === undefined || isBase64UrlOfLength(signature, SIGNATURE_LENGTH);
-  if (!isParticipantId(id) || !isRole(role) || !isName(name) || !isDocValid || !isCount(rev) || !isSignatureValid) {
+  if (!isParticipantId(id) || !isRole(role) || !isName(name) || !isDocValid || !isCount(rev) || !isSignatureValid || !isOptionalCustom(custom)) {
     return null;
   }
-  return signature === undefined
-    ? { type: 'hello', id, role, name, doc, rev }
-    : { type: 'hello', id, role, name, doc, rev, signature };
+  return {
+    type: 'hello',
+    id,
+    role,
+    name,
+    doc,
+    rev,
+    ...(signature === undefined ? {} : { signature }),
+    ...customField(custom),
+  };
 }
 
 function parseShape(data: Record<string, unknown>): SessionMessage | null {
   switch (data['type']) {
     case 'init':
-      return isCount(data['problem']) && isCount(data['version']) && isCount(data['rev']) && typeof data['doc'] === 'string'
-        ? { type: 'init', problem: data['problem'], version: data['version'], rev: data['rev'], doc: data['doc'] }
+      return isCount(data['problem']) &&
+        isCount(data['version']) &&
+        isCount(data['rev']) &&
+        typeof data['doc'] === 'string' &&
+        isOptionalCustom(data['custom'])
+        ? {
+            type: 'init',
+            problem: data['problem'],
+            version: data['version'],
+            rev: data['rev'],
+            doc: data['doc'],
+            ...customField(data['custom']),
+          }
         : null;
     case 'push':
       return isCount(data['version']) && isWireUpdateList(data['updates'])
@@ -162,6 +262,10 @@ function parseShape(data: Record<string, unknown>): SessionMessage | null {
       return { type: 'end' };
     case 'name':
       return isName(data['name']) ? { type: 'name', name: data['name'] } : null;
+    case 'away':
+      return typeof data['isAway'] === 'boolean' ? { type: 'away', isAway: data['isAway'] } : null;
+    case 'paste':
+      return { type: 'paste' };
     case 'challenge':
       return isBase64UrlOfLength(data['nonce'], NONCE_LENGTH) ? { type: 'challenge', nonce: data['nonce'] } : null;
     case 'proof':
@@ -171,9 +275,7 @@ function parseShape(data: Record<string, unknown>): SessionMessage | null {
     case 'hello':
       return parseHello(data);
     case 'roster':
-      return Array.isArray(data['participants']) && data['participants'].every(isParticipant)
-        ? { type: 'roster', participants: data['participants'] }
-        : null;
+      return parseRoster(data['participants']);
     default:
       return null;
   }

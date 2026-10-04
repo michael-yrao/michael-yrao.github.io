@@ -4,7 +4,8 @@ import { Router, RouterLink, UrlTree } from '@angular/router';
 
 import { hostEmailHref, inviteEmailHref, inviteTitle } from '../invite-share';
 import { InterviewSessionService, SessionStatus } from '../interview-session.service';
-import { NAME_MAX_LENGTH } from '../session-message';
+import { sessionRoute } from '../session-support';
+import { CandidateSeat, NAME_MAX_LENGTH, NO_MARKS } from '../session-message';
 
 const COPY_FEEDBACK_MS = 1500;
 
@@ -13,13 +14,16 @@ const EMAIL_STORAGE_KEY = 'po-interview-email';
 
 type CopyMark = 'ok' | 'fail';
 
-interface ParticipantSlot {
+interface ParticipantSlot extends CandidateSeat {
   /** The participant's id, or a fixed key for a slot nobody holds yet. */
   readonly key: string;
   readonly label: 'Interviewer' | 'Candidate';
   readonly isMine: boolean;
   readonly name: string;
 }
+
+/** The router target of the candidate's Back link; the bare list while the problem is unknown. */
+const PRACTICE_LIST_ROUTE: readonly (string | number)[] = ['/practice'];
 
 const EMPTY_INTERVIEWER_KEY = 'interviewer';
 const EMPTY_CANDIDATE_KEY = 'candidate';
@@ -109,6 +113,11 @@ export class InterviewBarComponent {
     const { pathname, search } = new URL(hostUrl);
     return this.router.parseUrl(pathname + search);
   });
+  /** The candidate's Back link: the session's problem page, `/practice/custom` for the interviewer's own. */
+  protected readonly backRoute = computed(() => {
+    const problem = this.session.problem();
+    return problem === null ? PRACTICE_LIST_ROUTE : sessionRoute(problem);
+  });
   /** A stored name shows as a label; no name yet starts in the editing field. */
   protected readonly isEditingName = signal(!this.session.myName());
   protected readonly copyMark = signal<CopyMark | null>(null);
@@ -131,13 +140,17 @@ export class InterviewBarComponent {
             label: 'Interviewer',
             isMine: participant.id === selfId,
             name: participant.name,
+            ...NO_MARKS,
           }))
-        : [{ key: EMPTY_INTERVIEWER_KEY, label: 'Interviewer', isMine: role === 'interviewer', name: '' }];
+        : [{ key: EMPTY_INTERVIEWER_KEY, label: 'Interviewer', isMine: role === 'interviewer', name: '', ...NO_MARKS }];
     const candidateSlot: ParticipantSlot = {
       key: candidate?.id ?? EMPTY_CANDIDATE_KEY,
       label: 'Candidate',
       isMine: candidate === undefined ? role === 'candidate' : candidate.id === selfId,
       name: candidate?.name ?? '',
+      isAway: candidate?.isAway ?? NO_MARKS.isAway,
+      awayCount: candidate?.awayCount ?? NO_MARKS.awayCount,
+      pasteCount: candidate?.pasteCount ?? NO_MARKS.pasteCount,
     };
     return [...interviewerSlots, candidateSlot];
   });

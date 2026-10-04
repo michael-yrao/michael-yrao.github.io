@@ -7,8 +7,11 @@ import {
   CaseOutcome,
   CaseResult,
   CaseVerdict,
+  FreeRunRequest,
+  FreeRunState,
   RunRequest,
   RunState,
+  RunStatus,
   WorkerMessage,
 } from './runner.model';
 
@@ -24,6 +27,18 @@ export const PYTHON_WORKER_FACTORY = new InjectionToken<() => Worker>('PYTHON_WO
 export const RUN_TIME_LIMIT_MS = 10_000;
 
 const LOADING_STATE: RunState = { status: 'loading', results: [], runError: null };
+const LOADING_FREE_STATE: FreeRunState = { status: 'loading', stdout: '', error: null, isTimedOut: false };
+
+/** How one kind of run reacts to the worker; `execute` owns the worker plumbing around it. */
+interface RunSpec<S extends { readonly status: RunStatus }> {
+  readonly initial: S;
+  readonly buildRequest: (id: number) => RunRequest | FreeRunRequest;
+  readonly apply: (state: S, message: WorkerMessage) => S;
+  /** The state when the time limit kills the worker. */
+  readonly onTimeLimit: (state: S) => S;
+  /** The state when the worker crashes with `message`. */
+  readonly onCrash: (state: S, message: string) => S;
+}
 
 function verdictFor(outcome: CaseOutcome, expected: unknown, problem: PracticeProblem): CaseVerdict {
   if (outcome.status === 'error') return outcome.kind === 'recursion' ? 'recursion' : 'error';
@@ -42,6 +57,8 @@ function applyMessage(state: RunState, message: WorkerMessage, problem: Practice
       const result: CaseResult = { index: message.index, verdict, outcome: message.outcome };
       return { ...state, results: [...state.results, result] };
     }
+    case 'free-result':
+      return state;
     case 'run-error':
       return { ...state, runError: message.message };
     case 'done':
@@ -61,6 +78,21 @@ function fillMissing(
     if (!finished.has(index)) missing.push({ index, verdict, outcome: null });
   }
   return [...results, ...missing].sort((a, b) => a.index - b.index);
+}
+
+/** The next free-run state after one worker message; never mutates `state`. */
+function applyFreeMessage(state: FreeRunState, message: WorkerMessage): FreeRunState {
+  switch (message.type) {
+    case 'ready':
+      return { ...state, status: 'running' };
+    case 'free-result':
+      return { ...state, stdout: message.stdout, error: message.error };
+    case 'run-error':
+      return { ...state, error: message.message };
+    case 'case':
+    case 'done':
+      return state;
+  }
 }
 
 function buildRequest(id: number, code: string, problem: PracticeProblem): RunRequest {
@@ -87,14 +119,40 @@ export class PythonRunnerService {
 
   /** Emits a fresh `RunState` on every change and completes once the run ends. */
   run(code: string, problem: PracticeProblem): Observable<RunState> {
-    return new Observable<RunState>((subscriber) => {
+    const withMissing = (state: RunState, verdict: CaseVerdict, runError: string | null): RunState => ({
+      ...state,
+      results: fillMissing(state.results, problem.cases.length, verdict),
+      runError,
+    });
+    return this.execute<RunState>({
+      initial: LOADING_STATE,
+      buildRequest: (id) => buildRequest(id, code, problem),
+      apply: (state, message) => applyMessage(state, message, problem),
+      onTimeLimit: (state) => withMissing(state, 'time-limit', state.runError),
+      onCrash: (state, message) => withMissing(state, 'error', message),
+    });
+  }
+
+  /** Runs `code` once and emits its printed output; completes once the run ends. */
+  runFree(code: string): Observable<FreeRunState> {
+    return this.execute<FreeRunState>({
+      initial: LOADING_FREE_STATE,
+      buildRequest: (id): FreeRunRequest => ({ id, kind: 'free', code }),
+      apply: applyFreeMessage,
+      onTimeLimit: (state) => ({ ...state, isTimedOut: true }),
+      onCrash: (state, message) => ({ ...state, error: message }),
+    });
+  }
+
+  private execute<S extends { readonly status: RunStatus }>(spec: RunSpec<S>): Observable<S> {
+    return new Observable<S>((subscriber) => {
       const id = ++this.runId;
       const worker = this.ensureWorker();
-      let state = LOADING_STATE;
+      let state = spec.initial;
       let timer: ReturnType<typeof setTimeout> | null = null;
       let isEnded = false;
 
-      const publish = (next: RunState): void => {
+      const publish = (next: S): void => {
         state = next;
         subscriber.next(next);
       };
@@ -104,17 +162,16 @@ export class PythonRunnerService {
         worker.removeEventListener('message', onMessage);
         worker.removeEventListener('error', onError);
       };
-      const end = (final: RunState): void => {
+      const end = (final: S): void => {
         isEnded = true;
         detach();
         publish({ ...final, status: 'done' });
         subscriber.complete();
       };
       // The worker is unusable (killed or crashed): replace it and close out the run.
-      const abort = (verdict: CaseVerdict, runError: string | null): void => {
+      const abort = (next: S): void => {
         this.discard(worker);
-        const results = fillMissing(state.results, problem.cases.length, verdict);
-        end({ ...state, results, runError });
+        end(next);
       };
       const onMessage = (event: MessageEvent<WorkerMessage>): void => {
         const message = event.data;
@@ -123,17 +180,17 @@ export class PythonRunnerService {
           end(state);
           return;
         }
-        publish(applyMessage(state, message, problem));
+        publish(spec.apply(state, message));
         if (message.type === 'ready') {
-          timer = setTimeout(() => abort('time-limit', state.runError), RUN_TIME_LIMIT_MS);
+          timer = setTimeout(() => abort(spec.onTimeLimit(state)), RUN_TIME_LIMIT_MS);
         }
       };
-      const onError = (event: ErrorEvent): void => abort('error', event.message || event.type);
+      const onError = (event: ErrorEvent): void => abort(spec.onCrash(state, event.message || event.type));
 
       worker.addEventListener('message', onMessage);
       worker.addEventListener('error', onError);
       publish(state);
-      worker.postMessage(buildRequest(id, code, problem));
+      worker.postMessage(spec.buildRequest(id));
 
       return () => {
         if (isEnded) return;

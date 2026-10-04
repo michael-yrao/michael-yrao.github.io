@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 
 import { PracticeProblem } from '../models/practice.model';
 import { PYTHON_WORKER_FACTORY, PythonRunnerService, RUN_TIME_LIMIT_MS } from './python-runner.service';
-import { CaseOutcome, RunState, WorkerMessage } from './runner.model';
+import { CaseOutcome, FreeRunState, RunState, WorkerMessage } from './runner.model';
 
 type Listener = (event: unknown) => void;
 
@@ -108,5 +108,37 @@ describe('PythonRunnerService', () => {
 
     expect(start()).not.toBe(worker);
     expect(workers.length).toBe(2);
+  });
+
+  describe('runFree', () => {
+    const FREE_CASES: { name: string; message: ((id: number) => WorkerMessage) | null; expected: Partial<FreeRunState> }[] = [
+      {
+        name: 'a free-result lands in the final state',
+        message: (id) => ({ id, type: 'free-result', stdout: 'hi\n', error: 'boom' }),
+        expected: { status: 'done', stdout: 'hi\n', error: 'boom', isTimedOut: false },
+      },
+      {
+        name: 'no result within the time limit marks it timed out and terminates the worker',
+        message: null,
+        expected: { status: 'done', isTimedOut: true },
+      },
+    ];
+
+    it.each(FREE_CASES)('$name', ({ message, expected }) => {
+      const freeStates: FreeRunState[] = [];
+      service.runFree('print(1)').subscribe((state) => freeStates.push(state));
+      const worker = workers[workers.length - 1];
+      const id = worker.posted[0].id;
+
+      worker.emit({ id, type: 'ready' });
+      if (message) {
+        worker.emit(message(id));
+        worker.emit({ id, type: 'done' });
+      }
+      vi.advanceTimersByTime(RUN_TIME_LIMIT_MS);
+
+      expect(freeStates[freeStates.length - 1]).toMatchObject(expected);
+      expect(worker.isTerminated).toBe(message === null);
+    });
   });
 });

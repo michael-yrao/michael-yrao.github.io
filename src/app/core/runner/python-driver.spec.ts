@@ -14,6 +14,14 @@ const HARNESS = [
   'print(json.dumps({"status": "error", "kind": "exception", "message": error, "stdout": ""}) if error else run_case(payload["spec"]))',
 ].join('\n');
 
+/** Loads the driver exactly as the worker does and runs `code` through `run_free`. */
+const FREE_HARNESS = [
+  'import json, sys',
+  'payload = json.load(sys.stdin)',
+  'exec(payload["driver"], globals())',
+  'print(run_free(payload["code"]))',
+].join('\n');
+
 const IS_PYTHON_AVAILABLE = spawnSync('python', ['--version']).status === 0;
 
 function runCase(code: string, spec: string): CaseOutcome {
@@ -23,6 +31,15 @@ function runCase(code: string, spec: string): CaseOutcome {
   });
   if (run.status !== 0) throw new Error(run.stderr);
   return JSON.parse(run.stdout) as CaseOutcome;
+}
+
+function runFree(code: string): { stdout: string; error: string } {
+  const run = spawnSync('python', ['-c', FREE_HARNESS], {
+    input: JSON.stringify({ driver: PYTHON_DRIVER, code }),
+    encoding: 'utf8',
+  });
+  if (run.status !== 0) throw new Error(run.stderr);
+  return JSON.parse(run.stdout) as { stdout: string; error: string };
 }
 
 interface Row {
@@ -314,5 +331,29 @@ describe('PYTHON_DRIVER', () => {
 
     expect(outcome).toMatchObject({ status: 'ok', hasJson: true });
     expect(outcome.status === 'ok' ? outcome.gotJson : null).toEqual(expected);
+  });
+});
+
+describe('run_free', () => {
+  const FREE_ROWS: readonly { name: string; code: string; stdout: string; error: RegExp | null }[] = [
+    { name: 'prints go to stdout with no error', code: 'print("hi")\nprint(sum(range(4)))', stdout: 'hi\n6\n', error: null },
+    {
+      name: 'an exception reports the error with the stdout printed so far',
+      code: 'print("before")\nraise ValueError("boom")',
+      stdout: 'before\n',
+      error: /ValueError: boom/,
+    },
+    { name: 'a syntax error reports the error', code: 'def broken(:\n    pass', stdout: '', error: /SyntaxError/ },
+  ];
+
+  it.skipIf(!IS_PYTHON_AVAILABLE).each(FREE_ROWS)('$name', ({ code, stdout, error }) => {
+    const outcome = runFree(code);
+
+    expect(outcome.stdout).toBe(stdout);
+    if (error === null) {
+      expect(outcome.error).toBe('');
+      return;
+    }
+    expect(outcome.error).toMatch(error);
   });
 });

@@ -1,4 +1,4 @@
-import { HostKeys, generateHostKeys, createNonce, parsePackedKey, parsePublicKey, signChallenge, verifyChallenge } from './host-key';
+import { HostKeys, generateHostKeys, createNonce, parsePackedKey, parsePublicKey, signChallenge, signCustom, verifyChallenge, verifyCustom } from './host-key';
 
 const SESSION_ID = 'po-abc';
 const OTHER_SESSION_ID = 'po-xyz';
@@ -12,6 +12,16 @@ let otherKeys: HostKeys;
 /** `?host=` with a real d paired to another key's x,y. */
 function mismatchedPacked(): string {
   return keys.packed.slice(0, COORDINATE_LENGTH) + otherKeys.packed.slice(COORDINATE_LENGTH);
+}
+
+/** Signs `signed` with the session key, then verifies the `presented` text under `sessionId`. */
+async function verifyPresentedCustom(
+  signed: readonly [string, string],
+  presented: readonly [string, string],
+  sessionId = SESSION_ID,
+): Promise<boolean> {
+  const signature = await signCustom(keys.privateKey, SESSION_ID, signed[0], signed[1]);
+  return verifyCustom(keys.publicKey, sessionId, { title: presented[0], statement: presented[1], signature });
 }
 
 const VERIFY_CASES: readonly { name: string; isExpected: boolean; run: () => Promise<boolean> }[] = [
@@ -62,6 +72,11 @@ const VERIFY_CASES: readonly { name: string; isExpected: boolean; run: () => Pro
       return verifyChallenge(keys.publicKey, 'proof', nonce, OTHER_SESSION_ID, signature);
     },
   },
+  { name: 'a custom signed with the session key passes', isExpected: true, run: () => verifyPresentedCustom(['Title', 'Body'], ['Title', 'Body']) },
+  { name: 'a custom with a changed statement fails', isExpected: false, run: () => verifyPresentedCustom(['Title', 'Body'], ['Title', 'Other']) },
+  { name: 'a custom with a changed title fails', isExpected: false, run: () => verifyPresentedCustom(['Title', 'Body'], ['Other', 'Body']) },
+  { name: 'a custom under another session id fails', isExpected: false, run: () => verifyPresentedCustom(['Title', 'Body'], ['Title', 'Body'], OTHER_SESSION_ID) },
+  { name: 'a custom with the title/statement boundary shifted fails', isExpected: false, run: () => verifyPresentedCustom(['ab', 'c'], ['a', 'bc']) },
 ];
 
 const MALFORMED_CASES: readonly { name: string; run: () => Promise<unknown> }[] = [

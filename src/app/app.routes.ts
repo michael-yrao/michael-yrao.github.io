@@ -62,6 +62,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'practice/custom',
+    loadComponent: () =>
+      import('./features/practice/custom-interview-page/custom-interview-page.component').then(
+        (m) => m.CustomInterviewPageComponent,
+      ),
+  },
+  {
     path: 'practice/:number',
     loadComponent: () =>
       import('./features/practice/practice-page/practice-page.component').then(

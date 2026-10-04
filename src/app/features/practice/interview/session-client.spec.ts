@@ -30,6 +30,7 @@ function createHooks(): Mocked<ClientHooks> {
   return {
     getName: vi.fn(() => 'Alex'),
     getDoc: vi.fn(() => null),
+    getCustom: vi.fn(() => null),
     onVerified: vi.fn(),
     onInit: vi.fn(),
     onUpdates: vi.fn(),
