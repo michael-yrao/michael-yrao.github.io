@@ -16,6 +16,11 @@
               <app-grid-visualizer [state]="figure.state" />
             }
           </div>
+          @if (figure.hasHighlight) {
+            <div class="practice-description__figure-key">
+              <span class="practice-description__figure-swatch"></span>Output
+            </div>
+          }
         </figure>
       }
     }

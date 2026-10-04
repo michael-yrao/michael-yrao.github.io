@@ -2,6 +2,8 @@ $statement-max-height: 18rem;
 $split-breakpoint: 900px;
 $figure-max-width: 28rem;
 $figure-max-height: 14rem;
+$swatch-width: 1.5rem;
+$swatch-height: 3px;
 
 :host {
   display: flex;
@@ -68,6 +70,21 @@ $figure-max-height: 14rem;
   // The visualizers carry their own roomy padding and a 300px tall canvas; tighten both here.
   ::ng-deep .gv { padding: var(--space-md); }
   ::ng-deep .gv__svg { max-height: $figure-max-height; }
+}
+
+// The key under a highlighted figure: a swatch in the visualizer's found-edge colour beside its name.
+.practice-description__figure-key {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.practice-description__figure-swatch {
+  width: $swatch-width;
+  height: $swatch-height;
+  border-radius: $swatch-height;
+  background: var(--color-found);
 }
 
 // ── Static problem description ────────────────────────────────

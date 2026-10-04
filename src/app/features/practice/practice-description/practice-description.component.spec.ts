@@ -57,6 +57,16 @@ describe('PracticeDescriptionComponent', () => {
     expect(root.querySelector('.practice-description__figure-caption')).toBeNull();
   });
 
+  it('renders the Output key under a highlighted figure and not under a plain one', () => {
+    const figure = { kind: 'graph', directed: false, edgesArg: 0, nodeCountArg: null } as const;
+    const cases = [{ args: [[[0, 1]]], expected: [[0, 1]], example: true }];
+    const plain = setUp({ ...PROBLEM, figure, cases });
+    expect(plain.querySelector('.practice-description__figure-key')).toBeNull();
+    TestBed.resetTestingModule();
+    const marked = setUp({ ...PROBLEM, figure: { ...figure, highlight: 'expected' }, cases });
+    expect(marked.querySelector('.practice-description__figure-key')?.textContent?.trim()).toBe('Output');
+  });
+
   it('draws a backtick-marked span as inline code with the backticks gone', () => {
     const problem: PracticeProblem = { ...PROBLEM, statement: 'Given `nums`, return subsets.' };
     const root = setUp(problem);

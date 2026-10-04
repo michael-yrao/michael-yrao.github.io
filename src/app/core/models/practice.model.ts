@@ -50,13 +50,35 @@ export interface PracticeCase {
   readonly example: boolean;
 }
 
-/** Which args of a case hold a graph's edge list, drawn as an example diagram. */
-export interface GraphFigure {
+/** Fields every graph figure shares. */
+interface GraphFigureBase {
   readonly kind: 'graph';
   readonly directed: boolean;
+  /** When 'expected', the edges named by the case's `expected` are drawn as found. */
+  readonly highlight?: 'expected';
+}
+
+/** Which args of a case hold a graph's edge list, drawn as an example diagram. */
+export interface EdgeListFigure extends GraphFigureBase {
   readonly edgesArg: number;
   readonly nodeCountArg: number | null;
+  /** Arg holding the node ids in drawing order (named or isolated nodes). */
+  readonly nodesArg?: number;
 }
+
+/** Which arg of a case holds a square weight matrix (undirected; 0 means no edge). */
+export interface MatrixFigure extends GraphFigureBase {
+  readonly directed: false;
+  readonly matrixArg: number;
+}
+
+/** Which arg of a case holds an adjacency list: entry i lists node i's neighbours. */
+export interface AdjacencyFigure extends GraphFigureBase {
+  readonly adjArg: number;
+  readonly oneBased: boolean;
+}
+
+export type GraphFigure = EdgeListFigure | MatrixFigure | AdjacencyFigure;
 
 /** Which arg of a case holds a matrix, drawn as an example diagram. */
 export interface GridFigure {

@@ -53,20 +53,42 @@ function isArgIndex(value: unknown): boolean {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0;
 }
 
+const EDGE_SOURCE_KEYS = ['edgesArg', 'matrixArg', 'adjArg'] as const;
+
+function isAbsentOrArgIndex(value: unknown): boolean {
+  return value === undefined || isArgIndex(value);
+}
+
+/** A graph figure has exactly one edge source (`edgesArg`, `matrixArg` or `adjArg`, an integer
+ *  argument index), a boolean `directed`, and only the optional keys that source allows:
+ *  `nodeCountArg` (integer or null) and `nodesArg` with `edgesArg`, boolean `oneBased` with
+ *  `adjArg`; `highlight` is only 'expected'. */
+function isValidGraphFigure(value: Record<string, unknown>): boolean {
+  if (typeof value['directed'] !== 'boolean') return false;
+  if (value['highlight'] !== undefined && value['highlight'] !== 'expected') return false;
+  const sources = EDGE_SOURCE_KEYS.filter((key) => value[key] !== undefined);
+  if (sources.length !== 1 || !isArgIndex(value[sources[0]])) return false;
+  if (sources[0] === 'matrixArg' && value['directed'] !== false) return false;
+  const isEdgeList = sources[0] === 'edgesArg';
+  const nodeCountArg = value['nodeCountArg'];
+  const hasEdgeListKeys = (nodeCountArg !== undefined && nodeCountArg !== null) || value['nodesArg'] !== undefined;
+  if (!isEdgeList && hasEdgeListKeys) return false;
+  if (sources[0] !== 'adjArg' && value['oneBased'] !== undefined) return false;
+  const oneBased = value['oneBased'];
+  return (
+    (nodeCountArg === null || isAbsentOrArgIndex(nodeCountArg)) &&
+    isAbsentOrArgIndex(value['nodesArg']) &&
+    (oneBased === undefined || typeof oneBased === 'boolean')
+  );
+}
+
 /** An absent or null `figure` is valid (no diagram); a present one must be a well-formed
- *  graph (boolean `directed`, integer `edgesArg`, integer-or-null `nodeCountArg`) or grid
- *  (integer `gridArg`). */
+ *  graph (see `isValidGraphFigure`) or grid (integer `gridArg`). */
 function isValidFigure(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (!isRecord(value)) return false;
   if (value['kind'] === 'grid') return isArgIndex(value['gridArg']);
-  if (value['kind'] !== 'graph') return false;
-  const nodeCountArg = value['nodeCountArg'];
-  return (
-    typeof value['directed'] === 'boolean' &&
-    isArgIndex(value['edgesArg']) &&
-    (nodeCountArg === null || nodeCountArg === undefined || isArgIndex(nodeCountArg))
-  );
+  return value['kind'] === 'graph' && isValidGraphFigure(value);
 }
 
 /** An absent or null `result` is valid (compare the return); a present one is `return`, or
