@@ -8,9 +8,9 @@ import { CandidateSide } from './candidate-side';
 import { clearCandidateLock, writeCandidateLock } from './candidate-lock';
 import { Authority } from './collab-authority';
 import { InterviewerLoop, LoopIds } from './interviewer-loop';
-import { HostKeys, generateHostKeys, parsePackedKey, parsePublicKey, signProblem, verifyProblem } from './host-key';
+import { HostKeys, parsePackedKey, parsePublicKey, verifyProblem } from './host-key';
 import { HOST_PARAM, JOIN_PARAM } from './interview-params';
-import { InterviewProblem, SignedProblem, parseInterviewProblem } from './interview-problem';
+import { InterviewProblem, SignedProblem } from './interview-problem';
 import { Host, PEER_FACTORY, Transport } from './peer-transport';
 import { ClientConnection, ClientHooks, ClientIdentity, dialWithTimeout } from './session-client';
 import { AuthorityChange, HostEvents, SessionHost } from './session-host';
@@ -25,7 +25,8 @@ import {
   RevisedDoc,
   WireUpdate,
 } from './session-message';
-import { clearSession, loadSession, pruneExpiredSessions, saveSession } from './session-store';
+import { loadPrepared, mirrorPreparedProblem } from './prepared-store';
+import { clearSession, loadSession, pruneExpiredSessions, saveSession, seedInterviewerSession } from './session-store';
 import {
   RECONNECT_DELAY_MS,
   buildRoleUrl,
@@ -50,8 +51,6 @@ export interface SharedDoc {
 
 const INTERVIEWER_START_VERSION = 0;
 const FIRST_EPOCH = 0;
-/** The revision of the problem a session starts with. */
-const FIRST_PROBLEM_REV = 1;
 /** The revision a tab with no problem holds: below every signed one. */
 const NO_PROBLEM_REV = 0;
 
@@ -109,6 +108,8 @@ export class InterviewSessionService {
   private signedProblem: SignedProblem | null = null;
   /** The candidate's marks from the latest roster that had a candidate: the seed when this tab takes over as host. */
   private lastCandidateSeat: CandidateSeat = NO_MARKS;
+  /** The newest problem edit made before this tab hosted or had a ready host connection; null when none waits. */
+  private pendingProblemEdit: InterviewProblem | null = null;
 
   /** Bumped by every start, resume, join and end; async work that finds it changed has been superseded. */
   private generation = 0;
@@ -161,40 +162,6 @@ export class InterviewSessionService {
     onProblem: (signed, problem) => this.holdProblem(signed, problem),
   };
 
-  /** Starts a session on `problem`, which may be empty: its starter seeds the shared doc. Links are built on `inviteBase`'s query. */
-  async start(problem: InterviewProblem, inviteBase: string): Promise<void> {
-    const valid = parseInterviewProblem(problem);
-    if (valid === null) {
-      console.error('Interview start: the problem is not valid, so no session was started');
-      return;
-    }
-    const generation = this.beginSession('interviewer', null);
-    try {
-      const keys = await generateHostKeys();
-      const { sessionId, hostPeerId } = await deriveIds(keys);
-      const signed = await this.signFirstProblem(keys, sessionId, valid);
-      if (generation !== this.generation) {
-        return;
-      }
-      this.adoptIdentity(keys, sessionId, hostPeerId, inviteBase);
-      this.holdProblem(signed, valid);
-      pruneExpiredSessions();
-      // The starter is saved as the authority source: the host loop reads it back as the saved doc.
-      saveSession('interviewer', sessionId, valid.starter, 0, signed);
-    } catch (error) {
-      if (generation === this.generation) {
-        this.fail('Could not create the interview keys', error);
-      }
-      return;
-    }
-    await this.loop.run(generation, null);
-  }
-
-  private async signFirstProblem(keys: HostKeys, sessionId: string, problem: InterviewProblem): Promise<SignedProblem> {
-    const json = JSON.stringify(problem);
-    return { rev: FIRST_PROBLEM_REV, json, signature: await signProblem(keys.privateKey, sessionId, FIRST_PROBLEM_REV, json) };
-  }
-
   /** Joins as an interviewer from a host link: hosts the session if nobody does, otherwise joins the host. */
   async resume(packed: string): Promise<void> {
     if (this.linkValueState() === packed && this.roleState() === 'interviewer') {
@@ -218,6 +185,16 @@ export class InterviewSessionService {
     pruneExpiredSessions();
     this.adoptIdentity(keys, sessionId, hostPeerId, pageUrl);
     await this.adoptStoredProblem();
+    await this.adoptSignedProblem(loadPrepared(sessionId)?.problem);
+    if (begun !== this.generation) {
+      return;
+    }
+    // The host loop reads the saved doc at attach, and `persist()` returns while no doc has synced, so seed it here.
+    const { signedProblem } = this;
+    const problem = this.problemState();
+    if (signedProblem !== null && problem !== null) {
+      seedInterviewerSession(sessionId, problem.starter, signedProblem);
+    }
     await this.loop.run(begun, null);
   }
 
@@ -307,12 +284,23 @@ export class InterviewSessionService {
     if (this.sessionHost !== null) {
       return this.sessionHost.editLocal(problem);
     }
-    if (this.connection === null) {
-      console.error('Interview: no host connection, so the problem edit was dropped');
+    if (this.connection === null || !this.connection.isReady) {
+      // Still dialing, hosting or handshaking: keep the newest edit and send it once this tab hosts or is initialised.
+      this.pendingProblemEdit = problem;
       return Promise.resolve();
     }
     this.connection.sendEditProblem(problem);
     return Promise.resolve();
+  }
+
+  /** Sends the edit held while this tab had no host to take it; it is held again if there is still none. */
+  private flushPendingProblemEdit(): void {
+    const pending = this.pendingProblemEdit;
+    if (pending === null) {
+      return;
+    }
+    this.pendingProblemEdit = null;
+    void this.editProblem(pending);
   }
 
   collabExtensions(): readonly Extension[] {
@@ -380,6 +368,7 @@ export class InterviewSessionService {
     this.problemState.set(null);
     this.signedProblem = null;
     this.lastCandidateSeat = NO_MARKS;
+    this.pendingProblemEdit = null;
     this.hostKeys = null;
     this.publicKey = null;
     this.sessionId = null;
@@ -480,6 +469,7 @@ export class InterviewSessionService {
       this.setStatus('waiting');
     }
     this.refreshInterviewerStatus();
+    this.flushPendingProblemEdit();
   }
 
   // ---- the hosting tab ----
@@ -656,6 +646,9 @@ export class InterviewSessionService {
       this.followCandidateLock(problem.source);
     }
     this.persist();
+    if (this.sessionId !== null) {
+      mirrorPreparedProblem(this.sessionId, signed);
+    }
   }
 
   /** The candidate may not open the solution of the site problem the interview was imported from; none, no lock. */
@@ -697,6 +690,7 @@ export class InterviewSessionService {
     this.setStatus(isCandidate ? 'open' : 'waiting');
     this.refreshInterviewerStatus();
     this.persist();
+    this.flushPendingProblemEdit();
   }
 
   private handleUpdates(wire: readonly WireUpdate[]): void {

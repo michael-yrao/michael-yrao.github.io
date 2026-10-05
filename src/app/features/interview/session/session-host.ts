@@ -1,7 +1,7 @@
 import { Update } from '@codemirror/collab';
 
 import { Authority, authorityVersion, createAuthority, receivePush } from './collab-authority';
-import { HostKeys, createNonce, signChallenge, signProblem, verifyChallenge, verifyProblem } from './host-key';
+import { HostKeys, createNonce, signChallenge, signProblemAt, verifyChallenge, verifyProblem } from './host-key';
 import { InterviewProblem, SignedProblem, parseInterviewProblem } from './interview-problem';
 import { CandidateDialer } from './candidate-listener';
 import { Host, Transport } from './peer-transport';
@@ -406,12 +406,11 @@ export class SessionHost {
       return;
     }
     const rev = (this.signedProblem?.rev ?? 0) + 1;
-    const json = JSON.stringify(problem);
     try {
       const { keys, sessionId } = this.config;
-      const signature = await signProblem(keys.privateKey, sessionId, rev, json);
+      const signed = await signProblemAt(keys.privateKey, sessionId, rev, problem);
       if (!this.isClosed) {
-        this.publishProblem({ rev, json, signature }, problem);
+        this.publishProblem(signed, problem);
       }
     } catch (error) {
       console.error('Interview host: could not sign a problem edit', error);

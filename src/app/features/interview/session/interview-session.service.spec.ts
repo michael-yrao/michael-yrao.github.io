@@ -1,13 +1,14 @@
-import { generateHostKeys, parsePackedKey } from './host-key';
+import { generateHostKeys, parsePackedKey, signProblemAt } from './host-key';
 import { CONNECT_TIMEOUT_MS, RECLAIM_TIMEOUT_MS, RECONNECT_DELAY_MS } from './interview-session.service';
 import { Host, PeerFactory, Transport } from './peer-transport';
+import { PreparedInterviewsService } from './prepared-interviews.service';
+import { PREPARED_KEY_PREFIX, loadPrepared, mirrorPreparedProblem } from './prepared-store';
 import { SessionHost } from './session-host';
 import { NO_MARKS } from './session-message';
 import { hostPeerIdFromPacked, sessionIdFromPublicKey } from './session-id';
 import { saveSession } from './session-store';
 import {
   COARSE_STEP_MS,
-  PAGE_URL,
   PROBLEM,
   REACH_MS,
   SETTLE_MS,
@@ -22,6 +23,7 @@ import {
   joinCandidate,
   linkParam,
   mountEditor,
+  prepareInterview,
   resumeInterviewer,
   settle,
   settleJustAfterDial,
@@ -42,6 +44,7 @@ interface Scenario {
   readonly run: () => Promise<void>;
 }
 
+const preparedKeys = (): string[] => Object.keys(localStorage).filter((key) => key.startsWith(PREPARED_KEY_PREFIX));
 const messageTypes = (received: readonly unknown[]): string[] => received.map((message) => (message as { type: string }).type);
 
 const SCENARIOS: readonly Scenario[] = [
@@ -100,7 +103,7 @@ const SCENARIOS: readonly Scenario[] = [
       const network = createNetwork();
       const interviewer = createPeer(network.factory);
       const candidate = createPeer(network.factory);
-      await interviewer.service.start(PROBLEM, PAGE_URL);
+      await interviewer.service.resume((await prepareInterview()).hostValue);
       interviewer.service.setMyName('  Ada  ');
       const joinValue = linkParam(interviewer.service.inviteUrl(), 'join');
       await candidate.service.join(joinValue);
@@ -516,12 +519,143 @@ describe('InterviewSessionService host reclaim (plan test 9)', () => {
       throw outcome === 'taken' ? { type: 'unavailable-id' } : new Error('network down');
     });
     const service = createPeer({ host, connect: async () => Promise.reject({ type: 'peer-unavailable' }) }).service;
-    void service.start(PROBLEM, PAGE_URL);
+    void prepareInterview().then((prepared) => service.resume(prepared.hostValue));
     // Fine steps first so key generation lands early; the loop then runs on the coarse clock.
     await settle();
     await settle(RECLAIM_TIMEOUT_MS + RECONNECT_DELAY_MS, COARSE_STEP_MS);
 
     expect([service.status(), host.mock.calls.length]).toEqual([expectedStatus, expectedCalls]);
+  });
+});
+
+const EIGHT_DAYS_MS = 8 * 24 * 60 * 60 * 1_000;
+const STORED_REV_ABOVE_PREPARED = 1_000;
+const LOWER_STORED_REV = 1;
+/** Above LOWER_STORED_REV, so a stored entry at that revision is the lower one. */
+const RAISED_PREPARED_REV = 3;
+
+describe('InterviewSessionService prepared interviews', () => {
+  afterEach(() => window.history.replaceState(null, '', '/'));
+
+  it('resumes a prepared interview 8 days later, and a candidate who joins receives its problem', async () => {
+    const network = createNetwork();
+    const prepared = await prepareInterview();
+    vi.setSystemTime(Date.now() + EIGHT_DAYS_MS);
+
+    const interviewer = await resumeInterviewer(network.factory, prepared.hostValue);
+    const candidate = await joinCandidate(network.factory, prepared.joinValue);
+    await settle(REACH_MS);
+
+    expect(interviewer.service.problem()).toEqual(PROBLEM);
+    expect(candidate.service.problem()).toEqual(PROBLEM);
+    expect(candidate.service.sharedDoc()?.doc).toBe(STUB);
+  });
+
+  it('a fresh device resumes from the link, and a candidate receives the problem and the starter', async () => {
+    const network = createNetwork();
+    const prepared = await prepareInterview();
+    localStorage.clear();
+
+    expect(await new PreparedInterviewsService().importLink(prepared.hostValue, prepared.problemValue)).toBe('saved');
+    await resumeInterviewer(network.factory, prepared.hostValue);
+    const candidate = await joinCandidate(network.factory, prepared.joinValue);
+    await settle(REACH_MS);
+
+    expect(candidate.service.problem()).toEqual(PROBLEM);
+    expect(candidate.service.sharedDoc()?.doc).toBe(STUB);
+  });
+
+  it.each([
+    { name: 'prepared alone', storedRev: (): number | null => null, expectedTitle: 'prepared' },
+    { name: 'a lower session entry loses to the prepared problem', storedRev: (): number | null => LOWER_STORED_REV, expectedTitle: 'prepared' },
+    { name: 'a higher session entry wins', storedRev: (preparedRev: number): number | null => preparedRev + STORED_REV_ABOVE_PREPARED, expectedTitle: 'stored' },
+  ])('resume takes the highest revision: $name', async ({ storedRev, expectedTitle }) => {
+    const network = createNetwork();
+    const prepared = await prepareInterview({ ...PROBLEM, title: 'prepared' });
+    const keys = await parsePackedKey(prepared.hostValue);
+    const rev = storedRev(RAISED_PREPARED_REV);
+    if (keys !== null) {
+      mirrorPreparedProblem(
+        prepared.sessionId,
+        await signProblemAt(keys.privateKey, prepared.sessionId, RAISED_PREPARED_REV, { ...PROBLEM, title: 'prepared' }),
+      );
+    }
+    if (keys !== null && rev !== null) {
+      const signed = await signProblemAt(keys.privateKey, prepared.sessionId, rev, { ...PROBLEM, title: 'stored' });
+      saveSession('interviewer', prepared.sessionId, 'stored-doc', 0, signed);
+    }
+
+    const interviewer = await resumeInterviewer(network.factory, prepared.hostValue);
+
+    expect(interviewer.service.problem()?.title).toBe(expectedTitle);
+  });
+
+  it("an interviewer's edit is kept in the prepared store, and 8 days on a joining candidate receives it", async () => {
+    const network = createNetwork();
+    const prepared = await prepareInterview({ ...PROBLEM, title: 'v1' });
+    const firstTab = network.tab();
+    const first = await resumeInterviewer(firstTab.factory, prepared.hostValue);
+    await first.service.editProblem({ ...PROBLEM, title: 'edited' });
+    await settle();
+    expect(JSON.parse(loadPrepared(prepared.sessionId)?.problem.json ?? '{}').title).toBe('edited');
+
+    firstTab.kill();
+    vi.setSystemTime(Date.now() + EIGHT_DAYS_MS);
+    await resumeInterviewer(network.factory, prepared.hostValue);
+    const candidate = await joinCandidate(network.factory, prepared.joinValue);
+    await settle(TAKEOVER_MS);
+
+    expect(candidate.service.problem()?.title).toBe('edited');
+  });
+
+  it('an edit made while the tab is still dialing (no host, no connection) is applied once it hosts', async () => {
+    const network = createNetwork();
+    const prepared = await prepareInterview({ ...PROBLEM, title: 'v1' });
+    let openDial: () => void = () => undefined;
+    const dialGate = new Promise<void>((resolve) => (openDial = resolve));
+    const slowDial: PeerFactory = {
+      ...network.factory,
+      connect: async (peerId) => {
+        await dialGate;
+        return network.factory.connect(peerId);
+      },
+    };
+    const peer = createPeer(slowDial);
+    void peer.service.resume(prepared.hostValue);
+    await settle();
+    expect(peer.service.status()).toBe('connecting');
+
+    await peer.service.editProblem({ ...PROBLEM, title: 'edited' });
+    openDial();
+    await settle(REACH_MS);
+
+    expect(peer.service.status()).toBe('waiting');
+    expect(peer.service.problem()?.title).toBe('edited');
+    expect(JSON.parse(loadPrepared(prepared.sessionId)?.problem.json ?? '{}').title).toBe('edited');
+  });
+
+  it("a candidate's browser never gains a prepared entry", async () => {
+    const network = createNetwork();
+    const interviewer = await startHost(network.factory);
+    const keysBefore = preparedKeys();
+    const candidate = await joinCandidate(network.factory, interviewer.joinValue);
+    await settle(REACH_MS);
+    await interviewer.service.editProblem({ ...PROBLEM, title: 'edited' });
+    await settle();
+
+    expect(candidate.service.problem()?.title).toBe('edited');
+    expect(preparedKeys()).toEqual(keysBefore);
+  });
+
+  it('resume with a problem fragment in the address gives links with no fragment', async () => {
+    const network = createNetwork();
+    const prepared = await prepareInterview();
+    window.history.replaceState(null, '', `/interview?host=${prepared.hostValue}#p=${prepared.problemValue}`);
+
+    const interviewer = await resumeInterviewer(network.factory, prepared.hostValue);
+
+    expect(new URL(interviewer.service.inviteUrl() ?? '').hash).toBe('');
+    expect(new URL(interviewer.service.hostUrl() ?? '').hash).toBe('');
   });
 });
 

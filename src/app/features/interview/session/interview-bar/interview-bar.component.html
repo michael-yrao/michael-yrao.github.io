@@ -25,6 +25,28 @@
               </svg>
             </button>
           }
+          @if (session.role() === 'interviewer') {
+            <button type="button" class="interview-bar__btn interview-bar__btn--icon interview-bar__copy-host" aria-label="Copy interviewer link" title="Copy interviewer link" [disabled]="!interviewerLink()" (click)="copyInterviewerLink()">
+              @switch (hostCopyMark()) {
+                @case ('ok') {
+                  <svg class="interview-bar__icon--ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <path d="M5 12.5l4.5 4.5L19 7.5" />
+                  </svg>
+                }
+                @case ('fail') {
+                  <svg class="interview-bar__icon--fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                }
+                @default {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <rect x="9" y="9" width="11" height="11" rx="2" />
+                    <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+                  </svg>
+                }
+              }
+            </button>
+          }
         } @else {
           <span class="interview-bar__peer-name">{{ slot.name || '—' }}</span>
         }
@@ -121,6 +143,13 @@
       </span>
     }
     @if (session.role() === 'interviewer') {
+      @if (hasPreparedEntry()) {
+        <button type="button" class="interview-bar__btn interview-bar__btn--icon interview-bar__delete-prepared" aria-label="Delete prepared interview" title="Delete prepared interview" (click)="deletePrepared()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+          </svg>
+        </button>
+      }
       <button type="button" class="interview-bar__btn" (click)="endSession()">End</button>
     }
   </div>

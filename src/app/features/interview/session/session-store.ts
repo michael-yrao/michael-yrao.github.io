@@ -94,6 +94,14 @@ export function saveSession(
   }
 }
 
+/** Writes the interviewer entry `start()` writes (the starter at revision 0), unless one is already saved. */
+export function seedInterviewerSession(sessionId: string, starter: string, problem: SignedProblem): void {
+  if (loadSession('interviewer', sessionId) !== null) {
+    return;
+  }
+  saveSession('interviewer', sessionId, starter, 0, problem);
+}
+
 export function clearSession(role: StoredRole, peerId: string): void {
   const key = keyFor(role, peerId);
   try {

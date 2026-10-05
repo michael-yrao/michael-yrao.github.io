@@ -1,4 +1,7 @@
 <section class="practice">
+  @if (message(); as text) {
+    <p class="practice__message">{{ text }}</p>
+  }
   @if (isInSession()) {
     <div class="interview-page__bar">
       <app-interview-bar [problemLabel]="session.problem()?.title ?? ''" />
@@ -93,7 +96,16 @@
     <div class="interview-page__setup">
       <h1 class="interview-page__heading">Interview</h1>
       <app-problem-editor [problem]="form()" [isRejected]="isRejected()" [isSplit]="true" (problemChange)="onFormChange($event)">
-        <button type="button" class="practice__btn practice__btn--primary" [disabled]="isRejected()" (click)="startInterview()">Start interview</button>
+        <label problemEditorHead class="problem-editor__field interview-page__prepared">
+          <span class="practice__label">Prepared</span>
+          <select class="problem-editor__input" (change)="onSelectPrepared($event)">
+            <option value=""></option>
+            @for (item of prepared.list(); track item.sessionId) {
+              <option [value]="item.sessionId">{{ preparedLabel(item) }}</option>
+            }
+          </select>
+        </label>
+        <button type="button" class="practice__btn practice__btn--primary" [disabled]="isRejected()" (click)="prepareInterview()">Prepare</button>
       </app-problem-editor>
     </div>
   }

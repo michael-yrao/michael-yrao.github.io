@@ -8,6 +8,8 @@ import { HostKeys, createNonce, signChallenge } from '../host-key';
 import { InterviewProblem } from '../interview-problem';
 import { InterviewSessionService, RECONNECT_DELAY_MS } from '../interview-session.service';
 import { Host, PEER_FACTORY, PeerFactory, Transport } from '../peer-transport';
+import { PreparedInterviewsService } from '../prepared-interviews.service';
+import { linkProblemValue } from '../prepared-link';
 import { hostPeerIdFromPacked, sessionIdFromPublicKey } from '../session-id';
 
 export const STUB = 'stub';
@@ -308,8 +310,9 @@ export function linkParam(url: string | null, name: 'join' | 'host'): string {
 
 /** An interviewer who started the session and, with no other host, hosts it. */
 export async function startHost(factory: PeerFactory, problem: InterviewProblem = PROBLEM) {
+  const prepared = await prepareInterview(problem);
   const peer = createPeer(factory);
-  await peer.service.start(problem, PAGE_URL);
+  await peer.service.resume(prepared.hostValue);
   const joinValue = linkParam(peer.service.inviteUrl(), 'join');
   const hostValue = linkParam(peer.service.hostUrl(), 'host');
   return {
@@ -320,6 +323,29 @@ export async function startHost(factory: PeerFactory, problem: InterviewProblem 
     hostPeerId: await hostPeerIdFromPacked(hostValue),
     /** The fake time at which this tab began hosting. */
     hostedAt: Date.now(),
+  };
+}
+
+/**
+ * An interview prepared ahead of time, with no session started: both links, and the service that holds it. Its
+ * `localStorage` is the one every tab shares, so a fresh device is `localStorage.clear()` then `importLink`.
+ */
+export async function prepareInterview(problem: InterviewProblem = PROBLEM) {
+  const service = new PreparedInterviewsService();
+  const sessionId = await service.prepare(problem);
+  const packed = sessionId === null ? null : service.packedOf(sessionId);
+  const links = packed === null ? null : await service.linksForKey(packed, PAGE_URL);
+  if (sessionId === null || links === null) {
+    throw new Error('could not prepare an interview');
+  }
+  return {
+    service,
+    sessionId,
+    ...links,
+    hostValue: linkParam(links.interviewerUrl, 'host'),
+    joinValue: linkParam(links.candidateUrl, 'join'),
+    /** The `p=` value in the interviewer link's fragment. */
+    problemValue: linkProblemValue(new URL(links.interviewerUrl).hash) ?? '',
   };
 }
 

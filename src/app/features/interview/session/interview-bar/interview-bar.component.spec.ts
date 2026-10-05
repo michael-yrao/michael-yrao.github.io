@@ -3,6 +3,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
 import { InterviewSessionService } from '../interview-session.service';
+import { MAILTO_MAX_LENGTH } from '../invite-share';
+import { PreparedInterviewsService, type PreparedLinks } from '../prepared-interviews.service';
 import { CandidateSeat, NO_MARKS, Participant } from '../session-message';
 import { InterviewBarComponent } from './interview-bar.component';
 
@@ -18,13 +20,35 @@ const CANDIDATE_EMAIL_LINK = '[aria-label="Email candidate link"]';
 const SLOT = '.interview-bar__slot';
 const SLOT_CHIP = '.interview-bar__chip';
 const SELF_ID = 'me';
+const PACKED_KEY = 'packed-key';
+const INTERVIEWER_URL = 'https://example.com/interview?host=packed#p=problem';
+const PREPARED_LINKS: PreparedLinks = { candidateUrl: INVITE_URL, interviewerUrl: INTERVIEWER_URL };
+const COPY_HOST_BUTTON = '[aria-label="Copy interviewer link"]';
+const DELETE_BUTTON = '[aria-label="Delete prepared interview"]';
+const HOST_EMAIL_LINK = '[aria-label="Email interviewer link"]';
+const CONFIRM_TEXT = 'Delete this prepared interview?';
 
-function setup(storedName: string, hasShare: boolean, roster: readonly Participant[] = []) {
+interface SetupOptions {
+  readonly roster?: readonly Participant[];
+  readonly role?: 'interviewer' | 'candidate';
+  /** What `linksForKey` answers, in call order; the last one repeats. */
+  readonly links?: readonly (Promise<PreparedLinks | null> | PreparedLinks | null)[];
+}
+
+/** Lets the effect run, the mocked service answer and the view settle. */
+async function settle(fixture: ComponentFixture<InterviewBarComponent>): Promise<void> {
+  fixture.detectChanges();
+  await new Promise((resolve) => setTimeout(resolve));
+  fixture.detectChanges();
+}
+
+function setup(storedName: string, hasShare: boolean, options: SetupOptions = {}) {
+  const { roster = [], role = 'interviewer', links = [null] } = options;
   TestBed.resetTestingModule();
   const myName = signal(storedName);
   const setMyName = vi.fn((name: string) => myName.set(name.trim()));
   const stub = {
-    role: signal('interviewer'),
+    role: signal(role),
     status: signal('open'),
     inviteUrl: signal<string | null>(INVITE_URL),
     hostUrl: signal<string | null>(HOST_URL),
@@ -33,12 +57,24 @@ function setup(storedName: string, hasShare: boolean, roster: readonly Participa
     myName,
     setMyName,
     end: vi.fn(),
+    problem: signal<object | null>({}),
+    linkParams: () => ({ host: PACKED_KEY }),
+  };
+  let call = 0;
+  const preparedService = {
+    linksForKey: vi.fn(() => Promise.resolve(links[Math.min(call++, links.length - 1)])),
+    removeForKey: vi.fn(() => Promise.resolve(true)),
   };
   Object.defineProperty(navigator, 'share', { value: hasShare ? () => Promise.resolve() : undefined, configurable: true });
-  TestBed.configureTestingModule({ providers: [{ provide: InterviewSessionService, useValue: stub }] });
+  TestBed.configureTestingModule({
+    providers: [
+      { provide: InterviewSessionService, useValue: stub },
+      { provide: PreparedInterviewsService, useValue: preparedService },
+    ],
+  });
   const fixture = TestBed.createComponent(InterviewBarComponent);
   fixture.detectChanges();
-  return { fixture, setMyName, end: stub.end };
+  return { fixture, setMyName, end: stub.end, problem: stub.problem, preparedService };
 }
 
 const query = (fixture: ComponentFixture<InterviewBarComponent>, selector: string): HTMLElement | null =>
@@ -126,7 +162,7 @@ describe('InterviewBarComponent', () => {
   });
 
   it.each(ROSTER_CASES)('the roster renders N interviewer slots plus the candidate slot: $name', ({ roster, chips, inputSlot }) => {
-    const { fixture } = setup('', false, roster);
+    const { fixture } = setup('', false, { roster });
     const slots = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll(SLOT));
 
     expect(slots.map((slot) => slot.querySelector(SLOT_CHIP)?.textContent?.trim())).toEqual(chips);
@@ -134,7 +170,7 @@ describe('InterviewBarComponent', () => {
   });
 
   it.each(MARK_CASES)('the candidate slot draws its marks: $name', ({ seat, away, paste, isAwayActive }) => {
-    const { fixture } = setup('', false, [{ id: 'c', role: 'candidate', name: 'Cy', ...seat }]);
+    const { fixture } = setup('', false, { roster: [{ id: 'c', role: 'candidate', name: 'Cy', ...seat }] });
 
     const awayMark = query(fixture, AWAY_MARK);
     expect(awayMark?.textContent?.trim() ?? null).toBe(away);
@@ -163,5 +199,93 @@ describe('InterviewBarComponent', () => {
 
     type('');
     expect(link().getAttribute('href')).toMatch(/^mailto:\?/);
+  });
+
+  describe('prepared interviews', () => {
+    const copy = vi.fn<(text: string) => Promise<void>>(() => Promise.resolve());
+
+    beforeEach(() => {
+      copy.mockClear();
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText: copy }, configurable: true });
+    });
+    afterEach(() => Reflect.deleteProperty(navigator, 'clipboard'));
+
+    it.each([
+      { name: 'a prepared entry copies the #p= link', links: PREPARED_LINKS, copied: INTERVIEWER_URL },
+      { name: 'no entry copies the key-only host link', links: null, copied: HOST_URL },
+    ])('Copy interviewer link: $name', async ({ links, copied }) => {
+      const { fixture } = setup('Alex', false, { links: [links] });
+      await settle(fixture);
+      query(fixture, COPY_HOST_BUTTON)!.click();
+      expect(copy).toHaveBeenCalledExactlyOnceWith(copied);
+    });
+
+    it('Copy interviewer link: the candidate has no button', async () => {
+      const { fixture } = setup('Cy', false, { role: 'candidate' });
+      await settle(fixture);
+      expect(query(fixture, COPY_HOST_BUTTON)).toBeNull();
+    });
+
+    it('Copy interviewer link: is disabled from a problem change until the link reloads', async () => {
+      let resolveReload!: (links: PreparedLinks) => void;
+      const reload = new Promise<PreparedLinks>((resolve) => (resolveReload = resolve));
+      const { fixture, problem } = setup('Alex', false, { links: [PREPARED_LINKS, reload] });
+      await settle(fixture);
+      expect((query(fixture, COPY_HOST_BUTTON) as HTMLButtonElement).disabled).toBe(false);
+
+      problem.set({ changed: true });
+      fixture.detectChanges();
+      expect((query(fixture, COPY_HOST_BUTTON) as HTMLButtonElement).disabled).toBe(true);
+
+      resolveReload(PREPARED_LINKS);
+      await settle(fixture);
+      expect((query(fixture, COPY_HOST_BUTTON) as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it('Delete: is hidden without an entry', async () => {
+      const { fixture } = setup('Alex', false, { links: [null] });
+      await settle(fixture);
+      expect(query(fixture, DELETE_BUTTON)).toBeNull();
+    });
+
+    it.each([
+      { name: 'a declined confirm does nothing', isConfirmed: false, removes: 0 },
+      { name: 'an accepted confirm removes the entry, then ends', isConfirmed: true, removes: 1 },
+    ])('Delete: $name', async ({ isConfirmed, removes }) => {
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(isConfirmed);
+      const { fixture, end, preparedService } = setup('Alex', false, { links: [PREPARED_LINKS] });
+      await settle(fixture);
+      query(fixture, DELETE_BUTTON)!.click();
+      await settle(fixture);
+
+      expect(confirm).toHaveBeenCalledExactlyOnceWith(CONFIRM_TEXT);
+      expect(preparedService.removeForKey).toHaveBeenCalledTimes(removes);
+      expect(end).toHaveBeenCalledTimes(removes);
+      if (isConfirmed) {
+        expect(preparedService.removeForKey).toHaveBeenCalledWith(PACKED_KEY);
+        expect(preparedService.removeForKey.mock.invocationCallOrder[0]).toBeLessThan(end.mock.invocationCallOrder[0]);
+      }
+      confirm.mockRestore();
+    });
+
+    it.each([
+      { name: 'prepared and within the limit carries the #p= link', links: PREPARED_LINKS, hasHref: true, body: encodeURIComponent(INTERVIEWER_URL) },
+      {
+        name: 'prepared and over the limit has no href',
+        links: { ...PREPARED_LINKS, interviewerUrl: `https://example.com/#p=${'x'.repeat(MAILTO_MAX_LENGTH)}` },
+        hasHref: false,
+        body: '',
+      },
+      { name: 'no entry keeps the host link', links: null, hasHref: true, body: encodeURIComponent(HOST_URL) },
+    ])('Email interviewer link: $name', async ({ links, hasHref, body }) => {
+      const { fixture } = setup('Alex', false, { links: [links] });
+      query(fixture, EMAIL_TOGGLE)!.click();
+      await settle(fixture);
+      const link = query(fixture, HOST_EMAIL_LINK)!;
+
+      expect(link.getAttribute('href') !== null).toBe(hasHref);
+      expect(link.getAttribute('aria-disabled')).toBe(hasHref ? null : 'true');
+      if (hasHref) expect(link.getAttribute('href')).toContain(body);
+    });
   });
 });

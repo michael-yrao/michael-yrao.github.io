@@ -124,4 +124,5 @@ $name-width: 9rem;
   font-size: var(--text-xs);
   &:invalid { border-color: var(--color-hard); }
 }
-.interview-bar__btn[aria-disabled='true'] { opacity: 0.5; pointer-events: none; }
+.interview-bar__btn[aria-disabled='true'],
+.interview-bar__btn:disabled { opacity: 0.5; pointer-events: none; }

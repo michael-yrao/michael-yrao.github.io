@@ -46,7 +46,7 @@ export const SIGNATURE_LENGTH = encodedLength(SIGNATURE_BYTES);
 const POINT_LENGTH = encodedLength(POINT_BYTES);
 const PACKED_LENGTH = encodedLength(PACKED_BYTES);
 
-function encodeBase64Url(bytes: Uint8Array): string {
+export function encodeBase64Url(bytes: Uint8Array): string {
   let binary = '';
   bytes.forEach((byte) => {
     binary += String.fromCharCode(byte);
@@ -207,6 +207,12 @@ export function verifyChallenge(
 /** Signs a problem's JSON at one revision of one session, so only the interviewer key can make a problem a side will take. */
 export function signProblem(privateKey: CryptoKey, sessionId: string, rev: number, json: string): Promise<string> {
   return signBytes(privateKey, problemBytes(sessionId, rev, json));
+}
+
+/** `problem` serialized and signed at `rev` for `sessionId`: the one place a signed problem is made. */
+export async function signProblemAt(privateKey: CryptoKey, sessionId: string, rev: number, problem: InterviewProblem): Promise<SignedProblem> {
+  const json = JSON.stringify(problem);
+  return { rev, json, signature: await signProblem(privateKey, sessionId, rev, json) };
 }
 
 /**

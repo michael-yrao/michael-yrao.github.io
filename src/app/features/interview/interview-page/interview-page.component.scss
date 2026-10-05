@@ -1,3 +1,5 @@
+@use '../problem-field' as *;
+
 $split-breakpoint: 900px;
 
 .interview-page__setup {
@@ -15,6 +17,13 @@ $split-breakpoint: 900px;
   .interview-page__setup {
     flex: 1 1 auto;
     min-height: 0;
+  }
+
+  // The Prepared picker sits in the editor's head row at the Import field's width, its control filling the field.
+  .interview-page__prepared {
+    flex: 0 0 $import-width;
+    min-width: 0;
+    .problem-editor__input { flex: 1 1 auto; }
   }
 
   // No divider between the panes, so two tracks instead of the practice page's three.

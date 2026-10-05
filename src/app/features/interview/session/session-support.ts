@@ -33,10 +33,11 @@ export function buildRoleUrl(pageUrl: string, keep: string, value: string, drop:
   return url.toString();
 }
 
-/** `pageUrl` re-pointed at the interview page, keeping its query. */
+/** `pageUrl` re-pointed at the interview page, keeping its query and dropping its fragment (an interviewer link's fragment holds the problem). */
 export function interviewUrl(pageUrl: string): string {
   const url = new URL(pageUrl);
   url.pathname = INTERVIEW_PATH;
+  url.hash = '';
   return url.toString();
 }
 

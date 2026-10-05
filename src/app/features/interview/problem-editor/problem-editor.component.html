@@ -9,6 +9,7 @@
         }
       </select>
     </label>
+    <ng-content select="[problemEditorHead]" />
     <label class="problem-editor__field problem-editor__title">
       <span class="practice__label">Title</span>
       <input class="problem-editor__input" type="text" [attr.maxlength]="titleMaxLength" [value]="problem().title" (input)="onTitleInput($event)" />

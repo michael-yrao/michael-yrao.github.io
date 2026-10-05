@@ -38,11 +38,13 @@ class StubEditorComponent {
 }
 
 const MARKER = '[data-marker]';
+const HEAD_MARKER = '[data-head-marker]';
 
-/** Projects a marker button, as the interview page projects its Start button. */
+/** Projects a marker button, as the interview page projects its Start button, and a head field, as it projects Prepared. */
 @Component({
   imports: [ProblemEditorComponent],
-  template: '<app-problem-editor [problem]="problem" [isSplit]="isSplit"><button data-marker>Marker</button></app-problem-editor>',
+  template:
+    '<app-problem-editor [problem]="problem" [isSplit]="isSplit"><span problemEditorHead data-head-marker>Head</span><button data-marker>Marker</button></app-problem-editor>',
 })
 class HostComponent {
   problem = EMPTY_PROBLEM;
@@ -107,6 +109,17 @@ describe('ProblemEditorComponent', () => {
     expect(inWork(MARKER)).toBe(isSplit);
     expect(inWork('[data-field="args"]')).toBe(isSplit);
     expect(root.querySelector(MARKER) !== null).toBe(isSplit);
+  });
+
+  it.each([false, true])('isSplit %s: head-slot content lands in the head row, not the toolbar', (isSplit) => {
+    configure();
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.isSplit = isSplit;
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    expect(root.querySelector(`.problem-editor__head ${HEAD_MARKER}`)).not.toBeNull();
+    expect(root.querySelector(`.practice__toolbar ${HEAD_MARKER}`)).toBeNull();
   });
 
   it.each([
