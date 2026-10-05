@@ -1,0 +1,46 @@
+@if (runState().runError; as runError) {
+  <div class="practice__block">
+    <span class="practice__label practice__label--bad">Error</span>
+    <pre class="practice__value">{{ runError }}</pre>
+  </div>
+}
+
+<div class="practice__tabs" role="tablist" aria-label="Cases">
+  @for (row of rows(); track row.index) {
+    <button
+      type="button"
+      role="tab"
+      class="practice__tab"
+      [class.practice__tab--active]="row.index === activeIndex()"
+      [attr.aria-selected]="row.index === activeIndex()"
+      (click)="selectedChange.emit(row.index)"
+    >
+      <span class="practice__mark" [class.practice__mark--pass]="row.isPass" [class.practice__mark--fail]="!row.isPass">{{ row.mark }}</span>
+      <span class="practice__case">Case {{ row.index + 1 }}</span>
+      @if (row.word) {
+        <span class="practice__word">{{ row.word }}</span>
+      }
+    </button>
+  }
+</div>
+
+@if (activeRow(); as row) {
+  <div class="practice__detail" role="tabpanel">
+    <span class="practice__label">Input</span>
+    <pre class="practice__value">{{ row.input }}</pre>
+    <span class="practice__label">Expected</span>
+    <pre class="practice__value">{{ row.expected }}</pre>
+    @if (row.got !== null) {
+      <span class="practice__label">Got</span>
+      <pre class="practice__value" [class.practice__value--bad]="!row.isPass">{{ row.got }}</pre>
+    }
+    @if (row.errorMessage !== null && row.word) {
+      <span class="practice__label practice__label--bad">{{ row.word }}</span>
+      <pre class="practice__value">{{ row.errorMessage }}</pre>
+    }
+    @if (row.stdout) {
+      <span class="practice__label">stdout</span>
+      <pre class="practice__value">{{ row.stdout }}</pre>
+    }
+  </div>
+}

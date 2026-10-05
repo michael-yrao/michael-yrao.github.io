@@ -1,0 +1,43 @@
+$textarea-min-height: 10rem;
+$split-breakpoint: 900px;
+
+.problem-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.problem-editor__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.problem-editor__input {
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  font: inherit;
+  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  &[aria-invalid='true'] { border-color: var(--color-hard); }
+}
+.problem-editor__textarea {
+  min-height: $textarea-min-height;
+  resize: vertical;
+}
+
+.problem-editor__case {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-sm);
+  .problem-editor__field { flex: 1 1 12rem; }
+}
+
+@media (min-width: $split-breakpoint) {
+  // The editor sizes to its content; the practice page's rule makes it fill a fixed-height column.
+  .problem-editor__field app-code-editor { flex: 0 0 auto; }
+}

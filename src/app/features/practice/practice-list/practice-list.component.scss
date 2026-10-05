@@ -22,8 +22,6 @@ $row-mark-width: 28px;
 
 @include chips.filter-chips;
 
-.practice-list__custom { text-decoration: none; }
-
 .practice-list__rows {
   display: flex;
   flex-direction: column;

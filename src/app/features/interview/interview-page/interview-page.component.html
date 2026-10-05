@@ -1,0 +1,101 @@
+<section class="practice" [class.interview-page--setup]="!isInSession()">
+  @if (isInSession()) {
+    <div class="interview-page__bar">
+      <app-interview-bar [problemLabel]="session.problem()?.title ?? ''" />
+    </div>
+
+    <div class="practice__split interview-page__split" [style.--problem-track]="problemTrack" [style.--work-track]="workTrack">
+      <div class="practice__problem">
+        @if (isInterviewer()) {
+          <div class="practice__tabs" role="tablist">
+            @for (tab of leftTabs; track tab.id) {
+              <button
+                type="button"
+                role="tab"
+                class="practice__tab"
+                [class.practice__tab--active]="leftTab() === tab.id"
+                [attr.aria-selected]="leftTab() === tab.id"
+                (click)="leftTab.set(tab.id)"
+              >{{ tab.label }}</button>
+            }
+          </div>
+        }
+        @if (isInterviewer() && leftTab() === 'edit') {
+          <app-problem-editor [problem]="form()" [isRejected]="isRejected()" (problemChange)="onFormChange($event)" />
+        } @else {
+          @if (session.problem()?.title; as title) {
+            <h1 class="interview-page__title">{{ title }}</h1>
+          }
+          <app-practice-description [problem]="practiceProblem()" />
+        }
+      </div>
+
+      <div class="practice__work">
+        <div class="practice__code-body">
+          @for (shared of sessionDocs(); track shared.epoch) {
+            <app-code-editor
+              [initialText]="shared.doc"
+              [extensions]="sessionExtensions()"
+              (textChange)="onSessionTextChange($event)"
+            />
+          }
+        </div>
+
+        <div class="practice__toolbar">
+          <button type="button" class="practice__btn practice__btn--icon practice__btn--primary" aria-label="Run" title="Run (Ctrl+Enter)" [disabled]="isBusy()" (click)="run()">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+              <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
+            </svg>
+          </button>
+          @if (isLoadingPython()) {
+            <span class="practice__status">Loading Python</span>
+          }
+          <button type="button" class="practice__btn practice__btn--icon" aria-label="Reset" title="Reset" [disabled]="!session.isEditable()" (click)="reset()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M3 12a9 9 0 1 0 3-6.7" />
+              <path d="M3 4v5h5" />
+            </svg>
+          </button>
+        </div>
+
+        <section class="practice__output" aria-label="Output">
+          <div class="practice__toolbar">
+            <span class="practice__label">Output</span>
+            @if (runState()) {
+              <span class="practice__summary">{{ passedCount() }} / {{ runCaseCount() }}</span>
+            }
+          </div>
+          @if (runState(); as state) {
+            <app-case-results class="practice__output-body" [runState]="state" [cases]="ranProblem()?.cases ?? []" [resultCodec]="ranProblem()?.types?.result ?? null" [(selected)]="selectedCase" />
+          } @else if (freeRunState(); as state) {
+            <div class="practice__output-body">
+              @if (state.stdout) {
+                <div class="practice__block">
+                  <span class="practice__label">stdout</span>
+                  <pre class="practice__value">{{ state.stdout }}</pre>
+                </div>
+              }
+              @if (state.error !== null) {
+                <div class="practice__block">
+                  <span class="practice__label practice__label--bad">error</span>
+                  <pre class="practice__value">{{ state.error }}</pre>
+                </div>
+              }
+              @if (state.isTimedOut) {
+                <span class="practice__word">{{ timeLimitWord }}</span>
+              }
+            </div>
+          }
+        </section>
+      </div>
+    </div>
+  } @else {
+    <div class="interview-page__setup">
+      <h1 class="interview-page__heading">Interview</h1>
+      <app-problem-editor [problem]="form()" [isRejected]="isRejected()" (problemChange)="onFormChange($event)" />
+      <div class="practice__toolbar">
+        <button type="button" class="practice__btn practice__btn--primary" [disabled]="isRejected()" (click)="startInterview()">Start interview</button>
+      </div>
+    </div>
+  }
+</section>

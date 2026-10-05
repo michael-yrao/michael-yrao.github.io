@@ -7,21 +7,19 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import type { Extension } from '@codemirror/state';
-import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
 import type { PracticeProblem } from '../../../core/models/practice.model';
 import { RunState } from '../../../core/runner/runner.model';
+import { lockedProblem } from '../../interview/session/candidate-lock';
+import { CaseResultsComponent } from '../case-results/case-results.component';
 import { CodeEditorComponent } from '../code-editor/code-editor.component';
-import { lockedProblem } from '../interview/candidate-lock';
-import { HOST_PARAM, JOIN_PARAM, InterviewSessionService } from '../interview/interview-session.service';
 import { PracticeDescriptionComponent } from '../practice-description/practice-description.component';
 import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
 import { injectPracticeProblem } from '../practice-problem';
 import { clearDraft, draftKey, loadDraft, saveDraft } from '../practice-draft';
-import { countPassed, defaultCaseIndex, toResultRow } from '../practice-results';
+import { countPassed } from '../practice-results';
 import { SAMPLE_CASE_COUNT, shortcutFor } from '../practice-shortcuts';
 import {
   DEFAULT_PROBLEM_SHARE,
@@ -45,16 +43,13 @@ const PERCENT = 100;
   templateUrl: './practice-page.component.html',
   styleUrls: ['./practice-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CodeEditorComponent, PracticeDescriptionComponent, PracticeHeaderComponent],
+  imports: [CaseResultsComponent, CodeEditorComponent, PracticeDescriptionComponent, PracticeHeaderComponent],
   // Host metadata rather than @HostListener: another runtime symbol would land in the initial bundle.
   host: { '(document:keydown)': 'onShortcut($event)' },
 })
 export class PracticePageComponent {
   private readonly runner = inject(PythonRunnerService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  protected readonly session = inject(InterviewSessionService);
 
   // A decorator query, not viewChild(): the signal-query helper is another runtime symbol
   // that would land in the initial bundle.
@@ -75,34 +70,12 @@ export class PracticePageComponent {
   readonly titleUrl = this.view.titleUrl;
   readonly neighbors = this.view.neighbors;
 
-  /** A session pins the page to one problem and never touches the learner's own draft; on any
-   *  other problem the page is a normal practice page. */
-  readonly isInSession = computed(
-    () => this.session.role() !== 'none' && this.session.problem() === this.number(),
-  );
-  readonly isCandidate = computed(() => this.session.role() === 'candidate');
-
   /** The header's Solution tab: hidden while a live candidate lock names this problem. Re-reads
    *  storage whenever the problem number changes. */
   protected readonly hasSolution = computed(() => {
     const number = this.number();
     return this.meta() !== null && !(number !== null && lockedProblem() === number);
   });
-
-  /** The session's shared document as a list of at most one, so the editor block can be keyed on its epoch. */
-  protected readonly sessionDocs = computed(() => {
-    const shared = this.session.sharedDoc();
-    return shared ? [shared] : [];
-  });
-
-  /** Bumps when the interviewer re-initialises the document; 0 outside a session. */
-  private readonly sessionEpoch = computed(() => (this.isInSession() ? (this.session.sharedDoc()?.epoch ?? 0) : 0));
-
-  /** The session editor's extensions, built once per shared document: a fresh array on every
-   *  evaluation would trip the dev-mode no-changes check. */
-  protected readonly sessionExtensions = computed<readonly Extension[]>(() =>
-    this.session.sharedDoc() ? this.session.collabExtensions() : [],
-  );
 
   private readonly key = computed(() => {
     const ref = this.ref();
@@ -120,25 +93,12 @@ export class PracticePageComponent {
 
   /** What the learner has typed (or Reset to) for one problem; null until they do. Tagged
    *  with its problem so it never leaks onto another problem. */
-  private readonly edited = signal<{
-    number: number;
-    text: string;
-    isSession: boolean;
-    epoch: number;
-  } | null>(null);
+  private readonly edited = signal<{ number: number; text: string } | null>(null);
 
   /** The editor's current text. */
   private readonly text = computed(() => {
     const edited = this.edited();
-    if (
-      edited &&
-      edited.number === this.problem()?.number &&
-      edited.isSession === this.isInSession() &&
-      edited.epoch === this.sessionEpoch()
-    ) {
-      return edited.text;
-    }
-    return this.isInSession() ? (this.session.sharedDoc()?.doc ?? '') : this.initialText();
+    return edited && edited.number === this.problem()?.number ? edited.text : this.initialText();
   });
 
   readonly runState = signal<RunState | null>(null);
@@ -147,19 +107,9 @@ export class PracticePageComponent {
     return state === 'loading' || state === 'running';
   });
   readonly isLoadingPython = computed(() => this.runState()?.status === 'loading');
-  readonly rows = computed(() => {
-    const cases = this.problem()?.cases ?? [];
-    const resultCodec = this.problem()?.types?.result ?? null;
-    return (this.runState()?.results ?? []).map((result) => toResultRow(result, cases, resultCodec));
-  });
   readonly passedCount = computed(() => countPassed(this.runState()?.results ?? []));
   /** The tab the learner clicked; null until they click, so the default follows the first failure. */
   readonly selectedCase = signal<number | null>(null);
-  readonly activeIndex = computed(() => {
-    const selected = this.selectedCase();
-    return selected !== null && selected < this.rows().length ? selected : defaultCaseIndex(this.rows());
-  });
-  readonly activeRow = computed(() => this.rows()[this.activeIndex()] ?? null);
   readonly copyMark = signal<string | null>(null);
   /** How many cases the last run was asked to run (all of them, or the sample). */
   readonly runCaseCount = signal(0);
@@ -184,7 +134,6 @@ export class PracticePageComponent {
 
   constructor() {
     this.destroyRef.onDestroy(() => this.flushPendingSave());
-    this.joinFromUrl();
     this.destroyRef.onDestroy(() => {
       if (this.copyTimer) clearTimeout(this.copyTimer);
       this.runSubscription?.unsubscribe();
@@ -194,9 +143,8 @@ export class PracticePageComponent {
   onTextChange(text: string): void {
     const problem = this.problem();
     if (!problem || text === this.text()) return;
-    this.edited.set({ number: problem.number, text, isSession: this.isInSession(), epoch: this.sessionEpoch() });
+    this.edited.set({ number: problem.number, text });
     this.cancelPendingSave();
-    if (this.isInSession()) return;
     this.saveTimer = setTimeout(() => this.flushPendingSave(), DRAFT_SAVE_DELAY_MS);
   }
 
@@ -250,27 +198,10 @@ export class PracticePageComponent {
     const problem = this.problem();
     if (!problem) return;
     this.cancelPendingSave();
-    this.edited.set({
-      number: problem.number,
-      text: problem.stub,
-      isSession: this.isInSession(),
-      epoch: this.sessionEpoch(),
-    });
+    this.edited.set({ number: problem.number, text: problem.stub });
     this.editor?.setText(problem.stub);
     const key = this.key();
-    if (key && !this.isInSession()) clearDraft(key);
-  }
-
-  /** The header's Interview button: the session starts from the stub, never from a draft. */
-  startInterview(): void {
-    const problem = this.problem();
-    if (!problem) return;
-    this.flushPendingSave();
-    this.edited.set(null);
-    this.session
-      .start(problem.number, problem.stub, window.location.href)
-      .then(() => this.showHostLink(problem.number))
-      .catch((err: unknown) => console.error(`Interview start failed for #${problem.number}`, err));
+    if (key) clearDraft(key);
   }
 
   copy(): void {
@@ -317,40 +248,6 @@ export class PracticePageComponent {
     this.setShare(DEFAULT_PROBLEM_SHARE);
   }
 
-  /** Puts the interviewer's resume link in the address bar (other params kept) so a reload resumes the session. */
-  private showHostLink(number: number): void {
-    if (this.session.status() === 'error') return;
-    const hostUrl = this.session.hostUrl();
-    if (!hostUrl) return;
-    const secret = new URL(hostUrl).searchParams.get(HOST_PARAM);
-    if (!secret) return;
-    this.router
-      .navigate(['/practice', number], {
-        queryParams: { [HOST_PARAM]: secret },
-        queryParamsHandling: 'merge',
-        replaceUrl: true,
-      })
-      .catch((err: unknown) => console.error(`Interview host link: navigation failed for #${number}`, err));
-  }
-
-  private joinFromUrl(): void {
-    const query = this.route.snapshot.queryParamMap;
-    const secret = query.get(HOST_PARAM);
-    const peerId = query.get(JOIN_PARAM);
-    const number = this.number();
-    if (number === null) return;
-    if (secret) {
-      this.session
-        .resume(secret, number, () => this.problem()?.stub ?? '')
-        .catch((err: unknown) => console.error(`Interview resume failed for #${number}`, err));
-      return;
-    }
-    if (!peerId) return;
-    this.session
-      .join(peerId, number)
-      .catch((err: unknown) => console.error(`Interview join failed for #${number}`, err));
-  }
-
   private setShare(share: number): void {
     const next = clampShare(share);
     this.problemShare.set(next);
@@ -374,6 +271,6 @@ export class PracticePageComponent {
     if (this.saveTimer === null) return;
     this.cancelPendingSave();
     const key = this.key();
-    if (key && !this.isInSession()) saveDraft(key, this.text());
+    if (key) saveDraft(key, this.text());
   }
 }

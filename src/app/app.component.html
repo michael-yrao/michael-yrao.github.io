@@ -15,7 +15,7 @@
       ☰
     </button>
 
-    <!-- Menu drawer: two sections — primary (Progress, Practice, Library, Events), secondary (Coach, Human) -->
+    <!-- Menu drawer: two sections — primary (Progress, Practice, Interview, Library, Events), secondary (Coach, Human) -->
     @if (isDrawerOpen()) {
       <div class="po-nav__drawer" id="po-nav-menu">
         <div class="po-nav__drawer-section">
@@ -38,6 +38,13 @@
             routerLinkActive="active"
             (click)="closeAll()"
             >Practice</a
+          >
+          <a
+            class="po-nav__drawer-link"
+            routerLink="/interview"
+            routerLinkActive="active"
+            (click)="closeAll()"
+            >Interview</a
           >
           <a
             class="po-nav__drawer-link"

@@ -1,9 +1,8 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Difficulty } from '../../../core/models/algorithm.model';
-import { InterviewBarComponent } from '../interview/interview-bar/interview-bar.component';
 import { CatalogueNeighbors } from '../practice-catalogue';
 
 export type PracticeHeaderTab = 'description' | 'solution';
@@ -16,7 +15,7 @@ export type PracticeHeaderTab = 'description' | 'solution';
   templateUrl: './practice-header.component.html',
   styleUrls: ['./practice-header.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [InterviewBarComponent, NgClass, RouterLink],
+  imports: [NgClass, RouterLink],
 })
 export class PracticeHeaderComponent {
   readonly number = input.required<number | null>();
@@ -26,14 +25,6 @@ export class PracticeHeaderComponent {
   readonly neighbors = input.required<CatalogueNeighbors>();
   readonly activeTab = input.required<PracticeHeaderTab>();
   readonly hasSolution = input.required<boolean>();
-  /** A candidate sees no difficulty and no Solution tab. */
-  readonly isCandidate = input(false);
-  /** A session is pinned to one problem: no prev / next, and the Solution tab opens in a new tab. */
-  readonly isInSession = input(false);
-  /** The practice page hosts the interview controls; the solution page leaves them out. */
-  readonly showInterview = input(false);
-  /** The Interview button inside the bar was pressed. */
-  readonly interviewStart = output<void>();
 
   /** Prev / next stay on the current tab: a problem's solution page links to the next solution page. */
   protected readonly neighborCommands = computed(() => {

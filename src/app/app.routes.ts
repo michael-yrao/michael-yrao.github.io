@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { interviewSolutionGuard } from './features/practice/interview/interview-solution.guard';
+import { interviewSolutionGuard } from './features/interview/session/interview-solution.guard';
 
 export const routes: Routes = [
   {
@@ -55,6 +55,13 @@ export const routes: Routes = [
       import('./features/events/events.routes').then((m) => m.EVENTS_ROUTES),
   },
   {
+    path: 'interview',
+    loadComponent: () =>
+      import('./features/interview/interview-page/interview-page.component').then(
+        (m) => m.InterviewPageComponent,
+      ),
+  },
+  {
     path: 'practice',
     loadComponent: () =>
       import('./features/practice/practice-list/practice-list.component').then(
@@ -62,11 +69,9 @@ export const routes: Routes = [
       ),
   },
   {
+    // Old custom-interview links (?host=, ?join=) still land: a string redirectTo keeps query params.
     path: 'practice/custom',
-    loadComponent: () =>
-      import('./features/practice/custom-interview-page/custom-interview-page.component').then(
-        (m) => m.CustomInterviewPageComponent,
-      ),
+    redirectTo: 'interview',
   },
   {
     path: 'practice/:number',

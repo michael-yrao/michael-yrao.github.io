@@ -1,0 +1,71 @@
+<div class="problem-editor">
+  <label class="problem-editor__field">
+    <span class="practice__label">Import</span>
+    <select class="problem-editor__input" (change)="onImport($event)">
+      <option value=""></option>
+      @for (site of importable(); track site.number) {
+        <option [value]="site.number">#{{ site.number }} {{ site.title }}</option>
+      }
+    </select>
+  </label>
+  <label class="problem-editor__field">
+    <span class="practice__label">Title</span>
+    <input class="problem-editor__input" type="text" [attr.maxlength]="titleMaxLength" [value]="problem().title" (input)="onTitleInput($event)" />
+  </label>
+  <label class="problem-editor__field">
+    <span class="practice__label">Problem</span>
+    <textarea class="problem-editor__input problem-editor__textarea" [attr.maxlength]="statementMaxLength" [value]="problem().statement" (input)="onStatementInput($event)"></textarea>
+  </label>
+  <div class="problem-editor__field" role="group" aria-labelledby="problem-editor-starter-label">
+    <span id="problem-editor-starter-label" class="practice__label" [class.practice__label--bad]="isStarterTooLong()">Starter code</span>
+    <app-code-editor #starterEditor [initialText]="initialStarter()" (textChange)="onStarterChange($event)" />
+  </div>
+  <label class="problem-editor__field">
+    <span class="practice__label">Compare</span>
+    <select class="problem-editor__input" (change)="onCompareChange($event)">
+      @for (mode of compareModes(); track mode) {
+        <option [value]="mode" [selected]="mode === problem().compare">{{ mode }}</option>
+      }
+    </select>
+  </label>
+  <div class="problem-editor__field">
+    <span class="practice__label">Entry</span>
+    @if (problem().entry; as entry) {
+      <span class="practice__summary">{{ entry.className }}.{{ entry.method }}</span>
+    } @else {
+      <span class="practice__summary practice__label--bad">—</span>
+    }
+  </div>
+  <div class="problem-editor__field">
+    <div class="practice__toolbar">
+      <span class="practice__label">Cases</span>
+      <span class="practice__summary" [class.practice__label--bad]="isCasesRejected()" [attr.aria-invalid]="isCasesRejected() ? 'true' : null">{{ rows().length }}</span>
+    </div>
+    @for (row of rows(); track $index; let index = $index) {
+      <div class="problem-editor__case">
+        <label class="problem-editor__field">
+          <span class="practice__label">Args</span>
+          <input class="problem-editor__input" type="text" data-field="args" [value]="displayed(index, 'args', row.args)" [attr.aria-invalid]="isInvalid(index, 'args') ? 'true' : null" (input)="onCaseInput(index, 'args', $event)" />
+        </label>
+        @if (isOps()) {
+          <label class="problem-editor__field">
+            <span class="practice__label">Ops</span>
+            <input class="problem-editor__input" type="text" data-field="ops" [value]="displayed(index, 'ops', row.ops)" [attr.aria-invalid]="isInvalid(index, 'ops') ? 'true' : null" (input)="onCaseInput(index, 'ops', $event)" />
+          </label>
+        }
+        <label class="problem-editor__field">
+          <span class="practice__label">Expected</span>
+          <input class="problem-editor__input" type="text" data-field="expected" [value]="displayed(index, 'expected', row.expected)" [attr.aria-invalid]="isInvalid(index, 'expected') ? 'true' : null" (input)="onCaseInput(index, 'expected', $event)" />
+        </label>
+        <button type="button" class="practice__btn practice__btn--icon" aria-label="Remove case" title="Remove case" (click)="removeCase(index)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+    }
+    <div class="practice__toolbar">
+      <button type="button" class="practice__btn" [disabled]="isAtCasesMax()" (click)="addCase()">Add case</button>
+    </div>
+  </div>
+</div>

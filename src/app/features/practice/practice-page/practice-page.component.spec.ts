@@ -1,5 +1,4 @@
 import { Component, input, output, signal } from '@angular/core';
-import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
@@ -12,7 +11,6 @@ import { GOLD_STANDARD_REPO, LoadStatus } from '../../../core/services/github-fi
 import { PracticeService } from '../../../core/services/practice.service';
 import { ShowcaseService } from '../../../core/services/showcase.service';
 import { CodeEditorComponent } from '../code-editor/code-editor.component';
-import { InterviewSessionService } from '../interview/interview-session.service';
 import { SAMPLE_CASE_COUNT } from '../practice-shortcuts';
 import { PracticePageComponent } from './practice-page.component';
 
@@ -86,7 +84,6 @@ function setUp(
   status: LoadStatus = 'ready',
   error: string | null = null,
   isRealEditor = false,
-  sessionStub?: object,
 ) {
   const params = convertToParamMap({ number });
   const query = convertToParamMap({});
@@ -97,7 +94,6 @@ function setUp(
       { provide: PracticeService, useValue: makePracticeStub(problems, status, error) },
       { provide: ShowcaseService, useValue: { data: signal(null), load: vi.fn(), entryFor: () => null } },
       { provide: PythonRunnerService, useValue: { run: runSpy } },
-      ...(sessionStub ? [{ provide: InterviewSessionService, useValue: sessionStub }] : []),
       {
         provide: ActivatedRoute,
         useValue: {
@@ -177,28 +173,6 @@ describe('PracticePageComponent', () => {
 
     expect(runSpy).toHaveBeenCalledTimes(1);
     expect(runSpy.mock.calls[0][1].cases.length).toBe(caseCount);
-  });
-
-  it('on a problem other than the session problem is a normal practice page showing the draft', () => {
-    const OTHER_PROBLEM = 5;
-    localStorage.setItem(DRAFT_KEY, 'my draft');
-    const sessionStub = {
-      role: signal('interviewer'),
-      status: signal('open'),
-      problem: signal<number | null>(OTHER_PROBLEM),
-      isEditable: signal(true),
-      sharedDoc: signal({ problem: OTHER_PROBLEM, version: 0, doc: 'session code', epoch: 0 }),
-      inviteUrl: signal<string | null>('https://example.com/practice/5?join=abc'),
-      hostUrl: signal<string | null>('https://example.com/practice/5?host=secret'),
-      myName: signal('Alex'),
-      collabExtensions: () => [],
-      end: () => undefined,
-    };
-    const fixture = setUp('90', [PROBLEM], 'ready', null, false, sessionStub);
-
-    const editor = fixture.debugElement.query(By.directive(StubEditorComponent));
-    expect(fixture.componentInstance.isInSession()).toBe(false);
-    expect(editor.componentInstance.initialText()).toBe('my draft');
   });
 
   it("Ctrl+' runs only the first two cases and opens their tabs", () => {

@@ -1,0 +1,28 @@
+$setup-max-width: 48rem;
+$split-breakpoint: 900px;
+
+.interview-page__setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: $setup-max-width;
+  margin-inline: auto;
+}
+
+.interview-page__heading,
+.interview-page__title { margin: 0; }
+
+@media (min-width: $split-breakpoint) {
+  // Setup is a scrolling form, not the two-pane page the practice stylesheet pins to the viewport.
+  .interview-page--setup {
+    height: auto;
+    overflow: visible;
+  }
+
+  // No divider between the panes, so two tracks instead of the practice page's three.
+  .interview-page__split {
+    grid-template-columns: minmax(0, var(--problem-track)) minmax(0, var(--work-track));
+    column-gap: var(--space-md);
+  }
+}

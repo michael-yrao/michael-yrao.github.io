@@ -1,6 +1,6 @@
 import { Codec, CompareMode, EntryKind, PracticeCase, PracticeProblem } from '../models/practice.model';
 
-const COMPARE_MODES: readonly CompareMode[] = ['exact', 'unordered', 'unordered-nested'];
+export const COMPARE_MODES: readonly CompareMode[] = ['exact', 'unordered', 'unordered-nested'];
 const ENTRY_KINDS: readonly EntryKind[] = ['method', 'ops', 'round-trip'];
 const CODECS: readonly Codec[] = [
   'list-node',
@@ -20,7 +20,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** A well-formed entry: names, a known kind when present, and for 'round-trip' the two
  *  method names it chains. */
-function isPracticeEntry(value: unknown): boolean {
+export function isPracticeEntry(value: unknown): boolean {
   if (!isRecord(value)) return false;
   if (typeof value['className'] !== 'string' || typeof value['method'] !== 'string') return false;
   const kind = value['kind'];
@@ -37,7 +37,7 @@ function hasOpsShape(value: Record<string, unknown>): boolean {
   return Array.isArray(args) && args.length === ops.length && args.every(Array.isArray);
 }
 
-function isPracticeCase(value: unknown, isOps: boolean): value is PracticeCase {
+export function isPracticeCase(value: unknown, isOps: boolean): value is PracticeCase {
   if (!isRecord(value)) return false;
   if (!Array.isArray(value['args'])) return false;
   if (!('expected' in value)) return false; // null is a legal expected value
@@ -84,7 +84,7 @@ function isValidGraphFigure(value: Record<string, unknown>): boolean {
 
 /** An absent or null `figure` is valid (no diagram); a present one must be a well-formed
  *  graph (see `isValidGraphFigure`) or grid (integer `gridArg`). */
-function isValidFigure(value: unknown): boolean {
+export function isValidFigure(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (!isRecord(value)) return false;
   if (value['kind'] === 'grid') return isArgIndex(value['gridArg']);
@@ -93,7 +93,7 @@ function isValidFigure(value: unknown): boolean {
 
 /** An absent or null `result` is valid (compare the return); a present one is `return`, or
  *  `arg` / `arg-prefix` with an integer argument index. */
-function isValidResult(value: unknown): boolean {
+export function isValidResult(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (!isRecord(value)) return false;
   if (value['kind'] === 'return') return true;
@@ -111,7 +111,7 @@ function isArgCodecOrNull(value: unknown): boolean {
 
 /** An absent or null `types` is valid (plain JSON); a present one has an `args` array of known
  *  codecs or nulls and a known-codec-or-null `result`. */
-function isValidTypes(value: unknown): boolean {
+export function isValidTypes(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (!isRecord(value)) return false;
   const args = value['args'];
