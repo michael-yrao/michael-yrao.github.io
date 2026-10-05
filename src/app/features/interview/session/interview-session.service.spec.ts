@@ -1,8 +1,7 @@
 import { generateHostKeys, parsePackedKey, signProblemAt } from './host-key';
 import { CONNECT_TIMEOUT_MS, RECLAIM_TIMEOUT_MS, RECONNECT_DELAY_MS } from './interview-session.service';
 import { Host, PeerFactory, Transport } from './peer-transport';
-import { PreparedInterviewsService } from './prepared-interviews.service';
-import { PREPARED_KEY_PREFIX, loadPrepared, mirrorPreparedProblem } from './prepared-store';
+import { PREPARED_KEY_PREFIX, loadPrepared, mirrorPreparedProblem, savePrepared } from './prepared-store';
 import { SessionHost } from './session-host';
 import { NO_MARKS } from './session-message';
 import { hostPeerIdFromPacked, sessionIdFromPublicKey } from './session-id';
@@ -551,12 +550,16 @@ describe('InterviewSessionService prepared interviews', () => {
     expect(candidate.service.sharedDoc()?.doc).toBe(STUB);
   });
 
-  it('a fresh device resumes from the link, and a candidate receives the problem and the starter', async () => {
+  it('a device seeded with the prepared entry resumes, and a candidate receives the problem and the starter', async () => {
     const network = createNetwork();
     const prepared = await prepareInterview();
+    const entry = loadPrepared(prepared.sessionId);
+    if (entry === null) {
+      throw new Error('the prepared entry was not saved');
+    }
     localStorage.clear();
 
-    expect(await new PreparedInterviewsService().importLink(prepared.hostValue, prepared.problemValue)).toBe('saved');
+    savePrepared(prepared.sessionId, entry);
     await resumeInterviewer(network.factory, prepared.hostValue);
     const candidate = await joinCandidate(network.factory, prepared.joinValue);
     await settle(REACH_MS);
@@ -647,10 +650,10 @@ describe('InterviewSessionService prepared interviews', () => {
     expect(preparedKeys()).toEqual(keysBefore);
   });
 
-  it('resume with a problem fragment in the address gives links with no fragment', async () => {
+  it('resume with a fragment in the address gives links with no fragment', async () => {
     const network = createNetwork();
     const prepared = await prepareInterview();
-    window.history.replaceState(null, '', `/interview?host=${prepared.hostValue}#p=${prepared.problemValue}`);
+    window.history.replaceState(null, '', `/interview?host=${prepared.hostValue}#stale-fragment`);
 
     const interviewer = await resumeInterviewer(network.factory, prepared.hostValue);
 

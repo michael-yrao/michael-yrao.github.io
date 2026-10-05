@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { FetchImpl } from './aggregate';
-import { createWorker } from './index';
+import worker, { createWorker, type Env } from './index';
 import { SOURCES } from './sources';
 
 // createWorker's memo builds one feed by fetching every configured source; the memo tests
@@ -27,7 +27,7 @@ function makeWorker(overrides: { fetchImpl?: FetchImpl; now?: () => number } = {
 
 function request(method: string, origin?: string): Request {
   const headers = origin ? { Origin: origin } : undefined;
-  return new Request('https://po-events.example.workers.dev/', { method, headers });
+  return new Request('https://po-api.example.workers.dev/', { method, headers });
 }
 
 describe('createWorker CORS', () => {
@@ -96,5 +96,29 @@ describe('createWorker memo', () => {
     const body = (await response.json()) as { schemaVersion: number; events: unknown[] };
     expect(body.schemaVersion).toBe(1);
     expect(Array.isArray(body.events)).toBe(true);
+  });
+});
+
+describe('default export routing', () => {
+  const emptyKv = { get: async () => null, put: async () => {}, delete: async () => {} };
+  const env = { INTERVIEWS: emptyKv } as unknown as Env;
+  const unknownId = 'A'.repeat(32);
+
+  it('serves the events feed, with its shared-cache header, for a non-interviews path', async () => {
+    vi.stubGlobal('fetch', async () => new Response(validIcalBody, { status: 200 }));
+    try {
+      const response = await worker.fetch(new Request('https://x.example/'), env);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Cache-Control')).toBe('public, max-age=300, s-maxage=300');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('sends an /interviews/ path to the interview handler', async () => {
+    const response = await worker.fetch(new Request(`https://x.example/interviews/c/${unknownId}`), env);
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: 'not-found' });
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
   });
 });

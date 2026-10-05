@@ -1,6 +1,7 @@
 import type { PreparedSummary } from '../session/prepared-interviews.service';
 
-export const LINK_UNREADABLE_MESSAGE = 'The problem in this link could not be read.';
+/** Said wherever a request to the server could not be made. */
+export const OFFLINE_MESSAGE = 'Could not reach the server.';
 export const SAVE_REFUSED_MESSAGE = 'This browser could not save the prepared interview.';
 
 /** A picker option: `<title> · <date prepared>`, or the date alone when the title is empty. */

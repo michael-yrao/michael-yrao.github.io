@@ -2,9 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  Injector,
   ViewChild,
-  afterNextRender,
   computed,
   effect,
   inject,
@@ -12,7 +10,7 @@ import {
   untracked,
 } from '@angular/core';
 import type { Extension } from '@codemirror/state';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import type { PracticeProblem } from '../../../core/models/practice.model';
@@ -28,13 +26,13 @@ import { toPracticeProblem } from '../problem-import';
 import { ProblemEditorComponent } from '../problem-editor/problem-editor.component';
 import { InterviewBarComponent } from '../session/interview-bar/interview-bar.component';
 import { parseInterviewProblem, type InterviewProblem } from '../session/interview-problem';
-import { HOST_PARAM, JOIN_PARAM, InterviewSessionService } from '../session/interview-session.service';
+import { CODE_PARAM, HOST_PARAM, JOIN_PARAM } from '../session/interview-params';
+import { InterviewSessionService } from '../session/interview-session.service';
 import { PreparedInterviewsService } from '../session/prepared-interviews.service';
-import { linkProblemValue } from '../session/prepared-link';
-import { loadInterviewDraft, saveInterviewDraft } from './interview-draft';
-import { LINK_UNREADABLE_MESSAGE, SAVE_REFUSED_MESSAGE, preparedLabel } from './prepared-picker';
+import { EMPTY_PROBLEM } from '../interview-prepare/interview-draft';
+import { LANDING_MESSAGES } from './landing-messages';
 
-/** How long edits rest before the draft is saved (setup) or the problem is published (in a session). */
+/** How long edits rest before the problem is published in a session. */
 export const PUBLISH_DELAY_MS = 500;
 /** How many unanswered publishes are remembered; a tab whose publishes are being dropped stops growing the list. */
 const UNECHOED_MAX = 8;
@@ -54,7 +52,7 @@ const errorMessage = (err: unknown): string => (err instanceof Error ? err.messa
 const isCaseRunnable = (problem: InterviewProblem | null): boolean =>
   problem !== null && problem.cases.length > 0 && problem.entry !== null;
 
-/** The interviewer's problem: a setup form, then in a session the problem (editable by the
+/** The interview page: a code landing, then in a session the problem (editable by the
  *  interviewer) beside the shared editor, with Run over the cases or a free run. */
 @Component({
   selector: 'app-interview-page',
@@ -67,6 +65,7 @@ const isCaseRunnable = (problem: InterviewProblem | null): boolean =>
     InterviewBarComponent,
     PracticeDescriptionComponent,
     ProblemEditorComponent,
+    RouterLink,
   ],
   // Host metadata rather than @HostListener: another runtime symbol would land in the initial bundle.
   host: { '(document:keydown)': 'onShortcut($event)' },
@@ -75,9 +74,8 @@ export class InterviewPageComponent {
   private readonly runner = inject(PythonRunnerService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly injector = inject(Injector);
   protected readonly session = inject(InterviewSessionService);
-  protected readonly prepared = inject(PreparedInterviewsService);
+  private readonly prepared = inject(PreparedInterviewsService);
 
   // Decorator queries, not viewChild(): the signal-query helper is another runtime symbol
   // that would land in the initial bundle.
@@ -88,14 +86,13 @@ export class InterviewPageComponent {
   protected readonly workTrack = WORK_TRACK;
   protected readonly timeLimitWord = TIME_LIMIT_WORD;
   protected readonly leftTabs = LEFT_TABS;
-  protected readonly preparedLabel = preparedLabel;
 
-  /** The problem editor's problem: the saved draft at first, then whatever is typed or adopted. */
-  protected readonly form = signal<InterviewProblem>(loadInterviewDraft());
+  /** The in-session problem editor's problem: empty until the session's problem arrives, then whatever is typed or adopted. */
+  protected readonly form = signal<InterviewProblem>(EMPTY_PROBLEM);
   protected readonly leftTab = signal<LeftTab>('edit');
   /** True while the form holds a problem the session would reject (an over-long starter or problem). */
   protected readonly isRejected = signal(false);
-  /** A link that could not be read or a save the browser refused. */
+  /** Why the entered code did not open an interview. */
   protected readonly message = signal<string | null>(null);
 
   protected readonly isInSession = computed(() => this.session.role() !== 'none');
@@ -143,9 +140,8 @@ export class InterviewPageComponent {
   protected readonly runCaseCount = computed(() => this.ranProblem()?.cases.length ?? 0);
 
   private runSubscription: Subscription | null = null;
-  /** The one debounce timer: it saves the draft before the session starts and publishes in it. */
+  /** The one debounce timer: it publishes the form's problem in a session. */
   private timer: ReturnType<typeof setTimeout> | null = null;
-  private wasInSession = false;
   /** The JSON of each problem this tab published that has not come back from the session yet, oldest first. */
   private unechoed: readonly string[] = [];
   /** The newest problem this tab knows: the last it published, or the last one it received from elsewhere. */
@@ -158,8 +154,7 @@ export class InterviewPageComponent {
     });
     this.restoreUrlParams();
     this.adoptPublishedProblem();
-    this.reloadFormOnEnd();
-    this.joinFromUrl();
+    this.enterFromUrl();
   }
 
   protected onFormChange(next: InterviewProblem): void {
@@ -195,24 +190,10 @@ export class InterviewPageComponent {
     this.sessionEditor?.setText(this.session.problem()?.starter ?? '');
   }
 
-  /** Resumes the prepared interview chosen in the picker; the picker returns to blank. */
-  protected onSelectPrepared(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const id = select.value;
-    select.value = '';
-    if (id === '') return;
-    this.flushPending();
-    this.message.set(null);
-    const packed = this.prepared.packedOf(id);
-    if (packed === null) return;
-    this.session.resume(packed).catch((err: unknown) => console.error('Interview: resume failed', err));
-  }
-
-  /** Prepares an interview on the form, then resumes it; the draft is left as it is. */
-  protected prepareInterview(): void {
-    this.flushPending();
-    if (this.isRejected()) return;
-    this.prepareAndResume().catch((err: unknown) => console.error('Interview: prepare failed', err));
+  /** Enters the typed code: an interviewer code resumes its interview, a candidate code joins; anything else says why not. */
+  protected onSubmitCode(event: Event, input: string): void {
+    event.preventDefault();
+    this.enterCode(input).catch((err: unknown) => console.error('Interview: entering a code failed', err));
   }
 
   private runCases(problem: PracticeProblem): void {
@@ -258,39 +239,20 @@ export class InterviewPageComponent {
     const valid = parseInterviewProblem(this.form());
     this.isRejected.set(valid === null);
     if (valid === null) return;
-    const role = this.session.role();
-    if (role === 'none') saveInterviewDraft(this.form());
-    else if (role === 'interviewer') this.publish(valid);
+    if (this.session.role() === 'interviewer') this.publish(valid);
   }
 
-  private async prepareAndResume(): Promise<void> {
-    const id = await this.prepared.prepare(this.form());
-    const packed = id === null ? null : this.prepared.packedOf(id);
-    if (packed === null) {
-      this.message.set(SAVE_REFUSED_MESSAGE);
-      return;
+  private async enterCode(input: string): Promise<void> {
+    const entry = await this.prepared.enterCode(input);
+    if (entry.status === 'interviewer') {
+      this.message.set(null);
+      await this.session.resume(entry.packed);
+    } else if (entry.status === 'candidate') {
+      this.message.set(null);
+      await this.session.join(entry.publicRaw);
+    } else {
+      this.message.set(LANDING_MESSAGES[entry.status]);
     }
-    this.message.set(null);
-    await this.session.resume(packed);
-  }
-
-  /** When the interview ends the form shows the draft again, so in-session edits are not saved into it, and the picker is re-read. */
-  private reloadFormOnEnd(): void {
-    effect(() => {
-      const role = this.session.role();
-      untracked(() => {
-        if (role !== 'none') {
-          this.wasInSession = true;
-          return;
-        }
-        if (!this.wasInSession) return;
-        this.wasInSession = false;
-        this.clearTimer();
-        this.form.set(loadInterviewDraft());
-        this.isRejected.set(false);
-        this.prepared.refresh();
-      });
-    });
   }
 
   /** Sends the form to the session. A starter the interviewer changed reaches the shared document
@@ -328,7 +290,7 @@ export class InterviewPageComponent {
     });
   }
 
-  /** Puts the session's link parameter in the address bar (other params kept) so a reload resumes or rejoins it. */
+  /** Puts the session's link parameter in the address bar (other params kept, a typed `code` dropped) so a reload resumes or rejoins it without the network. */
   private restoreUrlParams(): void {
     effect(() => {
       const role = this.session.role();
@@ -336,11 +298,12 @@ export class InterviewPageComponent {
       if (role === 'none' || Object.keys(linkParams).length === 0) return;
       untracked(() => {
         const query = this.router.parseUrl(this.router.url).queryParamMap;
-        if (query.has(HOST_PARAM) || query.has(JOIN_PARAM)) return;
+        const isAddressCurrent = !query.has(CODE_PARAM) && Object.entries(linkParams).every(([key, value]) => query.get(key) === value);
+        if (isAddressCurrent) return;
         this.router
           .navigate([], {
             relativeTo: this.route,
-            queryParams: linkParams,
+            queryParams: { [CODE_PARAM]: null, ...linkParams },
             queryParamsHandling: 'merge',
             replaceUrl: true,
           })
@@ -349,39 +312,14 @@ export class InterviewPageComponent {
     });
   }
 
-  private joinFromUrl(): void {
+  /** Opens what the address names: `?code=` enters like the form, `?host=` resumes, `?join=` joins. */
+  private enterFromUrl(): void {
     const query = this.route.snapshot.queryParamMap;
+    const code = query.get(CODE_PARAM);
     const secret = query.get(HOST_PARAM);
     const peerId = query.get(JOIN_PARAM);
-    if (secret) {
-      this.resumeFromLink(secret).catch((err: unknown) => console.error('Interview: resume failed', err));
-      return;
-    }
-    if (!peerId) return;
-    this.session.join(peerId).catch((err: unknown) => console.error('Interview: join failed', err));
-  }
-
-  /** An interviewer link may carry its problem in the fragment: save it here, drop it from the address bar, then resume. */
-  private async resumeFromLink(secret: string): Promise<void> {
-    const value = linkProblemValue(this.route.snapshot.fragment ?? null);
-    if (value !== null) {
-      const result = await this.prepared.importLink(secret, value);
-      if (result === 'invalid') this.message.set(LINK_UNREADABLE_MESSAGE);
-      else if (result === 'unsaved') this.message.set(SAVE_REFUSED_MESSAGE);
-      this.stripFragment();
-    }
-    await this.session.resume(secret);
-  }
-
-  /** After the next render, so the navigation does not collide with the one that opened the page. */
-  private stripFragment(): void {
-    afterNextRender(
-      () => {
-        this.router
-          .navigate([], { relativeTo: this.route, queryParamsHandling: 'preserve', replaceUrl: true })
-          .catch((err: unknown) => console.error('Interview: fragment removal failed', err));
-      },
-      { injector: this.injector },
-    );
+    if (code) this.enterCode(code).catch((err: unknown) => console.error('Interview: entering a code failed', err));
+    else if (secret) this.session.resume(secret).catch((err: unknown) => console.error('Interview: resume failed', err));
+    else if (peerId) this.session.join(peerId).catch((err: unknown) => console.error('Interview: join failed', err));
   }
 }

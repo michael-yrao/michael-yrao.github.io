@@ -4,12 +4,12 @@ import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { vi } from 'vitest';
 
-import { HostKeys, createNonce, signChallenge } from '../host-key';
+import { InterviewDirectoryService } from '../../directory/interview-directory.service';
+import { HostKeys, createNonce, parsePackedKey, signChallenge } from '../host-key';
 import { InterviewProblem } from '../interview-problem';
 import { InterviewSessionService, RECONNECT_DELAY_MS } from '../interview-session.service';
 import { Host, PEER_FACTORY, PeerFactory, Transport } from '../peer-transport';
 import { PreparedInterviewsService } from '../prepared-interviews.service';
-import { linkProblemValue } from '../prepared-link';
 import { hostPeerIdFromPacked, sessionIdFromPublicKey } from '../session-id';
 
 export const STUB = 'stub';
@@ -286,12 +286,23 @@ export function endAllServices(): void {
   services.splice(0).forEach((service) => service.end());
 }
 
+/** A directory that is switched off: nothing leaves the test, and every entry stays in this browser. */
+const DISABLED_DIRECTORY = {
+  isEnabled: false,
+  lookupCandidate: () => Promise.resolve({ status: 'disabled' }),
+  fetchInterviewer: () => Promise.resolve({ status: 'disabled' }),
+  push: () => Promise.resolve({ outcome: 'disabled' }),
+  remove: () => Promise.resolve('disabled'),
+} as unknown as InterviewDirectoryService;
+
 export function createPeer(factory: PeerFactory) {
   const navigate = vi.fn().mockResolvedValue(true);
   const injector = Injector.create({
     providers: [
       { provide: PEER_FACTORY, useValue: factory },
       { provide: Router, useValue: { navigate } },
+      { provide: InterviewDirectoryService, useValue: DISABLED_DIRECTORY },
+      { provide: PreparedInterviewsService, useClass: PreparedInterviewsService },
       { provide: InterviewSessionService, useClass: InterviewSessionService },
     ],
   });
@@ -327,26 +338,23 @@ export async function startHost(factory: PeerFactory, problem: InterviewProblem 
 }
 
 /**
- * An interview prepared ahead of time, with no session started: both links, and the service that holds it. Its
- * `localStorage` is the one every tab shares, so a fresh device is `localStorage.clear()` then `importLink`.
+ * An interview prepared ahead of time, with no session started: both link values, and the service that holds it. Its
+ * `localStorage` is the one every tab shares, so a fresh device is `localStorage.clear()` then `savePrepared`.
  */
 export async function prepareInterview(problem: InterviewProblem = PROBLEM) {
-  const service = new PreparedInterviewsService();
+  const service = Injector.create({
+    providers: [
+      { provide: InterviewDirectoryService, useValue: DISABLED_DIRECTORY },
+      { provide: PreparedInterviewsService, useClass: PreparedInterviewsService },
+    ],
+  }).get(PreparedInterviewsService);
   const sessionId = await service.prepare(problem);
   const packed = sessionId === null ? null : service.packedOf(sessionId);
-  const links = packed === null ? null : await service.linksForKey(packed, PAGE_URL);
-  if (sessionId === null || links === null) {
+  const keys = packed === null ? null : await parsePackedKey(packed);
+  if (sessionId === null || packed === null || keys === null) {
     throw new Error('could not prepare an interview');
   }
-  return {
-    service,
-    sessionId,
-    ...links,
-    hostValue: linkParam(links.interviewerUrl, 'host'),
-    joinValue: linkParam(links.candidateUrl, 'join'),
-    /** The `p=` value in the interviewer link's fragment. */
-    problemValue: linkProblemValue(new URL(links.interviewerUrl).hash) ?? '',
-  };
+  return { service, sessionId, hostValue: packed, joinValue: keys.publicRaw };
 }
 
 export async function resumeInterviewer(factory: PeerFactory, hostValue: string) {

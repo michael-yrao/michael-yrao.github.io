@@ -1,7 +1,4 @@
-<section class="practice">
-  @if (message(); as text) {
-    <p class="practice__message">{{ text }}</p>
-  }
+<section class="practice" [class.interview-page--landing]="!isInSession()">
   @if (isInSession()) {
     <div class="interview-page__bar">
       <app-interview-bar [problemLabel]="session.problem()?.title ?? ''" />
@@ -93,20 +90,29 @@
       </div>
     </div>
   } @else {
-    <div class="interview-page__setup">
+    <div class="interview-page__landing">
       <h1 class="interview-page__heading">Interview</h1>
-      <app-problem-editor [problem]="form()" [isRejected]="isRejected()" [isSplit]="true" (problemChange)="onFormChange($event)">
-        <label problemEditorHead class="problem-editor__field interview-page__prepared">
-          <span class="practice__label">Prepared</span>
-          <select class="problem-editor__input" (change)="onSelectPrepared($event)">
-            <option value=""></option>
-            @for (item of prepared.list(); track item.sessionId) {
-              <option [value]="item.sessionId">{{ preparedLabel(item) }}</option>
-            }
-          </select>
-        </label>
-        <button type="button" class="practice__btn practice__btn--primary" [disabled]="isRejected()" (click)="prepareInterview()">Prepare</button>
-      </app-problem-editor>
+      <div class="interview-page__panels">
+        <section class="interview-page__panel">
+          <h2 class="interview-page__panel-heading">Join an interview</h2>
+          <p class="interview-page__panel-hint">Enter the code you were given.</p>
+          <form class="interview-page__code" (submit)="onSubmitCode($event, codeInput.value)">
+            <label class="problem-editor__field interview-page__code-field">
+              <span class="practice__label">Code</span>
+              <input #codeInput class="problem-editor__input" type="text" autocomplete="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="practice__btn practice__btn--primary">Join</button>
+          </form>
+          @if (message(); as text) {
+            <p class="practice__message">{{ text }}</p>
+          }
+        </section>
+        <section class="interview-page__panel">
+          <h2 class="interview-page__panel-heading">Prepare an interview</h2>
+          <p class="interview-page__panel-hint">Write a problem and get the codes to send.</p>
+          <a class="practice__btn interview-page__prepare-link" routerLink="/interview/prepare">Open the editor</a>
+        </section>
+      </div>
     </div>
   }
 </section>

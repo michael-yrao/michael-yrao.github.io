@@ -1,4 +1,4 @@
-﻿import { ApplicationRef, Component, input, output, signal } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
@@ -12,14 +12,14 @@ import { toPracticeProblem } from '../problem-import';
 import { InterviewBarComponent } from '../session/interview-bar/interview-bar.component';
 import { STARTER_MAX_LENGTH, type InterviewProblem } from '../session/interview-problem';
 import { InterviewSessionService } from '../session/interview-session.service';
-import { PreparedInterviewsService, type LinkImport } from '../session/prepared-interviews.service';
-import { INTERVIEW_DRAFT_KEY } from './interview-draft';
+import { PreparedInterviewsService, type CodeEntry } from '../session/prepared-interviews.service';
 import { InterviewPageComponent, PUBLISH_DELAY_MS } from './interview-page.component';
 
 const DOC = 'print(1)';
 const RUN_BUTTON = 'button[aria-label="Run"]';
-const PREPARE_BUTTON = 'button.practice__btn--primary:not([aria-label])';
-const BUTTONS = 'button.practice__btn';
+const CODE_INPUT = '.interview-page__code input';
+const ENTER_BUTTON = '.interview-page__code button';
+const PREPARE_LINK = 'a[href="/interview/prepare"]';
 const TAB = '.practice__tab';
 const PROBLEM_EDITOR = 'app-problem-editor';
 const DESCRIPTION = 'app-practice-description';
@@ -86,7 +86,7 @@ function fakeSession(role: string, problem: InterviewProblem | null, doc = DOC) 
     hostUrl: signal<string | null>(null),
     myName: signal(''),
     roster: signal([]),
-    linkParams: () => ({}),
+    linkParams: signal<Record<string, string | undefined>>({}),
     collabExtensions: () => [],
     editProblem: vi.fn().mockResolvedValue(undefined),
     resume: vi.fn().mockResolvedValue(undefined),
@@ -95,49 +95,28 @@ function fakeSession(role: string, problem: InterviewProblem | null, doc = DOC) 
   };
 }
 
-const SAVED_ID = 'p1';
-const NEW_ID = 'p-new';
-const PACKED = `packed-${SAVED_ID}`;
-const SAVED = { ...PROBLEM, title: 'Saved' };
-const DRAFT = { ...PROBLEM, title: 'Draft' };
-const EDITED = { ...PROBLEM, title: 'Edited' };
-const SECRET = 'secret-key';
-const START_LABEL = 'Start interview';
-const SELECT = '.interview-page__prepared select';
-const UNREADABLE = 'The problem in this link could not be read.';
-const SAVE_REFUSED = 'This browser could not save the prepared interview.';
+const PACKED = 'packed-key';
+const PUBLIC_RAW = 'public-raw';
+const CODE = 'K7QF-2M9X';
 const messageOf = (root: HTMLElement): string | null => root.querySelector('.practice__message')?.textContent?.trim() ?? null;
 
-/** A stand-in for the prepared-interview store: one saved interview, `SAVED_ID`. */
-function fakePrepared(importResult: LinkImport = 'saved') {
-  return {
-    list: signal([{ sessionId: SAVED_ID, title: SAVED.title, createdAt: 0 }]),
-    prepare: vi.fn().mockResolvedValue(NEW_ID),
-    packedOf: vi.fn((id: string) => `packed-${id}`),
-    importLink: vi.fn().mockResolvedValue(importResult),
-    refresh: vi.fn(),
-  };
+/** A stand-in for the prepared-interview store: every code answers with `entry`. */
+function fakePrepared(entry: CodeEntry = { status: 'invalid' }) {
+  return { enterCode: vi.fn().mockResolvedValue(entry) };
 }
 
 interface SetUpOptions {
   readonly query?: Record<string, string>;
-  readonly fragment?: string | null;
   readonly prepared?: ReturnType<typeof fakePrepared>;
 }
 
 /** Lets every pending promise settle (real timers only). */
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve));
 
-function selectPrepared(root: HTMLElement, id: string): void {
-  const select = root.querySelector<HTMLSelectElement>(SELECT)!;
-  select.value = id;
-  select.dispatchEvent(new Event('change'));
-}
-
 function setUp(session: ReturnType<typeof fakeSession>, options: SetUpOptions = {}) {
   const runner = { run: vi.fn(() => of()), runFree: vi.fn(() => of()) };
   const prepared = options.prepared ?? fakePrepared();
-  const snapshot = { queryParamMap: convertToParamMap(options.query ?? {}), fragment: options.fragment ?? null };
+  const snapshot = { queryParamMap: convertToParamMap(options.query ?? {}) };
   TestBed.configureTestingModule({
     imports: [InterviewPageComponent],
     providers: [
@@ -176,13 +155,12 @@ const ROLE_VIEWS: readonly {
   problem: InterviewProblem | null;
   tabs: readonly string[];
   hasEditor: boolean;
-  isEditorSplit: boolean | null;
-  hasPrepare: boolean;
+  hasLanding: boolean;
   hasDescription: boolean;
 }[] = [
-  { role: 'none', problem: null, tabs: [], hasEditor: true, isEditorSplit: true, hasPrepare: true, hasDescription: false },
-  { role: 'interviewer', problem: PROBLEM, tabs: ['Edit', 'View'], hasEditor: true, isEditorSplit: false, hasPrepare: false, hasDescription: false },
-  { role: 'candidate', problem: PROBLEM, tabs: [], hasEditor: false, isEditorSplit: null, hasPrepare: false, hasDescription: true },
+  { role: 'none', problem: null, tabs: [], hasEditor: false, hasLanding: true, hasDescription: false },
+  { role: 'interviewer', problem: PROBLEM, tabs: ['Edit', 'View'], hasEditor: true, hasLanding: false, hasDescription: false },
+  { role: 'candidate', problem: PROBLEM, tabs: [], hasEditor: false, hasLanding: false, hasDescription: true },
 ];
 
 const STARTER_RULE: readonly { name: string; doc: string; hasEarlierPublish: boolean; setsText: boolean }[] = [
@@ -247,14 +225,8 @@ const ADOPT_ROWS: readonly {
 ];
 
 describe('InterviewPageComponent', () => {
-  beforeEach(() => {
-    localStorage.removeItem(INTERVIEW_DRAFT_KEY);
-    setTextSpy.mockClear();
-  });
-  afterEach(() => {
-    vi.useRealTimers();
-    localStorage.removeItem(INTERVIEW_DRAFT_KEY);
-  });
+  beforeEach(() => setTextSpy.mockClear());
+  afterEach(() => vi.useRealTimers());
 
   it.each(RUN_CASES)('Run dispatch: $name', ({ problem, runsCases }) => {
     const { fixture, runner } = setUp(fakeSession('interviewer', problem));
@@ -270,16 +242,14 @@ describe('InterviewPageComponent', () => {
     }
   });
 
-  it.each(ROLE_VIEWS)('what $role sees', ({ role, problem, tabs, hasEditor, isEditorSplit, hasPrepare, hasDescription }) => {
+  it.each(ROLE_VIEWS)('what $role sees', ({ role, problem, tabs, hasEditor, hasLanding, hasDescription }) => {
     const { fixture } = setUp(fakeSession(role, problem));
     const root = fixture.nativeElement as HTMLElement;
-    const editor: StubProblemEditorComponent | undefined = fixture.debugElement.query(By.directive(StubProblemEditorComponent))?.componentInstance;
 
     expect(texts(root, TAB)).toEqual(tabs);
     expect(root.querySelector(PROBLEM_EDITOR) !== null).toBe(hasEditor);
-    expect(editor?.isSplit() ?? null).toBe(isEditorSplit);
-    expect(root.querySelector(PREPARE_BUTTON)?.textContent?.trim() ?? null).toBe(hasPrepare ? 'Prepare' : null);
-    expect(texts(root, BUTTONS)).not.toContain(START_LABEL);
+    expect(root.querySelector(CODE_INPUT) !== null).toBe(hasLanding);
+    expect(root.querySelector(PREPARE_LINK) !== null).toBe(hasLanding);
     expect(root.querySelector(DESCRIPTION) !== null).toBe(hasDescription);
   });
 
@@ -329,93 +299,53 @@ describe('InterviewPageComponent', () => {
   });
 
   it.each([
-    { name: 'valid: prepared, then resumed with its key, the draft kept', isRejected: false, created: NEW_ID as string | null, resumes: `packed-${NEW_ID}`, message: null },
-    { name: 'refused by the browser: message shown, no resume', isRejected: false, created: null, resumes: null, message: SAVE_REFUSED },
-    { name: 'rejected form: neither', isRejected: true, created: NEW_ID, resumes: null, message: null },
-  ])('Prepare $name', async ({ isRejected, created, resumes, message }) => {
-    localStorage.setItem(INTERVIEW_DRAFT_KEY, JSON.stringify(DRAFT));
+    { name: 'an interviewer code in the address resumes its key', via: 'url', entry: { status: 'interviewer', packed: PACKED } as CodeEntry, resumes: PACKED, joins: null, params: { host: PACKED } },
+    { name: 'a candidate code in the address joins its interview', via: 'url', entry: { status: 'candidate', publicRaw: PUBLIC_RAW } as CodeEntry, resumes: null, joins: PUBLIC_RAW, params: { join: PUBLIC_RAW } },
+    { name: 'a code typed and entered takes the same path', via: 'button', entry: { status: 'interviewer', packed: PACKED } as CodeEntry, resumes: PACKED, joins: null, params: { host: PACKED } },
+  ])('entering a code: $name', async ({ via, entry, resumes, joins, params }) => {
     const session = fakeSession('none', null);
-    const { fixture, prepared } = setUp(session);
-    prepared.prepare.mockResolvedValue(created);
+    const prepared = fakePrepared(entry);
+    const { fixture, navigate } = setUp(session, { query: via === 'url' ? { code: CODE } : {}, prepared });
     const root: HTMLElement = fixture.nativeElement;
-    if (isRejected) {
-      const editor: StubEditor = fixture.debugElement.query(By.directive(StubProblemEditorComponent)).componentInstance;
-      editor.problemChange.emit({ ...PROBLEM, starter: 'x'.repeat(STARTER_MAX_LENGTH + 1) });
+    if (via === 'button') {
+      root.querySelector<HTMLInputElement>(CODE_INPUT)!.value = CODE;
+      root.querySelector<HTMLButtonElement>(ENTER_BUTTON)!.click();
     }
-
-    root.querySelector<HTMLButtonElement>(PREPARE_BUTTON)!.click();
     await flush();
+
+    expect(prepared.enterCode).toHaveBeenCalledExactlyOnceWith(CODE);
+    if (resumes === null) expect(session.resume).not.toHaveBeenCalled();
+    else expect(session.resume).toHaveBeenCalledExactlyOnceWith(resumes);
+    if (joins === null) expect(session.join).not.toHaveBeenCalled();
+    else expect(session.join).toHaveBeenCalledExactlyOnceWith(joins);
+
+    session.role.set(resumes === null ? 'candidate' : 'interviewer');
+    session.linkParams.set(params);
     fixture.detectChanges();
-
-    if (isRejected) {
-      expect(prepared.prepare).not.toHaveBeenCalled();
-    } else {
-      expect(prepared.prepare).toHaveBeenCalledExactlyOnceWith(DRAFT);
-    }
-    if (resumes === null) {
-      expect(session.resume).not.toHaveBeenCalled();
-    } else {
-      expect(session.resume).toHaveBeenCalledExactlyOnceWith(resumes);
-      expect(prepared.prepare.mock.invocationCallOrder[0]).toBeLessThan(session.resume.mock.invocationCallOrder[0]);
-    }
-    expect(localStorage.getItem(INTERVIEW_DRAFT_KEY)).toBe(JSON.stringify(DRAFT));
-    expect(messageOf(root)).toBe(message);
-  });
-
-  it('choosing a prepared interview resumes its key and the picker returns to blank', () => {
-    const session = fakeSession('none', null);
-    const { fixture } = setUp(session);
-    const root: HTMLElement = fixture.nativeElement;
-
-    selectPrepared(root, SAVED_ID);
-
-    expect(session.resume).toHaveBeenCalledExactlyOnceWith(PACKED);
-    expect(root.querySelector<HTMLSelectElement>(SELECT)!.value).toBe('');
+    expect(navigate.mock.calls.at(-1)?.[1]).toMatchObject({ queryParams: { code: null, ...params }, queryParamsHandling: 'merge', replaceUrl: true });
   });
 
   it.each([
-    { name: 'good fragment: saved, stripped, resumed', isJoin: false, fragment: 'p=abc', result: 'saved' as LinkImport, strips: true, message: null },
-    { name: 'bad fragment: message shown, still resumed', isJoin: false, fragment: 'p=bad', result: 'invalid' as LinkImport, strips: true, message: UNREADABLE },
-    { name: 'refused save: save-refused message, still resumed', isJoin: false, fragment: 'p=ok', result: 'unsaved' as LinkImport, strips: true, message: SAVE_REFUSED },
-    { name: 'host only: resumed, nothing imported', isJoin: false, fragment: null, result: 'saved' as LinkImport, strips: false, message: null },
-    { name: 'join: joined, not resumed', isJoin: true, fragment: null, result: 'saved' as LinkImport, strips: false, message: null },
-  ])('opening a link, $name', async ({ isJoin, fragment, result, strips, message }) => {
+    { status: 'invalid', message: 'Enter an 8- or 12-character code.' },
+    { status: 'not-found', message: 'No interview has this code. If it was just prepared, try again in a minute.' },
+    { status: 'deleted', message: 'This interview was deleted.' },
+    { status: 'unreadable', message: 'This interview could not be read.' },
+    { status: 'offline', message: 'Could not reach the server.' },
+    { status: 'rate-limited', message: 'Too many tries. Wait a minute.' },
+    { status: 'disabled', message: 'This code works only in the browser that prepared it.' },
+    { status: 'unsaved', message: 'This browser could not save the prepared interview.' },
+  ] as const)('a code that fails as $status says why and opens nothing', async ({ status, message }) => {
     const session = fakeSession('none', null);
-    const query: Record<string, string> = isJoin ? { join: 'peer-id' } : { host: SECRET };
-    const { fixture, prepared, navigate } = setUp(session, { query, fragment, prepared: fakePrepared(result) });
+    const { fixture } = setUp(session, { prepared: fakePrepared({ status }) });
+    const root: HTMLElement = fixture.nativeElement;
 
+    root.querySelector<HTMLInputElement>(CODE_INPUT)!.value = CODE;
+    root.querySelector<HTMLButtonElement>(ENTER_BUTTON)!.click();
     await flush();
     fixture.detectChanges();
-    TestBed.inject(ApplicationRef).tick();
 
-    if (fragment === null) expect(prepared.importLink).not.toHaveBeenCalled();
-    else expect(prepared.importLink).toHaveBeenCalledExactlyOnceWith(SECRET, fragment.slice('p='.length));
-    expect(session.resume).toHaveBeenCalledTimes(isJoin ? 0 : 1);
-    expect(session.join).toHaveBeenCalledTimes(isJoin ? 1 : 0);
-    expect(navigate).toHaveBeenCalledTimes(strips ? 1 : 0);
-    if (strips) expect(navigate.mock.calls[0][1]).toMatchObject({ queryParamsHandling: 'preserve', replaceUrl: true });
-    expect(messageOf(fixture.nativeElement)).toBe(message);
-  });
-
-  it('returning to the setup role shows the draft and re-reads the prepared list', () => {
-    vi.useFakeTimers();
-    localStorage.setItem(INTERVIEW_DRAFT_KEY, JSON.stringify(DRAFT));
-    const session = fakeSession('none', null);
-    const { fixture, prepared } = setUp(session);
-    session.role.set('interviewer');
-    session.problem.set(PROBLEM);
-    session.sharedDoc.set({ version: 0, doc: DOC, epoch: 0 });
-    fixture.detectChanges();
-    const inSession: StubEditor = fixture.debugElement.query(By.directive(StubProblemEditorComponent)).componentInstance;
-    inSession.problemChange.emit(EDITED);
-
-    session.role.set('none');
-    fixture.detectChanges();
-    vi.advanceTimersByTime(PUBLISH_DELAY_MS);
-
-    const editor: StubEditor = fixture.debugElement.query(By.directive(StubProblemEditorComponent)).componentInstance;
-    expect(editor.problem()).toEqual(DRAFT);
-    expect(localStorage.getItem(INTERVIEW_DRAFT_KEY)).toBe(JSON.stringify(DRAFT));
-    expect(prepared.refresh).toHaveBeenCalledOnce();
+    expect(messageOf(root)).toBe(message);
+    expect(session.resume).not.toHaveBeenCalled();
+    expect(session.join).not.toHaveBeenCalled();
   });
 });

@@ -9,7 +9,7 @@ import type { PracticeData } from '../../../core/models/practice.model';
 import { GOLD_STANDARD_REPO } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { CodeEditorComponent } from '../../practice/code-editor/code-editor.component';
-import { EMPTY_PROBLEM } from '../interview-page/interview-draft';
+import { EMPTY_PROBLEM } from '../interview-prepare/interview-draft';
 import type { InterviewProblem } from '../session/interview-problem';
 import { ProblemEditorComponent } from './problem-editor.component';
 

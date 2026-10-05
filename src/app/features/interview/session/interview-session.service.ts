@@ -25,7 +25,8 @@ import {
   RevisedDoc,
   WireUpdate,
 } from './session-message';
-import { loadPrepared, mirrorPreparedProblem } from './prepared-store';
+import { PreparedInterviewsService } from './prepared-interviews.service';
+import { loadPrepared } from './prepared-store';
 import { clearSession, loadSession, pruneExpiredSessions, saveSession, seedInterviewerSession } from './session-store';
 import {
   RECONNECT_DELAY_MS,
@@ -70,6 +71,7 @@ type SessionRole = 'interviewer' | 'candidate';
 export class InterviewSessionService {
   private readonly factory = inject(PEER_FACTORY);
   private readonly router = inject(Router);
+  private readonly prepared = inject(PreparedInterviewsService);
   /** This tab's collab clientID, and its id in the roster. */
   readonly selfId = crypto.randomUUID();
 
@@ -251,6 +253,9 @@ export class InterviewSessionService {
       connection?.endSession();
     }
     this.finishInterviewerSession(sessionId);
+    if (sessionId !== null) {
+      void this.prepared.flush(sessionId);
+    }
   }
 
   /** Sets this side's name (trimmed, cut to the limit), stores it and tells the session. */
@@ -647,7 +652,7 @@ export class InterviewSessionService {
     }
     this.persist();
     if (this.sessionId !== null) {
-      mirrorPreparedProblem(this.sessionId, signed);
+      this.prepared.mirror(this.sessionId, signed, this.sessionHost !== null);
     }
   }
 

@@ -2,14 +2,13 @@ import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, Injector, a
 
 import { COPY_FEEDBACK_MS, copyText, type CopyMark } from '../../copy-text';
 import { HOST_PARAM } from '../interview-params';
-import { fitsMailto, hostEmailHref, inviteEmailHref, inviteTitle } from '../invite-share';
+import { hostEmailHref, inviteEmailHref, inviteTitle } from '../invite-share';
 import { InterviewSessionService, SessionStatus } from '../interview-session.service';
 import { PreparedInterviewsService, type PreparedLinks } from '../prepared-interviews.service';
 import { CandidateSeat, NAME_MAX_LENGTH, NO_MARKS } from '../session-message';
 
 const NAME_INPUT_SELECTOR = '.interview-bar__name';
 const EMAIL_STORAGE_KEY = 'po-interview-email';
-const DELETE_PREPARED_CONFIRM = 'Delete this prepared interview?';
 
 /** What this browser holds for the session's key: still loading, no entry, or the entry's links. */
 type PreparedState =
@@ -90,27 +89,29 @@ export class InterviewBarComponent {
   protected readonly isHostEmailValid = signal(true);
   /** Null (no href) while the typed address is invalid. */
   protected readonly candidateEmailHref = computed(() => {
-    const url = this.session.inviteUrl();
+    const url = this.candidateLink();
     if (!url || !this.isCandidateEmailValid()) return null;
     return inviteEmailHref(url, this.problemLabel(), this.candidateEmail());
   });
   private readonly prepared = inject(PreparedInterviewsService);
   private readonly preparedState = signal<PreparedState>({ status: 'loading' });
-  /** The last resolved answer, so the Delete button does not flicker while the links reload. */
-  protected readonly hasPreparedEntry = signal(false);
-  /** The prepared interviewer link, else the key-only one; null while the prepared links load. */
+  /** The prepared candidate code link, else the key-only join link. */
+  protected readonly candidateLink = computed(() => {
+    const state = this.preparedState();
+    return state.status === 'prepared' ? state.links.candidateUrl : this.session.inviteUrl();
+  });
+  /** The prepared interviewer code link, else the key-only one; null while the prepared links load. */
   protected readonly interviewerLink = computed(() => {
     const state = this.preparedState();
     if (state.status === 'loading') return null;
     return state.status === 'prepared' ? state.links.interviewerUrl : this.session.hostUrl();
   });
-  /** Null (no href) while the address is invalid, and when a prepared link makes the URL too long to open. */
+  /** Null (no href) while the address is invalid. */
   protected readonly hostEmailLink = computed(() => {
     const interviewerLink = this.interviewerLink();
-    const inviteUrl = this.session.inviteUrl();
-    if (!interviewerLink || !inviteUrl || !this.isHostEmailValid()) return null;
-    const href = hostEmailHref(interviewerLink, inviteUrl, this.problemLabel(), this.hostEmail());
-    return this.preparedState().status === 'prepared' && !fitsMailto(href) ? null : href;
+    const candidateLink = this.candidateLink();
+    if (!interviewerLink || !candidateLink || !this.isHostEmailValid()) return null;
+    return hostEmailHref(interviewerLink, candidateLink, this.problemLabel(), this.hostEmail());
   });
   /** A stored name shows as a label; no name yet starts in the editing field. */
   protected readonly isEditingName = signal(!this.session.myName());
@@ -119,6 +120,8 @@ export class InterviewBarComponent {
   private readonly markTimers = new Map<WritableSignal<CopyMark | null>, ReturnType<typeof setTimeout>>();
   /** Counts the loads, so a slow answer for an earlier problem is ignored. */
   private loadCount = 0;
+  /** The key of the last resolved state; undefined until a load resolves. */
+  private resolvedKey: { readonly packed: string | undefined } | undefined;
 
   /**
    * One slot per interviewer in the roster, then the candidate. The slot whose participant is this tab
@@ -155,7 +158,8 @@ export class InterviewBarComponent {
   constructor() {
     inject(DestroyRef).onDestroy(() => this.markTimers.forEach((timer) => clearTimeout(timer)));
     effect(() => {
-      this.session.problem();
+      // The code links do not change with the problem: reload only for a new key or a changed entry.
+      this.prepared.list();
       const packed = this.session.linkParams()[HOST_PARAM];
       untracked(() => void this.loadPreparedLinks(packed));
     });
@@ -164,7 +168,9 @@ export class InterviewBarComponent {
   /** Reads the prepared links for the session's key; only the newest load may set the state. */
   private async loadPreparedLinks(packed: string | undefined): Promise<void> {
     const load = ++this.loadCount;
-    this.preparedState.set({ status: 'loading' });
+    if (this.resolvedKey === undefined || this.resolvedKey.packed !== packed) {
+      this.preparedState.set({ status: 'loading' });
+    }
     let links: PreparedLinks | null = null;
     try {
       links = packed === undefined ? null : await this.prepared.linksForKey(packed, window.location.href);
@@ -172,8 +178,8 @@ export class InterviewBarComponent {
       console.error('Interview bar: could not load the prepared interview links', error);
     }
     if (load !== this.loadCount) return;
+    this.resolvedKey = { packed };
     this.preparedState.set(links ? { status: 'prepared', links } : { status: 'none' });
-    this.hasPreparedEntry.set(links !== null);
   }
 
   /** Enter or blur: stores the name and shows the label; an empty name stays in the field. */
@@ -227,7 +233,7 @@ export class InterviewBarComponent {
   }
 
   protected shareInvite(): void {
-    const url = this.session.inviteUrl();
+    const url = this.candidateLink();
     if (!url) return;
     navigator.share({ title: inviteTitle(this.problemLabel()), url }).catch((err: unknown) => {
       // AbortError: the person closed the share menu.
@@ -238,7 +244,7 @@ export class InterviewBarComponent {
   }
 
   protected copyInvite(): void {
-    const url = this.session.inviteUrl();
+    const url = this.candidateLink();
     if (!url) return;
     copyText(url).then((isCopied) => this.showCopyMark(isCopied ? 'ok' : 'fail'));
   }
@@ -248,14 +254,6 @@ export class InterviewBarComponent {
     const link = this.interviewerLink();
     if (!link) return;
     copyText(link).then((isCopied) => this.showCopyMark(isCopied ? 'ok' : 'fail', this.hostCopyMark));
-  }
-
-  /** After a confirm: removes this browser's prepared entry, then ends the session. */
-  protected async deletePrepared(): Promise<void> {
-    const packed = this.session.linkParams()[HOST_PARAM];
-    if (packed === undefined || !window.confirm(DELETE_PREPARED_CONFIRM)) return;
-    await this.prepared.removeForKey(packed);
-    this.session.end();
   }
 
   private showCopyMark(mark: CopyMark, target: WritableSignal<CopyMark | null> = this.copyMark): void {

@@ -1,6 +1,7 @@
 import { buildFeed, type FetchImpl } from './aggregate';
 import { corsHeaders } from './cors';
 import { SOURCES } from './sources';
+import { createInterviewHandler, ROUTE_PREFIX, type LimitBucket } from './interviews/handler';
 
 // How long a built feed is served from the in-memory memo before the next request rebuilds it.
 const MEMO_TTL_MS = 5 * 60 * 1000;
@@ -63,6 +64,35 @@ const productionWorker = createWorker({
   now: () => Date.now(),
 });
 
+interface RateLimiter {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
+}
+
+export interface Env {
+  INTERVIEWS: KVNamespace;
+  INTERVIEW_READS?: RateLimiter;
+  INTERVIEW_WRITES?: RateLimiter;
+}
+
+/** The interview directory for one request, wired to this request's bindings. */
+export function interviewHandlerFor(env: Env) {
+  const limiters: Record<LimitBucket, RateLimiter | undefined> = {
+    reads: env.INTERVIEW_READS,
+    writes: env.INTERVIEW_WRITES,
+  };
+  return createInterviewHandler({
+    kv: env.INTERVIEWS,
+    limit: async (bucket, key) => {
+      const limiter = limiters[bucket];
+      return limiter ? (await limiter.limit({ key })).success : true;
+    },
+    now: () => Date.now(),
+  });
+}
+
 export default {
-  fetch: (request: Request) => productionWorker.handle(request),
+  fetch: (request: Request, env: Env) =>
+    new URL(request.url).pathname.startsWith(ROUTE_PREFIX)
+      ? interviewHandlerFor(env).handle(request)
+      : productionWorker.handle(request),
 };

@@ -1,30 +1,73 @@
 @use '../problem-field' as *;
 
 $split-breakpoint: 900px;
+$content-max-width: 60rem;
 
-.interview-page__setup {
+.interview-page__landing {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
   width: 100%;
+  max-width: $content-max-width;
+  margin-inline: auto;
+}
+
+.interview-page__code {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
+
+.interview-page__code-field { flex: 0 1 $import-width; }
+
+.interview-page__panels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.interview-page__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.interview-page__panel-heading { margin: 0; }
+
+.interview-page__panel-hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.interview-page__panel .interview-page__code { align-self: stretch; }
+
+.interview-page__prepare-link {
+  display: inline-block;
+  text-decoration: none;
 }
 
 .interview-page__heading,
 .interview-page__title { margin: 0; }
 
 @media (min-width: $split-breakpoint) {
-  // Setup fills the viewport-pinned page, passing its height down to the editor's panes.
-  .interview-page__setup {
-    flex: 1 1 auto;
-    min-height: 0;
+  // The practice stylesheet pins .practice to the viewport height here; the landing keeps its natural height.
+  .practice.interview-page--landing {
+    height: auto;
+    overflow: visible;
   }
 
-  // The Prepared picker sits in the editor's head row at the Import field's width, its control filling the field.
-  .interview-page__prepared {
-    flex: 0 0 $import-width;
-    min-width: 0;
-    .problem-editor__input { flex: 1 1 auto; }
+  .interview-page__panels {
+    flex-direction: row;
+    align-items: flex-start;
   }
+
+  .interview-page__panel { flex: 1 1 0; min-width: 0; }
 
   // No divider between the panes, so two tracks instead of the practice page's three.
   .interview-page__split {

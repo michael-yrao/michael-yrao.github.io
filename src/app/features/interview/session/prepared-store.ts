@@ -3,15 +3,19 @@ import { isSignedProblem } from './session-message';
 
 /**
  * A prepared interview kept in this browser: the interviewer key (packed, so it holds the private half), the
- * problem signed with it, and when it was prepared. There is no expiry; the entry lives until it is removed.
+ * problem signed with it, when it was prepared, its two codes, and the highest revision the server accepted
+ * (`pushedRev` 0: never accepted). There is no expiry; the entry lives until it is removed.
  *
- * An entry's value must never be logged: it holds the private key. Messages here name the key (the session id)
- * only, and caught errors are not passed on, since a parse error can echo part of the text it read.
+ * An entry's value must never be logged: it holds the private key and the interviewer code. Messages here name the
+ * key (the session id) only, and caught errors are not passed on, since a parse error can echo part of the text it read.
  */
 export interface PreparedEntry {
   readonly packed: string;
   readonly problem: SignedProblem;
   readonly createdAt: number;
+  readonly candidateCode: string;
+  readonly interviewerCode: string;
+  readonly pushedRev: number;
 }
 
 export const PREPARED_KEY_PREFIX = 'po-interview-prepared:';
@@ -29,7 +33,12 @@ function isPreparedEntry(value: unknown): value is PreparedEntry {
     typeof record['packed'] === 'string' &&
     isSignedProblem(record['problem']) &&
     typeof record['createdAt'] === 'number' &&
-    Number.isFinite(record['createdAt'])
+    Number.isFinite(record['createdAt']) &&
+    typeof record['candidateCode'] === 'string' &&
+    typeof record['interviewerCode'] === 'string' &&
+    typeof record['pushedRev'] === 'number' &&
+    Number.isInteger(record['pushedRev']) &&
+    record['pushedRev'] >= 0
   );
 }
 
@@ -38,7 +47,8 @@ function parseEntry(key: string, raw: string): PreparedEntry | null {
   try {
     const value: unknown = JSON.parse(raw);
     if (isPreparedEntry(value)) {
-      return { packed: value.packed, problem: value.problem, createdAt: value.createdAt };
+      const { packed, problem, createdAt, candidateCode, interviewerCode, pushedRev } = value;
+      return { packed, problem, createdAt, candidateCode, interviewerCode, pushedRev };
     }
     console.error(`Prepared interview: ${key} has the wrong shape`);
   } catch {
@@ -74,13 +84,21 @@ export function savePrepared(sessionId: string, entry: PreparedEntry): boolean {
   }
 }
 
-/** Replaces the entry's problem with `signed` when an entry exists and `signed.rev` is higher; otherwise does nothing. */
-export function mirrorPreparedProblem(sessionId: string, signed: SignedProblem): void {
+/** Replaces the entry's problem with `signed` when an entry exists and `signed.rev` is higher; true when it did. */
+export function mirrorPreparedProblem(sessionId: string, signed: SignedProblem): boolean {
   const entry = loadPrepared(sessionId);
   if (entry === null || signed.rev <= entry.problem.rev) {
-    return;
+    return false;
   }
-  savePrepared(sessionId, { ...entry, problem: signed });
+  return savePrepared(sessionId, { ...entry, problem: signed });
+}
+
+/** Records that the server holds revision `rev`; only ever raises `pushedRev`. */
+export function markPushed(sessionId: string, rev: number): void {
+  const entry = loadPrepared(sessionId);
+  if (entry !== null && rev > entry.pushedRev) {
+    savePrepared(sessionId, { ...entry, pushedRev: rev });
+  }
 }
 
 export function removePrepared(sessionId: string): void {
@@ -116,4 +134,9 @@ export function listPrepared(): readonly (PreparedEntry & { readonly sessionId: 
     console.error('Prepared interview: could not list the prepared interviews');
     return [];
   }
+}
+
+/** The prepared entry whose interviewer code is `interviewerCode`, with its session id; null when none. */
+export function findPreparedByCode(interviewerCode: string): (PreparedEntry & { readonly sessionId: string }) | null {
+  return listPrepared().find((entry) => entry.interviewerCode === interviewerCode) ?? null;
 }

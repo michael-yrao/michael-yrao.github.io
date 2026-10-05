@@ -5,8 +5,6 @@ const INVITE_BODY_PREFIX = 'Join the interview:';
 const HOST_TITLE_PREFIX = 'Interviewer link';
 const HOST_BODY_PREFIX = 'Join as interviewer:';
 const HOST_BODY_INVITE_PREFIX = 'Candidate link:';
-/** The longest `mailto:` URL a mail client is trusted to open; a prepared interviewer link can push past it. */
-export const MAILTO_MAX_LENGTH = 2000;
 /** RFC 6068: a line break inside a mailto body. */
 const MAILTO_LINE_BREAK = '\r\n';
 
@@ -34,9 +32,4 @@ export function inviteEmailHref(url: string, problemLabel: string, recipient: st
 export function hostEmailHref(hostUrl: string, inviteUrl: string, problemLabel: string, recipient: string): string {
   const body = [`${HOST_BODY_PREFIX} ${hostUrl}`, `${HOST_BODY_INVITE_PREFIX} ${inviteUrl}`].join(MAILTO_LINE_BREAK);
   return mailtoHref(recipient, withLabel(HOST_TITLE_PREFIX, problemLabel), body);
-}
-
-/** True when a `mailto:` URL is short enough to open. */
-export function fitsMailto(href: string): boolean {
-  return href.length <= MAILTO_MAX_LENGTH;
 }
