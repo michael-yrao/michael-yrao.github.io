@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { WorkloadDay } from '../../../core/models/progress.model';
 import { shortMonthDay, todayLocalISO, weekStartISO } from '../../../core/utils/local-date';
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
-import { workloadColor } from '../../../core/utils/workload-color';
 import { ChartView, ProgressViewStateService } from '../progress-view-state.service';
 
 /** One rendered bar-pair (an outline "planned" rect layered under a solid "done" rect) — the
@@ -17,7 +16,6 @@ interface BarDatum {
   readonly partial: boolean;
   readonly isFuture: boolean;
   readonly band: WorkloadBand | null;
-  readonly color: string | null;
 }
 
 export const DAILY_WINDOW_DAYS = 56;
@@ -35,6 +33,12 @@ const DAILY_BAR_SPACING = 14;
 const WEEKLY_BAR_WIDTH = 16;
 const WEEKLY_BAR_SPACING = 26;
 
+const BAND_COLOR: Readonly<Record<WorkloadBand, string>> = {
+  Light: 'var(--color-easy)',
+  Moderate: 'var(--color-medium)',
+  Heavy: 'var(--color-hard)',
+  Over: 'var(--color-over)',
+};
 // A done bar with no known ceiling can't be banded — a neutral fill rather than an
 // arbitrary guess at Light/Moderate/Heavy.
 const UNBANDED_DONE_COLOR = 'var(--color-accent)';
@@ -134,9 +138,7 @@ export class WorkloadChartComponent {
     ceiling: number | null,
     floor: number | null,
   ): BarDatum {
-    const isBandable = !isFuture && ceiling != null && ceiling > 0;
-    const band = isBandable ? workloadBand(entry.done, ceiling, floor) : null;
-    const color = isBandable ? workloadColor(entry.done, ceiling, floor) : null;
+    const band = !isFuture && ceiling != null && ceiling > 0 ? workloadBand(entry.done, ceiling, floor) : null;
     return {
       key: entry.date,
       label,
@@ -146,7 +148,6 @@ export class WorkloadChartComponent {
       partial: entry.partial,
       isFuture,
       band,
-      color,
     };
   }
 
@@ -206,7 +207,7 @@ export class WorkloadChartComponent {
   }
 
   colorFor(bar: BarDatum): string {
-    return bar.color ?? UNBANDED_DONE_COLOR;
+    return bar.band ? BAND_COLOR[bar.band] : UNBANDED_DONE_COLOR;
   }
 
   tooltipFor(bar: BarDatum): string {

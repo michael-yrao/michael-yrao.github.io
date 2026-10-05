@@ -42,7 +42,7 @@
                 [attr.width]="barWidth()"
                 [attr.height]="heightFor(b.done)"
                 rx="2"
-                [style.fill]="colorFor(b)"
+                [attr.fill]="colorFor(b)"
               />
             }
             <title>{{ tooltipFor(b) }}</title>
@@ -92,14 +92,17 @@
       outline = planned (schedule header)
       <span class="wlchart__legend-sep" aria-hidden="true">·</span>
       solid = completed (struck rows, priced with the current config):
-      <span class="wlchart__scale">
-        <span class="wlchart__gradient" aria-hidden="true"></span>
-        <span class="wlchart__scale-words">
-          <span>Light</span>
-          <span>Moderate</span>
-          <span>Heavy</span>
-          <span>Over</span>
-        </span>
+      <span class="wlchart__legend-band">
+        <span class="wlchart__swatch wlchart__swatch--light" aria-hidden="true"></span>Light
+      </span>
+      <span class="wlchart__legend-band">
+        <span class="wlchart__swatch wlchart__swatch--moderate" aria-hidden="true"></span>Moderate
+      </span>
+      <span class="wlchart__legend-band">
+        <span class="wlchart__swatch wlchart__swatch--heavy" aria-hidden="true"></span>Heavy
+      </span>
+      <span class="wlchart__legend-band">
+        <span class="wlchart__swatch wlchart__swatch--over" aria-hidden="true"></span>Over
       </span>
       @if (ceiling() === null) {
         <span class="wlchart__legend-band">

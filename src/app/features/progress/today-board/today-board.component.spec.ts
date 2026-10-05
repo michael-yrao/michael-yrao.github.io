@@ -336,7 +336,7 @@ describe('TodayBoardComponent', () => {
 
     const label = fixture.nativeElement.querySelector('.today-board__workload-label');
     expect(label?.textContent).toContain('5 / 8 units · Moderate');
-    const fill = fixture.nativeElement.querySelector('.today-board__workload-fill');
+    const fill = fixture.nativeElement.querySelector('.today-board__workload-fill--moderate');
     expect(fill).toBeTruthy();
   });
 
@@ -346,7 +346,7 @@ describe('TodayBoardComponent', () => {
 
     const label = fixture.nativeElement.querySelector('.today-board__workload-label');
     expect(label?.textContent).toContain('Heavy');
-    expect(fixture.nativeElement.querySelector('.today-board__workload-fill')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.today-board__workload-fill--heavy')).toBeTruthy();
   });
 
   it('bands as Light at or below the floor', () => {
@@ -355,7 +355,7 @@ describe('TodayBoardComponent', () => {
 
     const label = fixture.nativeElement.querySelector('.today-board__workload-label');
     expect(label?.textContent).toContain('Light');
-    expect(fixture.nativeElement.querySelector('.today-board__workload-fill')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.today-board__workload-fill--light')).toBeTruthy();
   });
 
   it('draws the dimmed planned fill always, and a solid done fill only when the day has a matching workload entry with done > 0', () => {

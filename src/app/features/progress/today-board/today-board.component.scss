@@ -136,6 +136,10 @@ $workload-planned-opacity: 0.35;
   height: 100%;
   transition: width var(--transition-base);
 }
+.today-board__workload-fill--light { background: var(--color-easy); }
+.today-board__workload-fill--moderate { background: var(--color-medium); }
+.today-board__workload-fill--heavy { background: var(--color-hard); }
+.today-board__workload-fill--over { background: var(--color-over); }
 // The planned fill — always drawn, dimmed to the "lighter band colour"; when `workloadBar()`
 // also has a done fill, it's drawn on top of this one and reads as the reached portion. With no
 // done fill, this dimmed band is the only fill shown.
