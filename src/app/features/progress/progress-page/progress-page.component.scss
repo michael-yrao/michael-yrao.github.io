@@ -1,7 +1,8 @@
 @use '../problem-row' as prow;
 
 // Shared reset for an inline control that must read as plain content, not a button — used by
-// the drill triggers below (gauge links, problem rows). 
+// the drill triggers below (gauge links, problem rows). Segment-bar buttons have their own
+// reset in segmented-bar.component.scss.
 %btn-reset {
   appearance: none;
   border: none;
@@ -336,25 +337,15 @@ $skeleton-card-height: 12rem;
   gap: var(--space-lg);
 }
 
-// ── Mastery pies (pipeline left, difficulty mix right) ──
-// The pipeline column carries an h2 + sub-line above its pie, the difficulty column only a
-// label, so `align-items: end` pins both pies (same diameter) to one baseline.
-.mastery-pies {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: end;
-  gap: var(--space-lg);
-}
-.mastery-pies__col > :last-child { margin-bottom: 0; }
-.mastery-pies__label {
+// ── Difficulty mix (folded into the Mastery pipeline card — round 2 item 5) ──
+// The bar itself (round 4: <app-segmented-bar>) styles in segmented-bar.component.scss —
+// only the section label + spacing live here.
+.difficulty-inline { margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border); }
+.difficulty-inline__label {
   @extend %upper-label;
   margin: 0 0 var(--space-sm);
   font-size: 0.78rem;
   font-weight: 700;
-}
-
-@media (max-width: 720px) {
-  .mastery-pies { grid-template-columns: minmax(0, 1fr); align-items: start; }
 }
 
 // ── Gauges ───────────────────────────────────────────────────────────────────

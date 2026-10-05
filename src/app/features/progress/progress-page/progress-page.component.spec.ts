@@ -305,7 +305,7 @@ describe('ProgressPageComponent', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('app-pie-chart')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.gauge')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.progress__explore')).toBeFalsy();
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
@@ -336,14 +336,16 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Coming soon');
   });
 
-  // ── The pipeline and difficulty pies render through the ONE shared <app-pie-chart>
-  // component and share one card. ──────────
-  it('difficulty mix is folded into the Mastery pipeline card, sharing the pie-chart component', () => {
+  // ── Round 4: the pipeline, difficulty, and breadth bars all render through the ONE
+  // shared <app-segmented-bar> component instead of three bespoke markups. Round 5: the
+  // breadth bar and the technique list now live in the SAME Mastery tab as the pipeline —
+  // three bars total, pipeline+difficulty sharing one card, breadth in its own. ──────────
+  it('difficulty mix is folded into the Mastery pipeline card, sharing the segmented-bar component', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const bars = fixture.nativeElement.querySelectorAll('app-pie-chart');
+    const bars = fixture.nativeElement.querySelectorAll('app-segmented-bar');
     expect(bars.length).toBe(2); // pipeline + difficulty (same card)
     const pipelineCard = bars[0].closest('.card');
     expect(pipelineCard).toBeTruthy();
@@ -358,7 +360,7 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     clickTab(fixture, 'mastery');
-    expect(fixture.nativeElement.querySelector('app-pie-chart')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('app-technique-list')).toBeTruthy();
 
     clickTab(fixture, 'activity');
@@ -873,6 +875,19 @@ describe('ProgressPageComponent', () => {
     ]);
   });
 
+  it('the pipeline bar carries an axis; the difficulty bar is the same bar without one', () => {
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    clickTab(fixture, 'mastery');
+
+    const bars = fixture.nativeElement.querySelectorAll('app-segmented-bar');
+    const [pipelineBar, difficultyBar] = Array.from(bars) as HTMLElement[];
+
+    expect(pipelineBar.querySelector('.segbar__axis')).toBeTruthy();
+    expect(difficultyBar.querySelector('.segbar__axis')).toBeFalsy();
+    expect(difficultyBar.querySelector('.segbar__legend')).toBeTruthy();
+  });
+
   it('a roadmap tile click reaches the technique list as its focus', () => {
     Element.prototype.scrollIntoView = vi.fn(); // jsdom has no layout
     const fixture = TestBed.createComponent(ProgressPageComponent);
@@ -906,9 +921,9 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const seg: SVGElement = fixture.nativeElement.querySelector('.pie__slice.seg-grad');
+    const seg: HTMLButtonElement = fixture.nativeElement.querySelector('.segbar__seg.seg-grad');
     expect(seg).toBeTruthy();
-    seg.dispatchEvent(new Event('click'));
+    seg.click();
     fixture.detectChanges();
 
     expect(progress.loadDetails).toHaveBeenCalled();
@@ -992,7 +1007,7 @@ describe('ProgressPageComponent', () => {
     clickTab(fixture, 'mastery');
 
     const diffBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
-      '.mastery-pies__col:nth-child(2) .pie__legend-btn',
+      '.difficulty-inline .segbar__legend-btn',
     );
     expect(diffBtn).toBeTruthy();
     diffBtn.click();
@@ -1021,9 +1036,11 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const retiredSeg: SVGElement = fixture.nativeElement.querySelector('.pie__slice.seg-retired');
+    const retiredSeg: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.segbar__seg.seg-retired',
+    );
     expect(retiredSeg).toBeTruthy();
-    retiredSeg.dispatchEvent(new Event('click'));
+    retiredSeg.click();
     fixture.detectChanges();
 
     expect(progress.loadDetails).not.toHaveBeenCalled();
