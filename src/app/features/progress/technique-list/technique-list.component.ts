@@ -1,9 +1,12 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
   effect,
+  ElementRef,
   inject,
+  Injector,
   input,
   output,
   signal,
@@ -40,6 +43,12 @@ import {
   TechniqueView,
   writeStoredView,
 } from './technique-view';
+
+/** A request to jump to one technique. `at` makes the same name focusable twice in a row. */
+export interface TechniqueFocus {
+  name: string;
+  at: number;
+}
 
 interface FamilyGroup {
   family: string;
@@ -132,12 +141,17 @@ export class TechniqueListComponent {
    *  standard. Same shape as TodayBoardComponent's own `repoRef` input. */
   readonly repoRef = input<RepoRef | null>(null);
   readonly practiceNumbers = input<ReadonlySet<number>>(new Set());
+  /** Jump to a technique (the roadmap card's tile click): expands its row in List view, selects
+   *  its card in Board view, then scrolls it into view. An unknown name is a no-op. */
+  readonly focus = input<TechniqueFocus | null>(null);
   protected readonly practiceGlyph = PRACTICE_GLYPH;
   readonly expand = output<Technique>();
 
   // The shared, page-header-level Solution Links setting (settings-menu.component.ts's ⚙
   // Settings panel) — read here for the detail template's problem-row link chain.
   private readonly linkModeService = inject(SolutionLinkModeService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
 
   // Pure done/planned helpers (technique-view.ts) — bound directly as instance properties so
   // the template can call them per row without a wrapper method each.
@@ -166,6 +180,32 @@ export class TechniqueListComponent {
       this.primed = true;
       untracked(() => this.expand.emit(first));
     });
+
+    // Only `focus()` is tracked: the lookup and every write run untracked, so expanding a row
+    // or selecting a card (which write signals this effect would otherwise read) cannot
+    // re-trigger it.
+    effect(() => {
+      const request = this.focus();
+      if (!request) return;
+      untracked(() => this.focusTechnique(request.name));
+    });
+  }
+
+  private focusTechnique(name: string): void {
+    const technique = this.techniquesByName().get(name);
+    if (!technique) return;
+    if (this.view() === 'board') {
+      this.boardSelectedName.set(name);
+    } else if (!this.isExpanded(technique)) {
+      this.toggle(technique);
+    }
+    afterNextRender(() => this.scrollToTechnique(name), { injector: this.injector });
+  }
+
+  private scrollToTechnique(name: string): void {
+    const targets = this.host.nativeElement.querySelectorAll<HTMLElement>('[data-technique]');
+    const target = Array.from(targets).find((el) => el.dataset['technique'] === name);
+    target?.scrollIntoView({ block: 'center' });
   }
 
   readonly groups = computed<TierGroup[]>(() => {

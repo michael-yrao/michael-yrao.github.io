@@ -24,17 +24,17 @@ import { PRACTICE_GLYPH } from '../practice-link';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { BadgeGridComponent } from '../badge-grid/badge-grid.component';
-import { TechniqueListComponent } from '../technique-list/technique-list.component';
+import { TechniqueFocus, TechniqueListComponent } from '../technique-list/technique-list.component';
 import { StreakCalendarComponent } from '../streak-calendar/streak-calendar.component';
 import { TodayBoardComponent } from '../today-board/today-board.component';
 import { RecognitionPanelComponent } from '../recognition-panel/recognition-panel.component';
 import { SettingsMenuComponent } from '../settings-menu/settings-menu.component';
-import { SegmentedBarComponent, SegmentedBarSegment } from '../segmented-bar/segmented-bar.component';
+import { ChartSegment, PieChartComponent } from '../pie-chart/pie-chart.component';
 import { WorkloadChartComponent } from '../workload-chart/workload-chart.component';
 import { GrowthAreasComponent } from '../growth-areas/growth-areas.component';
 import { GrowthArea } from '../growth-areas/growth-areas.data';
 import { RoadmapCoverageComponent } from '../roadmap-coverage/roadmap-coverage.component';
-import { countRoadmapLevels } from '../roadmap-coverage/roadmap-levels';
+import { groupRoadmapLevels } from '../roadmap-coverage/roadmap-levels';
 import { Technique } from '../../../core/models/progress.model';
 
 type ComfortFilter = 'all' | Comfort;
@@ -86,8 +86,8 @@ function rowKey(p: ProblemProgress): string {
 }
 
 // The pipeline segment KEY -> comfort glyph it drills into. Kept as a lookup (rather than
-// carrying an extra `comfort` field on each SegmentedBarSegment) so pipelineSegments() can
-// emit the exact same shape every other bar usage emits — the component itself only ever
+// carrying an extra `comfort` field on each ChartSegment) so pipelineSegments() can
+// emit the exact same shape every other pie usage emits — the component itself only ever
 // needs to know key/label/value/cls.
 const MISSING_GENERATED_AT = '—';
 
@@ -120,7 +120,7 @@ const PIPELINE_COMFORT: Record<string, Comfort> = {
     StreakCalendarComponent,
     TodayBoardComponent,
     RecognitionPanelComponent,
-    SegmentedBarComponent,
+    PieChartComponent,
     RoadmapCoverageComponent,
     WorkloadChartComponent,
     GrowthAreasComponent,
@@ -194,11 +194,10 @@ export class ProgressPageComponent {
     );
   });
 
-  // Pipeline as ordered segments for the shared segmented bar (round 4 — same component the
-  // difficulty mix and technique breadth now render through) — each is a drill into the
-  // Problems tab filtered to that comfort tier. The bar's own segments AND its legend row are
-  // both click targets (item 5 — every bar variant now carries a legend).
-  readonly pipelineSegments = computed<SegmentedBarSegment[]>(() => {
+  // Pipeline as ordered segments for the shared pie chart (the difficulty mix renders through
+  // the same component) — each is a drill into the Problems tab filtered to that comfort tier.
+  // The pie's own slices AND its legend are both click targets.
+  readonly pipelineSegments = computed<ChartSegment[]>(() => {
     const d = this.data();
     if (!d) return [];
     const p = d.pipeline;
@@ -209,14 +208,14 @@ export class ProgressPageComponent {
         { key: 'clean', label: 'Clean', value: p.clean.total, cls: 'seg-clean' },
         { key: 'grad', label: 'Graduated', value: p.graduated, cls: 'seg-grad' },
         { key: 'retired', label: 'Retired', value: p.retired, cls: 'seg-retired' },
-      ] satisfies SegmentedBarSegment[]
+      ] satisfies ChartSegment[]
     ).filter((s) => s.value > 0);
   });
 
   // Difficulty mix — round-2 item 5: folded into the Mastery tab's pipeline card (no longer
-  // its own top-level card). Round 4: now the same shared segmented bar, still the third
+  // its own top-level card). Rendered by the same shared pie chart, still the third
   // heavy drill (Easy/Medium/Hard -> filtered list).
-  readonly difficultySegments = computed<SegmentedBarSegment[]>(() => {
+  readonly difficultySegments = computed<ChartSegment[]>(() => {
     const diff = this.data()?.difficulty;
     if (!diff) return [];
     return (
@@ -224,7 +223,7 @@ export class ProgressPageComponent {
         { key: 'Easy', label: 'Easy', value: diff.Easy, cls: 'seg-easy' },
         { key: 'Medium', label: 'Medium', value: diff.Medium, cls: 'seg-medium' },
         { key: 'Hard', label: 'Hard', value: diff.Hard, cls: 'seg-hard' },
-      ] satisfies SegmentedBarSegment[]
+      ] satisfies ChartSegment[]
     ).filter((s) => s.value > 0);
   });
 
@@ -258,7 +257,15 @@ export class ProgressPageComponent {
 
   // Roadmap coverage: techniques counted per level (core / intermediate / advanced), each
   // with how many are started - see roadmap-levels.ts for the tier-to-level map.
-  readonly roadmapLevels = computed(() => countRoadmapLevels(this.data()?.techniques ?? []));
+  readonly roadmapLevels = computed(() => groupRoadmapLevels(this.data()?.techniques ?? []));
+
+  /** The technique the roadmap card's last tile click named; `at` lets the same tile be clicked
+   *  twice (the technique list re-focuses on every new value). */
+  readonly focusedTechnique = signal<TechniqueFocus | null>(null);
+
+  focusTechnique(name: string): void {
+    this.focusedTechnique.set({ name, at: Date.now() });
+  }
 
   private readonly repoParam;
 
@@ -493,7 +500,7 @@ export class ProgressPageComponent {
    *  Retired rows are never in details().problems[] (retired rows leave the tracker
    *  entirely — see cse-progress's parse_retired()), so that segment is a no-op — no fetch,
    *  no facet, no tab switch (the Trophy Case it used to jump to was removed Sep 26, 2026). */
-  pipelineSegmentClick(seg: SegmentedBarSegment): void {
+  pipelineSegmentClick(seg: ChartSegment): void {
     if (seg.key === 'retired') {
       return;
     }
@@ -502,8 +509,8 @@ export class ProgressPageComponent {
     this.drill({ kind: 'comfort', value: comfort });
   }
 
-  /** Difficulty segment click — same drill the old chip row fired, now via the shared bar. */
-  difficultySegmentClick(seg: SegmentedBarSegment): void {
+  /** Difficulty segment click — same drill the old chip row fired, now via the shared pie. */
+  difficultySegmentClick(seg: ChartSegment): void {
     this.drill({ kind: 'difficulty', value: seg.key as Difficulty });
   }
 

@@ -5,22 +5,29 @@
     <li class="roadmap__key-item"><span class="roadmap__swatch"></span>Not started</li>
   </ul>
 </div>
-@for (r of bars(); track r.key) {
-  <div class="roadmap__row">
-    <span class="roadmap__label">{{ r.label }}</span>
-    <div class="roadmap__lane">
-      <div
-        class="roadmap__track"
-        role="progressbar"
-        [attr.aria-label]="r.label + ': ' + r.started + ' of ' + r.total + ' started'"
-        [attr.aria-valuenow]="r.started"
-        aria-valuemin="0"
-        [attr.aria-valuemax]="r.total"
-        [style.width.%]="r.trackPct"
-      >
-        <div class="roadmap__fill" [style.width.%]="r.fillPct"></div>
+<div class="roadmap__levels">
+  @for (r of rows(); track r.key) {
+    <div
+      class="roadmap__level"
+      role="group"
+      [attr.aria-label]="r.label + ': ' + r.started + ' of ' + r.total + ' started'"
+    >
+      <div class="roadmap__level-head">
+        <span class="roadmap__label">{{ r.label }}</span>
+        <span class="roadmap__count">{{ r.started }} of {{ r.total }}</span>
+      </div>
+      <div class="roadmap__tiles">
+        @for (t of r.tiles; track t.name) {
+          <button
+            type="button"
+            class="roadmap__tile"
+            [class.roadmap__tile--started]="t.started"
+            [attr.title]="t.name"
+            [attr.aria-label]="t.name + ', ' + (t.started ? 'started' : 'not started')"
+            (click)="select.emit(t.name)"
+          ></button>
+        }
       </div>
     </div>
-    <span class="roadmap__count">{{ r.started }} of {{ r.total }}</span>
-  </div>
-}
+  }
+</div>

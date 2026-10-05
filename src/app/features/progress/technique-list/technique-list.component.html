@@ -73,6 +73,7 @@
                   <button
                     type="button"
                     class="tech-board__card"
+                    [attr.data-technique]="t.name"
                     [attr.aria-pressed]="isBoardSelected(t)"
                     (click)="selectInBoard(t)"
                   >
@@ -132,7 +133,7 @@
             <h4 class="tech-list__family">{{ fam.family }}</h4>
             <ul class="tech-list__items">
               @for (t of fam.items; track t.name) {
-                <li class="tech-row" [class.tech-row--not-started]="!t.started">
+                <li class="tech-row" [class.tech-row--not-started]="!t.started" [attr.data-technique]="t.name">
                   <button
                     type="button"
                     class="tech-row__toggle"

@@ -305,7 +305,7 @@ describe('ProgressPageComponent', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('app-pie-chart')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.gauge')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.progress__explore')).toBeFalsy();
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
@@ -336,16 +336,14 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Coming soon');
   });
 
-  // ── Round 4: the pipeline, difficulty, and breadth bars all render through the ONE
-  // shared <app-segmented-bar> component instead of three bespoke markups. Round 5: the
-  // breadth bar and the technique list now live in the SAME Mastery tab as the pipeline —
-  // three bars total, pipeline+difficulty sharing one card, breadth in its own. ──────────
-  it('difficulty mix is folded into the Mastery pipeline card, sharing the segmented-bar component', () => {
+  // ── The pipeline and difficulty pies render through the ONE shared <app-pie-chart>
+  // component and share one card. ──────────
+  it('difficulty mix is folded into the Mastery pipeline card, sharing the pie-chart component', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const bars = fixture.nativeElement.querySelectorAll('app-segmented-bar');
+    const bars = fixture.nativeElement.querySelectorAll('app-pie-chart');
     expect(bars.length).toBe(2); // pipeline + difficulty (same card)
     const pipelineCard = bars[0].closest('.card');
     expect(pipelineCard).toBeTruthy();
@@ -360,7 +358,7 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     clickTab(fixture, 'mastery');
-    expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-pie-chart')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('app-technique-list')).toBeTruthy();
 
     clickTab(fixture, 'activity');
@@ -860,24 +858,33 @@ describe('ProgressPageComponent', () => {
     const card = fixture.debugElement.query(By.directive(RoadmapCoverageComponent));
     expect(card).toBeTruthy();
     expect((card.componentInstance as RoadmapCoverageComponent).rows()).toEqual([
-      { key: 'core', label: 'Core', started: 2, total: 2 },
-      { key: 'intermediate', label: 'Intermediate', started: 0, total: 1 },
-      { key: 'advanced', label: 'Advanced', started: 0, total: 1 },
+      {
+        key: 'core',
+        label: 'Core',
+        started: 2,
+        total: 2,
+        tiles: [
+          { name: 'Bellman-Ford', started: true },
+          { name: 'Frequency Counting', started: true },
+        ],
+      },
+      { key: 'intermediate', label: 'Intermediate', started: 0, total: 1, tiles: [{ name: 'Knapsack', started: false }] },
+      { key: 'advanced', label: 'Advanced', started: 0, total: 1, tiles: [{ name: 'Segment Tree Beats', started: false }] },
     ]);
   });
 
-  it('the pipeline bar carries an axis; the difficulty bar is a mix variant with a legend', () => {
+  it('a roadmap tile click reaches the technique list as its focus', () => {
+    Element.prototype.scrollIntoView = vi.fn(); // jsdom has no layout
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const bars = fixture.nativeElement.querySelectorAll('app-segmented-bar');
-    const [pipelineBar, difficultyBar] = Array.from(bars) as HTMLElement[];
+    const tile = fixture.nativeElement.querySelector('app-roadmap-coverage .roadmap__tile') as HTMLButtonElement;
+    tile.click();
+    fixture.detectChanges();
 
-    expect(pipelineBar.querySelector('.segbar__axis')).toBeTruthy();
-
-    expect(difficultyBar.querySelector('.segbar__bar--mix')).toBeTruthy();
-    expect(difficultyBar.querySelector('.segbar__legend')).toBeTruthy();
+    const list = fixture.debugElement.query(By.directive(TechniqueListComponent));
+    expect((list.componentInstance as TechniqueListComponent).focus()?.name).toBe('Bellman-Ford');
   });
 
   it('the streak calendar is not present until the Activity tab is opened', () => {
@@ -899,9 +906,9 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const seg: HTMLButtonElement = fixture.nativeElement.querySelector('.segbar__seg.seg-grad');
+    const seg: SVGElement = fixture.nativeElement.querySelector('.pie__slice.seg-grad');
     expect(seg).toBeTruthy();
-    seg.click();
+    seg.dispatchEvent(new Event('click'));
     fixture.detectChanges();
 
     expect(progress.loadDetails).toHaveBeenCalled();
@@ -984,10 +991,8 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    // The difficulty bar is a `mix` variant — its slim segments aren't clickable; the legend
-    // row beneath it is the click target.
     const diffBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
-      '.difficulty-inline .segbar__legend-btn',
+      '.mastery-pies__col:nth-child(2) .pie__legend-btn',
     );
     expect(diffBtn).toBeTruthy();
     diffBtn.click();
@@ -1016,11 +1021,9 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const retiredSeg: HTMLButtonElement = fixture.nativeElement.querySelector(
-      '.segbar__seg.seg-retired',
-    );
+    const retiredSeg: SVGElement = fixture.nativeElement.querySelector('.pie__slice.seg-retired');
     expect(retiredSeg).toBeTruthy();
-    retiredSeg.click();
+    retiredSeg.dispatchEvent(new Event('click'));
     fixture.detectChanges();
 
     expect(progress.loadDetails).not.toHaveBeenCalled();

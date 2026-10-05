@@ -668,3 +668,33 @@ describe('TechniqueListComponent — Board view', () => {
     expect(cardNames()).toEqual(['Core Technique']);
   });
 });
+
+describe('TechniqueListComponent — focus input', () => {
+  const NAMES = ['Two Pointers', 'Bellman-Ford'];
+  const cases: { name: string; view: 'list' | 'board'; target: string; expectedSelected: string | null }[] = [
+    { name: 'expands the named row in list view', view: 'list', target: 'Bellman-Ford', expectedSelected: 'Bellman-Ford' },
+    { name: 'selects the named card in board view', view: 'board', target: 'Bellman-Ford', expectedSelected: 'Bellman-Ford' },
+    { name: 'an unknown name changes nothing', view: 'list', target: 'No Such Technique', expectedSelected: null },
+    { name: 'an unknown name changes nothing in board view', view: 'board', target: 'No Such Technique', expectedSelected: null },
+  ];
+
+  beforeEach(() => {
+    // jsdom has no layout, so Element.scrollIntoView is not implemented.
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+  afterEach(() => localStorage.clear());
+
+  it.each(cases)('$name', ({ view, target, expectedSelected }) => {
+    const fixture = createFixture(NAMES.map((name) => makeTechnique({ name, problems: [] })));
+    fixture.componentInstance.view.set(view);
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('focus', { name: target, at: 1 });
+    fixture.detectChanges();
+
+    const selector = view === 'list' ? '.tech-row__toggle[aria-expanded="true"]' : '.tech-board__card[aria-pressed="true"]';
+    const selected = Array.from(fixture.nativeElement.querySelectorAll(selector) as NodeListOf<HTMLElement>);
+    const selectedNames = selected.map((el) => NAMES.find((n) => el.textContent?.includes(n)) ?? null);
+    expect(selectedNames).toEqual(expectedSelected ? [expectedSelected] : []);
+  });
+});

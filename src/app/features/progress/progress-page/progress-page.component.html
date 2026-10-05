@@ -281,38 +281,38 @@
           </div>
         }
 
-        <!-- Mastery — the pipeline funnel (every bar variant carries a legend row now — item
-             5) with difficulty folded in, the honest technique-breadth denominator, and the
+        <!-- Mastery — the pipeline pie (every pie carries a legend) with difficulty folded in, the honest technique-breadth denominator, and the
              technique list itself (round 5 — techniques folded into Mastery). -->
         @if (isTabActive('mastery')) {
           <div class="tabpanel" role="tabpanel" id="panel-mastery" aria-labelledby="tab-mastery">
             <div class="card po-card">
-              <h2>Mastery pipeline</h2>
-              <p class="card__sub">Problems maturing 🔴 → 🟡 → 🟢 → 🎓 → 🏆. This, not a row count, is progress. Click a tier to see which problems.</p>
-              <app-segmented-bar
-                [segments]="pipelineSegments()"
-                [clickable]="true"
-                axisStart="unfamiliar"
-                axisEnd="mastered"
-                (segmentClick)="pipelineSegmentClick($event)"
-              />
-
-              @if (difficultySegments().length) {
-                <div class="difficulty-inline">
-                  <h3 class="difficulty-inline__label">Difficulty mix</h3>
-                  <app-segmented-bar
-                    [segments]="difficultySegments()"
-                    variant="mix"
+              <div class="mastery-pies">
+                <div class="mastery-pies__col">
+                  <h2>Mastery pipeline</h2>
+                  <p class="card__sub">Problems maturing 🔴 → 🟡 → 🟢 → 🎓 → 🏆. This, not a row count, is progress. Click a tier to see which problems.</p>
+                  <app-pie-chart
+                    [segments]="pipelineSegments()"
                     [clickable]="true"
-                    (segmentClick)="difficultySegmentClick($event)"
+                    (segmentClick)="pipelineSegmentClick($event)"
                   />
                 </div>
-              }
+
+                @if (difficultySegments().length) {
+                  <div class="mastery-pies__col">
+                    <h3 class="mastery-pies__label">Difficulty mix</h3>
+                    <app-pie-chart
+                      [segments]="difficultySegments()"
+                      [clickable]="true"
+                      (segmentClick)="difficultySegmentClick($event)"
+                    />
+                  </div>
+                }
+              </div>
             </div>
 
             @if (roadmapLevels().length) {
               <div class="card po-card">
-                <app-roadmap-coverage [rows]="roadmapLevels()" />
+                <app-roadmap-coverage [rows]="roadmapLevels()" (select)="focusTechnique($event)" />
               </div>
             }
             @if (d.techniques) {
@@ -322,6 +322,7 @@
                   [details]="details()"
                   [repoRef]="repoRef()"
                   [practiceNumbers]="practiceNumbers()"
+                  [focus]="focusedTechnique()"
                   (expand)="onTechniqueExpand($event)"
                 />
               </div>

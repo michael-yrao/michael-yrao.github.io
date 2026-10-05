@@ -1,5 +1,12 @@
 :host { display: block; }
 
+// One level's block is TILES_PER_ROW squares wide, so levels read as blocks of rows (a level's
+// size is its row count) and sit side by side where the card is wide enough.
+$tile-size: 14px;
+$tile-gap: 4px;
+$tiles-per-row: 20;
+$level-width: $tiles-per-row * $tile-size + ($tiles-per-row - 1) * $tile-gap;
+
 .roadmap__head {
   display: flex;
   flex-wrap: wrap;
@@ -11,7 +18,7 @@
 
 .roadmap__title {
   margin: 0;
-  font-size: 1.1rem; // matches .card h2 — same size as the segmented bars' card heading
+  font-size: 1.1rem; // matches .card h2 — same size as the other Mastery cards' headings
 }
 
 .roadmap__key {
@@ -30,21 +37,30 @@
   gap: var(--space-xs);
 }
 
+// A key swatch is drawn exactly like the tile it names.
 .roadmap__swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-raised);
+  width: $tile-size;
+  height: $tile-size;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px var(--color-text-muted);
 }
 
-.roadmap__swatch--started { background: var(--color-roadmap-practiced); }
+.roadmap__swatch--started { background: var(--color-roadmap-practiced); box-shadow: none; }
 
-.roadmap__row {
-  display: grid;
-  grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr) auto;
-  align-items: center;
+.roadmap__levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md) var(--space-xl);
+}
+
+.roadmap__level { width: $level-width; max-width: 100%; }
+
+.roadmap__level-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
   gap: var(--space-sm);
-  margin-top: var(--space-xs);
+  margin-bottom: var(--space-xs);
 }
 
 .roadmap__label,
@@ -57,15 +73,24 @@
   white-space: nowrap;
 }
 
-.roadmap__track {
-  height: 16px;
-  max-width: 100%;
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-raised);
-  overflow: hidden;
+.roadmap__tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $tile-gap;
 }
 
-.roadmap__fill {
-  height: 100%;
-  background: var(--color-roadmap-practiced);
+.roadmap__tile {
+  appearance: none;
+  border: none;
+  padding: 0;
+  width: $tile-size;
+  height: $tile-size;
+  border-radius: 3px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-text-muted); // not started: an empty box
+  cursor: pointer;
+
+  &:hover, &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
 }
+
+.roadmap__tile--started { background: var(--color-roadmap-practiced); box-shadow: none; }
