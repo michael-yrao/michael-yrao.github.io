@@ -1,4 +1,4 @@
-<section class="practice" [class.interview-page--setup]="!isInSession()">
+<section class="practice">
   @if (isInSession()) {
     <div class="interview-page__bar">
       <app-interview-bar [problemLabel]="session.problem()?.title ?? ''" />
@@ -92,10 +92,9 @@
   } @else {
     <div class="interview-page__setup">
       <h1 class="interview-page__heading">Interview</h1>
-      <app-problem-editor [problem]="form()" [isRejected]="isRejected()" (problemChange)="onFormChange($event)" />
-      <div class="practice__toolbar">
+      <app-problem-editor [problem]="form()" [isRejected]="isRejected()" [isSplit]="true" (problemChange)="onFormChange($event)">
         <button type="button" class="practice__btn practice__btn--primary" [disabled]="isRejected()" (click)="startInterview()">Start interview</button>
-      </div>
+      </app-problem-editor>
     </div>
   }
 </section>

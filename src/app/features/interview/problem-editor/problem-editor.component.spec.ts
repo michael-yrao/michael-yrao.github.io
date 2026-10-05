@@ -37,7 +37,19 @@ class StubEditorComponent {
   }
 }
 
-function setUp(problem: InterviewProblem) {
+const MARKER = '[data-marker]';
+
+/** Projects a marker button, as the interview page projects its Start button. */
+@Component({
+  imports: [ProblemEditorComponent],
+  template: '<app-problem-editor [problem]="problem" [isSplit]="isSplit"><button data-marker>Marker</button></app-problem-editor>',
+})
+class HostComponent {
+  problem = EMPTY_PROBLEM;
+  isSplit = false;
+}
+
+function configure(): void {
   const data: PracticeData = { schemaVersion: 1, generatedAt: '2026-10-01', problems: [] };
   TestBed.configureTestingModule({
     imports: [ProblemEditorComponent],
@@ -62,6 +74,10 @@ function setUp(problem: InterviewProblem) {
     remove: { imports: [CodeEditorComponent] },
     add: { imports: [StubEditorComponent] },
   });
+}
+
+function setUp(problem: InterviewProblem) {
+  configure();
   const fixture = TestBed.createComponent(ProblemEditorComponent);
   fixture.componentRef.setInput('problem', problem);
   const emitted: InterviewProblem[] = [];
@@ -76,6 +92,23 @@ function typeInto(field: HTMLInputElement, text: string): void {
 }
 
 describe('ProblemEditorComponent', () => {
+  it.each([false, true])('isSplit %s: practice panes and the projected button', (isSplit) => {
+    configure();
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.problem = WITH_CASE;
+    fixture.componentInstance.isSplit = isSplit;
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+    const inWork = (selector: string): boolean => root.querySelector(`.practice__work ${selector}`) !== null;
+
+    expect(root.querySelector('.practice__split') !== null).toBe(isSplit);
+    expect(root.querySelector('.practice__problem textarea') !== null).toBe(isSplit);
+    expect(inWork('app-code-editor')).toBe(isSplit);
+    expect(inWork(MARKER)).toBe(isSplit);
+    expect(inWork('[data-field="args"]')).toBe(isSplit);
+    expect(root.querySelector(MARKER) !== null).toBe(isSplit);
+  });
+
   it.each([
     [WITH_CASE, 'args', '[1, 2]', true, [1, 2]],
     [WITH_CASE, 'args', '[1,', false, null],

@@ -21,7 +21,7 @@ import { CodeEditorComponent } from '../../practice/code-editor/code-editor.comp
 import { PracticeDescriptionComponent } from '../../practice/practice-description/practice-description.component';
 import { TIME_LIMIT_WORD, countPassed } from '../../practice/practice-results';
 import { shortcutFor } from '../../practice/practice-shortcuts';
-import { DEFAULT_PROBLEM_SHARE } from '../../practice/practice-split';
+import { PROBLEM_TRACK, WORK_TRACK } from '../../practice/practice-split';
 import { toPracticeProblem } from '../problem-import';
 import { ProblemEditorComponent } from '../problem-editor/problem-editor.component';
 import { InterviewBarComponent } from '../session/interview-bar/interview-bar.component';
@@ -29,10 +29,6 @@ import { parseInterviewProblem, type InterviewProblem } from '../session/intervi
 import { HOST_PARAM, JOIN_PARAM, InterviewSessionService } from '../session/interview-session.service';
 import { loadInterviewDraft, saveInterviewDraft } from './interview-draft';
 
-const PERCENT = 100;
-/** The split's fixed track weights, as the practice page's `--problem-track` / `--work-track` bindings. */
-const PROBLEM_TRACK = `${DEFAULT_PROBLEM_SHARE * PERCENT}fr`;
-const WORK_TRACK = `${(1 - DEFAULT_PROBLEM_SHARE) * PERCENT}fr`;
 /** How long edits rest before the draft is saved (setup) or the problem is published (in a session). */
 export const PUBLISH_DELAY_MS = 500;
 /** How many unanswered publishes are remembered; a tab whose publishes are being dropped stops growing the list. */

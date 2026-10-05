@@ -1,7 +1,9 @@
 $textarea-min-height: 10rem;
 $split-breakpoint: 900px;
+$import-width: 16rem;
 
-.problem-editor {
+.problem-editor,
+.problem-editor__group {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
@@ -38,6 +40,47 @@ $split-breakpoint: 900px;
 }
 
 @media (min-width: $split-breakpoint) {
-  // The editor sizes to its content; the practice page's rule makes it fill a fixed-height column.
-  .problem-editor__field app-code-editor { flex: 0 0 auto; }
+  // Stacked: the editor sizes to its content; the practice page's rule makes it fill a fixed-height column.
+  :host(:not(.problem-editor--split)) .problem-editor__field app-code-editor { flex: 0 0 auto; }
+
+  // Split: the practice stylesheet's classes pin the panes to the viewport, so every wrapper
+  // between the page's setup column and the panes passes the height down.
+  :host(.problem-editor--split) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+
+    .problem-editor { flex: 1 1 auto; min-height: 0; }
+
+    // No divider between the panes, so two tracks instead of the practice page's three.
+    // `display` is restated because `.problem-editor__group` (declared later) would make it a flex column.
+    .problem-editor__panes {
+      display: grid;
+      grid-template-columns: minmax(0, var(--problem-track)) minmax(0, var(--work-track));
+      column-gap: var(--space-md);
+    }
+
+    // Labels share a top and controls share a bottom, so each control fills its field.
+    .problem-editor__head { flex-direction: row; align-items: stretch; }
+    .problem-editor__head .problem-editor__input { flex: 1 1 auto; }
+    .problem-editor__import { flex: 0 0 $import-width; min-width: 0; }
+    .problem-editor__title { flex: 1 1 auto; }
+
+    // A pane's label sits as far above its body as the practice page's pane head does.
+    .problem-editor__statement,
+    .problem-editor__starter { gap: var(--space-md); }
+    .problem-editor__statement { flex: 1 1 auto; min-height: 0; }
+    .problem-editor__textarea { flex: 1 1 auto; resize: none; }
+
+    // Compare and Entry share one row.
+    .problem-editor__meta {
+      flex-direction: row;
+      align-items: flex-start;
+      .problem-editor__field { flex: 1 1 0; }
+    }
+
+    // The panes and the output scroll, so a ring drawn outside a control would be clipped.
+    .problem-editor__panes :focus-visible { outline-offset: -2px; }
+  }
 }

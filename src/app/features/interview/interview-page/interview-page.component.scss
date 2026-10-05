@@ -1,4 +1,3 @@
-$setup-max-width: 48rem;
 $split-breakpoint: 900px;
 
 .interview-page__setup {
@@ -6,18 +5,16 @@ $split-breakpoint: 900px;
   flex-direction: column;
   gap: var(--space-md);
   width: 100%;
-  max-width: $setup-max-width;
-  margin-inline: auto;
 }
 
 .interview-page__heading,
 .interview-page__title { margin: 0; }
 
 @media (min-width: $split-breakpoint) {
-  // Setup is a scrolling form, not the two-pane page the practice stylesheet pins to the viewport.
-  .interview-page--setup {
-    height: auto;
-    overflow: visible;
+  // Setup fills the viewport-pinned page, passing its height down to the editor's panes.
+  .interview-page__setup {
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   // No divider between the panes, so two tracks instead of the practice page's three.

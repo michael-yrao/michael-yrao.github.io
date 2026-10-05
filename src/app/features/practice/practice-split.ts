@@ -5,6 +5,11 @@ export const MIN_PROBLEM_SHARE = 0.25;
 export const MAX_PROBLEM_SHARE = 0.75;
 export const KEYBOARD_STEP = 0.02;
 
+const PERCENT = 100;
+/** The split's fixed track weights, as the practice page's `--problem-track` / `--work-track` bindings. */
+export const PROBLEM_TRACK = `${DEFAULT_PROBLEM_SHARE * PERCENT}fr`;
+export const WORK_TRACK = `${(1 - DEFAULT_PROBLEM_SHARE) * PERCENT}fr`;
+
 /** The share held inside the allowed range. */
 export function clampShare(share: number): number {
   return Math.min(MAX_PROBLEM_SHARE, Math.max(MIN_PROBLEM_SHARE, share));

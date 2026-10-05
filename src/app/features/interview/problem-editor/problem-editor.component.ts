@@ -6,6 +6,7 @@ import { isPracticeCase } from '../../../core/practice/practice-validation';
 import { PracticeService } from '../../../core/services/practice.service';
 import { CodeEditorComponent } from '../../practice/code-editor/code-editor.component';
 import { injectPracticeContract } from '../../practice/practice-contract';
+import { PROBLEM_TRACK, WORK_TRACK } from '../../practice/practice-split';
 import { entryFromStarter, importProblem } from '../problem-import';
 import {
   CASES_MAX,
@@ -100,6 +101,7 @@ function toRow(testCase: PracticeCase): CaseRow {
   styleUrls: ['../../practice/practice-page/practice-page.component.scss', './problem-editor.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CodeEditorComponent],
+  host: { '[class.problem-editor--split]': 'isSplit()' },
 })
 export class ProblemEditorComponent {
   /** The problem the form shows. The parent sets it to each emitted value (that same object); any other value is a replacement from outside and drops the form's local field texts. */
@@ -108,6 +110,8 @@ export class ProblemEditorComponent {
   readonly problemChange = output<InterviewProblem>();
   /** True while the parent holds a problem the session would reject. */
   readonly isRejected = input(false);
+  /** True to lay the form out as the practice page's two panes, with the projected content (the Start button) in the toolbar under the starter editor. */
+  readonly isSplit = input(false);
 
   // A decorator query, not viewChild(): the signal-query helper is another runtime symbol
   // that would land in the initial bundle.
@@ -116,6 +120,8 @@ export class ProblemEditorComponent {
   protected readonly titleMaxLength = TITLE_MAX_LENGTH;
   protected readonly statementMaxLength = STATEMENT_MAX_LENGTH;
   protected readonly casesMax = CASES_MAX;
+  protected readonly problemTrack = PROBLEM_TRACK;
+  protected readonly workTrack = WORK_TRACK;
 
   private readonly practice = inject(PracticeService);
 

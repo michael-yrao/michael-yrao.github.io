@@ -57,13 +57,14 @@ class StubCodeEditorComponent {
 
 @Component({
   selector: 'app-problem-editor',
-  template: '',
+  template: '<ng-content />',
   providers: [{ provide: ProblemEditorComponent, useExisting: StubProblemEditorComponent }],
 })
 class StubProblemEditorComponent {
   readonly problem = input.required<InterviewProblem>();
   readonly problemChange = output<InterviewProblem>();
   readonly isRejected = input(false);
+  readonly isSplit = input(false);
   readonly hasInvalidField = signal(false);
 }
 
@@ -131,12 +132,13 @@ const ROLE_VIEWS: readonly {
   problem: InterviewProblem | null;
   tabs: readonly string[];
   hasEditor: boolean;
+  isEditorSplit: boolean | null;
   hasStart: boolean;
   hasDescription: boolean;
 }[] = [
-  { role: 'none', problem: null, tabs: [], hasEditor: true, hasStart: true, hasDescription: false },
-  { role: 'interviewer', problem: PROBLEM, tabs: ['Edit', 'View'], hasEditor: true, hasStart: false, hasDescription: false },
-  { role: 'candidate', problem: PROBLEM, tabs: [], hasEditor: false, hasStart: false, hasDescription: true },
+  { role: 'none', problem: null, tabs: [], hasEditor: true, isEditorSplit: true, hasStart: true, hasDescription: false },
+  { role: 'interviewer', problem: PROBLEM, tabs: ['Edit', 'View'], hasEditor: true, isEditorSplit: false, hasStart: false, hasDescription: false },
+  { role: 'candidate', problem: PROBLEM, tabs: [], hasEditor: false, isEditorSplit: null, hasStart: false, hasDescription: true },
 ];
 
 const STARTER_RULE: readonly { name: string; doc: string; hasEarlierPublish: boolean; setsText: boolean }[] = [
@@ -224,12 +226,14 @@ describe('InterviewPageComponent', () => {
     }
   });
 
-  it.each(ROLE_VIEWS)('what $role sees', ({ role, problem, tabs, hasEditor, hasStart, hasDescription }) => {
+  it.each(ROLE_VIEWS)('what $role sees', ({ role, problem, tabs, hasEditor, isEditorSplit, hasStart, hasDescription }) => {
     const { fixture } = setUp(fakeSession(role, problem));
     const root = fixture.nativeElement as HTMLElement;
+    const editor: StubProblemEditorComponent | undefined = fixture.debugElement.query(By.directive(StubProblemEditorComponent))?.componentInstance;
 
     expect(texts(root, TAB)).toEqual(tabs);
     expect(root.querySelector(PROBLEM_EDITOR) !== null).toBe(hasEditor);
+    expect(editor?.isSplit() ?? null).toBe(isEditorSplit);
     expect(root.querySelector(START_BUTTON)?.textContent?.trim() ?? null).toBe(hasStart ? 'Start interview' : null);
     expect(root.querySelector(DESCRIPTION) !== null).toBe(hasDescription);
   });
