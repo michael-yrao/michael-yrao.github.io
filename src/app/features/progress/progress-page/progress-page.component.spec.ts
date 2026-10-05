@@ -420,14 +420,17 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelector('app-workload-chart')).toBeFalsy();
   });
 
-  it('switching to the Problems tab fetches details automatically', () => {
-    const fixture = TestBed.createComponent(ProgressPageComponent);
-    fixture.detectChanges();
+  it.each(['problems', 'activity'] as const)(
+    'switching to the %s tab fetches details automatically',
+    (tab) => {
+      const fixture = TestBed.createComponent(ProgressPageComponent);
+      fixture.detectChanges();
 
-    clickTab(fixture, 'problems');
+      clickTab(fixture, tab);
 
-    expect(progress.loadDetails).toHaveBeenCalled();
-  });
+      expect(progress.loadDetails).toHaveBeenCalled();
+    },
+  );
 
   it('the manual "Explore problems" button also fetches (idle-state fallback)', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
@@ -911,7 +914,6 @@ describe('ProgressPageComponent', () => {
     clickTab(fixture, 'activity');
 
     expect(fixture.nativeElement.querySelectorAll('app-streak-calendar').length).toBe(1);
-    expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
   // ── The three heavy drills (pipeline / on-schedule / difficulty) now switch to the
@@ -942,6 +944,7 @@ describe('ProgressPageComponent', () => {
     const attentionBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.gauge__drill');
     expect(attentionBtn).toBeTruthy();
     expect(attentionBtn.textContent).toContain('Needs attention');
+    progress.loadDetails.mockClear(); // entering Activity already fetched; prove the click does too
     attentionBtn.click();
     fixture.detectChanges();
 

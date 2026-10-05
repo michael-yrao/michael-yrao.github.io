@@ -394,12 +394,13 @@ export class ProgressPageComponent {
     });
   }
 
-  /** Selects a tab; entering Problems for the first time fires loadDetails() (idempotent —
-   *  it no-ops if details are already loaded, per ProgressService). */
+  /** Selects a tab; entering Problems or Activity fires loadDetails() (idempotent — it
+   *  no-ops if details are already loaded, per ProgressService). Activity needs the rows so
+   *  the On-schedule gauge recounts against today instead of the exporter's stale snapshot. */
   selectTab(tab: ProgressTab): void {
     this.activeTab.set(tab);
     this.collapseAllRows();
-    if (tab === 'problems') this.progress.loadDetails();
+    if (tab === 'problems' || tab === 'activity') this.progress.loadDetails();
   }
 
   isTabActive(tab: ProgressTab): boolean {
