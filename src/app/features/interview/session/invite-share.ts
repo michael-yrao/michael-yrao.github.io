@@ -2,6 +2,7 @@
 export const INVITE_TITLE_PREFIX = 'Interview invite';
 
 const INVITE_BODY_PREFIX = 'Join the interview:';
+const INVITE_WHEN_PREFIX = 'When:';
 const HOST_TITLE_PREFIX = 'Interviewer link';
 const HOST_BODY_PREFIX = 'Join as interviewer:';
 const HOST_BODY_INVITE_PREFIX = 'Candidate link:';
@@ -23,9 +24,10 @@ function mailtoHref(recipient: string, subject: string, body: string): string {
   return `mailto:${encodeURIComponent(recipient.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-/** A `mailto:` link carrying the candidate invite. */
-export function inviteEmailHref(url: string, problemLabel: string, recipient: string): string {
-  return mailtoHref(recipient, inviteTitle(problemLabel), `${INVITE_BODY_PREFIX} ${url}`);
+/** A `mailto:` link carrying the candidate invite, with a `When:` line after the join line when `when` is given. */
+export function inviteEmailHref(url: string, problemLabel: string, recipient: string, when = ''): string {
+  const lines = [`${INVITE_BODY_PREFIX} ${url}`, ...(when ? [`${INVITE_WHEN_PREFIX} ${when}`] : [])];
+  return mailtoHref(recipient, inviteTitle(problemLabel), lines.join(MAILTO_LINE_BREAK));
 }
 
 /** A `mailto:` link carrying the interviewer link and the candidate link. */

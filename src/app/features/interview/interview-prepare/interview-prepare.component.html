@@ -18,45 +18,8 @@
     </div>
 
     <app-problem-editor class="interview-prepare__editor" [hidden]="tab() === 'view'" [problem]="form()" [isRejected]="isRejected()" [isSplit]="true" (problemChange)="onFormChange($event)">
-      <label problemEditorHead class="problem-editor__field interview-prepare__prepared">
-        <span class="practice__label">Saved problems</span>
-        <select class="problem-editor__input" (change)="onSelectPrepared($event)">
-          <option [value]="newEntry" [selected]="selectedId() === newEntry">New</option>
-          @for (item of prepared.list(); track item.sessionId) {
-            <option [value]="item.sessionId" [selected]="item.sessionId === selectedId()" [disabled]="item.sessionId === liveId()">{{ preparedLabel(item) }}</option>
-          }
-        </select>
-      </label>
-      <button type="button" class="practice__btn practice__btn--primary" [disabled]="isRejected()" (click)="prepareInterview()">Get codes</button>
-      @if (detail()) {
-        @if (codes(); as shown) {
-          <span class="interview-prepare__code interview-prepare__code--candidate">
-            <span class="practice__label">Candidate</span>
-            <span class="interview-prepare__code-value">{{ shown.candidate }}</span>
-            <button type="button" class="practice__btn practice__btn--icon" aria-label="Copy candidate link" title="Copy candidate link" (click)="copyLink('candidate')">
-              <ng-container [ngTemplateOutlet]="copyIcon" [ngTemplateOutletContext]="{ $implicit: copyMarks.candidate() }" />
-            </button>
-          </span>
-          <span class="interview-prepare__code interview-prepare__code--interviewer">
-            <span class="practice__label">Interviewer</span>
-            <span class="interview-prepare__code-value">{{ shown.interviewer }}</span>
-            <button type="button" class="practice__btn practice__btn--icon" aria-label="Copy interviewer link" title="Copy interviewer link" (click)="copyLink('interviewer')">
-              <ng-container [ngTemplateOutlet]="copyIcon" [ngTemplateOutletContext]="{ $implicit: copyMarks.interviewer() }" />
-            </button>
-          </span>
-        }
-        @if (stateView(); as state) {
-          <span class="interview-prepare__state">
-            <span class="interview-prepare__dot" [class]="'interview-prepare__dot--' + state.tone"></span>
-            {{ state.label }}
-          </span>
-        }
-        <button type="button" class="practice__btn practice__btn--icon interview-prepare__delete" aria-label="Delete saved problem" title="Delete saved problem" (click)="deleteSelected()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
-          </svg>
-        </button>
-      }
+      <button type="button" class="practice__btn practice__btn--primary" [disabled]="isRejected()" (click)="save()">Save</button>
+      <span class="interview-prepare__status">{{ status() }}</span>
     </app-problem-editor>
 
     @if (tab() === 'view') {
@@ -76,24 +39,3 @@
     }
   </div>
 </section>
-
-<ng-template #copyIcon let-mark>
-  @switch (mark) {
-    @case ('ok') {
-      <svg class="interview-prepare__icon--ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-        <path d="M5 12.5l4.5 4.5L19 7.5" />
-      </svg>
-    }
-    @case ('fail') {
-      <svg class="interview-prepare__icon--fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-        <path d="M6 6l12 12M18 6L6 18" />
-      </svg>
-    }
-    @default {
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-        <rect x="9" y="9" width="11" height="11" rx="2" />
-        <path d="M5 15V6a2 2 0 0 1 2-2h9" />
-      </svg>
-    }
-  }
-</ng-template>

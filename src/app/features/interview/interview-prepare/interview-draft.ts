@@ -46,3 +46,12 @@ export function saveInterviewDraft(problem: InterviewProblem): void {
     console.error(`Interview: could not save ${INTERVIEW_DRAFT_KEY}`, err);
   }
 }
+
+/** Removes the saved draft, for a draft that has become a saved problem. */
+export function clearInterviewDraft(): void {
+  try {
+    localStorage.removeItem(INTERVIEW_DRAFT_KEY);
+  } catch (err) {
+    console.error(`Interview: could not remove ${INTERVIEW_DRAFT_KEY}`, err);
+  }
+}

@@ -1,0 +1,13 @@
+<dialog #dialog class="modal" [attr.aria-labelledby]="headingId" (click)="onDialogClick($event)" (close)="onNativeClose()">
+  <div class="modal__body">
+    <div class="modal__head">
+      <h2 class="modal__heading" [id]="headingId">{{ heading() }}</h2>
+      <button type="button" class="modal__close" aria-label="Close" title="Close" (click)="closed.emit()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+    </div>
+    <ng-content />
+  </div>
+</dialog>

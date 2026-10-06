@@ -1,0 +1,33 @@
+.saved-problems {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.saved-problems__heading { margin: 0; }
+
+.saved-problems__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.saved-problems__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.saved-problems__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+
+  .practice__btn { text-decoration: none; }
+}

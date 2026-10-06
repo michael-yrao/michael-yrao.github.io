@@ -1,0 +1,46 @@
+<div class="practice__toolbar">
+  <button type="button" class="practice__btn practice__btn--icon practice__btn--primary" aria-label="Run" title="Run (Ctrl+Enter)" [disabled]="run().isBusy()" (click)="runRequest.emit()">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+      <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
+    </svg>
+  </button>
+  @if (run().isLoadingPython()) {
+    <span class="practice__status">Loading Python</span>
+  }
+  <button type="button" class="practice__btn practice__btn--icon" aria-label="Reset" title="Reset" [disabled]="!canReset()" (click)="resetRequest.emit()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <path d="M3 4v5h5" />
+    </svg>
+  </button>
+</div>
+
+<section class="practice__output" aria-label="Output">
+  <div class="practice__toolbar">
+    <span class="practice__label">Output</span>
+    @if (run().runState()) {
+      <span class="practice__summary">{{ run().passedCount() }} / {{ run().runCaseCount() }}</span>
+    }
+  </div>
+  @if (run().runState(); as state) {
+    <app-case-results class="practice__output-body" [runState]="state" [cases]="run().ranProblem()?.cases ?? []" [resultCodec]="run().ranProblem()?.types?.result ?? null" [(selected)]="run().selectedCase" />
+  } @else if (run().freeRunState(); as state) {
+    <div class="practice__output-body">
+      @if (state.stdout) {
+        <div class="practice__block">
+          <span class="practice__label">stdout</span>
+          <pre class="practice__value">{{ state.stdout }}</pre>
+        </div>
+      }
+      @if (state.error !== null) {
+        <div class="practice__block">
+          <span class="practice__label practice__label--bad">error</span>
+          <pre class="practice__value">{{ state.error }}</pre>
+        </div>
+      }
+      @if (state.isTimedOut) {
+        <span class="practice__word">{{ timeLimitWord }}</span>
+      }
+    </div>
+  }
+</section>

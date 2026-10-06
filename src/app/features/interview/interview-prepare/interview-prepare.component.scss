@@ -1,7 +1,4 @@
-@use '../problem-field' as *;
-
 $split-breakpoint: 900px;
-$dot-size: 0.6rem;
 
 .interview-prepare {
   display: flex;
@@ -15,46 +12,17 @@ $dot-size: 0.6rem;
 // An author display rule on the editor's host would beat the hidden attribute.
 .interview-prepare__editor[hidden] { display: none; }
 
-.interview-prepare__code,
-.interview-prepare__state {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.interview-prepare__code-value,
-.interview-prepare__state {
+.interview-prepare__status {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  color: var(--color-text);
+  color: var(--color-text-muted);
 }
-.interview-prepare__state { color: var(--color-text-muted); }
-
-.interview-prepare__dot {
-  width: $dot-size;
-  height: $dot-size;
-  border-radius: 50%;
-  background: var(--color-text-muted);
-}
-.interview-prepare__dot--waiting { background: var(--color-medium); }
-.interview-prepare__dot--open { background: var(--color-found); }
-.interview-prepare__dot--closed { background: var(--color-text-muted); }
-
-.interview-prepare__icon--ok { color: var(--color-found); }
-.interview-prepare__icon--fail { color: var(--color-hard); }
 
 @media (min-width: $split-breakpoint) {
   // The page fills the viewport-pinned practice page, passing its height down to the editor's panes.
   .interview-prepare {
     flex: 1 1 auto;
     min-height: 0;
-  }
-
-  // The Prepared picker sits in the editor's head row at the Import field's width, its control filling the field.
-  .interview-prepare__prepared {
-    flex: 0 0 $import-width;
-    min-width: 0;
-    .problem-editor__input { flex: 1 1 auto; }
   }
 
   // No divider between the panes, so two tracks instead of the practice page's three.

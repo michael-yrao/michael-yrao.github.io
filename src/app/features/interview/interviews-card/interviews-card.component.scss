@@ -1,0 +1,43 @@
+.interviews {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.interviews__heading { margin: 0; }
+
+.interviews__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.interviews__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.interviews__info {
+  display: flex;
+  flex-direction: column;
+}
+
+.interviews__detail {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.interviews__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+
+  .practice__btn { text-decoration: none; }
+}

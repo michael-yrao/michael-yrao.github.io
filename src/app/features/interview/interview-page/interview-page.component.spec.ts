@@ -110,7 +110,13 @@ const messageOf = (root: HTMLElement): string | null => root.querySelector('.pra
 
 /** A stand-in for the prepared-interview store: every code answers with `entry`. */
 function fakePrepared(entry: CodeEntry = { status: 'invalid' }) {
-  return { enterCode: vi.fn().mockResolvedValue(entry) };
+  return {
+    enterCode: vi.fn().mockResolvedValue(entry),
+    list: signal([]),
+    retryUnpublished: vi.fn().mockResolvedValue(undefined),
+    codesOf: vi.fn().mockReturnValue(null),
+    packedOf: vi.fn().mockReturnValue(null),
+  };
 }
 
 interface SetUpOptions {

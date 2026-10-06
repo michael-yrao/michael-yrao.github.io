@@ -15,6 +15,7 @@ import {
 } from '../session/debrief';
 import { InterviewSessionService } from '../session/interview-session.service';
 import { loadNotes, saveNotes } from '../session/notes-store';
+import { loadPrepared } from '../session/prepared-store';
 import { VERDICT_LABELS } from './verdict-labels';
 
 const MS_PER_MINUTE = 60_000;
@@ -38,6 +39,9 @@ export class InterviewNotesComponent {
   protected readonly checkKeys = CHECK_KEYS;
   protected readonly checkNames = CHECK_NAMES;
   protected readonly notesMaxLength = NOTES_MAX_LENGTH;
+
+  /** The focus areas typed when the interview was set up; empty when there are none. Read once. */
+  protected readonly focus = this.sessionId === null ? '' : (loadPrepared(this.sessionId)?.schedule?.notes ?? '');
 
   protected readonly notes = signal<InterviewNotes>(this.initialNotes());
   protected readonly verdict = computed(() => verdictOf(this.notes()));

@@ -43,52 +43,7 @@
           }
         </div>
 
-        <div class="practice__toolbar">
-          <button type="button" class="practice__btn practice__btn--icon practice__btn--primary" aria-label="Run" title="Run (Ctrl+Enter)" [disabled]="isBusy()" (click)="run()">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-              <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
-            </svg>
-          </button>
-          @if (isLoadingPython()) {
-            <span class="practice__status">Loading Python</span>
-          }
-          <button type="button" class="practice__btn practice__btn--icon" aria-label="Reset" title="Reset" [disabled]="!session.isEditable()" (click)="reset()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-              <path d="M3 12a9 9 0 1 0 3-6.7" />
-              <path d="M3 4v5h5" />
-            </svg>
-          </button>
-        </div>
-
-        <section class="practice__output" aria-label="Output">
-          <div class="practice__toolbar">
-            <span class="practice__label">Output</span>
-            @if (runState()) {
-              <span class="practice__summary">{{ passedCount() }} / {{ runCaseCount() }}</span>
-            }
-          </div>
-          @if (runState(); as state) {
-            <app-case-results class="practice__output-body" [runState]="state" [cases]="ranProblem()?.cases ?? []" [resultCodec]="ranProblem()?.types?.result ?? null" [(selected)]="selectedCase" />
-          } @else if (freeRunState(); as state) {
-            <div class="practice__output-body">
-              @if (state.stdout) {
-                <div class="practice__block">
-                  <span class="practice__label">stdout</span>
-                  <pre class="practice__value">{{ state.stdout }}</pre>
-                </div>
-              }
-              @if (state.error !== null) {
-                <div class="practice__block">
-                  <span class="practice__label practice__label--bad">error</span>
-                  <pre class="practice__value">{{ state.error }}</pre>
-                </div>
-              }
-              @if (state.isTimedOut) {
-                <span class="practice__word">{{ timeLimitWord }}</span>
-              }
-            </div>
-          }
-        </section>
+        <app-run-panel [run]="codeRun" [canReset]="session.isEditable()" (runRequest)="run()" (resetRequest)="reset()" />
       </div>
     </div>
   } @else {
@@ -114,10 +69,12 @@
         </section>
         <section class="interview-page__panel po-card">
           <h2 class="interview-page__panel-heading">Write an interview problem</h2>
-          <p class="interview-page__panel-hint">Set the problem and starter code, then get a code for each side.</p>
+          <p class="interview-page__panel-hint">Write the problem and starter code, then save it. Set up an interview from any saved problem.</p>
           <a class="practice__btn interview-page__prepare-link" routerLink="/interview/prepare">Write a problem</a>
         </section>
       </div>
+      <app-interviews-card />
+      <app-saved-problems-card />
       @if (pastInterviews().length > 0) {
         <section class="interview-page__past po-card">
           <h2 class="interview-page__panel-heading">Past interviews</h2>

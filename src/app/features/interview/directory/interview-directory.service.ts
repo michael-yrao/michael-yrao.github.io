@@ -208,6 +208,7 @@ export class InterviewDirectoryService {
       problem: entry.problem,
       createdAt: entry.createdAt,
       candidateCode: entry.candidateCode,
+      ...(entry.schedule === undefined ? {} : { schedule: entry.schedule }),
     };
     const [sealed, candidateId] = await Promise.all([seal(secrets.key, plain), candidateLookupId(entry.candidateCode)]);
     if (sealed.ciphertext.length > CIPHERTEXT_MAX_LENGTH) {

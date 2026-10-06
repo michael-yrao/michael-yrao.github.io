@@ -1,5 +1,6 @@
 import { decodeBase64Url, encodeBase64Url } from '../session/host-key';
 import { SignedProblem } from '../session/interview-problem';
+import { InterviewSchedule } from '../session/interview-schedule';
 import { DirectoryPlaintext, InterviewerSecrets, Sealed, candidateLookupId, deriveInterviewerSecrets, seal, unseal } from './directory-crypto';
 
 /** Known answers, computed once with an independent script: they pin the derivation strings and sizes. */
@@ -12,6 +13,15 @@ const OTHER_INTERVIEWER_CODE = '4TPD8HNW3RXB';
 
 const SIGNED: SignedProblem = { rev: 1, json: '{"title":"naïve ✓"}', signature: 'S'.repeat(86) };
 const PLAIN: DirectoryPlaintext = { v: 1, packed: 'PACKED', problem: SIGNED, createdAt: 1_700_000_000_000, candidateCode: CANDIDATE_CODE };
+const SCHEDULE: InterviewSchedule = {
+  problemId: 'problem-1',
+  scheduledAt: 1_800_000_000_000,
+  durationMin: 45,
+  candidateName: 'Ada',
+  candidateEmail: '',
+  interviewerName: 'Grace',
+  notes: 'Graphs.',
+};
 
 function flipFirstByte(text: string): string {
   const bytes = decodeBase64Url(text);
@@ -38,6 +48,15 @@ describe('directory crypto', () => {
 
     expect(await unseal(secrets.key, first)).toEqual(PLAIN);
     expect(first.iv).not.toBe(second.iv);
+  });
+
+  it.each<{ name: string; schedule: unknown; expected: DirectoryPlaintext }>([
+    { name: 'a schedule survives seal and unseal', schedule: SCHEDULE, expected: { ...PLAIN, schedule: SCHEDULE } },
+    { name: 'a malformed schedule is dropped and the plaintext still returned', schedule: { ...SCHEDULE, durationMin: 1 }, expected: PLAIN },
+  ])('$name', async ({ schedule, expected }) => {
+    const sealed = await seal(secrets.key, { ...PLAIN, schedule } as DirectoryPlaintext);
+
+    expect(await unseal(secrets.key, sealed)).toEqual(expected);
   });
 
   it('unseal gives null for anything but the sealed bytes under the sealing key', async () => {

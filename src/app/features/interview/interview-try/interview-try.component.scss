@@ -1,0 +1,14 @@
+$split-breakpoint: 900px;
+
+.interview-try__actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+@media (min-width: $split-breakpoint) {
+  // No divider between the panes, so two tracks instead of the practice page's three.
+  .interview-try__split {
+    grid-template-columns: minmax(0, var(--problem-track)) minmax(0, var(--work-track));
+    column-gap: var(--space-md);
+  }
+}

@@ -2,13 +2,23 @@ import { Injector } from '@angular/core';
 
 import { InterviewerFetch, InterviewDirectoryService, PushOutcome, RemoveOutcome } from '../directory/interview-directory.service';
 import { parsePackedKey, signProblemAt } from './host-key';
-import { InterviewProblem } from './interview-problem';
-import { PUSH_IDLE_MS, PreparedInterviewsService } from './prepared-interviews.service';
+import { InterviewProblem, SignedProblem } from './interview-problem';
+import { InterviewSchedule } from './interview-schedule';
+import { LIVE_PUSH_MIN_MS, PreparedInterviewsService } from './prepared-interviews.service';
 import { PreparedEntry, listPrepared, loadPrepared, mirrorPreparedProblem } from './prepared-store';
 
 const BASE_URL = 'https://site.test/interview';
 const NO_SUCH_SESSION = 'po-no-such-session';
 const OFFLINE_FIRST = 'offline' as const;
+const SCHEDULE: InterviewSchedule = {
+  problemId: 'problem-1',
+  scheduledAt: 1_800_000_000_000,
+  durationMin: 45,
+  candidateName: 'Ada',
+  candidateEmail: '',
+  interviewerName: 'Grace',
+  notes: 'Graphs.',
+};
 const problemTitled = (title: string): InterviewProblem => ({
   title,
   statement: 'Find a pair.',
@@ -60,15 +70,28 @@ function entryOf(sessionId: string): PreparedEntry {
 
 const titleOf = (sessionId: string): string => JSON.parse(entryOf(sessionId).problem.json).title;
 
-/** What the server would answer with: revision `rev` of the entry's problem, titled `title`, signed with its own key. */
-async function serverCopy(sessionId: string, rev: number, title: string): Promise<InterviewerFetch> {
-  const entry = entryOf(sessionId);
-  const keys = await parsePackedKey(entry.packed);
+/** Revision `rev` of the entry's problem, titled `title`, signed with the entry's own key. */
+async function signedAt(sessionId: string, rev: number, title: string): Promise<SignedProblem> {
+  const keys = await parsePackedKey(entryOf(sessionId).packed);
   if (keys === null) {
     throw new Error('bad key');
   }
-  const problem = await signProblemAt(keys.privateKey, sessionId, rev, problemTitled(title));
+  return signProblemAt(keys.privateKey, sessionId, rev, problemTitled(title));
+}
+
+/** What the server would answer with: revision `rev` of the entry's problem, titled `title`, signed with its own key. */
+async function serverCopy(sessionId: string, rev: number, title: string): Promise<InterviewerFetch> {
+  const entry = entryOf(sessionId);
+  const problem = await signedAt(sessionId, rev, title);
   return { status: 'found', rev, entry: { v: 1, packed: entry.packed, problem, createdAt: entry.createdAt, candidateCode: entry.candidateCode } };
+}
+
+/** The next revision of the entry's problem, titled `title`, signed but not stored. */
+const signNext = (sessionId: string, title: string): Promise<SignedProblem> => signedAt(sessionId, entryOf(sessionId).problem.rev + 1, title);
+
+/** Stores the next revision of the entry's problem, titled `title`, in the store alone: no push is scheduled. */
+async function signLocally(sessionId: string, title: string): Promise<void> {
+  mirrorPreparedProblem(sessionId, await signNext(sessionId, title));
 }
 
 /** The server holding exactly the local problem. */
@@ -161,7 +184,7 @@ describe('prepared interviews', () => {
   ])('pullIfNewer: $name', async ({ localEdits, pushedFirst, server, expected }) => {
     const { service, directory, sessionId } = await prepared(pushedFirst ? { outcome: 'published' } : { outcome: OFFLINE_FIRST });
     if (localEdits > 0) {
-      await service.update(sessionId, problemTitled('v2'));
+      await signLocally(sessionId, 'v2');
     }
     directory.fetchInterviewer.mockResolvedValue(await server(sessionId));
 
@@ -184,19 +207,19 @@ describe('prepared interviews', () => {
 
     expect(entryOf(sessionId).pushedRev).toBe(0);
     expect(service.list()[0].publish).toBe('pending');
-    expect((await service.detail(sessionId, BASE_URL))?.candidateCode).toBe('');
+    expect(service.codesOf(sessionId, BASE_URL)).toBeNull();
 
     await service.retryUnpublished();
 
     expect(directory.push).toHaveBeenCalledOnce();
     expect(entryOf(sessionId).pushedRev).toBe(1);
     expect(service.list()[0].publish).toBe('published');
-    expect((await service.detail(sessionId, BASE_URL))?.candidateUrl).toContain('code=');
+    expect(service.codesOf(sessionId, BASE_URL)?.candidateUrl).toContain('code=');
   });
 
   it('a stale push pulls the newer server copy instead of overwriting it', async () => {
     const { service, directory, sessionId } = await prepared({ outcome: 'published' });
-    await service.update(sessionId, problemTitled('v2'));
+    await signLocally(sessionId, 'v2');
     directory.push.mockResolvedValueOnce({ outcome: 'stale', serverRev: 5 });
     directory.fetchInterviewer.mockResolvedValue(await serverCopy(sessionId, 5, 'remote'));
 
@@ -224,41 +247,12 @@ describe('prepared interviews', () => {
     await settled(service);
     if (!isFirstPush) {
       directory.push.mockClear();
-      await service.update(sessionId, problemTitled('v2'));
+      await signLocally(sessionId, 'v2');
       directory.push.mockResolvedValueOnce({ outcome: 'candidate-taken' });
       await service.flush(sessionId);
     }
 
     expect({ isChanged: entryOf(sessionId).candidateCode !== before, pushes: directory.push.mock.calls.length }).toEqual(expected);
-  });
-
-  it('edits are pushed once, 30 seconds after the last one', async () => {
-    const { service, directory, sessionId } = await prepared();
-    await service.update(sessionId, problemTitled('a'));
-    await vi.advanceTimersByTimeAsync(PUSH_IDLE_MS / 2);
-    await service.update(sessionId, problemTitled('b'));
-
-    await vi.advanceTimersByTimeAsync(PUSH_IDLE_MS - 1);
-    expect(directory.push).not.toHaveBeenCalled();
-
-    await vi.advanceTimersByTimeAsync(1);
-    await settled(service);
-
-    expect(directory.push).toHaveBeenCalledOnce();
-    expect(directory.push.mock.calls[0][0].problem.rev).toBe(3);
-    expect(titleOf(sessionId)).toBe('b');
-  });
-
-  it('leaving the editor pushes at once and cancels the wait', async () => {
-    const { service, directory, sessionId } = await prepared();
-    await service.update(sessionId, problemTitled('a'));
-
-    await service.flush(sessionId);
-    await vi.advanceTimersByTimeAsync(PUSH_IDLE_MS);
-    await settled(service);
-
-    expect(directory.push).toHaveBeenCalledOnce();
-    expect(entryOf(sessionId).pushedRev).toBe(2);
   });
 
   it.each<{
@@ -322,11 +316,11 @@ describe('prepared interviews', () => {
     directory.isEnabled = isEnabled;
     directory.remove.mockResolvedValue(server);
     if (isPushWaiting) {
-      await service.update(sessionId, problemTitled('v2'));
+      service.mirror(sessionId, await signNext(sessionId, 'v2'), true);
     }
 
     const result = await service.remove(sessionId);
-    await vi.advanceTimersByTimeAsync(PUSH_IDLE_MS);
+    await vi.advanceTimersByTimeAsync(LIVE_PUSH_MIN_MS);
     await settled(service);
 
     expect({
@@ -335,6 +329,37 @@ describe('prepared interviews', () => {
       requests: directory.remove.mock.calls.length,
       pushes: directory.push.mock.calls.length,
     }).toEqual(expected);
+  });
+
+  it('prepare with a schedule stores it and pushes it with the entry', async () => {
+    const directory = fakeDirectory();
+    const service = serviceOver(directory);
+
+    const sessionId = await service.prepare(problemTitled('v1'), SCHEDULE);
+    if (sessionId === null) {
+      throw new Error('prepare failed');
+    }
+    await settled(service);
+
+    expect(entryOf(sessionId).schedule).toEqual(SCHEDULE);
+    expect(directory.push.mock.calls[0][0].schedule).toEqual(SCHEDULE);
+    expect(service.list()[0].schedule).toEqual(SCHEDULE);
+  });
+
+  it('an interviewer code this browser does not hold is saved with the server copy\'s schedule', async () => {
+    const { service, directory, sessionId } = await prepared();
+    const held = entryOf(sessionId);
+    localStorage.clear();
+    directory.fetchInterviewer.mockResolvedValue({
+      status: 'found',
+      rev: held.problem.rev,
+      entry: { v: 1, packed: held.packed, problem: held.problem, createdAt: held.createdAt, candidateCode: held.candidateCode, schedule: SCHEDULE },
+    });
+
+    const result = await service.enterCode(held.interviewerCode);
+
+    expect(result).toEqual({ status: 'interviewer', packed: held.packed });
+    expect(entryOf(sessionId).schedule).toEqual(SCHEDULE);
   });
 
   it('refresh shows a title changed in the store', async () => {

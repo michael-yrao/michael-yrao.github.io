@@ -5,6 +5,7 @@
 
 import { decodeBase64Url, encodeBase64Url } from '../session/host-key';
 import { SignedProblem } from '../session/interview-problem';
+import { InterviewSchedule, parseSchedule } from '../session/interview-schedule';
 import { isSignedProblem } from '../session/session-message';
 import { CIPHERTEXT_MAX_LENGTH, IV_LENGTH } from './directory-contract';
 
@@ -39,6 +40,8 @@ export interface DirectoryPlaintext {
   readonly problem: SignedProblem;
   readonly createdAt: number;
   readonly candidateCode: string;
+  /** Absent for an interview published without one. */
+  readonly schedule?: InterviewSchedule;
 }
 
 export interface Sealed {
@@ -104,6 +107,13 @@ function isPlaintext(value: unknown): value is DirectoryPlaintext {
   );
 }
 
+/** `plain` with its schedule kept when valid and dropped when not; the rest of the plaintext is never rejected for it. */
+function withValidSchedule(plain: DirectoryPlaintext): DirectoryPlaintext {
+  const { schedule, ...rest } = plain;
+  const valid = schedule === undefined ? null : parseSchedule(schedule);
+  return valid === null ? rest : { ...rest, schedule: valid };
+}
+
 function isSealedShape(sealed: Sealed): boolean {
   return (
     typeof sealed.iv === 'string' &&
@@ -124,7 +134,7 @@ export async function unseal(key: CryptoKey, sealed: Sealed): Promise<DirectoryP
   try {
     const bytes = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: decodeBase64Url(sealed.iv) }, key, decodeBase64Url(sealed.ciphertext));
     const value: unknown = JSON.parse(decoder.decode(bytes));
-    return isPlaintext(value) ? value : null;
+    return isPlaintext(value) ? withValidSchedule(value) : null;
   } catch {
     // The caught error can echo what was decrypted, so it is deliberately not logged.
     return null;

@@ -1,0 +1,69 @@
+@if (createdView(); as view) {
+  <div class="interview-setup">
+    <p class="interview-setup__title">Interview set up for {{ view.candidateName }} · {{ view.when }}</p>
+    <div class="interview-setup__code">
+      <span class="practice__label">Candidate code</span>
+      <span class="interview-setup__code-value">{{ view.candidateCode }}</span>
+      <app-copy-button label="Copy candidate link" [text]="view.candidateUrl" />
+    </div>
+    <div class="interview-setup__code">
+      <span class="practice__label">Interviewer code</span>
+      <span class="interview-setup__code-value">{{ view.interviewerCode }}</span>
+      <app-copy-button label="Copy interviewer link" [text]="view.interviewerUrl" />
+    </div>
+    @if (view.inviteHref; as href) {
+      <a class="practice__btn interview-setup__invite" [href]="href">Email invite</a>
+    } @else {
+      <p class="interview-setup__hint">Publishing. The codes appear once the server has the interview.</p>
+    }
+    @if (view.publish; as state) {
+      <app-publish-state [state]="state" />
+    }
+    <div class="interview-setup__actions">
+      <button type="button" class="practice__btn practice__btn--primary" (click)="done.emit()">Done</button>
+    </div>
+  </div>
+} @else {
+  <form class="interview-setup" novalidate (submit)="onSubmit($event)">
+    <p class="interview-setup__title">Problem: {{ problem().title }}</p>
+    <label class="problem-editor__field">
+      <span class="practice__label">Date and time</span>
+      <!-- A dialog moves focus to its autofocus field when it opens; without one the Close button would take it. -->
+      <!-- eslint-disable-next-line @angular-eslint/template/no-autofocus -->
+      <input class="problem-editor__input" type="datetime-local" name="when" [value]="defaultWhen" autofocus required />
+    </label>
+    <label class="problem-editor__field">
+      <span class="practice__label">Duration</span>
+      <select class="problem-editor__input" name="durationMin">
+        @for (minutes of durations; track minutes) {
+          <option [value]="minutes" [selected]="minutes === defaultDuration">{{ minutes }} min</option>
+        }
+      </select>
+    </label>
+    <label class="problem-editor__field">
+      <span class="practice__label">Candidate name</span>
+      <input class="problem-editor__input" type="text" name="candidateName" autocomplete="off" />
+    </label>
+    <label class="problem-editor__field">
+      <span class="practice__label">Candidate email (optional)</span>
+      <input class="problem-editor__input" type="email" name="candidateEmail" autocomplete="off" />
+    </label>
+    <label class="problem-editor__field">
+      <span class="practice__label">Interviewer name</span>
+      <input class="problem-editor__input" type="text" name="interviewerName" autocomplete="off" [value]="defaultInterviewerName" />
+    </label>
+    <label class="problem-editor__field">
+      <span class="practice__label">Notes and focus areas (optional)</span>
+      <textarea class="problem-editor__input interview-setup__notes" name="notes" rows="4"></textarea>
+      <span class="interview-setup__hint">Shown to the interviewer in the Notes tab.</span>
+    </label>
+    <p class="interview-setup__hint">The interview keeps a copy of the problem as it is now. Later edits to the saved problem do not change it.</p>
+    @for (error of errors(); track error) {
+      <p class="practice__message">{{ error }}</p>
+    }
+    <div class="interview-setup__actions">
+      <button type="button" class="practice__btn" (click)="done.emit()">Cancel</button>
+      <button type="submit" class="practice__btn practice__btn--primary" [disabled]="isBusy()">Create interview</button>
+    </div>
+  </form>
+}

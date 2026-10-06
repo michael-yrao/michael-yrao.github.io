@@ -11,20 +11,18 @@ import {
 } from '@angular/core';
 import type { Extension } from '@codemirror/state';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subscription } from 'rxjs';
 
 import type { PracticeProblem } from '../../../core/models/practice.model';
-import { PythonRunnerService } from '../../../core/runner/python-runner.service';
-import { FreeRunState, RunState, RunStatus } from '../../../core/runner/runner.model';
-import { CaseResultsComponent } from '../../practice/case-results/case-results.component';
 import { CodeEditorComponent } from '../../practice/code-editor/code-editor.component';
 import { PracticeDescriptionComponent } from '../../practice/practice-description/practice-description.component';
-import { TIME_LIMIT_WORD, countPassed } from '../../practice/practice-results';
 import { shortcutFor } from '../../practice/practice-shortcuts';
 import { PROBLEM_TRACK, WORK_TRACK } from '../../practice/practice-split';
 import { toPracticeProblem } from '../problem-import';
 import { ProblemEditorComponent } from '../problem-editor/problem-editor.component';
 import { InterviewNotesComponent } from '../interview-notes/interview-notes.component';
+import { InterviewsCardComponent } from '../interviews-card/interviews-card.component';
+import { injectCodeRun } from '../run/code-run';
+import { RunPanelComponent } from '../run-panel/run-panel.component';
 import { PageHeaderComponent, type BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
 import { PRACTICE_SECTIONS } from '../../../core/data/practice-sections';
@@ -39,6 +37,7 @@ import { listDebriefs, saveDebrief } from '../session/debrief-store';
 import { clearNotes } from '../session/notes-store';
 import { formatDebriefDate, roleLabel } from './interview-format';
 import { LANDING_MESSAGES } from './landing-messages';
+import { SavedProblemsCardComponent } from './saved-problems-card/saved-problems-card.component';
 
 /** How long edits rest before the problem is published in a session. */
 export const PUBLISH_DELAY_MS = 500;
@@ -62,13 +61,6 @@ const LANDING_BREADCRUMB: BreadcrumbEntry[] = [
 
 const DEBRIEF_PATH = '/interview/debrief';
 
-const isRunning = (status: RunStatus | undefined): boolean => status === 'loading' || status === 'running';
-const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err));
-
-/** A problem with cases and an entry runs against its cases; anything else is a free run. */
-const isCaseRunnable = (problem: InterviewProblem | null): boolean =>
-  problem !== null && problem.cases.length > 0 && problem.entry !== null;
-
 /** The interview page: a code landing, then in a session the problem (editable by the
  *  interviewer) beside the shared editor, with Run over the cases or a free run. */
 @Component({
@@ -77,21 +69,22 @@ const isCaseRunnable = (problem: InterviewProblem | null): boolean =>
   styleUrls: ['../../practice/practice-page/practice-page.component.scss', './interview-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CaseResultsComponent,
     CodeEditorComponent,
     InterviewBarComponent,
     InterviewNotesComponent,
+    InterviewsCardComponent,
     LibrarySubnavComponent,
     PageHeaderComponent,
     PracticeDescriptionComponent,
     ProblemEditorComponent,
     RouterLink,
+    RunPanelComponent,
+    SavedProblemsCardComponent,
   ],
   // Host metadata rather than @HostListener: another runtime symbol would land in the initial bundle.
   host: { '(document:keydown)': 'onShortcut($event)' },
 })
 export class InterviewPageComponent {
-  private readonly runner = inject(PythonRunnerService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly session = inject(InterviewSessionService);
@@ -104,7 +97,6 @@ export class InterviewPageComponent {
 
   protected readonly problemTrack = PROBLEM_TRACK;
   protected readonly workTrack = WORK_TRACK;
-  protected readonly timeLimitWord = TIME_LIMIT_WORD;
   protected readonly leftTabs = LEFT_TABS;
   protected readonly breadcrumb = LANDING_BREADCRUMB;
   protected readonly practiceSections = PRACTICE_SECTIONS;
@@ -152,22 +144,8 @@ export class InterviewPageComponent {
     return edited && edited.epoch === this.sessionEpoch() ? edited.text : (this.session.sharedDoc()?.doc ?? '');
   });
 
-  /** A run over the cases, and the problem it ran, so its tabs and count stay the run's own. */
-  protected readonly runState = signal<RunState | null>(null);
-  protected readonly ranProblem = signal<PracticeProblem | null>(null);
-  protected readonly freeRunState = signal<FreeRunState | null>(null);
-  /** The tab the interviewer clicked; null until they click, so the default follows the first failure. */
-  protected readonly selectedCase = signal<number | null>(null);
-  protected readonly isBusy = computed(
-    () => isRunning(this.runState()?.status) || isRunning(this.freeRunState()?.status),
-  );
-  protected readonly isLoadingPython = computed(
-    () => this.runState()?.status === 'loading' || this.freeRunState()?.status === 'loading',
-  );
-  protected readonly passedCount = computed(() => countPassed(this.runState()?.results ?? []));
-  protected readonly runCaseCount = computed(() => this.ranProblem()?.cases.length ?? 0);
+  protected readonly codeRun = injectCodeRun();
 
-  private runSubscription: Subscription | null = null;
   /** The one debounce timer: it publishes the form's problem in a session. */
   private timer: ReturnType<typeof setTimeout> | null = null;
   /** The JSON of each problem this tab published that has not come back from the session yet, oldest first. */
@@ -176,10 +154,7 @@ export class InterviewPageComponent {
   private latest: InterviewProblem | null = null;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => {
-      this.flushPending();
-      this.runSubscription?.unsubscribe();
-    });
+    inject(DestroyRef).onDestroy(() => this.flushPending());
     this.restoreUrlParams();
     this.adoptPublishedProblem();
     this.refreshPastInterviews();
@@ -208,11 +183,8 @@ export class InterviewPageComponent {
 
   /** Runs the cases when the problem has cases and an entry; otherwise prints what the code prints. */
   protected run(): void {
-    if (this.isBusy()) return;
-    this.runSubscription?.unsubscribe();
-    const practice = this.practiceProblem();
-    if (practice && isCaseRunnable(this.session.problem())) this.runCases(practice);
-    else this.runFree();
+    if (this.codeRun.isBusy()) return;
+    this.codeRun.start(this.text(), this.session.problem());
   }
 
   /** Puts the problem's starter back into the shared document. */
@@ -224,31 +196,6 @@ export class InterviewPageComponent {
   protected onSubmitCode(event: Event, input: string): void {
     event.preventDefault();
     this.enterCode(input).catch((err: unknown) => console.error('Interview: entering a code failed', err));
-  }
-
-  private runCases(problem: PracticeProblem): void {
-    this.freeRunState.set(null);
-    this.selectedCase.set(null);
-    this.ranProblem.set(problem);
-    this.runSubscription = this.runner.run(this.text(), problem).subscribe({
-      next: (state) => this.runState.set(state),
-      error: (err: unknown) => {
-        console.error('Interview: case run failed', err);
-        this.runState.set({ status: 'done', results: [], runError: errorMessage(err) });
-      },
-    });
-  }
-
-  private runFree(): void {
-    this.runState.set(null);
-    this.ranProblem.set(null);
-    this.runSubscription = this.runner.runFree(this.text()).subscribe({
-      next: (state) => this.freeRunState.set(state),
-      error: (err: unknown) => {
-        console.error('Interview: free run failed', err);
-        this.freeRunState.set({ status: 'done', stdout: '', error: errorMessage(err), isTimedOut: false });
-      },
-    });
   }
 
   private clearTimer(): void {
@@ -335,8 +282,7 @@ export class InterviewPageComponent {
       if (!ended) return;
       untracked(() => {
         this.session.clearEnded();
-        const lastRun = this.runState() ? { passed: this.passedCount(), total: this.runCaseCount() } : null;
-        if (!saveDebrief({ ...ended, lastRun })) return;
+        if (!saveDebrief({ ...ended, lastRun: this.codeRun.lastRun() })) return;
         if (ended.role === 'interviewer') clearNotes(ended.sessionId);
         this.router
           .navigate([DEBRIEF_PATH, ended.sessionId], { replaceUrl: true })

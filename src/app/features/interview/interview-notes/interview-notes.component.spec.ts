@@ -3,7 +3,9 @@ import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
 import { InterviewSessionService } from '../session/interview-session.service';
+import type { InterviewSchedule } from '../session/interview-schedule';
 import { loadNotes } from '../session/notes-store';
+import { savePrepared, type PreparedEntry } from '../session/prepared-store';
 import { InterviewNotesComponent } from './interview-notes.component';
 
 const SESSION_ID = 'session-1';
@@ -57,9 +59,48 @@ const VERDICT_ROWS: readonly {
   { name: 'two others without the approach', hasMove: true, checked: ['restated', 'survives'], mark: 'Fail' },
 ];
 
+const FOCUS_BLOCK = '.interview-notes__focus';
+const FOCUS_TEXT = 'Probe the edge cases\nAsk about complexity';
+const SCHEDULE: InterviewSchedule = {
+  problemId: 'problem-1',
+  scheduledAt: START,
+  durationMin: 45,
+  candidateName: 'Ada',
+  candidateEmail: '',
+  interviewerName: 'Grace',
+  notes: FOCUS_TEXT,
+};
+const ENTRY: PreparedEntry = {
+  packed: 'packed-key',
+  problem: { rev: 1, json: '{}', signature: 'S'.repeat(86) },
+  createdAt: START,
+  candidateCode: 'K7QF2M9X',
+  interviewerCode: '4TPD8HNW3RXA',
+  pushedRev: 0,
+};
+
+const FOCUS_CASES: readonly { name: string; entry: PreparedEntry | null; focus: string | null }[] = [
+  { name: 'a schedule with notes shows the focus areas', entry: { ...ENTRY, schedule: SCHEDULE }, focus: FOCUS_TEXT },
+  { name: 'no prepared entry shows none', entry: null, focus: null },
+  { name: 'an entry without a schedule shows none', entry: ENTRY, focus: null },
+];
+
 describe('InterviewNotesComponent', () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => vi.useRealTimers());
+
+  it.each(FOCUS_CASES)('focus areas: $name', ({ entry, focus }) => {
+    if (entry) savePrepared(SESSION_ID, entry);
+    const { root } = setUp(START);
+
+    const block = root.querySelector(FOCUS_BLOCK);
+
+    expect(block === null).toBe(focus === null);
+    if (focus !== null) {
+      expect(block?.textContent).toContain('Focus areas');
+      expect(block?.querySelector('p')?.textContent).toBe(focus);
+    }
+  });
 
   it('stamps the elapsed minute once, and is disabled before a candidate connects', () => {
     vi.useFakeTimers({ now: START + ELAPSED_MINUTES * MS_PER_MINUTE + 1_000 });

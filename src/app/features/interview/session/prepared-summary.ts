@@ -1,4 +1,6 @@
+import { codeUrl } from '../directory/interview-code';
 import { InterviewProblem, parseInterviewProblem } from './interview-problem';
+import { InterviewSchedule } from './interview-schedule';
 import { PreparedEntry } from './prepared-store';
 
 /** The revision a prepared problem is first signed at: the one a session starts with. */
@@ -13,24 +15,16 @@ export interface PreparedSummary {
   readonly title: string;
   readonly createdAt: number;
   readonly publish: PublishState;
-}
-
-export interface PreparedDetail {
-  readonly sessionId: string;
-  readonly problem: InterviewProblem;
-  readonly rev: number;
-  /** Empty until the server has accepted the interview once (unless codes are switched off). */
-  readonly candidateCode: string;
-  readonly interviewerCode: string;
-  readonly candidateUrl: string;
-  readonly interviewerUrl: string;
-  readonly publish: PublishState;
+  /** Null for an interview prepared before schedules existed. */
+  readonly schedule: InterviewSchedule | null;
 }
 
 export interface PreparedLinks {
   readonly candidateUrl: string;
   readonly interviewerUrl: string;
 }
+
+export type PreparedCodes = PreparedLinks & { readonly candidateCode: string; readonly interviewerCode: string };
 
 /** The problem in `json`, or null when it is not valid JSON of a valid problem. */
 export function problemFromJson(json: string): InterviewProblem | null {
@@ -59,6 +53,21 @@ export function summaryOf(sessionId: string, entry: PreparedEntry, isEnabled: bo
     title: problemFromJson(entry.problem.json)?.title ?? '',
     createdAt: entry.createdAt,
     publish: publishStateOf(entry, isEnabled),
+    schedule: entry.schedule ?? null,
+  };
+}
+
+/** The entry's two codes and their links; null until the codes are shown. */
+export function codesOf(entry: PreparedEntry, isEnabled: boolean, baseUrl: string): PreparedCodes | null {
+  if (!areCodesShown(entry, isEnabled)) {
+    return null;
+  }
+  const { candidateCode, interviewerCode } = entry;
+  return {
+    candidateCode,
+    interviewerCode,
+    candidateUrl: codeUrl(baseUrl, candidateCode),
+    interviewerUrl: codeUrl(baseUrl, interviewerCode),
   };
 }
 

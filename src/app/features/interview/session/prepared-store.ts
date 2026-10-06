@@ -1,4 +1,5 @@
 import { SignedProblem } from './interview-problem';
+import { InterviewSchedule, parseSchedule } from './interview-schedule';
 import { isSignedProblem } from './session-message';
 
 /**
@@ -16,6 +17,8 @@ export interface PreparedEntry {
   readonly candidateCode: string;
   readonly interviewerCode: string;
   readonly pushedRev: number;
+  /** Absent for an interview prepared before schedules existed. */
+  readonly schedule?: InterviewSchedule;
 }
 
 export const PREPARED_KEY_PREFIX = 'po-interview-prepared:';
@@ -42,13 +45,26 @@ function isPreparedEntry(value: unknown): value is PreparedEntry {
   );
 }
 
+/** The stored schedule as `{ schedule }`, or `{}` when there is none; a malformed one is logged (key only) and dropped. */
+function scheduleField(key: string, stored: unknown): { readonly schedule?: InterviewSchedule } {
+  if (stored === undefined) {
+    return {};
+  }
+  const schedule = parseSchedule(stored);
+  if (schedule === null) {
+    console.error(`Prepared interview: ${key} has a malformed schedule`);
+    return {};
+  }
+  return { schedule };
+}
+
 /** Storage is external input: bad JSON or a wrong shape is logged (without the value) and read as nothing. */
 function parseEntry(key: string, raw: string): PreparedEntry | null {
   try {
     const value: unknown = JSON.parse(raw);
     if (isPreparedEntry(value)) {
       const { packed, problem, createdAt, candidateCode, interviewerCode, pushedRev } = value;
-      return { packed, problem, createdAt, candidateCode, interviewerCode, pushedRev };
+      return { packed, problem, createdAt, candidateCode, interviewerCode, pushedRev, ...scheduleField(key, value.schedule) };
     }
     console.error(`Prepared interview: ${key} has the wrong shape`);
   } catch {

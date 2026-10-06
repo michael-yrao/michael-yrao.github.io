@@ -1,0 +1,26 @@
+<section class="practice">
+  @if (practiceProblem; as practice) {
+    <app-page-header [breadcrumb]="breadcrumb" eyebrow="Test run" [heading]="practice.title">
+      Try your problem as the candidate sees it. Nothing here is shared or saved.
+    </app-page-header>
+    <div class="interview-try__actions">
+      <a class="practice__btn" routerLink="/interview/prepare" [queryParams]="{ problem: id }">Edit problem</a>
+    </div>
+
+    <div class="practice__split interview-try__split" [style.--problem-track]="problemTrack" [style.--work-track]="workTrack">
+      <div class="practice__problem">
+        <app-practice-description [problem]="practice" />
+      </div>
+
+      <div class="practice__work">
+        <div class="practice__code-body">
+          <app-code-editor [initialText]="starter" (textChange)="text.set($event)" />
+        </div>
+        <app-run-panel [run]="codeRun" (runRequest)="run()" (resetRequest)="reset()" />
+      </div>
+    </div>
+  } @else {
+    <p class="practice__message">That saved problem was not found.</p>
+    <a class="practice__btn" routerLink="/interview">Back to interviews</a>
+  }
+</section>

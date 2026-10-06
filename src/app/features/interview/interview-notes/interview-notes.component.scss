@@ -9,6 +9,17 @@ $textarea-min-height: 8rem;
   gap: var(--space-md);
 }
 
+.interview-notes__focus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+
+  p {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+}
+
 .interview-notes__row,
 .interview-notes__checks {
   display: flex;

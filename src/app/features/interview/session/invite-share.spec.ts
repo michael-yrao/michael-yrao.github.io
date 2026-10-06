@@ -26,6 +26,13 @@ const CASES: readonly {
     body: `Join the interview: ${JOIN_URL}`,
   },
   {
+    name: 'candidate with a time adds a When line',
+    build: () => inviteEmailHref(JOIN_URL, LABEL, '', 'Tue, Oct 6, 3:00 PM (45 min)'),
+    to: '',
+    subject: 'Interview invite: #1 Two Sum',
+    body: `Join the interview: ${JOIN_URL}\r\nWhen: Tue, Oct 6, 3:00 PM (45 min)`,
+  },
+  {
     name: 'interviewer with both links',
     build: () => hostEmailHref(HOST_URL, JOIN_URL, LABEL, 'me@example.com'),
     to: 'me@example.com',

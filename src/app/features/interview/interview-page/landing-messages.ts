@@ -1,5 +1,5 @@
 import type { CodeEntry } from '../session/prepared-interviews.service';
-import { OFFLINE_MESSAGE, SAVE_REFUSED_MESSAGE } from '../interview-prepare/prepared-picker';
+import { OFFLINE_MESSAGE, SAVE_REFUSED_MESSAGE } from '../interview-messages';
 
 /** The entries that do not open an interview. */
 type EntryFailure = Exclude<CodeEntry['status'], 'interviewer' | 'candidate'>;

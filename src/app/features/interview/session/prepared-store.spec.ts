@@ -1,4 +1,5 @@
 import { SignedProblem } from './interview-problem';
+import { InterviewSchedule } from './interview-schedule';
 import {
   PREPARED_KEY_PREFIX,
   PreparedEntry,
@@ -24,6 +25,15 @@ const ENTRY: PreparedEntry = {
   interviewerCode: SECRET_CODE,
   pushedRev: 0,
 };
+const SCHEDULE: InterviewSchedule = {
+  problemId: 'problem-1',
+  scheduledAt: NOW,
+  durationMin: 45,
+  candidateName: 'Ada',
+  candidateEmail: '',
+  interviewerName: 'Grace',
+  notes: '',
+};
 const key = (sessionId: string): string => `${PREPARED_KEY_PREFIX}${sessionId}`;
 
 const LOAD_CASES: readonly { name: string; raw: string | null; expected: PreparedEntry | null }[] = [
@@ -37,6 +47,8 @@ const LOAD_CASES: readonly { name: string; raw: string | null; expected: Prepare
   { name: 'a numeric interviewer code is null', raw: JSON.stringify({ ...ENTRY, interviewerCode: 7 }), expected: null },
   { name: 'a negative pushedRev is null', raw: JSON.stringify({ ...ENTRY, pushedRev: -1 }), expected: null },
   { name: 'a fractional pushedRev is null', raw: JSON.stringify({ ...ENTRY, pushedRev: 1.5 }), expected: null },
+  { name: 'an entry with a schedule loads it', raw: JSON.stringify({ ...ENTRY, schedule: SCHEDULE }), expected: { ...ENTRY, schedule: SCHEDULE } },
+  { name: 'a malformed schedule loads the entry without it', raw: JSON.stringify({ ...ENTRY, schedule: { ...SCHEDULE, durationMin: 1 } }), expected: ENTRY },
 ];
 
 describe('prepared store', () => {

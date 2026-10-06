@@ -1,0 +1,25 @@
+@if (saved().length > 0) {
+  <section class="saved-problems po-card">
+    <h2 class="saved-problems__heading">Saved problems</h2>
+    <ul class="saved-problems__list">
+      @for (item of saved(); track item.id) {
+        <li class="saved-problems__row">
+          <span class="saved-problems__title">{{ item.title || 'Untitled problem' }} · {{ formatDate(item.updatedAt) }}</span>
+          <span class="saved-problems__actions">
+            <a class="practice__btn" routerLink="/interview/prepare" [queryParams]="{ problem: item.id }">Edit</a>
+            <a class="practice__btn" [routerLink]="['/interview/try', item.id]">Test run</a>
+            <button type="button" class="practice__btn practice__btn--primary" (click)="openSetup(item.id)">Set up interview</button>
+            <button type="button" class="practice__btn practice__btn--icon" aria-label="Delete saved problem" title="Delete saved problem" (click)="remove(item.id)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+            </button>
+          </span>
+        </li>
+      }
+    </ul>
+    <app-modal heading="Set up interview" [isOpen]="setupFor() !== null" (closed)="setupFor.set(null)">
+      @if (setupFor(); as target) {
+        <app-interview-setup [problemId]="target.id" [problem]="target.problem" (done)="setupFor.set(null)" />
+      }
+    </app-modal>
+  </section>
+}

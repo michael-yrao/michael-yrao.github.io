@@ -1,4 +1,11 @@
 <div class="interview-notes">
+  @if (focus) {
+    <div class="interview-notes__focus">
+      <span class="practice__label">Focus areas</span>
+      <p>{{ focus }}</p>
+    </div>
+  }
+
   <label class="interview-notes__check">
     <input type="checkbox" class="interview-notes__cold" [checked]="notes().isCold" (change)="setCold($event)" />
     Cold

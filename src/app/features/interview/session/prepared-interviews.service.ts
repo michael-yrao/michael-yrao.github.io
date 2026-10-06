@@ -4,6 +4,7 @@ import { CandidateLookup, DirectoryFailure, InterviewDirectoryService, PushOutco
 import { codeUrl, generateCode, normalizeCode } from '../directory/interview-code';
 import { HostKeys, generateHostKeys, parsePackedKey, signProblemAt } from './host-key';
 import { InterviewProblem, SignedProblem, parseInterviewProblem } from './interview-problem';
+import { InterviewSchedule } from './interview-schedule';
 import {
   PreparedEntry,
   findPreparedByCode,
@@ -16,27 +17,25 @@ import {
 } from './prepared-store';
 import {
   FIRST_PROBLEM_REV,
-  PreparedDetail,
+  PreparedCodes,
   PreparedLinks,
   PreparedSummary,
   areCodesShown,
+  codesOf as codesOfEntry,
   problemFromJson,
-  publishStateOf,
   summaryOf,
   withSummary,
   withTimeout,
 } from './prepared-summary';
 import { deriveIds } from './session-support';
 
-export type { PreparedDetail, PreparedLinks, PreparedSummary, PublishState } from './prepared-summary';
+export type { PreparedLinks, PreparedSummary, PublishState } from './prepared-summary';
 
 export type CodeEntry =
   | { readonly status: 'interviewer'; readonly packed: string }
   | { readonly status: 'candidate'; readonly publicRaw: string }
   | { readonly status: 'invalid' | 'unsaved' | DirectoryFailure };
 
-/** How long an idle prepared interview waits after its last edit before it is published. */
-export const PUSH_IDLE_MS = 30_000;
 /** The least time between two publishes made from a hosting tab's live edits. */
 export const LIVE_PUSH_MIN_MS = 60_000;
 /** How long entering an interviewer code waits for the server's copy before it keeps the local one. */
@@ -74,14 +73,14 @@ export class PreparedInterviewsService {
     this.listState.set(this.readSummaries());
   }
 
-  /** A new prepared interview on `problem` (new keys and codes, revision 1), then a push: its session id, or null when the problem is invalid or storage refused. */
-  async prepare(problem: InterviewProblem): Promise<string | null> {
+  /** A new prepared interview on `problem`, with `schedule` when given (new keys and codes, revision 1), then a push: its session id, or null when the problem is invalid or storage refused. */
+  async prepare(problem: InterviewProblem, schedule: InterviewSchedule | null = null): Promise<string | null> {
     const valid = parseInterviewProblem(problem);
     if (valid === null) {
       return null;
     }
     try {
-      const sessionId = await this.createEntry(valid);
+      const sessionId = await this.createEntry(valid, schedule);
       if (sessionId !== null) {
         this.enqueueQuietly(() => this.pushNow(sessionId));
       }
@@ -90,11 +89,6 @@ export class PreparedInterviewsService {
       console.error('Prepared interviews: could not create an entry');
       return null;
     }
-  }
-
-  /** Signs revision + 1 of `problem` locally and schedules the push; true without a write when the JSON is unchanged. */
-  update(sessionId: string, problem: InterviewProblem): Promise<boolean> {
-    return this.enqueue(() => this.updateNow(sessionId, problem));
   }
 
   /** A hosting or joined session's verified problem: saved here when newer; only a hosting tab publishes it, at most once per `LIVE_PUSH_MIN_MS`. */
@@ -109,24 +103,10 @@ export class PreparedInterviewsService {
     });
   }
 
-  async detail(sessionId: string, baseUrl: string): Promise<PreparedDetail | null> {
+  /** The codes and links of the entry for `sessionId`, read at once (a copy click cannot wait); null when there is none or they are not shown yet. */
+  codesOf(sessionId: string, baseUrl: string): PreparedCodes | null {
     const entry = loadPrepared(sessionId);
-    const problem = entry === null ? null : problemFromJson(entry.problem.json);
-    if (entry === null || problem === null) {
-      return null;
-    }
-    const areShown = areCodesShown(entry, this.directory.isEnabled);
-    const [candidateCode, interviewerCode] = areShown ? [entry.candidateCode, entry.interviewerCode] : ['', ''];
-    return {
-      sessionId,
-      problem,
-      rev: entry.problem.rev,
-      candidateCode,
-      interviewerCode,
-      candidateUrl: areShown ? codeUrl(baseUrl, candidateCode) : '',
-      interviewerUrl: areShown ? codeUrl(baseUrl, interviewerCode) : '',
-      publish: publishStateOf(entry, this.directory.isEnabled),
-    };
+    return entry === null ? null : codesOfEntry(entry, this.directory.isEnabled, baseUrl);
   }
 
   /** The two code links for the entry holding `packed`; null when there is none or its codes are not shown yet. */
@@ -221,28 +201,9 @@ export class PreparedInterviewsService {
     this.enqueue(task).catch(() => console.error('Prepared interviews: a background write failed'));
   }
 
-  private async updateNow(sessionId: string, problem: InterviewProblem): Promise<boolean> {
-    const entry = loadPrepared(sessionId);
-    const valid = parseInterviewProblem(problem);
-    const identity = entry === null ? null : await this.identityOf(entry.packed);
-    if (entry === null || valid === null || identity === null) {
-      return false;
-    }
-    if (JSON.stringify(valid) === entry.problem.json) {
-      return true;
-    }
-    const signed = await signProblemAt(identity.keys.privateKey, identity.sessionId, entry.problem.rev + 1, valid);
-    if (!savePrepared(sessionId, { ...entry, problem: signed })) {
-      return false;
-    }
-    this.patchList(sessionId);
-    this.schedule(sessionId, PUSH_IDLE_MS);
-    return true;
-  }
-
   // ---- creating and entering ----
 
-  private async createEntry(problem: InterviewProblem): Promise<string | null> {
+  private async createEntry(problem: InterviewProblem, schedule: InterviewSchedule | null): Promise<string | null> {
     const keys = await generateHostKeys();
     const { sessionId } = await deriveIds(keys);
     const signed = await signProblemAt(keys.privateKey, sessionId, FIRST_PROBLEM_REV, problem);
@@ -253,6 +214,7 @@ export class PreparedInterviewsService {
       candidateCode: generateCode('candidate'),
       interviewerCode: generateCode('interviewer'),
       pushedRev: 0,
+      ...(schedule === null ? {} : { schedule }),
     };
     if (!savePrepared(sessionId, entry)) {
       return null;
@@ -304,6 +266,7 @@ export class PreparedInterviewsService {
       candidateCode: entry.candidateCode,
       interviewerCode: code,
       pushedRev: fetched.rev,
+      ...(entry.schedule === undefined ? {} : { schedule: entry.schedule }),
     };
     if (loadPrepared(identity.sessionId) === null && !savePrepared(identity.sessionId, saved)) {
       return { status: 'unsaved' };
