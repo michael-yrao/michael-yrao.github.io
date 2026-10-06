@@ -18,6 +18,7 @@ import { darkHighlightStyle } from './editor-highlight';
 const INDENT = '    ';
 const TAB_SIZE = INDENT.length;
 const RUN_SHORTCUT_KEY = 'Mod-Enter';
+const BOTTOM_PADDING_LINES = 4;
 
 // The page's document listener owns Ctrl/Cmd+Enter (run); CodeMirror's insertBlankLine must not take it.
 const isNotRunShortcut = (binding: KeyBinding): boolean => binding.key !== RUN_SHORTCUT_KEY;
@@ -38,7 +39,9 @@ const editorTheme = EditorView.theme({
     minHeight: 'var(--editor-min-height, 16rem)',
     maxHeight: 'var(--editor-max-height, 32rem)',
   },
-  '.cm-content': { caretColor: 'var(--color-accent)' },
+  // Room below the last line so typing never sits on the bottom edge. scrollPastEnd() is not used: its
+  // padding tracks the editor's height, which would grow an auto-height editor to its max-height.
+  '.cm-content': { caretColor: 'var(--color-accent)', paddingBottom: `${BOTTOM_PADDING_LINES}lh` },
   '&.cm-focused .cm-cursor': { borderLeftColor: 'var(--color-accent)' },
   '&.cm-focused': { outline: '2px solid var(--color-accent)' },
   '.cm-gutters': {

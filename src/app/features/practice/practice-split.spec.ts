@@ -1,7 +1,11 @@
 import {
+  DEFAULT_OUTPUT_SHARE,
   DEFAULT_PROBLEM_SHARE,
+  MAX_OUTPUT_SHARE,
   MAX_PROBLEM_SHARE,
+  MIN_OUTPUT_SHARE,
   MIN_PROBLEM_SHARE,
+  OUTPUT_SPEC,
   clampShare,
   parseStoredShare,
   shareFromPointer,
@@ -26,6 +30,17 @@ describe('practice-split helpers', () => {
     for (const [x, left, width, expected] of pointerCases) {
       expect(shareFromPointer(x, left, width)).toBe(expected);
     }
+
+    // Output's share runs from the bottom edge: a pointer 400 up a 1000-high column is 0.4.
+    const outputCases: [number, number][] = [
+      [400, 0.4],
+      [10, MIN_OUTPUT_SHARE],
+      [990, MAX_OUTPUT_SHARE],
+    ];
+    for (const [fromBottom, expected] of outputCases) {
+      expect(shareFromPointer(fromBottom, 0, 1000, OUTPUT_SPEC)).toBe(expected);
+    }
+    expect(parseStoredShare('0.9', OUTPUT_SPEC)).toBe(DEFAULT_OUTPUT_SHARE);
 
     const storedCases: [string | null, number][] = [
       ['0.4', 0.4],

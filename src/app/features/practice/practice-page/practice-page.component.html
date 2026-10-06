@@ -53,7 +53,7 @@
           ></div>
         }
 
-        <div class="practice__work" [class.practice__work--code-closed]="!isCodeOpen()">
+        <div class="practice__work" [class.practice__work--code-closed]="!isCodeOpen()" [style.--output-share]="outputShare()">
           <button type="button" class="practice__pane-head" [attr.aria-expanded]="isCodeOpen()" aria-controls="practice-code-body" (click)="toggleCode()">
             <span class="practice__label">Code</span>
             <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -103,7 +103,26 @@
             </button>
           </div>
 
-          <section class="practice__output" aria-label="Output">
+          @if (isOutputResizable()) {
+            <div
+              class="practice__row-divider"
+              role="separator"
+              aria-orientation="horizontal"
+              aria-label="Resize output"
+              tabindex="0"
+              [attr.aria-valuemin]="minOutputPercent"
+              [attr.aria-valuemax]="maxOutputPercent"
+              [attr.aria-valuenow]="outputSharePercent()"
+              (pointerdown)="startDrag($event)"
+              (pointermove)="dragOutput($event)"
+              (pointerup)="endOutputDrag()"
+              (pointercancel)="endOutputDrag()"
+              (keydown)="onOutputDividerKey($event)"
+              (dblclick)="resetOutputShare()"
+            ></div>
+          }
+
+          <section class="practice__output" [class.practice__output--sized]="isOutputResizable()" aria-label="Output">
             <button type="button" class="practice__pane-head" [attr.aria-expanded]="isOutputOpen()" aria-controls="practice-output-body" [disabled]="!runState()" (click)="toggleOutput()">
               <span class="practice__label">Output</span>
               @if (runState()) {

@@ -24,8 +24,11 @@ import { SAMPLE_CASE_COUNT, shortcutFor } from '../practice-shortcuts';
 import {
   DEFAULT_PROBLEM_SHARE,
   KEYBOARD_STEP,
+  MAX_OUTPUT_SHARE,
   MAX_PROBLEM_SHARE,
+  MIN_OUTPUT_SHARE,
   MIN_PROBLEM_SHARE,
+  OUTPUT_SPEC,
   clampShare,
   loadShare,
   saveShare,
@@ -127,6 +130,14 @@ export class PracticePageComponent {
   /** Grid track sizes in percent weights, which always sum to at least 1fr. */
   readonly problemTrack = computed(() => `${this.problemShare() * PERCENT}fr`);
   readonly workTrack = computed(() => `${(1 - this.problemShare()) * PERCENT}fr`);
+
+  /** The Output pane's fraction of the work column's height, read once from the viewer's saved value. */
+  readonly outputShare = signal(loadShare(OUTPUT_SPEC));
+  readonly minOutputPercent = MIN_OUTPUT_SHARE * PERCENT;
+  readonly maxOutputPercent = MAX_OUTPUT_SHARE * PERCENT;
+  readonly outputSharePercent = computed(() => Math.round(this.outputShare() * PERCENT));
+  /** The editor and Output share the column only while both are showing. */
+  readonly isOutputResizable = computed(() => this.isOutputOpen() && this.isCodeOpen() && this.runState() !== null);
 
   private runSubscription: Subscription | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -246,6 +257,37 @@ export class PracticePageComponent {
 
   resetShare(): void {
     this.setShare(DEFAULT_PROBLEM_SHARE);
+  }
+
+  dragOutput(event: PointerEvent): void {
+    if (!this.isDragging()) return;
+    const work = (event.currentTarget as HTMLElement).parentElement;
+    if (!work) return;
+    const { bottom, height } = work.getBoundingClientRect();
+    this.outputShare.set(shareFromPointer(bottom - event.clientY, 0, height, OUTPUT_SPEC));
+  }
+
+  endOutputDrag(): void {
+    if (!this.isDragging()) return;
+    this.isDragging.set(false);
+    saveShare(this.outputShare(), OUTPUT_SPEC);
+  }
+
+  onOutputDividerKey(event: KeyboardEvent): void {
+    const direction = event.key === 'ArrowUp' ? 1 : event.key === 'ArrowDown' ? -1 : 0;
+    if (direction === 0) return;
+    event.preventDefault();
+    this.setOutputShare(this.outputShare() + direction * KEYBOARD_STEP);
+  }
+
+  resetOutputShare(): void {
+    this.setOutputShare(OUTPUT_SPEC.fallback);
+  }
+
+  private setOutputShare(share: number): void {
+    const next = clampShare(share, OUTPUT_SPEC);
+    this.outputShare.set(next);
+    saveShare(next, OUTPUT_SPEC);
   }
 
   private setShare(share: number): void {
