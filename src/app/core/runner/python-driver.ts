@@ -14,9 +14,11 @@ import collections
 import contextlib
 import io
 import json
+import linecache
 import sys
 import traceback
 
+_LEARNER_FILE = "solution.py"
 _solution = {}
 _DEFAULT_RECURSION_LIMIT = sys.getrecursionlimit()
 
@@ -74,9 +76,22 @@ def _fresh_namespace():
     return {**_PRELUDE, "__name__": "solution", "ListNode": _ListNode, "TreeNode": _TreeNode, "Node": _Node}
 
 
+def _compile_learner(code):
+    # Registering the source (mtime None, so checkcache keeps it) lets tracebacks show the learner's lines.
+    linecache.cache[_LEARNER_FILE] = (len(code), None, code.splitlines(True), _LEARNER_FILE)
+    return compile(code, _LEARNER_FILE, "exec")
+
+
+def _first_learner_frame(tb):
+    while tb is not None and tb.tb_frame.f_code.co_filename != _LEARNER_FILE:
+        tb = tb.tb_next
+    return tb
+
+
 def _format_error(error):
-    # Skip this frame so the message starts at the learner's code.
-    return "".join(traceback.format_exception(type(error), error, error.__traceback__.tb_next)).strip()
+    # Start the traceback at the learner's first frame; with none, only the exception line(s) remain.
+    learner_tb = _first_learner_frame(error.__traceback__)
+    return "".join(traceback.format_exception(type(error), error, learner_tb)).strip()
 
 
 def define_solution(code):
@@ -84,7 +99,7 @@ def define_solution(code):
     sys.setrecursionlimit(_DEFAULT_RECURSION_LIMIT)
     namespace = _fresh_namespace()
     try:
-        exec(compile(code, "solution.py", "exec"), namespace)
+        exec(_compile_learner(code), namespace)
     except BaseException as error:
         return _format_error(error)
     _solution.clear()
@@ -99,7 +114,7 @@ def run_free(code):
     error_text = ""
     try:
         with contextlib.redirect_stdout(out):
-            exec(compile(code, "solution.py", "exec"), _fresh_namespace())
+            exec(_compile_learner(code), _fresh_namespace())
     except BaseException as error:
         error_text = _format_error(error)
     return json.dumps({"stdout": out.getvalue(), "error": error_text})
@@ -414,7 +429,7 @@ def _comparable(spec):
 def _describe(error):
     if isinstance(error, CodecError):
         return str(error)
-    return type(error).__name__ + ": " + str(error)
+    return _format_error(error)
 
 
 def _error(kind, error, out):

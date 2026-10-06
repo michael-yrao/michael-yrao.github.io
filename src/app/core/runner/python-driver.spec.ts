@@ -334,6 +334,47 @@ describe('PYTHON_DRIVER', () => {
   });
 });
 
+describe('run_case errors', () => {
+  const ERROR_ROWS: readonly {
+    name: string;
+    code: string;
+    method: string;
+    contains: readonly string[];
+    excludes: readonly string[];
+    endsWith: string;
+  }[] = [
+    {
+      name: 'an exception in learner code shows the learner traceback',
+      code: 'class Solution:\n    def m(self):\n        for a, b in range(3): pass',
+      method: 'm',
+      contains: ['Traceback (most recent call last):', 'File "solution.py", line 3, in m', 'for a, b in range(3)'],
+      excludes: ['_invoke'],
+      endsWith: 'TypeError: cannot unpack non-iterable int object',
+    },
+    {
+      name: 'an error with no learner frame shows only the exception line',
+      code: 'class Solution:\n    pass',
+      method: 'missing',
+      contains: [],
+      excludes: ['Traceback'],
+      endsWith: 'AttributeError: Solution has no method missing',
+    },
+  ];
+
+  it.skipIf(!IS_PYTHON_AVAILABLE).each(ERROR_ROWS)('$name', ({ code, method, contains, excludes, endsWith }) => {
+    const entry: PracticeEntry = { className: 'Solution', method };
+    const request = { id: 0, code, entry, types: undefined, result: undefined, cases: [] };
+
+    const outcome = runCase(code, buildCaseSpec(request, { args: [] }));
+
+    expect(outcome.status).toBe('error');
+    const message = outcome.status === 'error' ? outcome.message : '';
+    contains.forEach((text) => expect(message).toContain(text));
+    excludes.forEach((text) => expect(message).not.toContain(text));
+    expect(message.endsWith(endsWith)).toBe(true);
+  });
+});
+
 describe('run_free', () => {
   const FREE_ROWS: readonly { name: string; code: string; stdout: string; error: RegExp | null }[] = [
     { name: 'prints go to stdout with no error', code: 'print("hi")\nprint(sum(range(4)))', stdout: 'hi\n6\n', error: null },
@@ -344,6 +385,12 @@ describe('run_free', () => {
       error: /ValueError: boom/,
     },
     { name: 'a syntax error reports the error', code: 'def broken(:\n    pass', stdout: '', error: /SyntaxError/ },
+    {
+      name: 'a raise inside a function shows the learner source line',
+      code: 'def f():\n    raise ValueError("deep")\nf()',
+      stdout: '',
+      error: /raise ValueError\("deep"\)/,
+    },
   ];
 
   it.skipIf(!IS_PYTHON_AVAILABLE).each(FREE_ROWS)('$name', ({ code, stdout, error }) => {
