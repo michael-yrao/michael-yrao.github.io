@@ -15,12 +15,13 @@
           (click)="tab.set(item.id)"
         >{{ item.label }}</button>
       }
+      <span class="interview-prepare__actions">
+        <span class="interview-prepare__status">{{ status() }}</span>
+        <button type="button" class="practice__btn practice__btn--primary" [disabled]="isRejected()" (click)="save()">Save</button>
+      </span>
     </div>
 
-    <app-problem-editor class="interview-prepare__editor" [hidden]="tab() === 'view'" [problem]="form()" [isRejected]="isRejected()" [isSplit]="true" (problemChange)="onFormChange($event)">
-      <button type="button" class="practice__btn practice__btn--primary" [disabled]="isRejected()" (click)="save()">Save</button>
-      <span class="interview-prepare__status">{{ status() }}</span>
-    </app-problem-editor>
+    <app-problem-editor class="interview-prepare__editor" [hidden]="tab() === 'view'" [problem]="form()" [isRejected]="isRejected()" [isSplit]="true" (problemChange)="onFormChange($event)" />
 
     @if (tab() === 'view') {
       <div class="practice__split interview-prepare__split" [style.--problem-track]="problemTrack" [style.--work-track]="workTrack">

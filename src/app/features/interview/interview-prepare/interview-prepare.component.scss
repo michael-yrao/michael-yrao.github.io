@@ -12,6 +12,15 @@ $split-breakpoint: 900px;
 // An author display rule on the editor's host would beat the hidden attribute.
 .interview-prepare__editor[hidden] { display: none; }
 
+// Save and its status sit at the right end of the tab row.
+.interview-prepare__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-left: auto;
+  padding-bottom: var(--space-xs);
+}
+
 .interview-prepare__status {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
