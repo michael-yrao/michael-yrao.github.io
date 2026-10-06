@@ -111,6 +111,43 @@ export function clearSession(role: StoredRole, peerId: string): void {
   }
 }
 
+const STARTED_KEY_PREFIX = 'po-interview-started:';
+
+function startedKeyFor(sessionId: string): string {
+  return `${STARTED_KEY_PREFIX}${sessionId}`;
+}
+
+/** When a candidate first connected to this interviewer's session, kept so a host reload does not lose it; null when none or malformed. */
+export function loadStartedAt(sessionId: string): number | null {
+  const key = startedKeyFor(sessionId);
+  try {
+    const raw = localStorage.getItem(key);
+    const value = raw === null ? Number.NaN : Number(raw);
+    return Number.isInteger(value) && value >= 0 ? value : null;
+  } catch {
+    console.error(`Interview session: could not read ${key}`);
+    return null;
+  }
+}
+
+export function saveStartedAt(sessionId: string, startedAt: number): void {
+  const key = startedKeyFor(sessionId);
+  try {
+    localStorage.setItem(key, String(startedAt));
+  } catch {
+    console.error(`Interview session: could not save ${key}`);
+  }
+}
+
+export function clearStartedAt(sessionId: string): void {
+  const key = startedKeyFor(sessionId);
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    console.error(`Interview session: could not clear ${key}`);
+  }
+}
+
 /** Removes saved sessions older than `SESSION_TTL_MS` and those of an older shape; touches only keys with this feature's prefix. */
 export function pruneExpiredSessions(now: number = Date.now()): void {
   try {

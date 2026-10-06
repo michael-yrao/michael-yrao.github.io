@@ -83,7 +83,7 @@ describe('AppComponent', () => {
       expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
     });
 
-    it('lists exactly Progress, Practice, Interview, Library, Events, Coach, Human in order with the right routerLinks', () => {
+    it('lists exactly Progress, Practice, Library, Events, Coach, Human in order with the right routerLinks', () => {
       fixture.detectChanges();
       const hamburger = fixture.nativeElement.querySelector(
         '.po-nav__hamburger',
@@ -97,7 +97,6 @@ describe('AppComponent', () => {
       expect(links.map((a) => a.textContent?.trim())).toEqual([
         'Progress',
         'Practice',
-        'Interview',
         'Library',
         'Events',
         'Coach',
@@ -106,7 +105,6 @@ describe('AppComponent', () => {
       expect(links.map((a) => a.getAttribute('href'))).toEqual([
         '/',
         '/practice',
-        '/interview',
         '/library',
         '/events',
         '/coach',
@@ -114,7 +112,7 @@ describe('AppComponent', () => {
       ]);
 
       const secondary = drawer.querySelector('.po-nav__drawer-secondary') as HTMLElement;
-      const [progressLink, , , libraryLink, eventsLink, coachLink, humanLink] = links;
+      const [progressLink, , libraryLink, eventsLink, coachLink, humanLink] = links;
       expect(secondary.contains(coachLink)).toBe(true);
       expect(secondary.contains(humanLink)).toBe(true);
       expect(secondary.contains(progressLink)).toBe(false);

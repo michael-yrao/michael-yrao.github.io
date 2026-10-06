@@ -65,7 +65,8 @@ export interface ClientHooks {
   onProblem(problem: SignedProblem): void;
   onUpdates(updates: readonly WireUpdate[]): void;
   onRoster(participants: readonly Participant[]): void;
-  onEnd(): void;
+  /** The host ended the session; `summary` is its unchecked debrief summary, when it sent one. */
+  onEnd(summary?: unknown): void;
   onClosed(connection: ClientConnection): void;
 }
 
@@ -209,7 +210,7 @@ export class ClientConnection {
         this.hooks.onRoster(message.participants);
         return;
       case 'end':
-        this.hooks.onEnd();
+        this.hooks.onEnd(message.summary);
         return;
       default:
         console.error('Unexpected message from the host', message.type);

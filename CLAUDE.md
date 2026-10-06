@@ -108,7 +108,9 @@ There is no working-tree/manual step — a push to `main` is the deploy. The cus
 The Events page's data comes from a separate Cloudflare Worker in [`worker/`](worker/) — a
 self-contained toolchain (own `package.json`, own `node_modules`, own `tsconfig.json`), **not**
 part of the Angular app's build or its `npm ci` at the repo root. It fetches a curated list of
-public tech-event feeds, normalizes them to a JSON contract, and serves them with CORS.
+public tech-event feeds, normalizes them to a JSON contract, and serves them with CORS. The worker
+(`po-api`) also serves the `/interviews/` directory; routes are in `worker/README.md` "Interview
+directory".
 
 - **Source list**: [`worker/src/sources.ts`](worker/src/sources.ts) is the ONE place the feed
   URLs live. The Angular app never duplicates this list; it renders whatever chips
@@ -116,13 +118,18 @@ public tech-event feeds, normalizes them to a JSON contract, and serves them wit
 - **Contract**: [`worker/src/contract.ts`](worker/src/contract.ts) defines `EventsFeed`/
   `TechEvent`/`EventSource`. The Angular model (`src/app/core/models/events.model.ts`) carries
   the identical block byte-for-byte — a change to one must land in both, in the same edit.
-- **The app's API URL**: `EVENTS_API_URL` in `src/app/core/data/site-links.ts` points at the
-  deployed worker's `https://po-events.<subdomain>.workers.dev/` URL (or a custom domain, if
-  one is set up — see `worker/README.md`).
+  [`worker/src/interviews/contract.ts`](worker/src/interviews/contract.ts) is likewise mirrored
+  byte-for-byte in `src/app/features/interview/directory/directory-contract.ts` — a change to one
+  must land in both, in the same edit.
+- **The app's API URL**: `WORKER_API_URL` in `src/app/core/data/site-links.ts` points at the
+  deployed worker's `https://po-api.<subdomain>.workers.dev/` URL (or a custom domain, if
+  one is set up — see `worker/README.md`); `EVENTS_API_URL` is derived from it.
 - **The feed flag**: `EVENTS_FEED_ENABLED` in `site-links.ts` gates the page — while it's
   `false` the Events page shows a "coming soon" card and never calls `EVENTS_API_URL`. It
   flips to `true` in the SAME edit that replaces the placeholder URL, after the worker's
-  first deploy.
+  first deploy. `INTERVIEW_CODES_ENABLED` sits next to it and gates the interview directory: it is on in a dev
+  build and off in production until the worker is deployed; while off, an interview code works only
+  in the browser that created it.
 - **Deploy is separate from the site's.** The worker deploys via
   [`.github/workflows/worker.yml`](.github/workflows/worker.yml), which only runs when
   `worker/**` changes, and pushes to Cloudflare Workers (via `wrangler deploy`), not GitHub

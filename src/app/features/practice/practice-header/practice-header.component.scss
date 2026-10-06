@@ -52,6 +52,7 @@ $split-breakpoint: 900px;
 // The Description | Solution switch.
 .practice-header__tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-xs);
   width: 100%;
   max-width: $content-max-width;
@@ -68,9 +69,24 @@ $split-breakpoint: 900px;
   &:hover { color: var(--color-text); text-decoration: none; }
   &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 }
+// A quiet text link: on its own line below the split breakpoint, at the row's right end above it.
+.practice-header__interview {
+  flex: 1 0 100%;
+  padding: var(--space-xs) 0;
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+}
 .practice-header__tab--active { border-bottom-color: var(--color-accent); color: var(--color-text); }
 
 @media (min-width: $split-breakpoint) {
+  .practice-header__interview {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
   .practice-header,
   .practice-header__tabs { max-width: none; }
 }

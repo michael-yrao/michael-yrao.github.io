@@ -3,7 +3,7 @@
     <p class="practice__message">{{ text }}</p>
   }
   <div class="interview-prepare">
-    <h1 class="interview-prepare__heading">Prepare an interview</h1>
+    <app-page-header [breadcrumb]="breadcrumb" heading="Interview problem" />
     <div class="practice__tabs" role="tablist">
       @for (item of tabs; track item.id) {
         <button
@@ -19,7 +19,7 @@
 
     <app-problem-editor class="interview-prepare__editor" [hidden]="tab() === 'view'" [problem]="form()" [isRejected]="isRejected()" [isSplit]="true" (problemChange)="onFormChange($event)">
       <label problemEditorHead class="problem-editor__field interview-prepare__prepared">
-        <span class="practice__label">Prepared</span>
+        <span class="practice__label">Saved problems</span>
         <select class="problem-editor__input" (change)="onSelectPrepared($event)">
           <option [value]="newEntry" [selected]="selectedId() === newEntry">New</option>
           @for (item of prepared.list(); track item.sessionId) {
@@ -27,7 +27,7 @@
           }
         </select>
       </label>
-      <button type="button" class="practice__btn practice__btn--primary" [disabled]="isRejected()" (click)="prepareInterview()">Prepare</button>
+      <button type="button" class="practice__btn practice__btn--primary" [disabled]="isRejected()" (click)="prepareInterview()">Get codes</button>
       @if (detail()) {
         @if (codes(); as shown) {
           <span class="interview-prepare__code interview-prepare__code--candidate">
@@ -51,7 +51,7 @@
             {{ state.label }}
           </span>
         }
-        <button type="button" class="practice__btn practice__btn--icon interview-prepare__delete" aria-label="Delete prepared interview" title="Delete prepared interview" (click)="deleteSelected()">
+        <button type="button" class="practice__btn practice__btn--icon interview-prepare__delete" aria-label="Delete saved problem" title="Delete saved problem" (click)="deleteSelected()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
           </svg>

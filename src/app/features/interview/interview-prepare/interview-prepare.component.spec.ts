@@ -1,9 +1,11 @@
 import { Component, input, output, signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 
+import type { PracticeProblem } from '../../../core/models/practice.model';
+import { PracticeService } from '../../../core/services/practice.service';
 import { ProblemEditorComponent } from '../problem-editor/problem-editor.component';
 import type { InterviewProblem } from '../session/interview-problem';
 import { InterviewSessionService } from '../session/interview-session.service';
@@ -34,6 +36,20 @@ const PROBLEM: InterviewProblem = {
   source: null,
 };
 const SAVED: InterviewProblem = { ...PROBLEM, title: 'Saved' };
+const SITE_NUMBER = 1;
+const SITE_PROBLEM = {
+  number: SITE_NUMBER,
+  title: 'Two Sum',
+  url: null,
+  statement: 'Find two numbers.',
+  stub: 'class Solution:\n    pass\n',
+  entry: { className: 'Solution', method: 'twoSum' },
+  compare: 'exact',
+  result: null,
+  types: null,
+  figure: null,
+  cases: [],
+} as unknown as PracticeProblem;
 
 @Component({
   selector: 'app-problem-editor',
@@ -76,7 +92,7 @@ function fakeSession() {
 /** Lets every pending promise settle (real timers only). */
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve));
 
-function setUp() {
+function setUp(importParam: string | null = null) {
   const prepared = fakePrepared();
   const session = fakeSession();
   TestBed.configureTestingModule({
@@ -85,6 +101,11 @@ function setUp() {
       provideRouter([]),
       { provide: InterviewSessionService, useValue: session },
       { provide: PreparedInterviewsService, useValue: prepared },
+      { provide: PracticeService, useValue: { data: signal({ schemaVersion: 1, generatedAt: '', problems: [SITE_PROBLEM] }) } },
+      {
+        provide: ActivatedRoute,
+        useValue: { snapshot: { queryParamMap: convertToParamMap(importParam === null ? {} : { import: importParam }) } },
+      },
     ],
   });
   TestBed.overrideComponent(InterviewPrepareComponent, {
@@ -102,6 +123,23 @@ function setUp() {
 describe('InterviewPrepareComponent', () => {
   beforeEach(() => localStorage.removeItem(INTERVIEW_DRAFT_KEY));
   afterEach(() => localStorage.removeItem(INTERVIEW_DRAFT_KEY));
+
+  it.each([
+    { name: 'a known number fills the New draft', param: String(SITE_NUMBER), isFilled: true },
+    { name: 'an unknown number leaves the draft', param: '999999', isFilled: false },
+    { name: 'a non-number leaves the draft', param: 'abc', isFilled: false },
+  ])('?import=: $name and the parameter is removed', ({ param, isFilled }) => {
+    const { fixture, editor, navigate } = setUp(param);
+    fixture.detectChanges();
+
+    if (isFilled) {
+      expect(editor().problem().title).toBe(SITE_PROBLEM.title);
+      expect(editor().problem().starter).toBe(SITE_PROBLEM.stub);
+    } else {
+      expect(editor().problem().title).not.toBe(SITE_PROBLEM.title);
+    }
+    expect(navigate).toHaveBeenCalledWith([], expect.objectContaining({ queryParams: { import: null }, queryParamsHandling: 'merge', replaceUrl: true }));
+  });
 
   it('picking an entry loads its problem into the form and never opens an interview', async () => {
     const { fixture, root, editor, prepared, session } = setUp();

@@ -31,10 +31,21 @@ $content-max-width: 60rem;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-sm);
-  padding: var(--space-md);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+}
+
+.interview-page__past {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.interview-page__past-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .interview-page__panel-heading { margin: 0; }
@@ -52,7 +63,6 @@ $content-max-width: 60rem;
   text-decoration: none;
 }
 
-.interview-page__heading,
 .interview-page__title { margin: 0; }
 
 @media (min-width: $split-breakpoint) {

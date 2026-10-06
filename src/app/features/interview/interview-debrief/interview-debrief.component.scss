@@ -1,0 +1,111 @@
+$split-breakpoint: 900px;
+$content-max-width: 60rem;
+$dot-size: 0.5rem;
+$code-max-height: 60vh;
+
+.interview-debrief {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: $content-max-width;
+  margin-inline: auto;
+}
+
+.interview-debrief__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.interview-debrief__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.interview-debrief__section .practice__label { margin: 0; }
+
+.interview-debrief__checks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.interview-debrief__check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.interview-debrief__verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.interview-debrief__dot {
+  width: $dot-size;
+  height: $dot-size;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+.interview-debrief__dot--pass { background: var(--color-found); }
+.interview-debrief__dot--partial { background: var(--color-medium); }
+.interview-debrief__dot--fail { background: var(--color-hard); }
+
+.interview-debrief__notes {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+// The editor sizes to its content and scrolls inside this cap.
+.interview-debrief__code {
+  --editor-max-height: #{$code-max-height};
+}
+
+.interview-debrief__last-run {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.interview-debrief__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.interview-debrief__copy {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.interview-debrief__icon--ok { color: var(--color-found); }
+.interview-debrief__icon--fail { color: var(--color-hard); }
+
+.interview-debrief__copy svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+@media (min-width: $split-breakpoint) {
+  // The practice stylesheet pins .practice to the viewport height here; the debrief keeps its natural height.
+  .practice.interview-debrief-page {
+    height: auto;
+    overflow: visible;
+  }
+}

@@ -48,6 +48,7 @@ function setup(storedName: string, hasShare: boolean, options: SetupOptions = {}
   const stub = {
     role: signal(role),
     status: signal('open'),
+    startedAt: signal<number | null>(null),
     inviteUrl: signal<string | null>(INVITE_URL),
     hostUrl: signal<string | null>(HOST_URL),
     roster: signal<readonly Participant[]>(roster),

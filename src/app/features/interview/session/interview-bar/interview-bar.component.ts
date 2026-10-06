@@ -6,6 +6,7 @@ import { hostEmailHref, inviteEmailHref, inviteTitle } from '../invite-share';
 import { InterviewSessionService, SessionStatus } from '../interview-session.service';
 import { PreparedInterviewsService, type PreparedLinks } from '../prepared-interviews.service';
 import { CandidateSeat, NAME_MAX_LENGTH, NO_MARKS } from '../session-message';
+import { CLOCK_TICK_MS, formatElapsed } from './elapsed-clock';
 
 const NAME_INPUT_SELECTOR = '.interview-bar__name';
 const EMAIL_STORAGE_KEY = 'po-interview-email';
@@ -78,6 +79,16 @@ export class InterviewBarComponent {
   private readonly injector = inject(Injector);
 
   protected readonly statusView = computed(() => STATUS_VIEWS[this.session.status()] ?? null);
+
+  /** The clock runs for the interviewer once a candidate has connected. */
+  private readonly isClockRunning = computed(() => this.session.role() === 'interviewer' && this.session.startedAt() !== null);
+  /** Read only by the clock's text, so a tick re-runs nothing else. */
+  private readonly now = signal(Date.now());
+  private clockTimer: ReturnType<typeof setInterval> | null = null;
+  protected readonly clockText = computed(() => {
+    const startedAt = this.session.startedAt();
+    return this.isClockRunning() && startedAt !== null ? formatElapsed(this.now() - startedAt) : null;
+  });
 
   protected readonly nameMaxLength = NAME_MAX_LENGTH;
   /** The Share button needs the browser's share sheet; absent on e.g. Firefox desktop. */
@@ -156,13 +167,32 @@ export class InterviewBarComponent {
   });
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.markTimers.forEach((timer) => clearTimeout(timer)));
+    inject(DestroyRef).onDestroy(() => {
+      this.markTimers.forEach((timer) => clearTimeout(timer));
+      this.stopClock();
+    });
+    effect(() => {
+      const isRunning = this.isClockRunning();
+      untracked(() => (isRunning ? this.startClock() : this.stopClock()));
+    });
     effect(() => {
       // The code links do not change with the problem: reload only for a new key or a changed entry.
       this.prepared.list();
       const packed = this.session.linkParams()[HOST_PARAM];
       untracked(() => void this.loadPreparedLinks(packed));
     });
+  }
+
+  private startClock(): void {
+    this.stopClock();
+    this.now.set(Date.now());
+    this.clockTimer = setInterval(() => this.now.set(Date.now()), CLOCK_TICK_MS);
+  }
+
+  private stopClock(): void {
+    if (this.clockTimer === null) return;
+    clearInterval(this.clockTimer);
+    this.clockTimer = null;
   }
 
   /** Reads the prepared links for the session's key; only the newest load may set the state. */

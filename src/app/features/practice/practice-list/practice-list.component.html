@@ -2,6 +2,7 @@
   <app-page-header [breadcrumb]="breadcrumb" heading="Practice">
     <span po-meta class="practice-list__count">{{ rows().length }} problems</span>
   </app-page-header>
+  <app-library-subnav [sections]="sections" ariaLabel="Practice sections"></app-library-subnav>
 
   @if (message(); as text) {
     <p class="practice-list__message">{{ text }}</p>

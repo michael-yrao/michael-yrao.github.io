@@ -24,12 +24,20 @@ import { shortcutFor } from '../../practice/practice-shortcuts';
 import { PROBLEM_TRACK, WORK_TRACK } from '../../practice/practice-split';
 import { toPracticeProblem } from '../problem-import';
 import { ProblemEditorComponent } from '../problem-editor/problem-editor.component';
+import { InterviewNotesComponent } from '../interview-notes/interview-notes.component';
+import { PageHeaderComponent, type BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
+import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
+import { PRACTICE_SECTIONS } from '../../../core/data/practice-sections';
 import { InterviewBarComponent } from '../session/interview-bar/interview-bar.component';
 import { parseInterviewProblem, type InterviewProblem } from '../session/interview-problem';
 import { CODE_PARAM, HOST_PARAM, JOIN_PARAM } from '../session/interview-params';
 import { InterviewSessionService } from '../session/interview-session.service';
 import { PreparedInterviewsService } from '../session/prepared-interviews.service';
 import { EMPTY_PROBLEM } from '../interview-prepare/interview-draft';
+import type { DebriefSummary } from '../session/debrief';
+import { listDebriefs, saveDebrief } from '../session/debrief-store';
+import { clearNotes } from '../session/notes-store';
+import { formatDebriefDate, roleLabel } from './interview-format';
 import { LANDING_MESSAGES } from './landing-messages';
 
 /** How long edits rest before the problem is published in a session. */
@@ -37,13 +45,22 @@ export const PUBLISH_DELAY_MS = 500;
 /** How many unanswered publishes are remembered; a tab whose publishes are being dropped stops growing the list. */
 const UNECHOED_MAX = 8;
 
-type LeftTab = 'edit' | 'view';
+type LeftTab = 'edit' | 'view' | 'notes';
 
 /** The interviewer's left-pane tabs, in order; Edit is the default. */
 const LEFT_TABS: readonly { readonly id: LeftTab; readonly label: string }[] = [
   { id: 'edit', label: 'Edit' },
   { id: 'view', label: 'View' },
+  { id: 'notes', label: 'Notes' },
 ];
+
+const LANDING_BREADCRUMB: BreadcrumbEntry[] = [
+  { label: 'Home', link: '/' },
+  { label: 'Practice', link: '/practice' },
+  { label: 'Interview' },
+];
+
+const DEBRIEF_PATH = '/interview/debrief';
 
 const isRunning = (status: RunStatus | undefined): boolean => status === 'loading' || status === 'running';
 const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err));
@@ -63,6 +80,9 @@ const isCaseRunnable = (problem: InterviewProblem | null): boolean =>
     CaseResultsComponent,
     CodeEditorComponent,
     InterviewBarComponent,
+    InterviewNotesComponent,
+    LibrarySubnavComponent,
+    PageHeaderComponent,
     PracticeDescriptionComponent,
     ProblemEditorComponent,
     RouterLink,
@@ -86,6 +106,14 @@ export class InterviewPageComponent {
   protected readonly workTrack = WORK_TRACK;
   protected readonly timeLimitWord = TIME_LIMIT_WORD;
   protected readonly leftTabs = LEFT_TABS;
+  protected readonly breadcrumb = LANDING_BREADCRUMB;
+  protected readonly practiceSections = PRACTICE_SECTIONS;
+  protected readonly debriefPath = DEBRIEF_PATH;
+  protected readonly formatDate = formatDebriefDate;
+  protected readonly roleLabel = roleLabel;
+
+  /** The finished interviews kept in this browser, read when the landing shows. */
+  protected readonly pastInterviews = signal<readonly DebriefSummary[]>([]);
 
   /** The in-session problem editor's problem: empty until the session's problem arrives, then whatever is typed or adopted. */
   protected readonly form = signal<InterviewProblem>(EMPTY_PROBLEM);
@@ -154,6 +182,8 @@ export class InterviewPageComponent {
     });
     this.restoreUrlParams();
     this.adoptPublishedProblem();
+    this.refreshPastInterviews();
+    this.routeEndedSession();
     this.enterFromUrl();
   }
 
@@ -286,6 +316,31 @@ export class InterviewPageComponent {
         if (this.timer !== null || this.problemEditor?.hasInvalidField()) return;
         this.isRejected.set(false);
         if (json !== JSON.stringify(this.form())) this.form.set(incoming);
+      });
+    });
+  }
+
+  /** Reads the saved debriefs whenever the landing shows: on creation and when the role returns to none. */
+  private refreshPastInterviews(): void {
+    effect(() => {
+      if (this.session.role() !== 'none') return;
+      untracked(() => this.pastInterviews.set(listDebriefs()));
+    });
+  }
+
+  /** When a session with a candidate ends, saves its debrief and opens it; a refused save leaves the landing. */
+  private routeEndedSession(): void {
+    effect(() => {
+      const ended = this.session.ended();
+      if (!ended) return;
+      untracked(() => {
+        this.session.clearEnded();
+        const lastRun = this.runState() ? { passed: this.passedCount(), total: this.runCaseCount() } : null;
+        if (!saveDebrief({ ...ended, lastRun })) return;
+        if (ended.role === 'interviewer') clearNotes(ended.sessionId);
+        this.router
+          .navigate([DEBRIEF_PATH, ended.sessionId], { replaceUrl: true })
+          .catch((err: unknown) => console.error('Interview: opening the debrief failed', err));
       });
     });
   }

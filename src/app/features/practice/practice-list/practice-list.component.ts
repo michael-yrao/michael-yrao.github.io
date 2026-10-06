@@ -4,11 +4,13 @@ import { RouterLink } from '@angular/router';
 
 import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
 import { CATEGORY_LABELS, Category, Difficulty } from '../../../core/models/algorithm.model';
+import { PRACTICE_SECTIONS } from '../../../core/data/practice-sections';
 import { PracticeService } from '../../../core/services/practice.service';
 import {
   BreadcrumbEntry,
   PageHeaderComponent,
 } from '../../../shared/components/page-header/page-header.component';
+import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
 import { PRACTICE_GLYPH } from '../../progress/practice-link';
 import { injectPracticeContract } from '../practice-contract';
 import {
@@ -26,13 +28,14 @@ const TAGS_PER_ROW = 2;
   templateUrl: './practice-list.component.html',
   styleUrls: ['./practice-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgClass, PageHeaderComponent],
+  imports: [RouterLink, NgClass, PageHeaderComponent, LibrarySubnavComponent],
 })
 export class PracticeListComponent {
   private readonly practice = inject(PracticeService);
   private readonly contract = injectPracticeContract();
 
   readonly breadcrumb: BreadcrumbEntry[] = [{ label: 'Home', link: '/' }, { label: 'Practice' }];
+  readonly sections = PRACTICE_SECTIONS;
   readonly difficulties: readonly (Difficulty | 'All')[] = ['All', 'Easy', 'Medium', 'Hard'];
   readonly categories = Object.keys(CATEGORY_LABELS) as Category[];
   readonly categoryLabels = CATEGORY_LABELS;

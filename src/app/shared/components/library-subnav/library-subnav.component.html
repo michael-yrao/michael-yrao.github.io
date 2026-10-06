@@ -1,5 +1,5 @@
-<nav class="lib-subnav" aria-label="Library sections">
-  @for (link of links; track link.path) {
+<nav class="lib-subnav" [attr.aria-label]="ariaLabel()">
+  @for (link of sections(); track link.path) {
     <a [routerLink]="link.path" routerLinkActive="active">{{ link.label }}</a>
   }
 </nav>

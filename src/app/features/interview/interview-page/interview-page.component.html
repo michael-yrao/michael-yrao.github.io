@@ -22,6 +22,8 @@
         }
         @if (isInterviewer() && leftTab() === 'edit') {
           <app-problem-editor [problem]="form()" [isRejected]="isRejected()" (problemChange)="onFormChange($event)" />
+        } @else if (isInterviewer() && leftTab() === 'notes') {
+          <app-interview-notes />
         } @else {
           @if (session.problem()?.title; as title) {
             <h1 class="interview-page__title">{{ title }}</h1>
@@ -91,9 +93,12 @@
     </div>
   } @else {
     <div class="interview-page__landing">
-      <h1 class="interview-page__heading">Interview</h1>
+      <app-page-header [breadcrumb]="breadcrumb" eyebrow="With a partner" heading="Interview">
+        Run a practice problem as a live interview. One of you writes it, the other codes it cold, and you both keep the debrief.
+      </app-page-header>
+      <app-library-subnav [sections]="practiceSections" ariaLabel="Practice sections" />
       <div class="interview-page__panels">
-        <section class="interview-page__panel">
+        <section class="interview-page__panel po-card">
           <h2 class="interview-page__panel-heading">Join an interview</h2>
           <p class="interview-page__panel-hint">Enter the code you were given.</p>
           <form class="interview-page__code" (submit)="onSubmitCode($event, codeInput.value)">
@@ -107,12 +112,24 @@
             <p class="practice__message">{{ text }}</p>
           }
         </section>
-        <section class="interview-page__panel">
-          <h2 class="interview-page__panel-heading">Prepare an interview</h2>
-          <p class="interview-page__panel-hint">Write a problem and get the codes to send.</p>
-          <a class="practice__btn interview-page__prepare-link" routerLink="/interview/prepare">Open the editor</a>
+        <section class="interview-page__panel po-card">
+          <h2 class="interview-page__panel-heading">Write an interview problem</h2>
+          <p class="interview-page__panel-hint">Set the problem and starter code, then get a code for each side.</p>
+          <a class="practice__btn interview-page__prepare-link" routerLink="/interview/prepare">Write a problem</a>
         </section>
       </div>
+      @if (pastInterviews().length > 0) {
+        <section class="interview-page__past po-card">
+          <h2 class="interview-page__panel-heading">Past interviews</h2>
+          <ul class="interview-page__past-list">
+            @for (past of pastInterviews(); track past.sessionId) {
+              <li>
+                <a class="interview-page__past-link" [routerLink]="[debriefPath, past.sessionId]">{{ past.title }} · {{ formatDate(past.endedAt) }} · {{ roleLabel(past.role) }}</a>
+              </li>
+            }
+          </ul>
+        </section>
+      }
     </div>
   }
 </section>

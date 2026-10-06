@@ -39,6 +39,11 @@ $name-width: 9rem;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
+.interview-bar__clock {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
 .interview-bar__status { display: inline-flex; align-items: center; gap: var(--space-xs); }
 
 .interview-bar__slot { display: inline-flex; align-items: center; gap: var(--space-xs); }

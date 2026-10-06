@@ -1,0 +1,68 @@
+<section class="practice interview-debrief-page">
+  @if (debrief(); as shown) {
+    <div class="interview-debrief">
+      <app-page-header [breadcrumb]="breadcrumb" [heading]="shown.title" />
+      <app-library-subnav [sections]="practiceSections" ariaLabel="Practice sections" />
+
+      <p class="interview-debrief__meta">
+        <span class="interview-debrief__when">{{ formatDate(shown.summary.endedAt) }} · {{ durationMinutes() }} min · {{ roleLabel(shown.role) }}</span>
+        <span class="interview-debrief__away">Away {{ shown.summary.awayCount }}</span>
+        <span class="interview-debrief__pastes">Pastes {{ shown.summary.pasteCount }}</span>
+      </p>
+
+      <section class="interview-debrief__section">
+        <h2 class="practice__label">Checklist</h2>
+        <ul class="interview-debrief__checks">
+          @for (key of checkKeys; track key) {
+            <li>
+              <label class="interview-debrief__check">
+                <input type="checkbox" disabled [checked]="shown.summary.notes.checks[key]" />
+                {{ checkNames[key] }}
+              </label>
+            </li>
+          }
+        </ul>
+        @if (verdict(); as tone) {
+          <span class="interview-debrief__verdict">
+            <span class="interview-debrief__dot" [class]="'interview-debrief__dot--' + tone"></span>
+            {{ verdictLabel() }}
+          </span>
+        }
+      </section>
+
+      <section class="interview-debrief__section">
+        <h2 class="practice__label">Notes</h2>
+        <p class="interview-debrief__notes">{{ shown.summary.notes.notes }}</p>
+      </section>
+
+      <section class="interview-debrief__section">
+        <h2 class="practice__label">Final code</h2>
+        <div class="interview-debrief__code">
+          <app-code-editor [initialText]="shown.finalCode" [extensions]="readOnlyExtensions" />
+        </div>
+        @if (shown.lastRun; as run) {
+          <span class="interview-debrief__last-run">Last run {{ run.passed }} / {{ run.total }}</span>
+        }
+      </section>
+
+      <div class="interview-debrief__actions">
+        <button type="button" class="practice__btn interview-debrief__copy" (click)="copyMarkdown()">
+          Copy as Markdown
+          @switch (copyMark()) {
+            @case ('ok') {
+              <svg class="interview-debrief__icon--ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+            }
+            @case ('fail') {
+              <svg class="interview-debrief__icon--fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            }
+          }
+        </button>
+        <button type="button" class="practice__btn interview-debrief__delete" (click)="deleteDebrief()">Delete debrief</button>
+      </div>
+    </div>
+  }
+</section>

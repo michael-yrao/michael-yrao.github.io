@@ -662,6 +662,69 @@ describe('InterviewSessionService prepared interviews', () => {
   });
 });
 
+const ENDING_SCENARIOS: readonly Scenario[] = [
+  {
+    name: 'End after a candidate connected gives both sides the same summary, each with its own code and role',
+    run: async () => {
+      const network = createNetwork();
+      const interviewer = await startHost(network.factory);
+      const candidate = await joinCandidate(network.factory, interviewer.joinValue);
+      await settle(REACH_MS);
+      mountEditor(interviewer.service).dispatch({ changes: { from: 0, insert: 'I:' } });
+      mountEditor(candidate.service);
+      await settle();
+
+      interviewer.service.end();
+      await settle();
+
+      const interviewerEnded = interviewer.service.ended();
+      const candidateEnded = candidate.service.ended();
+      expect(interviewerEnded?.summary).toBeDefined();
+      expect(candidateEnded?.summary).toEqual(interviewerEnded?.summary);
+      expect([interviewerEnded?.role, candidateEnded?.role]).toEqual(['interviewer', 'candidate']);
+      expect([interviewerEnded?.finalCode, candidateEnded?.finalCode]).toEqual(['I:stub', 'I:stub']);
+      expect([interviewerEnded?.sessionId, interviewerEnded?.title]).toEqual([interviewer.sessionId, PROBLEM.title]);
+    },
+  },
+  {
+    name: 'End with no candidate gives no summary',
+    run: async () => {
+      const network = createNetwork();
+      const interviewer = await startHost(network.factory);
+      await settle(REACH_MS);
+
+      interviewer.service.end();
+      await settle();
+
+      expect([interviewer.service.role(), interviewer.service.ended()]).toEqual(['none', null]);
+    },
+  },
+  {
+    name: 'a malformed summary still ends the candidate session, with no ended',
+    run: async () => {
+      const network = createNetwork();
+      const interviewer = await startHost(network.factory);
+      const candidate = await joinCandidate(network.factory, interviewer.joinValue);
+      await settle(REACH_MS);
+      const sendEnd = SessionHost.prototype.end;
+      vi.spyOn(SessionHost.prototype, 'end').mockImplementation(function (this: SessionHost) {
+        sendEnd.call(this, { v: 2 } as never);
+      });
+
+      interviewer.service.end();
+      await settle();
+
+      expect([candidate.service.status(), candidate.service.ended()]).toEqual(['closed', null]);
+    },
+  },
+];
+
+describe('InterviewSessionService ending', () => {
+  it.each(ENDING_SCENARIOS)('$name', async ({ run }) => {
+    await run();
+  });
+});
+
 beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
   // A test page is not guaranteed focus, and a candidate without it counts as away.

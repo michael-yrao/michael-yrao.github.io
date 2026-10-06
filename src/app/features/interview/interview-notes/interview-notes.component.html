@@ -1,0 +1,64 @@
+<div class="interview-notes">
+  <label class="interview-notes__check">
+    <input type="checkbox" class="interview-notes__cold" [checked]="notes().isCold" (change)="setCold($event)" />
+    Cold
+  </label>
+
+  <div class="interview-notes__row">
+    <span class="practice__label">Recognition</span>
+    <label class="interview-notes__check">
+      <input type="radio" name="recognition" class="interview-notes__hit" [checked]="notes().recognition === 'hit'" (change)="setRecognition('hit')" />
+      Hit
+    </label>
+    <label class="interview-notes__check">
+      <input type="radio" name="recognition" class="interview-notes__miss" [checked]="notes().recognition === 'miss'" (change)="setRecognition('miss')" />
+      Miss
+    </label>
+  </div>
+
+  <div class="interview-notes__row">
+    <span class="practice__label">Complexity</span>
+    <label class="interview-notes__check">
+      <input type="checkbox" class="interview-notes__time" [checked]="notes().hasTime" (change)="setTime($event)" />
+      Time
+    </label>
+    <label class="interview-notes__check">
+      <input type="checkbox" class="interview-notes__space" [checked]="notes().hasSpace" (change)="setSpace($event)" />
+      Space
+    </label>
+  </div>
+
+  <div class="interview-notes__row">
+    <span class="practice__label">Level raiser</span>
+    <select class="problem-editor__input interview-notes__move" (change)="setMove($event)">
+      <option value="" [selected]="notes().move === null"></option>
+      @for (move of moves; track move) {
+        <option [value]="move" [selected]="notes().move === move">{{ moveNames[move] }}</option>
+      }
+    </select>
+    <button type="button" class="practice__btn interview-notes__thrown" [disabled]="!canThrow()" (click)="throwRaiser()">Thrown</button>
+    @if (notes().raiserMinute !== null) {
+      <span class="interview-notes__minute">at {{ notes().raiserMinute }} min</span>
+    }
+  </div>
+
+  <div class="interview-notes__checks">
+    @for (key of checkKeys; track key) {
+      <label class="interview-notes__check">
+        <input type="checkbox" [class]="'interview-notes__check-' + key" [checked]="notes().checks[key]" (change)="setCheck(key, $event)" />
+        {{ checkNames[key] }}
+      </label>
+    }
+    @if (verdict(); as tone) {
+      <span class="interview-notes__verdict">
+        <span class="interview-notes__dot" [class]="'interview-notes__dot--' + tone"></span>
+        {{ verdictLabel() }}
+      </span>
+    }
+  </div>
+
+  <label class="problem-editor__field interview-notes__notes">
+    <span class="practice__label">Notes</span>
+    <textarea class="problem-editor__input interview-notes__textarea" [attr.maxlength]="notesMaxLength" [value]="notes().notes" (input)="setNotes($event)"></textarea>
+  </label>
+</div>

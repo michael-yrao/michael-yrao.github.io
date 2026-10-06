@@ -5,12 +5,14 @@ import { Extension, Text } from '@codemirror/state';
 
 import { isAwayNow, largePasteExtension } from './candidate-activity';
 import { CandidateSide } from './candidate-side';
-import { clearCandidateLock, writeCandidateLock } from './candidate-lock';
+import { clearCandidateLock } from './candidate-lock';
 import { Authority } from './collab-authority';
+import { EndSummary, parseEndSummary } from './debrief';
+import { EndedSession, buildEndSummary, endedSessionOf } from './ended-session';
 import { InterviewerLoop, LoopIds } from './interviewer-loop';
-import { HostKeys, parsePackedKey, parsePublicKey, verifyProblem } from './host-key';
+import { HostKeys, parsePackedKey, parsePublicKey } from './host-key';
 import { HOST_PARAM, JOIN_PARAM } from './interview-params';
-import { InterviewProblem, SignedProblem } from './interview-problem';
+import { InterviewProblem } from './interview-problem';
 import { Host, PEER_FACTORY, Transport } from './peer-transport';
 import { ClientConnection, ClientHooks, ClientIdentity, dialWithTimeout } from './session-client';
 import { AuthorityChange, HostEvents, SessionHost } from './session-host';
@@ -27,7 +29,16 @@ import {
 } from './session-message';
 import { PreparedInterviewsService } from './prepared-interviews.service';
 import { loadPrepared } from './prepared-store';
-import { clearSession, loadSession, pruneExpiredSessions, saveSession, seedInterviewerSession } from './session-store';
+import { SessionRecord } from './session-record';
+import {
+  clearSession,
+  clearStartedAt,
+  loadSession,
+  loadStartedAt,
+  pruneExpiredSessions,
+  saveStartedAt,
+  seedInterviewerSession,
+} from './session-store';
 import {
   RECONNECT_DELAY_MS,
   buildRoleUrl,
@@ -41,6 +52,7 @@ import { applyUpdates, decodeUpdates, textOf, toWire } from './wire-updates';
 export { JOIN_PARAM, HOST_PARAM } from './interview-params';
 export { CONNECT_TIMEOUT_MS } from './session-client';
 export { RECLAIM_TIMEOUT_MS, RECONNECT_DELAY_MS } from './session-support';
+export type { EndedSession } from './ended-session';
 export type InterviewRole = 'none' | 'interviewer' | 'candidate';
 export type SessionStatus = 'idle' | 'connecting' | 'waiting' | 'open' | 'reconnecting' | 'closed' | 'error';
 export interface SharedDoc {
@@ -52,8 +64,6 @@ export interface SharedDoc {
 
 const INTERVIEWER_START_VERSION = 0;
 const FIRST_EPOCH = 0;
-/** The revision a tab with no problem holds: below every signed one. */
-const NO_PROBLEM_REV = 0;
 
 type SessionRole = 'interviewer' | 'candidate';
 
@@ -75,16 +85,35 @@ export class InterviewSessionService {
   /** This tab's collab clientID, and its id in the roster. */
   readonly selfId = crypto.randomUUID();
 
+  /** The session's verified problem and the saved copy of its doc; a held problem is mirrored to the prepared list. */
+  private readonly held = new SessionRecord({
+    sessionId: () => this.sessionIdState(),
+    publicKey: () => this.publicKey,
+    generation: () => this.generation,
+    isCandidate: () => this.roleState() === 'candidate',
+    synced: () => this.syncedDoc(),
+    mirror: (sessionId, signed) => this.prepared.mirror(sessionId, signed, this.sessionHost !== null),
+  });
+
   private readonly roleState = signal<InterviewRole>('none');
   private readonly statusState = signal<SessionStatus>('idle');
   private readonly inviteUrlState = signal<string | null>(null);
   private readonly hostUrlState = signal<string | null>(null);
   private readonly sharedDocState = signal<SharedDoc | null>(null);
-  private readonly problemState = signal<InterviewProblem | null>(null);
   private readonly linkValueState = signal<string | null>(null);
   private readonly myNameState = signal<string>(loadName());
   private readonly rosterState = signal<readonly Participant[]>([]);
+  private readonly sessionIdState = signal<string | null>(null);
+  private readonly startedAtState = signal<number | null>(null);
+  private readonly endedState = signal<EndedSession | null>(null);
 
+  readonly sessionId: Signal<string | null> = this.sessionIdState.asReadonly();
+  /** When a candidate first connected to this session, as the host knows it; null before that and for a candidate. Survives a host reload. */
+  readonly startedAt: Signal<number | null> = this.startedAtState.asReadonly();
+  /** Set once when a session that had a candidate ends, on both sides; null otherwise. The page saves the debrief from it. */
+  readonly ended: Signal<EndedSession | null> = this.endedState.asReadonly();
+  /** The page has saved the debrief for the ended session; `ended` goes back to null. */
+  clearEnded(): void { this.endedState.set(null); }
   readonly role: Signal<InterviewRole> = this.roleState.asReadonly();
   readonly status: Signal<SessionStatus> = this.statusState.asReadonly();
   readonly inviteUrl: Signal<string | null> = this.inviteUrlState.asReadonly();
@@ -92,7 +121,7 @@ export class InterviewSessionService {
   readonly hostUrl: Signal<string | null> = this.hostUrlState.asReadonly();
   readonly sharedDoc: Signal<SharedDoc | null> = this.sharedDocState.asReadonly();
   /** The session's problem as last verified against the session key; null until this tab holds one. */
-  readonly problem: Signal<InterviewProblem | null> = this.problemState.asReadonly();
+  readonly problem: Signal<InterviewProblem | null> = this.held.problem;
   /** False while a tab is waiting to reconnect: an edit then would be dropped by the next init. */
   readonly isEditable: Signal<boolean> = computed(() => this.statusState() !== 'reconnecting');
   readonly myName: Signal<string> = this.myNameState.asReadonly();
@@ -103,11 +132,8 @@ export class InterviewSessionService {
   private connection: ClientConnection | null = null;
   private hostKeys: HostKeys | null = null;
   private publicKey: CryptoKey | null = null;
-  private sessionId: string | null = null;
   /** The id interviewer tabs register and dial; null for a candidate, which must never learn it. */
   private hostPeerId: string | null = null;
-  /** The signed form of `problem`: what the hello carries and the store keeps. Held only once it verified. */
-  private signedProblem: SignedProblem | null = null;
   /** The candidate's marks from the latest roster that had a candidate: the seed when this tab takes over as host. */
   private lastCandidateSeat: CandidateSeat = NO_MARKS;
   /** The newest problem edit made before this tab hosted or had a ready host connection; null when none waits. */
@@ -129,13 +155,13 @@ export class InterviewSessionService {
   private readonly clientHooks: ClientHooks = {
     getName: () => this.myNameState(),
     getDoc: () => this.helloDoc(),
-    getProblem: () => this.signedProblem,
+    getProblem: () => this.held.signed,
     onVerified: (connection) => this.handleVerified(connection),
     onInit: (init) => this.handleInit(init),
-    onProblem: (signed) => void this.adoptSignedProblem(signed),
+    onProblem: (signed) => void this.held.adopt(signed),
     onUpdates: (updates) => this.handleUpdates(updates),
     onRoster: (participants) => this.setRoster(participants),
-    onEnd: () => this.handleEndFromHost(),
+    onEnd: (summary) => this.handleEndFromHost(summary),
     onClosed: (connection) => this.handleClientClosed(connection),
   };
 
@@ -161,7 +187,7 @@ export class InterviewSessionService {
     onRoster: (participants) => this.setRoster(participants),
     onAuthority: (authority, change, rev) => this.applyAuthority(authority, change, rev),
     onEndRequested: () => this.end(),
-    onProblem: (signed, problem) => this.holdProblem(signed, problem),
+    onProblem: (signed, problem) => this.held.hold(signed, problem),
   };
 
   /** Joins as an interviewer from a host link: hosts the session if nobody does, otherwise joins the host. */
@@ -186,14 +212,14 @@ export class InterviewSessionService {
     const begun = this.beginSession('interviewer', packed);
     pruneExpiredSessions();
     this.adoptIdentity(keys, sessionId, hostPeerId, pageUrl);
-    await this.adoptStoredProblem();
-    await this.adoptSignedProblem(loadPrepared(sessionId)?.problem);
+    await this.held.adoptStored();
+    await this.held.adopt(loadPrepared(sessionId)?.problem);
     if (begun !== this.generation) {
       return;
     }
     // The host loop reads the saved doc at attach, and `persist()` returns while no doc has synced, so seed it here.
-    const { signedProblem } = this;
-    const problem = this.problemState();
+    const signedProblem = this.held.signed;
+    const problem = this.held.problem();
     if (signedProblem !== null && problem !== null) {
       seedInterviewerSession(sessionId, problem.starter, signedProblem);
     }
@@ -216,8 +242,8 @@ export class InterviewSessionService {
         return;
       }
       this.publicKey = publicKey;
-      this.sessionId = sessionId;
-      await this.adoptStoredProblem();
+      this.sessionIdState.set(sessionId);
+      await this.held.adoptStored();
     } catch (error) {
       if (generation === this.generation) {
         this.fail('Could not read the interview link', error);
@@ -234,7 +260,10 @@ export class InterviewSessionService {
   /** Ends the session for everyone. An interviewer's End also resets this tab and strips `?host=` from the address. */
   end(): void {
     const role = this.roleState();
-    const { sessionHost, connection, sessionId } = this;
+    const { sessionHost, connection } = this;
+    const sessionId = this.sessionIdState();
+    const summary = role === 'interviewer' && sessionHost !== null ? this.buildSummary(sessionId) : null;
+    this.recordEnd(role, sessionId, summary);
     this.cancelPending();
     this.sessionHost = null;
     this.connection = null;
@@ -248,7 +277,7 @@ export class InterviewSessionService {
       return;
     }
     if (sessionHost !== null) {
-      sessionHost.end();
+      sessionHost.end(summary ?? undefined);
     } else {
       connection?.endSession();
     }
@@ -256,6 +285,20 @@ export class InterviewSessionService {
     if (sessionId !== null) {
       void this.prepared.flush(sessionId);
     }
+  }
+
+  /** The summary the hosting tab sends with `end`; null until a candidate has connected. */
+  private buildSummary(sessionId: string | null): EndSummary | null {
+    const startedAt = this.startedAtState();
+    return startedAt === null || sessionId === null ? null : buildEndSummary(sessionId, startedAt, this.lastCandidateSeat, Date.now());
+  }
+
+  /** Sets `ended` from this side's own state, before the role goes back to none; a null summary leaves it as it is. */
+  private recordEnd(role: InterviewRole, sessionId: string | null, summary: EndSummary | null): void {
+    if (role === 'none' || sessionId === null || summary === null) {
+      return;
+    }
+    this.endedState.set(endedSessionOf(sessionId, role, this.held.problem(), summary, this.syncedDoc()?.doc ?? ''));
   }
 
   /** Sets this side's name (trimmed, cut to the limit), stores it and tells the session. */
@@ -325,6 +368,7 @@ export class InterviewSessionService {
     this.cancelPending();
     this.closeTransports();
     this.resetSessionState();
+    this.endedState.set(null);
     this.linkValueState.set(linkValue);
     this.roleState.set(role);
     this.setStatus('connecting');
@@ -336,7 +380,8 @@ export class InterviewSessionService {
     const pageUrl = interviewUrl(baseUrl);
     this.hostKeys = keys;
     this.publicKey = keys.publicKey;
-    this.sessionId = sessionId;
+    this.sessionIdState.set(sessionId);
+    this.startedAtState.set(loadStartedAt(sessionId));
     this.hostPeerId = hostPeerId;
     this.linkValueState.set(keys.packed);
     this.hostUrlState.set(buildRoleUrl(pageUrl, HOST_PARAM, keys.packed, JOIN_PARAM));
@@ -370,13 +415,13 @@ export class InterviewSessionService {
     this.hostUrlState.set(null);
     this.sharedDocState.set(null);
     this.rosterState.set([]);
-    this.problemState.set(null);
-    this.signedProblem = null;
+    this.held.reset();
     this.lastCandidateSeat = NO_MARKS;
     this.pendingProblemEdit = null;
     this.hostKeys = null;
     this.publicKey = null;
-    this.sessionId = null;
+    this.sessionIdState.set(null);
+    this.startedAtState.set(null);
     this.hostPeerId = null;
     this.linkValueState.set(null);
     this.syncedText = null;
@@ -396,6 +441,7 @@ export class InterviewSessionService {
   private finishInterviewerSession(sessionId: string | null): void {
     if (sessionId !== null) {
       clearSession('interviewer', sessionId);
+      clearStartedAt(sessionId);
     }
     this.resetToStart();
     this.router
@@ -425,7 +471,20 @@ export class InterviewSessionService {
     const { isAway, awayCount, pasteCount } = participants.find((participant) => participant.role === 'candidate') ?? this.lastCandidateSeat;
     this.lastCandidateSeat = { isAway, awayCount, pasteCount };
     this.rosterState.set(participants);
+    this.stampStart(participants);
     this.refreshInterviewerStatus();
+  }
+
+  /** An interviewer tab remembers when it first saw a candidate, and keeps it for a reload. */
+  private stampStart(participants: readonly Participant[]): void {
+    const sessionId = this.sessionIdState();
+    const hasCandidate = participants.some((participant) => participant.role === 'candidate');
+    if (!hasCandidate || sessionId === null || this.roleState() !== 'interviewer' || this.startedAtState() !== null) {
+      return;
+    }
+    const startedAt = Date.now();
+    this.startedAtState.set(startedAt);
+    saveStartedAt(sessionId, startedAt);
   }
 
   private fail(context: string, error?: unknown): void {
@@ -436,7 +495,8 @@ export class InterviewSessionService {
   // ---- the interviewer loop ----
 
   private loopIds(): LoopIds | null {
-    const { sessionId, hostPeerId } = this;
+    const sessionId = this.sessionIdState();
+    const { hostPeerId } = this;
     return sessionId === null || hostPeerId === null ? null : { sessionId, hostPeerId };
   }
 
@@ -457,9 +517,9 @@ export class InterviewSessionService {
         takeoverDoc: takeover?.doc ?? null,
         takeoverRev: takeover?.rev ?? 0,
         getName: () => this.myNameState(),
-        stubFn: () => this.problemState()?.starter ?? '',
+        stubFn: () => this.held.problem()?.starter ?? '',
         candidateSeat: this.lastCandidateSeat,
-        problem: this.signedProblem,
+        problem: this.held.signed,
         // A fresh Peer per dial, so the candidate never sees the host peer id.
         dialCandidate: () => dialWithTimeout(this.factory, sessionId),
       },
@@ -522,7 +582,7 @@ export class InterviewSessionService {
     if (change === 'adopted') {
       this.adoptSharedDoc(authority);
     }
-    this.persist();
+    this.held.persist();
     this.editor.syncView();
   }
 
@@ -555,7 +615,7 @@ export class InterviewSessionService {
 
   /** The candidate registers the session id and waits; each dialer runs the handshake, and only a verified one is kept. */
   private async listen(): Promise<void> {
-    const sessionId = this.sessionId;
+    const sessionId = this.sessionIdState();
     if (sessionId !== null) {
       await this.candidate.listen(sessionId);
     }
@@ -580,7 +640,8 @@ export class InterviewSessionService {
   }
 
   private clientIdentity(): ClientIdentity | null {
-    const { sessionId, publicKey } = this;
+    const sessionId = this.sessionIdState();
+    const { publicKey } = this;
     const role = this.roleState();
     if (sessionId === null || publicKey === null || role === 'none') {
       return null;
@@ -606,76 +667,7 @@ export class InterviewSessionService {
     if (synced !== null) {
       return synced;
     }
-    const sessionId = this.sessionId;
-    const saved = sessionId === null ? null : loadSession(this.storedRole(), sessionId);
-    return saved === null ? null : { doc: saved.doc, rev: saved.rev };
-  }
-
-  private heldRev(): number {
-    return this.signedProblem?.rev ?? NO_PROBLEM_REV;
-  }
-
-  /** The saved problem for this role, taken like any other: only once it verifies. */
-  private async adoptStoredProblem(): Promise<void> {
-    const sessionId = this.sessionId;
-    const stored = sessionId === null ? null : loadSession(this.storedRole(), sessionId);
-    await this.adoptSignedProblem(stored?.problem);
-  }
-
-  /**
-   * Takes `signed` as the session's problem when its revision is above the held one and the session key signed it
-   * for this session and revision; anything else is dropped. Re-checks the revision after the async verify, since
-   * another problem may have been taken meanwhile.
-   */
-  private async adoptSignedProblem(signed: SignedProblem | undefined): Promise<void> {
-    const { sessionId, publicKey, generation } = this;
-    if (signed === undefined || sessionId === null || publicKey === null || signed.rev <= this.heldRev()) {
-      return;
-    }
-    const problem = await verifyProblem(publicKey, sessionId, signed);
-    if (generation !== this.generation || signed.rev <= this.heldRev()) {
-      return;
-    }
-    if (problem === null) {
-      console.error('Interview: ignored a problem that the session key did not sign for this revision');
-      return;
-    }
-    this.holdProblem(signed, problem);
-  }
-
-  /** `problem` is verified: show it, keep it with the saved copy, and let a candidate's lock follow its source. */
-  private holdProblem(signed: SignedProblem, problem: InterviewProblem): void {
-    this.signedProblem = signed;
-    this.problemState.set(problem);
-    if (this.roleState() === 'candidate') {
-      this.followCandidateLock(problem.source);
-    }
-    this.persist();
-    if (this.sessionId !== null) {
-      this.prepared.mirror(this.sessionId, signed, this.sessionHost !== null);
-    }
-  }
-
-  /** The candidate may not open the solution of the site problem the interview was imported from; none, no lock. */
-  private followCandidateLock(source: number | null): void {
-    if (source === null) {
-      clearCandidateLock();
-      return;
-    }
-    writeCandidateLock(source);
-  }
-
-  private storedRole(): SessionRole {
-    return this.roleState() === 'candidate' ? 'candidate' : 'interviewer';
-  }
-
-  /** Saves the synced text under this tab's role so a reloaded tab can send it in its hello. */
-  private persist(): void {
-    const { syncedText, sessionId } = this;
-    if (syncedText === null || sessionId === null) {
-      return;
-    }
-    saveSession(this.storedRole(), sessionId, syncedText.toString(), this.syncedRev, this.signedProblem);
+    return this.held.savedDoc();
   }
 
   private handleInit(init: InitMessage): void {
@@ -686,7 +678,7 @@ export class InterviewSessionService {
     this.syncedText = textOf(init.doc);
     this.syncedRev = init.rev;
     this.sharedDocState.set({ version: init.version, doc: init.doc, epoch });
-    void this.adoptSignedProblem(init.problem);
+    void this.held.adopt(init.problem);
     const isCandidate = this.roleState() === 'candidate';
     if (isCandidate) {
       // The host's seat may be stale after a reconnect or a takeover, so every init is followed by the real state.
@@ -694,7 +686,7 @@ export class InterviewSessionService {
     }
     this.setStatus(isCandidate ? 'open' : 'waiting');
     this.refreshInterviewerStatus();
-    this.persist();
+    this.held.persist();
     this.flushPendingProblemEdit();
   }
 
@@ -712,15 +704,17 @@ export class InterviewSessionService {
     }
     this.syncedRev += updates.length;
     this.editor.appendAccepted(updates);
-    this.persist();
+    this.held.persist();
     this.editor.syncView();
     this.editor.schedulePush();
   }
 
   /** The host ended the session: the candidate lands on Ended, an interviewer client resets like the one who ended it. */
-  private handleEndFromHost(): void {
+  private handleEndFromHost(rawSummary: unknown): void {
     const role = this.roleState();
-    const { connection, sessionId } = this;
+    const { connection } = this;
+    const sessionId = this.sessionIdState();
+    this.recordEnd(role, sessionId, parseEndSummary(rawSummary));
     this.cancelPending();
     this.connection = null;
     this.candidate.stop();

@@ -1,0 +1,57 @@
+@use '../problem-field' as *;
+
+$dot-size: 0.5rem;
+$textarea-min-height: 8rem;
+
+.interview-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.interview-notes__row,
+.interview-notes__checks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+}
+
+.interview-notes__check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.interview-notes__move { width: auto; }
+
+.interview-notes__minute {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.interview-notes__verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-inline-start: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.interview-notes__dot {
+  width: $dot-size;
+  height: $dot-size;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+.interview-notes__dot--pass { background: var(--color-found); }
+.interview-notes__dot--partial { background: var(--color-medium); }
+.interview-notes__dot--fail { background: var(--color-hard); }
+
+.interview-notes__textarea {
+  min-height: $textarea-min-height;
+  resize: vertical;
+}

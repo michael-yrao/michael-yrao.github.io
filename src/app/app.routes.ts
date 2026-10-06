@@ -69,6 +69,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'interview/debrief/:id',
+    loadComponent: () =>
+      import('./features/interview/interview-debrief/interview-debrief.component').then(
+        (m) => m.InterviewDebriefComponent,
+      ),
+  },
+  {
     path: 'practice',
     loadComponent: () =>
       import('./features/practice/practice-list/practice-list.component').then(

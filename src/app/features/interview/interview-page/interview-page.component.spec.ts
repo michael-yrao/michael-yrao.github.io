@@ -11,8 +11,11 @@ import { ProblemEditorComponent } from '../problem-editor/problem-editor.compone
 import { toPracticeProblem } from '../problem-import';
 import { InterviewBarComponent } from '../session/interview-bar/interview-bar.component';
 import { STARTER_MAX_LENGTH, type InterviewProblem } from '../session/interview-problem';
-import { InterviewSessionService } from '../session/interview-session.service';
+import { EMPTY_NOTES } from '../session/debrief';
+import { listDebriefs, saveDebrief } from '../session/debrief-store';
+import { InterviewSessionService, type EndedSession } from '../session/interview-session.service';
 import { PreparedInterviewsService, type CodeEntry } from '../session/prepared-interviews.service';
+import { formatDebriefDate } from './interview-format';
 import { InterviewPageComponent, PUBLISH_DELAY_MS } from './interview-page.component';
 
 const DOC = 'print(1)';
@@ -76,10 +79,15 @@ class StubBarComponent {
 }
 
 function fakeSession(role: string, problem: InterviewProblem | null, doc = DOC) {
+  const ended = signal<EndedSession | null>(null);
   return {
     role: signal(role),
     problem: signal(problem),
     status: signal('idle'),
+    sessionId: signal<string | null>(null),
+    startedAt: signal<number | null>(null),
+    ended,
+    clearEnded: vi.fn(() => ended.set(null)),
     sharedDoc: signal(role === 'none' ? null : { version: 0, doc, epoch: 0 }),
     isEditable: signal(true),
     inviteUrl: signal<string | null>(null),
@@ -159,7 +167,7 @@ const ROLE_VIEWS: readonly {
   hasDescription: boolean;
 }[] = [
   { role: 'none', problem: null, tabs: [], hasEditor: false, hasLanding: true, hasDescription: false },
-  { role: 'interviewer', problem: PROBLEM, tabs: ['Edit', 'View'], hasEditor: true, hasLanding: false, hasDescription: false },
+  { role: 'interviewer', problem: PROBLEM, tabs: ['Edit', 'View', 'Notes'], hasEditor: true, hasLanding: false, hasDescription: false },
   { role: 'candidate', problem: PROBLEM, tabs: [], hasEditor: false, hasLanding: false, hasDescription: true },
 ];
 
@@ -224,8 +232,29 @@ const ADOPT_ROWS: readonly {
   },
 ];
 
+const DEBRIEF_PATH = '/interview/debrief';
+const ENDED_AT = Date.UTC(2026, 9, 5, 12);
+const ENDED: EndedSession = {
+  sessionId: 'ended-1',
+  role: 'interviewer',
+  title: 'Pair sum',
+  source: null,
+  summary: { v: 1, startedAt: ENDED_AT - 600_000, endedAt: ENDED_AT, awayCount: 0, pasteCount: 0, notes: EMPTY_NOTES },
+  finalCode: DOC,
+};
+const SAVED = { ...ENDED, sessionId: 'saved-1', role: 'candidate' as const, lastRun: null };
+const SAVED_DATE = formatDebriefDate(ENDED_AT);
+
+const END_ROWS: readonly { name: string; hasEnded: boolean }[] = [
+  { name: 'an ended session is saved and opens its debrief', hasEnded: true },
+  { name: 'no ended session stays on the landing', hasEnded: false },
+];
+
 describe('InterviewPageComponent', () => {
-  beforeEach(() => setTextSpy.mockClear());
+  beforeEach(() => {
+    setTextSpy.mockClear();
+    localStorage.clear();
+  });
   afterEach(() => vi.useRealTimers());
 
   it.each(RUN_CASES)('Run dispatch: $name', ({ problem, runsCases }) => {
@@ -327,13 +356,13 @@ describe('InterviewPageComponent', () => {
 
   it.each([
     { status: 'invalid', message: 'Enter an 8- or 12-character code.' },
-    { status: 'not-found', message: 'No interview has this code. If it was just prepared, try again in a minute.' },
+    { status: 'not-found', message: 'No interview has this code. If it was just created, try again in a minute.' },
     { status: 'deleted', message: 'This interview was deleted.' },
     { status: 'unreadable', message: 'This interview could not be read.' },
     { status: 'offline', message: 'Could not reach the server.' },
     { status: 'rate-limited', message: 'Too many tries. Wait a minute.' },
-    { status: 'disabled', message: 'This code works only in the browser that prepared it.' },
-    { status: 'unsaved', message: 'This browser could not save the prepared interview.' },
+    { status: 'disabled', message: 'This code works only in the browser that created it.' },
+    { status: 'unsaved', message: 'This browser could not save the problem.' },
   ] as const)('a code that fails as $status says why and opens nothing', async ({ status, message }) => {
     const session = fakeSession('none', null);
     const { fixture } = setUp(session, { prepared: fakePrepared({ status }) });
@@ -347,5 +376,47 @@ describe('InterviewPageComponent', () => {
     expect(messageOf(root)).toBe(message);
     expect(session.resume).not.toHaveBeenCalled();
     expect(session.join).not.toHaveBeenCalled();
+  });
+
+  it.each(END_ROWS)('End: $name', ({ hasEnded }) => {
+    const session = fakeSession('interviewer', PROBLEM);
+    const { fixture, navigate } = setUp(session);
+    if (hasEnded) session.ended.set(ENDED);
+    fixture.detectChanges();
+
+    const debriefCalls = navigate.mock.calls.filter(([commands]) => Array.isArray(commands) && commands[0] === DEBRIEF_PATH);
+    if (!hasEnded) {
+      expect(debriefCalls).toEqual([]);
+      expect(listDebriefs()).toEqual([]);
+      return;
+    }
+    expect(listDebriefs().map((item) => item.sessionId)).toEqual([ENDED.sessionId]);
+    expect(debriefCalls).toEqual([[[DEBRIEF_PATH, ENDED.sessionId], { replaceUrl: true }]]);
+  });
+
+  it('End: a page opened after the debrief does not save or open it again', () => {
+    const session = fakeSession('interviewer', PROBLEM);
+    const { fixture, navigate } = setUp(session);
+    session.ended.set(ENDED);
+    fixture.detectChanges();
+    const debriefCalls = () => navigate.mock.calls.filter(([commands]) => Array.isArray(commands) && commands[0] === DEBRIEF_PATH);
+    expect(debriefCalls()).toHaveLength(1);
+
+    TestBed.createComponent(InterviewPageComponent).detectChanges();
+
+    expect(debriefCalls()).toHaveLength(1);
+  });
+
+  it.each([
+    { name: 'a saved debrief is listed as a link', saved: [SAVED], rows: ['Pair sum · ' + SAVED_DATE + ' · Candidate'], href: '/interview/debrief/' + SAVED.sessionId },
+    { name: 'none saved: the panel is absent', saved: [], rows: [], href: null },
+  ])('the landing lists past interviews: $name', ({ saved, rows, href }) => {
+    for (const debrief of saved) saveDebrief(debrief);
+    const { fixture } = setUp(fakeSession('none', null));
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(texts(root, '.interview-page__past-link')).toEqual(rows);
+    expect(root.querySelector('.interview-page__past') !== null).toBe(saved.length > 0);
+    expect(root.querySelector('.interview-page__past-link')?.getAttribute('href') ?? null).toBe(href);
   });
 });

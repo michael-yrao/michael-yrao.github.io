@@ -4,6 +4,7 @@ import { Authority, authorityVersion, createAuthority, receivePush } from './col
 import { HostKeys, createNonce, signChallenge, signProblemAt, verifyChallenge, verifyProblem } from './host-key';
 import { InterviewProblem, SignedProblem, parseInterviewProblem } from './interview-problem';
 import { CandidateDialer } from './candidate-listener';
+import { EndSummary } from './debrief';
 import { Host, Transport } from './peer-transport';
 import {
   CandidateSeat,
@@ -249,8 +250,8 @@ export class SessionHost {
    * Tells every ready participant the session ended and stops accepting anything at once; the transports
    * and the Peer stay up for `END_GRACE_MS` so the `end` is delivered, then `shutdown` closes them.
    */
-  end(): void {
-    this.broadcast({ type: 'end' });
+  end(summary?: EndSummary): void {
+    this.broadcast(summary === undefined ? { type: 'end' } : { type: 'end', summary });
     this.markClosed();
     this.endGraceTimer = setTimeout(() => this.shutdown(), END_GRACE_MS);
   }

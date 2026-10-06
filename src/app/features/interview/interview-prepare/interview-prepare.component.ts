@@ -1,15 +1,19 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal, untracked, type WritableSignal } from '@angular/core';
 import { EditorState, type Extension } from '@codemirror/state';
+import { ActivatedRoute, Router } from '@angular/router';
 
+import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
 import type { PracticeProblem } from '../../../core/models/practice.model';
+import { PracticeService } from '../../../core/services/practice.service';
+import { PageHeaderComponent, type BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 import { CodeEditorComponent } from '../../practice/code-editor/code-editor.component';
 import { PracticeDescriptionComponent } from '../../practice/practice-description/practice-description.component';
 import { PROBLEM_TRACK, WORK_TRACK } from '../../practice/practice-split';
 import { COPY_FEEDBACK_MS, copyText, type CopyMark } from '../copy-text';
 import { formatCode } from '../directory/interview-code';
 import { ProblemEditorComponent } from '../problem-editor/problem-editor.component';
-import { toPracticeProblem } from '../problem-import';
+import { importProblem, toPracticeProblem } from '../problem-import';
 import { parseInterviewProblem, type InterviewProblem } from '../session/interview-problem';
 import { HOST_PARAM } from '../session/interview-params';
 import { InterviewSessionService } from '../session/interview-session.service';
@@ -22,7 +26,9 @@ import { STATE_VIEWS } from './publish-state-views';
 export const AUTOSAVE_DELAY_MS = 500;
 /** The picker's value for the unsaved draft. */
 const NEW_ENTRY = '';
-const DELETE_CONFIRM = 'Delete this prepared interview?';
+/** The query parameter that opens the editor with a site problem imported. */
+const IMPORT_PARAM = 'import';
+const DELETE_CONFIRM = 'Delete this saved problem?';
 /** The View tab's starter is for reading only. */
 const READ_ONLY_EXTENSIONS: readonly Extension[] = [EditorState.readOnly.of(true)];
 
@@ -39,11 +45,20 @@ const TABS: readonly { readonly id: Tab; readonly label: string }[] = [
   templateUrl: './interview-prepare.component.html',
   styleUrls: ['../../practice/practice-page/practice-page.component.scss', './interview-prepare.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CodeEditorComponent, NgTemplateOutlet, PracticeDescriptionComponent, ProblemEditorComponent],
+  imports: [CodeEditorComponent, NgTemplateOutlet, PageHeaderComponent, PracticeDescriptionComponent, ProblemEditorComponent],
 })
 export class InterviewPrepareComponent {
   private readonly session = inject(InterviewSessionService);
   protected readonly prepared = inject(PreparedInterviewsService);
+  private readonly practice = inject(PracticeService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+
+  protected readonly breadcrumb: BreadcrumbEntry[] = [
+    { label: 'Home', link: '/' },
+    { label: 'Practice', link: '/practice' },
+    { label: 'Interview' },
+  ];
 
   protected readonly tabs = TABS;
   protected readonly problemTrack = PROBLEM_TRACK;
@@ -90,6 +105,8 @@ export class InterviewPrepareComponent {
   });
   private readonly selectedSummary = computed(() => this.prepared.list().find((item) => item.sessionId === this.selectedId()) ?? null);
 
+  /** The site problem number the page opened with in `?import=`; null once handled or when none was given. */
+  private pendingImport: number | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   /** The entry whose problem the form should take when its detail arrives. */
   private awaitingForm: string | null = null;
@@ -103,6 +120,7 @@ export class InterviewPrepareComponent {
       this.leaveEntry(this.selectedId(), this.flushPending());
       this.markTimers.forEach((timer) => clearTimeout(timer));
     });
+    this.startImport();
     // The entry's summary is replaced on every local save and publish change, which re-reads the codes and the mark.
     effect(() => {
       const summary = this.selectedSummary();
@@ -111,6 +129,41 @@ export class InterviewPrepareComponent {
         else this.detailLoads++;
       });
     });
+  }
+
+  /** Reads `?import=` once; a value that is not a number is dropped at once, a number waits for the practice data. */
+  private startImport(): void {
+    const raw = this.route.snapshot.queryParamMap.get(IMPORT_PARAM);
+    if (raw === null) return;
+    const number = raw.trim() === '' ? NaN : Number(raw);
+    if (!Number.isInteger(number)) {
+      this.dropImportParam();
+      return;
+    }
+    this.pendingImport = number;
+    effect(() => {
+      const problems = this.practice.data()?.problems;
+      if (problems) untracked(() => this.finishImport(problems));
+    });
+  }
+
+  /** Fills the New draft from the site problem, as the editor's Import select does, then drops the parameter. */
+  private finishImport(problems: readonly PracticeProblem[]): void {
+    const number = this.pendingImport;
+    if (number === null) return;
+    this.pendingImport = null;
+    const site = problems.find((candidate) => candidate.number === number);
+    if (site && this.selectedId() === NEW_ENTRY) {
+      const meta = ALL_ALGORITHMS.find((algorithm) => algorithm.lcNumber === site.number) ?? null;
+      this.onFormChange(importProblem(site, meta));
+    }
+    this.dropImportParam();
+  }
+
+  private dropImportParam(): void {
+    this.router
+      .navigate([], { relativeTo: this.route, queryParams: { [IMPORT_PARAM]: null }, queryParamsHandling: 'merge', replaceUrl: true })
+      .catch((err: unknown) => console.error('Interview prepare: could not drop the import parameter', err));
   }
 
   protected onFormChange(next: InterviewProblem): void {

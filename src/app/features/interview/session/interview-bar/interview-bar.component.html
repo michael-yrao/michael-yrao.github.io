@@ -142,6 +142,9 @@
         {{ status.label }}
       </span>
     }
+    @if (clockText(); as clock) {
+      <span class="interview-bar__clock">{{ clock }}</span>
+    }
     @if (session.role() === 'interviewer') {
       <button type="button" class="interview-bar__btn" (click)="endSession()">End</button>
     }

@@ -24,7 +24,7 @@ export const EVENTS_API_URL = WORKER_API_URL;
 
 /** Interview codes resolve through the Worker's directory. On in a dev build; off in production until the worker is
  *  deployed and `WORKER_API_URL` names it, in the same edit that turns this on. While off, a code works only in the
- *  browser that prepared it. */
+ *  browser that created it. */
 export const INTERVIEW_CODES_ENABLED = isDevMode();
 
 /** The Events page shows a "coming soon" card while this is false, and never calls

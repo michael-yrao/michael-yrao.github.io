@@ -45,6 +45,8 @@ export interface UpdatesMessage {
 }
 export interface EndMessage {
   readonly type: 'end';
+  /** The host's debrief summary; carried as received and checked by `parseEndSummary` where it is used. */
+  readonly summary?: unknown;
 }
 
 export interface NameMessage {
@@ -268,7 +270,7 @@ function parseShape(data: Record<string, unknown>): SessionMessage | null {
     case 'updates':
       return isWireUpdateList(data['updates']) ? { type: 'updates', updates: data['updates'] } : null;
     case 'end':
-      return { type: 'end' };
+      return data['summary'] === undefined ? { type: 'end' } : { type: 'end', summary: data['summary'] };
     case 'name':
       return isName(data['name']) ? { type: 'name', name: data['name'] } : null;
     case 'away':
