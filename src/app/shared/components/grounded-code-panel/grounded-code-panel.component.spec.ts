@@ -1,8 +1,12 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { of } from 'rxjs';
 
 import { GroundedCodePanelComponent } from './grounded-code-panel.component';
 import { ShowcaseEntry } from '../../../core/models/showcase.model';
-import { LoadStatus } from '../../../core/services/github-file.service';
+import { LoadStatus, RepoRef } from '../../../core/services/github-file.service';
+import { ShowcaseService } from '../../../core/services/showcase.service';
 import { VariantGroundedness } from '../../../core/showcase/groundedness';
 
 function makeEntry(overrides: Partial<ShowcaseEntry> = {}): ShowcaseEntry {
@@ -41,8 +45,22 @@ function createFixture(opts: {
   entry?: ShowcaseEntry | null;
   groundedness?: VariantGroundedness | null;
   label?: string;
+  repo?: string;
 }) {
-  TestBed.configureTestingModule({ imports: [GroundedCodePanelComponent] });
+  const showcaseStub = {
+    sourceRef: signal<RepoRef | null>(null),
+  };
+  const query = convertToParamMap(opts.repo ? { repo: opts.repo } : {});
+  TestBed.configureTestingModule({
+    imports: [GroundedCodePanelComponent],
+    providers: [
+      { provide: ShowcaseService, useValue: showcaseStub },
+      {
+        provide: ActivatedRoute,
+        useValue: { queryParamMap: of(query), snapshot: { queryParamMap: query } },
+      },
+    ],
+  });
   const fixture = TestBed.createComponent(GroundedCodePanelComponent);
   fixture.componentRef.setInput('status', opts.status);
   if (opts.error !== undefined) fixture.componentRef.setInput('error', opts.error);
@@ -92,6 +110,15 @@ describe('GroundedCodePanelComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('BFS');
     expect(fixture.nativeElement.textContent).toContain('2026-07-29');
     expect(fixture.nativeElement.textContent).toContain('floodFill_20260729');
+  });
+
+  it.each([
+    { name: 'shown when the viewer is another repo', repo: 'someone/their-repo', isShown: true },
+    { name: 'hidden when the viewer is the author', repo: undefined, isShown: false },
+  ])("the \"Author's code\" label is $name", ({ repo, isShown }) => {
+    const fixture = createFixture({ status: 'ready', entry: makeEntry(), repo });
+
+    expect(fixture.nativeElement.textContent.includes("Author's code")).toBe(isShown);
   });
 
   it('shows an Ungrounded badge with the failure reasons in its title when not grounded', () => {

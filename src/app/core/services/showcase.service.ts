@@ -5,11 +5,14 @@ import { contractVersionProblem } from '../contracts/contract-version';
 import { ShowcaseData, ShowcaseEntry, SHOWCASE_SCHEMA_VERSION } from '../models/showcase.model';
 import { indexEntries } from '../showcase/showcase-key';
 import { isShowcaseEntry } from '../showcase/showcase-validation';
+import { ContractSource, fetchWithAuthorFallback$, isAuthorFallbackOf } from './author-fallback';
 import {
   GOLD_STANDARD_REPO,
   GitHubFileService,
   LoadStatus,
+  RepoRef,
   httpErrorMessage,
+  sameRef,
 } from './github-file.service';
 
 const SHOWCASE_FILE = 'dashboard/showcase.json';
@@ -22,17 +25,26 @@ const MALFORMED_CONTRACT_MESSAGE =
 type RawShowcasePayload = { schemaVersion?: unknown; entries?: unknown } | null;
 
 /**
- * Fetches cse-progress's curated, verbatim solution slices (`dashboard/showcase.json`) from
- * the gold-standard repo only — unlike `ProgressService`, this never reads `?repo=` (a step
- * generator is a hand-written trace of one specific attempt, so it can't follow someone
- * else's code). Loads once per session unless `force`d, and a second `load()` while one is
- * already in flight is a no-op.
+ * Fetches a repo's curated, verbatim solution slices (`dashboard/showcase.json`). The caller
+ * passes the viewer's `?repo=` ref (default: the gold-standard repo); when that repo has no
+ * showcase file (HTTP 404 only) the author's is used instead and `isAuthorFallback` says so —
+ * the walkthrough's step generators are hand-traced against the author's attempt. A second
+ * `load()` of the ref already ready or in flight is a no-op unless `force`d; a different ref
+ * starts a new load.
  */
 @Injectable({ providedIn: 'root' })
 export class ShowcaseService {
   readonly status = signal<LoadStatus>('idle');
   readonly error = signal<string | null>(null);
   readonly data = signal<ShowcaseData | null>(null);
+  /** Whose repo `data` came from; null until a load lands. */
+  readonly source = signal<ContractSource | null>(null);
+  /** The repo `data` actually came from; null until a load lands. */
+  readonly sourceRef = signal<RepoRef | null>(null);
+
+  private readonly requestedRef = signal<RepoRef>(GOLD_STANDARD_REPO);
+  /** The viewer asked for another repo's code and is looking at the author's. */
+  readonly isAuthorFallback = computed(() => isAuthorFallbackOf(this.source(), this.requestedRef()));
 
   private readonly entries = computed(() => {
     const current = this.data();
@@ -44,37 +56,49 @@ export class ShowcaseService {
 
   constructor(private readonly github: GitHubFileService) {}
 
-  load(force = false): void {
-    if (!force && (this.status() === 'ready' || this.status() === 'loading')) return;
+  load(ref: RepoRef = GOLD_STANDARD_REPO, force = false): void {
+    const isCurrent = sameRef(ref, this.requestedRef());
+    if (!force && isCurrent && (this.status() === 'ready' || this.status() === 'loading')) return;
 
     const mine = ++this.seq;
+    this.requestedRef.set(ref);
     this.status.set('loading');
     this.error.set(null);
+    this.source.set(null);
+    this.sourceRef.set(null);
 
-    this.github
-      .fetch$<RawShowcasePayload>(GOLD_STANDARD_REPO, SHOWCASE_FILE, force)
+    fetchWithAuthorFallback$<RawShowcasePayload>(this.github, ref, SHOWCASE_FILE, force)
       .pipe(catchError((err) => of(new Error(httpErrorMessage(err, SHOWCASE_WHAT)))))
       .subscribe((result) => {
         if (mine !== this.seq) return; // a newer load() superseded this response
 
         if (result instanceof Error) {
-          this.status.set('error');
-          this.error.set(result.message);
-          this.data.set(null);
+          this.fail(result.message);
           return;
         }
 
-        const invalid = this.invalidReason(result);
+        const invalid = this.invalidReason(result.body);
         if (invalid) {
-          this.status.set('error');
-          this.error.set(invalid);
-          this.data.set(null);
+          this.fail(invalid);
           return;
         }
 
-        this.data.set(result as ShowcaseData);
+        this.data.set(result.body as ShowcaseData);
+        this.source.set(result.source);
+        this.sourceRef.set(result.sourceRef);
         this.status.set('ready');
       });
+  }
+
+  /** Re-fetches the ref last requested, bypassing caches (the Retry button). */
+  reload(): void {
+    this.load(this.requestedRef(), true);
+  }
+
+  private fail(message: string): void {
+    this.status.set('error');
+    this.error.set(message);
+    this.data.set(null);
   }
 
   entryFor(key: string | null): ShowcaseEntry | null {

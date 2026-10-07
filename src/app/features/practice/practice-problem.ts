@@ -11,7 +11,7 @@ import { leetCodeUrlFor } from '../../core/data/lc-url';
 import { loadMetaOrNull } from '../../core/data/load-meta';
 import { AlgorithmMeta } from '../../core/models/algorithm.model';
 import { PracticeProblem } from '../../core/models/practice.model';
-import { LoadStatus, RepoRef } from '../../core/services/github-file.service';
+import { GOLD_STANDARD_REPO, LoadStatus, RepoRef } from '../../core/services/github-file.service';
 import { PracticeService } from '../../core/services/practice.service';
 import { ShowcaseService } from '../../core/services/showcase.service';
 import { showcaseKey } from '../../core/showcase/showcase-key';
@@ -64,9 +64,8 @@ export function injectPracticeProblem(): PracticeProblemView {
   const showcase = inject(ShowcaseService);
   const contract = injectPracticeContract();
 
-  // Gold-standard only: a step generator is a hand-written trace of one attempt, so the
-  // showcase cannot follow `?repo=`. A no-op if already loaded/loading this session.
-  showcase.load();
+  // Always the author's: the walkthrough's step anchors trace the author's attempt.
+  showcase.load(GOLD_STANDARD_REPO);
 
   const params = toSignal(route.paramMap, { initialValue: route.snapshot.paramMap });
   const numberParam = computed(() => params().get('number'));

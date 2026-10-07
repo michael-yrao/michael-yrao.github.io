@@ -33,7 +33,10 @@ export function writeStoredMode(mode: SolutionLinkMode): void {
   }
 }
 
-/** A row's walkthrough-route candidate, given the shared mode. In 'site-first' mode this is
+/** The walkthrough always traces the gold-standard attempt; the code panel marks it
+ *  ("Author's code") when the viewer's own repo is shown instead.
+ *
+ *  A row's walkthrough-route candidate, given the shared mode. In 'site-first' mode this is
  *  always just `vizRouteFor(lcNumber)`. In 'github' mode it defers to GitHub ONLY when the
  *  row actually has a GitHub URL to defer to (`githubUrl` is non-null) — otherwise a row with
  *  a walkthrough but no GitHub URL yet (no `file`, or no repo ref known yet) would show no

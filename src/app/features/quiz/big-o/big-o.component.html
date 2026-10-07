@@ -206,6 +206,9 @@
                 <a class="bo-link" [href]="sourceUrl" target="_blank" rel="noopener noreferrer"
                   >Source on GitHub →</a
                 >
+                @if (isAuthorFallback()) {
+                  <span class="bo-pill bo-pill--author">Author's code</span>
+                }
               }
               <button class="bo-btn bo-btn--primary" (click)="next()">Next →</button>
             </div>

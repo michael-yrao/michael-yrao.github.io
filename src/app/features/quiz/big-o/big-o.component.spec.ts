@@ -7,7 +7,7 @@ import { BigOComponent } from './big-o.component';
 import { BigOService } from '../../../core/services/big-o.service';
 import { BigOEntry, BigOData } from '../../../core/models/big-o.model';
 import { Difficulty } from '../../../core/models/algorithm.model';
-import { LoadStatus } from '../../../core/services/github-file.service';
+import { LoadStatus, RepoRef } from '../../../core/services/github-file.service';
 import { BIG_O_FILTER_STORAGE_KEY, RUN_CAP } from './big-o-deck';
 
 function makeEntry(overrides: Partial<BigOEntry> = {}): BigOEntry {
@@ -63,7 +63,10 @@ function makeBigOServiceStub(data: BigOData | null, status: LoadStatus = 'ready'
     status: signal<LoadStatus>(status),
     error: signal<string | null>(null),
     data: signal<BigOData | null>(data),
+    sourceRef: signal<RepoRef | null>(null),
+    isAuthorFallback: signal(false),
     load: vi.fn(),
+    reload: vi.fn(),
   };
 }
 
@@ -95,7 +98,7 @@ describe('BigOComponent', () => {
     );
   });
 
-  it('shows the error message with a Retry button that calls load(true)', () => {
+  it('shows the error message with a Retry button that calls reload()', () => {
     const stub = makeBigOServiceStub(null, 'error');
     stub.error.set('Could not load Big-O trainer (HTTP 500).');
     const fixture = createFixture(stub);
@@ -106,7 +109,22 @@ describe('BigOComponent', () => {
     const retryBtn: HTMLButtonElement = errorBlock.querySelector('button');
     retryBtn.click();
 
-    expect(stub.load).toHaveBeenCalledWith(true);
+    expect(stub.reload).toHaveBeenCalled();
+  });
+
+  it.each([
+    { name: 'shown when the code is the author fallback', isAuthorFallback: true, isShown: true },
+    { name: 'hidden when the viewer is the author', isAuthorFallback: false, isShown: false },
+  ])("the \"Author's code\" label is $name", ({ isAuthorFallback, isShown }) => {
+    const stub = makeBigOServiceStub(makeData([makeEntry()]));
+    stub.isAuthorFallback.set(isAuthorFallback);
+    const fixture = createFixture(stub);
+    fixture.componentInstance.pickTime('O(n)');
+    fixture.componentInstance.pickSpace('O(n)');
+    fixture.componentInstance.check();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent.includes("Author's code")).toBe(isShown);
   });
 
   it('deals at most RUN_CAP questions and shows the matching-count caption', () => {

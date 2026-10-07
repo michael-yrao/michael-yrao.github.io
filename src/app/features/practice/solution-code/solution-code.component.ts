@@ -45,6 +45,6 @@ export class SolutionCodeComponent {
   });
 
   retryShowcase(): void {
-    this.showcase.load(true);
+    this.showcase.reload();
   }
 }

@@ -33,7 +33,7 @@ export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
 const MAX_SLUG_AT_PARTS = 2;
 const SLUG_PART_COUNT = 2;
 
-const NOT_FOUND_STATUS = 404;
+export const NOT_FOUND_STATUS = 404;
 const RATE_LIMIT_STATUS = 403;
 const TOO_MANY_REQUESTS_STATUS = 429;
 const SERVER_ERROR_STATUS = 500;

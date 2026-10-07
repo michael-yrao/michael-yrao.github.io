@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { of, throwError } from 'rxjs';
 
+import { FALLBACK_ROWS, settleRequests } from './author-fallback.testing';
+import { GOLD_STANDARD_REPO } from './github-file.service';
 import { ShowcaseService } from './showcase.service';
 import { ShowcaseData } from '../models/showcase.model';
 
@@ -59,7 +62,7 @@ describe('ShowcaseService', () => {
 
   it('force reloads even when already ready, with a cache-buster', () => {
     service.load();
-    service.load(true);
+    service.load(GOLD_STANDARD_REPO, true);
 
     expect(http.calls.length).toBe(2);
     expect(http.calls[1].url).toContain('_=');
@@ -153,6 +156,29 @@ describe('ShowcaseService', () => {
 
     expect(svc.status()).toBe('error');
     expect(svc.error()).toContain('733:bfs');
+  });
+
+  describe.each(FALLBACK_ROWS)('load(ref): $name', (row) => {
+    it('requests, sources and marks the fallback as the row says', () => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [ShowcaseService, provideHttpClient(), provideHttpClientTesting()],
+      });
+      const svc = TestBed.inject(ShowcaseService);
+
+      svc.load(row.ref);
+      const fileRequests = settleRequests(
+        TestBed.inject(HttpTestingController),
+        makeShowcase(),
+        row.viewerHasFile,
+      );
+
+      expect(fileRequests).toEqual(row.fileRequests);
+      expect(svc.status()).toBe('ready');
+      expect(svc.source()).toBe(row.source);
+      expect(svc.sourceRef()).toEqual(row.sourceRef);
+      expect(svc.isAuthorFallback()).toBe(row.isAuthorFallback);
+    });
   });
 
   describe('entryFor', () => {

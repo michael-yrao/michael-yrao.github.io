@@ -89,8 +89,14 @@ export class BigOComponent {
     const entry = this.current();
     const attempt = entry?.segments.find((s) => s.kind === 'attempt');
     if (!entry || !attempt) return null;
-    return blobUrl(GOLD_STANDARD_REPO, entry.file, attempt.startLine, attempt.endLine);
+    return blobUrl(
+      this.bigO.sourceRef() ?? GOLD_STANDARD_REPO,
+      entry.file,
+      attempt.startLine,
+      attempt.endLine,
+    );
   });
+  readonly isAuthorFallback = this.bigO.isAuthorFallback;
 
   constructor() {
     this.bigO.load();
@@ -160,7 +166,7 @@ export class BigOComponent {
   }
 
   retry(): void {
-    this.bigO.load(true);
+    this.bigO.reload();
   }
 
   private applyFilter(next: DeckFilter): void {

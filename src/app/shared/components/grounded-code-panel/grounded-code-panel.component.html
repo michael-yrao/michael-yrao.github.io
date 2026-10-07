@@ -16,7 +16,7 @@
               [href]="attemptBlobUrl()"
               target="_blank"
               rel="noopener noreferrer"
-              >Grounded ✓ · {{ goldStandardSlug }}</a
+              >Grounded ✓ · {{ sourceSlug() }}</a
             >
           } @else {
             <span
@@ -24,6 +24,9 @@
               [title]="groundednessFailureText()"
               >Ungrounded</span
             >
+          }
+          @if (isViewerNotAuthor()) {
+            <span class="groundedness-badge groundedness-badge--author">Author's code</span>
           }
           @if (e.attemptDate) {
             <span class="showcase-meta">{{ e.attemptDate }}</span>
