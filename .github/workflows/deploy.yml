@@ -48,6 +48,9 @@ jobs:
       - name: Contract mirror check
         run: npm run check:contract-mirror
 
+      - name: Registry check
+        run: npm run check:registry
+
       - name: Unit tests
         run: npx ng test --watch=false
 

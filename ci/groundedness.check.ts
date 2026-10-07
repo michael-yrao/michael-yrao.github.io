@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 import { computeGroundedness } from '../src/app/core/showcase/groundedness';
 import { isShowcaseEntry } from '../src/app/core/showcase/showcase-validation';
-import { ALL_ALGORITHMS } from '../src/app/core/data/algorithms.data';
+import { loadAllAlgorithms } from '../src/app/core/data/algorithms.index';
 import {
   SHOWCASE_SCHEMA_VERSION,
   ShowcaseData,
@@ -78,9 +78,9 @@ function loadShowcaseData(): ShowcaseData {
 }
 
 describe('groundedness', () => {
-  it('every migrated variant is grounded in the fetched showcase contract', () => {
+  it('every migrated variant is grounded in the fetched showcase contract', async () => {
     const data = loadShowcaseData();
-    const report = computeGroundedness(ALL_ALGORITHMS, data);
+    const report = computeGroundedness(await loadAllAlgorithms(), data);
 
     for (const failure of report.failures) {
       console.error(`✗ ${failure.key}: ${failure.reason}`);

@@ -67,6 +67,7 @@ export class PracticePageComponent {
   readonly contractMessage = this.view.contractMessage;
   readonly number = this.view.number;
   readonly problem = this.view.problem;
+  readonly entry = this.view.entry;
   readonly meta = this.view.meta;
   readonly hasProblem = this.view.hasProblem;
   readonly title = this.view.title;
@@ -77,7 +78,7 @@ export class PracticePageComponent {
    *  storage whenever the problem number changes. */
   protected readonly hasSolution = computed(() => {
     const number = this.number();
-    return this.meta() !== null && !(number !== null && lockedProblem() === number);
+    return this.entry() !== null && !(number !== null && lockedProblem() === number);
   });
 
   private readonly key = computed(() => {

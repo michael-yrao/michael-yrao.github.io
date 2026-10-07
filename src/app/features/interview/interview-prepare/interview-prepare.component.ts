@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, injec
 import { EditorState, type Extension } from '@codemirror/state';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
+import { findByNumber } from '../../../core/data/algorithms.data';
+import { loadMetaOrNull } from '../../../core/data/load-meta';
 import type { PracticeProblem } from '../../../core/models/practice.model';
 import { PracticeService } from '../../../core/services/practice.service';
 import { PageHeaderComponent, type BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
@@ -110,18 +111,19 @@ export class InterviewPrepareComponent {
     this.pendingImport = number;
     effect(() => {
       const problems = this.practice.data()?.problems;
-      if (problems) untracked(() => this.finishImport(problems));
+      if (problems) untracked(() => void this.finishImport(problems));
     });
   }
 
-  /** Fills the draft from the site problem, as the editor's Import select does, then drops the parameter. */
-  private finishImport(problems: readonly PracticeProblem[]): void {
+  /** Fills the draft from the site problem, as the editor's Import select does, then drops the
+   *  parameter. The full algorithm loads here, at the moment of import, never at render. */
+  private async finishImport(problems: readonly PracticeProblem[]): Promise<void> {
     const number = this.pendingImport;
     if (number === null) return;
     this.pendingImport = null;
     const site = problems.find((candidate) => candidate.number === number);
     if (site) {
-      const meta = ALL_ALGORITHMS.find((algorithm) => algorithm.lcNumber === site.number) ?? null;
+      const meta = await loadMetaOrNull(findByNumber(site.number));
       this.onFormChange(importProblem(site, meta));
     }
     this.dropParam(IMPORT_PARAM);

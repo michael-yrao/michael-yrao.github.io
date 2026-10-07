@@ -277,6 +277,18 @@ describe('PracticePageComponent', () => {
     expect(root.querySelector('app-code-editor')).toBeNull();
   });
 
+  it.each([
+    { name: 'an index entry whose load resolves exposes its meta', number: '1', metaNumber: 1, isNotFound: false },
+    { name: 'no index entry keeps the not-found path and exposes no meta', number: '91', metaNumber: null, isNotFound: true },
+  ])('$name', async ({ number, metaNumber, isNotFound }) => {
+    const fixture = setUp(number, []);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.meta()?.lcNumber ?? null).toBe(metaNumber);
+    expect(fixture.nativeElement.textContent.includes('No practice cases for #91')).toBe(isNotFound);
+  });
+
   it('shows the contract error above a static-only problem and still draws the page', () => {
     const root: HTMLElement = setUp('1', [], 'error', 'Contract load failed').nativeElement;
 

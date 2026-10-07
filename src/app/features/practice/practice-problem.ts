@@ -1,9 +1,14 @@
-import { Signal, computed, inject } from '@angular/core';
+import { Signal, computed, inject, resource } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 
-import { ALL_ALGORITHMS } from '../../core/data/algorithms.data';
+import {
+  ALGORITHM_INDEX,
+  AlgorithmIndexEntry,
+  findByNumber,
+} from '../../core/data/algorithms.data';
 import { leetCodeUrlFor } from '../../core/data/lc-url';
+import { loadMetaOrNull } from '../../core/data/load-meta';
 import { AlgorithmMeta } from '../../core/models/algorithm.model';
 import { PracticeProblem } from '../../core/models/practice.model';
 import { LoadStatus, RepoRef } from '../../core/services/github-file.service';
@@ -35,7 +40,9 @@ export interface PracticeProblemView {
   readonly number: Signal<number | null>;
   /** The contract's problem for the number, once the contract is ready. */
   readonly problem: Signal<PracticeProblem | null>;
-  /** The number's static algorithm, when `ALL_ALGORITHMS` has it. */
+  /** The number's index entry, when `ALGORITHM_INDEX` has it; known at once. */
+  readonly entry: Signal<AlgorithmIndexEntry | null>;
+  /** The entry's full algorithm: null until its chunk has loaded (and when there is no entry). */
   readonly meta: Signal<AlgorithmMeta | null>;
   /** Either source has the number, so the page can draw; a static-only number never waits for
    *  the contract. */
@@ -78,30 +85,36 @@ export function injectPracticeProblem(): PracticeProblemView {
     return practice.problemFor(value);
   });
 
-  const meta = computed(() => {
+  const entry = computed(() => {
     const value = number();
-    if (value === null) return null;
-    return ALL_ALGORITHMS.find((algorithm) => algorithm.lcNumber === value) ?? null;
+    return value === null ? null : (findByNumber(value) ?? null);
   });
 
-  const hasProblem = computed(() => problem() !== null || meta() !== null);
-  const title = computed(() => problem()?.title ?? meta()?.title ?? '');
+  // Idle (no value) while there is no entry; reloads from scratch when the number changes.
+  const loadedMeta = resource({
+    params: () => entry() ?? undefined,
+    loader: ({ params }) => loadMetaOrNull(params),
+  });
+  const meta = computed(() => (loadedMeta.hasValue() ? loadedMeta.value() : null));
+
+  const hasProblem = computed(() => problem() !== null || entry() !== null);
+  const title = computed(() => problem()?.title ?? entry()?.title ?? '');
 
   const firstVariantEntryUrl = computed(() => {
-    const algorithm = meta();
-    const variant = algorithm?.solutions[0];
+    const algorithm = entry();
+    const variant = algorithm?.variants[0];
     if (!algorithm || !variant || !showcase.data()) return undefined;
     return showcase.entryFor(showcaseKey(algorithm, variant))?.url;
   });
   const titleUrl = computed(() =>
-    leetCodeUrlFor(problem()?.url ?? firstVariantEntryUrl(), meta()?.lcNumber),
+    leetCodeUrlFor(problem()?.url ?? firstVariantEntryUrl(), entry()?.lcNumber),
   );
 
   const neighbors = computed(() => {
     const value = number();
     const problems = contract.status() === 'ready' ? (practice.data()?.problems ?? []) : [];
     if (value === null) return NO_NEIGHBORS;
-    return neighborsOf(buildCatalogue(ALL_ALGORITHMS, problems), value);
+    return neighborsOf(buildCatalogue(ALGORITHM_INDEX, problems), value);
   });
 
   return {
@@ -113,6 +126,7 @@ export function injectPracticeProblem(): PracticeProblemView {
     contractMessage,
     number,
     problem,
+    entry,
     meta,
     hasProblem,
     title,

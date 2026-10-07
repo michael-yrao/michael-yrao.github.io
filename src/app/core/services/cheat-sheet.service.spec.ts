@@ -220,7 +220,7 @@ describe('CheatSheetService', () => {
   });
 
   describe('resolveProblemLink', () => {
-    it('resolves to the internal visualizer route when ALL_ALGORITHMS has the lcNumber', () => {
+    it('resolves to the internal visualizer route when ALGORITHM_INDEX has the lcNumber', () => {
       const http = makeHttp(makePayload());
       TestBed.configureTestingModule({
         providers: [CheatSheetService, { provide: HttpClient, useValue: http }],

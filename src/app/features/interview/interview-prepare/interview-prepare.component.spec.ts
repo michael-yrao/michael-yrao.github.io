@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 
+import { findByNumber } from '../../../core/data/algorithms.data';
 import type { PracticeProblem } from '../../../core/models/practice.model';
 import { PracticeService } from '../../../core/services/practice.service';
 import { ProblemEditorComponent } from '../problem-editor/problem-editor.component';
@@ -111,8 +112,10 @@ describe('InterviewPrepareComponent', () => {
     { name: 'a known number fills the New draft', param: String(SITE_NUMBER), isFilled: true },
     { name: 'an unknown number leaves the draft', param: '999999', isFilled: false },
     { name: 'a non-number leaves the draft', param: 'abc', isFilled: false },
-  ])('?import=: $name and the parameter is removed', ({ param, isFilled }) => {
+  ])('?import=: $name and the parameter is removed', async ({ param, isFilled }) => {
+    await findByNumber(SITE_NUMBER)?.load(); // the import loads the algorithm; memoized, so it settles at once
     const { fixture, editor, navigate } = setUp({ import: param });
+    await fixture.whenStable();
     fixture.detectChanges();
 
     if (isFilled) {

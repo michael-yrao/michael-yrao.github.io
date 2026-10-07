@@ -1,5 +1,5 @@
-import { hasVisualization } from '../../core/data/algorithms.data';
-import { AlgorithmMeta, Category, Difficulty } from '../../core/models/algorithm.model';
+import type { AlgorithmIndexEntry } from '../../core/data/algorithms.data';
+import { Category, Difficulty } from '../../core/models/algorithm.model';
 import { PracticeProblem } from '../../core/models/practice.model';
 
 /** One row of the merged problem list: a static algorithm, a contract problem, or both. */
@@ -13,7 +13,7 @@ export interface CatalogueEntry {
   readonly isRunnable: boolean;
   /** The static algorithm has at least one step-by-step visualization. */
   readonly isVisualized: boolean;
-  /** The number is in `ALL_ALGORITHMS`, so the Solution tab exists. */
+  /** The number is in `ALGORITHM_INDEX`, so the Solution tab exists. */
   readonly hasSolution: boolean;
 }
 
@@ -31,7 +31,7 @@ export interface CatalogueNeighbors {
 
 function toEntry(
   number: number,
-  algorithm: AlgorithmMeta | undefined,
+  algorithm: AlgorithmIndexEntry | undefined,
   problem: PracticeProblem | undefined,
 ): CatalogueEntry {
   return {
@@ -42,14 +42,14 @@ function toEntry(
     category: algorithm?.category ?? null,
     tags: algorithm?.tags ?? [],
     isRunnable: problem !== undefined,
-    isVisualized: algorithm !== undefined && hasVisualization(algorithm),
+    isVisualized: algorithm?.hasVisualization ?? false,
     hasSolution: algorithm !== undefined,
   };
 }
 
 /** The union by number of the static algorithms and the contract's problems, ascending. */
 export function buildCatalogue(
-  algorithms: readonly AlgorithmMeta[],
+  algorithms: readonly AlgorithmIndexEntry[],
   contractProblems: readonly PracticeProblem[],
 ): readonly CatalogueEntry[] {
   const algorithmByNumber = new Map(algorithms.map((a) => [a.lcNumber, a]));

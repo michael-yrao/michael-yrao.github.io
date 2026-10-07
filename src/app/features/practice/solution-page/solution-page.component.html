@@ -7,10 +7,10 @@
       [number]="number()"
       [title]="title()"
       [titleUrl]="titleUrl()"
-      [difficulty]="meta()?.difficulty ?? null"
+      [difficulty]="entry()?.difficulty ?? null"
       [neighbors]="neighbors()"
       activeTab="solution"
-      [hasSolution]="meta() !== null"
+      [hasSolution]="entry() !== null"
     />
 
     <app-practice-description [problem]="problem()" [meta]="meta()" />

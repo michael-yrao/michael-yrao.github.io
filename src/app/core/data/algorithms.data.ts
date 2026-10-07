@@ -1,321 +1,43 @@
-import { AlgorithmMeta, Category } from '../models/algorithm.model';
-import { twoSumMeta } from '../../algorithms/arrays-hash/two-sum.steps';
-import { containsDuplicateMeta } from '../../algorithms/arrays-hash/contains-duplicate.steps';
-import { validAnagramMeta } from '../../algorithms/arrays-hash/valid-anagram.steps';
-import { productOfArrayExceptSelfMeta } from '../../algorithms/arrays-hash/product-of-array-except-self.steps';
-import { majorityElementMeta } from '../../algorithms/arrays-hash/majority-element.steps';
-import { bestTimeBuySellMeta } from '../../algorithms/sliding-window/best-time-buy-sell-stock.steps';
-import { binarySearchMeta } from '../../algorithms/binary-search/binary-search.steps';
-import { validParenthesesMeta } from '../../algorithms/stack/valid-parentheses.steps';
-import { numberOfIslandsMeta } from '../../algorithms/graphs/number-of-islands.steps';
-import { reverseLinkedListMeta } from '../../algorithms/linked-list/reverse-linked-list.steps';
-import { mergeTwoSortedListsMeta } from '../../algorithms/linked-list/merge-two-sorted-lists.steps';
-import { rottingOrangesMeta } from '../../algorithms/graphs/rotting-oranges.steps';
-import { moveZerosMeta } from '../../algorithms/two-pointers/move-zeros.steps';
-import { validPalindromeMeta } from '../../algorithms/two-pointers/valid-palindrome.steps';
-import { validPalindromeIIMeta } from '../../algorithms/two-pointers/valid-palindrome-ii.steps';
-import { trappingRainWaterMeta } from '../../algorithms/two-pointers/trapping-rain-water.steps';
-import { threeSumMeta } from '../../algorithms/two-pointers/three-sum.steps';
-import { maximumSubarrayMeta } from '../../algorithms/greedy/maximum-subarray.steps';
-import { sortColorsMeta } from '../../algorithms/arrays-hash/sort-colors.steps';
-import { rotateArrayMeta } from '../../algorithms/arrays-hash/rotate-array.steps';
-import { topKFrequentElementsMeta } from '../../algorithms/arrays-hash/top-k-frequent-elements.steps';
-import { longestConsecutiveSequenceMeta } from '../../algorithms/arrays-hash/longest-consecutive-sequence.steps';
-import { containsDuplicateIIMeta } from '../../algorithms/sliding-window/contains-duplicate-ii.steps';
-import { removeDuplicatesSortedArrayMeta } from '../../algorithms/two-pointers/remove-duplicates-sorted-array.steps';
-import { removeDuplicatesSortedArrayIIMeta } from '../../algorithms/two-pointers/remove-duplicates-sorted-array-ii.steps';
-import { mergeSortedArrayMeta } from '../../algorithms/two-pointers/merge-sorted-array.steps';
-import { longestCommonPrefixMeta } from '../../algorithms/arrays-hash/longest-common-prefix.steps';
-import { removeNthFromEndMeta } from '../../algorithms/linked-list/remove-nth-node-from-end.steps';
-import { twoSumIIMeta } from '../../algorithms/two-pointers/two-sum-ii.steps';
-import { containerWithMostWaterMeta } from '../../algorithms/arrays-hash/container-with-most-water.steps';
-import { groupAnagramsMeta } from '../../algorithms/arrays-hash/group-anagrams.steps';
-import { searchInRotatedSortedArrayMeta } from '../../algorithms/binary-search/search-in-rotated-sorted-array.steps';
-import { majorityElementIIMeta } from '../../algorithms/arrays-hash/majority-element-ii.steps';
-import { linkedListCycleMeta } from '../../algorithms/linked-list/linked-list-cycle.steps';
-import { reorderListMeta } from '../../algorithms/linked-list/reorder-list.steps';
-import { findMinimumInRotatedSortedArrayMeta } from '../../algorithms/binary-search/find-minimum-in-rotated-sorted-array.steps';
-import { permutationInStringMeta } from '../../algorithms/sliding-window/permutation-in-string.steps';
-import { maxAreaOfIslandMeta } from '../../algorithms/graphs/max-area-of-island.steps';
-import { reverseStringMeta } from '../../algorithms/two-pointers/reverse-string.steps';
-import { plusOneMeta } from '../../algorithms/arrays-hash/plus-one.steps';
-import { findPeakElementMeta } from '../../algorithms/binary-search/find-peak-element.steps';
-import { searchA2DMatrixMeta } from '../../algorithms/binary-search/search-a-2d-matrix.steps';
-import { longestRepeatingCharReplacementMeta } from '../../algorithms/sliding-window/longest-repeating-char-replacement.steps';
-import { longestSubstringWithoutRepeatingCharactersMeta } from '../../algorithms/sliding-window/longest-substring-without-repeating-characters.steps';
-import { fourSumMeta } from '../../algorithms/two-pointers/four-sum.steps';
-import { kokoEatingBananasMeta } from '../../algorithms/binary-search/koko-eating-bananas.steps';
-import { singleElementSortedArrayMeta } from '../../algorithms/binary-search/single-element-in-sorted-array.steps';
-import { cloneGraphMeta } from '../../algorithms/graphs/clone-graph.steps';
-import { courseScheduleMeta } from '../../algorithms/graphs/course-schedule.steps';
-import { courseScheduleIIMeta } from '../../algorithms/graphs/course-schedule-ii.steps';
-import { pacificAtlanticWaterFlowMeta } from '../../algorithms/graphs/pacific-atlantic-water-flow.steps';
-import { floodFillMeta } from '../../algorithms/graphs/flood-fill.steps';
-import { surroundedRegionsMeta } from '../../algorithms/graphs/surrounded-regions.steps';
-import { numberOfConnectedComponentsMeta } from '../../algorithms/graphs/number-of-connected-components.steps';
-import { graphValidTreeMeta } from '../../algorithms/graphs/graph-valid-tree.steps';
-import { redundantConnectionMeta } from '../../algorithms/graphs/redundant-connection.steps';
-import { validPalindromeIIIMeta } from '../../algorithms/dynamic-programming/valid-palindrome-iii.steps';
-import { removeElementMeta } from '../../algorithms/arrays-hash/remove-element.steps';
-import { concatenationOfArrayMeta } from '../../algorithms/arrays-hash/concatenation-of-array.steps';
-import { mergeStringsAlternatelyMeta } from '../../algorithms/two-pointers/merge-strings-alternately.steps';
-import { bestTimeBuySellStockIiMeta } from '../../algorithms/arrays-hash/best-time-buy-sell-stock-ii.steps';
-import { capacityToShipPackagesMeta } from '../../algorithms/binary-search/capacity-to-ship-packages.steps';
-import { validSudokuMeta } from '../../algorithms/arrays-hash/valid-sudoku.steps';
-import { sortAnArrayMeta } from '../../algorithms/arrays-hash/sort-an-array.steps';
-import { successfulPairsSpellsPotionsMeta } from '../../algorithms/binary-search/successful-pairs-spells-potions.steps';
-import { findFirstAndLastPositionMeta } from '../../algorithms/binary-search/find-first-and-last-position.steps';
-import { magneticForceBetweenTwoBallsMeta } from '../../algorithms/binary-search/magnetic-force-between-two-balls.steps';
-import { invertBinaryTreeMeta } from '../../algorithms/trees/invert-binary-tree.steps';
-import { maximumDepthBinaryTreeMeta } from '../../algorithms/trees/maximum-depth-binary-tree.steps';
-import { diameterOfBinaryTreeMeta } from '../../algorithms/trees/diameter-of-binary-tree.steps';
-import { balancedBinaryTreeMeta } from '../../algorithms/trees/balanced-binary-tree.steps';
-import { sameTreeMeta } from '../../algorithms/trees/same-tree.steps';
-import { subtreeOfAnotherTreeMeta } from '../../algorithms/trees/subtree-of-another-tree.steps';
-import { binaryTreeLevelOrderTraversalMeta } from '../../algorithms/trees/binary-tree-level-order-traversal.steps';
-import { lowestCommonAncestorBstMeta } from '../../algorithms/trees/lowest-common-ancestor-bst.steps';
-import { validateBstMeta } from '../../algorithms/trees/validate-bst.steps';
-import { countGoodNodesMeta } from '../../algorithms/trees/count-good-nodes.steps';
-import { binaryTreeRightSideViewMeta } from '../../algorithms/trees/binary-tree-right-side-view.steps';
-import { lastStoneWeightMeta } from '../../algorithms/heap/last-stone-weight.steps';
-import { kClosestPointsMeta } from '../../algorithms/heap/k-closest-points-to-origin.steps';
-import { kthLargestInStreamMeta } from '../../algorithms/heap/kth-largest-element-in-stream.steps';
-import { designTwitterMeta } from '../../algorithms/heap/design-twitter.steps';
-import { subarraySumEqualsKMeta } from '../../algorithms/arrays-hash/subarray-sum-equals-k.steps';
-import { encodeAndDecodeStringsMeta } from '../../algorithms/arrays-hash/encode-and-decode-strings.steps';
-import { happyNumberMeta } from '../../algorithms/arrays-hash/happy-number.steps';
-import { addTwoNumbersMeta } from '../../algorithms/linked-list/add-two-numbers.steps';
-import { nextGreaterElementIMeta } from '../../algorithms/stack/next-greater-element-i.steps';
-import { implementTrieMeta } from '../../algorithms/trie/implement-trie.steps';
-import { onlineStockSpanMeta } from '../../algorithms/stack/online-stock-span.steps';
-import { copyListWithRandomPointerMeta } from '../../algorithms/linked-list/copy-list-with-random-pointer.steps';
-import { constructTreePreorderInorderMeta } from '../../algorithms/trees/construct-tree-preorder-inorder.steps';
-import { taskSchedulerMeta } from '../../algorithms/greedy/task-scheduler.steps';
-import { jumpGameIiMeta } from '../../algorithms/greedy/jump-game-ii.steps';
-import { jumpGameMeta } from '../../algorithms/greedy/jump-game.steps';
-import { mergeIntervalsMeta } from '../../algorithms/greedy/merge-intervals.steps';
-import { insertIntervalMeta } from '../../algorithms/greedy/insert-interval.steps';
-import { gasStationMeta } from '../../algorithms/greedy/gas-station.steps';
-import { nonOverlappingIntervalsMeta } from '../../algorithms/greedy/non-overlapping-intervals.steps';
-import { partitionLabelsMeta } from '../../algorithms/greedy/partition-labels.steps';
-import { cheapestFlightsWithinKStopsMeta } from '../../algorithms/graphs/cheapest-flights-within-k-stops.steps';
-import { lruCacheMeta } from '../../algorithms/linked-list/lru-cache.steps';
-import { nextGreaterElementIIMeta } from '../../algorithms/stack/next-greater-element-ii.steps';
-import { largestRectangleInHistogramMeta } from '../../algorithms/stack/largest-rectangle-in-histogram.steps';
-import { evaluateReversePolishNotationMeta } from '../../algorithms/stack/evaluate-reverse-polish-notation.steps';
-import { minStackMeta } from '../../algorithms/stack/min-stack.steps';
-import { slidingWindowMaximumMeta } from '../../algorithms/stack/sliding-window-maximum.steps';
-import { dailyTemperaturesMeta } from '../../algorithms/stack/daily-temperatures.steps';
-import { carFleetMeta } from '../../algorithms/stack/car-fleet.steps';
-import { binaryTreeMaximumPathSumMeta } from '../../algorithms/trees/binary-tree-maximum-path-sum.steps';
-import { networkDelayTimeMeta } from '../../algorithms/graphs/network-delay-time.steps';
-import { designAddAndSearchWordsMeta } from '../../algorithms/trie/design-add-and-search-words.steps';
-import { replaceWordsMeta } from '../../algorithms/trie/replace-words.steps';
-import { minCostConnectAllPointsMeta } from '../../algorithms/graphs/min-cost-connect-all-points.steps';
-import { wordLadderMeta } from '../../algorithms/graphs/word-ladder.steps';
-import { alienDictionaryMeta } from '../../algorithms/graphs/alien-dictionary.steps';
-import { reconstructItineraryMeta } from '../../algorithms/graphs/reconstruct-itinerary.steps';
-import { accountsMergeMeta } from '../../algorithms/graphs/accounts-merge.steps';
-import { swimInRisingWaterMeta } from '../../algorithms/graphs/swim-in-rising-water.steps';
-import { findTheCityMeta } from '../../algorithms/graphs/find-the-city.steps';
-import { courseScheduleIvMeta } from '../../algorithms/graphs/course-schedule-iv.steps';
-import { validArrangementOfPairsMeta } from '../../algorithms/graphs/valid-arrangement-of-pairs.steps';
-import { generateParenthesesMeta } from '../../algorithms/backtracking/generate-parentheses.steps';
-import { subsetsMeta } from '../../algorithms/backtracking/subsets.steps';
+import { CATEGORY_LABELS, Category } from '../models/algorithm.model';
+import { ALGORITHM_INDEX, AlgorithmIndexEntry, loadAllAlgorithms } from './algorithms.index';
 
-export const ALL_ALGORITHMS: AlgorithmMeta[] = [
-  // ── Arrays & Hash ─────────────────────────────────────────────────────────
-  twoSumMeta,
-  plusOneMeta,
-  removeElementMeta,
-  containsDuplicateMeta,
-  validAnagramMeta,
-  concatenationOfArrayMeta,
-  majorityElementMeta,
-  rotateArrayMeta,
-  longestCommonPrefixMeta,
-  majorityElementIIMeta,
-  bestTimeBuySellStockIiMeta,
-  productOfArrayExceptSelfMeta,
-  topKFrequentElementsMeta,
-  groupAnagramsMeta,
-  sortColorsMeta,
-  validSudokuMeta,
-  sortAnArrayMeta,
-  longestConsecutiveSequenceMeta,
-  subarraySumEqualsKMeta,
-  encodeAndDecodeStringsMeta,
-  containerWithMostWaterMeta,
-  happyNumberMeta,
+export { ALGORITHM_INDEX, loadAllAlgorithms };
+export type { AlgorithmIndexEntry };
 
-  // ── Two Pointers ──────────────────────────────────────────────────────────
-  mergeStringsAlternatelyMeta,
-  moveZerosMeta,
-  reverseStringMeta,
-  validPalindromeMeta,
-  removeDuplicatesSortedArrayMeta,
-  mergeSortedArrayMeta,
-  twoSumIIMeta,
-  validPalindromeIIMeta,
-  removeDuplicatesSortedArrayIIMeta,
-  threeSumMeta,
-  trappingRainWaterMeta,
-  fourSumMeta,
+/** Entries grouped by category, in index order; built in one pass over the index. */
+export const ALGORITHMS_BY_CATEGORY: Record<Category, readonly AlgorithmIndexEntry[]> =
+  ALGORITHM_INDEX.reduce(
+    (groups, entry) => ({ ...groups, [entry.category]: [...groups[entry.category], entry] }),
+    emptyCategoryGroups(),
+  );
 
-  // ── Sliding Window ────────────────────────────────────────────────────────
-  bestTimeBuySellMeta,
-  containsDuplicateIIMeta,
-  permutationInStringMeta,
-  longestRepeatingCharReplacementMeta,
-  longestSubstringWithoutRepeatingCharactersMeta,
-
-  // ── Binary Search ─────────────────────────────────────────────────────────
-  binarySearchMeta,
-  findMinimumInRotatedSortedArrayMeta,
-  searchA2DMatrixMeta,
-  searchInRotatedSortedArrayMeta,
-  findPeakElementMeta,
-  singleElementSortedArrayMeta,
-  kokoEatingBananasMeta,
-  capacityToShipPackagesMeta,
-  successfulPairsSpellsPotionsMeta,
-  findFirstAndLastPositionMeta,
-  magneticForceBetweenTwoBallsMeta,
-
-  // ── Linked List ───────────────────────────────────────────────────────────
-  reverseLinkedListMeta,
-  linkedListCycleMeta,
-  mergeTwoSortedListsMeta,
-  removeNthFromEndMeta,
-  reorderListMeta,
-  addTwoNumbersMeta,
-  copyListWithRandomPointerMeta,
-  lruCacheMeta,
-
-  // ── Trees ─────────────────────────────────────────────────────────────────
-  invertBinaryTreeMeta,
-  maximumDepthBinaryTreeMeta,
-  diameterOfBinaryTreeMeta,
-  balancedBinaryTreeMeta,
-  sameTreeMeta,
-  subtreeOfAnotherTreeMeta,
-  binaryTreeLevelOrderTraversalMeta,
-  lowestCommonAncestorBstMeta,
-  validateBstMeta,
-  countGoodNodesMeta,
-  binaryTreeRightSideViewMeta,
-  constructTreePreorderInorderMeta,
-  binaryTreeMaximumPathSumMeta,
-
-  // ── Graphs ────────────────────────────────────────────────────────────────
-  numberOfIslandsMeta,
-  maxAreaOfIslandMeta,
-  floodFillMeta,
-  cloneGraphMeta,
-  rottingOrangesMeta,
-  courseScheduleMeta,
-  courseScheduleIIMeta,
-  pacificAtlanticWaterFlowMeta,
-  surroundedRegionsMeta,
-  numberOfConnectedComponentsMeta,
-  graphValidTreeMeta,
-  redundantConnectionMeta,
-  cheapestFlightsWithinKStopsMeta,
-  networkDelayTimeMeta,
-  minCostConnectAllPointsMeta,
-  wordLadderMeta,
-  alienDictionaryMeta,
-  reconstructItineraryMeta,
-  accountsMergeMeta,
-  swimInRisingWaterMeta,
-  findTheCityMeta,
-  courseScheduleIvMeta,
-  validArrangementOfPairsMeta,
-
-  // ── Stack ─────────────────────────────────────────────────────────────────
-  validParenthesesMeta,
-  nextGreaterElementIMeta,
-  onlineStockSpanMeta,
-  nextGreaterElementIIMeta,
-  largestRectangleInHistogramMeta,
-  evaluateReversePolishNotationMeta,
-  minStackMeta,
-  slidingWindowMaximumMeta,
-  dailyTemperaturesMeta,
-  carFleetMeta,
-
-  // ── Greedy ────────────────────────────────────────────────────────────────
-  maximumSubarrayMeta,
-  taskSchedulerMeta,
-  jumpGameIiMeta,
-  jumpGameMeta,
-  mergeIntervalsMeta,
-  insertIntervalMeta,
-  gasStationMeta,
-  nonOverlappingIntervalsMeta,
-  partitionLabelsMeta,
-
-  // ── Dynamic Programming ───────────────────────────────────────────────────
-  validPalindromeIIIMeta,
-
-  // ── Heap / Priority Queue ─────────────────────────────────────────────────
-  lastStoneWeightMeta,
-  kthLargestInStreamMeta,
-  kClosestPointsMeta,
-  designTwitterMeta,
-
-  // ── Trie / Prefix Tree ────────────────────────────────────────────────────
-  implementTrieMeta,
-  designAddAndSearchWordsMeta,
-  replaceWordsMeta,
-
-  // ── Backtracking ──────────────────────────────────────────────────────────
-  generateParenthesesMeta,
-  subsetsMeta,
-];
-
-export const ALGORITHMS_BY_CATEGORY: Record<Category, AlgorithmMeta[]> = {
-  'arrays-hash': ALL_ALGORITHMS.filter((a) => a.category === 'arrays-hash'),
-  'two-pointers': ALL_ALGORITHMS.filter((a) => a.category === 'two-pointers'),
-  'sliding-window': ALL_ALGORITHMS.filter((a) => a.category === 'sliding-window'),
-  'binary-search': ALL_ALGORITHMS.filter((a) => a.category === 'binary-search'),
-  'linked-list': ALL_ALGORITHMS.filter((a) => a.category === 'linked-list'),
-  'trees': ALL_ALGORITHMS.filter((a) => a.category === 'trees'),
-  'graphs': ALL_ALGORITHMS.filter((a) => a.category === 'graphs'),
-  'stack': ALL_ALGORITHMS.filter((a) => a.category === 'stack'),
-  'greedy': ALL_ALGORITHMS.filter((a) => a.category === 'greedy'),
-  'heap': ALL_ALGORITHMS.filter((a) => a.category === 'heap'),
-  'trie': ALL_ALGORITHMS.filter((a) => a.category === 'trie'),
-  'dynamic-programming': ALL_ALGORITHMS.filter((a) => a.category === 'dynamic-programming'),
-  'backtracking': ALL_ALGORITHMS.filter((a) => a.category === 'backtracking'),
-};
-
-// Memoized: generateSteps() builds the full step array, so list views must not
-// re-run it on every change-detection pass.
-const visualizationCache = new Map<string, boolean>();
-
-export function hasVisualization(algorithm: AlgorithmMeta): boolean {
-  const cached = visualizationCache.get(algorithm.id);
-  if (cached !== undefined) return cached;
-  const result = algorithm.solutions.some((s) => s.generateSteps().length > 0);
-  visualizationCache.set(algorithm.id, result);
-  return result;
+function emptyCategoryGroups(): Record<Category, readonly AlgorithmIndexEntry[]> {
+  const categories = Object.keys(CATEGORY_LABELS) as Category[];
+  const entries = categories.map((category): [Category, readonly AlgorithmIndexEntry[]] => [
+    category,
+    [],
+  ]);
+  return Object.fromEntries(entries) as Record<Category, readonly AlgorithmIndexEntry[]>;
 }
 
-export function countVisualized(algorithms: AlgorithmMeta[]): number {
-  return algorithms.filter(hasVisualization).length;
+export function countVisualized(entries: readonly AlgorithmIndexEntry[]): number {
+  return entries.filter((entry) => entry.hasVisualization).length;
 }
 
-export function findAlgorithm(category: Category, id: string): AlgorithmMeta | undefined {
-  return ALGORITHMS_BY_CATEGORY[category]?.find((a) => a.id === id);
+export function findAlgorithm(category: Category, id: string): AlgorithmIndexEntry | undefined {
+  return ALGORITHMS_BY_CATEGORY[category]?.find((entry) => entry.id === id);
+}
+
+export function findByNumber(lcNumber: number): AlgorithmIndexEntry | undefined {
+  return ALGORITHM_INDEX.find((entry) => entry.lcNumber === lcNumber);
 }
 
 export function getCategoryNeighbors(
   category: Category,
-  id: string
-): { prev: AlgorithmMeta | null; next: AlgorithmMeta | null } {
+  id: string,
+): { prev: AlgorithmIndexEntry | null; next: AlgorithmIndexEntry | null } {
   const list = ALGORITHMS_BY_CATEGORY[category] ?? [];
-  const idx = list.findIndex((a) => a.id === id);
+  const idx = list.findIndex((entry) => entry.id === id);
   return {
     prev: idx > 0 ? list[idx - 1] : null,
     next: idx < list.length - 1 ? list[idx + 1] : null,

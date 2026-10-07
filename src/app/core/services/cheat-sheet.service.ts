@@ -173,7 +173,7 @@ export class CheatSheetService {
     return this.data()?.techniques.find((t) => t.id === id);
   }
 
-  /** Resolves a `keyProblems` entry to this site's own visualizer route when `ALL_ALGORITHMS`
+  /** Resolves a `keyProblems` entry to this site's own visualizer route when `ALGORITHM_INDEX`
    *  has that LeetCode number, else to a best-effort LeetCode URL derived from the title. */
   resolveProblemLink(lcNumber: number, title: string): ProblemLink {
     const route = vizRouteFor(lcNumber);

@@ -11,7 +11,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:groundedness": "vitest run --config vitest.groundedness.config.ts",
-    "check:contract-mirror": "node scripts/check-contract-mirror.mjs"
+    "check:contract-mirror": "node scripts/check-contract-mirror.mjs",
+    "gen:registry": "node scripts/gen-registry.mjs",
+    "check:registry": "node scripts/gen-registry.mjs --check"
   },
   "private": true,
   "dependencies": {

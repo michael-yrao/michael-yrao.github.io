@@ -54,13 +54,15 @@
           >#{{ current.lcNumber }} · {{ current.title }} →</a>
         }
       </div>
-      <p class="ps-scenario__desc">{{ current.description }}</p>
-      @if (current.constraints.length) {
-        <ul class="ps-scenario__constraints">
-          @for (c of current.constraints; track c) {
-            <li>{{ c }}</li>
-          }
-        </ul>
+      @if (loaded(); as meta) {
+        <p class="ps-scenario__desc">{{ meta.description }}</p>
+        @if (meta.constraints.length) {
+          <ul class="ps-scenario__constraints">
+            @for (c of meta.constraints; track c) {
+              <li>{{ c }}</li>
+            }
+          </ul>
+        }
       }
     </section>
     <!-- ── Technique chips ─────────────────────────────────────── -->

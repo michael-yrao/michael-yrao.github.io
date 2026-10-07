@@ -36,6 +36,7 @@ export class SolutionPageComponent {
   readonly contractMessage = this.view.contractMessage;
   readonly number = this.view.number;
   readonly problem = this.view.problem;
+  readonly entry = this.view.entry;
   readonly meta = this.view.meta;
   readonly hasProblem = this.view.hasProblem;
   readonly title = this.view.title;

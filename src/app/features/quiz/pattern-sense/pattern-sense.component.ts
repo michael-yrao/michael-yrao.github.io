@@ -1,5 +1,6 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
-import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
+import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
+import { ALGORITHM_INDEX, AlgorithmIndexEntry } from '../../../core/data/algorithms.data';
+import { loadMetaOrNull } from '../../../core/data/load-meta';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { AlgorithmMeta, Category, CATEGORY_LABELS } from '../../../core/models/algorithm.model';
 import { RouterLink } from '@angular/router';
@@ -64,9 +65,11 @@ export class PatternSenseComponent {
     label: CATEGORY_LABELS[id],
   }));
 
-  deck: AlgorithmMeta[] = [];
+  deck: readonly AlgorithmIndexEntry[] = [];
   roundIndex = 0;
-  current: AlgorithmMeta | null = null;
+  current: AlgorithmIndexEntry | null = null;
+  /** The dealt card's full algorithm (description, constraints); null until its chunk loads. */
+  readonly loaded = signal<AlgorithmMeta | null>(null);
 
   selected: Category | null = null;
   revealed = false;
@@ -104,15 +107,15 @@ export class PatternSenseComponent {
   }
 
   startRun(): void {
-    this.deck = this.shuffle([...ALL_ALGORITHMS]);
+    this.deck = this.shuffle([...ALGORITHM_INDEX]);
     this.roundIndex = 0;
     this.streak = 0;
     this.correctCount = 0;
     this.answeredCount = 0;
     this.finished = false;
-    this.current = this.deck[0] ?? null;
     this.selected = null;
     this.revealed = false;
+    this.deal();
   }
 
   choose(category: Category): void {
@@ -140,9 +143,21 @@ export class PatternSenseComponent {
       return;
     }
     this.roundIndex++;
-    this.current = this.deck[this.roundIndex];
     this.selected = null;
     this.revealed = false;
+    this.deal();
+  }
+
+  /** Makes the deck's card at `roundIndex` current, loads its meta and prefetches the next
+   *  card's (loads are memoized, so the next deal finds it ready). */
+  private deal(): void {
+    const dealt = this.deck[this.roundIndex] ?? null;
+    this.current = dealt;
+    this.loaded.set(null);
+    void loadMetaOrNull(dealt ?? undefined).then((meta) => {
+      if (this.current === dealt) this.loaded.set(meta);
+    });
+    void loadMetaOrNull(this.deck[this.roundIndex + 1]);
   }
 
   private shuffle<T>(arr: T[]): T[] {

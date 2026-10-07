@@ -2,7 +2,7 @@ import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
+import { ALGORITHM_INDEX } from '../../../core/data/algorithms.data';
 import { CATEGORY_LABELS, Category, Difficulty } from '../../../core/models/algorithm.model';
 import { PRACTICE_SECTIONS } from '../../../core/data/practice-sections';
 import { PracticeService } from '../../../core/services/practice.service';
@@ -56,7 +56,7 @@ export class PracticeListComponent {
   /** The static rows draw at once; the runnable marks wait for the contract to be ready. */
   private readonly catalogue = computed<readonly CatalogueEntry[]>(() => {
     const problems = this.status() === 'ready' ? (this.practice.data()?.problems ?? []) : [];
-    return buildCatalogue(ALL_ALGORITHMS, problems);
+    return buildCatalogue(ALGORITHM_INDEX, problems);
   });
 
   private readonly filters = computed<CatalogueFilters>(() => ({

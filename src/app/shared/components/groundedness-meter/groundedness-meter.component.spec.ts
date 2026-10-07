@@ -6,14 +6,14 @@ import { GroundednessMeterComponent } from './groundedness-meter.component';
 import { ShowcaseService } from '../../../core/services/showcase.service';
 import { LoadStatus } from '../../../core/services/github-file.service';
 import { ShowcaseData } from '../../../core/models/showcase.model';
-import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
+import { loadAllAlgorithms } from '../../../core/data/algorithms.data';
 import { computeGroundedness } from '../../../core/showcase/groundedness';
 
 const RATIO_TO_PERCENT = 100;
 
 /** A minimal stand-in for `ShowcaseService`: real signals (so the component's own `computed()`
  *  reacts to them) plus a spy in place of `load()`. The component is self-contained (plan
- *  B7 review) — it injects `ShowcaseService` and derives its report from `ALL_ALGORITHMS`
+ *  B7 review) — it injects `ShowcaseService` and derives its report from the loaded algorithms
  *  itself, so the fixture provides the service, not `status`/`report` inputs. */
 function makeShowcaseStub(overrides: { status?: LoadStatus; data?: ShowcaseData | null } = {}) {
   return {
@@ -56,20 +56,32 @@ describe('GroundednessMeterComponent', () => {
     expect(fixture.nativeElement.textContent.trim()).toBe('');
   });
 
-  it('renders nothing when ready but no data is available yet', () => {
+  it('shows the loading indicator when ready but no data is available yet', () => {
     const fixture = createFixture(makeShowcaseStub({ status: 'ready', data: null }));
-    expect(fixture.nativeElement.textContent.trim()).toBe('');
+    expect(fixture.nativeElement.querySelector('[role="status"]')).toBeTruthy();
   });
 
-  it('renders the sitewide grounded/total and a rounded percent once ready', () => {
-    // An empty contract — every real ALL_ALGORITHMS variant that already carries a `variant`
+  it('renders without throwing, and shows the loading indicator, while the algorithms are still loading', () => {
+    const emptyData: ShowcaseData = { schemaVersion: 1, generatedAt: '2026-09-22', entries: [] };
+
+    // Read before the first await: the loader's promise cannot have settled yet.
+    const fixture = createFixture(makeShowcaseStub({ status: 'ready', data: emptyData }));
+
+    expect(fixture.nativeElement.querySelector('[role="status"]')).toBeTruthy();
+  });
+
+  it('renders the sitewide grounded/total and a rounded percent once ready', async () => {
+    // An empty contract — every real algorithm variant that already carries a `variant`
     // id (migration is ongoing elsewhere in this repo) resolves to "no showcase entry", never
     // "grounded". Asserting against `computeGroundedness` run on the SAME data, rather than
     // hardcoded numbers, keeps this test correct regardless of how much has migrated.
     const emptyData: ShowcaseData = { schemaVersion: 1, generatedAt: '2026-09-22', entries: [] };
+    const algorithms = await loadAllAlgorithms();
     const fixture = createFixture(makeShowcaseStub({ status: 'ready', data: emptyData }));
+    await fixture.whenStable();
+    fixture.detectChanges();
 
-    const expected = computeGroundedness(ALL_ALGORITHMS, emptyData);
+    const expected = computeGroundedness(algorithms, emptyData);
     const text = fixture.nativeElement.textContent;
     expect(text).toContain(String(expected.grounded));
     expect(text).toContain(String(expected.total));

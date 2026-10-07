@@ -21,7 +21,8 @@ const CONTRACT_ONLY_PROBLEM: PracticeProblem = {
   cases: [{ args: [[1, 2]], expected: [[1], [2]], example: true }],
 };
 
-function setUp(number: string, problems: readonly PracticeProblem[]) {
+/** Settles the page after the algorithm's chunk has loaded (the walkthrough needs the meta). */
+async function setUp(number: string, problems: readonly PracticeProblem[]) {
   const data: PracticeData = { schemaVersion: 1, generatedAt: '2026-10-01', problems };
   const params = convertToParamMap({ number });
   const query = convertToParamMap({});
@@ -62,6 +63,8 @@ function setUp(number: string, problems: readonly PracticeProblem[]) {
   });
   const fixture = TestBed.createComponent(SolutionPageComponent);
   fixture.detectChanges();
+  await fixture.whenStable();
+  fixture.detectChanges();
   return fixture;
 }
 
@@ -82,8 +85,8 @@ describe('SolutionPageComponent', () => {
 
   it.each(PAGES)(
     '$name shows its description, and the variant bar and visualizer only when it has a walkthrough; never an editor',
-    ({ number, problems, hasWalkthrough }) => {
-      const root: HTMLElement = setUp(number, problems).nativeElement;
+    async ({ number, problems, hasWalkthrough }) => {
+      const root: HTMLElement = (await setUp(number, problems)).nativeElement;
 
       expect(has(root, 'app-practice-description')).toBe(true);
       expect(has(root, 'app-variant-bar')).toBe(hasWalkthrough);
@@ -99,8 +102,8 @@ describe('SolutionPageComponent', () => {
     },
   );
 
-  it('pressing Code shows the code panel beside the visualizer, and pressing Visualizer hides it', () => {
-    const fixture = setUp('1', []);
+  it('pressing Code shows the code panel beside the visualizer, and pressing Visualizer hides it', async () => {
+    const fixture = await setUp('1', []);
     const root: HTMLElement = fixture.nativeElement;
     const press = (label: string): void => {
       Array.from(root.querySelectorAll('button'))

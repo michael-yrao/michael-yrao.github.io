@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked, ViewChild } from '@angular/core';
 
-import { ALL_ALGORITHMS } from '../../../core/data/algorithms.data';
+import { findByNumber } from '../../../core/data/algorithms.data';
+import { loadMetaOrNull } from '../../../core/data/load-meta';
 import type { CompareMode, PracticeCase } from '../../../core/models/practice.model';
 import { isPracticeCase } from '../../../core/practice/practice-validation';
 import { PracticeService } from '../../../core/services/practice.service';
@@ -176,12 +177,13 @@ export class ProblemEditorComponent {
     return this.fields().invalid.includes(fieldKey(index, field));
   }
 
-  protected onImport(event: Event): void {
+  /** The full algorithm loads here, at the moment of import, never at render. */
+  protected async onImport(event: Event): Promise<void> {
     const select = event.target as HTMLSelectElement;
     const site = this.importable().find((candidate) => candidate.number === Number(select.value));
     select.value = '';
     if (!site) return;
-    const meta = ALL_ALGORITHMS.find((algorithm) => algorithm.lcNumber === site.number) ?? null;
+    const meta = await loadMetaOrNull(findByNumber(site.number));
     this.publish(importProblem(site, meta));
   }
 

@@ -1,15 +1,15 @@
-import { AlgorithmMeta, Category, Difficulty } from '../../core/models/algorithm.model';
+import type { AlgorithmIndexEntry } from '../../core/data/algorithms.data';
+import { Category, Difficulty } from '../../core/models/algorithm.model';
 import { PracticeProblem } from '../../core/models/practice.model';
 import { CatalogueEntry, buildCatalogue, filterCatalogue } from './practice-catalogue';
 
-// hasVisualization memoizes by id, so every fake algorithm gets its own id.
 function algorithm(
   lcNumber: number,
   title: string,
   difficulty: Difficulty,
   category: Category,
   isVisualized: boolean,
-): AlgorithmMeta {
+): AlgorithmIndexEntry {
   return {
     id: `fake-${lcNumber}`,
     lcNumber,
@@ -17,8 +17,8 @@ function algorithm(
     difficulty,
     category,
     tags: ['Tag A', 'Tag B', 'Tag C'],
-    solutions: [{ generateSteps: () => (isVisualized ? [{}] : []) }],
-  } as unknown as AlgorithmMeta;
+    hasVisualization: isVisualized,
+  } as unknown as AlgorithmIndexEntry;
 }
 
 function problem(number: number, title: string): PracticeProblem {
@@ -41,7 +41,7 @@ function entry(overrides: Partial<CatalogueEntry> & Pick<CatalogueEntry, 'number
 describe('buildCatalogue', () => {
   const cases: ReadonlyArray<{
     name: string;
-    algorithms: AlgorithmMeta[];
+    algorithms: AlgorithmIndexEntry[];
     problems: PracticeProblem[];
     expected: CatalogueEntry[];
   }> = [
