@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { PracticeService } from './practice.service';
 import { RepoRef } from './github-file.service';
@@ -23,12 +23,13 @@ function makeProblem(overrides: Record<string, unknown> = {}): Record<string, un
 }
 
 describe('PracticeService', () => {
-  function setup(payload: unknown) {
+  function setup(payload: unknown | ((url: string) => unknown)) {
     const urls: string[] = [];
     const http = {
       get: (url: string) => {
+        if (url.includes('manifest.json')) return throwError(() => ({ status: 404 })); // unrecorded
         urls.push(url);
-        return of(payload);
+        return of(typeof payload === 'function' ? payload(url) : payload);
       },
     };
     TestBed.configureTestingModule({
@@ -63,5 +64,23 @@ describe('PracticeService', () => {
     ok.service.load(REF_B);
     expect(ok.urls.length).toBe(2);
     expect(ok.urls[1]).toContain('/repos/b/cse-progress/');
+  });
+
+  it('loadIndex(B) after load(A) leaves the full-load state alone, so load(B) still fetches B', () => {
+    const { service, urls } = setup((url: string) =>
+      url.includes('practice-index.json')
+        ? { schemaVersion: 1, generatedAt: 'x', numbers: [90] }
+        : { schemaVersion: 1, generatedAt: 'x', problems: [makeProblem()] },
+    );
+    service.load(REF_A);
+    expect(service.status()).toBe('ready');
+
+    service.loadIndex(REF_B);
+    expect(service.indexNumbers()).toEqual(new Set([90]));
+    expect(service.ref()).toEqual(REF_A);
+
+    service.load(REF_B);
+    expect(urls[urls.length - 1]).toContain('/repos/b/cse-progress/');
+    expect(urls[urls.length - 1]).toContain('dashboard/practice.json');
   });
 });

@@ -1,11 +1,14 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { catchError, of } from 'rxjs';
+import { catchError, map, of } from 'rxjs';
 
+import { contractVersionProblem } from '../contracts/contract-version';
 import { PRACTICE_SCHEMA_VERSION, PracticeData, PracticeProblem } from '../models/practice.model';
 import { isPracticeProblem } from '../practice/practice-validation';
 import { GitHubFileService, LoadStatus, RepoRef, httpErrorMessage, sameRef } from './github-file.service';
 
 const PRACTICE_FILE = 'dashboard/practice.json';
+const PRACTICE_INDEX_FILE = 'dashboard/practice-index.json';
+const PRACTICE_INDEX_WHAT = 'practice index';
 const PRACTICE_WHAT = 'practice';
 const MALFORMED_CONTRACT_MESSAGE =
   'The practice contract is invalid — is dashboard/practice.json malformed?';
@@ -25,6 +28,15 @@ export class PracticeService {
   readonly error = signal<string | null>(null);
   readonly data = signal<PracticeData | null>(null);
 
+  private readonly indexNumbersState = signal<ReadonlySet<number> | null>(null);
+  /** The practice-problem numbers from the index; null until loaded, or when the index failed
+   *  and the full contract was loaded instead. */
+  readonly indexNumbers = this.indexNumbersState.asReadonly();
+
+  private readonly indexRefState = signal<RepoRef | null>(null);
+  /** The ref of the current/last `loadIndex`; independent of `ref`. */
+  readonly indexRef = this.indexRefState.asReadonly();
+
   private readonly currentRef = signal<RepoRef | null>(null);
   /** The ref of the current/last load. */
   readonly ref = this.currentRef.asReadonly();
@@ -37,6 +49,8 @@ export class PracticeService {
 
   // Monotonic request id: a slow earlier fetch must not overwrite a later one.
   private seq = 0;
+  // Same guard for the index, kept separate so it never disturbs a full load's state.
+  private indexSeq = 0;
 
   private readonly github = inject(GitHubFileService);
 
@@ -73,6 +87,41 @@ export class PracticeService {
       });
   }
 
+  /** Fetches only the list of practice-problem numbers (`dashboard/practice-index.json`). On ANY
+   *  failure (404, other error, invalid body) falls back to the full `load(ref)` and leaves
+   *  `indexNumbers` null. A successful index leaves `status` untouched, so a later `load()` of the
+   *  same ref (the practice page) still fetches the full contract. */
+  loadIndex(ref: RepoRef): void {
+    const mine = ++this.indexSeq;
+    this.indexRefState.set(ref);
+    this.indexNumbersState.set(null);
+
+    this.github
+      .fetch$<unknown>(ref, PRACTICE_INDEX_FILE, false)
+      .pipe(
+        map((body) => this.indexNumbersOf(body)),
+        catchError(() => of(null)),
+      )
+      .subscribe((numbers) => {
+        if (mine !== this.indexSeq) return; // superseded by a newer loadIndex()
+        if (numbers === null) {
+          this.load(ref);
+          return;
+        }
+        this.indexNumbersState.set(new Set(numbers));
+      });
+  }
+
+  /** The numbers of a valid practice index, else null. */
+  private indexNumbersOf(body: unknown): readonly number[] | null {
+    if (contractVersionProblem(body, PRACTICE_SCHEMA_VERSION, PRACTICE_INDEX_WHAT) !== null) {
+      return null;
+    }
+    const numbers = (body as { numbers?: unknown }).numbers;
+    const isIntegerList = Array.isArray(numbers) && numbers.every((n) => Number.isInteger(n));
+    return isIntegerList ? (numbers as number[]) : null;
+  }
+
   problemFor(number: number): PracticeProblem | null {
     return this.problems()?.get(number) ?? null;
   }
@@ -87,10 +136,8 @@ export class PracticeService {
    *  structurally valid; else a human reason. */
   private invalidReason(result: RawPracticePayload): string | null {
     if (!result || typeof result !== 'object') return MALFORMED_CONTRACT_MESSAGE;
-    if (typeof result.schemaVersion !== 'number') return MALFORMED_CONTRACT_MESSAGE;
-    if (result.schemaVersion !== PRACTICE_SCHEMA_VERSION) {
-      return `The practice contract is schema v${result.schemaVersion}; this site speaks v${PRACTICE_SCHEMA_VERSION}. Update the site.`;
-    }
+    const versionProblem = contractVersionProblem(result, PRACTICE_SCHEMA_VERSION, PRACTICE_WHAT);
+    if (versionProblem) return versionProblem;
     if (!Array.isArray(result.problems)) return MALFORMED_CONTRACT_MESSAGE;
 
     const badIndex = result.problems.findIndex((problem) => !isPracticeProblem(problem));

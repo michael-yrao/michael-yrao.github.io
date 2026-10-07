@@ -4,16 +4,18 @@ import { of, throwError } from 'rxjs';
 
 import { ProgressService, DEFAULT_REPO, DEFAULT_BRANCH } from './progress.service';
 import { ProgressData } from '../models/progress.model';
+import { MINIMAL_SUMMARY_BODY } from '../progress/progress-summary.fixture';
 
 // A recording HttpClient stub: captures every get() and returns a valid minimal contract,
 // so we can assert the request shape (API-first, Accept header) and the refresh behaviour
 // without real network.
 function makeHttp() {
   const calls: { url: string; opts: any }[] = [];
-  const payload = { schemaVersion: 1, streak: { current: 1 }, pipeline: {}, totals: {}, problems: [], badges: [] };
+  const payload = MINIMAL_SUMMARY_BODY;
   const http = {
     calls,
     get: (url: string, opts: any) => {
+      if (url.includes('manifest.json')) return throwError(() => ({ status: 404 })); // unrecorded
       calls.push({ url, opts });
       return of(payload);
     },
@@ -182,6 +184,7 @@ function makeHttpMissingSummary() {
   const http = {
     calls,
     get: (url: string, opts: any) => {
+      if (url.includes('manifest.json')) return throwError(() => ({ status: 404 })); // unrecorded
       calls.push({ url, opts });
       if (url.includes('progress-summary.json')) {
         return throwError(() => ({ status: 404 }));
@@ -221,6 +224,7 @@ describe('ProgressService — missing progress-summary.json', () => {
     const calls: { url: string }[] = [];
     const http = {
       get: (url: string) => {
+        if (url.includes('manifest.json')) return throwError(() => ({ status: 404 })); // unrecorded
         calls.push({ url });
         return throwError(() => ({ status: 403 }));
       },
@@ -234,6 +238,21 @@ describe('ProgressService — missing progress-summary.json', () => {
 
     expect(service.status()).toBe('error');
     expect(calls.some((c) => c.url.includes('/contents/dashboard/progress.json'))).toBe(false);
+  });
+
+  it('a version-1 summary body missing totals surfaces the no-valid-data error', () => {
+    const { totals: _omitted, ...withoutTotals } = MINIMAL_SUMMARY_BODY;
+    const http = { get: () => of(withoutTotals) };
+    TestBed.configureTestingModule({
+      providers: [ProgressService, { provide: HttpClient, useValue: http }],
+    });
+    const service = TestBed.inject(ProgressService);
+
+    service.loadSummary(null);
+
+    expect(service.status()).toBe('error');
+    expect(service.data()).toBeNull();
+    expect(service.error()).toContain('has no valid progress data');
   });
 });
 

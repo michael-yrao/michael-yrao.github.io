@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Component, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
-import { Observable, of } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
 import { ProgressPageComponent, ProgressTab } from './progress-page.component';
@@ -240,7 +240,14 @@ describe('ProgressPageComponent', () => {
         // The page also loads the practice contract; keep it off the (absent) HttpClient.
         {
           provide: PracticeService,
-          useValue: { data: signal(null), ref: signal(null), load: vi.fn() },
+          useValue: {
+            data: signal(null),
+            indexNumbers: signal(null),
+            ref: signal(null),
+            indexRef: signal(null),
+            load: vi.fn(),
+            loadIndex: vi.fn(),
+          },
         },
         { provide: ActivatedRoute, useValue: makeActivatedRouteStub() },
         // A real (empty) router — RouterLink (vizRoute links) needs a working Router, not
@@ -1353,6 +1360,12 @@ describe('ProgressPageComponent', () => {
 // fails fast instead of spinning forever.
 const CALL_CAP = 5;
 const PRACTICE_FILE = 'dashboard/practice.json';
+const PRACTICE_INDEX_FILE = 'dashboard/practice-index.json';
+const MANIFEST_FILE = 'dashboard/manifest.json';
+
+/** The summary fetch under test: not the manifest, nor the practice index/contract riding along. */
+const isSummaryUrl = (url: string) =>
+  ![MANIFEST_FILE, PRACTICE_INDEX_FILE, PRACTICE_FILE].some((file) => url.includes(file));
 
 function makeCountingHttp() {
   const calls: string[] = [];
@@ -1360,6 +1373,7 @@ function makeCountingHttp() {
     calls,
     get: (url: string) => {
       calls.push(url);
+      if (url.includes(MANIFEST_FILE)) return throwError(() => ({ status: 404 }));
       if (calls.length > CALL_CAP) {
         throw new Error(
           `Effect loop regression: HttpClient.get() called ${calls.length} times for a ` +
@@ -1388,7 +1402,7 @@ describe('ProgressPageComponent — effect loop regression (real ProgressService
     fixture.detectChanges(); // constructs the effect and flushes it (synchronously, to stability)
 
     // The practice contract's own fetch is counted apart: it is not the summary under test.
-    expect(http.calls.filter((url) => !url.includes(PRACTICE_FILE)).length).toBe(1);
+    expect(http.calls.filter(isSummaryUrl).length).toBe(1);
   });
 });
 
@@ -1407,6 +1421,7 @@ function makeResolvingCountingHttp() {
     calls,
     get: (url: string) => {
       calls.push(url);
+      if (url.includes(MANIFEST_FILE)) return throwError(() => ({ status: 404 }));
       if (calls.length > CALL_CAP) {
         throw new Error(
           `Effect loop regression: HttpClient.get() called ${calls.length} times for a ` +
@@ -1437,6 +1452,37 @@ describe('ProgressPageComponent — smoke test (real ProgressService, resolving 
     expect(fixture.nativeElement.querySelectorAll('.hero').length).toBeGreaterThan(0);
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
     expect(http.calls.length).toBeLessThanOrEqual(CALL_CAP);
-    expect(http.calls.filter((url) => !url.includes(PRACTICE_FILE)).length).toBe(1);
+    expect(http.calls.filter(isSummaryUrl).length).toBe(1);
+  });
+});
+
+describe('ProgressPageComponent — practice index (real PracticeService)', () => {
+  it('takes practiceNumbers from the index and never requests dashboard/practice.json', () => {
+    const calls: string[] = [];
+    const http = {
+      get: (url: string) => {
+        calls.push(url);
+        if (url.includes(MANIFEST_FILE)) return throwError(() => ({ status: 404 }));
+        if (url.includes(PRACTICE_INDEX_FILE)) {
+          return of({ schemaVersion: 1, generatedAt: '2026-10-06', numbers: [1, 42] });
+        }
+        return of(makeSummary());
+      },
+    };
+    TestBed.configureTestingModule({
+      imports: [ProgressPageComponent],
+      providers: [
+        ProgressService,
+        { provide: HttpClient, useValue: http },
+        { provide: ActivatedRoute, useValue: makeActivatedRouteStub() },
+        provideRouter([{ path: '**', component: BlankRouteStubComponent }]),
+      ],
+    });
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    expect([...fixture.componentInstance.practiceNumbers()]).toEqual([1, 42]);
+    expect(calls.some((url) => url.includes(PRACTICE_FILE))).toBe(false);
   });
 });

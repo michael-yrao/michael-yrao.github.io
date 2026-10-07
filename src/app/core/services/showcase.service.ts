@@ -1,6 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { catchError, of } from 'rxjs';
 
+import { contractVersionProblem } from '../contracts/contract-version';
 import { ShowcaseData, ShowcaseEntry, SHOWCASE_SCHEMA_VERSION } from '../models/showcase.model';
 import { indexEntries } from '../showcase/showcase-key';
 import { isShowcaseEntry } from '../showcase/showcase-validation';
@@ -86,10 +87,8 @@ export class ShowcaseService {
    *  when even the key didn't parse) so an off-contract JSON never reaches `buildDisplay`. */
   private invalidReason(result: RawShowcasePayload): string | null {
     if (!result || typeof result !== 'object') return MALFORMED_CONTRACT_MESSAGE;
-    if (typeof result.schemaVersion !== 'number') return MALFORMED_CONTRACT_MESSAGE;
-    if (result.schemaVersion !== SHOWCASE_SCHEMA_VERSION) {
-      return `The solution code contract is schema v${result.schemaVersion}; this site speaks v${SHOWCASE_SCHEMA_VERSION}. Update the site.`;
-    }
+    const versionProblem = contractVersionProblem(result, SHOWCASE_SCHEMA_VERSION, SHOWCASE_WHAT);
+    if (versionProblem) return versionProblem;
     if (!Array.isArray(result.entries)) return MALFORMED_CONTRACT_MESSAGE;
 
     const badEntryIndex = result.entries.findIndex((entry) => !isShowcaseEntry(entry));

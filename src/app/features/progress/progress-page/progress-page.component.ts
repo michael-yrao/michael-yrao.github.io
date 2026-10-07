@@ -269,13 +269,18 @@ export class ProgressPageComponent {
 
   private readonly repoParam;
 
-  // The practice contract rides along on this page only to decide which rows get a Run link; a
-  // failed load simply leaves the set empty and surfaces nothing here.
+  // Only the practice index (the list of numbers) rides along on this page, to decide which rows
+  // get a Run link; if the index is unavailable the full contract is loaded instead, and a failed
+  // load simply leaves the set empty and surfaces nothing here.
   private readonly practice = inject(PracticeService);
   protected readonly practiceGlyph = PRACTICE_GLYPH;
-  readonly practiceNumbers = computed<ReadonlySet<number>>(
-    () => new Set(this.practice.data()?.problems.map((problem) => problem.number) ?? []),
-  );
+  readonly practiceNumbers = computed<ReadonlySet<number>>(() => {
+    const indexed = this.practice.indexNumbers();
+    if (indexed) return indexed;
+    const isThisRepo = sameRef(this.practice.ref(), this.repoRef());
+    const problems = isThisRepo ? (this.practice.data()?.problems ?? []) : [];
+    return new Set(problems.map((problem) => problem.number));
+  });
 
   // ── Inline repo picker ──────────────────────────────────────────────────────────────
   readonly repoInputValue = signal('');
@@ -314,15 +319,15 @@ export class ProgressPageComponent {
         this.progress.loadSummary(repo);
       });
     });
-    // Load the practice contract for the resolved repo. The same-ref guard holds whatever the
+    // Load the practice index for the resolved repo. The same-ref guard holds whatever the
     // status, so a 404 is not refetched in a loop (PracticeService.load itself refetches a
-    // same-ref errored load); `untracked` keeps load()'s own signal writes out of the effect.
+    // same-ref errored load); `untracked` keeps loadIndex()'s own signal writes out of the effect.
     effect(() => {
       const ref = this.repoRef();
       if (!ref) return;
       untracked(() => {
-        if (sameRef(ref, this.practice.ref())) return;
-        this.practice.load(ref);
+        if (sameRef(ref, this.practice.indexRef())) return;
+        this.practice.loadIndex(ref);
       });
     });
   }

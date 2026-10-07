@@ -54,6 +54,7 @@ function makeHttp(payload: unknown) {
   const http = {
     calls,
     get: (url: string) => {
+      if (url.includes('manifest.json')) return throwError(() => ({ status: 404 })); // unrecorded
       calls.push(url);
       return of(payload);
     },
@@ -75,6 +76,7 @@ function makeSplitHttp(repo: HttpOutcome, bundled: HttpOutcome) {
   const http = {
     calls,
     get: (url: string) => {
+      if (url.includes('manifest.json')) return throwError(() => ({ status: 404 })); // unrecorded
       calls.push(url);
       const outcome = url.startsWith('assets/') ? bundled : repo;
       return outcome.error ? throwError(() => outcome.error) : of(outcome.payload);

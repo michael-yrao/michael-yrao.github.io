@@ -10,6 +10,9 @@ import {
   TrophyGraduateSummary,
   PROGRESS_SCHEMA_VERSION,
 } from '../models/progress.model';
+import { contractVersionProblem } from '../contracts/contract-version';
+import { isRecord } from '../contracts/is-record';
+import { isProgressFull, isProgressSummary } from '../progress/progress-validation';
 import {
   GitHubFileService,
   RepoRef,
@@ -208,7 +211,7 @@ export class ProgressService {
       this.error.set(null);
     }
 
-    this.fetchFile$<ProgressSummary>(ref, SUMMARY_FILE, LEGACY_SUMMARY_FILE, force)
+    this.fetchFile$<unknown>(ref, SUMMARY_FILE, LEGACY_SUMMARY_FILE, force)
       .pipe(
         catchError((err) => {
           // A genuine 404 on the summary in BOTH locations (not "the whole repo is
@@ -217,8 +220,10 @@ export class ProgressService {
           // landing still works. Any other failure (403 rate-limit, network, etc.) keeps
           // the normal error path.
           if (err?.status !== NOT_FOUND_STATUS) return of(this.toError(err));
-          return this.fetchFile$<ProgressData>(ref, DETAILS_FILE, LEGACY_DETAILS_FILE, force).pipe(
-            map((full) => summaryFromFull(full)),
+          // A body that isn't a full contract passes through untouched so invalidReason()
+          // below names the right problem (version, or no valid data).
+          return this.fetchFile$<unknown>(ref, DETAILS_FILE, LEGACY_DETAILS_FILE, force).pipe(
+            map((full) => (isProgressFull(full) ? summaryFromFull(full) : full)),
             catchError((fallbackErr) => of(this.toError(fallbackErr))),
           );
         }),
@@ -249,7 +254,7 @@ export class ProgressService {
           }
           return;
         }
-        this.data.set(result);
+        this.data.set(result as ProgressSummary);
         this.status.set('ready');
       });
   }
@@ -341,14 +346,12 @@ export class ProgressService {
   }
 
   /** null when the payload is a usable, compatible contract; else a human reason. */
-  private invalidReason(result: { schemaVersion?: number } | null, ref: RepoRef): string | null {
-    if (!result || typeof result.schemaVersion !== 'number') {
-      return `${ref.owner}/${ref.repo} has no valid progress data — is it a cse-coach repo?`;
-    }
-    if (result.schemaVersion > PROGRESS_SCHEMA_VERSION) {
-      return `That repo's progress data is schema v${result.schemaVersion}; this viewer speaks v${PROGRESS_SCHEMA_VERSION}. Update the site.`;
-    }
-    return null;
+  private invalidReason(result: unknown, ref: RepoRef): string | null {
+    const noValidData = `${ref.owner}/${ref.repo} has no valid progress data — is it a cse-coach repo?`;
+    if (!isRecord(result)) return noValidData;
+    const versionProblem = contractVersionProblem(result, PROGRESS_SCHEMA_VERSION, PROGRESS_WHAT);
+    if (versionProblem) return versionProblem;
+    return isProgressSummary(result) ? null : noValidData;
   }
 
   /** Turn an HttpErrorResponse into a human message (rate-limit / missing / offline). Text

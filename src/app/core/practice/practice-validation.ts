@@ -1,3 +1,4 @@
+import { isRecord } from '../contracts/is-record';
 import { Codec, CompareMode, EntryKind, PracticeCase, PracticeProblem } from '../models/practice.model';
 
 export const COMPARE_MODES: readonly CompareMode[] = ['exact', 'unordered', 'unordered-nested'];
@@ -13,10 +14,6 @@ const CODECS: readonly Codec[] = [
 ];
 /** Codecs that only decode a result; they can't build an argument. */
 const RESULT_ONLY_CODECS: readonly Codec[] = ['number-inf'];
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 /** A well-formed entry: names, a known kind when present, and for 'round-trip' the two
  *  method names it chains. */

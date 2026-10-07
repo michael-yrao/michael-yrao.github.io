@@ -8,6 +8,7 @@ import {
   Technique,
   CHEAT_SHEETS_SCHEMA_VERSION,
 } from '../models/cheat-sheet.model';
+import { contractVersionProblem } from '../contracts/contract-version';
 import { vizRouteFor } from '../data/viz-route';
 import { GitHubFileService, RepoRef, parseRepoSlug } from './github-file.service';
 
@@ -21,6 +22,7 @@ const CHEAT_SHEETS_ASSET = 'assets/cheat-sheets.json';
 // Same logical file ProgressService fetches from `dashboard/`, in the same repo/branch —
 // no legacy-path fallback here, since this file has no earlier location to fall back to.
 const CHEAT_SHEETS_FILE = 'dashboard/cheat-sheets.json';
+const CHEAT_SHEETS_WHAT = 'cheat-sheet';
 
 export type ProblemLink =
   { kind: 'internal'; commands: string[] } | { kind: 'external'; url: string };
@@ -198,12 +200,13 @@ export class CheatSheetService {
     result: { schemaVersion?: number; techniques?: unknown } | null,
     label: string,
   ): string | null {
-    if (!result || typeof result.schemaVersion !== 'number') {
-      return `${label} has no valid cheat-sheet data.`;
-    }
-    if (result.schemaVersion !== CHEAT_SHEETS_SCHEMA_VERSION) {
-      return `${label} is schema v${result.schemaVersion}; this viewer speaks v${CHEAT_SHEETS_SCHEMA_VERSION}. Update the site.`;
-    }
+    if (!result) return `${label} has no valid cheat-sheet data.`;
+    const versionProblem = contractVersionProblem(
+      result,
+      CHEAT_SHEETS_SCHEMA_VERSION,
+      CHEAT_SHEETS_WHAT,
+    );
+    if (versionProblem) return versionProblem;
     if (!Array.isArray(result.techniques)) {
       return `${label} has no techniques[] array.`;
     }

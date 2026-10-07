@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { catchError, of } from 'rxjs';
 
+import { contractVersionProblem } from '../contracts/contract-version';
 import { BigOData, BIG_O_SCHEMA_VERSION } from '../models/big-o.model';
 import { isBigOEntry } from '../big-o/big-o-validation';
 import {
@@ -73,10 +74,8 @@ export class BigOService {
    *  when even the key didn't parse) so an off-contract JSON never reaches the deck. */
   private invalidReason(result: RawBigOPayload): string | null {
     if (!result || typeof result !== 'object') return MALFORMED_CONTRACT_MESSAGE;
-    if (typeof result.schemaVersion !== 'number') return MALFORMED_CONTRACT_MESSAGE;
-    if (result.schemaVersion !== BIG_O_SCHEMA_VERSION) {
-      return `The Big-O trainer contract is schema v${result.schemaVersion}; this site speaks v${BIG_O_SCHEMA_VERSION}. Update the site.`;
-    }
+    const versionProblem = contractVersionProblem(result, BIG_O_SCHEMA_VERSION, BIG_O_WHAT);
+    if (versionProblem) return versionProblem;
     if (!Array.isArray(result.entries)) return MALFORMED_CONTRACT_MESSAGE;
 
     const badEntryIndex = result.entries.findIndex((entry) => !isBigOEntry(entry));

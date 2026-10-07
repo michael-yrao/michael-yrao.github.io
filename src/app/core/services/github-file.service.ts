@@ -1,6 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, catchError, throwError } from 'rxjs';
+import { Observable, catchError, from, map, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
+
+import { contractCache, contractKey, contractKeyPrefix } from './contract-cache';
+import { ContractManifest, MANIFEST_FILE, manifestHash, parseManifest } from './contract-manifest';
 
 export interface RepoRef {
   owner: string;
@@ -32,6 +35,8 @@ const SLUG_PART_COUNT = 2;
 
 const NOT_FOUND_STATUS = 404;
 const RATE_LIMIT_STATUS = 403;
+const TOO_MANY_REQUESTS_STATUS = 429;
+const SERVER_ERROR_STATUS = 500;
 const OFFLINE_STATUS = 0;
 
 function splitSlug(slug: string, branch: string): RepoRef {
@@ -87,11 +92,14 @@ export function httpErrorMessage(
   if (status === NOT_FOUND_STATUS) {
     return `No ${what} data found on that repo/branch. It must be a public cse-coach repo that has generated one.`;
   }
-  if (status === RATE_LIMIT_STATUS) {
+  if (status === RATE_LIMIT_STATUS || status === TOO_MANY_REQUESTS_STATUS) {
     return 'GitHub rate limit reached for anonymous requests. Sign in (coming soon) or try again shortly.';
   }
   if (status === OFFLINE_STATUS) {
     return 'Could not reach GitHub — check your connection.';
+  }
+  if (status !== undefined && status >= SERVER_ERROR_STATUS) {
+    return `GitHub is having trouble serving ${what}; try again in a minute.`;
   }
   return `Could not load ${what} (HTTP ${status ?? '?'}).`;
 }
@@ -109,8 +117,13 @@ export function httpErrorMessage(
 export class GitHubFileService {
   constructor(private readonly http: HttpClient) {}
 
-  private apiUrl(ref: RepoRef, file: string, bust: boolean): string {
+  // Per `owner/repo@branch`, replaced (never mutated) when a bust re-fetches the manifest.
+  private manifests: ReadonlyMap<string, Observable<ContractManifest | null>> = new Map();
+
+  /** The content hash (`v`) is the cache key; with none, a bust falls back to a timestamp. */
+  private apiUrl(ref: RepoRef, file: string, hash: string | null, bust: boolean): string {
     const base = `https://api.github.com/repos/${ref.owner}/${ref.repo}/contents/${file}?ref=${encodeURIComponent(ref.branch)}`;
+    if (hash) return `${base}&v=${hash}`;
     return bust ? `${base}&_=${Date.now()}` : base;
   }
 
@@ -118,11 +131,46 @@ export class GitHubFileService {
     return `https://raw.githubusercontent.com/${ref.owner}/${ref.repo}/${ref.branch}/${file}`;
   }
 
-  /** GET a named file from the repo, API-first with a raw fallback on the API's rate-limit (403). */
-  fetch$<T>(ref: RepoRef, file: string, bust: boolean): Observable<T> {
+  // Refs whose memoized manifest request has finished; a bust reuses one still in flight, so a
+  // Refresh that re-loads summary + details + history asks for the manifest once.
+  private settledManifests: ReadonlySet<string> = new Set();
+
+  /** The repo's manifest, memoized per ref; null on a 404, any error or an invalid body. */
+  private manifest$(ref: RepoRef, bust: boolean): Observable<ContractManifest | null> {
+    const refKey = `${ref.owner}/${ref.repo}@${ref.branch}`;
+    const memo = this.manifests.get(refKey);
+    if (memo && (!bust || !this.settledManifests.has(refKey))) return memo;
+    const fresh: Observable<ContractManifest | null> = this.network$<unknown>(
+      ref,
+      MANIFEST_FILE,
+      null,
+      bust,
+    ).pipe(
+      map(parseManifest),
+      catchError(() => of(null)),
+      tap(() => this.markSettled(refKey, fresh)),
+      shareReplay(1),
+    );
+    this.manifests = new Map(this.manifests).set(refKey, fresh);
+    this.settledManifests = new Set([...this.settledManifests].filter((key) => key !== refKey));
+    return fresh;
+  }
+
+  private markSettled(refKey: string, request: Observable<ContractManifest | null>): void {
+    if (this.manifests.get(refKey) !== request) return; // a newer bust replaced this request
+    this.settledManifests = new Set(this.settledManifests).add(refKey);
+  }
+
+  /** API-first with a raw fallback on the API's rate-limit (403). */
+  private network$<T>(
+    ref: RepoRef,
+    file: string,
+    hash: string | null,
+    bust: boolean,
+  ): Observable<T> {
     const apiHeaders = new HttpHeaders({ Accept: 'application/vnd.github.raw' });
     return this.http
-      .get<T>(this.apiUrl(ref, file, bust), { headers: apiHeaders, responseType: 'json' })
+      .get<T>(this.apiUrl(ref, file, hash, bust), { headers: apiHeaders, responseType: 'json' })
       .pipe(
         catchError((err) =>
           err?.status === RATE_LIMIT_STATUS
@@ -130,5 +178,30 @@ export class GitHubFileService {
             : throwError(() => err),
         ),
       );
+  }
+
+  /** A body already cached under its hash is served with no request; a miss fetches, then caches. */
+  private cached$<T>(ref: RepoRef, file: string, hash: string): Observable<T> {
+    const prefix = contractKeyPrefix(ref, file);
+    const key = contractKey(prefix, hash);
+    return from(contractCache.read<T>(key)).pipe(
+      switchMap((hit) =>
+        hit !== null
+          ? of(hit)
+          : this.network$<T>(ref, file, hash, false).pipe(
+              tap((body) => void contractCache.write(key, body).then(() => contractCache.prune(prefix, key))),
+            ),
+      ),
+    );
+  }
+
+  /** GET a named file from the repo; keyed by the manifest's hash when it lists the file. */
+  fetch$<T>(ref: RepoRef, file: string, bust: boolean): Observable<T> {
+    return this.manifest$(ref, bust).pipe(
+      switchMap((manifest) => {
+        const hash = manifestHash(manifest, file);
+        return hash ? this.cached$<T>(ref, file, hash) : this.network$<T>(ref, file, null, bust);
+      }),
+    );
   }
 }

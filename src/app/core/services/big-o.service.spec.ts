@@ -12,6 +12,7 @@ function makeHttp() {
   const http = {
     calls,
     get: (url: string, opts: any) => {
+      if (url.includes('manifest.json')) return throwError(() => ({ status: 404 })); // unrecorded
       calls.push({ url, opts });
       return of(payload);
     },
@@ -139,7 +140,7 @@ describe('BigOService', () => {
 
     expect(svc.status()).toBe('error');
     expect(svc.error()).toBe(
-      'The Big-O trainer contract is schema v2; this site speaks v1. Update the site.',
+      "That repo's Big-O trainer data is schema v2; this viewer speaks v1. Update the site.",
     );
   });
 
