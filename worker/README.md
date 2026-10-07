@@ -26,7 +26,7 @@ after startup takes a couple of seconds while all 5 sources are polled concurren
 that the in-memory 5-minute memo in `src/index.ts` answers instantly.
 
 `/interviews/` uses a local KV store under `worker/.wrangler/state`, so codes prepared against
-`wrangler dev` exist only on this machine. Rate limiting is off locally.
+`wrangler dev` exist only on this machine. Rate limiting is simulated locally from the `[[ratelimits]]` bindings.
 
 ## One-time Cloudflare setup (before the first deploy)
 
@@ -65,8 +65,8 @@ The browser encrypts the interviewer's key and the problem before sending them, 
 record is ciphertext. The candidate record holds the interview's public key in the clear. Records
 expire 180 days after the last save.
 
-Rate limiting is optional: uncomment the two `[[ratelimits]]` blocks in `wrangler.toml` to turn it
-on.
+Rate limiting is on: the two `[[ratelimits]]` blocks in `wrangler.toml` are required, and a request
+gets a 503 when a binding is missing.
 
 ## Source list
 

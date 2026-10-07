@@ -14,20 +14,18 @@ export const SITE_LINKS = {
 export const COACH_REPO_IS_PUBLIC = false;
 
 /** The Cloudflare Worker in `worker/`: the Tech Events feed at its root and the interview directory under
- *  `interviews/`. A dev build talks to a local `wrangler dev`. Production keeps a placeholder subdomain until the
- *  worker's first deploy — nothing falls back to anything else, so it must be updated to the real `*.workers.dev`
- *  URL (or a custom route) once deployed. */
-export const WORKER_API_URL = isDevMode() ? 'http://localhost:8787/' : 'https://po-api.<subdomain>.workers.dev/';
+ *  `interviews/`. A dev build talks to a local `wrangler dev`; production talks to the deployed worker (first
+ *  deployed 2026-10-06). Nothing falls back to anything else, so a redeploy under a new subdomain or a custom route
+ *  must update this URL. */
+export const WORKER_API_URL = isDevMode() ? 'http://localhost:8787/' : 'https://po-api.po-api.workers.dev/';
 
 /** The Tech Events feed, served by the Worker at `WORKER_API_URL`. */
 export const EVENTS_API_URL = WORKER_API_URL;
 
-/** Interview codes resolve through the Worker's directory. On in a dev build; off in production until the worker is
- *  deployed and `WORKER_API_URL` names it, in the same edit that turns this on. While off, a code works only in the
- *  browser that created it. */
-export const INTERVIEW_CODES_ENABLED = isDevMode();
+/** Interview codes resolve through the Worker's directory at `WORKER_API_URL`. Turned on 2026-10-06 with the worker's
+ *  first deploy; while off, a code works only in the browser that created it. */
+export const INTERVIEW_CODES_ENABLED = true;
 
 /** The Events page shows a "coming soon" card while this is false, and never calls
- *  `EVENTS_API_URL`. Flip to `true` in the SAME edit that replaces the placeholder URL above,
- *  once the worker's first deploy is live. */
-export const EVENTS_FEED_ENABLED = false;
+ *  `EVENTS_API_URL`. Turned on 2026-10-06 with the worker's first deploy. */
+export const EVENTS_FEED_ENABLED = true;

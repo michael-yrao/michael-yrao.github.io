@@ -13,6 +13,9 @@ on:
     paths:
       - 'worker/**'
       - '.github/workflows/worker.yml'
+      - 'src/app/core/models/events.model.ts'
+      - 'src/app/features/interview/directory/directory-contract.ts'
+      - 'scripts/check-contract-mirror.mjs'
   workflow_dispatch:
 
 defaults:
@@ -38,6 +41,10 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Contract mirror check
+        run: npm run check:contract-mirror
+        working-directory: .
 
       - name: Unit tests
         run: npm test

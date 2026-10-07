@@ -1,7 +1,12 @@
 import { buildFeed, type FetchImpl } from './aggregate';
 import { corsHeaders } from './cors';
 import { SOURCES } from './sources';
-import { createInterviewHandler, ROUTE_PREFIX, type LimitBucket } from './interviews/handler';
+import {
+  createInterviewHandler,
+  LimiterUnavailableError,
+  ROUTE_PREFIX,
+  type LimitBucket,
+} from './interviews/handler';
 
 // How long a built feed is served from the in-memory memo before the next request rebuilds it.
 const MEMO_TTL_MS = 5 * 60 * 1000;
@@ -84,7 +89,11 @@ export function interviewHandlerFor(env: Env) {
     kv: env.INTERVIEWS,
     limit: async (bucket, key) => {
       const limiter = limiters[bucket];
-      return limiter ? (await limiter.limit({ key })).success : true;
+      // Fail closed: wrangler dev simulates the [[ratelimits]] bindings locally, so no dev opt-out exists.
+      if (!limiter) {
+        throw new LimiterUnavailableError();
+      }
+      return (await limiter.limit({ key })).success;
     },
     now: () => Date.now(),
   });

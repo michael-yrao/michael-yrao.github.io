@@ -10,7 +10,8 @@
     "lint": "ng lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check:groundedness": "vitest run --config vitest.groundedness.config.ts"
+    "check:groundedness": "vitest run --config vitest.groundedness.config.ts",
+    "check:contract-mirror": "node scripts/check-contract-mirror.mjs"
   },
   "private": true,
   "dependencies": {

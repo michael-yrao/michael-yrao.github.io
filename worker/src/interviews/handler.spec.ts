@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { BODY_MAX_BYTES } from './contract';
 import {
   CANDIDATE_REFRESH_MS,
@@ -240,5 +240,23 @@ describe('interview handler', () => {
       expect(cache).toBe('no-store');
       expect(body).not.toMatch(/tokenHash|owner|candidateId/);
     }
+  });
+
+  it('turns an unexpected error into a 500 that still carries CORS and no-store', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const kv = new FakeKv();
+    kv.get = async () => {
+      throw new Error('boom');
+    };
+    const handler = createInterviewHandler({ kv, now: () => START, limit: async () => true });
+    const response = await handler.handle(
+      new Request(`${BASE}/i/${ID}`, { headers: { Origin: 'http://localhost:4200' } }),
+    );
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: 'internal' });
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:4200');
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 });

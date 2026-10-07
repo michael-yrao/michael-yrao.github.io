@@ -101,7 +101,8 @@ describe('createWorker memo', () => {
 
 describe('default export routing', () => {
   const emptyKv = { get: async () => null, put: async () => {}, delete: async () => {} };
-  const env = { INTERVIEWS: emptyKv } as unknown as Env;
+  const allowAll = { limit: async () => ({ success: true }) };
+  const env = { INTERVIEWS: emptyKv, INTERVIEW_READS: allowAll, INTERVIEW_WRITES: allowAll } as unknown as Env;
   const unknownId = 'A'.repeat(32);
 
   it('serves the events feed, with its shared-cache header, for a non-interviews path', async () => {
@@ -120,5 +121,25 @@ describe('default export routing', () => {
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: 'not-found' });
     expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+});
+
+describe('interview rate-limit binding', () => {
+  const candidateRecord = JSON.stringify({ v: 1, publicRaw: 'K'.repeat(87), owner: 'A'.repeat(32) });
+  const kv = { get: async () => candidateRecord, put: async () => {}, delete: async () => {} };
+  const allows = { limit: async () => ({ success: true }) };
+  const denies = { limit: async () => ({ success: false }) };
+
+  it.each([
+    { name: 'allows', binding: allows, status: 200, body: undefined },
+    { name: 'denies', binding: denies, status: 429, body: { error: 'rate-limited' } },
+    { name: 'is absent', binding: undefined, status: 503, body: { error: 'rate-limiter-unavailable' } },
+  ])('limiter that $name answers $status', async ({ binding, status, body }) => {
+    const env = { INTERVIEWS: kv, INTERVIEW_READS: binding } as unknown as Env;
+    const response = await worker.fetch(new Request(`https://x.example/interviews/c/${'B'.repeat(32)}`), env);
+    expect(response.status).toBe(status);
+    if (body) {
+      expect(await response.json()).toEqual(body);
+    }
   });
 });

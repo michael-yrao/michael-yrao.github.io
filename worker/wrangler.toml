@@ -12,19 +12,20 @@ workers_dev = true
 # The id comes from `npx wrangler kv namespace create INTERVIEWS`.
 [[kv_namespaces]]
 binding = "INTERVIEWS"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "0594d82515de4698b07ae8fbb5bb5b56"
 
-# Rate limits are unverified on the free plan, so they stay off until confirmed.
-# [[ratelimits]]
-# name = "INTERVIEW_READS"
-# namespace_id = "1001"
-#   [ratelimits.simple]
-#   limit = 60
-#   period = 60
+# Rate limits are on, and the worker refuses requests (503) when a binding is missing. If the
+# free plan rejects them at deploy time, re-comment these two blocks by hand.
+[[ratelimits]]
+name = "INTERVIEW_READS"
+namespace_id = "1001"
+  [ratelimits.simple]
+  limit = 60
+  period = 60
 
-# [[ratelimits]]
-# name = "INTERVIEW_WRITES"
-# namespace_id = "1002"
-#   [ratelimits.simple]
-#   limit = 6
-#   period = 60
+[[ratelimits]]
+name = "INTERVIEW_WRITES"
+namespace_id = "1002"
+  [ratelimits.simple]
+  limit = 6
+  period = 60

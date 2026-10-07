@@ -9,6 +9,8 @@ name: Groundedness re-check
 on:
   schedule:
     - cron: '17 6 * * *'
+  repository_dispatch:
+    types: [cse-progress-updated]
   workflow_dispatch:
 
 permissions:

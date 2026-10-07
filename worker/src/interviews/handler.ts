@@ -21,6 +21,8 @@ const INTERVIEW_METHODS = 'GET, PUT, DELETE, OPTIONS';
 const CANDIDATE_METHODS = 'GET, OPTIONS';
 const CORS_HEADERS = 'Content-Type, Authorization';
 const JSON_TYPE = 'application/json';
+const HTTP_INTERNAL_ERROR = 500;
+const HTTP_SERVICE_UNAVAILABLE = 503;
 
 const STATUS: Readonly<Record<DirectoryErrorCode, number>> = {
   'bad-id': 400,
@@ -85,6 +87,9 @@ class HttpError extends Error {
     super(code);
   }
 }
+
+/** Thrown by a `limit` dep whose rate-limit binding is missing: the request is refused, not waved through. */
+export class LimiterUnavailableError extends Error {}
 
 function toBase64url(bytes: Uint8Array): string {
   let binary = '';
@@ -184,6 +189,14 @@ function methodNotAllowed(allow: string): Response {
   const response = jsonResponse(STATUS['method-not-allowed'], body);
   response.headers.set('Allow', allow);
   return response;
+}
+
+function limiterUnavailableResponse(): Response {
+  return jsonResponse(HTTP_SERVICE_UNAVAILABLE, { error: 'rate-limiter-unavailable' });
+}
+
+function internalErrorResponse(): Response {
+  return jsonResponse(HTTP_INTERNAL_ERROR, { error: 'internal' });
 }
 
 function errorResponse(error: HttpError): Response {
@@ -353,6 +366,17 @@ export function createInterviewHandler(deps: InterviewDeps) {
     return route(request, kind, id);
   }
 
+  function errorToResponse(error: unknown): Response {
+    if (error instanceof HttpError) {
+      return errorResponse(error);
+    }
+    if (error instanceof LimiterUnavailableError) {
+      return limiterUnavailableResponse();
+    }
+    console.error('interview handler failed', error);
+    return internalErrorResponse();
+  }
+
   async function handle(request: Request): Promise<Response> {
     const cors = corsHeaders(request.headers.get('Origin'), INTERVIEW_METHODS, CORS_HEADERS);
     let response: Response;
@@ -362,10 +386,7 @@ export function createInterviewHandler(deps: InterviewDeps) {
       try {
         response = await guarded(request);
       } catch (error) {
-        if (!(error instanceof HttpError)) {
-          throw error;
-        }
-        response = errorResponse(error);
+        response = errorToResponse(error);
       }
     }
     for (const [name, value] of cors) {

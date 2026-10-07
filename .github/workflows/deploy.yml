@@ -45,6 +45,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Contract mirror check
+        run: npm run check:contract-mirror
+
       - name: Unit tests
         run: npx ng test --watch=false
 
