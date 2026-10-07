@@ -1,6 +1,8 @@
 // Pure data + solver logic for the Bisect It game. No Angular imports here so every
 // instance generator, predicate, and reference trace is unit-testable in isolation.
 
+import { shuffle } from '../../../shared/utils/shuffle';
+
 export type Flavour = 'koko' | 'ship' | 'magnet';
 export type Direction = 'minimise' | 'maximise';
 
@@ -269,13 +271,4 @@ export function buildRoundDeck(): BisectInstance[] {
 
 function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function shuffle<T>(arr: readonly T[]): T[] {
-  const out = [...arr];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
 }

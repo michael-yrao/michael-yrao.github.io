@@ -1,5 +1,6 @@
 import { Difficulty } from '../../../core/models/algorithm.model';
 import { BigOEntry } from '../../../core/models/big-o.model';
+import { shuffle } from '../../../shared/utils/shuffle';
 
 export type DifficultyFilter = 'All' | Difficulty;
 
@@ -38,12 +39,7 @@ export function dealDeck(
   rng: () => number,
   cap: number = RUN_CAP,
 ): readonly BigOEntry[] {
-  const shuffled = [...pool];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled.slice(0, cap);
+  return shuffle(pool, rng).slice(0, cap);
 }
 
 function isDifficultyFilter(value: unknown): value is DifficultyFilter {

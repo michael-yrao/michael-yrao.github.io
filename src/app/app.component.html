@@ -77,7 +77,7 @@
 
 <!-- Backdrop: closes the drawer on outside click -->
 @if (isDrawerOpen()) {
-  <div class="po-nav__backdrop" (click)="closeAll()"></div>
+  <div class="po-nav__backdrop" aria-hidden="true" (click)="closeAll()"></div>
 }
 
 <main class="po-main">

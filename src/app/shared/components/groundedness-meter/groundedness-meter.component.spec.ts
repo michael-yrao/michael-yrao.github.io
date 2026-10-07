@@ -2,7 +2,15 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
-import { GroundednessMeterComponent } from './groundedness-meter.component';
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  TestRequest,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
+
+import { GroundednessMeterComponent, LOAD_ALL_ALGORITHMS } from './groundedness-meter.component';
+import { AlgorithmMeta } from '../../../core/models/algorithm.model';
 import { ShowcaseService } from '../../../core/services/showcase.service';
 import { LoadStatus } from '../../../core/services/github-file.service';
 import { ShowcaseData } from '../../../core/models/showcase.model';
@@ -23,15 +31,88 @@ function makeShowcaseStub(overrides: { status?: LoadStatus; data?: ShowcaseData 
   };
 }
 
-function createFixture(stub: ReturnType<typeof makeShowcaseStub>) {
+const REPORT_ASSET_URL = 'assets/groundedness.json';
+const HTTP_NOT_FOUND = 404;
+
+function createFixture(
+  stub: ReturnType<typeof makeShowcaseStub>,
+  loader: () => Promise<readonly AlgorithmMeta[]> = loadAllAlgorithms,
+) {
   TestBed.configureTestingModule({
     imports: [GroundednessMeterComponent],
-    providers: [{ provide: ShowcaseService, useValue: stub }],
+    providers: [
+      { provide: ShowcaseService, useValue: stub },
+      { provide: LOAD_ALL_ALGORITHMS, useValue: loader },
+      provideHttpClient(),
+      provideHttpClientTesting(),
+    ],
   });
   const fixture = TestBed.createComponent(GroundednessMeterComponent);
   fixture.detectChanges();
   return fixture;
 }
+
+const CONTRACT_DATE = '2026-09-22';
+const ASSET_GROUNDED = 7;
+const ASSET_TOTAL = 9;
+
+const precomputedAsset = (showcaseGeneratedAt: string) => ({
+  schemaVersion: 1,
+  generatedAt: '2026-10-06T00:00:00.000Z',
+  showcaseGeneratedAt,
+  total: ASSET_TOTAL,
+  grounded: ASSET_GROUNDED,
+  legacy: 0,
+  ratio: ASSET_GROUNDED / ASSET_TOTAL,
+  failures: [],
+});
+
+describe('GroundednessMeterComponent report source', () => {
+  const rows = [
+    {
+      name: 'asset matches the contract: uses it, never loads the algorithms',
+      respond: (req: TestRequest) =>
+        req.flush(precomputedAsset(CONTRACT_DATE)),
+      loaderCalls: 0,
+      shownCounts: [`${ASSET_GROUNDED}`, `${ASSET_TOTAL}`],
+    },
+    {
+      name: 'asset 404: computes live',
+      respond: (req: TestRequest) =>
+        req.flush(null, { status: HTTP_NOT_FOUND, statusText: 'Not Found' }),
+      loaderCalls: 1,
+    },
+    {
+      name: 'asset stale (different contract): computes live',
+      respond: (req: TestRequest) =>
+        req.flush(precomputedAsset('2026-01-01')),
+      loaderCalls: 1,
+    },
+  ];
+
+  for (const row of rows) {
+    it(row.name, async () => {
+      const loader = vi.fn(() => Promise.resolve([] as readonly AlgorithmMeta[]));
+      const data: ShowcaseData = { schemaVersion: 1, generatedAt: CONTRACT_DATE, entries: [] };
+      const fixture = createFixture(makeShowcaseStub({ status: 'ready', data }), loader);
+
+      await fixture.whenStable();
+      row.respond(TestBed.inject(HttpTestingController).expectOne(REPORT_ASSET_URL));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(loader).toHaveBeenCalledTimes(row.loaderCalls);
+      if ('shownCounts' in row) {
+        const shown = Array.from(fixture.nativeElement.querySelectorAll('strong')).map(
+          (el) => (el as HTMLElement).textContent?.trim(),
+        );
+        expect(shown).toEqual(row.shownCounts);
+      }
+      expect(fixture.nativeElement.querySelector('[role="status"]')).toBeNull();
+    });
+  }
+});
 
 describe('GroundednessMeterComponent', () => {
   it('calls ShowcaseService.load() once on construction', () => {
@@ -78,6 +159,11 @@ describe('GroundednessMeterComponent', () => {
     const emptyData: ShowcaseData = { schemaVersion: 1, generatedAt: '2026-09-22', entries: [] };
     const algorithms = await loadAllAlgorithms();
     const fixture = createFixture(makeShowcaseStub({ status: 'ready', data: emptyData }));
+    await fixture.whenStable();
+    TestBed.inject(HttpTestingController)
+      .expectOne(REPORT_ASSET_URL)
+      .flush(null, { status: HTTP_NOT_FOUND, statusText: 'Not Found' });
+    fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
 

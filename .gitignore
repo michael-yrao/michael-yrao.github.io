@@ -2,6 +2,12 @@
 
 # Compiled output
 /dist
+# Written by the CI groundedness check, shipped by the build as assets/groundedness.json
+/src/assets/groundedness.json
+
+# Playwright
+/test-results/
+/playwright-report/
 /tmp
 /out-tsc
 /bazel-out

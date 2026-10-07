@@ -40,6 +40,7 @@ const USER_CLOSE_CASES: readonly { readonly name: string; readonly click: (dialo
   { name: 'the Close button emits once', click: (dialog) => dialog.querySelector<HTMLElement>('button[aria-label="Close"]')!.click(), closeCount: 1 },
   { name: 'a click on the backdrop (the dialog itself) emits', click: (dialog) => dialog.click(), closeCount: 1 },
   { name: 'a click inside the body does not emit', click: (dialog) => dialog.querySelector<HTMLElement>('.modal__body')!.click(), closeCount: 0 },
+  { name: 'an Escape keydown emits once', click: (dialog) => dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })), closeCount: 1 },
 ];
 
 describe('ModalComponent', () => {

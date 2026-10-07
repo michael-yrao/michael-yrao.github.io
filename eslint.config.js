@@ -30,23 +30,30 @@ module.exports = tseslint.config(
           style: "kebab-case",
         },
       ],
-      // Downgraded to warn: today's tree already violates these (mostly the
-      // 96 algorithm .steps.ts data files and the pre-existing constructor-
-      // injection style). Warnings keep CI green on existing code while still
-      // surfacing the issue; they stay errors for anything genuinely new.
-      "@typescript-eslint/no-unused-vars": "warn",
-      "@typescript-eslint/consistent-generic-constructors": "warn",
-      "@typescript-eslint/consistent-type-definitions": "warn",
-      "prefer-const": "warn",
-      "@typescript-eslint/prefer-for-of": "warn",
-      "@angular-eslint/prefer-inject": "warn",
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/array-type": "warn",
-      "@typescript-eslint/no-empty-function": "warn",
-      "@typescript-eslint/class-literal-property-style": "warn",
-      "@angular-eslint/no-output-native": "warn",
-      "@angular-eslint/no-empty-lifecycle-method": "warn",
-      "@typescript-eslint/no-unused-expressions": "warn",
+      // Downgraded to warn while the existing tree is burned down; a rule moves
+      // back to "error" once its count reaches zero. Counts as of 2026-10-06
+      // (55 warnings in total):
+      "@typescript-eslint/no-unused-vars": "warn", // 7
+      "@typescript-eslint/consistent-generic-constructors": "error",
+      "@typescript-eslint/consistent-type-definitions": "warn", // 2
+      "prefer-const": "error",
+      "@typescript-eslint/prefer-for-of": "warn", // 1
+      "@angular-eslint/prefer-inject": "warn", // 13
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/array-type": "error",
+      "@typescript-eslint/no-empty-function": "warn", // 6
+      "@typescript-eslint/class-literal-property-style": "warn", // 1
+      "@angular-eslint/no-output-native": "warn", // 4
+      "@angular-eslint/no-empty-lifecycle-method": "warn", // 1
+      "@typescript-eslint/no-unused-expressions": "warn", // 1
+    },
+  },
+  {
+    files: ["**/*.spec.ts"],
+    rules: {
+      // Spec-only burn-down: 12 no-explicit-any + 7 array-type hits as of 2026-10-06.
+      "@typescript-eslint/no-explicit-any": "warn", // 12
+      "@typescript-eslint/array-type": "warn", // 7
     },
   },
   {
@@ -55,11 +62,5 @@ module.exports = tseslint.config(
       ...angular.configs.templateRecommended,
       ...angular.configs.templateAccessibility,
     ],
-    rules: {
-      // Downgraded to warn: pre-existing nav markup trips these; see the
-      // comment in the *.ts block above for the rationale.
-      "@angular-eslint/template/click-events-have-key-events": "warn",
-      "@angular-eslint/template/interactive-supports-focus": "warn",
-    },
   }
 );

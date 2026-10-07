@@ -1,4 +1,4 @@
-<dialog #dialog class="modal" [attr.aria-labelledby]="headingId" (click)="onDialogClick($event)" (close)="onNativeClose()">
+<dialog #dialog class="modal" tabindex="-1" [attr.aria-labelledby]="headingId" (click)="onDialogClick($event)" (keydown.escape)="onEscape($event)" (close)="onNativeClose()">
   <div class="modal__body">
     <div class="modal__head">
       <h2 class="modal__heading" [id]="headingId">{{ heading() }}</h2>

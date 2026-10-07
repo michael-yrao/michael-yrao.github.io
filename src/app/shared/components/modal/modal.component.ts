@@ -39,6 +39,12 @@ export class ModalComponent {
     }
   }
 
+  /** Escape is handled here, not by the native cancel, so the dialog stays open until the parent closes it and `closed` emits once. */
+  protected onEscape(event: Event): void {
+    event.preventDefault();
+    this.closed.emit();
+  }
+
   /** The dialog has no padding, so a click whose target is the dialog itself landed on the backdrop. */
   protected onDialogClick(event: MouseEvent): void {
     if (event.target === this.dialog.nativeElement) {

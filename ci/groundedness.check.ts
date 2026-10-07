@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 
-import { computeGroundedness } from '../src/app/core/showcase/groundedness';
+import { computeGroundedness, GroundednessReport } from '../src/app/core/showcase/groundedness';
 import { isShowcaseEntry } from '../src/app/core/showcase/showcase-validation';
 import { loadAllAlgorithms } from '../src/app/core/data/algorithms.index';
 import {
@@ -11,6 +12,8 @@ import {
 } from '../src/app/core/models/showcase.model';
 
 const SHOWCASE_JSON_ENV_VAR = 'SHOWCASE_JSON';
+const REPORT_OUT_ENV_VAR = 'GROUNDEDNESS_REPORT_OUT';
+const REPORT_SCHEMA_VERSION = 1;
 
 /** Reads the path SHOWCASE_JSON points at, or throws a message naming exactly what's wrong —
  *  this check runs unattended in CI, so a vague stack trace isn't good enough. */
@@ -77,10 +80,31 @@ function loadShowcaseData(): ShowcaseData {
   return parseShowcaseData(readShowcaseFile(path), path ?? '');
 }
 
+/** When `outPath` is set, writes the computed report as the site's `assets/groundedness.json`
+ *  so the hub meter can read it instead of re-running every generator in the browser. */
+function writeReportAsset(
+  outPath: string | undefined,
+  data: ShowcaseData,
+  report: GroundednessReport,
+): void {
+  if (!outPath) return;
+  mkdirSync(dirname(outPath), { recursive: true });
+  const asset = {
+    schemaVersion: REPORT_SCHEMA_VERSION,
+    generatedAt: new Date().toISOString(),
+    showcaseGeneratedAt: data.generatedAt,
+    ...report,
+  };
+  writeFileSync(outPath, JSON.stringify(asset));
+}
+
 describe('groundedness', () => {
   it('every migrated variant is grounded in the fetched showcase contract', async () => {
     const data = loadShowcaseData();
     const report = computeGroundedness(await loadAllAlgorithms(), data);
+
+    // Written before asserting so a failing run's report is still inspectable.
+    writeReportAsset(process.env[REPORT_OUT_ENV_VAR], data, report);
 
     for (const failure of report.failures) {
       console.error(`✗ ${failure.key}: ${failure.reason}`);
