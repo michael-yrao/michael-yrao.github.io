@@ -1,4 +1,5 @@
-import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, GraphEdgeState, GraphNodeState, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { graphState } from '../../core/steps';
 
 // Traces cse-progress's two attempts verbatim:
 // - DFS variant → validTree_20260617: same structure as an earlier draft, just the
@@ -20,8 +21,7 @@ const NODE_POS = [
 function generateStepsDFS(): Step[] {
   const steps: Step[] = [];
 
-  type ES = 'default' | 'active' | 'visited' | 'found';
-  const es: ES[] = new Array(EDGE_LIST.length).fill('default');
+  const es: GraphEdgeState[] = new Array(EDGE_LIST.length).fill('default');
   const adj: Record<number, number[]> = {};
   for (let i = 0; i < N; i++) adj[i] = [];
   for (const [a, b] of EDGE_LIST) { adj[a].push(b); adj[b].push(a); }
@@ -32,25 +32,16 @@ function generateStepsDFS(): Step[] {
   const callStack: string[] = [];
   let depth = 0;
 
-  const mkState = (current: number | null, done = false) => ({
-    type: 'graph' as const,
-    nodes: NODE_POS.map((p, i) => ({
-      ...p,
-      state: done
-        ? ('found' as const)
-        : i === current
-        ? ('active' as const)
-        : visited.has(i)
-        ? ('visited' as const)
-        : ('default' as const),
-    })),
-    edges: EDGE_LIST.map(([from, to], i) => ({ from, to, state: done ? ('found' as const) : es[i] })),
-    hashmapLabel: 'visited',
-    hashmap: Object.fromEntries([...visited].sort((a, b) => a - b).map((v) => [String(v), '✓'])) as Record<string | number, string>,
-    stackLabel: 'call stack',
-    stackItems: [...callStack],
-    counters: [{ label: 'len(visited)', value: visited.size }],
-  });
+  const mkState = (current: number | null, done = false) =>
+    graphState(NODE_POS, EDGE_LIST.map(([from, to]) => ({ from, to })), {
+      nodeState: (_, i) => (done ? 'found' : i === current ? 'active' : visited.has(i) ? 'visited' : 'default'),
+      edgeState: (_, i) => (done ? 'found' : es[i]),
+      hashmapLabel: 'visited',
+      hashmap: Object.fromEntries([...visited].sort((a, b) => a - b).map((v) => [String(v), '✓'])),
+      stackLabel: 'call stack',
+      stackItems: [...callStack],
+      counters: [{ label: 'len(visited)', value: visited.size }],
+    });
 
   steps.push({
     explanation:
@@ -164,23 +155,21 @@ function generateStepsDFS(): Step[] {
 function generateStepsUF(): Step[] {
   const steps: Step[] = [];
 
-  type NS = 'default' | 'active' | 'visited' | 'found';
-  type ES = 'default' | 'active' | 'visited' | 'found';
-  const ns: NS[] = new Array(N).fill('default');
-  const es: ES[] = new Array(EDGE_LIST.length).fill('default');
+  const ns: GraphNodeState[] = new Array(N).fill('default');
+  const es: GraphEdgeState[] = new Array(EDGE_LIST.length).fill('default');
   const parent = [0, 1, 2, 3, 4];
   const rank = [0, 0, 0, 0, 0];
 
-  const mkState = (currentEdge: string) => ({
-    type: 'graph' as const,
-    nodes: NODE_POS.map((p, i) => ({ ...p, state: ns[i] })),
-    edges: EDGE_LIST.map(([from, to], i) => ({ from, to, state: es[i] })),
-    hashmapLabel: 'parent',
-    hashmap: Object.fromEntries(parent.map((p, i) => [String(i), p])) as Record<string | number, number>,
-    hashmap2Label: 'rank',
-    hashmap2: Object.fromEntries(rank.map((r, i) => [String(i), r])) as Record<string | number, number>,
-    stackItems: currentEdge ? [currentEdge] : [],
-  });
+  const mkState = (currentEdge: string) =>
+    graphState(NODE_POS, EDGE_LIST.map(([from, to]) => ({ from, to })), {
+      nodeState: (_, i) => ns[i],
+      edgeState: (_, i) => es[i],
+      hashmapLabel: 'parent',
+      hashmap: Object.fromEntries(parent.map((p, i) => [String(i), p])),
+      hashmap2Label: 'rank',
+      hashmap2: Object.fromEntries(rank.map((r, i) => [String(i), r])),
+      stackItems: currentEdge ? [currentEdge] : [],
+    });
 
   steps.push({
     explanation: 'A valid tree with n nodes must have exactly n−1 edges. len(edges)=4, n−1=4 → check passes, continue.',

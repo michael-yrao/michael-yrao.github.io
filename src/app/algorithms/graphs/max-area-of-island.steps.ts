@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, GridState, ProblemExample } from '../../core/models/algorithm.model';
+import { gridKey, gridState } from '../../core/steps';
 
 // Traces cse-progress's maxAreaOfIsland_20260617 verbatim: dfs's base cases check in
 // the order out-of-bounds → visited → not-land, and the outer loop's guard checks
@@ -23,19 +24,13 @@ function buildGrid(
   active: Set<string>,
   maxCells: Set<string>
 ): GridState {
-  return {
-    type: 'grid',
-    grid: RAW_GRID.map((row, r) =>
-      row.map((cell, c) => {
-        const key = `${r},${c}`;
-        if (maxCells.has(key)) return { state: 'queued' as const };
-        if (active.has(key)) return { state: 'fresh' as const };
-        if (visited.has(key)) return { state: 'visited' as const };
-        if (cell === 1) return { state: 'land' as const };
-        return { state: 'water' as const };
-      })
-    ),
-  };
+  return gridState(RAW_GRID, (cell, r, c) => {
+    const key = gridKey(r, c);
+    if (maxCells.has(key)) return 'queued';
+    if (active.has(key)) return 'fresh';
+    if (visited.has(key)) return 'visited';
+    return cell === 1 ? 'land' : 'water';
+  });
 }
 
 function generateSteps(): Step[] {
@@ -44,7 +39,6 @@ function generateSteps(): Step[] {
   let maxArea = 0;
   const maxCells = new Set<string>();
 
-  const toKey = (r: number, c: number) => `${r},${c}`;
   const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
   steps.push({
@@ -59,7 +53,7 @@ function generateSteps(): Step[] {
   });
 
   function dfs(r: number, c: number, islandCells: Set<string>): number {
-    const key = toKey(r, c);
+    const key = gridKey(r, c);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return 0;
     if (visited.has(key)) return 0;
     if (RAW_GRID[r][c] !== 1) return 0;
@@ -90,7 +84,7 @@ function generateSteps(): Step[] {
 
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
-      const key = toKey(r, c);
+      const key = gridKey(r, c);
       if (!visited.has(key) && RAW_GRID[r][c] === 1) {
         const islandCells = new Set<string>();
 

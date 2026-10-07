@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, GraphState, GraphNode, GraphEdge, StepVariable, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, StepVariable, ProblemExample } from '../../core/models/algorithm.model';
+import { graphState } from '../../core/steps';
 
 // Traces cse-progress's Trie + helper TrieNode verbatim (dsa/leetcode/trie/208_implement_trie_prefix_tree.py).
 // Anchors below reuse the same section for insert's create-vs-reuse branches (nth 1),
@@ -65,36 +66,25 @@ function generateSteps(): Step[] {
     variables?: StepVariable[]
   ): Step => {
     const pathSet = new Set(path);
-    const nodes: GraphNode[] = [...revealed].map((id) => ({
-      id,
-      x: POS[id].x,
-      y: POS[id].y,
-      label: label(id),
-      state:
-        id === activeId ? 'active'
-        : pathSet.has(id) ? 'visited'
-        : ends.has(id) ? 'found'
-        : 'default',
-    }));
-    const edges: GraphEdge[] = EDGES
+    const nodes = [...revealed].map((id) => ({ id, x: POS[id].x, y: POS[id].y, label: label(id) }));
+    const edges = EDGES
       .filter(([f, t]) => revealed.has(f) && revealed.has(t))
-      .map(([f, t]) => ({
-        from: f,
-        to: t,
-        state: t === activeId ? 'active' : pathSet.has(t) ? 'visited' : 'default',
-      }));
+      .map(([from, to]) => ({ from, to }));
     return {
       explanation,
       anchor,
-      state: {
-        type: 'graph',
-        nodes,
-        edges,
+      state: graphState(nodes, edges, {
+        nodeState: ({ id }) =>
+          id === activeId ? 'active'
+          : pathSet.has(String(id)) ? 'visited'
+          : ends.has(String(id)) ? 'found'
+          : 'default',
+        edgeState: ({ to }) => (to === activeId ? 'active' : pathSet.has(String(to)) ? 'visited' : 'default'),
         counters: [
           { label: 'operation', value: opLabel },
           ...(result !== undefined ? [{ label: 'returns', value: result }] : []),
         ],
-      } as GraphState,
+      }),
       variables,
     };
   };

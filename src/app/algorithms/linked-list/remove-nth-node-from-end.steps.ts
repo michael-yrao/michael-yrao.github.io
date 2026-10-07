@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample, LinkedListNode } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, ProblemExample, LinkedListState } from '../../core/models/algorithm.model';
+import { linkedListState } from '../../core/steps';
 
 // Traces cse-progress's three attempts verbatim:
 //   removeNthFromEndTwoIteration — NO dummy node; pass 1 counts listLength; an explicit
@@ -9,22 +10,20 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample, LinkedListNode } 
 //   removeNthFromEndRecursion   — dummy node + a nested recursive helper that relinks on
 //     the way back up when `counter == n` (unchanged control flow, only anchors change).
 
-function makeNodes(
+function makeState(
   vals: number[],
   activeIdx: number | null,
-  removedIdx: number | null
-): LinkedListNode[] {
-  return vals.map((v, i) => ({
-    id: `n${i}`,
-    value: v,
-    nextId: i < vals.length - 1 ? `n${i + 1}` : null,
-    state:
-      i === removedIdx
-        ? ('active' as const)
-        : i === activeIdx
-        ? ('curr' as const)
-        : ('default' as const),
-  }));
+  removedIdx: number | null,
+  pointers: LinkedListState['pointers']
+): LinkedListState {
+  return linkedListState(vals, {
+    nodeState: (i) => (i === removedIdx ? 'active' : i === activeIdx ? 'curr' : 'default'),
+    pointers,
+  });
+}
+
+function resultState(vals: number[]): LinkedListState {
+  return linkedListState(vals, { idPrefix: 'r', nodeState: () => 'done' });
 }
 
 // ── Solution 1: Two-Pass (no dummy node) ──────────────────────────────────────
@@ -39,7 +38,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Two full passes, and NO dummy node this time. Pass 1 counts listLength; pass 2 walks to index indexToRemove − 1 and relinks there. n=${n}.`,
     anchor: { match: 'def removeNthFromEndTwoIteration(self, head: Optional[ListNode], n: int) -> Optional[ListNode]:' },
-    state: { type: 'linked-list', nodes: makeNodes(vals, 0, null), pointers: [{ nodeId: 'n0', label: 'current' }] },
+    state: makeState(vals, 0, null, [{ nodeId: 'n0', label: 'current' }]),
     variables: [{ name: 'n', value: n }],
   });
 
@@ -51,11 +50,7 @@ function generateSteps(): Step[] {
       explanation: `Pass 1 — current at index ${i} (val=${vals[i]}): advance current = current.next; listLength += 1 → ${lengthSoFar}.`,
       // nth 1: pass-1's advance inside the while loop; the 2nd hit is pass-2's advance in the for-loop's fallthrough
       anchor: { match: 'current = current.next', nth: 1, to: { match: 'listLength += 1' } },
-      state: {
-        type: 'linked-list',
-        nodes: makeNodes(vals, nextIdx, null),
-        pointers: nextIdx !== null ? [{ nodeId: `n${nextIdx}`, label: 'current' }] : [{ nodeId: null, label: 'current=None' }],
-      },
+      state: makeState(vals, nextIdx, null, nextIdx !== null ? [{ nodeId: `n${nextIdx}`, label: 'current' }] : [{ nodeId: null, label: 'current=None' }]),
       variables: [{ name: 'listLength', value: lengthSoFar, highlight: true }],
     });
   }
@@ -63,7 +58,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `current is None — while current exits. indexToRemove = listLength − n = ${listLength} − ${n} = ${indexToRemove}.`,
     anchor: { match: 'indexToRemove = listLength - n' },
-    state: { type: 'linked-list', nodes: makeNodes(vals, null, null), pointers: [] },
+    state: makeState(vals, null, null, []),
     variables: [
       { name: 'listLength', value: listLength },
       { name: 'indexToRemove', value: indexToRemove, highlight: true },
@@ -74,7 +69,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: 'indexToRemove == 0 → the head itself is being removed. Return head.next directly — pass 2 never runs.',
       anchor: { match: 'if indexToRemove == 0:', to: { match: 'return head.next' } },
-      state: { type: 'linked-list', nodes: makeNodes(vals, null, 0), pointers: [] },
+      state: makeState(vals, null, 0, []),
       variables: [{ name: 'return', value: vals.slice(1).join('→'), highlight: true }],
     });
     return steps;
@@ -83,7 +78,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `indexToRemove (${indexToRemove}) ≠ 0 — the if branch is skipped, no early return. Fall through into pass 2.`,
     anchor: { match: 'if indexToRemove == 0:' },
-    state: { type: 'linked-list', nodes: makeNodes(vals, null, null), pointers: [] },
+    state: makeState(vals, null, null, []),
     variables: [{ name: 'indexToRemove', value: indexToRemove }],
   });
 
@@ -91,7 +86,7 @@ function generateSteps(): Step[] {
     explanation: `Reset current = head for pass 2 — walk to index indexToRemove − 1 = ${indexToRemove - 1} and relink there.`,
     // nth 2: the pass-2 reset before the for loop; the 1st hit is pass-1's init before the while loop
     anchor: { match: 'current = head', nth: 2 },
-    state: { type: 'linked-list', nodes: makeNodes(vals, 0, null), pointers: [{ nodeId: 'n0', label: 'current' }] },
+    state: makeState(vals, 0, null, [{ nodeId: 'n0', label: 'current' }]),
     variables: [{ name: 'current', value: `val ${vals[0]}` }],
   });
 
@@ -103,7 +98,7 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `i=${i} == indexToRemove − 1 (${target}) → current.next = current.next.next: unlink val=${vals[i + 1]}. break exits the loop — i=${i + 1} never runs.`,
         anchor: { match: 'current.next = current.next.next', to: { match: 'break' } },
-        state: { type: 'linked-list', nodes: makeNodes(vals, i, i + 1), pointers: [{ nodeId: `n${i}`, label: 'current' }] },
+        state: makeState(vals, i, i + 1, [{ nodeId: `n${i}`, label: 'current' }]),
         variables: [
           { name: 'i', value: i, highlight: true },
           { name: 'removed', value: vals[i + 1], highlight: true },
@@ -115,7 +110,7 @@ function generateSteps(): Step[] {
       explanation: `i=${i} ≠ indexToRemove − 1 (${target}) → advance current = current.next to val=${vals[i + 1]}.`,
       // nth 2: pass-2's advance in the for-loop's fallthrough; the 1st hit is pass-1's advance inside the while loop
       anchor: { match: 'current = current.next', nth: 2 },
-      state: { type: 'linked-list', nodes: makeNodes(vals, i + 1, null), pointers: [{ nodeId: `n${i + 1}`, label: 'current' }] },
+      state: makeState(vals, i + 1, null, [{ nodeId: `n${i + 1}`, label: 'current' }]),
       variables: [{ name: 'i', value: i }],
     });
   }
@@ -125,16 +120,7 @@ function generateSteps(): Step[] {
     explanation: `Pass 2 complete. Return head (still val=${vals[0]}, an unchanged reference) → [${resultVals.join('→')}]. O(n) time, O(1) space — two full passes, no dummy.`,
     // nth 2: the bare final return; the 1st hit is the earlier edge-case's "return head.next"
     anchor: { match: 'return head', nth: 2 },
-    state: {
-      type: 'linked-list',
-      nodes: resultVals.map((v, i) => ({
-        id: `r${i}`,
-        value: v,
-        nextId: i < resultVals.length - 1 ? `r${i + 1}` : null,
-        state: 'done' as const,
-      })),
-      pointers: [],
-    },
+    state: resultState(resultVals),
     variables: [{ name: 'return', value: `[${resultVals.join('→')}]`, highlight: true }],
   });
 
@@ -149,23 +135,14 @@ function generateStepsOnePass(): Step[] {
   const dummyVals = [0, ...vals]; // n0=dummy, n1..n5 = head..
   const steps: Step[] = [];
 
-  const mk = (lIdx: number | null, rIdx: number | null, removedIdx: number | null = null) => ({
-    type: 'linked-list' as const,
-    nodes: dummyVals.map((v, i) => ({
-      id: `n${i}`,
-      value: v,
-      nextId: i < dummyVals.length - 1 ? `n${i + 1}` : null,
-      state:
-        i === removedIdx ? ('active' as const)
-        : i === lIdx ? ('curr' as const)
-        : i === rIdx ? ('next-node' as const)
-        : ('default' as const),
-    })),
-    pointers: [
-      ...(lIdx !== null ? [{ nodeId: `n${lIdx}`, label: 'l' }] : []),
-      ...(rIdx !== null ? [{ nodeId: `n${rIdx}`, label: 'r' }] : [{ nodeId: null, label: 'r=None' }]),
-    ],
-  });
+  const mk = (lIdx: number | null, rIdx: number | null, removedIdx: number | null = null) =>
+    linkedListState(dummyVals, {
+      nodeState: (i) => (i === removedIdx ? 'active' : i === lIdx ? 'curr' : i === rIdx ? 'next-node' : 'default'),
+      pointers: [
+        ...(lIdx !== null ? [{ nodeId: `n${lIdx}`, label: 'l' }] : []),
+        ...(rIdx !== null ? [{ nodeId: `n${rIdx}`, label: 'r' }] : [{ nodeId: null, label: 'r=None' }]),
+      ],
+    });
 
   steps.push({
     explanation: `One pass: hold two pointers l and r exactly n=${n} apart. When r runs off the end, l will be sitting just before the node to remove. The dummy(0) makes head-removal uniform.`,
@@ -215,11 +192,7 @@ function generateStepsOnePass(): Step[] {
   steps.push({
     explanation: `Removed val=${dummyVals[removeIdx]} in a single pass. Return dummy.next → [${resultVals.join('→')}]. O(n) time, O(1) space — and only one traversal.`,
     anchor: { match: 'return dummy.next' },
-    state: {
-      type: 'linked-list',
-      nodes: resultVals.map((v, i) => ({ id: `r${i}`, value: v, nextId: i < resultVals.length - 1 ? `r${i + 1}` : null, state: 'done' as const })),
-      pointers: [],
-    },
+    state: resultState(resultVals),
     variables: [{ name: 'return', value: `[${resultVals.join('→')}]`, highlight: true }],
   });
 
@@ -234,20 +207,11 @@ function generateStepsRecursion(): Step[] {
   const dummyVals = [0, ...vals];
   const steps: Step[] = [];
 
-  const mk = (activeIdx: number | null, removedIdx: number | null, done: Set<number>) => ({
-    type: 'linked-list' as const,
-    nodes: dummyVals.map((v, i) => ({
-      id: `n${i}`,
-      value: v,
-      nextId: i < dummyVals.length - 1 ? `n${i + 1}` : null,
-      state:
-        i === removedIdx ? ('active' as const)
-        : i === activeIdx ? ('curr' as const)
-        : done.has(i) ? ('done' as const)
-        : ('default' as const),
-    })),
-    pointers: activeIdx !== null ? [{ nodeId: `n${activeIdx}`, label: 'head' }] : [],
-  });
+  const mk = (activeIdx: number | null, removedIdx: number | null, done: Set<number>) =>
+    linkedListState(dummyVals, {
+      nodeState: (i) => (i === removedIdx ? 'active' : i === activeIdx ? 'curr' : done.has(i) ? 'done' : 'default'),
+      pointers: activeIdx !== null ? [{ nodeId: `n${activeIdx}`, label: 'head' }] : [],
+    });
 
   steps.push({
     explanation: `Recursion: dive all the way to the end first, then count nodes as the calls unwind. The moment counter == n, return head.next so that node is dropped. Dummy(0) guards against removing the real head.`,
@@ -307,11 +271,7 @@ function generateStepsRecursion(): Step[] {
   steps.push({
     explanation: `Recursion complete — the counter==n node was dropped on the way up. Return dummy.next → [${resultVals.join('→')}]. O(n) time, O(n) call-stack space.`,
     anchor: { match: 'return dummy.next' },
-    state: {
-      type: 'linked-list',
-      nodes: resultVals.map((v, i) => ({ id: `r${i}`, value: v, nextId: i < resultVals.length - 1 ? `r${i + 1}` : null, state: 'done' as const })),
-      pointers: [],
-    },
+    state: resultState(resultVals),
     variables: [{ name: 'return', value: `[${resultVals.join('→')}]`, highlight: true }],
   });
 

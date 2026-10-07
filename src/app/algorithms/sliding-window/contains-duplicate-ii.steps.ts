@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's containsNearbyDuplicate_20260704 verbatim: the set is named
 // windowSet (not `seen`), and the shrink condition is `r - l > k` (no abs — r never
@@ -10,16 +11,12 @@ function generateSlidingWindowSteps(): Step[] {
   const steps: Step[] = [];
   const windowSet = new Set<number>();
   let l = 0;
+  const windowHashmap = () => Object.fromEntries([...windowSet].map(v => [v, 1]));
 
   steps.push({
     explanation: `Sliding window: l = r = 0, windowSet = set(). Advance r; if r − l > k the window is too wide, so evict nums[l] and slide l forward. Check for a duplicate before adding nums[r] to windowSet.`,
     anchor: { match: 'l = r = 0', to: { match: 'windowSet = set()' } },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [{ index: 0, label: 'l=r' }],
-      hashmap: {},
-    },
+    state: arrayState(nums, { pointers: [{ index: 0, label: 'l=r' }], hashmap: {} }),
     variables: [{ name: 'k', value: k }, { name: 'windowSet', value: '{}' }],
   });
 
@@ -28,22 +25,11 @@ function generateSlidingWindowSteps(): Step[] {
       steps.push({
         explanation: `r(${r}) − l(${l}) = ${r - l} > k=${k}: window too wide. windowSet.remove(nums[l=${l}]=${nums[l]}), then l += 1.`,
         anchor: { match: 'while r - l > k:', to: { match: 'l+=1' } },
-        state: {
-          type: 'array',
-          cells: nums.map((v, j) => ({
-            value: v,
-            state:
-              j === l
-                ? ('eliminated' as const)
-                : j >= l && j <= r
-                ? ('window' as const)
-                : j < l
-                ? ('visited' as const)
-                : ('default' as const),
-          })),
+        state: arrayState(nums, {
+          cellState: (j) => (j === l ? 'eliminated' : j >= l && j <= r ? 'window' : j < l ? 'visited' : 'default'),
           pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-          hashmap: Object.fromEntries([...windowSet].map(v => [v, 1])),
-        },
+          hashmap: windowHashmap(),
+        }),
         variables: [
           { name: 'evict', value: nums[l], highlight: true },
           { name: 'l', value: l + 1 },
@@ -57,24 +43,18 @@ function generateSlidingWindowSteps(): Step[] {
       steps.push({
         explanation: `nums[r=${r}]=${nums[r]} already in windowSet {${[...windowSet].join(',')}}. Duplicate within k=${k}! Return True.`,
         anchor: { match: 'if nums[r] in windowSet:', to: { match: 'return True', nth: 2 } }, // 2nd hit: the actual return (the 1st is the leading comment "# if so, we return True")
-        state: {
-          type: 'array',
-          cells: nums.map((v, j) => ({
-            value: v,
-            state:
-              j === r
-                ? ('found' as const)
-                : j >= l && j < r && nums[j] === nums[r]
-                ? ('found' as const)
-                : j >= l && j < r
-                ? ('window' as const)
-                : j < l
-                ? ('visited' as const)
-                : ('default' as const),
-          })),
+        state: arrayState(nums, {
+          cellState: (j) =>
+            j === r || (j >= l && j < r && nums[j] === nums[r])
+              ? 'found'
+              : j >= l && j < r
+              ? 'window'
+              : j < l
+              ? 'visited'
+              : 'default',
           pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-          hashmap: Object.fromEntries([...windowSet].map(v => [v, 1])),
-        },
+          hashmap: windowHashmap(),
+        }),
         variables: [
           { name: 'nums[r]', value: nums[r], highlight: true },
           { name: 'in windowSet', value: 'True' },
@@ -88,22 +68,11 @@ function generateSlidingWindowSteps(): Step[] {
     steps.push({
       explanation: `r=${r}, nums[r]=${nums[r]} not in windowSet. windowSet.add(nums[r]). windowSet = {${[...windowSet].join(',')}}.`,
       anchor: { match: 'windowSet.add(nums[r])', to: { match: 'r+=1' } },
-      state: {
-        type: 'array',
-        cells: nums.map((v, j) => ({
-          value: v,
-          state:
-            j === r
-              ? ('active' as const)
-              : j >= l && j < r
-              ? ('window' as const)
-              : j < l
-              ? ('visited' as const)
-              : ('default' as const),
-        })),
+      state: arrayState(nums, {
+        cellState: (j) => (j === r ? 'active' : j >= l && j < r ? 'window' : j < l ? 'visited' : 'default'),
         pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-        hashmap: Object.fromEntries([...windowSet].map(v => [v, 1])),
-      },
+        hashmap: windowHashmap(),
+      }),
       variables: [
         { name: 'nums[r]', value: nums[r] },
         { name: 'windowSet', value: `{${[...windowSet].join(',')}}`, highlight: true },
@@ -114,12 +83,7 @@ function generateSlidingWindowSteps(): Step[] {
   steps.push({
     explanation: `r reached len(nums) — loop exits. No duplicate within distance k=${k}. Return False.`,
     anchor: { match: 'return False' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'visited' as const })),
-      pointers: [],
-      hashmap: Object.fromEntries([...windowSet].map(v => [v, 1])),
-    },
+    state: arrayState(nums, { cellState: () => 'visited', hashmap: windowHashmap() }),
     variables: [{ name: 'return', value: 'False', highlight: true }],
   });
 

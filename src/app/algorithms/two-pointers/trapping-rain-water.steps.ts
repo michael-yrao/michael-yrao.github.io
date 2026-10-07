@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generators ──────────────────────────────────────────────────────────
 //
@@ -22,15 +23,12 @@ function generatePrefixSteps(): Step[] {
     explanation:
       'leftMax = [0]*len(height), rightMax = [0]*len(height), totalWater = 0. Build leftMax and rightMax in two passes, then accumulate currentWater = max(0, min(leftMax[i],rightMax[i]) - height[i]) into totalWater in a third pass — no water[] array is kept.',
     anchor: { match: 'leftMax = [0] * len(height)', to: { match: 'totalWater = 0' } },
-    state: {
-      type: 'array',
-      cells: height.map((v) => ({ value: v, state: 'default' as const })),
-      pointers: [],
+    state: arrayState(height, {
       counters: [
         { label: 'leftMax', value: `[${leftMax.join(', ')}]` },
         { label: 'rightMax', value: `[${rightMax.join(', ')}]` },
       ],
-    },
+    }),
     variables: [{ name: 'height', value: `[${height.join(', ')}]` }],
   });
 
@@ -40,18 +38,14 @@ function generatePrefixSteps(): Step[] {
     steps.push({
       explanation: `leftMax[${i}] = max(leftMax[${i - 1}]=${leftMax[i - 1]}, height[${i - 1}]=${height[i - 1]}) = ${leftMax[i]}.`,
       anchor: { match: 'for i in range(1,len(height)):', to: { match: 'leftMax[i] = max(leftMax[i-1], height[i-1])' } },
-      state: {
-        type: 'array',
-        cells: leftMax.map((v, j) => ({
-          value: v,
-          state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
-        })),
+      state: arrayState(leftMax, {
+        cellState: (j) => (j === i ? 'active' : j < i ? 'visited' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         counters: [
           { label: 'height', value: `[${height.join(', ')}]` },
           { label: 'rightMax', value: `[${rightMax.join(', ')}]` },
         ],
-      },
+      }),
       variables: [
         { name: 'i', value: i },
         { name: `leftMax[${i}]`, value: leftMax[i], highlight: true },
@@ -65,18 +59,14 @@ function generatePrefixSteps(): Step[] {
     steps.push({
       explanation: `rightMax[${i}] = max(rightMax[${i + 1}]=${rightMax[i + 1]}, height[${i + 1}]=${height[i + 1]}) = ${rightMax[i]}.`,
       anchor: { match: 'for i in range(len(height)-2,-1,-1):', to: { match: 'rightMax[i] = max(rightMax[i+1],height[i+1])' } },
-      state: {
-        type: 'array',
-        cells: rightMax.map((v, j) => ({
-          value: v,
-          state: j === i ? ('active' as const) : j > i ? ('visited' as const) : ('default' as const),
-        })),
+      state: arrayState(rightMax, {
+        cellState: (j) => (j === i ? 'active' : j > i ? 'visited' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         counters: [
           { label: 'height', value: `[${height.join(', ')}]` },
           { label: 'leftMax', value: `[${leftMax.join(', ')}]` },
         ],
-      },
+      }),
       variables: [
         { name: 'i', value: i },
         { name: `rightMax[${i}]`, value: rightMax[i], highlight: true },
@@ -94,19 +84,15 @@ function generatePrefixSteps(): Step[] {
     steps.push({
       explanation: `i=${i}: currentWater = max(0, min(leftMax[i]=${leftMax[i]}, rightMax[i]=${rightMax[i]}) - height[i]=${height[i]}) = ${currentWater}. totalWater += currentWater → ${totalWater}.`,
       anchor: { match: 'for i in range(len(height)):', to: { match: 'totalWater += currentWater' } },
-      state: {
-        type: 'array',
-        cells: height.map((v, j) => ({
-          value: j <= i ? rendered[j] : v,
-          state: j < i ? (rendered[j] > 0 ? ('found' as const) : ('visited' as const)) : j === i ? ('active' as const) : ('default' as const),
-        })),
+      state: arrayState(rendered, {
+        cellState: (j) => (j < i ? (rendered[j] > 0 ? 'found' : 'visited') : j === i ? 'active' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         counters: [
           { label: 'leftMax', value: `[${leftMax.join(', ')}]` },
           { label: 'rightMax', value: `[${rightMax.join(', ')}]` },
           { label: 'totalWater', value: totalWater },
         ],
-      },
+      }),
       variables: [
         { name: 'i', value: i },
         { name: 'currentWater', value: currentWater, highlight: true },
@@ -118,16 +104,14 @@ function generatePrefixSteps(): Step[] {
   steps.push({
     explanation: `Return totalWater = ${totalWater}. O(n) time, O(n) space for the two auxiliary arrays.`,
     anchor: { match: 'return totalWater' },
-    state: {
-      type: 'array',
-      cells: rendered.map((v) => ({ value: v, state: v > 0 ? ('found' as const) : ('eliminated' as const) })),
-      pointers: [],
+    state: arrayState(rendered, {
+      cellState: (j) => (rendered[j] > 0 ? 'found' : 'eliminated'),
       counters: [
         { label: 'leftMax', value: `[${leftMax.join(', ')}]` },
         { label: 'rightMax', value: `[${rightMax.join(', ')}]` },
         { label: 'totalWater', value: totalWater },
       ],
-    },
+    }),
     variables: [{ name: 'return', value: totalWater, highlight: true }],
   });
 
@@ -143,23 +127,23 @@ function generateTwoPointerSteps(): Step[] {
   let rightMax = height[r];
   let res = 0;
 
+  // Reads the current l and r: cells outside [l, r] are done, l is active, r is the min pointer.
+  const windowCellState = (i: number): CellState =>
+    i < l ? 'visited' : i === l ? 'active' : i === r ? 'min-ptr' : i > r ? 'visited' : 'default';
+
   steps.push({
     explanation:
       'if not height: return 0 guards the empty case. l, r = 0, len(height)-1; leftMax, rightMax = height[l], height[r]; res = 0. While leftMax < rightMax the left side is the bottleneck; otherwise the right side is — that running max IS the potential water at the side that moves.',
     anchor: { match: 'l, r = 0, len(height) - 1', to: { match: 'res = 0' } },
-    state: {
-      type: 'array',
-      cells: height.map((v, i) => ({
-        value: v,
-        state: i === l ? ('active' as const) : i === r ? ('min-ptr' as const) : ('default' as const),
-      })),
+    state: arrayState(height, {
+      cellState: (i) => (i === l ? 'active' : i === r ? 'min-ptr' : 'default'),
       pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
       counters: [
         { label: 'leftMax', value: leftMax },
         { label: 'rightMax', value: rightMax },
         { label: 'res', value: res },
       ],
-    },
+    }),
     variables: [
       { name: 'l', value: l },
       { name: 'r', value: r },
@@ -176,28 +160,15 @@ function generateTwoPointerSteps(): Step[] {
       steps.push({
         explanation: `leftMax(${leftMax}) < rightMax(${rightMax}): left side is the bottleneck. l+=1 → ${l}. leftMax = max(leftMax, height[l]) = ${leftMax}. res += leftMax - height[l] = ${leftMax}-${height[l]} → res=${res}.`,
         anchor: { match: 'if leftMax < rightMax:', to: { match: 'res += leftMax - height[l]' } },
-        state: {
-          type: 'array',
-          cells: height.map((v, i) => ({
-            value: v,
-            state:
-              i < l
-                ? ('visited' as const)
-                : i === l
-                ? ('active' as const)
-                : i === r
-                ? ('min-ptr' as const)
-                : i > r
-                ? ('visited' as const)
-                : ('default' as const),
-          })),
+        state: arrayState(height, {
+          cellState: windowCellState,
           pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
           counters: [
             { label: 'leftMax', value: leftMax },
             { label: 'rightMax', value: rightMax },
             { label: 'res', value: res },
           ],
-        },
+        }),
         variables: [
           { name: 'l', value: l, highlight: true },
           { name: 'leftMax', value: leftMax, highlight: true },
@@ -211,28 +182,15 @@ function generateTwoPointerSteps(): Step[] {
       steps.push({
         explanation: `leftMax(${leftMax}) >= rightMax(${rightMax}): right side is the bottleneck. r-=1 → ${r}. rightMax = max(rightMax, height[r]) = ${rightMax}. res += rightMax - height[r] = ${rightMax}-${height[r]} → res=${res}.`,
         anchor: { match: 'else:', to: { match: 'res += rightMax - height[r]' } },
-        state: {
-          type: 'array',
-          cells: height.map((v, i) => ({
-            value: v,
-            state:
-              i < l
-                ? ('visited' as const)
-                : i === l
-                ? ('active' as const)
-                : i === r
-                ? ('min-ptr' as const)
-                : i > r
-                ? ('visited' as const)
-                : ('default' as const),
-          })),
+        state: arrayState(height, {
+          cellState: windowCellState,
           pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
           counters: [
             { label: 'leftMax', value: leftMax },
             { label: 'rightMax', value: rightMax },
             { label: 'res', value: res },
           ],
-        },
+        }),
         variables: [
           { name: 'r', value: r, highlight: true },
           { name: 'rightMax', value: rightMax, highlight: true },
@@ -245,16 +203,15 @@ function generateTwoPointerSteps(): Step[] {
   steps.push({
     explanation: `l(${l}) meets r(${r}) — done. Return res = ${res}. O(n) time, O(1) space — no auxiliary arrays needed.`,
     anchor: { match: 'return res' },
-    state: {
-      type: 'array',
-      cells: height.map((v) => ({ value: v, state: 'found' as const })),
+    state: arrayState(height, {
+      cellState: () => 'found',
       pointers: [{ index: l, label: 'l=r' }],
       counters: [
         { label: 'leftMax', value: leftMax },
         { label: 'rightMax', value: rightMax },
         { label: 'res', value: res },
       ],
-    },
+    }),
     variables: [{ name: 'return', value: res, highlight: true }],
   });
 

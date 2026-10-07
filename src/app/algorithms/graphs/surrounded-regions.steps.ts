@@ -1,4 +1,5 @@
-import { AlgorithmMeta, Step, GridState, GridCellState, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, GraphEdgeState, GraphNodeState, GridState, GridCellState, ProblemExample } from '../../core/models/algorithm.model';
+import { gridKey, gridState, graphState } from '../../core/steps';
 
 // Traces cse-progress's two attempts verbatim:
 // - BFS variant → solve_20260919: level-by-level BFS (lenQueue snapshot each round,
@@ -20,7 +21,6 @@ function generateSteps(): Step[] {
   const rows = 4;
   const cols = 4;
   const steps: Step[] = [];
-  const toKey = (r: number, c: number) => `${r},${c}`;
 
   const board: BoardValue[][] = [
     ['X', 'X', 'X', 'X'],
@@ -32,26 +32,26 @@ function generateSteps(): Step[] {
   const safeSet = new Set<string>();
   const queuedSet = new Set<string>();
 
-  const makeGrid = (overrides: Map<string, GridCellState> = new Map()): GridState => ({
-    type: 'grid',
-    grid: board.map((row, r) =>
-      row.map((cell, c) => {
-        const key = toKey(r, c);
-        if (overrides.has(key)) return { state: overrides.get(key)! };
-        if (safeSet.has(key)) return { state: 'visited' };
-        if (queuedSet.has(key)) return { state: 'queued' };
-        if (cell === 'X') return { state: 'water' };
-        return { state: 'land' };
-      })
-    ),
-    legend: [
-      { state: 'water', label: "X (wall)" },
-      { state: 'land', label: "O (region)" },
-      { state: 'queued', label: "in safeQueue" },
-      { state: 'visited', label: "S (safe)" },
-      { state: 'found', label: "captured → X" },
-    ],
-  });
+  const makeGrid = (overrides: Map<string, GridCellState> = new Map()): GridState =>
+    gridState(
+      board,
+      (cell, r, c) => {
+        const key = gridKey(r, c);
+        if (overrides.has(key)) return overrides.get(key)!;
+        if (safeSet.has(key)) return 'visited';
+        if (queuedSet.has(key)) return 'queued';
+        return cell === 'X' ? 'water' : 'land';
+      },
+      {
+        legend: [
+          { state: 'water', label: "X (wall)" },
+          { state: 'land', label: "O (region)" },
+          { state: 'queued', label: "in safeQueue" },
+          { state: 'visited', label: "S (safe)" },
+          { state: 'found', label: "captured → X" },
+        ],
+      },
+    );
 
   steps.push({
     explanation:
@@ -91,7 +91,7 @@ function generateSteps(): Step[] {
     ],
   });
 
-  queuedSet.add(toKey(3, 1));
+  queuedSet.add(gridKey(3, 1));
   steps.push({
     explanation:
       "Scan bottom edge (row 3): (3,0)='X', (3,1)='O' ← border 'O'! Add (3,1) to safeQueue. (3,2)='X', (3,3)='X'. We now have one BFS seed.",
@@ -103,8 +103,8 @@ function generateSteps(): Step[] {
     ],
   });
 
-  queuedSet.delete(toKey(3, 1));
-  safeSet.add(toKey(3, 1));
+  queuedSet.delete(gridKey(3, 1));
+  safeSet.add(gridKey(3, 1));
   board[3][1] = 'S';
   steps.push({
     explanation:
@@ -130,9 +130,9 @@ function generateSteps(): Step[] {
   });
 
   const captureOverrides = new Map<string, GridCellState>([
-    [toKey(1, 1), 'found'],
-    [toKey(1, 2), 'found'],
-    [toKey(2, 2), 'found'],
+    [gridKey(1, 1), 'found'],
+    [gridKey(1, 2), 'found'],
+    [gridKey(2, 2), 'found'],
   ]);
   steps.push({
     explanation:
@@ -161,7 +161,7 @@ function generateSteps(): Step[] {
     ],
   });
 
-  safeSet.delete(toKey(3, 1));
+  safeSet.delete(gridKey(3, 1));
   board[3][1] = 'O';
 
   steps.push({
@@ -198,22 +198,20 @@ function generateStepsUF(): Step[] {
     ['1,2', '2,2'],
   ];
 
-  type NS = 'default' | 'active' | 'visited' | 'found';
-  type ES = 'default' | 'active' | 'visited' | 'found';
-  const ns: NS[] = ['default', 'default', 'default', 'default', 'default'];
-  const es: ES[] = ['default', 'default', 'default'];
+  const ns: GraphNodeState[] = ['default', 'default', 'default', 'default', 'default'];
+  const es: GraphEdgeState[] = ['default', 'default', 'default'];
   const parent: Record<string, string> = { '1,1': '1,1', '1,2': '1,2', '2,2': '2,2', '3,1': '3,1', B: 'B' };
   const rank: Record<string, number> = { '1,1': 0, '1,2': 0, '2,2': 0, '3,1': 0, B: 0 };
 
-  const mkState = () => ({
-    type: 'graph' as const,
-    nodes: NODE_POS.map((p, i) => ({ ...p, state: ns[i] })),
-    edges: EDGE_LIST.map(([from, to], i) => ({ from, to, state: es[i] })),
-    hashmapLabel: 'parentMap',
-    hashmap: { ...parent } as Record<string | number, string | number>,
-    hashmap2Label: 'rankMap',
-    hashmap2: { ...rank } as Record<string | number, number>,
-  });
+  const mkState = () =>
+    graphState(NODE_POS, EDGE_LIST.map(([from, to]) => ({ from, to })), {
+      nodeState: (_, i) => ns[i],
+      edgeState: (_, i) => es[i],
+      hashmapLabel: 'parentMap',
+      hashmap: { ...parent },
+      hashmap2Label: 'rankMap',
+      hashmap2: { ...rank },
+    });
 
   // Step 1: Init
   steps.push({

@@ -1,4 +1,5 @@
-import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, GraphEdgeState, GraphNodeState, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { graphState } from '../../core/steps';
 
 // Traces cse-progress's two attempts verbatim:
 // - BFS variant → countComponents_20260706: fully inlined (no separate bfs() helper).
@@ -25,20 +26,18 @@ function generateSteps(): Step[] {
     { id: 4, x: 375, y: 170 },
   ];
 
-  type NS = 'default' | 'active' | 'visited' | 'found';
-  type ES = 'default' | 'active' | 'visited' | 'found';
-  const ns: NS[] = new Array(n).fill('default');
-  const es: ES[] = new Array(edgeList.length).fill('default');
+  const ns: GraphNodeState[] = new Array(n).fill('default');
+  const es: GraphEdgeState[] = new Array(edgeList.length).fill('default');
   let comp = 0;
 
-  const mkState = (queue: number[]) => ({
-    type: 'graph' as const,
-    nodes: NODE_POS.map((p, i) => ({ ...p, state: ns[i] })),
-    edges: edgeList.map(([from, to], i) => ({ from, to, state: es[i] })),
-    stackItems: queue.map(String),
-    stackLabel: 'queue',
-    counters: [{ label: 'components', value: comp }],
-  });
+  const mkState = (queue: number[]) =>
+    graphState(NODE_POS, edgeList.map(([from, to]) => ({ from, to })), {
+      nodeState: (_, i) => ns[i],
+      edgeState: (_, i) => es[i],
+      stackItems: queue.map(String),
+      stackLabel: 'queue',
+      counters: [{ label: 'components', value: comp }],
+    });
 
   // Step 1: Build adjMap (fully inlined attempt — no separate bfs() helper)
   steps.push({
@@ -170,24 +169,22 @@ function generateStepsUF(): Step[] {
     { id: 4, x: 375, y: 170 },
   ];
 
-  type NS = 'default' | 'active' | 'visited' | 'found';
-  type ES = 'default' | 'active' | 'visited' | 'found';
-  const ns: NS[] = new Array(n).fill('default');
-  const es: ES[] = new Array(edgeList.length).fill('default');
+  const ns: GraphNodeState[] = new Array(n).fill('default');
+  const es: GraphEdgeState[] = new Array(edgeList.length).fill('default');
   const parent = [0, 1, 2, 3, 4];
   const rank = [0, 0, 0, 0, 0];
   let comp = 5;
 
-  const mkState = () => ({
-    type: 'graph' as const,
-    nodes: NODE_POS.map((p, i) => ({ ...p, state: ns[i] })),
-    edges: edgeList.map(([from, to], i) => ({ from, to, state: es[i] })),
-    hashmapLabel: 'parentMap',
-    hashmap: Object.fromEntries(parent.map((p, i) => [String(i), p])) as Record<string | number, number>,
-    hashmap2Label: 'rankMap',
-    hashmap2: Object.fromEntries(rank.map((r, i) => [String(i), r])) as Record<string | number, number>,
-    counters: [{ label: 'components', value: comp }],
-  });
+  const mkState = () =>
+    graphState(NODE_POS, edgeList.map(([from, to]) => ({ from, to })), {
+      nodeState: (_, i) => ns[i],
+      edgeState: (_, i) => es[i],
+      hashmapLabel: 'parentMap',
+      hashmap: Object.fromEntries(parent.map((p, i) => [String(i), p])),
+      hashmap2Label: 'rankMap',
+      hashmap2: Object.fromEntries(rank.map((r, i) => [String(i), r])),
+      counters: [{ label: 'components', value: comp }],
+    });
 
   // Step 1: Init
   steps.push({

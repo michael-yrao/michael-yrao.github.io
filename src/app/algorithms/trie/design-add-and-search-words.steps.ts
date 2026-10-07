@@ -4,7 +4,8 @@
 // it checks the char match with `elif currentChar in trieNode.children:` — a not-in
 // check happens only in the `else: return False` branch, not as a guard before the
 // descend (the earlier site version inverted this to `if char not in ...: return False`).
-import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, GraphNode, GraphEdge, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, ProblemExample } from '../../core/models/algorithm.model';
+import { graphState } from '../../core/steps';
 
 const ADD_WORD_CREATE_OR_REUSE: StepAnchor = {
   match: 'if char not in traversal.children:',
@@ -53,36 +54,26 @@ function generateSteps(): Step[] {
   const steps: Step[] = [];
   const revealed = new Set<string>(['r']);
 
-  const nodes = (active: string | null, path: Set<string>): GraphNode[] =>
+  const nodes = () =>
     [...revealed].map((id) => {
       const t = TRIE[id];
-      return {
-        id,
-        x: t.x,
-        y: t.y,
-        state: (id === active ? 'active' : path.has(id) ? 'found' : 'visited') as GraphNode['state'],
-        label: t.isWord ? `${t.char}✓` : t.char,
-      };
+      return { id, x: t.x, y: t.y, label: t.isWord ? `${t.char}✓` : t.char };
     });
 
-  const edges = (path: Set<string>): GraphEdge[] => {
-    const out: GraphEdge[] = [];
-    for (const id of revealed) {
-      for (const childId of Object.values(TRIE[id].children)) {
-        if (revealed.has(childId)) {
-          out.push({ from: id, to: childId, state: path.has(id) && path.has(childId) ? 'found' : 'default' });
-        }
-      }
-    }
-    return out;
-  };
+  const edges = () =>
+    [...revealed].flatMap((id) =>
+      Object.values(TRIE[id].children)
+        .filter((childId) => revealed.has(childId))
+        .map((childId) => ({ from: id, to: childId })),
+    );
 
   const mkState = (active: string | null, path: Set<string>, counters: { label: string; value: number | string }[]): Step['state'] => ({
-    type: 'graph',
+    ...graphState(nodes(), edges(), {
+      nodeState: ({ id }) => (id === active ? 'active' : path.has(String(id)) ? 'found' : 'visited'),
+      edgeState: ({ from, to }) => (path.has(String(from)) && path.has(String(to)) ? 'found' : 'default'),
+      counters,
+    }),
     directed: true,
-    nodes: nodes(active, path),
-    edges: edges(path),
-    counters,
   });
 
   steps.push({

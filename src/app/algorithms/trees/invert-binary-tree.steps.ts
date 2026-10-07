@@ -1,178 +1,90 @@
-import { AlgorithmMeta, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, TreeNodeState, TreeState } from '../../core/models/algorithm.model';
+import { TreeNodeInput, treeState } from '../../core/steps';
 
 // Traces cse-progress's invertTree verbatim: `if not root: return root` (returns root itself,
 // i.e. None, not a bare `return`), then postorder — recurse left, recurse right, THEN swap via
 // a temp variable — matches this file's earlier hand simulation exactly, only anchors change.
 
-function makeInitialNodes(): ReturnType<typeof buildNodes> {
-  return buildNodes({
-    n0: { value: 4, leftId: 'n1', rightId: 'n2' },
-    n1: { value: 2, leftId: 'n3', rightId: 'n4' },
-    n2: { value: 7, leftId: 'n5', rightId: 'n6' },
-    n3: { value: 1, leftId: null, rightId: null },
-    n4: { value: 3, leftId: null, rightId: null },
-    n5: { value: 6, leftId: null, rightId: null },
-    n6: { value: 9, leftId: null, rightId: null },
-  });
+const ORIGINAL: TreeNodeInput[] = [
+  { id: 'n0', value: 4, leftId: 'n1', rightId: 'n2' },
+  { id: 'n1', value: 2, leftId: 'n3', rightId: 'n4' },
+  { id: 'n2', value: 7, leftId: 'n5', rightId: 'n6' },
+  { id: 'n3', value: 1, leftId: null, rightId: null },
+  { id: 'n4', value: 3, leftId: null, rightId: null },
+  { id: 'n5', value: 6, leftId: null, rightId: null },
+  { id: 'n6', value: 9, leftId: null, rightId: null },
+];
+
+function swapChildren(nodes: TreeNodeInput[], ids: string[]): TreeNodeInput[] {
+  return nodes.map((node) => (ids.includes(node.id) ? { ...node, leftId: node.rightId, rightId: node.leftId } : node));
 }
 
-type NodeDef = { value: number; leftId: string | null; rightId: string | null };
+const AFTER_N1_SWAP = swapChildren(ORIGINAL, ['n1']);
+const AFTER_N1_N2_SWAP = swapChildren(ORIGINAL, ['n1', 'n2']);
+const FULLY_INVERTED = swapChildren(ORIGINAL, ['n1', 'n2', 'n0']);
 
-function buildNodes(defs: Record<string, NodeDef & { state?: string }>, stateOverrides?: Record<string, string>) {
-  return Object.entries(defs).map(([id, def]) => ({
-    id,
-    value: def.value,
-    state: ((stateOverrides?.[id] ?? def.state ?? 'default') as 'default' | 'active' | 'visited' | 'found' | 'highlighted' | 'comparing'),
-    leftId: def.leftId,
-    rightId: def.rightId,
-  }));
+/** Tree over `nodes` where each id in `states` takes its mapped state and every other node is default. */
+function tree(nodes: TreeNodeInput[], states: Record<string, TreeNodeState> = {}): TreeState {
+  return treeState(nodes, { nodeState: (node) => states[node.id] ?? 'default' });
 }
 
-export function generateSteps() {
-  const steps = [];
+export function generateSteps(): Step[] {
+  const steps: Step[] = [];
 
   // Step 1: Introduction
   steps.push({
     explanation: 'Intro: postorder DFS — recurse left, recurse right, then swap. We visit leaves first and work back up.',
     anchor: { match: 'def invertTree(self, root: Optional[TreeNode]) -> Optional[TreeNode]:' },
-    state: {
-      type: 'tree' as const,
-      nodes: buildNodes({
-        n0: { value: 4, leftId: 'n1', rightId: 'n2' },
-        n1: { value: 2, leftId: 'n3', rightId: 'n4' },
-        n2: { value: 7, leftId: 'n5', rightId: 'n6' },
-        n3: { value: 1, leftId: null, rightId: null },
-        n4: { value: 3, leftId: null, rightId: null },
-        n5: { value: 6, leftId: null, rightId: null },
-        n6: { value: 9, leftId: null, rightId: null },
-      }),
-    } as TreeState,
+    state: tree(ORIGINAL),
   });
 
   // Step 2: Reach node 1 (leaf, left-most)
   steps.push({
     explanation: 'Recurse all the way down left subtree. We reach node 1 (leaf); recursing into its null children hits if not root: return root. No children — return up.',
     anchor: { match: 'if not root:' },
-    state: {
-      type: 'tree' as const,
-      nodes: buildNodes({
-        n0: { value: 4, leftId: 'n1', rightId: 'n2' },
-        n1: { value: 2, leftId: 'n3', rightId: 'n4' },
-        n2: { value: 7, leftId: 'n5', rightId: 'n6' },
-        n3: { value: 1, leftId: null, rightId: null },
-        n4: { value: 3, leftId: null, rightId: null },
-        n5: { value: 6, leftId: null, rightId: null },
-        n6: { value: 9, leftId: null, rightId: null },
-      }, { n3: 'active' }),
-    } as TreeState,
+    state: tree(ORIGINAL, { n3: 'active' }),
   });
 
   // Step 3: Reach node 3 (leaf, right child of node 2)
   steps.push({
     explanation: 'Recurse down right of node 2. We reach node 3 (leaf); if not root: return root fires on its null children. No children — return up.',
     anchor: { match: 'if not root:' },
-    state: {
-      type: 'tree' as const,
-      nodes: buildNodes({
-        n0: { value: 4, leftId: 'n1', rightId: 'n2' },
-        n1: { value: 2, leftId: 'n3', rightId: 'n4' },
-        n2: { value: 7, leftId: 'n5', rightId: 'n6' },
-        n3: { value: 1, leftId: null, rightId: null },
-        n4: { value: 3, leftId: null, rightId: null },
-        n5: { value: 6, leftId: null, rightId: null },
-        n6: { value: 9, leftId: null, rightId: null },
-      }, { n3: 'visited', n4: 'active' }),
-    } as TreeState,
+    state: tree(ORIGINAL, { n3: 'visited', n4: 'active' }),
   });
 
   // Step 4: Back at node 2, swap children (n3 and n4 swap positions)
   steps.push({
     explanation: "Back at node 2, both recursive calls done. temp = root.left; root.left = root.right; root.right = temp. Left=1, right=3 → node 2's left becomes 3, right becomes 1.",
     anchor: { match: 'temp = root.left', to: { match: 'root.right = temp' } },
-    state: {
-      type: 'tree' as const,
-      nodes: [
-        { id: 'n0', value: 4, state: 'default' as const, leftId: 'n1', rightId: 'n2' },
-        { id: 'n1', value: 2, state: 'active' as const, leftId: 'n4', rightId: 'n3' },
-        { id: 'n2', value: 7, state: 'default' as const, leftId: 'n5', rightId: 'n6' },
-        { id: 'n3', value: 1, state: 'visited' as const, leftId: null, rightId: null },
-        { id: 'n4', value: 3, state: 'visited' as const, leftId: null, rightId: null },
-        { id: 'n5', value: 6, state: 'default' as const, leftId: null, rightId: null },
-        { id: 'n6', value: 9, state: 'default' as const, leftId: null, rightId: null },
-      ],
-    } as TreeState,
+    state: tree(AFTER_N1_SWAP, { n1: 'active', n3: 'visited', n4: 'visited' }),
   });
 
   // Step 5: Reach node 6 (leaf, left child of node 7)
   steps.push({
     explanation: "Recurse down left of root's right child (node 7). Reach node 6 (leaf); if not root: return root fires on its null children.",
     anchor: { match: 'if not root:' },
-    state: {
-      type: 'tree' as const,
-      nodes: [
-        { id: 'n0', value: 4, state: 'default' as const, leftId: 'n1', rightId: 'n2' },
-        { id: 'n1', value: 2, state: 'visited' as const, leftId: 'n4', rightId: 'n3' },
-        { id: 'n2', value: 7, state: 'default' as const, leftId: 'n5', rightId: 'n6' },
-        { id: 'n3', value: 1, state: 'visited' as const, leftId: null, rightId: null },
-        { id: 'n4', value: 3, state: 'visited' as const, leftId: null, rightId: null },
-        { id: 'n5', value: 6, state: 'active' as const, leftId: null, rightId: null },
-        { id: 'n6', value: 9, state: 'default' as const, leftId: null, rightId: null },
-      ],
-    } as TreeState,
+    state: tree(AFTER_N1_SWAP, { n1: 'visited', n3: 'visited', n4: 'visited', n5: 'active' }),
   });
 
   // Step 6: Reach node 9 (leaf, right child of node 7)
   steps.push({
     explanation: 'Recurse down right of node 7. Reach node 9 (leaf); if not root: return root fires on its null children.',
     anchor: { match: 'if not root:' },
-    state: {
-      type: 'tree' as const,
-      nodes: [
-        { id: 'n0', value: 4, state: 'default' as const, leftId: 'n1', rightId: 'n2' },
-        { id: 'n1', value: 2, state: 'visited' as const, leftId: 'n4', rightId: 'n3' },
-        { id: 'n2', value: 7, state: 'default' as const, leftId: 'n5', rightId: 'n6' },
-        { id: 'n3', value: 1, state: 'visited' as const, leftId: null, rightId: null },
-        { id: 'n4', value: 3, state: 'visited' as const, leftId: null, rightId: null },
-        { id: 'n5', value: 6, state: 'visited' as const, leftId: null, rightId: null },
-        { id: 'n6', value: 9, state: 'active' as const, leftId: null, rightId: null },
-      ],
-    } as TreeState,
+    state: tree(AFTER_N1_SWAP, { n1: 'visited', n3: 'visited', n4: 'visited', n5: 'visited', n6: 'active' }),
   });
 
   // Step 7: Back at node 7, swap children (n5 and n6 swap)
   steps.push({
     explanation: "Back at node 7, both recursive calls done. temp = root.left; root.left = root.right; root.right = temp → node 7's left becomes 9, right becomes 6.",
     anchor: { match: 'temp = root.left', to: { match: 'root.right = temp' } },
-    state: {
-      type: 'tree' as const,
-      nodes: [
-        { id: 'n0', value: 4, state: 'default' as const, leftId: 'n1', rightId: 'n2' },
-        { id: 'n1', value: 2, state: 'visited' as const, leftId: 'n4', rightId: 'n3' },
-        { id: 'n2', value: 7, state: 'active' as const, leftId: 'n6', rightId: 'n5' },
-        { id: 'n3', value: 1, state: 'visited' as const, leftId: null, rightId: null },
-        { id: 'n4', value: 3, state: 'visited' as const, leftId: null, rightId: null },
-        { id: 'n5', value: 6, state: 'visited' as const, leftId: null, rightId: null },
-        { id: 'n6', value: 9, state: 'visited' as const, leftId: null, rightId: null },
-      ],
-    } as TreeState,
+    state: tree(AFTER_N1_N2_SWAP, { n1: 'visited', n2: 'active', n3: 'visited', n4: 'visited', n5: 'visited', n6: 'visited' }),
   });
 
   // Step 8: Back at root, swap children (n1 and n2 swap)
   steps.push({
     explanation: 'Back at root (4), both recursive calls done. temp = root.left; root.left = root.right; root.right = temp → left becomes node 7, right becomes node 2. Tree fully inverted. return root.',
     anchor: { match: 'temp = root.left', to: { match: 'root.right = temp' } },
-    state: {
-      type: 'tree' as const,
-      nodes: [
-        { id: 'n0', value: 4, state: 'active' as const, leftId: 'n2', rightId: 'n1' },
-        { id: 'n1', value: 2, state: 'found' as const, leftId: 'n4', rightId: 'n3' },
-        { id: 'n2', value: 7, state: 'found' as const, leftId: 'n6', rightId: 'n5' },
-        { id: 'n3', value: 1, state: 'found' as const, leftId: null, rightId: null },
-        { id: 'n4', value: 3, state: 'found' as const, leftId: null, rightId: null },
-        { id: 'n5', value: 6, state: 'found' as const, leftId: null, rightId: null },
-        { id: 'n6', value: 9, state: 'found' as const, leftId: null, rightId: null },
-      ],
-    } as TreeState,
+    state: tree(FULLY_INVERTED, { n0: 'active', n1: 'found', n2: 'found', n3: 'found', n4: 'found', n5: 'found', n6: 'found' }),
   });
 
   return steps;

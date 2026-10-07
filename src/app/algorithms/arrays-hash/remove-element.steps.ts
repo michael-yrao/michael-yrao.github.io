@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -17,16 +18,14 @@ function generateSteps(): Step[] {
     explanation:
       `Remove Element on nums=[${numsOrig.join(',')}], val=${val}. Two-pointer approach: l is the write position, r is the read position (l = r = 0). Walk r through the array; when nums[r] != val, write it to nums[l] and increment l. r advances every iteration either way. Elements at l and beyond after the loop are "don't care".`,
     anchor: { match: 'l = r = 0' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
+    state: arrayState(nums, {
       pointers: [{ index: 0, label: 'l=0' }, { index: 0, label: 'r=0' }],
       counters: [
         { label: 'l (write ptr)', value: 0 },
         { label: 'r (read ptr)', value: 0 },
         { label: 'val', value: val },
       ],
-    },
+    }),
     variables: [
       { name: 'nums', value: `[${numsOrig.join(',')}]` },
       { name: 'val', value: val },
@@ -43,17 +42,8 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `r=${r}: nums[r]=${cur}. ${isVal ? `Equal to val=${val} → skip (l stays at ${l}).` : `Not val → write nums[${l}] = ${cur}, increment l to ${l + 1}.`}`,
       anchor: { match: 'if nums[r] != val:' },
-      state: {
-        type: 'array',
-        cells: nums.map((v, idx) => ({
-          value: v,
-          state:
-            idx === r
-              ? ('active' as const)
-              : idx < l
-              ? ('found' as const)
-              : ('default' as const),
-        })),
+      state: arrayState(nums, {
+        cellState: (idx) => (idx === r ? 'active' : idx < l ? 'found' : 'default'),
         pointers: [
           { index: l, label: 'l' },
           { index: r, label: 'r' },
@@ -64,7 +54,7 @@ function generateSteps(): Step[] {
           { label: 'nums[r]', value: cur },
           { label: 'is val?', value: isVal ? 'yes→skip' : 'no→write' },
         ],
-      },
+      }),
       variables: [
         { name: 'r', value: r },
         { name: 'nums[r]', value: cur, highlight: true },
@@ -79,17 +69,8 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `Wrote ${cur} to position ${l - 1}. l is now ${l}. First ${l} element(s) in result: [${nums.slice(0, l).join(',')}].`,
         anchor: { match: 'nums[l] = nums[r]', to: { match: 'l+=1' } },
-        state: {
-          type: 'array',
-          cells: nums.map((v, idx) => ({
-            value: v,
-            state:
-              idx < l
-                ? ('found' as const)
-                : idx === r
-                ? ('visited' as const)
-                : ('default' as const),
-          })),
+        state: arrayState(nums, {
+          cellState: (idx) => (idx < l ? 'found' : idx === r ? 'visited' : 'default'),
           pointers: [
             { index: l < nums.length ? l : nums.length - 1, label: 'l' },
             { index: r, label: 'r' },
@@ -99,7 +80,7 @@ function generateSteps(): Step[] {
             { label: 'r (read ptr)', value: r },
             { label: 'result so far', value: `[${nums.slice(0, l).join(',')}]` },
           ],
-        },
+        }),
         variables: [
           { name: 'l', value: l, highlight: true },
           { name: 'result', value: `[${nums.slice(0, l).join(',')}]` },
@@ -109,17 +90,8 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `nums[${r}]=${cur} equals val=${val} → eliminated (skip). l stays at ${l}.`,
         anchor: { match: 'if nums[r] != val:' },
-        state: {
-          type: 'array',
-          cells: nums.map((v, idx) => ({
-            value: v,
-            state:
-              idx === r
-                ? ('eliminated' as const)
-                : idx < l
-                ? ('found' as const)
-                : ('default' as const),
-          })),
+        state: arrayState(nums, {
+          cellState: (idx) => (idx === r ? 'eliminated' : idx < l ? 'found' : 'default'),
           pointers: [
             { index: l < nums.length ? l : nums.length - 1, label: 'l' },
             { index: r, label: 'r' },
@@ -129,7 +101,7 @@ function generateSteps(): Step[] {
             { label: 'r (read ptr)', value: r },
             { label: 'skipped val', value: cur },
           ],
-        },
+        }),
         variables: [
           { name: 'l', value: l },
           { name: 'skipped', value: cur, highlight: true },
@@ -141,18 +113,13 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Done. l=${l} elements remain. Result (first ${l} elements): [${nums.slice(0, l).join(',')}]. The remaining cells are "don't care". Return l=${l}.`,
     anchor: { match: 'return l' },
-    state: {
-      type: 'array',
-      cells: nums.map((v, idx) => ({
-        value: v,
-        state: idx < l ? ('found' as const) : ('eliminated' as const),
-      })),
-      pointers: [],
+    state: arrayState(nums, {
+      cellState: (idx) => (idx < l ? 'found' : 'eliminated'),
       counters: [
         { label: 'l (return)', value: l },
         { label: 'result', value: `[${nums.slice(0, l).join(',')}]` },
       ],
-    },
+    }),
     variables: [{ name: 'return l', value: l, highlight: true }],
   });
 

@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's Twitter verbatim: the tweet clock is `globalTweetCount`, the follow
 // map is `followMap`, and getNewsFeed builds `relevantUsers` in one expression
@@ -32,19 +33,17 @@ function generateSteps(): Step[] {
     explanation: '',
     anchor,
     state: {
-      type: 'array',
-      cells: feed.map((v) => ({ value: v, state: 'found' as const })),
-      pointers: [],
-      hashmap: tweetMapDisplay(),
-      hashmapLabel: 'tweetMap (user → tweetId@time)',
-      hashmap2: followMapDisplay(),
-      hashmap2Label: 'followMap (user → follows)',
+      ...arrayState(feed, {
+        cellState: () => 'found',
+        hashmap: tweetMapDisplay(), hashmapLabel: 'tweetMap (user → tweetId@time)',
+        counters: [
+          { label: 'op', value: op },
+          { label: 'globalTweetCount', value: globalTweetCount },
+          ...(returns !== undefined ? [{ label: 'returns', value: returns }] : []),
+        ],
+      }),
+      hashmap2: followMapDisplay(), hashmap2Label: 'followMap (user → follows)',
       stackItems: heap.map(([t, id]) => `${id}@t${t}`),
-      counters: [
-        { label: 'op', value: op },
-        { label: 'globalTweetCount', value: globalTweetCount },
-        ...(returns !== undefined ? [{ label: 'returns', value: returns }] : []),
-      ],
     },
     variables: [],
   });

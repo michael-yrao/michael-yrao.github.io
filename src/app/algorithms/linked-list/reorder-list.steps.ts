@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, LinkedListState, ProblemExample } from '../../core/models/algorithm.model';
+import { linkedListState } from '../../core/steps';
 
 // Traces cse-progress's reorderList_20260725 verbatim: phase 1 (find middle) is the same
 // slow/fast walk as the earlier hand simulation, but phase 2 renames current/temp to
@@ -11,28 +12,16 @@ function generateSteps(): Step[] {
   const vals = [1, 2, 3, 4, 5];
   const steps: Step[] = [];
 
-  // ── Helper: build a simple forward-linked node array ────────────────────────
-  const makeLinear = (
-    nodeVals: number[],
-    stateMap: Record<number, LinkedListNode['state']>
-  ): LinkedListNode[] =>
-    nodeVals.map((v, i) => ({
-      id: `n${i}`,
-      value: v,
-      nextId: i < nodeVals.length - 1 ? `n${i + 1}` : null,
-      state: stateMap[i] ?? ('default' as const),
-    }));
+  // ── Helper: the original list with the given node states and pointers ───────
+  const linear = (stateMap: Record<number, LinkedListNode['state']>, pointers: LinkedListState['pointers']) =>
+    linkedListState(vals, { nodeState: (i) => stateMap[i] ?? 'default', pointers });
 
   // ── Intro ──────────────────────────────────────────────────────────────────
   steps.push({
     explanation:
       'Reorder [1→2→3→4→5] to [1→5→2→4→3]. Algorithm has 3 phases: (1) find the middle using slow/fast pointers, (2) reverse the second half in-place, (3) interleave-merge the two halves.',
     anchor: { match: 'def reorderList_20260725(self, head: Optional[ListNode]) -> None:' },
-    state: {
-      type: 'linked-list',
-      nodes: makeLinear(vals, {}),
-      pointers: [{ nodeId: 'n0', label: 'head' }],
-    },
+    state: linear({}, [{ nodeId: 'n0', label: 'head' }]),
     variables: [],
   });
 
@@ -41,14 +30,10 @@ function generateSteps(): Step[] {
     explanation:
       'Phase 1 — Find Middle. slow, fast = head, head. slow advances 1 step, fast advances 2 steps per iteration. When fast (or fast.next) is None, slow is at the middle.',
     anchor: { match: 'slow, fast = head, head' },
-    state: {
-      type: 'linked-list',
-      nodes: makeLinear(vals, { 0: 'curr', }),
-      pointers: [
-        { nodeId: 'n0', label: 'slow' },
-        { nodeId: 'n0', label: 'fast' },
-      ],
-    },
+    state: linear({ 0: 'curr' }, [
+      { nodeId: 'n0', label: 'slow' },
+      { nodeId: 'n0', label: 'fast' },
+    ]),
     variables: [{ name: 'slow.val', value: vals[0] }, { name: 'fast.val', value: vals[0] }],
   });
 
@@ -62,14 +47,10 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `slow = slow.next → ${vals[slow]}. fast = fast.next.next → ${fast < vals.length ? vals[fast] : 'null'} (moved 2 steps). fast and fast.next still truthy — continue.`,
       anchor: { match: 'while fast and fast.next:', to: { match: 'fast = fast.next.next' } },
-      state: {
-        type: 'linked-list',
-        nodes: makeLinear(vals, { [slow]: 'curr', [fast]: 'next-node' }),
-        pointers: [
-          { nodeId: `n${slow}`, label: 'slow' },
-          { nodeId: fast < vals.length ? `n${fast}` : null, label: 'fast' },
-        ],
-      },
+      state: linear({ [slow]: 'curr', [fast]: 'next-node' }, [
+        { nodeId: `n${slow}`, label: 'slow' },
+        { nodeId: fast < vals.length ? `n${fast}` : null, label: 'fast' },
+      ]),
       variables: [
         { name: 'slow.val', value: vals[slow], highlight: true },
         { name: 'fast.val', value: fast < vals.length ? vals[fast] : 'null', highlight: true },
@@ -80,11 +61,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `fast (or fast.next) is None — slow is at the middle (node ${vals[slow]}). secondHead = slow.next (node ${vals[slow + 1]}), then slow.next = None cuts the two halves apart.`,
     anchor: { match: 'secondHead = slow.next', to: { match: 'slow.next = None' } },
-    state: {
-      type: 'linked-list',
-      nodes: makeLinear(vals, { [slow]: 'active' }),
-      pointers: [{ nodeId: `n${slow}`, label: 'slow (middle)' }],
-    },
+    state: linear({ [slow]: 'active' }, [{ nodeId: `n${slow}`, label: 'slow (middle)' }]),
     variables: [
       { name: 'slow.val', value: vals[slow], highlight: true },
       { name: 'slow.next', value: vals[slow + 1] },
@@ -95,6 +72,8 @@ function generateSteps(): Step[] {
   // first half: vals[0..midIdx], second half: vals[midIdx+1..end]
   const firstHalfVals = vals.slice(0, midIdx + 1);
   const secondHalfVals = vals.slice(midIdx + 1); // [4, 5]
+  const firstHalfNodes = (headState: LinkedListNode['state'] = 'default') =>
+    linkedListState(firstHalfVals, { nodeState: (i) => (i === 0 ? headState : 'default') }).nodes;
 
   // ── Phase 2: Reverse Second Half ──────────────────────────────────────────
   steps.push({
@@ -104,18 +83,8 @@ function generateSteps(): Step[] {
     state: {
       type: 'linked-list',
       nodes: [
-        ...firstHalfVals.map((v, i) => ({
-          id: `n${i}`,
-          value: v,
-          nextId: i < firstHalfVals.length - 1 ? `n${i + 1}` : null,
-          state: 'default' as const,
-        })),
-        ...secondHalfVals.map((v, i) => ({
-          id: `s${i}`,
-          value: v,
-          nextId: i < secondHalfVals.length - 1 ? `s${i + 1}` : null,
-          state: i === 0 ? ('curr' as const) : ('default' as const),
-        })),
+        ...firstHalfNodes(),
+        ...linkedListState(secondHalfVals, { idPrefix: 's', nodeState: (i) => (i === 0 ? 'curr' : 'default') }).nodes,
       ],
       pointers: [
         { nodeId: 's0', label: 'traversal' },
@@ -140,14 +109,6 @@ function generateSteps(): Step[] {
     shNext[shIds[i]] = i < shIds.length - 1 ? shIds[i + 1] : null;
   });
 
-  const firstHalfNodes = () =>
-    firstHalfVals.map((v, i) => ({
-      id: `n${i}`,
-      value: v,
-      nextId: i < firstHalfVals.length - 1 ? `n${i + 1}` : null,
-      state: 'default' as const,
-    }));
-
   // Render second-half nodes following the current (possibly reversed) pointers:
   // the already-reversed chain hanging off `prevId`, then the untouched remainder from `curId`.
   const renderReverse = (prevId: string | null, curId: string | null): LinkedListNode[] => {
@@ -158,7 +119,7 @@ function generateSteps(): Step[] {
       id,
       value: shVal[id],
       nextId: shNext[id],
-      state: id === curId ? ('curr' as const) : id === prevId ? ('active' as const) : ('done' as const),
+      state: id === curId ? 'curr' : id === prevId ? 'active' : 'done',
     }));
   };
 
@@ -218,18 +179,8 @@ function generateSteps(): Step[] {
     state: {
       type: 'linked-list',
       nodes: [
-        ...firstHalfVals.map((v, i) => ({
-          id: `n${i}`,
-          value: v,
-          nextId: i < firstHalfVals.length - 1 ? `n${i + 1}` : null,
-          state: i === 0 ? ('curr' as const) : ('default' as const),
-        })),
-        ...reversedSecond.map((v, i) => ({
-          id: `r${i}`,
-          value: v,
-          nextId: i < reversedSecond.length - 1 ? `r${i + 1}` : null,
-          state: i === 0 ? ('next-node' as const) : ('default' as const),
-        })),
+        ...firstHalfNodes('curr'),
+        ...linkedListState(reversedSecond, { idPrefix: 'r', nodeState: (i) => (i === 0 ? 'next-node' : 'default') }).nodes,
       ],
       pointers: [
         { nodeId: 'n0', label: 'head' },
@@ -262,25 +213,14 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: ms.explanation,
       anchor: { match: 'headNext = head.next', to: { match: 'secondHead = secondHeadNext' } },
-      state: {
-        type: 'linked-list',
-        nodes: mergeOrder.map((v, i) => ({
-          id: `m${i}`,
-          value: v,
-          nextId: i < mergeOrder.length - 1 ? `m${i + 1}` : null,
-          state: doneSet.has(v)
-            ? ('done' as const)
-            : v === ms.f
-            ? ('curr' as const)
-            : v === ms.s
-            ? ('next-node' as const)
-            : ('default' as const),
-        })),
+      state: linkedListState(mergeOrder, {
+        idPrefix: 'm',
+        nodeState: (_, v) => (doneSet.has(Number(v)) ? 'done' : v === ms.f ? 'curr' : v === ms.s ? 'next-node' : 'default'),
         pointers: [
           ...(ms.f !== null ? [{ nodeId: `m${mergeOrder.indexOf(ms.f)}`, label: 'head' }] : []),
           ...(ms.s !== null ? [{ nodeId: `m${mergeOrder.indexOf(ms.s)}`, label: 'secondHead' }] : []),
         ],
-      },
+      }),
       variables: [
         { name: 'head', value: ms.f ?? 'null' },
         { name: 'secondHead', value: ms.s ?? 'null' },
@@ -291,16 +231,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: 'head=3 is truthy but secondHead=None is falsy — while head and secondHead: fails, loop ends. head (3) remains as the tail, already linked from the last iteration. Result: [1→5→2→4→3]. No return statement — head is reordered in place.',
     anchor: { match: 'while head and secondHead:' },
-    state: {
-      type: 'linked-list',
-      nodes: mergeOrder.map((v, i) => ({
-        id: `m${i}`,
-        value: v,
-        nextId: i < mergeOrder.length - 1 ? `m${i + 1}` : null,
-        state: 'done' as const,
-      })),
-      pointers: [],
-    },
+    state: linkedListState(mergeOrder, { idPrefix: 'm', nodeState: () => 'done' }),
     variables: [{ name: 'result', value: mergeOrder.join('→'), highlight: true }],
   });
 

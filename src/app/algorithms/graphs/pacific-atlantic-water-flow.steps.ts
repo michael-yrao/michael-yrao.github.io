@@ -1,4 +1,5 @@
 import { AlgorithmMeta, Step, StepAnchor, GridState, GridCellState, ProblemExample } from '../../core/models/algorithm.model';
+import { gridKey, gridState } from '../../core/steps';
 
 // Traces cse-progress's pacificAtlantic_20260611 verbatim: reverse-DFS with
 // canVisitPacific / canVisitAtlantic sets and dfs's base case split into three
@@ -16,10 +17,6 @@ const HEIGHTS = [
 
 const ROWS = HEIGHTS.length;
 const COLS = HEIGHTS[0].length;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const toKey = (r: number, c: number) => `${r},${c}`;
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -44,27 +41,28 @@ function generateDfsSteps(): Step[] {
   // Render the grid from the CURRENT contents of both sets.
   // Green = Pacific, orange = Atlantic, gold = both (answer), cyan = active DFS cell.
   function render(activeKey?: string): GridState {
-    return {
-      type: 'grid',
-      grid: HEIGHTS.map((row, r) =>
-        row.map((h, c) => {
-          const key = toKey(r, c);
-          let state: GridCellState = 'empty';
-          const inP = canReachPacific.has(key);
-          const inA = canReachAtlantic.has(key);
-          if (inP && inA) state = 'found';
-          else if (inP) state = 'visited';
-          else if (inA) state = 'queued';
-          if (key === activeKey) state = 'active';
-          return { state, label: String(h) };
-        })
-      ),
-      legend: LEGEND,
-      counters: [
-        { label: 'canReachPacific', value: canReachPacific.size },
-        { label: 'canReachAtlantic', value: canReachAtlantic.size },
-      ],
-    };
+    return gridState(
+      HEIGHTS,
+      (_, r, c) => {
+        const key = gridKey(r, c);
+        let state: GridCellState = 'empty';
+        const inP = canReachPacific.has(key);
+        const inA = canReachAtlantic.has(key);
+        if (inP && inA) state = 'found';
+        else if (inP) state = 'visited';
+        else if (inA) state = 'queued';
+        if (key === activeKey) state = 'active';
+        return state;
+      },
+      {
+        cellLabel: String,
+        legend: LEGEND,
+        counters: [
+          { label: 'canReachPacific', value: canReachPacific.size },
+          { label: 'canReachAtlantic', value: canReachAtlantic.size },
+        ],
+      },
+    );
   }
 
   // Every step carries the full variable watch so each Python local is
@@ -97,7 +95,7 @@ function generateDfsSteps(): Step[] {
 
   // Exact port of the Python dfs(): emits one step per cell added to the set.
   function dfs(row: number, col: number, set: Set<string>, setName: string, priorHeight: number): void {
-    const key = toKey(row, col);
+    const key = gridKey(row, col);
     if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
     if (set.has(key)) return;
     if (HEIGHTS[row][col] < priorHeight) return;
@@ -119,7 +117,7 @@ function generateDfsSteps(): Step[] {
   // Seed call wrapper: shows each top-level dfs() call from the two for-loops,
   // including the ones that return immediately because the cell is already visited.
   function seed(row: number, col: number, set: Set<string>, setName: string, ocean: string, callAnchor: StepAnchor): void {
-    const key = toKey(row, col);
+    const key = gridKey(row, col);
     const priorHeight = HEIGHTS[row][col];
     if (set.has(key)) {
       emit(
@@ -166,7 +164,7 @@ function generateDfsSteps(): Step[] {
   const result: string[] = [];
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
-      const key = toKey(row, col);
+      const key = gridKey(row, col);
       if (canReachAtlantic.has(key) && canReachPacific.has(key)) result.push(`[${row},${col}]`);
     }
   }

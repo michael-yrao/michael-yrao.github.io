@@ -1,4 +1,5 @@
 import { AlgorithmMeta, Step, StepAnchor, GridState, GridCellState } from '../../core/models/algorithm.model';
+import { gridKey, gridState } from '../../core/steps';
 
 // ── Example input ─────────────────────────────────────────────────────────────
 
@@ -34,36 +35,35 @@ function generateBfsSteps(): Step[] {
   const cols = image[0].length;
   const startColor = image[SR][SC];
   const queue: [number, number][] = [];
-
-  const key = (r: number, c: number): string => `${r},${c}`;
   const isPainted = (r: number, c: number): boolean => image[r][c] === COLOR;
 
   function render(activeKey: string | undefined): GridState {
-    const queuedKeys = new Set(queue.map(([r, c]) => key(r, c)));
-    return {
-      type: 'grid',
-      grid: image.map((row, r) =>
-        row.map((px, c) => {
-          const k = key(r, c);
-          let state: GridCellState = 'empty';
-          // A queued cell is already painted (painting happens at enqueue) but still
-          // pending processing — queued must win over painted, or 'queued' never shows.
-          if (queuedKeys.has(k)) state = 'queued';
-          else if (isPainted(r, c)) state = 'visited';
-          else if (px === startColor) state = 'land';
-          if (k === activeKey) state = 'active';
-          return { state, label: String(px) };
-        }),
-      ),
-      legend: [
-        { state: 'land', label: `original color (${startColor})` },
-        { state: 'empty', label: 'other color (barrier)' },
-        { state: 'queued', label: 'in queue' },
-        { state: 'active', label: 'being processed' },
-        { state: 'visited', label: `painted to ${COLOR}` },
-      ],
-      counters: [{ label: 'queue', value: queue.length ? queue.map(([r, c]) => `(${r},${c})`).join(' ') : 'empty' }],
-    };
+    const queuedKeys = new Set(queue.map(([r, c]) => gridKey(r, c)));
+    return gridState(
+      image,
+      (px, r, c) => {
+        const k = gridKey(r, c);
+        let state: GridCellState = 'empty';
+        // A queued cell is already painted (painting happens at enqueue) but still
+        // pending processing — queued must win over painted, or 'queued' never shows.
+        if (queuedKeys.has(k)) state = 'queued';
+        else if (isPainted(r, c)) state = 'visited';
+        else if (px === startColor) state = 'land';
+        if (k === activeKey) state = 'active';
+        return state;
+      },
+      {
+        cellLabel: String,
+        legend: [
+          { state: 'land', label: `original color (${startColor})` },
+          { state: 'empty', label: 'other color (barrier)' },
+          { state: 'queued', label: 'in queue' },
+          { state: 'active', label: 'being processed' },
+          { state: 'visited', label: `painted to ${COLOR}` },
+        ],
+        counters: [{ label: 'queue', value: queue.length ? queue.map(([r, c]) => `(${r},${c})`).join(' ') : 'empty' }],
+      },
+    );
   }
 
   function emit(explanation: string, anchor: StepAnchor, activeKey: string | undefined, v: { cr?: number; cc?: number }): void {
@@ -84,7 +84,7 @@ function generateBfsSteps(): Step[] {
   emit(
     `Check image[sr][sc] (image[${SR}][${SC}] = ${startColor}) against color (${COLOR}): they differ, so there's no early return — proceed to flood fill.`,
     { match: 'if image[sr][sc] == color:' },
-    key(SR, SC),
+    gridKey(SR, SC),
     {},
   );
 
@@ -94,7 +94,7 @@ function generateBfsSteps(): Step[] {
   emit(
     `Save originalColor = image[sr][sc] = ${startColor}, then immediately paint image[sr][sc] to ${COLOR} and enqueue (sr,sc) — painting happens here, before the loop even starts, not on dequeue.`,
     { match: 'queue = collections.deque()', to: { match: 'image[sr][sc] = color' } },
-    key(SR, SC),
+    gridKey(SR, SC),
     { cr: SR, cc: SC },
   );
 
@@ -126,7 +126,7 @@ function generateBfsSteps(): Step[] {
     emit(
       `Dequeue (${cr},${cc}). Check its 4 neighbors (down, up, right, left) against originalColor; any that still show it are painted to ${COLOR} and enqueued right here — so a cell can never be enqueued twice. ${enqText}${skipText}`,
       { match: 'cr, cc = queue.popleft()', to: { match: 'queue.append((nr,nc))' } },
-      key(cr, cc),
+      gridKey(cr, cc),
       { cr, cc },
     );
   }

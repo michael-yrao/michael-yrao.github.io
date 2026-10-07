@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // CPython does NOT iterate a set in insertion order (small ints hash to
 // themselves, so it's roughly numeric-bucket order). Both attempts below do
@@ -19,19 +20,13 @@ function generateSteps(): Step[] {
   const steps: Step[] = [];
   let maxConsecutive = 0;
 
-  const snapDefault = () =>
-    nums.map(v => ({ value: v, state: 'default' as const }));
+  const numSetHashmap = () => Object.fromEntries([...numSet].map(v => [v, 1]));
 
   steps.push({
     explanation:
       'Key insight: only start counting from sequence beginnings — n is a start if (n − 1) is not in numSet. This avoids redundant inner loops and keeps overall complexity O(n).',
     anchor: { match: 'numSet = set(nums)', to: { match: 'maxConsecutive = 0' } },
-    state: {
-      type: 'array',
-      cells: snapDefault(),
-      pointers: [],
-      hashmap: Object.fromEntries([...numSet].map(v => [v, 1])),
-    },
+    state: arrayState(nums, { hashmap: numSetHashmap() }),
     variables: [
       { name: 'numSet', value: `{${NUM_SET_ITERATION_ORDER.join(', ')}}` },
     ],
@@ -45,25 +40,17 @@ function generateSteps(): Step[] {
       // It's a start — extend
       let counter = 1;
       const seq = [n];
+      const seqCellState = (_: number, v: number | string): CellState =>
+        seq.includes(Number(v)) ? 'found' : visited.has(Number(v)) ? 'visited' : 'default';
 
       steps.push({
         explanation: `n=${n}: (${n}-1)=${n - 1} not in numSet → this is a sequence start! counter = 1.`,
         anchor: { match: 'if n - 1 not in numSet:', to: { match: 'counter = 1' } },
-        state: {
-          type: 'array',
-          cells: nums.map(v => ({
-            value: v,
-            state:
-              v === n
-                ? ('active' as const)
-                : visited.has(v)
-                ? ('visited' as const)
-                : ('default' as const),
-          })),
-          pointers: [],
-          hashmap: Object.fromEntries([...numSet].map(v => [v, 1])),
+        state: arrayState(nums, {
+          cellState: (_, v) => (v === n ? 'active' : visited.has(Number(v)) ? 'visited' : 'default'),
+          hashmap: numSetHashmap(),
           counters: [{ label: 'maxConsecutive', value: maxConsecutive }],
-        },
+        }),
         variables: [
           { name: 'n', value: n, highlight: true },
           { name: 'is start', value: 'true' },
@@ -77,21 +64,11 @@ function generateSteps(): Step[] {
         steps.push({
           explanation: `${n + counter - 1} is in numSet → counter extends to ${counter}. Current: [${seq.join('→')}].`,
           anchor: { match: 'while n + counter in numSet:', to: { match: 'counter+=1' } },
-          state: {
-            type: 'array',
-            cells: nums.map(v => ({
-              value: v,
-              state:
-                seq.includes(v)
-                  ? ('found' as const)
-                  : visited.has(v)
-                  ? ('visited' as const)
-                  : ('default' as const),
-            })),
-            pointers: [],
-            hashmap: Object.fromEntries([...numSet].map(v => [v, 1])),
+          state: arrayState(nums, {
+            cellState: seqCellState,
+            hashmap: numSetHashmap(),
             counters: [{ label: 'maxConsecutive', value: maxConsecutive }],
-          },
+          }),
           variables: [
             { name: 'n+counter', value: n + counter - 1, highlight: true },
             { name: 'counter', value: counter, highlight: true },
@@ -106,21 +83,11 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `Sequence [${seq.join('→')}] has counter=${counter}. maxConsecutive = max(${prevMax}, ${counter}) = ${maxConsecutive}.`,
         anchor: { match: 'maxConsecutive = max(maxConsecutive, counter)' },
-        state: {
-          type: 'array',
-          cells: nums.map(v => ({
-            value: v,
-            state:
-              seq.includes(v)
-                ? ('found' as const)
-                : visited.has(v)
-                ? ('visited' as const)
-                : ('default' as const),
-          })),
-          pointers: [],
-          hashmap: Object.fromEntries([...numSet].map(v => [v, 1])),
+        state: arrayState(nums, {
+          cellState: seqCellState,
+          hashmap: numSetHashmap(),
           counters: [{ label: 'maxConsecutive', value: maxConsecutive }],
-        },
+        }),
         variables: [
           { name: 'counter', value: counter },
           { name: 'maxConsecutive', value: maxConsecutive, highlight: true },
@@ -131,21 +98,11 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `n=${n}: (${n}-1)=${n - 1} IS in numSet → not a sequence start. Skip to avoid redundant work.`,
         anchor: { match: 'if n - 1 not in numSet:' },
-        state: {
-          type: 'array',
-          cells: nums.map(v => ({
-            value: v,
-            state:
-              v === n
-                ? ('eliminated' as const)
-                : visited.has(v)
-                ? ('visited' as const)
-                : ('default' as const),
-          })),
-          pointers: [],
-          hashmap: Object.fromEntries([...numSet].map(v => [v, 1])),
+        state: arrayState(nums, {
+          cellState: (_, v) => (v === n ? 'eliminated' : visited.has(Number(v)) ? 'visited' : 'default'),
+          hashmap: numSetHashmap(),
           counters: [{ label: 'maxConsecutive', value: maxConsecutive }],
-        },
+        }),
         variables: [
           { name: 'n', value: n },
           { name: 'is start', value: 'false — skip' },
@@ -157,12 +114,10 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `All elements checked. Longest consecutive sequence = ${maxConsecutive}. O(n) time — each element is visited at most twice (once as start check, once during extension).`,
     anchor: { match: 'return maxConsecutive' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'visited' as const })),
-      pointers: [],
+    state: arrayState(nums, {
+      cellState: () => 'visited',
       counters: [{ label: 'maxConsecutive', value: maxConsecutive }],
-    },
+    }),
     variables: [{ name: 'return', value: maxConsecutive, highlight: true }],
   });
 
@@ -190,17 +145,14 @@ function generateStepsMap(): Step[] {
   const numMap: Record<number, number> = {};
   let longest = 0;
 
-  const snap = (active: number | null) => ({
-    type: 'array' as const,
-    cells: nums.map((v) => ({
-      value: v,
-      state: v === active ? ('active' as const) : numMap[v] !== undefined ? ('visited' as const) : ('default' as const),
-    })),
-    pointers: active !== null ? [{ index: nums.indexOf(active), label: 'n' }] : [],
-    hashmap: { ...numMap } as Record<string | number, number>,
-    hashmapLabel: 'numMap',
-    counters: [{ label: 'longest', value: longest }],
-  });
+  const snap = (active: number | null) =>
+    arrayState(nums, {
+      cellState: (i) => (nums[i] === active ? 'active' : numMap[nums[i]] !== undefined ? 'visited' : 'default'),
+      pointers: active !== null ? [{ index: nums.indexOf(active), label: 'n' }] : [],
+      hashmap: { ...numMap } as Record<string | number, number>,
+      hashmapLabel: 'numMap',
+      counters: [{ label: 'longest', value: longest }],
+    });
 
   steps.push({
     explanation:

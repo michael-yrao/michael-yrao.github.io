@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's kPalindrome and kPalindromeDP verbatim. Both share the same
 // two-pointer backtracking body (match/mismatch/branch) over the same while-loop, and differ
@@ -69,9 +70,7 @@ function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
   steps.push({
     explanation: trace.introExplanation,
     anchor: trace.introAnchor,
-    state: {
-      type: 'array',
-      cells: chars.map(ch => ({ value: ch, state: 'default' as const })),
+    state: arrayState(chars, {
       pointers: [
         { index: 0, label: 'l' },
         { index: n - 1, label: 'r' },
@@ -80,7 +79,7 @@ function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
         { label: 'k (skips left)', value: k },
         { label: 'result', value: '?' },
       ],
-    },
+    }),
     variables: [
       { name: 's', value: s },
       { name: 'k', value: k },
@@ -92,15 +91,8 @@ function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
   steps.push({
     explanation: `backtrack(l=0, r=6, skips=2): s[0]='a' == s[6]='a' → match! Advance both pointers: l=1, r=5. No removal used. Matched pair highlighted in green.`,
     anchor: { match: 'if s[l] == s[r]:', to: { match: 'r-=1' } },
-    state: {
-      type: 'array',
-      cells: chars.map((ch, i) => ({
-        value: ch,
-        state:
-          i === 0 || i === 6
-            ? ('found' as const)
-            : ('default' as const),
-      })),
+    state: arrayState(chars, {
+      cellState: (i) => (i === 0 || i === 6 ? 'found' : 'default'),
       pointers: [
         { index: 0, label: 'l=0' },
         { index: 6, label: 'r=6' },
@@ -109,7 +101,7 @@ function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
         { label: 'k (skips left)', value: 2 },
         { label: 'result', value: '?' },
       ],
-    },
+    }),
     variables: [
       { name: 'l', value: 0 },
       { name: 'r', value: 6 },
@@ -126,17 +118,8 @@ function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
   steps.push({
     explanation: `backtrack(l=1, r=5, skips=2): s[1]='b' != s[5]='c' → mismatch. Must branch: try skipping left (backtrack(l=2, r=5, skips=1)) OR skipping right (backtrack(l=1, r=4, skips=1)). We explore skip-left first (short-circuit OR).`,
     anchor: { match: 'return backtrack(l+1, r, skipsRemaining-1) or backtrack(l,r-1,skipsRemaining-1)' },
-    state: {
-      type: 'array',
-      cells: chars.map((ch, i) => ({
-        value: ch,
-        state:
-          matched.has(i)
-            ? ('found' as const)
-            : i === 1 || i === 5
-            ? ('active' as const)
-            : ('default' as const),
-      })),
+    state: arrayState(chars, {
+      cellState: (i) => (matched.has(i) ? 'found' : i === 1 || i === 5 ? 'active' : 'default'),
       pointers: [
         { index: 1, label: 'l=1' },
         { index: 5, label: 'r=5' },
@@ -145,7 +128,7 @@ function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
         { label: 'k (skips left)', value: 2 },
         { label: 'result', value: '?' },
       ],
-    },
+    }),
     variables: [
       { name: 'l', value: 1 },
       { name: 'r', value: 5 },
@@ -160,19 +143,8 @@ function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
   steps.push({
     explanation: `Branch A: skip left — remove 'b' at index 1. backtrack(l=2, r=5, skips=1): s[2]='c' == s[5]='c' → match! Advance: l=3, r=4. Skips remaining: 1.`,
     anchor: { match: 'if s[l] == s[r]:', to: { match: 'r-=1' } },
-    state: {
-      type: 'array',
-      cells: chars.map((ch, i) => ({
-        value: ch,
-        state:
-          matched.has(i)
-            ? ('found' as const)
-            : skipped.has(i)
-            ? ('eliminated' as const)
-            : i === 2 || i === 5
-            ? ('found' as const)
-            : ('default' as const),
-      })),
+    state: arrayState(chars, {
+      cellState: (i) => (matched.has(i) ? 'found' : skipped.has(i) ? 'eliminated' : i === 2 || i === 5 ? 'found' : 'default'),
       pointers: [
         { index: 2, label: 'l=2' },
         { index: 5, label: 'r=5' },
@@ -181,7 +153,7 @@ function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
         { label: 'k (skips left)', value: 1 },
         { label: 'result', value: '?' },
       ],
-    },
+    }),
     variables: [
       { name: 'l', value: 2 },
       { name: 'r', value: 5 },
@@ -198,19 +170,8 @@ function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
   steps.push({
     explanation: `backtrack(l=3, r=4, skips=1): s[3]='d' != s[4]='e' → mismatch again. Branch: skip left (backtrack(l=4, r=4, skips=0)) or skip right (backtrack(l=3, r=3, skips=0)). Try skip-left first.`,
     anchor: { match: 'return backtrack(l+1, r, skipsRemaining-1) or backtrack(l,r-1,skipsRemaining-1)' },
-    state: {
-      type: 'array',
-      cells: chars.map((ch, i) => ({
-        value: ch,
-        state:
-          matched.has(i)
-            ? ('found' as const)
-            : skipped.has(i)
-            ? ('eliminated' as const)
-            : i === 3 || i === 4
-            ? ('active' as const)
-            : ('default' as const),
-      })),
+    state: arrayState(chars, {
+      cellState: (i) => (matched.has(i) ? 'found' : skipped.has(i) ? 'eliminated' : i === 3 || i === 4 ? 'active' : 'default'),
       pointers: [
         { index: 3, label: 'l=3' },
         { index: 4, label: 'r=4' },
@@ -219,7 +180,7 @@ function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
         { label: 'k (skips left)', value: 1 },
         { label: 'result', value: '?' },
       ],
-    },
+    }),
     variables: [
       { name: 'l', value: 3 },
       { name: 'r', value: 4 },
@@ -234,25 +195,14 @@ function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
   steps.push({
     explanation: `Skip left — remove 'd' at index 3. backtrack(l=4, r=4, skips=0): l >= r → palindrome condition met! Return true. Total removals used: 2 ('b' and 'd'). 2 ≤ k=2 → valid k-palindrome.`,
     anchor: { match: 'return True' },
-    state: {
-      type: 'array',
-      cells: chars.map((ch, i) => ({
-        value: ch,
-        state:
-          matched.has(i)
-            ? ('found' as const)
-            : skipped.has(i)
-            ? ('eliminated' as const)
-            : i === 4
-            ? ('found' as const)
-            : ('default' as const),
-      })),
+    state: arrayState(chars, {
+      cellState: (i) => (matched.has(i) ? 'found' : skipped.has(i) ? 'eliminated' : i === 4 ? 'found' : 'default'),
       pointers: [{ index: 4, label: 'l=r=4' }],
       counters: [
         { label: 'k (skips left)', value: 0 },
         { label: 'result', value: 'true' },
       ],
-    },
+    }),
     variables: [
       { name: 'l', value: 4 },
       { name: 'r', value: 4 },
@@ -266,21 +216,13 @@ function generateBacktrackingSteps(trace: BacktrackingTrace): Step[] {
   steps.push({
     explanation: trace.finalExplanation,
     anchor: { match: 'return backtrack(0,len(s)-1,k)' },
-    state: {
-      type: 'array',
-      cells: chars.map((ch, i) => ({
-        value: ch,
-        state:
-          skipped.has(i)
-            ? ('eliminated' as const)
-            : ('found' as const),
-      })),
-      pointers: [],
+    state: arrayState(chars, {
+      cellState: (i) => (skipped.has(i) ? 'eliminated' : 'found'),
       counters: [
         { label: 'k (skips left)', value: 0 },
         { label: 'result', value: 'true' },
       ],
-    },
+    }),
     variables: [{ name: 'return', value: 'true', highlight: true }],
   });
 

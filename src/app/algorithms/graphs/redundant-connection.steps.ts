@@ -1,4 +1,5 @@
-import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, GraphEdgeState, GraphNodeState, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { graphState } from '../../core/steps';
 
 // Traces cse-progress's findRedundantConnection_20260622 verbatim: parentMap and rankMap
 // are initialized together in ONE loop, the root-finder is named findParent, and the
@@ -16,24 +17,22 @@ function generateSteps(): Step[] {
     { id: 3, x: 310, y: 215 },
   ];
 
-  type NS = 'default' | 'active' | 'visited' | 'found';
-  type ES = 'default' | 'active' | 'visited' | 'found';
   // ns[0]=node1, ns[1]=node2, ns[2]=node3
-  const ns: NS[] = ['default', 'default', 'default'];
-  const es: ES[] = ['default', 'default', 'default'];
+  const ns: GraphNodeState[] = ['default', 'default', 'default'];
+  const es: GraphEdgeState[] = ['default', 'default', 'default'];
   const parent: Record<number, number> = { 1: 1, 2: 2, 3: 3 };
   const rank: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
 
-  const mkState = (currentEdge: string) => ({
-    type: 'graph' as const,
-    nodes: NODE_POS.map((p, i) => ({ ...p, state: ns[i] })),
-    edges: edgeList.map(([from, to], i) => ({ from, to, state: es[i] })),
-    hashmapLabel: 'parentMap',
-    hashmap: { '1': parent[1], '2': parent[2], '3': parent[3] } as Record<string | number, number>,
-    hashmap2Label: 'rankMap',
-    hashmap2: { '1': rank[1], '2': rank[2], '3': rank[3] } as Record<string | number, number>,
-    stackItems: currentEdge ? [currentEdge] : [],
-  });
+  const mkState = (currentEdge: string) =>
+    graphState(NODE_POS, edgeList.map(([from, to]) => ({ from, to })), {
+      nodeState: (_, i) => ns[i],
+      edgeState: (_, i) => es[i],
+      hashmapLabel: 'parentMap',
+      hashmap: { '1': parent[1], '2': parent[2], '3': parent[3] },
+      hashmap2Label: 'rankMap',
+      hashmap2: { '1': rank[1], '2': rank[2], '3': rank[3] },
+      stackItems: currentEdge ? [currentEdge] : [],
+    });
 
   // Step 1: init
   steps.push({

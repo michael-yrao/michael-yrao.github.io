@@ -1,11 +1,10 @@
-import { AlgorithmMeta, Step, GridState, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, GridState, GridCellState, ProblemExample } from '../../core/models/algorithm.model';
+import { gridKey, gridState } from '../../core/steps';
 
 // ── Solution 1: BFS ───────────────────────────────────────────────────────────
 //
 // Traces cse-progress's numIslands verbatim: BFS marks a coordinate visited at
 // ENQUEUE time (both the seed cell and every neighbor), never at dequeue.
-
-type Cell = { state: import('../../core/models/algorithm.model').GridCellState };
 
 function generateBfsSteps(): Step[] {
   const rawGrid = [
@@ -21,20 +20,15 @@ function generateBfsSteps(): Step[] {
   const visited = new Set<string>();
   let islandCount = 0;
 
-  const toKey = (r: number, c: number) => `${r},${c}`;
-
-  const makeGrid = (overrides: Map<string, Cell['state']>): GridState => ({
-    type: 'grid',
-    grid: rawGrid.map((row, r) =>
-      row.map((cell, c) => {
-        const key = toKey(r, c);
-        if (overrides.has(key)) return { state: overrides.get(key)! };
-        if (visited.has(key)) return { state: 'visited' };
-        return { state: cell === '1' ? 'land' : 'water' };
-      })
-    ),
-    counters: [{ label: 'islands', value: islandCount }],
-  });
+  const makeGrid = (overrides: Map<string, GridCellState>): GridState =>
+    gridState(
+      rawGrid,
+      (cell, r, c) => {
+        const key = gridKey(r, c);
+        return overrides.get(key) ?? (visited.has(key) ? 'visited' : cell === '1' ? 'land' : 'water');
+      },
+      { counters: [{ label: 'islands', value: islandCount }] },
+    );
 
   steps.push({
     explanation:
@@ -53,13 +47,13 @@ function generateBfsSteps(): Step[] {
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (rawGrid[r][c] === '1' && !visited.has(toKey(r, c))) {
+      if (rawGrid[r][c] === '1' && !visited.has(gridKey(r, c))) {
         islandCount++;
 
         steps.push({
           explanation: `Found unvisited land at (${r},${c}). This starts island #${islandCount}. bfs(${r},${c}) seeds the queue with (${r},${c}) and marks it visited right here, at enqueue time — not when it's later dequeued.`,
           anchor: { match: 'def bfs(row,col):', to: { match: 'queue.append(currentCoordinate)' } },
-          state: makeGrid(new Map([[toKey(r, c), 'queued']])),
+          state: makeGrid(new Map([[gridKey(r, c), 'queued']])),
           variables: [
             { name: 'r', value: r, highlight: true },
             { name: 'c', value: c, highlight: true },
@@ -70,18 +64,18 @@ function generateBfsSteps(): Step[] {
         });
 
         const queue: [number, number][] = [[r, c]];
-        visited.add(toKey(r, c));
+        visited.add(gridKey(r, c));
 
         while (queue.length > 0) {
           const [cr, cc] = queue.shift()!;
 
-          const overrides = new Map<string, Cell['state']>();
-          overrides.set(toKey(cr, cc), 'visited');
+          const overrides = new Map<string, GridCellState>();
+          overrides.set(gridKey(cr, cc), 'visited');
 
           for (const [dr, dc] of dirs) {
             const nr = cr + dr;
             const nc = cc + dc;
-            const key = toKey(nr, nc);
+            const key = gridKey(nr, nc);
             if (
               nr >= 0 && nr < rows &&
               nc >= 0 && nc < cols &&
@@ -147,22 +141,17 @@ function generateDfsSteps(): Step[] {
   const steps: Step[] = [];
   const visited = new Set<string>();
   let islandCount = 0;
-  const toKey = (r: number, c: number) => `${r},${c}`;
 
-  const makeGrid = (activeCell: [number, number] | null): GridState => ({
-    type: 'grid',
-    grid: rawGrid.map((row, r) =>
-      row.map((cell, c) => {
-        const key = toKey(r, c);
-        if (activeCell && activeCell[0] === r && activeCell[1] === c) {
-          return { state: 'queued' as const };
-        }
-        if (visited.has(key)) return { state: 'visited' as const };
-        return { state: cell === '1' ? 'land' as const : 'water' as const };
-      })
-    ),
-    counters: [{ label: 'islands', value: islandCount }],
-  });
+  const makeGrid = (activeCell: [number, number] | null): GridState =>
+    gridState(
+      rawGrid,
+      (cell, r, c) => {
+        if (activeCell && activeCell[0] === r && activeCell[1] === c) return 'queued';
+        if (visited.has(gridKey(r, c))) return 'visited';
+        return cell === '1' ? 'land' : 'water';
+      },
+      { counters: [{ label: 'islands', value: islandCount }] },
+    );
 
   steps.push({
     explanation:
@@ -179,9 +168,9 @@ function generateDfsSteps(): Step[] {
   function dfs(r: number, c: number): void {
     if (r < 0 || r >= rows || c < 0 || c >= cols) return;
     if (rawGrid[r][c] === '0') return;
-    if (visited.has(toKey(r, c))) return;
+    if (visited.has(gridKey(r, c))) return;
 
-    visited.add(toKey(r, c));
+    visited.add(gridKey(r, c));
 
     steps.push({
       explanation: `DFS at (${r},${c}): land and unvisited. Mark visited (now green). Recurse down → up → right → left — going as deep as possible before backtracking.`,
@@ -202,7 +191,7 @@ function generateDfsSteps(): Step[] {
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (rawGrid[r][c] === '1' && !visited.has(toKey(r, c))) {
+      if (rawGrid[r][c] === '1' && !visited.has(gridKey(r, c))) {
         islandCount++;
         steps.push({
           explanation: `Outer loop found unvisited land at (${r},${c}). Starting DFS to mark all connected land as island #${islandCount}.`,
