@@ -1,4 +1,4 @@
-import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { TreeState, TreeNode } from '../../../core/models/algorithm.model';
 
 interface LayoutNode {
@@ -14,18 +14,18 @@ interface LayoutNode {
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TreeVisualizerComponent {
-  @Input() state!: TreeState;
+  readonly state = input.required<TreeState>();
 
   readonly NODE_RADIUS = 22;
   readonly LEVEL_HEIGHT = 70;
   readonly SVG_PADDING = 40;
 
   get layout(): LayoutNode[] {
-    if (!this.state?.nodes?.length) return [];
+    if (!this.state()?.nodes?.length) return [];
     const nodeMap = new Map<string, TreeNode>(
-      this.state.nodes.map(n => [n.id, n])
+      this.state().nodes.map(n => [n.id, n])
     );
-    const root = this.state.nodes[0];
+    const root = this.state().nodes[0];
     if (!root) return [];
 
     // Assign x positions via in-order traversal (leaf counter)
@@ -81,7 +81,7 @@ export class TreeVisualizerComponent {
     // Compute actual pixel positions
     const numLeaves = Math.max(leafCounter, 1);
     const layout: LayoutNode[] = [];
-    for (const node of this.state.nodes) {
+    for (const node of this.state().nodes) {
       const slot = xSlot.get(node.id) ?? 0;
       const depth = depthMap.get(node.id) ?? 0;
       const x = this.SVG_PADDING + slot * 60 + 30;
@@ -92,19 +92,19 @@ export class TreeVisualizerComponent {
   }
 
   get svgWidth(): number {
-    const numLeaves = Math.max(this.countLeaves(this.state?.nodes?.[0]?.id ?? null), 1);
+    const numLeaves = Math.max(this.countLeaves(this.state()?.nodes?.[0]?.id ?? null), 1);
     return numLeaves * 60 + this.SVG_PADDING * 2;
   }
 
   get svgHeight(): number {
-    const maxDepth = this.getMaxDepth(this.state?.nodes?.[0]?.id ?? null);
+    const maxDepth = this.getMaxDepth(this.state()?.nodes?.[0]?.id ?? null);
     return (maxDepth + 1) * this.LEVEL_HEIGHT + this.SVG_PADDING * 2;
   }
 
   private countLeaves(id: string | null): number {
     if (!id) return 0;
     const nodeMap = new Map<string, TreeNode>(
-      this.state.nodes.map(n => [n.id, n])
+      this.state().nodes.map(n => [n.id, n])
     );
     return this.countLeavesMap(id, nodeMap);
   }
@@ -120,7 +120,7 @@ export class TreeVisualizerComponent {
   private getMaxDepth(id: string | null): number {
     if (!id) return 0;
     const nodeMap = new Map<string, TreeNode>(
-      this.state.nodes.map(n => [n.id, n])
+      this.state().nodes.map(n => [n.id, n])
     );
     return this.getMaxDepthMap(id, nodeMap);
   }
@@ -154,7 +154,7 @@ export class TreeVisualizerComponent {
   }
 
   nodePointers(nodeId: string): string[] {
-    return (this.state.pointers ?? [])
+    return (this.state().pointers ?? [])
       .filter(p => p.nodeId === nodeId)
       .map(p => p.label);
   }

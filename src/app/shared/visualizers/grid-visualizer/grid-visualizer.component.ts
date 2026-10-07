@@ -1,4 +1,4 @@
-import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { GridState } from '../../../core/models/algorithm.model';
 import { NgClass } from '@angular/common';
 
@@ -10,7 +10,7 @@ import { NgClass } from '@angular/common';
     imports: [NgClass]
 })
 export class GridVisualizerComponent {
-  @Input() state!: GridState;
+  readonly state = input.required<GridState>();
 
   cellLabel(state: string): string {
     const labels: Record<string, string> = {

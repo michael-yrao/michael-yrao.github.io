@@ -2,7 +2,7 @@
 // Default: write the file. `--check`: write nothing, exit 1 when the committed file is stale.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import prettier from 'prettier';
 import ts from 'typescript';
 
@@ -231,8 +231,13 @@ function summarize(entries) {
   return `${entries.length} entries, ${stubs} without visualization`;
 }
 
+/** Every problem's parsed index entry (lcNumber, title, hasVisualization, ...), in registry order. */
+export function readAlgorithmEntries() {
+  return collectEntries(readCategoryOrder());
+}
+
 async function main() {
-  const entries = collectEntries(readCategoryOrder());
+  const entries = readAlgorithmEntries();
   const output = await render(entries);
   if (!process.argv.includes(CHECK_FLAG)) {
     writeFileSync(OUTPUT_FILE, output, 'utf8');
@@ -248,7 +253,10 @@ async function main() {
   process.exitCode = 1;
 }
 
-main().catch((err) => {
-  console.error(`gen-registry: ${err.message}`);
-  process.exitCode = 1;
-});
+const isCli = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isCli) {
+  main().catch((err) => {
+    console.error(`gen-registry: ${err.message}`);
+    process.exitCode = 1;
+  });
+}

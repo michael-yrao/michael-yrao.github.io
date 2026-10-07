@@ -1,3 +1,8 @@
+@keyframes hint-expand {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .hint {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -36,6 +41,7 @@
   }
 
   &__body {
+    animation: hint-expand 200ms ease;
     padding: var(--space-md) var(--space-lg);
     background: var(--color-bg);
     border-top: 1px solid var(--color-border);

@@ -1,4 +1,4 @@
-@if (state.nodes.length) {
+@if (state().nodes.length) {
   <div class="tv">
     <svg
       class="tv__svg"
@@ -45,9 +45,9 @@
       }
     </svg>
     <!-- Counters -->
-    @if (state.counters?.length) {
+    @if (state().counters?.length) {
       <div class="tv__counters">
-        @for (c of state.counters; track c) {
+        @for (c of state().counters; track c) {
           <span class="tv__counter">
             <span class="tv__counter-label">{{ c.label }}</span>
             <span class="tv__counter-val">{{ c.value }}</span>

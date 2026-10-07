@@ -5,8 +5,8 @@
     <span class="hint__chevron" [class.hint__chevron--open]="revealed">›</span>
   </button>
   @if (revealed) {
-    <div class="hint__body" [@expand]>
-      <p>{{ hint }}</p>
+    <div class="hint__body">
+      <p>{{ hint() }}</p>
     </div>
   }
 </div>

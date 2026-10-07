@@ -84,15 +84,17 @@ Recorded from real mistakes. Read before answering "what's been visualized / wha
 
 ## Testing gotchas
 
-`fakeAsync`/`tick()` are **unavailable** under this project's Angular `unit-test` (vitest) builder —
-it throws `Expected to be running in 'ProxyZone', but it was not found` (the experimental builder
-doesn't wire up zone.js's Jasmine/Mocha-only ProxyZone patching `fakeAsync` needs). For a test that
-needs to control WHEN an HTTP response resolves (e.g. to catch a signal-effect loop that only
-manifests while a request is still pending), use a never-emitting Observable (`new Observable(() =>
-{})`) instead of `delay()` + `tick()` — see `progress-page.component.spec.ts`'s effect-loop
-regression test for the pattern. A synchronous `of()` mock is fine for ordinary "does it render"
-assertions; it's specifically wrong for timing-sensitive ones, since it resolves before an effect
-ever gets a chance to re-run.
+The app and its tests run **zoneless** — no zone.js is loaded and `main.ts` provides
+`provideZonelessChangeDetection()` — so `fakeAsync`/`tick()` don't exist here. For a test that needs
+to control WHEN an HTTP response resolves (e.g. to catch a signal-effect loop that only manifests
+while a request is still pending), use a never-emitting Observable (`new Observable(() => {})`) — see
+`progress-page.component.spec.ts`'s effect-loop regression test for the pattern. Wait for an async
+signal update with `await fixture.whenStable()`; where the code under test has a bare `await` on a
+promise Angular doesn't track, `whenStable()` won't wait for it, so flush first with
+`await new Promise((resolve) => setTimeout(resolve))` (one task-queue turn, not a microtask), as
+`interview-prepare.component.spec.ts` does. A synchronous `of()` mock is fine for ordinary "does it
+render" assertions; it's specifically wrong for timing-sensitive ones, since it resolves before an
+effect ever gets a chance to re-run.
 
 ## Deploy
 

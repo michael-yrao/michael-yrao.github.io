@@ -1,4 +1,4 @@
-import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { LinkedListState, LinkedListNode } from '../../../core/models/algorithm.model';
 import { NgClass } from '@angular/common';
 
@@ -10,20 +10,20 @@ import { NgClass } from '@angular/common';
     imports: [NgClass]
 })
 export class LinkedListVisualizerComponent {
-  @Input() state!: LinkedListState;
+  readonly state = input.required<LinkedListState>();
 
   nodePointers(nodeId: string): string[] {
-    return (this.state.pointers ?? [])
+    return (this.state().pointers ?? [])
       .filter((p) => p.nodeId === nodeId)
       .map((p) => p.label);
   }
 
   hasPointers(nodeId: string): boolean {
-    return (this.state.pointers ?? []).some((p) => p.nodeId === nodeId);
+    return (this.state().pointers ?? []).some((p) => p.nodeId === nodeId);
   }
 
   nullPointers(): string[] {
-    return (this.state.pointers ?? [])
+    return (this.state().pointers ?? [])
       .filter((p) => p.nodeId === null)
       .map((p) => p.label);
   }

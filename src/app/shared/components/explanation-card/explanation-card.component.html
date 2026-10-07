@@ -1,4 +1,9 @@
-<div class="explanation" [@fadeSlide]="stepIndex" aria-live="polite">
-  <div class="explanation__label">Why this step?</div>
-  <p class="explanation__text">{{ explanation }}</p>
+<div aria-live="polite">
+  <!-- Keyed on stepIndex: a new step re-creates the card, which replays its CSS enter fade. -->
+  @for (step of [stepIndex()]; track step) {
+    <div class="explanation">
+      <div class="explanation__label">Why this step?</div>
+      <p class="explanation__text">{{ explanation() }}</p>
+    </div>
+  }
 </div>

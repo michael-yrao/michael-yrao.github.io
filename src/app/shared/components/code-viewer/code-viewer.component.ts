@@ -1,6 +1,6 @@
 import {
-  Component, Input, OnChanges, AfterViewInit, AfterViewChecked,
-  SimpleChanges, ElementRef, ViewChild, ChangeDetectionStrategy,
+  Component, input, computed, effect, AfterViewInit, AfterViewChecked,
+  ElementRef, ViewChild, ChangeDetectionStrategy,
 } from '@angular/core';
 import hljs from 'highlight.js/lib/core';
 import python from 'highlight.js/lib/languages/python';
@@ -44,19 +44,28 @@ function rangesEqual(a: RowRange | null, b: RowRange | null): boolean {
     styleUrls: ['./code-viewer.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class CodeViewerComponent implements OnChanges, AfterViewInit, AfterViewChecked {
-  @Input() code = '';
-  @Input() rows: DisplayRow[] | undefined;
-  @Input() activeRange: RowRange | null | undefined;
+export class CodeViewerComponent implements AfterViewInit, AfterViewChecked {
+  readonly code = input('');
+  readonly rows = input<DisplayRow[] | undefined>(undefined);
+  readonly activeRange = input<RowRange | null | undefined>(undefined);
 
   @ViewChild('codeEl') codeEl!: ElementRef<HTMLElement>;
 
-  lines: CodeLine[] = [];
-  private effectiveRange: RowRange | null = null;
+  readonly lines = computed<CodeLine[]>(() => {
+    const displayRows = this.rows() ?? rowsFromCode(this.code());
+    return displayRows.map((row) => this.toCodeLine(row));
+  });
+  private readonly effectiveRange = computed(() => this.activeRange() ?? null, { equal: rangesEqual });
   // Set when `effectiveRange` changes; consumed (and cleared) in ngAfterViewChecked, which
-  // runs AFTER the template has re-rendered the new active row — ngOnChanges runs before that
+  // runs AFTER the template has re-rendered the new active row — the effect runs before that
   // render, so scrolling from there would always find the PREVIOUS step's row.
   private pendingScroll = false;
+
+  constructor() {
+    effect(() => {
+      this.pendingScroll = this.effectiveRange() !== null;
+    });
+  }
 
   ngAfterViewInit(): void {
     this.scrollToActive();
@@ -68,40 +77,25 @@ export class CodeViewerComponent implements OnChanges, AfterViewInit, AfterViewC
     this.scrollToActive();
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['rows'] || changes['code']) this.buildLines();
-    if (changes['activeRange']) this.updateActiveRange();
-  }
-
   isActive(index: number): boolean {
-    const r = this.effectiveRange;
+    const r = this.effectiveRange();
     return r !== null && index >= r.start && index <= r.end;
   }
 
   isRangeStart(index: number): boolean {
-    return this.effectiveRange !== null && index === this.effectiveRange.start;
+    const r = this.effectiveRange();
+    return r !== null && index === r.start;
   }
 
   isRangeEnd(index: number): boolean {
-    return this.effectiveRange !== null && index === this.effectiveRange.end;
-  }
-
-  private buildLines(): void {
-    const displayRows = this.rows ?? rowsFromCode(this.code);
-    this.lines = displayRows.map((row) => this.toCodeLine(row));
+    const r = this.effectiveRange();
+    return r !== null && index === r.end;
   }
 
   private toCodeLine(row: DisplayRow): CodeLine {
     if (row.kind === 'gap') return { html: GAP_MARKER, sourceLine: null, isGap: true };
     const highlighted = hljs.highlight(row.text || ' ', { language: 'python' });
     return { html: highlighted.value, sourceLine: row.sourceLine, isGap: false };
-  }
-
-  private updateActiveRange(): void {
-    const next = this.activeRange ?? null;
-    if (rangesEqual(next, this.effectiveRange)) return;
-    this.effectiveRange = next;
-    this.pendingScroll = next !== null;
   }
 
   /** jsdom (unit tests) has no `scrollIntoView` — guarded so tests don't throw. */

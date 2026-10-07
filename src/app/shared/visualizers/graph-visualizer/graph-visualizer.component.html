@@ -2,7 +2,7 @@
 
   <!-- SVG graph -->
   <svg [attr.viewBox]="viewBox" class="gv__svg" xmlns="http://www.w3.org/2000/svg">
-    @if (state.directed) {
+    @if (state().directed) {
       <defs>
         @for (s of EDGE_STATES; track s) {
           <marker
@@ -48,7 +48,7 @@
       }
     }
     <!-- Nodes -->
-    @for (node of state.nodes; track node) {
+    @for (node of state().nodes; track node) {
       <g
         [attr.transform]="'translate(' + node.x + ',' + node.y + ')'"
         >
@@ -59,10 +59,10 @@
   </svg>
 
   <!-- Maps -->
-  @if (state.hashmap !== undefined) {
+  @if (state().hashmap !== undefined) {
     <div class="gv__hashmaps">
       <div class="gv__hashmap">
-        <div class="gv__label">{{ state.hashmapLabel || 'map' }}</div>
+        <div class="gv__label">{{ state().hashmapLabel || 'map' }}</div>
         <div class="gv__hashmap-entries">
           @for (entry of hashmapEntries(); track entry) {
             <div class="gv__hashmap-entry">
@@ -76,9 +76,9 @@
           }
         </div>
       </div>
-      @if (state.hashmap2 !== undefined) {
+      @if (state().hashmap2 !== undefined) {
         <div class="gv__hashmap">
-          <div class="gv__label">{{ state.hashmap2Label || 'map 2' }}</div>
+          <div class="gv__label">{{ state().hashmap2Label || 'map 2' }}</div>
           <div class="gv__hashmap-entries">
             @for (entry of hashmap2Entries(); track entry) {
               <div class="gv__hashmap-entry">
@@ -97,14 +97,14 @@
   }
 
   <!-- Stack / Queue -->
-  @if (state.stackItems !== undefined) {
+  @if (state().stackItems; as stackItems) {
     <div class="gv__stack">
-      <div class="gv__label">{{ state.stackLabel || 'stack' }}</div>
+      <div class="gv__label">{{ state().stackLabel || 'stack' }}</div>
       <div class="gv__stack-items">
-        @for (item of state.stackItems; track item) {
+        @for (item of stackItems; track item) {
           <div class="gv__stack-item">{{ item }}</div>
         }
-        @if (state.stackItems.length === 0) {
+        @if (stackItems.length === 0) {
           <div class="gv__empty">empty</div>
         }
       </div>
@@ -112,9 +112,9 @@
   }
 
   <!-- Counters -->
-  @if (state.counters?.length) {
+  @if (state().counters?.length) {
     <div class="gv__counters">
-      @for (c of state.counters; track c) {
+      @for (c of state().counters; track c) {
         <div class="gv__counter">
           <span class="gv__counter-label">{{ c.label }}</span>
           <span class="gv__counter-value">{{ c.value }}</span>

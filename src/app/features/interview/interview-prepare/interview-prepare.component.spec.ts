@@ -115,6 +115,8 @@ describe('InterviewPrepareComponent', () => {
   ])('?import=: $name and the parameter is removed', async ({ param, isFilled }) => {
     await findByNumber(SITE_NUMBER)?.load(); // the import loads the algorithm; memoized, so it settles at once
     const { fixture, editor, navigate } = setUp({ import: param });
+    // Zoneless: whenStable() no longer tracks the bare promise inside the import, so let it settle first.
+    await new Promise((resolve) => setTimeout(resolve));
     await fixture.whenStable();
     fixture.detectChanges();
 

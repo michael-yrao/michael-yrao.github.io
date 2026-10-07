@@ -9,7 +9,7 @@ const nodes: GraphState['nodes'] = [
 
 function render(state: GraphState): HTMLElement {
   const fixture = TestBed.createComponent(GraphVisualizerComponent);
-  fixture.componentInstance.state = state;
+  fixture.componentRef.setInput('state', state);
   fixture.detectChanges();
   return fixture.nativeElement as HTMLElement;
 }

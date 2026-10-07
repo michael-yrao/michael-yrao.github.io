@@ -2,11 +2,11 @@
 
   <!-- Array cells -->
   <div class="av__array-wrap">
-    @if (state.arrayLabel) {
-      <div class="av__label">{{ state.arrayLabel }}</div>
+    @if (state().arrayLabel) {
+      <div class="av__label">{{ state().arrayLabel }}</div>
     }
     <div class="av__array">
-      @for (cell of state.cells; track cell; let i = $index) {
+      @for (cell of state().cells; track cell; let i = $index) {
         <div
           class="av__cell-wrap"
           >
@@ -26,10 +26,10 @@
   </div>
 
   <!-- Hash map display -->
-  @if (state.hashmap !== undefined) {
+  @if (state().hashmap !== undefined) {
     <div class="av__hashmaps">
       <div class="av__hashmap">
-        <div class="av__label">{{ state.hashmapLabel || 'map' }}</div>
+        <div class="av__label">{{ state().hashmapLabel || 'map' }}</div>
         <div class="av__hashmap-entries">
           @for (entry of hashmapEntries(); track entry) {
             <div
@@ -45,9 +45,9 @@
           }
         </div>
       </div>
-      @if (state.hashmap2 !== undefined) {
+      @if (state().hashmap2 !== undefined) {
         <div class="av__hashmap">
-          <div class="av__label">{{ state.hashmap2Label || 'map 2' }}</div>
+          <div class="av__label">{{ state().hashmap2Label || 'map 2' }}</div>
           <div class="av__hashmap-entries">
             @for (entry of hashmap2Entries(); track entry) {
               <div
@@ -68,16 +68,16 @@
   }
 
   <!-- Stack display -->
-  @if (state.stackItems !== undefined) {
+  @if (state().stackItems; as stackItems) {
     <div class="av__stack">
       <div class="av__label">stack</div>
       <div class="av__stack-items">
-        @for (item of state.stackItems | slice: 0 : 10; track item) {
+        @for (item of stackItems | slice: 0 : 10; track item) {
           <div
             class="av__stack-item"
           >{{ item }}</div>
         }
-        @if (state.stackItems.length === 0) {
+        @if (stackItems.length === 0) {
           <div class="av__stack-empty">empty</div>
         }
       </div>
@@ -85,9 +85,9 @@
   }
 
   <!-- Counters -->
-  @if (state.counters?.length) {
+  @if (state().counters?.length) {
     <div class="av__counters">
-      @for (c of state.counters; track c) {
+      @for (c of state().counters; track c) {
         <div class="av__counter">
           <span class="av__counter-label">{{ c.label }}</span>
           <span class="av__counter-value">{{ c.value }}</span>

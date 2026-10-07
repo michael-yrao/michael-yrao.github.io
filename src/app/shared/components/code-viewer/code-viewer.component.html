@@ -2,7 +2,7 @@
   <div class="code-viewer__header">
     <span class="code-viewer__lang">python</span>
   </div>
-  <pre class="code-viewer__pre"><code #codeEl class="hljs language-python">@for (line of lines; track $index) {<div
+  <pre class="code-viewer__pre"><code #codeEl class="hljs language-python">@for (line of lines(); track $index) {<div
       class="code-line"
       [class.code-line--gap]="line.isGap"
       [class.code-line--active]="isActive($index)"

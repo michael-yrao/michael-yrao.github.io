@@ -1,6 +1,6 @@
 import {
-  Component, Input, Output, EventEmitter, ChangeDetectorRef,
-  ChangeDetectionStrategy, OnDestroy, OnInit, HostListener,
+  Component, input, output, signal,
+  ChangeDetectionStrategy, OnDestroy, HostListener,
 } from '@angular/core';
 
 @Component({
@@ -9,27 +9,23 @@ import {
     styleUrls: ['./step-controls.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class StepControlsComponent implements OnInit, OnDestroy {
-  @Input() currentStep = 0;
-  @Input() totalSteps = 0;
-  @Output() stepChange = new EventEmitter<number>();
-  @Output() reset = new EventEmitter<void>();
+export class StepControlsComponent implements OnDestroy {
+  readonly currentStep = input(0);
+  readonly totalSteps = input(0);
+  readonly stepChange = output<number>();
+  readonly reset = output<void>();
 
-  isPlaying = false;
-  speed = 1000;
+  readonly isPlaying = signal(false);
+  readonly speed = signal(1000);
 
   private timer: ReturnType<typeof setInterval> | null = null;
-
-  constructor(private cdr: ChangeDetectorRef) {}
-
-  ngOnInit(): void {}
 
   ngOnDestroy(): void {
     this.stopTimer();
   }
 
-  get atStart(): boolean { return this.currentStep === 0; }
-  get atEnd(): boolean   { return this.currentStep >= this.totalSteps - 1; }
+  get atStart(): boolean { return this.currentStep() === 0; }
+  get atEnd(): boolean   { return this.currentStep() >= this.totalSteps() - 1; }
 
   @HostListener('document:keydown', ['$event'])
   onKeydown(event: KeyboardEvent): void {
@@ -67,15 +63,14 @@ export class StepControlsComponent implements OnInit, OnDestroy {
         this.goToEnd();
         break;
     }
-    this.cdr.markForCheck();
   }
 
   stepBack(): void {
-    if (!this.atStart) this.stepChange.emit(this.currentStep - 1);
+    if (!this.atStart) this.stepChange.emit(this.currentStep() - 1);
   }
 
   stepForward(): void {
-    if (!this.atEnd) this.stepChange.emit(this.currentStep + 1);
+    if (!this.atEnd) this.stepChange.emit(this.currentStep() + 1);
     else this.pause();
   }
 
@@ -86,35 +81,34 @@ export class StepControlsComponent implements OnInit, OnDestroy {
 
   goToEnd(): void {
     this.pause();
-    this.stepChange.emit(this.totalSteps - 1);
+    this.stepChange.emit(this.totalSteps() - 1);
   }
 
   togglePlay(): void {
-    this.isPlaying ? this.pause() : this.play();
+    this.isPlaying() ? this.pause() : this.play();
   }
 
   play(): void {
     if (this.atEnd) this.stepChange.emit(0);
-    this.isPlaying = true;
+    this.isPlaying.set(true);
     this.timer = setInterval(() => {
       if (this.atEnd) {
         this.pause();
         return;
       }
-      this.stepChange.emit(this.currentStep + 1);
-    }, this.speed);
+      this.stepChange.emit(this.currentStep() + 1);
+    }, this.speed());
   }
 
   pause(): void {
-    this.isPlaying = false;
+    this.isPlaying.set(false);
     this.stopTimer();
-    this.cdr.markForCheck();
   }
 
   onSpeedChange(event: Event): void {
     const val = Number((event.target as HTMLInputElement).value);
-    this.speed = val;
-    if (this.isPlaying) {
+    this.speed.set(val);
+    if (this.isPlaying()) {
       this.stopTimer();
       this.play();
     }

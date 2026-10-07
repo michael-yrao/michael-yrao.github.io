@@ -54,6 +54,9 @@ jobs:
       - name: Registry check
         run: npm run check:registry
 
+      - name: Sitemap check
+        run: npm run check:sitemap
+
       - name: Unit tests
         run: npx ng test --watch=false
 

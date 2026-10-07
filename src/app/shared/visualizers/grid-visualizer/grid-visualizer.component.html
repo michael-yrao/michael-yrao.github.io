@@ -1,6 +1,6 @@
 <div class="gv">
   <div class="gv__grid">
-    @for (row of state.grid; track row; let r = $index) {
+    @for (row of state().grid; track row; let r = $index) {
       <div class="gv__row">
         @for (cell of row; track cell; let c = $index) {
           <div
@@ -15,9 +15,9 @@
     }
   </div>
 
-  @if (state.legend?.length) {
+  @if (state().legend?.length) {
     <div class="gv__legend">
-      @for (item of state.legend; track item) {
+      @for (item of state().legend; track item) {
         <span class="gv__legend-item">
           <span class="gv__legend-swatch" [ngClass]="'gv__cell--' + item.state"></span>
           {{ item.label }}
@@ -26,9 +26,9 @@
     </div>
   }
 
-  @if (state.counters?.length) {
+  @if (state().counters?.length) {
     <div class="gv__counters">
-      @for (counter of state.counters; track counter) {
+      @for (counter of state().counters; track counter) {
         <div class="gv__counter">
           <span class="gv__counter-label">{{ counter.label }}</span>
           <span class="gv__counter-value">{{ counter.value }}</span>
