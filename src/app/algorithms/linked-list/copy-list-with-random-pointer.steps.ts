@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, GraphNode, GraphEdge, ProblemExample } from '../../core/models/algorithm.model';
+import { graphState } from '../../core/steps';
 
 // Traces cse-progress's copyRandomList_20260804 verbatim: THREE passes over oldToNewMap
 // (not two) — pass 1 builds the map, pass 2 wires .next only, pass 3 walks
@@ -15,10 +16,8 @@ function generateSteps(): Step[] {
 
   // Layout: originals on the top row (y=0), copies on the bottom row (y=1).
   const OX = (i: number) => 60 + i * 90;
-  const origNode = (i: number, state: GraphNode['state']): GraphNode => ({
-    id: `o${i}`, x: OX(i), y: 60, state, label: `${VALS[i]}` });
-  const copyNode = (i: number, state: GraphNode['state']): GraphNode => ({
-    id: `c${i}`, x: OX(i), y: 190, state, label: `${VALS[i]}'` });
+  const origNode = (i: number) => ({ id: `o${i}`, x: OX(i), y: 60, label: `${VALS[i]}` });
+  const copyNode = (i: number) => ({ id: `c${i}`, x: OX(i), y: 190, label: `${VALS[i]}'` });
 
   // Original next-edges (default) + random-edges (marked 'visited' to distinguish).
   const origNextEdges: GraphEdge[] = [];
@@ -39,25 +38,21 @@ function generateSteps(): Step[] {
     copyIdx: Set<number>,
     copyActive: number | null,
     extraCounters: { label: string; value: number | string }[]
-  ): Step['state'] => ({
-    type: 'graph',
-    directed: true,
-    nodes: [
-      ...VALS.map((_, i) => origNode(i, origStates[i] ?? 'default')),
-      ...VALS.map((_, i) =>
-        copyIdx.has(i) ? copyNode(i, i === copyActive ? 'active' : 'found') : null
-      ).filter((x): x is GraphNode => x !== null),
-    ],
-    edges: [
-      ...origNextEdges,
-      ...origRandomEdges,
-      ...copyNextEdges,
-      ...copyRandomEdges,
-    ],
-    hashmap: { ...mapEntries },
-    hashmapLabel: 'oldToNew',
-    counters: extraCounters,
-  });
+  ): Step['state'] => {
+    const edges = [...origNextEdges, ...origRandomEdges, ...copyNextEdges, ...copyRandomEdges];
+    return graphState(
+      [...VALS.map((_, i) => origNode(i)), ...VALS.flatMap((_, i) => (copyIdx.has(i) ? [copyNode(i)] : []))],
+      edges,
+      {
+        nodeState: (node, idx) => (idx < n ? (origStates[idx] ?? 'default') : node.id === `c${copyActive}` ? 'active' : 'found'),
+        edgeState: (_, idx) => edges[idx].state,
+        directed: true,
+        hashmap: { ...mapEntries },
+        hashmapLabel: 'oldToNew',
+        counters: extraCounters,
+      },
+    );
+  };
 
   // ── Intro ──────────────────────────────────────────────────────────────────
   steps.push({

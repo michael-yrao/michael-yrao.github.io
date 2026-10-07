@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Placeholder for a `result` slot not yet appended — result starts empty and
 // grows one `.append()` at a time, so an unfilled slot is never really a 0.
@@ -23,15 +24,12 @@ function generateSteps(): Step[] {
     explanation:
       'No division allowed. Key insight: result[i] = (product of everything to the left of i) × (product of everything to the right of i). Build prefixProduct and postfixProduct arrays, then multiply them into result.',
     anchor: { match: 'lenNums = len(nums)', to: { match: 'postfixProduct = [1] * lenNums' } },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
+    state: arrayState(nums, {
       counters: [
         { label: 'prefixProduct', value: '[1, 1, 1, 1]' },
         { label: 'postfixProduct', value: '[1, 1, 1, 1]' },
       ],
-    },
+    }),
     variables: [
       { name: 'nums', value: `[${nums.join(', ')}]` },
     ],
@@ -43,18 +41,14 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `prefixProduct[${i}] = prefixProduct[${i - 1}] × nums[${i - 1}] = ${prefixProduct[i - 1]} × ${nums[i - 1]} = ${prefixProduct[i]}. This is the product of all elements strictly to the LEFT of index ${i}.`,
       anchor: { match: 'prefixProduct[i] = prefixProduct[i-1] * nums[i-1]' },
-      state: {
-        type: 'array',
-        cells: prefixProduct.map((v, j) => ({
-          value: v,
-          state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
-        })),
+      state: arrayState(prefixProduct, {
+        cellState: (j) => (j === i ? 'active' : j < i ? 'visited' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         counters: [
           { label: 'nums', value: `[${nums.join(', ')}]` },
           { label: 'postfixProduct', value: '[1, 1, 1, 1]' },
         ],
-      },
+      }),
       variables: [
         { name: 'i', value: i, highlight: true },
         { name: `prefixProduct[${i}]`, value: prefixProduct[i], highlight: true },
@@ -68,18 +62,14 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `postfixProduct[${i}] = postfixProduct[${i + 1}] × nums[${i + 1}] = ${postfixProduct[i + 1]} × ${nums[i + 1]} = ${postfixProduct[i]}. This is the product of all elements strictly to the RIGHT of index ${i}.`,
       anchor: { match: 'postfixProduct[i] = postfixProduct[i+1] * nums[i+1]' },
-      state: {
-        type: 'array',
-        cells: postfixProduct.map((v, j) => ({
-          value: v,
-          state: j === i ? ('active' as const) : j > i ? ('visited' as const) : ('default' as const),
-        })),
+      state: arrayState(postfixProduct, {
+        cellState: (j) => (j === i ? 'active' : j > i ? 'visited' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         counters: [
           { label: 'nums', value: `[${nums.join(', ')}]` },
           { label: 'prefixProduct', value: `[${prefixProduct.join(', ')}]` },
         ],
-      },
+      }),
       variables: [
         { name: 'i', value: i, highlight: true },
         { name: `postfixProduct[${i}]`, value: postfixProduct[i], highlight: true },
@@ -95,18 +85,17 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `product = prefixProduct[${i}] × postfixProduct[${i}] = ${prefixProduct[i]} × ${postfixProduct[i]} = ${product}. result.append(product) → [${result.join(', ')}].`,
       anchor: { match: 'product = prefixProduct[i] * postfixProduct[i]', to: { match: 'result.append(product)' } },
-      state: {
-        type: 'array',
-        cells: nums.map((_, j) => ({
-          value: j < result.length ? result[j] : UNFILLED_SLOT,
-          state: j === i ? ('active' as const) : j < i ? ('found' as const) : ('default' as const),
-        })),
-        pointers: [{ index: i, label: 'i' }],
-        counters: [
-          { label: 'prefixProduct', value: `[${prefixProduct.join(', ')}]` },
-          { label: 'postfixProduct', value: `[${postfixProduct.join(', ')}]` },
-        ],
-      },
+      state: arrayState(
+        nums.map((_, j) => (j < result.length ? result[j] : UNFILLED_SLOT)),
+        {
+          cellState: (j) => (j === i ? 'active' : j < i ? 'found' : 'default'),
+          pointers: [{ index: i, label: 'i' }],
+          counters: [
+            { label: 'prefixProduct', value: `[${prefixProduct.join(', ')}]` },
+            { label: 'postfixProduct', value: `[${postfixProduct.join(', ')}]` },
+          ],
+        },
+      ),
       variables: [
         { name: 'i', value: i, highlight: true },
         { name: `prefixProduct[${i}]`, value: prefixProduct[i] },
@@ -120,15 +109,13 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Result: [${result.join(', ')}]. Each value is the product of every other element, computed in O(n) time with no division.`,
     anchor: { match: 'return result' },
-    state: {
-      type: 'array',
-      cells: result.map(v => ({ value: v, state: 'found' as const })),
-      pointers: [],
+    state: arrayState(result, {
+      cellState: () => 'found',
       counters: [
         { label: 'prefixProduct', value: `[${prefixProduct.join(', ')}]` },
         { label: 'postfixProduct', value: `[${postfixProduct.join(', ')}]` },
       ],
-    },
+    }),
     variables: [
       { name: 'result', value: `[${result.join(', ')}]`, highlight: true },
     ],
@@ -158,18 +145,15 @@ function generateStepsEfficient(): Step[] {
   let prefix = 1;
   let suffix = 1;
 
-  const snap = (active: number | null, isDone: (i: number) => boolean) => ({
-    type: 'array' as const,
-    cells: result.map((v, i) => ({
-      value: v,
-      state: i === active ? ('active' as const) : isDone(i) ? ('visited' as const) : ('default' as const),
-    })),
-    pointers: active !== null ? [{ index: active, label: 'i' }] : [],
-    counters: [
-      { label: 'prefix', value: prefix },
-      { label: 'suffix', value: suffix },
-    ],
-  });
+  const snap = (active: number | null, isDone: (i: number) => boolean) =>
+    arrayState(result, {
+      cellState: (i) => (i === active ? 'active' : isDone(i) ? 'visited' : 'default'),
+      pointers: active !== null ? [{ index: active, label: 'i' }] : [],
+      counters: [
+        { label: 'prefix', value: prefix },
+        { label: 'suffix', value: suffix },
+      ],
+    });
 
   steps.push({
     explanation:
@@ -228,15 +212,13 @@ function generateStepsEfficient(): Step[] {
   steps.push({
     explanation: `Done. result = [${result.join(', ')}]. O(n) time and O(1) extra space — no auxiliary arrays, just the prefix and suffix scalars.`,
     anchor: { match: 'return result' },
-    state: {
-      type: 'array',
-      cells: result.map((v) => ({ value: v, state: 'found' as const })),
-      pointers: [],
+    state: arrayState(result, {
+      cellState: () => 'found',
       counters: [
         { label: 'prefix', value: prefix },
         { label: 'suffix', value: suffix },
       ],
-    },
+    }),
     variables: [{ name: 'result', value: `[${result.join(', ')}]`, highlight: true }],
   });
 

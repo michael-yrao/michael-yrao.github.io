@@ -2,7 +2,8 @@
 // (cumulative time, node); a node is marked visited at POP time (skip a repeat pop), and
 // minTime is folded as max(minTime, currentCumulativeTime) — the heap's sorted pop order
 // makes that equivalent to always taking the latest pop, but the attempt writes it as max().
-import { AlgorithmMeta, SolutionVariant, Step, GraphNode, GraphEdge, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { GraphStateOptions, graphState } from '../../core/steps';
 
 const TIMES: [number, number, number][] = [
   [2, 1, 1],
@@ -19,6 +20,9 @@ const POS: Record<number, { x: number; y: number }> = {
   4: { x: 300, y: 120 },
 };
 
+const NODE_INPUTS = [1, 2, 3, 4].map((id) => ({ id, ...POS[id], label: `${id}` }));
+const EDGE_INPUTS = TIMES.map(([from, to]) => ({ from, to }));
+
 function generateSteps(): Step[] {
   const steps: Step[] = [];
   const adjMap: Record<number, [number, number][]> = {};
@@ -33,21 +37,18 @@ function generateSteps(): Step[] {
     minHeap.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   };
 
-  const nodes = (active: number | null): GraphNode[] =>
-    [1, 2, 3, 4].map((id) => ({
-      id,
-      x: POS[id].x,
-      y: POS[id].y,
-      state: (id === active ? 'active' : visited.has(id) ? 'found' : 'default') as GraphNode['state'],
-      label: `${id}`,
-    }));
-
-  const edges = (activeFrom: number | null, activeTo: number | null): GraphEdge[] =>
-    TIMES.map(([s, t]) => ({
-      from: s,
-      to: t,
-      state: (s === activeFrom && t === activeTo ? 'active' : visited.has(s) && visited.has(t) ? 'found' : 'default') as GraphEdge['state'],
-    }));
+  const mkState = (active: number | null, activeEdge: [number, number] | null, options: GraphStateOptions) =>
+    graphState(NODE_INPUTS, EDGE_INPUTS, {
+      nodeState: ({ id }) => (id === active ? 'active' : visited.has(Number(id)) ? 'found' : 'default'),
+      edgeState: ({ from, to }) =>
+        activeEdge && from === activeEdge[0] && to === activeEdge[1]
+          ? 'active'
+          : visited.has(Number(from)) && visited.has(Number(to))
+            ? 'found'
+            : 'default',
+      directed: true,
+      ...options,
+    });
 
   const heapItems = (): (string | number)[] => minHeap.map(([time, node]) => `(${time}, n${node})`);
 
@@ -56,15 +57,11 @@ function generateSteps(): Step[] {
     explanation:
       `Dijkstra from k=${K}. Build adjMap from times, then push (0, ${K}) — it costs 0 to reach the start. Edges are always positive, so cumulative distance only increases as we pop; minTime tracks the largest cumulative time seen so far (the slowest node to hear the signal).`,
     anchor: { match: 'heapq.heappush(minHeap,(0,k))' },
-    state: {
-      type: 'graph',
-      directed: true,
-      nodes: nodes(null),
-      edges: edges(null, null),
+    state: mkState(null, null, {
       stackItems: heapItems(),
       stackLabel: 'minHeap (time, node)',
       counters: [{ label: 'minTime', value: minTime }, { label: 'settled', value: `0 / ${N}` }],
-    },
+    }),
     variables: [],
   });
 
@@ -74,15 +71,11 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `Pop (${currentCumulativeTime}, ${currentNode}): currentNode ${currentNode} is already visited → skip (we already calculated the shortest way here).`,
         anchor: { match: 'if currentNode in visited:' },
-        state: {
-          type: 'graph',
-          directed: true,
-          nodes: nodes(currentNode),
-          edges: edges(null, null),
+        state: mkState(currentNode, null, {
           stackItems: heapItems(),
           stackLabel: 'minHeap (time, node)',
           counters: [{ label: 'minTime', value: minTime }, { label: 'settled', value: `${visited.size} / ${N}` }],
-        },
+        }),
         variables: [{ name: 'currentNode', value: currentNode }, { name: 'currentCumulativeTime', value: currentCumulativeTime }],
       });
       continue;
@@ -92,15 +85,11 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `Pop (${currentCumulativeTime}, ${currentNode}): mark currentNode ${currentNode} visited. minTime = max(minTime, ${currentCumulativeTime}) = ${minTime} — problem says minimum but since values only increase, minTime ends up holding the largest value we've popped. Now relax its neighbors.`,
       anchor: { match: 'visited.add(currentNode)', to: { match: 'minTime = max(minTime, currentCumulativeTime)' } },
-      state: {
-        type: 'graph',
-        directed: true,
-        nodes: nodes(currentNode),
-        edges: edges(null, null),
+      state: mkState(currentNode, null, {
         stackItems: heapItems(),
         stackLabel: 'minHeap (time, node)',
         counters: [{ label: 'minTime', value: minTime }, { label: 'settled', value: `${visited.size} / ${N}` }],
-      },
+      }),
       variables: [{ name: 'currentNode', value: currentNode, highlight: true }, { name: 'minTime', value: minTime, highlight: true }],
     });
 
@@ -111,15 +100,11 @@ function generateSteps(): Step[] {
         steps.push({
           explanation: `Edge ${currentNode}→${neighborNode} (weight ${neighborTime}): neighborNode not yet visited → push (${currentCumulativeTime} + ${neighborTime} = ${neighborCumulativeTime}, ${neighborNode}) onto minHeap.`,
           anchor: { match: 'if neighborNode not in visited:', to: { match: 'heapq.heappush(minHeap, (neighborCumulativeTime, neighborNode))' } },
-          state: {
-            type: 'graph',
-            directed: true,
-            nodes: nodes(currentNode),
-            edges: edges(currentNode, neighborNode),
+          state: mkState(currentNode, [currentNode, neighborNode], {
             stackItems: heapItems(),
             stackLabel: 'minHeap (time, node)',
             counters: [{ label: 'minTime', value: minTime }, { label: 'settled', value: `${visited.size} / ${N}` }],
-          },
+          }),
           variables: [{ name: 'neighborNode', value: neighborNode }, { name: 'neighborCumulativeTime', value: neighborCumulativeTime, highlight: true }],
         });
       }
@@ -133,14 +118,7 @@ function generateSteps(): Step[] {
         ? `minHeap empty but len(visited) = ${visited.size} ≠ n = ${N} → some node never gets the signal. Return -1.`
         : `minHeap empty and len(visited) = ${N} == n → every node received the signal. Return minTime = ${minTime}.`,
     anchor: answer === -1 ? { match: 'return -1' } : { match: 'return minTime' },
-    state: {
-      type: 'graph',
-      directed: true,
-      nodes: nodes(null),
-      edges: edges(null, null),
-      stackItems: [],
-      counters: [{ label: 'answer', value: answer }],
-    },
+    state: mkState(null, null, { stackItems: [], counters: [{ label: 'answer', value: answer }] }),
     variables: [{ name: 'return', value: answer, highlight: true }],
   });
 

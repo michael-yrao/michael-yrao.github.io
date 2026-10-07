@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ArrayCell, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Solution: Length Prefix (two-pointer decode) ─────────────────────────────
 //
@@ -19,12 +20,7 @@ function generateSteps(): Step[] {
     explanation:
       'The hard part is separating strings when any character (including "#" or digits) may appear inside them. Solution: length-prefix framing. encode builds result as a LIST of parts (length, "#", string) per string, then joins them. decode reads the number, then takes exactly that many characters — a "#" inside the body can never confuse us.',
     anchor: { match: 'for string in strs:' },
-    state: {
-      type: 'array',
-      cells: [],
-      pointers: [],
-      arrayLabel: 'encoded string',
-    },
+    state: arrayState([], { arrayLabel: 'encoded string' }),
     variables: [
       { name: 'strs', value: '["Hello", "World"]' },
       { name: 'result', value: '[]' },
@@ -41,15 +37,10 @@ function generateSteps(): Step[] {
       explanation: `Encode "${str}": lenString = len("${str}") = ${lenString}. Three separate appends: result.append(str(${lenString})), result.append("#"), result.append("${str}").`,
       // nth:1 selects encode's append (decode has its own identical "result.append(string)" line later).
       anchor: { match: 'result.append(str(lenString))', to: { match: 'result.append(string)', nth: 1 } },
-      state: {
-        type: 'array',
-        cells: encoded.split('').map((c, idx) => ({
-          value: c,
-          state: idx >= before ? ('found' as const) : ('visited' as const),
-        })),
-        pointers: [],
+      state: arrayState(encoded.split(''), {
         arrayLabel: 'result parts (joined so far)',
-      },
+        cellState: (idx) => (idx >= before ? 'found' : 'visited'),
+      }),
       variables: [
         { name: 'string', value: `"${str}"`, highlight: true },
         { name: 'lenString', value: lenString, highlight: true },
@@ -61,12 +52,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Encoding done: "".join(result) = "${encoded}". This single string is sent over the wire; the receiver decodes it back into ["Hello", "World"] using two pointers — i marks the start of a frame, j scans to its "#".`,
     anchor: { match: 'return "".join(result)' },
-    state: {
-      type: 'array',
-      cells: encoded.split('').map((c) => ({ value: c, state: 'default' as const })),
-      pointers: [],
-      arrayLabel: 'transmissionString (to decode)',
-    },
+    state: arrayState(encoded.split(''), { arrayLabel: 'transmissionString (to decode)' }),
     variables: [{ name: 'encoded', value: `"${encoded}"`, highlight: true }],
   });
 
@@ -74,26 +60,23 @@ function generateSteps(): Step[] {
   const chars = encoded.split('');
   const result: string[] = [];
 
-  const decodeCells = (i: number, j: number, wordStart: number, wordEnd: number): ArrayCell[] =>
-    chars.map((c, idx) => {
-      let state: ArrayCell['state'] = 'default';
-      if (idx < i) state = 'visited';
-      else if (idx >= i && idx < j) state = 'window';        // length-prefix digits
-      else if (idx === j && j < chars.length) state = 'active'; // the '#' delimiter
-      else if (idx >= wordStart && idx < wordEnd) state = 'found'; // extracted word
-      return { value: c, state };
-    });
+  const decodeCellState = (i: number, j: number, wordStart: number, wordEnd: number) => (idx: number): CellState => {
+    if (idx < i) return 'visited';
+    if (idx < j) return 'window'; // length-prefix digits
+    if (idx === j && j < chars.length) return 'active'; // the '#' delimiter
+    if (idx >= wordStart && idx < wordEnd) return 'found'; // extracted word
+    return 'default';
+  };
 
   let i = 0;
   steps.push({
     explanation: 'decode: result = [], i = 0. i will mark the start of each frame.',
     anchor: { match: 'i = 0' },
-    state: {
-      type: 'array',
-      cells: decodeCells(0, 0, -1, -1),
-      pointers: [{ index: 0, label: 'i' }],
+    state: arrayState(chars, {
       arrayLabel: 'transmissionString (decoding)',
-    },
+      cellState: decodeCellState(0, 0, -1, -1),
+      pointers: [{ index: 0, label: 'i' }],
+    }),
     variables: [{ name: 'i', value: i }, { name: 'result', value: '[]' }],
   });
 
@@ -108,15 +91,14 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `i=${i}: j = i + 1 = ${i + 1}, then advance j while s[j] != "#". It stops at index ${j} (the "#"). The digits between i and j spell "${encoded.slice(i, j)}", so lenString = int(s[${i}:${j}]) = ${lenString}.`,
       anchor: { match: 'j = i + 1', to: { match: 'j+=1' } },
-      state: {
-        type: 'array',
-        cells: decodeCells(i, j, -1, -1),
+      state: arrayState(chars, {
+        arrayLabel: 'transmissionString (decoding)',
+        cellState: decodeCellState(i, j, -1, -1),
         pointers: [
           { index: i, label: 'i' },
           { index: j, label: 'j (#)' },
         ],
-        arrayLabel: 'transmissionString (decoding)',
-      },
+      }),
       variables: [
         { name: 'i', value: i, highlight: true },
         { name: 'j', value: j, highlight: true },
@@ -128,15 +110,14 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `string = s[${wordStart}:${wordEnd}] = "${string}" (the ${lenString} characters after "#"). result.append(string). Then i = j+1+lenString = ${wordEnd} to start the next frame.`,
       anchor: { match: 'lenString = int(s[i:j])', to: { match: 'i = j+1+lenString' } },
-      state: {
-        type: 'array',
-        cells: decodeCells(i, j, wordStart, wordEnd),
+      state: arrayState(chars, {
+        arrayLabel: 'transmissionString (decoding)',
+        cellState: decodeCellState(i, j, wordStart, wordEnd),
         pointers: [
           { index: wordStart, label: 'word start' },
           { index: wordEnd - 1, label: 'word end' },
         ],
-        arrayLabel: 'transmissionString (decoding)',
-      },
+      }),
       variables: [
         { name: 'string', value: `"${string}"`, highlight: true },
         { name: 'result', value: `[${result.map((w) => `"${w}"`).join(', ')}]` },
@@ -150,13 +131,11 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `i reached the end of the string — the while loop ends. Return [${result.map((w) => `"${w}"`).join(', ')}], exactly the original list. Both encode and decode are O(total length): each character is touched a constant number of times (the two-pointer scan avoids the O(n²) of repeated split()).`,
     anchor: { match: 'return result' },
-    state: {
-      type: 'array',
-      cells: chars.map((c) => ({ value: c, state: 'visited' as const })),
-      pointers: [],
+    state: arrayState(chars, {
       arrayLabel: 'transmissionString (decoded)',
+      cellState: () => 'visited',
       counters: [{ label: 'decoded', value: `[${result.map((w) => `"${w}"`).join(', ')}]` }],
-    },
+    }),
     variables: [
       { name: 'result', value: `[${result.map((w) => `"${w}"`).join(', ')}]`, highlight: true },
     ],

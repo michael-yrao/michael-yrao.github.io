@@ -1,4 +1,7 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
+
+const scanState = (i: number) => (j: number): CellState => (j < i ? 'visited' : j === i ? 'active' : 'default');
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -11,19 +14,11 @@ function generateSteps(): Step[] {
   const target = 9;
   const steps: Step[] = [];
 
-  const baseState = () =>
-    nums.map((v) => ({ value: v, state: 'default' as const }));
-
   steps.push({
     explanation:
       'We need to find two indices where nums[i] + nums[j] = 9. A brute-force nested loop would be O(n²). Instead, we use a hash map so each lookup is O(1) — one pass, O(n) total.',
     anchor: { match: 'map = {}' },
-    state: {
-      type: 'array',
-      cells: baseState(),
-      pointers: [],
-      hashmap: {},
-    },
+    state: arrayState(nums, { hashmap: {} }),
     variables: [
       { name: 'target', value: target },
       { name: 'map', value: '{}' },
@@ -36,20 +31,14 @@ function generateSteps(): Step[] {
     const num = nums[i];
     const diff = target - num;
 
-    const activeCells = baseState().map((c, idx) => ({
-      ...c,
-      state: idx === i ? ('active' as const) : idx < i ? ('visited' as const) : ('default' as const),
-    }));
-
     steps.push({
       explanation: `Index ${i}, value ${num}. Complement = ${target} − ${num} = ${diff}. Is ${diff} already in our map? ${diff in seen ? `YES — at index ${seen[diff]}!` : 'No — not yet.'}`,
       anchor: { match: 'if diff in map:' },
-      state: {
-        type: 'array',
-        cells: activeCells,
+      state: arrayState(nums, {
+        cellState: scanState(i),
         pointers: [{ index: i, label: 'i' }],
         hashmap: { ...seen },
-      },
+      }),
       variables: [
         { name: 'index', value: i, highlight: true },
         { name: 'number', value: num },
@@ -59,23 +48,17 @@ function generateSteps(): Step[] {
     });
 
     if (diff in seen) {
-      const foundCells = baseState().map((c, idx) => ({
-        ...c,
-        state: idx === seen[diff] || idx === i ? ('found' as const) : ('visited' as const),
-      }));
-
       steps.push({
         explanation: `Found it! map[${diff}] = ${seen[diff]}. We return [${seen[diff]}, ${i}]. The hash map made this O(1) lookup — no second scan needed.`,
         anchor: { match: 'return [map[diff], index]' },
-        state: {
-          type: 'array',
-          cells: foundCells,
+        state: arrayState(nums, {
+          cellState: (idx) => (idx === seen[diff] || idx === i ? 'found' : 'visited'),
           pointers: [
             { index: seen[diff], label: 'j' },
             { index: i, label: 'i' },
           ],
           hashmap: { ...seen },
-        },
+        }),
         variables: [
           { name: 'index', value: i },
           { name: 'number', value: num },
@@ -91,12 +74,11 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `${diff} wasn't in the map. We store {${num}: ${i}} — "value ${num} is at index ${i}." Next time we need ${num} as someone's complement, we know exactly where it is.`,
       anchor: { match: 'map[number] = index' },
-      state: {
-        type: 'array',
-        cells: activeCells,
+      state: arrayState(nums, {
+        cellState: scanState(i),
         pointers: [{ index: i, label: 'i' }],
         hashmap: { ...seen },
-      },
+      }),
       variables: [
         { name: 'index', value: i },
         { name: 'number', value: num, highlight: true },

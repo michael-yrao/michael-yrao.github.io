@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, TreeNode, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { TreeNodeInput, treeState } from '../../core/steps';
 
 // Traces cse-progress's buildTree verbatim: preorder[0] is the root, inorder.index finds its
 // split point, and root.left/root.right recurse on the sliced preorder/inorder halves —
@@ -21,24 +22,23 @@ function generateSteps(): Step[] {
   const revealed = new Set<number>();
 
   const nodeId = (v: number) => `n${v}`;
-  const buildTreeState = (activeVal: number | null): Step['state'] => ({
-    type: 'tree',
-    nodes: [...revealed].map((v): TreeNode => {
-      const c = CHILDREN[v];
-      return {
-        id: nodeId(v),
-        value: v,
-        state: v === activeVal ? 'active' : 'visited',
-        leftId: c.left !== null && revealed.has(c.left) ? nodeId(c.left) : null,
-        rightId: c.right !== null && revealed.has(c.right) ? nodeId(c.right) : null,
-      };
-    }),
-    counters: [
-      { label: 'preorder', value: `[${PREORDER.join(',')}]` },
-      { label: 'inorder', value: `[${INORDER.join(',')}]` },
-      { label: 'nodes built', value: revealed.size },
-    ],
-  });
+  const revealedId = (v: number | null) => (v !== null && revealed.has(v) ? nodeId(v) : null);
+  const buildTreeState = (activeVal: number | null): Step['state'] =>
+    treeState(
+      [...revealed].map((v): TreeNodeInput => ({
+        id: nodeId(v), value: v,
+        leftId: revealedId(CHILDREN[v].left),
+        rightId: revealedId(CHILDREN[v].right),
+      })),
+      {
+        nodeState: (n) => (n.value === activeVal ? 'active' : 'visited'),
+        counters: [
+          { label: 'preorder', value: `[${PREORDER.join(',')}]` },
+          { label: 'inorder', value: `[${INORDER.join(',')}]` },
+          { label: 'nodes built', value: revealed.size },
+        ],
+      },
+    );
 
   steps.push({
     explanation:

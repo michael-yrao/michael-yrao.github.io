@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, LinkedListState, ProblemExample } from '../../core/models/algorithm.model';
+import { linkedListState } from '../../core/steps';
 
 // Traces cse-progress's addTwoNumbers_20260705_elegant verbatim: a single while loop that
 // runs while either list has a node left OR a carry remains, computing l1tVal/l2tVal/digitSum
@@ -7,29 +8,17 @@ import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, ProblemExample } 
 const L1 = [2, 4, 3]; // represents 342 (digits stored reversed)
 const L2 = [5, 6, 4]; // represents 465
 
-function makeInputNodes(p1Idx: number | null, p2Idx: number | null): LinkedListNode[] {
-  const l1Nodes: LinkedListNode[] = L1.map((v, i) => ({
-    id: `a${i}`,
-    value: v,
-    nextId: i < L1.length - 1 ? `a${i + 1}` : null,
-    state: p1Idx === i ? ('curr' as const) : p1Idx !== null && i < p1Idx ? ('done' as const) : ('default' as const),
-  }));
-  const l2Nodes: LinkedListNode[] = L2.map((v, i) => ({
-    id: `b${i}`,
-    value: v,
-    nextId: i < L2.length - 1 ? `b${i + 1}` : null,
-    state: p2Idx === i ? ('prev' as const) : p2Idx !== null && i < p2Idx ? ('done' as const) : ('default' as const),
-  }));
-  return [...l1Nodes, ...l2Nodes];
+const walkState = (activeIdx: number | null, activeState: LinkedListNode['state']) => (i: number): LinkedListNode['state'] =>
+  activeIdx === i ? activeState : activeIdx !== null && i < activeIdx ? 'done' : 'default';
+
+function inputState(p1Idx: number | null, p2Idx: number | null, pointers: LinkedListState['pointers'], result?: LinkedListNode[]): LinkedListState {
+  const list1 = linkedListState(L1, { idPrefix: 'a', nodeState: walkState(p1Idx, 'curr'), pointers, result });
+  const list2 = linkedListState(L2, { idPrefix: 'b', nodeState: walkState(p2Idx, 'prev') });
+  return { ...list1, nodes: [...list1.nodes, ...list2.nodes] };
 }
 
 function makeResult(vals: number[], activeIdx?: number): LinkedListNode[] {
-  return vals.map((v, i) => ({
-    id: `r${i}`,
-    value: v,
-    nextId: i < vals.length - 1 ? `r${i + 1}` : null,
-    state: i === activeIdx ? ('active' as const) : ('done' as const),
-  }));
+  return linkedListState(vals, { idPrefix: 'r', nodeState: (i) => (i === activeIdx ? 'active' : 'done') }).nodes;
 }
 
 function generateSteps(): Step[] {
@@ -43,15 +32,10 @@ function generateSteps(): Step[] {
     explanation:
       'Add 342 + 465 = 807. Digits are stored least-significant-first (2→4→3 is 342), which is exactly the order we add by hand: rightmost digit first, carrying overflow left. A dummy head simplifies building the result, and the loop runs while either list has nodes left OR a carry remains.',
     anchor: { match: 'while l1t or l2t or carryover:' },
-    state: {
-      type: 'linked-list',
-      nodes: makeInputNodes(0, 0),
-      pointers: [
-        { nodeId: 'a0', label: 'l1t' },
-        { nodeId: 'b0', label: 'l2t' },
-      ],
-      result: [],
-    },
+    state: inputState(0, 0, [
+      { nodeId: 'a0', label: 'l1t' },
+      { nodeId: 'b0', label: 'l2t' },
+    ], []),
     variables: [
       { name: 'l1', value: '2→4→3  (342)' },
       { name: 'l2', value: '5→6→4  (465)' },
@@ -73,15 +57,15 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `l1tVal=${v1}, l2tVal=${v2}, carryover=${prevCarry}. digitSum = ${v1} + ${v2} + ${prevCarry} = ${digitSum}. Append ListNode(digitSum % 10) = ${digit} to the result.${carryNote}`,
       anchor: { match: 'l1tVal = l2tVal = 0', to: { match: 'l2t = l2t.next' } },
-      state: {
-        type: 'linked-list',
-        nodes: makeInputNodes(p1 + 1 < L1.length ? p1 + 1 : null, p2 + 1 < L2.length ? p2 + 1 : null),
-        pointers: [
+      state: inputState(
+        p1 + 1 < L1.length ? p1 + 1 : null,
+        p2 + 1 < L2.length ? p2 + 1 : null,
+        [
           ...(p1 + 1 < L1.length ? [{ nodeId: `a${p1 + 1}`, label: 'l1t' }] : [{ nodeId: null, label: 'l1t=None' }]),
           ...(p2 + 1 < L2.length ? [{ nodeId: `b${p2 + 1}`, label: 'l2t' }] : [{ nodeId: null, label: 'l2t=None' }]),
         ],
-        result: makeResult(result, result.length - 1),
-      },
+        makeResult(result, result.length - 1),
+      ),
       variables: [
         { name: 'l1tVal', value: v1 },
         { name: 'l2tVal', value: v2 },
@@ -99,15 +83,10 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Both lists are exhausted and carryover is 0 — the loop condition fails and we return dummyResultNode.next. Result list ${result.join('→')} reads as 807 (again least-significant-first). Each node is visited once: O(max(m, n)) time, O(max(m, n)) for the result list.`,
     anchor: { match: 'return dummyResultNode.next' },
-    state: {
-      type: 'linked-list',
-      nodes: makeInputNodes(null, null),
-      pointers: [
-        { nodeId: null, label: 'l1t' },
-        { nodeId: null, label: 'l2t' },
-      ],
-      result: makeResult(result),
-    },
+    state: inputState(null, null, [
+      { nodeId: null, label: 'l1t' },
+      { nodeId: null, label: 'l2t' },
+    ], makeResult(result)),
     variables: [
       { name: 'return', value: `[${result.join('→')}]  (807)`, highlight: true },
     ],

@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Solution 1: Iterative ─────────────────────────────────────────────────────
 //
@@ -13,23 +14,15 @@ function generateIterativeSteps(): Step[] {
   let l = 0;
   let r = nums.length - 1;
 
-  const makeState = (l: number, r: number, mid: number | null) => ({
-    type: 'array' as const,
-    cells: nums.map((v, i) => ({
-      value: v,
-      state:
-        i < l || i > r
-          ? ('eliminated' as const)
-          : mid !== null && i === mid
-          ? ('active' as const)
-          : ('default' as const),
-    })),
-    pointers: [
-      { index: l, label: 'L' },
-      { index: r, label: 'R' },
-      ...(mid !== null ? [{ index: mid, label: 'mid' }] : []),
-    ],
-  });
+  const makeState = (l: number, r: number, mid: number | null) =>
+    arrayState(nums, {
+      cellState: (i) => (i < l || i > r ? 'eliminated' : mid !== null && i === mid ? 'active' : 'default'),
+      pointers: [
+        { index: l, label: 'L' },
+        { index: r, label: 'R' },
+        ...(mid !== null ? [{ index: mid, label: 'mid' }] : []),
+      ],
+    });
 
   steps.push({
     explanation: `Array is sorted. l, r = 0, len(nums)-1 → l=0, r=${r}. Binary search cuts the search space in half each step — O(log n) instead of O(n). We can do this because sorted order gives us direction.`,
@@ -62,14 +55,10 @@ function generateIterativeSteps(): Step[] {
       steps.push({
         explanation: `nums[${mid}] = ${nums[mid]} equals target ${target}. Found! Return ${mid}. We cut the search space from ${nums.length} to 1 in just ${steps.length} steps.`,
         anchor: { match: 'if nums[mid] == target:', to: { match: 'return mid' } },
-        state: {
-          type: 'array',
-          cells: nums.map((v, i) => ({
-            value: v,
-            state: i === mid ? ('found' as const) : i < l || i > r ? ('eliminated' as const) : ('default' as const),
-          })),
+        state: arrayState(nums, {
+          cellState: (i) => (i === mid ? 'found' : i < l || i > r ? 'eliminated' : 'default'),
           pointers: [{ index: mid, label: 'FOUND' }],
-        },
+        }),
         variables: [
           { name: 'mid', value: mid },
           { name: 'nums[mid]', value: nums[mid] },
@@ -125,26 +114,23 @@ function generateRecursiveSteps(): Step[] {
   const target = 9;
   const steps: Step[] = [];
 
-  const makeState = (l: number, r: number, mid: number | null, depth: number, foundAt: number | null = null) => ({
-    type: 'array' as const,
-    cells: nums.map((v, i) => ({
-      value: v,
-      state:
+  const makeState = (l: number, r: number, mid: number | null, depth: number, foundAt: number | null = null) =>
+    arrayState(nums, {
+      cellState: (i) =>
         foundAt !== null && i === foundAt
-          ? ('found' as const)
+          ? 'found'
           : i < l || i > r
-          ? ('eliminated' as const)
+          ? 'eliminated'
           : mid !== null && i === mid
-          ? ('active' as const)
-          : ('default' as const),
-    })),
-    pointers: [
-      { index: l, label: 'l' },
-      { index: r, label: 'r' },
-      ...(mid !== null ? [{ index: mid, label: 'm' }] : []),
-    ],
-    counters: [{ label: 'call stack depth', value: depth }],
-  });
+          ? 'active'
+          : 'default',
+      pointers: [
+        { index: l, label: 'l' },
+        { index: r, label: 'r' },
+        ...(mid !== null ? [{ index: mid, label: 'm' }] : []),
+      ],
+      counters: [{ label: 'call stack depth', value: depth }],
+    });
 
   steps.push({
     explanation: `Same halving idea as the loop, but expressed with recursion: search(l, r) inspects the middle, then CALLS ITSELF on whichever half can still contain the target. The base case l > r means the window is empty → not found (return −1). return search(0, len(nums)-1) kicks it off with search(0, ${nums.length - 1}).`,

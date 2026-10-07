@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, LinkedListState, ProblemExample } from '../../core/models/algorithm.model';
+import { linkedListState } from '../../core/steps';
 
 // Traces cse-progress's mergeTwoLists and mergeTwoListsRecursive verbatim. Both use a
 // STRICT `list1.val < list2.val` comparison — on a tie, list2's node is taken, never
@@ -10,44 +11,17 @@ import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, ProblemExample } 
 const L1 = [1, 2, 4];
 const L2 = [1, 3, 4];
 
-function makeInputNodes(
-  p1Idx: number | null,
-  p2Idx: number | null
-): LinkedListNode[] {
-  const l1Nodes: LinkedListNode[] = L1.map((v, i) => ({
-    id: `a${i}`,
-    value: v,
-    nextId: i < L1.length - 1 ? `a${i + 1}` : null,
-    state:
-      p1Idx === i
-        ? ('curr' as const)
-        : p1Idx !== null && i < p1Idx
-        ? ('done' as const)
-        : ('default' as const),
-  }));
+const walkState = (activeIdx: number | null, activeState: LinkedListNode['state']) => (i: number): LinkedListNode['state'] =>
+  activeIdx === i ? activeState : activeIdx !== null && i < activeIdx ? 'done' : 'default';
 
-  const l2Nodes: LinkedListNode[] = L2.map((v, i) => ({
-    id: `b${i}`,
-    value: v,
-    nextId: i < L2.length - 1 ? `b${i + 1}` : null,
-    state:
-      p2Idx === i
-        ? ('prev' as const)
-        : p2Idx !== null && i < p2Idx
-        ? ('done' as const)
-        : ('default' as const),
-  }));
-
-  return [...l1Nodes, ...l2Nodes];
+function inputState(p1Idx: number | null, p2Idx: number | null, pointers: LinkedListState['pointers'], result?: LinkedListNode[]): LinkedListState {
+  const list1 = linkedListState(L1, { idPrefix: 'a', nodeState: walkState(p1Idx, 'curr'), pointers, result });
+  const list2 = linkedListState(L2, { idPrefix: 'b', nodeState: walkState(p2Idx, 'prev') });
+  return { ...list1, nodes: [...list1.nodes, ...list2.nodes] };
 }
 
 function makeResult(vals: number[]): LinkedListNode[] {
-  return vals.map((v, i) => ({
-    id: `r${i}`,
-    value: v,
-    nextId: i < vals.length - 1 ? `r${i + 1}` : null,
-    state: 'done' as const,
-  }));
+  return linkedListState(vals, { idPrefix: 'r', nodeState: () => 'done' }).nodes;
 }
 
 // ── Solution 1: Iterative ─────────────────────────────────────────────────────
@@ -62,15 +36,10 @@ function generateIterativeSteps(): Step[] {
     explanation:
       'dummy = ListNode(-101), then current = dummy. The dummy node simplifies the empty-result edge case. list1 and list2 are the two cursors, shown below. At each step, if list1.val < list2.val take list1\'s node; otherwise (including a tie) take list2\'s.',
     anchor: { match: 'dummy = ListNode(-101)', to: { match: 'current = dummy' } },
-    state: {
-      type: 'linked-list',
-      nodes: makeInputNodes(0, 0),
-      pointers: [
-        { nodeId: 'a0', label: 'list1' },
-        { nodeId: 'b0', label: 'list2' },
-      ],
-      result: [],
-    },
+    state: inputState(0, 0, [
+      { nodeId: 'a0', label: 'list1' },
+      { nodeId: 'b0', label: 'list2' },
+    ], []),
   });
 
   while (p1 < L1.length && p2 < L2.length) {
@@ -84,15 +53,15 @@ function generateIterativeSteps(): Step[] {
         explanation: `list1.val=${v1} < list2.val=${v2}: current.next = list1, list1 = list1.next, current = current.next. ${v1} joins the result from list1.`,
         // nth 1: the in-loop assignment; the 2nd hit is the post-loop tail attach under 'if list1:'
         anchor: { match: 'current.next = list1', nth: 1, to: { match: 'current = current.next' } },
-        state: {
-          type: 'linked-list',
-          nodes: makeInputNodes(p1 < L1.length ? p1 : null, p2),
-          pointers: [
+        state: inputState(
+          p1 < L1.length ? p1 : null,
+          p2,
+          [
             ...(p1 < L1.length ? [{ nodeId: `a${p1}`, label: 'list1' }] : [{ nodeId: null, label: 'list1=null' }]),
             { nodeId: `b${p2}`, label: 'list2' },
           ],
-          result: makeResult(result),
-        },
+          makeResult(result),
+        ),
         variables: [
           { name: 'took', value: v1, highlight: true },
           { name: 'list1', value: p1 < L1.length ? `list1[${p1}]=${L1[p1]}` : 'null' },
@@ -106,15 +75,15 @@ function generateIterativeSteps(): Step[] {
         explanation: `list1.val=${v1} < list2.val=${v2} is False (${v1 === v2 ? 'tie' : `${v1} > ${v2}`}): current.next = list2, list2 = list2.next, current = current.next. ${v2} joins the result from list2.`,
         // nth 1: the in-loop assignment; the 2nd hit is the post-loop tail attach under 'else:'
         anchor: { match: 'current.next = list2', nth: 1, to: { match: 'current = current.next' } },
-        state: {
-          type: 'linked-list',
-          nodes: makeInputNodes(p1, p2 < L2.length ? p2 : null),
-          pointers: [
+        state: inputState(
+          p1,
+          p2 < L2.length ? p2 : null,
+          [
             { nodeId: `a${p1}`, label: 'list1' },
             ...(p2 < L2.length ? [{ nodeId: `b${p2}`, label: 'list2' }] : [{ nodeId: null, label: 'list2=null' }]),
           ],
-          result: makeResult(result),
-        },
+          makeResult(result),
+        ),
         variables: [
           { name: 'took', value: v2, highlight: true },
           { name: 'list2', value: p2 < L2.length ? `list2[${p2}]=${L2[p2]}` : 'null' },
@@ -131,12 +100,7 @@ function generateIterativeSteps(): Step[] {
   steps.push({
     explanation: `One list exhausted — the while loop exits. if list1: current.next = list1, else: current.next = list2 attaches whichever tail remains. return dummy.next. Merged list: ${result.join('→')}. O(m+n) time, O(1) extra space.`,
     anchor: { match: 'if list1:', to: { match: 'return dummy.next' } },
-    state: {
-      type: 'linked-list',
-      nodes: makeInputNodes(null, null),
-      pointers: [{ nodeId: null, label: 'list1' }, { nodeId: null, label: 'list2' }],
-      result: makeResult(result),
-    },
+    state: inputState(null, null, [{ nodeId: null, label: 'list1' }, { nodeId: null, label: 'list2' }], makeResult(result)),
     variables: [
       { name: 'return', value: `[${result.join('→')}]`, highlight: true },
     ],
@@ -175,18 +139,16 @@ function generateRecursiveSteps(): Step[] {
     explanation:
       'Recursive merge: at each call, compare the heads with list1.val < list2.val. Attach the smaller (list2 wins ties) and recurse on the rest. The call stack unwinds, returning each head in order to build the merged list bottom-up.',
     anchor: { match: 'def mergeTwoListsRecursive(self, list1: Optional[ListNode], list2: Optional[ListNode]) -> Optional[ListNode]:' },
-    state: {
-      type: 'linked-list',
-      nodes: makeInputNodes(0, 0),
-      pointers: [
-        { nodeId: 'a0', label: 'list1' },
-        { nodeId: 'b0', label: 'list2' },
-      ],
-    },
+    state: inputState(0, 0, [
+      { nodeId: 'a0', label: 'list1' },
+      { nodeId: 'b0', label: 'list2' },
+    ]),
   });
 
   frames.forEach((f, idx) => {
     const isBaseCase = f.l2 === 'null';
+    const i1 = f.l1 === 'null' ? null : L1.findIndex((v) => v === parseInt(f.l1));
+    const i2 = f.l2 === 'null' ? null : L2.findIndex((v) => v === parseInt(f.l2));
     const anchor = isBaseCase
       ? { match: 'if not list2:', to: { match: 'return list1', nth: 1 } } // 1st hit: the not-list2 base case (the list1-branch's own "return list1" is the 2nd hit)
       : f.usesList1Branch
@@ -196,17 +158,10 @@ function generateRecursiveSteps(): Step[] {
     steps.push({
       explanation: `${f.desc}: list1=[${f.l1}], list2=[${f.l2}]. ${f.action} → return ${f.returns}.`,
       anchor,
-      state: {
-        type: 'linked-list',
-        nodes: makeInputNodes(
-          f.l1 === 'null' ? null : L1.findIndex(v => v === parseInt(f.l1)),
-          f.l2 === 'null' ? null : L2.findIndex(v => v === parseInt(f.l2))
-        ),
-        pointers: [
-          { nodeId: f.l1 === 'null' ? null : `a${L1.findIndex(v => v === parseInt(f.l1))}`, label: 'list1' },
-          { nodeId: f.l2 === 'null' ? null : `b${L2.findIndex(v => v === parseInt(f.l2))}`, label: 'list2' },
-        ],
-      },
+      state: inputState(i1, i2, [
+        { nodeId: i1 === null ? null : `a${i1}`, label: 'list1' },
+        { nodeId: i2 === null ? null : `b${i2}`, label: 'list2' },
+      ]),
       variables: [
         { name: 'depth', value: idx + 1 },
         { name: 'action', value: f.action, highlight: true },
@@ -218,12 +173,7 @@ function generateRecursiveSteps(): Step[] {
   steps.push({
     explanation: 'All 6 calls return. The linked chain built during the unwind is: 1→1→2→3→4→4 — the tie at the head resolved to list2\'s node first, per the strict < comparison. O(m+n) time, O(m+n) space for the call stack.',
     anchor: { match: 'def mergeTwoListsRecursive(self, list1: Optional[ListNode], list2: Optional[ListNode]) -> Optional[ListNode]:' },
-    state: {
-      type: 'linked-list',
-      nodes: makeInputNodes(null, null),
-      pointers: [],
-      result: makeResult([1, 1, 2, 3, 4, 4]),
-    },
+    state: inputState(null, null, [], makeResult([1, 1, 2, 3, 4, 4])),
     variables: [{ name: 'return', value: '1→1→2→3→4→4', highlight: true }],
   });
 

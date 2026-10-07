@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -10,31 +11,27 @@ function generateSteps(): Step[] {
   const height = [1, 8, 6, 2, 5, 4, 8, 3, 7];
   const steps: Step[] = [];
 
-  const snap = (l: number, r: number, bestL: number, bestR: number) =>
-    height.map((v, i) => ({
-      value: v,
-      state:
+  const snap = (l: number, r: number, bestL: number, bestR: number, maxArea: number) =>
+    arrayState(height, {
+      cellState: (i) =>
         (i === bestL || i === bestR) && bestL !== l
-          ? ('found' as const)
+          ? 'found'
           : i === l
-          ? ('active' as const)
+          ? 'active'
           : i === r
-          ? ('min-ptr' as const)
+          ? 'min-ptr'
           : i > l && i < r
-          ? ('window' as const)
-          : ('eliminated' as const),
-    }));
+          ? 'window'
+          : 'eliminated',
+      pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
+      counters: [{ label: 'maxArea', value: maxArea }],
+    });
 
   steps.push({
     explanation:
       'Container width = r − l. Height is capped by the shorter wall: min(h[l], h[r]). Always move the shorter wall inward — moving the taller one can only shrink width while keeping the height cap the same or lower, so it can never help.',
     anchor: { match: 'def maxArea(self, height: List[int]) -> int:' },
-    state: {
-      type: 'array',
-      cells: height.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
-      counters: [{ label: 'maxArea', value: 0 }],
-    },
+    state: arrayState(height, { counters: [{ label: 'maxArea', value: 0 }] }),
     variables: [{ name: 'height', value: `[${height.join(',')}]` }],
   });
 
@@ -62,12 +59,7 @@ function generateSteps(): Step[] {
         match: 'areaHeight = min(height[l], height[r])',
         to: { match: height[l] < height[r] ? 'l += 1' : 'r -= 1' },
       },
-      state: {
-        type: 'array',
-        cells: snap(l, r, bestL, bestR),
-        pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-        counters: [{ label: 'maxArea', value: maxArea }],
-      },
+      state: snap(l, r, bestL, bestR, maxArea),
       variables: [
         { name: 'areaHeight', value: areaHeight },
         { name: 'areaWidth', value: areaWidth },
@@ -87,15 +79,10 @@ function generateSteps(): Step[] {
     explanation: `l(${l}) met r(${r}). Best container: walls at indices ${bestL} and ${bestR} (heights ${height[bestL]}, ${height[bestR]}), maxArea = ${maxArea}. O(n) time, O(1) space.`,
     // nth: 2 — hit 1 is the leading "# return maxArea" plan comment; hit 2 is the actual `return maxArea` statement.
     anchor: { match: 'return maxArea', nth: 2 },
-    state: {
-      type: 'array',
-      cells: height.map((v, i) => ({
-        value: v,
-        state: i === bestL || i === bestR ? ('found' as const) : ('eliminated' as const),
-      })),
-      pointers: [],
+    state: arrayState(height, {
+      cellState: (i) => (i === bestL || i === bestR ? 'found' : 'eliminated'),
       counters: [{ label: 'maxArea', value: maxArea }],
-    },
+    }),
     variables: [{ name: 'return', value: maxArea, highlight: true }],
   });
 

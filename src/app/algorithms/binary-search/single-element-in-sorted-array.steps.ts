@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, StepAnchor, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's singleNonDuplicate_20260610 verbatim. This is a genuine min-boundary
 // binary search (l < r, converge, return nums[l] AFTER the loop) — NOT an exact-match search
@@ -13,32 +14,28 @@ function generateSteps(): Step[] {
   const steps: Step[] = [];
 
   const snap = (l: number, r: number, m: number | null, foundIdx: number | null) =>
-    nums.map((v, i) => ({
-      value: v,
-      state:
-        foundIdx !== null && i === foundIdx
-          ? ('found' as const)
-          : foundIdx !== null
-          ? ('eliminated' as const)
-          : i === m
-          ? ('active' as const)
-          : i >= l && i <= r
-          ? ('window' as const)
-          : ('eliminated' as const),
-    }));
+    (i: number): CellState =>
+      foundIdx !== null && i === foundIdx
+        ? 'found'
+        : foundIdx !== null
+        ? 'eliminated'
+        : i === m
+        ? 'active'
+        : i >= l && i <= r
+        ? 'window'
+        : 'eliminated';
 
   function emit(explanation: string, anchor: StepAnchor, l: number, r: number, m: number | null, vars: { name: string; value: string | number; highlight?: boolean }[]): void {
     steps.push({
       explanation,
       anchor,
-      state: {
-        type: 'array',
-        cells: snap(l, r, m, null),
+      state: arrayState(nums, {
+        cellState: snap(l, r, m, null),
         pointers:
           m !== null
             ? [{ index: l, label: 'l' }, { index: m, label: 'm' }, { index: r, label: 'r' }]
             : [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-      },
+      }),
       variables: vars,
     });
   }
@@ -46,11 +43,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Find the single non-duplicate in [${nums.join(', ')}] in O(log n). All elements appear exactly twice except one. Before the single element, an intact pair's first index is always even (nums[0]=nums[1], nums[2]=nums[3]…); after it, pairs shift to start on odd indices. Min-boundary binary search on that parity break — no exact-match early return.`,
     anchor: { match: 'def singleNonDuplicate_20260610(self, nums: List[int]) -> int:' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
-    },
+    state: arrayState(nums),
     variables: [{ name: 'nums', value: `[${nums.join(', ')}]` }],
   });
 
@@ -124,11 +117,10 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `l === r === ${l}: loop converged. Return nums[${l}] = ${nums[l]}.`,
     anchor: { match: 'return nums[l]' },
-    state: {
-      type: 'array',
-      cells: snap(l, r, null, l),
+    state: arrayState(nums, {
+      cellState: snap(l, r, null, l),
       pointers: [{ index: l, label: 'answer' }],
-    },
+    }),
     variables: [{ name: 'return', value: nums[l], highlight: true }],
   });
 

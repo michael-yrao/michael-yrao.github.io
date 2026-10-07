@@ -1,4 +1,5 @@
-import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNodeState } from '../../core/models/algorithm.model';
+import { TreeNodeInput, treeState } from '../../core/steps';
 
 // Traces cse-progress's isSubtree verbatim: a nested dfs(p,q) helper (matching isSameTree's
 // three-way null/match/mismatch logic) plus an outer BFS that calls dfs whenever a node's
@@ -6,7 +7,7 @@ import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core
 // change.
 
 // Root tree: [3, 4, 5, 1, 2]   subRoot = [4, 1, 2]
-const NODES: Omit<TreeNode, 'state'>[] = [
+const NODES: TreeNodeInput[] = [
   { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
   { id: 'n1', value: 4, leftId: 'n3', rightId: 'n4' },
   { id: 'n2', value: 5, leftId: null, rightId: null },
@@ -27,11 +28,8 @@ function generateSteps(): Step[] {
   const valueOf = (id: string) => nodeMap.get(id)!.value as number;
   const subVal = 4; // subRoot.val
 
-  const colour: Record<string, TreeNode['state']> = {};
+  const colour: Record<string, TreeNodeState> = {};
   const queue: string[] = ['n0'];
-
-  const makeNodes = (): TreeNode[] =>
-    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
 
   const queueStr = () => '[' + queue.map((id) => valueOf(id)).join(', ') + ']';
 
@@ -47,12 +45,11 @@ function generateSteps(): Step[] {
     steps.push({
       explanation,
       anchor,
-      state: {
-        type: 'tree',
-        nodes: makeNodes(),
+      state: treeState(NODES, {
+        nodeState: (n) => colour[n.id] ?? 'default',
         pointers: opts.current ? [{ nodeId: opts.current, label: '▶ here' }] : [],
         counters: [{ label: 'BFS queue', value: opts.queueShown ?? queueStr() }],
-      } as TreeState,
+      }),
       variables: opts.vars,
     });
   };

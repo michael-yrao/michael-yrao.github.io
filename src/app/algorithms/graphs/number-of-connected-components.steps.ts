@@ -13,25 +13,27 @@ import { graphState } from '../../core/steps';
 // adj: 0->[1], 1->[0,2], 2->[1], 3->[4], 4->[3]
 // Component 1: {0,1,2}  Component 2: {3,4}
 
+const N = 5;
+const EDGE_INPUTS = [[0, 1], [1, 2], [3, 4]].map(([from, to]) => ({ from, to }));
+const NODE_POS = [
+  { id: 0, x: 60,  y: 130 },
+  { id: 1, x: 160, y: 130 },
+  { id: 2, x: 260, y: 130 },
+  { id: 3, x: 375, y: 90  },
+  { id: 4, x: 375, y: 170 },
+];
+
+const freshStates = <T>(count: number, state: T): T[] => new Array<T>(count).fill(state);
+
 function generateSteps(): Step[] {
-  const n = 5;
-  const edgeList: [number, number][] = [[0, 1], [1, 2], [3, 4]];
   const steps: Step[] = [];
 
-  const NODE_POS = [
-    { id: 0, x: 60,  y: 130 },
-    { id: 1, x: 160, y: 130 },
-    { id: 2, x: 260, y: 130 },
-    { id: 3, x: 375, y: 90  },
-    { id: 4, x: 375, y: 170 },
-  ];
-
-  const ns: GraphNodeState[] = new Array(n).fill('default');
-  const es: GraphEdgeState[] = new Array(edgeList.length).fill('default');
+  const ns = freshStates<GraphNodeState>(N, 'default');
+  const es = freshStates<GraphEdgeState>(EDGE_INPUTS.length, 'default');
   let comp = 0;
 
   const mkState = (queue: number[]) =>
-    graphState(NODE_POS, edgeList.map(([from, to]) => ({ from, to })), {
+    graphState(NODE_POS, EDGE_INPUTS, {
       nodeState: (_, i) => ns[i],
       edgeState: (_, i) => es[i],
       stackItems: queue.map(String),
@@ -157,26 +159,16 @@ function generateSteps(): Step[] {
 }
 
 function generateStepsUF(): Step[] {
-  const n = 5;
-  const edgeList: [number, number][] = [[0, 1], [1, 2], [3, 4]];
   const steps: Step[] = [];
 
-  const NODE_POS = [
-    { id: 0, x: 60,  y: 130 },
-    { id: 1, x: 160, y: 130 },
-    { id: 2, x: 260, y: 130 },
-    { id: 3, x: 375, y: 90  },
-    { id: 4, x: 375, y: 170 },
-  ];
-
-  const ns: GraphNodeState[] = new Array(n).fill('default');
-  const es: GraphEdgeState[] = new Array(edgeList.length).fill('default');
-  const parent = [0, 1, 2, 3, 4];
-  const rank = [0, 0, 0, 0, 0];
-  let comp = 5;
+  const ns = freshStates<GraphNodeState>(N, 'default');
+  const es = freshStates<GraphEdgeState>(EDGE_INPUTS.length, 'default');
+  const parent = Array.from({ length: N }, (_, i) => i);
+  const rank = freshStates(N, 0);
+  let comp = N;
 
   const mkState = () =>
-    graphState(NODE_POS, edgeList.map(([from, to]) => ({ from, to })), {
+    graphState(NODE_POS, EDGE_INPUTS, {
       nodeState: (_, i) => ns[i],
       edgeState: (_, i) => es[i],
       hashmapLabel: 'parentMap',

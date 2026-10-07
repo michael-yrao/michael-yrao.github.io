@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's moveZeroes_20260919 verbatim: both pointers start at 0, left is the
 // next write slot for a non-zero, right scans every element. No helper function — the swap is
@@ -10,30 +11,20 @@ function generateSteps(): Step[] {
   const steps: Step[] = [];
 
   const snap = (left: number, right: number) =>
-    arr.map((v, i) => ({
-      value: v,
-      state:
-        i < left
-          ? ('found' as const)
-          : i === left && i === right
-          ? ('active' as const)
-          : i === left
-          ? ('min-ptr' as const)
-          : i === right
-          ? ('active' as const)
-          : ('default' as const),
-    }));
-
-  const ptrs = (left: number, right: number) =>
-    left === right
-      ? [{ index: left, label: 'l=r' }]
-      : [{ index: left, label: 'l' }, { index: right, label: 'r' }];
+    arrayState(arr, {
+      cellState: (i) =>
+        i < left ? 'found' : i === left && i === right ? 'active' : i === left ? 'min-ptr' : i === right ? 'active' : 'default',
+      pointers:
+        left === right
+          ? [{ index: left, label: 'l=r' }]
+          : [{ index: left, label: 'l' }, { index: right, label: 'r' }],
+    });
 
   steps.push({
     explanation:
       'Move all 0s to the end while preserving the order of non-zeros. Two pointers: left is the next write slot for a non-zero; right scans every element.',
     anchor: { match: 'left = right = 0' },
-    state: { type: 'array', cells: snap(0, 0), pointers: ptrs(0, 0) },
+    state: snap(0, 0),
     variables: [
       { name: 'left', value: 0 },
       { name: 'right', value: 0 },
@@ -46,7 +37,7 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `nums[${right}] = ${arr[right]} is non-zero. Swap it into position left=${left}.`,
         anchor: { match: 'if nums[right] != 0:' },
-        state: { type: 'array', cells: snap(left, right), pointers: ptrs(left, right) },
+        state: snap(left, right),
         variables: [
           { name: 'left', value: left },
           { name: 'right', value: right, highlight: true },
@@ -60,7 +51,7 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `Swapped via tmp (tmp = nums[left]; nums[left] = nums[right]; nums[right] = tmp). ${arr[left - 1]} is now locked at index ${left - 1}. left advances to ${left}.`,
         anchor: { match: 'tmp = nums[left]', to: { match: 'left+=1' } },
-        state: { type: 'array', cells: snap(left, right), pointers: ptrs(left, right) },
+        state: snap(left, right),
         variables: [
           { name: 'left', value: left, highlight: true },
           { name: 'right', value: right },
@@ -70,7 +61,7 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `nums[${right}] = 0. The if doesn't fire — left stays at ${left}, right advances.`,
         anchor: { match: 'if nums[right] != 0:' },
-        state: { type: 'array', cells: snap(left, right), pointers: ptrs(left, right) },
+        state: snap(left, right),
         variables: [
           { name: 'left', value: left },
           { name: 'right', value: right, highlight: true },
@@ -83,11 +74,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Done. [${arr.join(', ')}] — all non-zeros in original order, zeros at the end. O(n) time, O(1) space.`,
     anchor: { match: 'while right < len(nums):' },
-    state: {
-      type: 'array',
-      cells: arr.map(v => ({ value: v, state: v === 0 ? ('eliminated' as const) : ('found' as const) })),
-      pointers: [],
-    },
+    state: arrayState(arr, { cellState: (_, v) => (v === 0 ? 'eliminated' : 'found') }),
     variables: [
       { name: 'left', value: left },
       { name: 'right', value: arr.length },

@@ -25,4 +25,13 @@ describe('treeState', () => {
       'n1 takes the mapped state, n0 stays default',
     ).toEqual(['default', 'active']);
   });
+
+  it('emits pointers and counters only when passed', () => {
+    const pointers = [{ nodeId: 'n0', label: 'here' }];
+    const counters = [{ label: 'depth', value: 1 }];
+    const full = treeState(nodes, { pointers, counters });
+    expect(full.pointers, 'passed pointers are kept').toEqual(pointers);
+    expect(full.counters, 'passed counters are kept').toEqual(counters);
+    expect(Object.keys(treeState(nodes, { pointers: [] })), 'an empty pointers array is still emitted').toEqual(['type', 'nodes', 'pointers']);
+  });
 });

@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -14,23 +15,15 @@ function generateSteps(): Step[] {
   let r = 1;
   let maxProfit = 0;
 
-  const makeState = (l: number, r: number, maxProfit: number) => ({
-    type: 'array' as const,
-    cells: prices.map((v, i) => ({
-      value: v,
-      state:
-        i === l
-          ? ('active' as const)
-          : i === r
-          ? ('window' as const)
-          : ('default' as const),
-    })),
-    pointers: [
-      { index: l, label: 'L (buy)' },
-      { index: r, label: 'R (sell)' },
-    ],
-    counters: [{ label: 'max profit', value: maxProfit }],
-  });
+  const makeState = (l: number, r: number, maxProfit: number) =>
+    arrayState(prices, {
+      cellState: (i): CellState => (i === l ? 'active' : i === r ? 'window' : 'default'),
+      pointers: [
+        { index: l, label: 'L (buy)' },
+        { index: r, label: 'R (sell)' },
+      ],
+      counters: [{ label: 'max profit', value: maxProfit }],
+    });
 
   steps.push({
     explanation:
@@ -86,23 +79,14 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `if prices[r] < prices[l]: prices[R]=${prices[r]} < prices[L]=${prices[l]}. This is a lower buy price. l = r — R keeps advancing.`,
         anchor: { match: 'if prices[r] < prices[l]:', to: { match: 'l = r' } },
-        state: {
-          type: 'array',
-          cells: prices.map((v, i) => ({
-            value: v,
-            state:
-              i === r
-                ? ('active' as const)
-                : i === l
-                ? ('eliminated' as const)
-                : ('default' as const),
-          })),
+        state: arrayState(prices, {
+          cellState: (i): CellState => (i === r ? 'active' : i === l ? 'eliminated' : 'default'),
           pointers: [
             { index: r, label: 'L→here' },
             { index: r, label: 'R' },
           ],
           counters: [{ label: 'max profit', value: maxProfit }],
-        },
+        }),
         variables: [
           { name: 'l', value: r, highlight: true },
           { name: 'r', value: r },

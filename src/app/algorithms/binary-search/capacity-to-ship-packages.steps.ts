@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -10,7 +11,7 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 
 /** One capacity's greedy-packing simulation, following canShip's own remaining-capacity
  *  tracking rather than an accumulated-load counter. */
-function canShipSim(weights: number[], capacity: number, days: number): { numberOfDaysUsed: number; shipDays: number[] } {
+function canShipSim(weights: number[], capacity: number): { numberOfDaysUsed: number; shipDays: number[] } {
   let numberOfDaysUsed = 1;
   let currentDayCapacity = capacity;
   const shipDays: number[] = new Array(weights.length).fill(0);
@@ -40,16 +41,13 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Capacity to Ship Packages: weights=[${weights.join(',')}], days=${days}. left = max(weights) = ${maxW}, right = sum(weights) = ${sumW}. Binary search on capacity — the minimum possible is max(weights) (must fit the heaviest package alone); the maximum useful is sum(weights) (ships everything in 1 day).`,
     anchor: { match: 'left = max(weights)', to: { match: 'right = sum(weights)' } },
-    state: {
-      type: 'array',
-      cells: weights.map((v) => ({ value: v, state: 'default' as const })),
-      pointers: [],
+    state: arrayState(weights, {
       counters: [
         { label: 'left', value: maxW },
         { label: 'right', value: sumW },
         { label: 'days', value: days },
       ],
-    },
+    }),
     variables: [
       { name: 'weights', value: `[${weights.join(',')}]` },
       { name: 'left', value: maxW },
@@ -62,11 +60,7 @@ function generateSteps(): Step[] {
     explanation:
       'def canShip(capacity): numberOfDaysUsed=1, currentDayCapacity=capacity. For each weight, if currentDayCapacity >= weight it loads onto today (currentDayCapacity -= weight); otherwise a new day starts (numberOfDaysUsed+=1, currentDayCapacity resets to capacity, THEN loads this weight). Returns numberOfDaysUsed <= days.',
     anchor: { match: 'def canShip(capacity):', to: { match: 'return numberOfDaysUsed <= days' } },
-    state: {
-      type: 'array',
-      cells: weights.map((v) => ({ value: v, state: 'default' as const })),
-      pointers: [],
-    },
+    state: arrayState(weights),
     variables: [{ name: 'days', value: days }],
   });
 
@@ -75,22 +69,19 @@ function generateSteps(): Step[] {
 
   while (left < right) {
     const middle = Math.floor((left + right) / 2);
-    const { numberOfDaysUsed, shipDays } = canShipSim(weights, middle, days);
+    const { numberOfDaysUsed, shipDays } = canShipSim(weights, middle);
     const feasible = numberOfDaysUsed <= days;
 
     steps.push({
       explanation: `while left < right (${left}<${right}): middle = (left+right)//2 = ${middle}. canShip(${middle}): numberOfDaysUsed=${numberOfDaysUsed}.`,
       anchor: { match: 'while left < right:', to: { match: 'middle = (left+right)//2' } },
-      state: {
-        type: 'array',
-        cells: weights.map((v) => ({ value: v, state: 'default' as const })),
-        pointers: [],
+      state: arrayState(weights, {
         counters: [
           { label: 'left', value: left },
           { label: 'right', value: right },
           { label: 'middle', value: middle },
         ],
-      },
+      }),
       variables: [
         { name: 'left', value: left },
         { name: 'right', value: right },
@@ -102,16 +93,14 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `canShip(${middle}) → numberOfDaysUsed=${numberOfDaysUsed} <= days=${days} → True → right = middle = ${middle}. Ship day assignment: ${weights.map((w, i) => `[${i}]:${w}→day${shipDays[i]}`).join(', ')}.`,
         anchor: { match: 'if canShip(middle):', to: { match: 'right = middle' } },
-        state: {
-          type: 'array',
-          cells: weights.map((v, idx) => ({ value: v, state: (shipDays[idx] % 2 === 1 ? 'window' : 'visited') as 'window' | 'visited' })),
-          pointers: [],
+        state: arrayState(weights, {
+          cellState: (idx) => (shipDays[idx] % 2 === 1 ? 'window' : 'visited'),
           counters: [
             { label: 'numberOfDaysUsed', value: numberOfDaysUsed },
             { label: 'days', value: days },
             { label: 'right →', value: middle },
           ],
-        },
+        }),
         variables: [
           { name: 'numberOfDaysUsed', value: numberOfDaysUsed, highlight: true },
           { name: 'right', value: middle, highlight: true },
@@ -124,16 +113,14 @@ function generateSteps(): Step[] {
         // nth 2: hit 1 is canShip()'s own 'else:' (the day-rollover branch); this is the outer
         // while loop's else.
         anchor: { match: 'else:', nth: 2, to: { match: 'left = middle + 1' } },
-        state: {
-          type: 'array',
-          cells: weights.map((v) => ({ value: v, state: 'eliminated' as const })),
-          pointers: [],
+        state: arrayState(weights, {
+          cellState: () => 'eliminated',
           counters: [
             { label: 'numberOfDaysUsed', value: numberOfDaysUsed },
             { label: 'days', value: days },
             { label: 'left →', value: middle + 1 },
           ],
-        },
+        }),
         variables: [
           { name: 'numberOfDaysUsed', value: numberOfDaysUsed, highlight: true },
           { name: 'left', value: middle + 1, highlight: true },
@@ -143,21 +130,19 @@ function generateSteps(): Step[] {
     }
   }
 
-  const { numberOfDaysUsed: finalDays } = canShipSim(weights, left, days);
+  const { numberOfDaysUsed: finalDays } = canShipSim(weights, left);
 
   steps.push({
     explanation: `left === right === ${left}. Converged! return left = ${left}. Verification: canShip(${left}) needs ${finalDays} days ≤ ${days} ✓. O(n log m) time where n=weights.length and m=sum(weights)-max(weights). O(1) space.`,
     anchor: { match: 'return left' },
-    state: {
-      type: 'array',
-      cells: weights.map((v) => ({ value: v, state: 'found' as const })),
-      pointers: [],
+    state: arrayState(weights, {
+      cellState: () => 'found',
       counters: [
         { label: 'answer capacity', value: left },
         { label: 'numberOfDaysUsed', value: finalDays },
         { label: 'days', value: days },
       ],
-    },
+    }),
     variables: [{ name: 'return', value: left, highlight: true }],
   });
 

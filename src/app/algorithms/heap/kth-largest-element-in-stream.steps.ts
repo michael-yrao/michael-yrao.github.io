@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's KthLargest verbatim: the constructor evicts with a `while
 // len(self.heap) > self.k` loop (pops at most once per pushed num here, since the heap
@@ -12,18 +13,15 @@ function generateSteps(): Step[] {
   const steps: Step[] = [];
   let heap: number[] = []; // min-heap shown as ascending array; index 0 = kth largest
 
-  const snap = (activeIdx: number[]) => ({
-    type: 'array' as const,
-    cells: heap.map((v, i) => ({
-      value: v,
-      state: i === 0 ? ('min-ptr' as const) : activeIdx.includes(i) ? ('active' as const) : ('default' as const),
-    })),
-    pointers: heap.length ? [{ index: 0, label: 'kth largest' }] : [],
-    counters: [
-      { label: 'k', value: k },
-      { label: 'minHeap (kth-largest on top)', value: heap.length ? `[${heap.join(', ')}]` : '∅' },
-    ],
-  });
+  const snap = (activeIdx: number[]) =>
+    arrayState(heap, {
+      cellState: (i): CellState => (i === 0 ? 'min-ptr' : activeIdx.includes(i) ? 'active' : 'default'),
+      pointers: heap.length ? [{ index: 0, label: 'kth largest' }] : [],
+      counters: [
+        { label: 'k', value: k },
+        { label: 'minHeap (kth-largest on top)', value: heap.length ? `[${heap.join(', ')}]` : '∅' },
+      ],
+    });
 
   steps.push({
     explanation: `Keep a MIN-heap of the k largest values seen so far. Its smallest element — the top — is exactly the kth largest. Whenever the heap grows past size k, pop the smallest. Constructor: KthLargest(k=${k}, [${initNums.join(', ')}]).`,

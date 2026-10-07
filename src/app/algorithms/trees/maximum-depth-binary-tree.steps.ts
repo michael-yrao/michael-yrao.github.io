@@ -1,4 +1,5 @@
-import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNodeState } from '../../core/models/algorithm.model';
+import { TreeNodeInput, treeState } from '../../core/steps';
 
 // Traces cse-progress's maxDepth verbatim: this attempt has NO separate nested `dfs` helper —
 // `self.maxDepth` recurses directly, and both children plus the max()+1 combine all happen
@@ -7,7 +8,7 @@ import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core
 // to the two lines that actually exist: the def line and the one return line.
 
 // Tree: [3,9,20,null,null,15,7]
-const NODES: Omit<TreeNode, 'state'>[] = [
+const NODES: TreeNodeInput[] = [
   { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
   { id: 'n1', value: 9, leftId: null, rightId: null },
   { id: 'n2', value: 20, leftId: 'n3', rightId: 'n4' },
@@ -22,11 +23,8 @@ function generateSteps(): Step[] {
 
   // Live node colouring. 'active' = currently on the call stack,
   // 'visited' = finished and returned, 'found' = final answer path.
-  const colour: Record<string, TreeNode['state']> = {};
+  const colour: Record<string, TreeNodeState> = {};
   let stackDepth = 0;
-
-  const makeNodes = (): TreeNode[] =>
-    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
 
   const push = (
     explanation: string,
@@ -40,12 +38,11 @@ function generateSteps(): Step[] {
     steps.push({
       explanation,
       anchor,
-      state: {
-        type: 'tree',
-        nodes: makeNodes(),
+      state: treeState(NODES, {
+        nodeState: (n) => colour[n.id] ?? 'default',
         pointers: opts.current ? [{ nodeId: opts.current, label: '▶ here' }] : [],
         counters: [{ label: 'call stack depth', value: stackDepth }, ...(opts.counters ?? [])],
-      } as TreeState,
+      }),
       variables: opts.vars,
     });
   };

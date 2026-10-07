@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -17,44 +18,30 @@ function generateSteps(): Step[] {
   let p1 = 0;
   let p2 = 0;
 
-  const buildCells = (activeP1: number | null, activeP2: number | null) =>
-    [
-      ...word1.split('').map((ch, idx) => ({
-        value: ch,
-        state:
-          idx === activeP1
-            ? ('active' as const)
-            : idx < p1
-            ? ('visited' as const)
-            : ('default' as const),
-      })),
-      // separator cell
-      { value: '|', state: 'default' as const },
-      ...word2.split('').map((ch, idx) => ({
-        value: ch,
-        state:
-          idx === activeP2
-            ? ('active' as const)
-            : idx < p2
-            ? ('visited' as const)
-            : ('default' as const),
-      })),
-    ];
+  // word1 chars, a separator cell, then word2 chars.
+  const cells = [...word1.split(''), '|', ...word2.split('')];
+  const word2Offset = word1.length + 1;
+
+  const cellStateFor = (activeP1: number | null, activeP2: number | null) => (idx: number): CellState => {
+    if (idx < word1.length) return idx === activeP1 ? 'active' : idx < p1 ? 'visited' : 'default';
+    const word2Idx = idx - word2Offset;
+    if (word2Idx < 0) return 'default';
+    return word2Idx === activeP2 ? 'active' : word2Idx < p2 ? 'visited' : 'default';
+  };
 
   steps.push({
     explanation:
       `Merge Strings Alternately: word1="${word1}", word2="${word2}". Use two pointers p1 and p2. Each iteration take word1[p1] then word2[p2] and append to result. When one string is exhausted, append the remaining of the other.`,
     anchor: { match: 'result = ""', to: { match: 'p1 = p2 = 0' } },
-    state: {
-      type: 'array',
-      cells: buildCells(null, null),
-      pointers: [{ index: 0, label: 'p1' }, { index: word1.length + 1, label: 'p2' }],
+    state: arrayState(cells, {
+      cellState: cellStateFor(null, null),
+      pointers: [{ index: 0, label: 'p1' }, { index: word2Offset, label: 'p2' }],
       counters: [
         { label: 'p1', value: p1 },
         { label: 'p2', value: p2 },
         { label: 'result', value: '""' },
       ],
-    },
+    }),
     variables: [
       { name: 'word1', value: word1 },
       { name: 'word2', value: word2 },
@@ -70,19 +57,18 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `p1=${p1}, p2=${p2}: take word1[${p1}]='${ch1}', append to result. result="${result}${ch1}".`,
       anchor: { match: 'result += word1[p1]' },
-      state: {
-        type: 'array',
-        cells: buildCells(p1, null),
+      state: arrayState(cells, {
+        cellState: cellStateFor(p1, null),
         pointers: [
           { index: p1, label: 'p1' },
-          { index: word1.length + 1 + p2, label: 'p2' },
+          { index: word2Offset + p2, label: 'p2' },
         ],
         counters: [
           { label: 'p1', value: p1 },
           { label: 'p2', value: p2 },
           { label: 'result', value: `"${result}${ch1}"` },
         ],
-      },
+      }),
       variables: [
         { name: 'p1', value: p1 },
         { name: 'word1[p1]', value: ch1, highlight: true },
@@ -96,19 +82,18 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `p1=${p1}, p2=${p2}: take word2[${p2}]='${ch2}', append to result. result="${result}${ch2}". Then p1+=1, p2+=1.`,
       anchor: { match: 'result += word2[p2]', to: { match: 'p2+=1' } },
-      state: {
-        type: 'array',
-        cells: buildCells(null, p2),
+      state: arrayState(cells, {
+        cellState: cellStateFor(null, p2),
         pointers: [
           { index: p1, label: 'p1' },
-          { index: word1.length + 1 + p2, label: 'p2' },
+          { index: word2Offset + p2, label: 'p2' },
         ],
         counters: [
           { label: 'p1', value: p1 },
           { label: 'p2', value: p2 },
           { label: 'result', value: `"${result}${ch2}"` },
         ],
-      },
+      }),
       variables: [
         { name: 'p2', value: p2 },
         { name: 'word2[p2]', value: ch2, highlight: true },
@@ -127,19 +112,18 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `word2 exhausted (p2=${p2}). Append remaining word1[${p1}:]="${remainder}" to result. result="${result}${remainder}".`,
       anchor: { match: 'result += word1[p1:]' },
-      state: {
-        type: 'array',
-        cells: buildCells(null, null),
+      state: arrayState(cells, {
+        cellState: cellStateFor(null, null),
         pointers: [
           { index: p1, label: 'p1 (rem)' },
-          { index: word1.length + 1 + p2, label: 'p2 (end)' },
+          { index: word1.length + p2, label: 'p2 (past end)' },
         ],
         counters: [
           { label: 'p1', value: p1 },
           { label: 'remainder', value: `"${remainder}"` },
           { label: 'result', value: `"${result}${remainder}"` },
         ],
-      },
+      }),
       variables: [
         { name: 'remainder word1', value: remainder, highlight: true },
         { name: 'result', value: `"${result}${remainder}"` },
@@ -155,19 +139,18 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `word1 exhausted (p1=${p1}). Append remaining word2[${p2}:]="${remainder}" to result. result="${result}${remainder}".`,
       anchor: { match: 'result += word2[p2:]' },
-      state: {
-        type: 'array',
-        cells: buildCells(null, null),
+      state: arrayState(cells, {
+        cellState: cellStateFor(null, null),
         pointers: [
           { index: p1 < word1.length ? p1 : word1.length - 1, label: 'p1 (end)' },
-          { index: word1.length + 1 + p2, label: 'p2 (rem)' },
+          { index: word2Offset + p2, label: 'p2 (rem)' },
         ],
         counters: [
           { label: 'p2', value: p2 },
           { label: 'remainder', value: `"${remainder}"` },
           { label: 'result', value: `"${result}${remainder}"` },
         ],
-      },
+      }),
       variables: [
         { name: 'remainder word2', value: remainder, highlight: true },
         { name: 'result', value: `"${result}${remainder}"` },
@@ -179,16 +162,10 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Done. Merged result="${result}". All characters from both words interleaved, with the longer word's tail appended. Return "${result}".`,
     anchor: { match: 'return result' },
-    state: {
-      type: 'array',
-      cells: [
-        ...word1.split('').map(ch => ({ value: ch, state: 'visited' as const })),
-        { value: '|', state: 'default' as const },
-        ...word2.split('').map(ch => ({ value: ch, state: 'visited' as const })),
-      ],
-      pointers: [],
+    state: arrayState(cells, {
+      cellState: (idx) => (idx === word1.length ? 'default' : 'visited'),
       counters: [{ label: 'return result', value: `"${result}"` }],
-    },
+    }),
     variables: [{ name: 'return', value: result, highlight: true }],
   });
 

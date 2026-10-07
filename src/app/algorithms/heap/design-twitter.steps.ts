@@ -41,9 +41,9 @@ function generateSteps(): Step[] {
           { label: 'globalTweetCount', value: globalTweetCount },
           ...(returns !== undefined ? [{ label: 'returns', value: returns }] : []),
         ],
+        stackItems: heap.map(([t, id]) => `${id}@t${t}`),
       }),
       hashmap2: followMapDisplay(), hashmap2Label: 'followMap (user → follows)',
-      stackItems: heap.map(([t, id]) => `${id}@t${t}`),
     },
     variables: [],
   });

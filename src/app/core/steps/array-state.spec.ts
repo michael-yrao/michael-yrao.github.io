@@ -18,8 +18,8 @@ describe('arrayState', () => {
       ],
       [
         'passed optional fields appear',
-        arrayState([4], { hashmap: { a: 1 }, hashmapLabel: 'seen', counters }),
-        { type: 'array', cells: [{ value: 4, state: 'default' }], pointers: [], hashmap: { a: 1 }, hashmapLabel: 'seen', counters },
+        arrayState([4], { arrayLabel: 'nums', hashmap: { a: 1 }, hashmapLabel: 'seen', counters, stackItems: ['x'] }),
+        { type: 'array', cells: [{ value: 4, state: 'default' }], pointers: [], arrayLabel: 'nums', hashmap: { a: 1 }, hashmapLabel: 'seen', counters, stackItems: ['x'] },
       ],
     ];
     for (const [label, actual, expected] of rows) {

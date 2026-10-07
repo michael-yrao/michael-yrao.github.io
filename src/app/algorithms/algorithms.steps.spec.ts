@@ -9,13 +9,13 @@ const VISUALIZER_TYPES: ReadonlySet<string> = new Set([
   'graph',
 ]);
 
-/** A pointer may sit one past the last cell (`index === cells.length`) to mean "walked off the
- *  end"; the array visualizer matches pointers to cells by index, so that one draws nothing. */
+/** A pointer must sit on a cell (`0 <= index < cells.length`); the array visualizer matches
+ *  pointers to cells by index, so an out-of-range pointer draws nothing. */
 function arrayPointerProblems(step: Step, stepIndex: number, id: string): string[] {
   const state: VisualizerState = step.state;
   if (state.type !== 'array') return [];
   return state.pointers
-    .filter((p) => !Number.isInteger(p.index) || p.index < 0 || p.index > state.cells.length)
+    .filter((p) => !Number.isInteger(p.index) || p.index < 0 || p.index >= state.cells.length)
     .map((p) => `${id} step ${stepIndex} "${p.label}" index ${p.index} of ${state.cells.length}`);
 }
 

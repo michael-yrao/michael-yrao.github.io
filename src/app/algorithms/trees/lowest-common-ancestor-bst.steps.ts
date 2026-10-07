@@ -1,11 +1,12 @@
-import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNodeState } from '../../core/models/algorithm.model';
+import { TreeNodeInput, treeState } from '../../core/steps';
 
 // Traces cse-progress's lowestCommonAncestor_20260612 verbatim: iterative preorder BST
 // traversal with currentNode, deciding left/right by comparing p.val and q.val against
 // currentNode.val — same control flow as the earlier hand simulation, only anchors change.
 
 // BST: [6, 2, 8, 0, 4, 7, 9], find LCA of p=2, q=4
-const NODES: Omit<TreeNode, 'state'>[] = [
+const NODES: TreeNodeInput[] = [
   { id: 'n0', value: 6, leftId: 'n1', rightId: 'n2' },
   { id: 'n1', value: 2, leftId: 'n3', rightId: 'n4' },
   { id: 'n2', value: 8, leftId: 'n5', rightId: 'n6' },
@@ -23,10 +24,7 @@ function generateSteps(): Step[] {
   const q = 4;
 
   // Mark the two target nodes throughout so the viewer can see what we are seeking.
-  const colour: Record<string, TreeNode['state']> = { n1: 'highlighted', n4: 'highlighted' };
-
-  const makeNodes = (): TreeNode[] =>
-    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
+  const colour: Record<string, TreeNodeState> = { n1: 'highlighted', n4: 'highlighted' };
 
   const push = (
     explanation: string,
@@ -36,12 +34,11 @@ function generateSteps(): Step[] {
     steps.push({
       explanation,
       anchor,
-      state: {
-        type: 'tree',
-        nodes: makeNodes(),
+      state: treeState(NODES, {
+        nodeState: (n) => colour[n.id] ?? 'default',
         pointers: opts.current ? [{ nodeId: opts.current, label: '▶ here' }] : [],
         counters: [{ label: 'p', value: p }, { label: 'q', value: q }],
-      } as TreeState,
+      }),
       variables: opts.vars,
     });
   };

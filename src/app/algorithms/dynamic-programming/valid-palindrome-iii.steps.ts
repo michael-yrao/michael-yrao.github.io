@@ -20,25 +20,6 @@ import { arrayState } from '../../core/steps';
 
 const chars = ['a', 'b', 'c', 'd', 'e', 'c', 'a'];
 
-function makeCells(
-  l: number,
-  r: number,
-  matched: Set<number>,
-  skipped: Set<number>
-) {
-  return chars.map((ch, i) => ({
-    value: ch,
-    state:
-      matched.has(i)
-        ? ('found' as const)
-        : skipped.has(i)
-        ? ('eliminated' as const)
-        : i === l || i === r
-        ? ('active' as const)
-        : ('default' as const),
-  }));
-}
-
 interface BacktrackingTrace {
   introAnchor: StepAnchor;
   introExplanation: string;

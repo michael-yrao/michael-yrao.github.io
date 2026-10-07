@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, GridState, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { gridState } from '../../core/steps';
 
 // Traces cse-progress's orangesRotting_20260625 verbatim: multi-source BFS with timer,
 // freshOranges, rottenQueue and currentLevel (the batch-size snapshot). Per neighbor: rot
@@ -18,7 +19,7 @@ function generateSteps(): Step[] {
   const cols = rawGrid[0].length;
   const steps: Step[] = [];
 
-  const grid = rawGrid.map((r) => [...r]) as CellVal[][];
+  const grid = rawGrid.map((r) => [...r]);
 
   const toGridState = (
     minute: number,
@@ -28,26 +29,22 @@ function generateSteps(): Step[] {
       newlyRotten?: [number, number][];
       active?: [number, number];
     } = {}
-  ): GridState => ({
-    type: 'grid',
-    grid: grid.map((row, r) =>
-      row.map((cell, c) => {
+  ) =>
+    gridState(
+      grid,
+      (cell, r, c) => {
         const isActive = !!opts.active && opts.active[0] === r && opts.active[1] === c;
         const inQueue = opts.queued?.some(([qr, qc]) => qr === r && qc === c);
         const newRotten = opts.newlyRotten?.some(([nr, nc]) => nr === r && nc === c);
-        if (cell === 0) return { state: 'empty' };
-        if (cell === 1) return { state: newRotten ? 'rotten' : 'fresh' };
+        if (cell === 0) return 'empty';
+        if (cell === 1) return newRotten ? 'rotten' : 'fresh';
         // cell === 2 (rotten): active cell being processed > just-rotted > still-queued > settled
-        if (isActive) return { state: 'active' };
-        if (newRotten) return { state: 'rotten' };
-        return { state: inQueue ? 'queued' : 'rotten' };
-      })
-    ),
-    counters: [
-      { label: 'minute', value: minute },
-      { label: 'fresh left', value: fresh },
-    ],
-  });
+        if (isActive) return 'active';
+        if (newRotten) return 'rotten';
+        return inQueue ? 'queued' : 'rotten';
+      },
+      { counters: [{ label: 'minute', value: minute }, { label: 'fresh left', value: fresh }] },
+    );
 
   const queue: [number, number][] = [];
   let fresh = 0;

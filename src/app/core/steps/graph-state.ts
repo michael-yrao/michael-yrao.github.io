@@ -9,6 +9,7 @@ export interface GraphStateOptions {
   nodeState?: (node: GraphNodeInput, index: number) => GraphNodeState;
   /** State of each edge; every edge is `'default'` when omitted. */
   edgeState?: (edge: GraphEdgeInput, index: number) => GraphEdgeState;
+  directed?: GraphState['directed'];
   hashmap?: GraphState['hashmap'];
   hashmapLabel?: string;
   hashmap2?: GraphState['hashmap2'];
@@ -28,6 +29,7 @@ export function graphState(
   const {
     nodeState = () => DEFAULT_ELEMENT_STATE,
     edgeState = () => DEFAULT_ELEMENT_STATE,
+    directed,
     hashmap,
     hashmapLabel,
     hashmap2,
@@ -40,6 +42,6 @@ export function graphState(
     type: 'graph',
     nodes: nodes.map((node, index) => ({ ...node, state: nodeState(node, index) })),
     edges: edges.map((edge, index) => ({ ...edge, state: edgeState(edge, index) })),
-    ...definedFields({ hashmap, hashmapLabel, hashmap2, hashmap2Label, stackItems, stackLabel, counters }),
+    ...definedFields({ directed, hashmap, hashmapLabel, hashmap2, hashmap2Label, stackItems, stackLabel, counters }),
   };
 }

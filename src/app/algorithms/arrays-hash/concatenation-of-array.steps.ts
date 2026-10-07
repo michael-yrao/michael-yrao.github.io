@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { ArrayCellValue, arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -22,21 +23,19 @@ function generateSteps(): Step[] {
 
   // Reserve `total` slots for rendering, but track how many are actually
   // appended so far (`filledCount`) — that count is what "ans.length" shows.
-  const ans: (number | string)[] = new Array(total).fill(UNFILLED_SLOT);
+  const ans: ArrayCellValue[] = new Array(total).fill(UNFILLED_SLOT);
 
   steps.push({
     explanation:
       `Concatenation of Array: nums=[${nums.join(',')}]. Create empty ans, then while ansIterator < ${total} (= len(nums)*2), append nums[ansIterator % ${n}] and increment. One loop the whole way — the modulo wraps back to the start of nums once ansIterator reaches ${n}. Result will be [${[...nums, ...nums].join(',')}].`,
     anchor: { match: 'ans = []' },
-    state: {
-      type: 'array',
-      cells: ans.map(v => ({ value: v, state: 'default' as const })),
+    state: arrayState(ans, {
       pointers: [{ index: 0, label: 'ansIterator=0' }],
       counters: [
         { label: 'n', value: n },
         { label: 'ans.length', value: 0 },
       ],
-    },
+    }),
     variables: [
       { name: 'nums', value: `[${nums.join(',')}]` },
       { name: 'n', value: n },
@@ -53,24 +52,15 @@ function generateSteps(): Step[] {
         match: 'ans.append(nums[ansIterator%len(nums)])',
         to: { match: 'ansIterator+=1' },
       },
-      state: {
-        type: 'array',
-        cells: ans.map((v, idx) => ({
-          value: v,
-          state:
-            idx === ansIterator
-              ? ('active' as const)
-              : idx < ansIterator
-              ? ('found' as const)
-              : ('default' as const),
-        })),
+      state: arrayState(ans, {
+        cellState: (idx) => (idx === ansIterator ? 'active' : idx < ansIterator ? 'found' : 'default'),
         pointers: [{ index: ansIterator, label: `ans[${ansIterator}]` }],
         counters: [
           { label: 'ansIterator', value: ansIterator },
           { label: 'src: nums[ansIterator%n]', value: nums[srcIdx] },
           { label: 'ans.length', value: filledCount },
         ],
-      },
+      }),
       variables: [
         { name: 'ansIterator', value: ansIterator },
         { name: 'nums[ansIterator%n]', value: nums[srcIdx], highlight: true },
@@ -81,12 +71,10 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `ansIterator=${total} is no longer < ${total} — loop ends. ans = [${ans.join(',')}]. The array is exactly nums+nums. Return ans.`,
     anchor: { match: 'return ans' },
-    state: {
-      type: 'array',
-      cells: ans.map(v => ({ value: v, state: 'found' as const })),
-      pointers: [],
+    state: arrayState(ans, {
+      cellState: () => 'found',
       counters: [{ label: 'ans.length', value: total }],
-    },
+    }),
     variables: [{ name: 'return', value: `[${ans.join(',')}]`, highlight: true }],
   });
 

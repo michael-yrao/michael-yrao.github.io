@@ -1,4 +1,5 @@
-import { AlgorithmMeta, Step, LinkedListNode } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, LinkedListNode, LinkedListState } from '../../core/models/algorithm.model';
+import { linkedListState } from '../../core/steps';
 
 // Traces cse-progress's reverseListIterative and reverseListRecursion verbatim —
 // both already match this walkthrough's variable names (prev/current/temp,
@@ -10,37 +11,31 @@ function generateIterativeSteps(): Step[] {
   const vals = [1, 2, 3, 4, 5];
   const steps: Step[] = [];
 
-  const makeNodes = (
+  const makeState = (
     prevIdx: number | null,
     currIdx: number | null,
-    reversed: number
-  ): LinkedListNode[] =>
-    vals.map((v, i) => ({
-      id: `n${i}`,
-      value: v,
-      nextId: i < vals.length - 1 ? `n${i + 1}` : null,
-      state:
-        i < reversed
-          ? 'done'
-          : i === prevIdx
-          ? 'prev'
-          : i === currIdx
-          ? 'curr'
-          : 'default',
-    }));
+    reversed: number,
+    pointers: LinkedListState['pointers'],
+  ): LinkedListState =>
+    linkedListState(vals, {
+      nodeState: (i) => (i < reversed ? 'done' : i === prevIdx ? 'prev' : i === currIdx ? 'curr' : 'default'),
+      pointers,
+    });
+
+  // Nodes already reversed point back at their predecessor.
+  const flipReversed = (state: LinkedListState, reversed: number): LinkedListState => ({
+    ...state,
+    nodes: state.nodes.map((node, i) => (i < reversed ? { ...node, nextId: i > 0 ? `n${i - 1}` : null } : node)),
+  });
 
   steps.push({
     explanation:
       "prev, current = None, head — one assignment, two pointers. prev starts at None (the new tail's next will be None). current starts at head. We'll move one step at a time, redirecting each node's next pointer.",
     anchor: { match: 'prev, current = None, head' },
-    state: {
-      type: 'linked-list',
-      nodes: makeNodes(null, 0, 0),
-      pointers: [
-        { nodeId: null, label: 'prev' },
-        { nodeId: 'n0', label: 'current' },
-      ],
-    },
+    state: makeState(null, 0, 0, [
+      { nodeId: null, label: 'prev' },
+      { nodeId: 'n0', label: 'current' },
+    ]),
     variables: [
       { name: 'prev', value: 'null' },
       { name: 'current', value: vals[0] },
@@ -57,15 +52,11 @@ function generateIterativeSteps(): Step[] {
     steps.push({
       explanation: `temp = current.next (node ${next !== null ? vals[next] : 'null'}) — saved before we overwrite current.next, or we'd lose our forward reference.`,
       anchor: { match: 'temp = current.next' },
-      state: {
-        type: 'linked-list',
-        nodes: makeNodes(prev, curr, reversed),
-        pointers: [
-          { nodeId: prev !== null ? `n${prev}` : null, label: 'prev' },
-          { nodeId: `n${curr}`, label: 'current' },
-          { nodeId: next !== null ? `n${next}` : null, label: 'temp' },
-        ],
-      },
+      state: makeState(prev, curr, reversed, [
+        { nodeId: prev !== null ? `n${prev}` : null, label: 'prev' },
+        { nodeId: `n${curr}`, label: 'current' },
+        { nodeId: next !== null ? `n${next}` : null, label: 'temp' },
+      ]),
       variables: [
         { name: 'prev', value: prev !== null ? vals[prev] : 'null' },
         { name: 'current', value: vals[curr], highlight: true },
@@ -76,26 +67,13 @@ function generateIterativeSteps(): Step[] {
     steps.push({
       explanation: `current.next = prev — node ${vals[curr]} now points backward. This is the reversal: one arrow flipped at a time.`,
       anchor: { match: 'current.next = prev' },
-      state: {
-        type: 'linked-list',
-        nodes: vals.map((v, i) => ({
-          id: `n${i}`,
-          value: v,
-          nextId: i < reversed ? (i > 0 ? `n${i - 1}` : null) : i < vals.length - 1 ? `n${i + 1}` : null,
-          state:
-            i < reversed
-              ? 'done'
-              : i === curr
-              ? 'curr'
-              : i === (prev ?? -1)
-              ? 'prev'
-              : 'default',
-        })),
-        pointers: [
+      state: flipReversed(
+        makeState(prev, curr, reversed, [
           { nodeId: prev !== null ? `n${prev}` : null, label: 'prev' },
           { nodeId: `n${curr}`, label: 'current' },
-        ],
-      },
+        ]),
+        reversed,
+      ),
       variables: [
         { name: 'current', value: vals[curr], highlight: true },
         { name: 'current.next', value: prev !== null ? vals[prev] : 'null', highlight: true },
@@ -106,14 +84,10 @@ function generateIterativeSteps(): Step[] {
     steps.push({
       explanation: `prev = current, then current = temp. This reversal is committed — the window moves one step forward.`,
       anchor: { match: 'prev = current', to: { match: 'current = temp' } },
-      state: {
-        type: 'linked-list',
-        nodes: makeNodes(curr, next, curr + 1),
-        pointers: [
-          { nodeId: `n${curr}`, label: 'prev' },
-          { nodeId: next !== null ? `n${next}` : null, label: 'current' },
-        ],
-      },
+      state: makeState(curr, next, curr + 1, [
+        { nodeId: `n${curr}`, label: 'prev' },
+        { nodeId: next !== null ? `n${next}` : null, label: 'current' },
+      ]),
       variables: [
         { name: 'prev', value: vals[curr], highlight: true },
         { name: 'current', value: next !== null ? vals[next] : 'null', highlight: true },
@@ -130,12 +104,7 @@ function generateIterativeSteps(): Step[] {
     anchor: { match: 'return prev' },
     state: {
       type: 'linked-list',
-      nodes: vals.map((v, i) => ({
-        id: `n${i}`,
-        value: v,
-        nextId: i > 0 ? `n${i - 1}` : null,
-        state: 'done' as const,
-      })).reverse(),
+      nodes: vals.map((v, i): LinkedListNode => ({ id: `n${i}`, value: v, nextId: i > 0 ? `n${i - 1}` : null, state: 'done' })).reverse(),
       pointers: [{ nodeId: `n${vals.length - 1}`, label: 'head' }],
     },
     variables: [
@@ -157,26 +126,17 @@ function generateRecursiveSteps(): Step[] {
   // Mutable nextIds array — updated at each unwind step to show pointer changes
   const nextIds: (string | null)[] = vals.map((_, i) => i < n - 1 ? `n${i + 1}` : null);
 
-  const makeNodes = (
-    stateMap: Record<number, LinkedListNode['state']>
-  ): LinkedListNode[] =>
-    vals.map((v, i) => ({
-      id: `n${i}`,
-      value: v,
-      nextId: nextIds[i],
-      state: stateMap[i] ?? 'default' as const,
-    }));
+  const makeState = (nodeState: (i: number) => LinkedListNode['state'], pointers: LinkedListState['pointers']): LinkedListState => {
+    const base = linkedListState(vals, { nodeState, pointers });
+    return { ...base, nodes: base.nodes.map((node, i) => ({ ...node, nextId: nextIds[i] })) };
+  };
 
   // ── Intro ──────────────────────────────────────────────────────
   steps.push({
     explanation:
       "Recursive approach: dive to the end of the list first, then reverse pointers on the way back. Two key lines on unwind: head.next.next = head (flip the arrow) and head.next = None (sever the forward link).",
     anchor: { match: 'def reverseListRecursion(self, head: Optional[ListNode]) -> Optional[ListNode]:' },
-    state: {
-      type: 'linked-list',
-      nodes: makeNodes({}),
-      pointers: [{ nodeId: 'n0', label: 'head' }],
-    },
+    state: makeState(() => 'default', [{ nodeId: 'n0', label: 'head' }]),
     variables: [
       { name: 'head', value: vals[0] },
     ],
@@ -186,14 +146,10 @@ function generateRecursiveSteps(): Step[] {
   steps.push({
     explanation: `Recursion dives right: reverseListRecursion(1) → reverseListRecursion(2) → … → reverseListRecursion(5). Node 5 has head.next is None — base case: if head is None or head.next is None: return head. Return node 5 as returnNode. No work done on the way in, only on the way back.`,
     anchor: { match: 'if head is None or head.next is None:', to: { match: 'return head' } },
-    state: {
-      type: 'linked-list',
-      nodes: makeNodes({ 0: 'active', 1: 'active', 2: 'active', 3: 'active', 4: 'curr' }),
-      pointers: [
-        { nodeId: `n${n - 1}`, label: 'head' },
-        { nodeId: `n${n - 1}`, label: 'returnNode' },
-      ],
-    },
+    state: makeState((i) => (i === n - 1 ? 'curr' : 'active'), [
+      { nodeId: `n${n - 1}`, label: 'head' },
+      { nodeId: `n${n - 1}`, label: 'returnNode' },
+    ]),
     variables: [
       { name: 'head', value: vals[n - 1], highlight: true },
       { name: 'head.next', value: 'None → base case!', highlight: true },
@@ -212,22 +168,13 @@ function generateRecursiveSteps(): Step[] {
     nextIds[headIdx + 1] = `n${headIdx}`;
     nextIds[headIdx] = null;
 
-    const stateMap: Record<number, LinkedListNode['state']> = {};
-    for (let i = 0; i < headIdx; i++) stateMap[i] = 'active';
-    stateMap[headIdx] = 'curr';
-    for (let i = headIdx + 1; i < n; i++) stateMap[i] = 'done';
-
     steps.push({
       explanation: `Returning with head=${oldHead}: head.next.next = head → ${oldNext}.next = ${oldHead} (arrow flipped). head.next = None → ${oldHead}.next = None (forward link severed). Reversed so far: ${vals.slice(headIdx).reverse().join('→')}.`,
       anchor: { match: 'head.next.next = head', to: { match: 'head.next = None' } },
-      state: {
-        type: 'linked-list',
-        nodes: makeNodes(stateMap),
-        pointers: [
-          { nodeId: `n${headIdx}`, label: 'head' },
-          { nodeId: `n${n - 1}`, label: 'returnNode' },
-        ],
-      },
+      state: makeState((i) => (i < headIdx ? 'active' : i === headIdx ? 'curr' : 'done'), [
+        { nodeId: `n${headIdx}`, label: 'head' },
+        { nodeId: `n${n - 1}`, label: 'returnNode' },
+      ]),
       variables: [
         { name: 'head', value: oldHead, highlight: true },
         { name: 'head.next.next', value: `→ ${oldHead}`, highlight: true },
@@ -243,12 +190,7 @@ function generateRecursiveSteps(): Step[] {
     anchor: { match: 'return returnNode' },
     state: {
       type: 'linked-list',
-      nodes: vals.map((v, i) => ({
-        id: `n${i}`,
-        value: v,
-        nextId: nextIds[i],
-        state: 'done' as const,
-      })).reverse(),
+      nodes: vals.map((v, i): LinkedListNode => ({ id: `n${i}`, value: v, nextId: nextIds[i], state: 'done' })).reverse(),
       pointers: [{ nodeId: `n${n - 1}`, label: 'head' }],
     },
     variables: [

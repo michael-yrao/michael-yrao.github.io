@@ -1,4 +1,7 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
+
+const scanState = (i: number) => (j: number): CellState => (j === i ? 'active' : j < i ? 'visited' : 'default');
 
 // ── Solution: Extended Boyer-Moore ───────────────────────────────────────────
 //
@@ -19,12 +22,7 @@ function generateSteps(): Step[] {
     explanation:
       'At most 2 elements can appear more than ⌊n/3⌋ times. Extended Boyer-Moore: maintain a map of at most 2 candidates. When a 3rd distinct value appears, decrement every candidate\'s count and evict any that hit zero. The survivors are potential majority elements — verify them in a second pass against minSize = len(nums)//3.',
     anchor: { match: 'minSize = len(nums)//3', to: { match: 'freqMap = defaultdict(int)' } },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
-      hashmap: {},
-    },
+    state: arrayState(nums, { hashmap: {} }),
     variables: [{ name: 'minSize', value: minSize }],
   });
 
@@ -38,15 +36,7 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `i=${i}, n=${n}: freqMap[${n}] = ${freqMap[n]}. len(freqMap) = ${Object.keys(freqMap).length} ≤ 2 → continue (skip the decrement/evict block).`,
         anchor: { match: 'freqMap[n] += 1', to: { match: 'continue' } },
-        state: {
-          type: 'array',
-          cells: nums.map((v, j) => ({
-            value: v,
-            state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
-          })),
-          pointers: [{ index: i, label: 'i' }],
-          hashmap: mapSnapshot(),
-        },
+        state: arrayState(nums, { cellState: scanState(i), pointers: [{ index: i, label: 'i' }], hashmap: mapSnapshot() }),
         variables: [
           { name: 'n', value: n },
           { name: `freqMap[${n}]`, value: freqMap[n], highlight: true },
@@ -60,15 +50,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `i=${i}, n=${n}: freqMap[${n}] = ${freqMap[n]}. len(freqMap) = ${Object.keys(freqMap).length} — past the continue, so every candidate gets decremented.`,
       anchor: { match: 'freqMap[n] += 1', to: { match: 'if len(freqMap) <= 2:' } },
-      state: {
-        type: 'array',
-        cells: nums.map((v, j) => ({
-          value: v,
-          state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
-        })),
-        pointers: [{ index: i, label: 'i' }],
-        hashmap: mapSnapshot(),
-      },
+      state: arrayState(nums, { cellState: scanState(i), pointers: [{ index: i, label: 'i' }], hashmap: mapSnapshot() }),
       variables: [
         { name: 'n', value: n, highlight: true },
         { name: 'len(freqMap)', value: Object.keys(freqMap).length },
@@ -83,15 +65,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `for n, count in freqMap.items(): freqMap[n] = count - 1 — every candidate loses one. Map is now ${JSON.stringify(freqMap)}.`,
       anchor: { match: 'for n, count in freqMap.items():', to: { match: 'freqMap[n] = count - 1' } },
-      state: {
-        type: 'array',
-        cells: nums.map((v, j) => ({
-          value: v,
-          state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
-        })),
-        pointers: [{ index: i, label: 'i' }],
-        hashmap: mapSnapshot(),
-      },
+      state: arrayState(nums, { cellState: scanState(i), pointers: [{ index: i, label: 'i' }], hashmap: mapSnapshot() }),
       variables: [{ name: 'map after decrement', value: JSON.stringify(freqMap), highlight: true }],
     });
 
@@ -103,15 +77,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `for n in list(freqMap): if freqMap[n] == 0: freqMap.pop(n) — evict any candidate that hit zero. Map is now ${Object.keys(freqMap).length === 0 ? 'empty' : JSON.stringify(freqMap)}.`,
       anchor: { match: 'for n in list(freqMap):', to: { match: 'freqMap.pop(n)' } },
-      state: {
-        type: 'array',
-        cells: nums.map((v, j) => ({
-          value: v,
-          state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
-        })),
-        pointers: [{ index: i, label: 'i' }],
-        hashmap: mapSnapshot(),
-      },
+      state: arrayState(nums, { cellState: scanState(i), pointers: [{ index: i, label: 'i' }], hashmap: mapSnapshot() }),
       variables: [{ name: 'map after evict', value: JSON.stringify(freqMap), highlight: true }],
     });
   }
@@ -124,17 +90,12 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Candidates after scan: ${JSON.stringify(freqMap)}. Verify each with nums.count(n) > minSize (${minSize}), since decrementing may have left the stored counts below the true frequency.`,
     anchor: { match: 'if nums.count(n) > minSize:', to: { match: 'result.append(n)' } },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({
-        value: v,
-        state: result.includes(v) ? ('found' as const) : ('eliminated' as const),
-      })),
-      pointers: [],
+    state: arrayState(nums, {
+      cellState: (_, v) => (result.includes(v) ? 'found' : 'eliminated'),
       hashmap: Object.fromEntries(
         Object.keys(freqMap).map(k => [k, `count=${nums.filter(x => x === Number(k)).length} > ${minSize}? ${nums.filter(x => x === Number(k)).length > minSize}`])
       ),
-    },
+    }),
     variables: [{ name: 'return', value: `[${result.join(', ')}]`, highlight: true }],
   });
 
@@ -156,14 +117,11 @@ function generateStepsFreq(): Step[] {
   steps.push({
     explanation: `Frequency-map approach (the intuitive one). minSize = len(nums)//3 = ${nums.length}//3 = ${minSize}. Count every value, then return those appearing MORE than minSize times. Uses a full map — O(n) space — vs Boyer-Moore's O(1).`,
     anchor: { match: 'minSize = len(nums)//3' },
-    state: {
-      type: 'array',
-      cells: nums.map((v) => ({ value: v, state: 'default' as const })),
-      pointers: [],
+    state: arrayState(nums, {
       hashmap: {},
       hashmapLabel: 'freqMap',
       counters: [{ label: 'minSize (n/3)', value: minSize }],
-    },
+    }),
     variables: [{ name: 'minSize', value: minSize }],
   });
 
@@ -172,14 +130,13 @@ function generateStepsFreq(): Step[] {
     steps.push({
       explanation: `i=${i}: freqMap[${nums[i]}] → ${freq[nums[i]]}.`,
       anchor: { match: 'freqMap[n] += 1' },
-      state: {
-        type: 'array',
-        cells: nums.map((v, j) => ({ value: v, state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const) })),
+      state: arrayState(nums, {
+        cellState: scanState(i),
         pointers: [{ index: i, label: 'i' }],
         hashmap: { ...freq },
         hashmapLabel: 'freqMap',
         counters: [{ label: 'minSize (n/3)', value: minSize }],
-      },
+      }),
       variables: [
         { name: 'i', value: i },
         { name: `freqMap[${nums[i]}]`, value: freq[nums[i]], highlight: true },
@@ -197,14 +154,12 @@ function generateStepsFreq(): Step[] {
       anchor: pass
         ? { match: 'if value > minSize:', to: { match: 'returnList.append(key)' } }
         : { match: 'if value > minSize:' },
-      state: {
-        type: 'array',
-        cells: nums.map((x) => ({ value: x, state: x === k ? (pass ? ('found' as const) : ('eliminated' as const)) : ('visited' as const) })),
-        pointers: [],
+      state: arrayState(nums, {
+        cellState: (_, x) => (x === k ? (pass ? 'found' : 'eliminated') : 'visited'),
         hashmap: { ...freq },
         hashmapLabel: 'freqMap',
         counters: [{ label: 'minSize (n/3)', value: minSize }],
-      },
+      }),
       variables: [
         { name: 'key', value: k, highlight: true },
         { name: 'count', value: v },
@@ -216,14 +171,12 @@ function generateStepsFreq(): Step[] {
   steps.push({
     explanation: `Done. Keys with count > ${minSize}: [${result.join(', ')}]. Return them. O(n) time and O(n) space — the Boyer-Moore variant gets this down to O(1) space.`,
     anchor: { match: 'return returnList' },
-    state: {
-      type: 'array',
-      cells: nums.map((v) => ({ value: v, state: result.includes(v) ? ('found' as const) : ('eliminated' as const) })),
-      pointers: [],
+    state: arrayState(nums, {
+      cellState: (_, v) => (result.includes(v) ? 'found' : 'eliminated'),
       hashmap: { ...freq },
       hashmapLabel: 'freqMap',
       counters: [{ label: 'minSize (n/3)', value: minSize }],
-    },
+    }),
     variables: [{ name: 'return', value: `[${result.join(', ')}]`, highlight: true }],
   });
 

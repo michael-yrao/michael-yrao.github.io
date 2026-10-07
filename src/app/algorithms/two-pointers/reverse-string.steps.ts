@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Pointer, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's reverseString verbatim: loop condition is `while r>l:`, and after the
 // swap the pointers move r-=1 BEFORE l+=1.
@@ -7,17 +8,18 @@ function generateSteps(): Step[] {
   const s = ['h', 'e', 'l', 'l', 'o'];
   const steps: Step[] = [];
 
-  const snap = (l: number, r: number, swapped: Set<number>, done: boolean) =>
-    s.map((v, i) => ({
-      value: v,
-      state: done
-        ? ('found' as const)
-        : swapped.has(i) && i !== l && i !== r
-        ? ('visited' as const)
-        : i === l || i === r
-        ? ('active' as const)
-        : ('default' as const),
-    }));
+  const snap = (
+    l: number,
+    r: number,
+    swapped: Set<number>,
+    done: boolean,
+    pointers: Pointer[] = [{ index: l, label: 'l' }, { index: r, label: 'r' }],
+  ) =>
+    arrayState(s, {
+      cellState: (i) =>
+        done ? 'found' : swapped.has(i) && i !== l && i !== r ? 'visited' : i === l || i === r ? 'active' : 'default',
+      pointers,
+    });
 
   const swapped = new Set<number>();
 
@@ -25,11 +27,7 @@ function generateSteps(): Step[] {
     explanation:
       'Reverse string ["h","e","l","l","o"] in-place using two pointers. l starts at the left end, r at the right end. Each step swaps s[l] and s[r] then moves both pointers inward. O(n) time, O(1) space.',
     anchor: { match: 'l, r = 0, len(s) - 1' },
-    state: {
-      type: 'array',
-      cells: s.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
-    },
+    state: arrayState(s),
     variables: [{ name: 's', value: '["h","e","l","l","o"]' }],
   });
 
@@ -39,11 +37,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Initialize l=${l}, r=${r}. Two pointers face inward — we swap while r > l.`,
     anchor: { match: 'l, r = 0, len(s) - 1' },
-    state: {
-      type: 'array',
-      cells: snap(l, r, swapped, false),
-      pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-    },
+    state: snap(l, r, swapped, false),
     variables: [{ name: 'l', value: l }, { name: 'r', value: r }],
   });
 
@@ -54,11 +48,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `r=${r} > l=${l}: swap s[${l}]='${lVal}' and s[${r}]='${rVal}'.`,
       anchor: { match: 's[l], s[r] = s[r], s[l]' },
-      state: {
-        type: 'array',
-        cells: snap(l, r, swapped, false),
-        pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-      },
+      state: snap(l, r, swapped, false),
       variables: [
         { name: 'l', value: l },
         { name: 'r', value: r },
@@ -78,13 +68,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `Swapped → s[${l - 1}]='${s[l - 1]}', s[${r + 1}]='${s[r + 1]}'. Move r→${r} first, then l→${l}.`,
       anchor: { match: 'r-=1', to: { match: 'l+=1' } },
-      state: {
-        type: 'array',
-        cells: snap(l, r, swapped, false),
-        pointers: r >= l
-          ? [{ index: l, label: 'l' }, { index: r, label: 'r' }]
-          : [{ index: l, label: 'l=r' }],
-      },
+      state: snap(l, r, swapped, false, r >= l ? undefined : [{ index: l, label: 'l=r' }]),
       variables: [
         { name: 'l', value: l },
         { name: 'r', value: r },
@@ -95,11 +79,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `r=${r} ≤ l=${l}: done. Reversed string is ["${s.join('","')}"].`,
     anchor: { match: 'while r>l:' },
-    state: {
-      type: 'array',
-      cells: snap(l, r, swapped, true),
-      pointers: [],
-    },
+    state: snap(l, r, swapped, true, []),
     variables: [{ name: 'result', value: `["${s.join('","')}"]`, highlight: true }],
   });
 

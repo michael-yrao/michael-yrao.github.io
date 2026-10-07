@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -17,28 +18,20 @@ function generateSteps(): Step[] {
   const steps: Step[] = [];
   const resultSet = new Set<string>();
 
-  const snap = (iIdx: number, jIdx: number, kIdx: number, lIdx: number) =>
-    nums.map((v, idx) => ({
-      value: v,
-      state:
-        idx === iIdx || idx === jIdx
-          ? ('active' as const)
-          : idx >= kIdx && idx <= lIdx && kIdx <= lIdx
-          ? ('window' as const)
-          : idx < iIdx
-          ? ('visited' as const)
-          : ('default' as const),
-    }));
+  const windowCellState = (i: number, j: number, k: number, l: number) => (idx: number): CellState =>
+    idx === i || idx === j ? 'active' : idx >= k && idx <= l && k <= l ? 'window' : idx < i ? 'visited' : 'default';
+
+  const quadState = (i: number, j: number, k: number, l: number, cellState = windowCellState(i, j, k, l), counters?: { label: string; value: string }[]) =>
+    arrayState(nums, {
+      cellState,
+      pointers: [{ index: i, label: 'i' }, { index: j, label: 'j' }, { index: k, label: 'k' }, { index: l, label: 'l' }],
+      counters,
+    });
 
   steps.push({
     explanation: `nums.sort(): [${original.join(', ')}] → [${nums.join(', ')}]. lenNums = ${lenNums}. resultSet = set() — dedup happens via the set, there's no explicit duplicate-index skip.`,
     anchor: { match: 'nums.sort()', to: { match: 'resultSet = set()' } },
-    state: {
-      type: 'array',
-      cells: nums.map((v) => ({ value: v, state: 'default' as const })),
-      pointers: [],
-      counters: [{ label: 'target', value: target }],
-    },
+    state: arrayState(nums, { counters: [{ label: 'target', value: target }] }),
     variables: [
       { name: 'nums', value: `[${nums.join(', ')}]` },
       { name: 'target', value: target },
@@ -49,14 +42,10 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `for i in range(lenNums-3): i=${i}, nums[i]=${nums[i]}.`,
       anchor: { match: 'for i in range(lenNums-3):', to: { match: 'for j in range(i+1, lenNums-2):' } },
-      state: {
-        type: 'array',
-        cells: nums.map((v, idx) => ({
-          value: v,
-          state: (idx === i ? 'active' : idx < i ? 'visited' : 'default') as 'active' | 'visited' | 'default',
-        })),
+      state: arrayState(nums, {
+        cellState: (idx) => (idx === i ? 'active' : idx < i ? 'visited' : 'default'),
         pointers: [{ index: i, label: 'i' }],
-      },
+      }),
       variables: [{ name: 'i', value: i }, { name: 'nums[i]', value: nums[i] }],
     });
 
@@ -68,16 +57,7 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `for j in range(i+1, lenNums-2): j=${j}, nums[j]=${nums[j]}. k, l = j+1, len(nums)-1 → k=${k}, l=${l}. runningTarget = target - nums[i] - nums[j] = ${target} - ${nums[i]} - ${nums[j]} = ${runningTarget}.`,
         anchor: { match: 'for j in range(i+1, lenNums-2):', to: { match: 'runningTarget = target - nums[i] - nums[j]' } },
-        state: {
-          type: 'array',
-          cells: snap(i, j, k, l),
-          pointers: [
-            { index: i, label: 'i' },
-            { index: j, label: 'j' },
-            { index: k, label: 'k' },
-            { index: l, label: 'l' },
-          ],
-        },
+        state: quadState(i, j, k, l),
         variables: [
           { name: 'j', value: j },
           { name: 'nums[j]', value: nums[j] },
@@ -95,24 +75,11 @@ function generateSteps(): Step[] {
             explanation: `nums[k]+nums[l] = ${nums[k]}+${nums[l]} = ${pairSum} == runningTarget ${runningTarget} → resultSet.add(${quadKey}). k+=1, l-=1.`,
             // nth 1: this if-branch's own 'l-=1'; hit 2 is the else-branch's 'l-=1' further down.
             anchor: { match: 'if nums[k] + nums[l] == runningTarget:', to: { match: 'l-=1', nth: 1 } },
-            state: {
-              type: 'array',
-              cells: nums.map((v, idx) => ({
-                value: v,
-                state: (idx === i || idx === j || idx === k || idx === l
-                  ? 'found'
-                  : idx < i
-                  ? 'visited'
-                  : 'default') as 'found' | 'visited' | 'default',
-              })),
-              pointers: [
-                { index: i, label: 'i' },
-                { index: j, label: 'j' },
-                { index: k, label: 'k' },
-                { index: l, label: 'l' },
-              ],
-              counters: [{ label: 'resultSet', value: `{${[...resultSet].join(', ')}}` }],
-            },
+            state: quadState(
+              i, j, k, l,
+              (idx) => (idx === i || idx === j || idx === k || idx === l ? 'found' : idx < i ? 'visited' : 'default'),
+              [{ label: 'resultSet', value: `{${[...resultSet].join(', ')}}` }],
+            ),
             variables: [
               { name: 'pairSum', value: pairSum, highlight: true },
               { name: 'resultSet', value: `{${[...resultSet].join(', ')}}`, highlight: true },
@@ -125,16 +92,7 @@ function generateSteps(): Step[] {
             explanation: `nums[k]+nums[l] = ${nums[k]}+${nums[l]} = ${pairSum} > runningTarget ${runningTarget} → l-=1.`,
             // nth 2: hit 1 is the if-branch's own 'l-=1' above; this elif-branch's is the second.
             anchor: { match: 'elif nums[k] + nums[l] > runningTarget:', to: { match: 'l-=1', nth: 2 } },
-            state: {
-              type: 'array',
-              cells: snap(i, j, k, l),
-              pointers: [
-                { index: i, label: 'i' },
-                { index: j, label: 'j' },
-                { index: k, label: 'k' },
-                { index: l, label: 'l' },
-              ],
-            },
+            state: quadState(i, j, k, l),
             variables: [
               { name: 'pairSum', value: pairSum, highlight: true },
               { name: 'action', value: 'l-=1' },
@@ -146,16 +104,7 @@ function generateSteps(): Step[] {
             explanation: `nums[k]+nums[l] = ${nums[k]}+${nums[l]} = ${pairSum}. Not equal, not greater → falls to else: k+=1.`,
             // nth 2: hit 1 is the if-branch's own 'k+=1' above; this else-branch's is the second.
             anchor: { match: 'else:', to: { match: 'k+=1', nth: 2 } },
-            state: {
-              type: 'array',
-              cells: snap(i, j, k, l),
-              pointers: [
-                { index: i, label: 'i' },
-                { index: j, label: 'j' },
-                { index: k, label: 'k' },
-                { index: l, label: 'l' },
-              ],
-            },
+            state: quadState(i, j, k, l),
             variables: [
               { name: 'pairSum', value: pairSum, highlight: true },
               { name: 'action', value: 'k+=1' },
@@ -175,12 +124,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `All (i, j) pairs processed. result = []; for a,b,c,d in resultSet: result.append([a,b,c,d]) — unpack the set into a list. Result: [${[...resultSet].join(', ')}]. O(n³) time (two outer loops + a two-pointer inner scan), O(n) space for output.`,
     anchor: { match: 'result = []', to: { match: 'return result' } },
-    state: {
-      type: 'array',
-      cells: nums.map((v) => ({ value: v, state: 'visited' as const })),
-      pointers: [],
-      counters: [{ label: 'result', value: [...resultSet].join(', ') }],
-    },
+    state: arrayState(nums, { cellState: () => 'visited', counters: [{ label: 'result', value: [...resultSet].join(', ') }] }),
     variables: [{ name: 'return', value: [...resultSet].join(', '), highlight: true }],
   });
 

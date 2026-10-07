@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's maxSubarrayKadaneV2 verbatim: maxSum = currentSum = nums[0] is the
 // only base case (the loop runs over nums[1:], starting at index 1, never revisiting index
@@ -18,30 +19,33 @@ function generateKadaneSteps(): Step[] {
   let bestEnd = 0;
 
   const snap = (activeIdx: number, windowStart: number, bStart: number, bEnd: number) =>
-    nums.map((v, i) => ({
-      value: v,
-      state:
+    arrayState(nums, {
+      cellState: (i): CellState =>
         i === activeIdx
-          ? ('active' as const)
+          ? 'active'
           : i >= windowStart && i < activeIdx
-          ? ('window' as const)
+          ? 'window'
           : i >= bStart && i <= bEnd && i < windowStart
-          ? ('found' as const)
-          : ('default' as const),
-    }));
+          ? 'found'
+          : 'default',
+      pointers: [{ index: activeIdx, label: 'n' }],
+      counters: [
+        { label: 'maxSum', value: maxSum },
+        { label: 'currentSum', value: currentSum },
+      ],
+    });
 
   steps.push({
     explanation: "Kadane's algorithm (V2): maxSum = currentSum = nums[0]. The loop below runs over nums[1:] — index 0 is only ever the base case.",
     anchor: { match: 'maxSum = currentSum = nums[0]' },
-    state: {
-      type: 'array',
-      cells: nums.map((v, i) => ({ value: v, state: i === 0 ? ('active' as const) : ('default' as const) })),
+    state: arrayState(nums, {
+      cellState: (i): CellState => (i === 0 ? 'active' : 'default'),
       pointers: [{ index: 0, label: 'n' }],
       counters: [
         { label: 'maxSum', value: maxSum },
         { label: 'currentSum', value: currentSum },
       ],
-    },
+    }),
     variables: [
       { name: 'maxSum', value: maxSum },
       { name: 'currentSum', value: currentSum },
@@ -65,15 +69,7 @@ function generateKadaneSteps(): Step[] {
     steps.push({
       explanation: `currentSum = max(n, currentSum + n) = max(${n}, ${prevSum} + ${n}) = ${currentSum} → ${startsFresh ? `starts fresh at n=${n} (extending would only give ${extended})` : `extends the run: ${prevSum} + ${n}`}. maxSum = max(maxSum, currentSum) = ${maxSum}${improved ? ' — new best!' : ''}.`,
       anchor: { match: 'currentSum = max(n, currentSum + n)', to: { match: 'maxSum = max(maxSum, currentSum)' } },
-      state: {
-        type: 'array',
-        cells: snap(i, windowStart, bestStart, bestEnd),
-        pointers: [{ index: i, label: 'n' }],
-        counters: [
-          { label: 'maxSum', value: maxSum },
-          { label: 'currentSum', value: currentSum },
-        ],
-      },
+      state: snap(i, windowStart, bestStart, bestEnd),
       variables: [
         { name: 'n', value: n, highlight: true },
         { name: 'currentSum', value: currentSum, highlight: true },
@@ -85,18 +81,13 @@ function generateKadaneSteps(): Step[] {
   steps.push({
     explanation: `Loop over nums[1:] is done. Return maxSum = ${maxSum}. (Shown for reference: the subarray [${nums.slice(bestStart, bestEnd + 1).join(', ')}], indices ${bestStart}–${bestEnd}, achieves it — the code itself only ever tracked the sum, not the indices.)`,
     anchor: { match: 'return maxSum' },
-    state: {
-      type: 'array',
-      cells: nums.map((v, i) => ({
-        value: v,
-        state: i >= bestStart && i <= bestEnd ? ('found' as const) : ('default' as const),
-      })),
-      pointers: [],
+    state: arrayState(nums, {
+      cellState: (i): CellState => (i >= bestStart && i <= bestEnd ? 'found' : 'default'),
       counters: [
         { label: 'maxSum', value: maxSum },
         { label: 'currentSum', value: currentSum },
       ],
-    },
+    }),
     variables: [
       { name: 'maxSum', value: maxSum, highlight: true },
     ],
@@ -138,15 +129,12 @@ function generatePrefixSumSteps(): Step[] {
     explanation:
       'prefixSum = [0] * (len(nums)+1) — a size-(n+1) array with a leading sentinel prefixSum[0] = 0, so a subarray starting at nums[0] can be expressed as prefixSum[i] − prefixSum[0] like any other.',
     anchor: { match: 'prefixSum = [0] * (len(nums)+1)' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
+    state: arrayState(nums, {
       counters: [
         { label: 'minPrefix', value: 0 },
         { label: 'maxSum', value: '-∞' },
       ],
-    },
+    }),
     variables: [
       { name: 'nums', value: `[${nums.join(', ')}]` },
       { name: 'prefixSum', value: `[${prefixSum.join(', ')}]` },
@@ -158,15 +146,11 @@ function generatePrefixSumSteps(): Step[] {
     steps.push({
       explanation: `i=${i}: prefixSum[${i}] = nums[${i - 1}] + prefixSum[${i - 1}] = ${nums[i - 1]} + ${prefixSum[i - 1]} = ${prefixSum[i]}.`,
       anchor: { match: 'prefixSum[i] = nums[i-1] + prefixSum[i-1]' },
-      state: {
-        type: 'array',
-        cells: prefixSum.map((v, j) => ({
-          value: v,
-          state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
-        })),
+      state: arrayState(prefixSum, {
+        cellState: (j): CellState => (j === i ? 'active' : j < i ? 'visited' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         counters: [{ label: 'nums', value: `[${nums.join(', ')}]` }],
-      },
+      }),
       variables: [
         { name: 'i', value: i, highlight: true },
         { name: `prefixSum[${i}]`, value: prefixSum[i], highlight: true },
@@ -181,15 +165,12 @@ function generatePrefixSumSteps(): Step[] {
   steps.push({
     explanation: `prefixSum = [${prefixSum.join(', ')}]. Now scan i=1..${n}: candidate = prefixSum[i] − minPrefix (the smallest prefix seen so far).`,
     anchor: { match: 'minPrefix = 0', to: { match: 'maxSum = -math.inf' } },
-    state: {
-      type: 'array',
-      cells: prefixSum.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
+    state: arrayState(prefixSum, {
       counters: [
         { label: 'minPrefix', value: minPrefix },
         { label: 'maxSum', value: '-∞' },
       ],
-    },
+    }),
     variables: [
       { name: 'minPrefix', value: 0 },
       { name: 'maxSum', value: '-∞' },
@@ -209,18 +190,14 @@ function generatePrefixSumSteps(): Step[] {
     steps.push({
       explanation: `candidate = prefixSum[${i}] − minPrefix = ${curVal} − ${oldMin} = ${candidate}. maxSum = max(maxSum, candidate) = ${maxSum}.${improved ? ' New best!' : ''} minPrefix = min(minPrefix, prefixSum[${i}])${minChanged ? ` → ${minPrefix}.` : ` stays ${minPrefix}.`}`,
       anchor: { match: 'maxSum = max(maxSum, prefixSum[i] - minPrefix)', to: { match: 'minPrefix = min(minPrefix, prefixSum[i])' } },
-      state: {
-        type: 'array',
-        cells: prefixSum.map((v, j) => ({
-          value: v,
-          state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
-        })),
+      state: arrayState(prefixSum, {
+        cellState: (j): CellState => (j === i ? 'active' : j < i ? 'visited' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         counters: [
           { label: 'minPrefix', value: minPrefix },
           { label: 'maxSum', value: maxSum },
         ],
-      },
+      }),
       variables: [
         { name: `prefixSum[${i}]`, value: curVal, highlight: true },
         { name: 'candidate', value: candidate, highlight: true },
@@ -234,15 +211,13 @@ function generatePrefixSumSteps(): Step[] {
   steps.push({
     explanation: `Return maxSum = ${maxSum}. Both loops here run i=1..n over the size-(n+1) prefixSum array (the leading sentinel covers the index-0 base case) — O(n) time, O(n) space.`,
     anchor: { match: 'return maxSum # type: ignore' },
-    state: {
-      type: 'array',
-      cells: prefixSum.map(v => ({ value: v, state: 'found' as const })),
-      pointers: [],
+    state: arrayState(prefixSum, {
+      cellState: () => 'found',
       counters: [
         { label: 'minPrefix', value: minPrefix },
         { label: 'maxSum', value: maxSum },
       ],
-    },
+    }),
     variables: [
       { name: 'maxSum', value: maxSum, highlight: true },
     ],

@@ -4,7 +4,8 @@
 //   getCandidate()/relax(). This attempt has NO "candidate not found" sentinel branch —
 //   getCandidate() always returns a real index for this connected input, so the array
 //   variant below does not break out of its main loop.
-import { AlgorithmMeta, SolutionVariant, Step, GraphNode, GraphEdge, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { GraphStateOptions, graphState } from '../../core/steps';
 
 const POINTS: [number, number][] = [
   [0, 0],
@@ -18,20 +19,18 @@ const manhattan = (a: [number, number], b: [number, number]) => Math.abs(a[0] - 
 
 const POS = (i: number) => ({ x: 40 + POINTS[i][0] * 32, y: 30 + POINTS[i][1] * 18 });
 
-function nodeList(visited: Set<number>, active: number | null): GraphNode[] {
-  return POINTS.map((p, i) => ({
-    id: i,
-    x: POS(i).x,
-    y: POS(i).y,
-    state: (i === active ? 'active' : visited.has(i) ? 'found' : 'default') as GraphNode['state'],
-    label: `${i}(${p[0]},${p[1]})`,
-  }));
-}
+const NODE_INPUTS = POINTS.map((p, i) => ({ id: i, ...POS(i), label: `${i}(${p[0]},${p[1]})` }));
 
-function mstEdges(edges: [number, number][], activeEdge: [number, number] | null): GraphEdge[] {
-  const out: GraphEdge[] = edges.map(([a, b]) => ({ from: a, to: b, state: 'found' as const }));
-  if (activeEdge) out.push({ from: activeEdge[0], to: activeEdge[1], state: 'active' });
-  return out;
+function mkState(visited: Set<number>, treeEdges: [number, number][], active: number | null, options: GraphStateOptions) {
+  return graphState(
+    NODE_INPUTS,
+    treeEdges.map(([from, to]) => ({ from, to })),
+    {
+      nodeState: (_, i) => (i === active ? 'active' : visited.has(i) ? 'found' : 'default'),
+      edgeState: () => 'found',
+      ...options,
+    },
+  );
 }
 
 // ── Variant A: heap-based Prim's ──────────────────────────────────────────────
@@ -52,14 +51,11 @@ function generateHeapSteps(): Step[] {
     explanation:
       "Prim's MST with a min-heap. The graph is complete (every pair of points is an edge with Manhattan-distance cost), so no adjacency map — we generate edges on the fly. Start by pushing (0, node 0). Each round pop the cheapest edge that reaches a NEW node.",
     anchor: { match: 'heapq.heappush(minHeap,(0,0))' },
-    state: {
-      type: 'graph',
-      nodes: nodeList(visited, null),
-      edges: mstEdges(treeEdges, null),
+    state: mkState(visited, treeEdges, null, {
       stackItems: heapItems(),
       stackLabel: 'minHeap (cost, node)',
       counters: [{ label: 'totalCost', value: 0 }, { label: 'in tree', value: `0 / ${N}` }],
-    },
+    }),
     variables: [],
   });
 
@@ -69,14 +65,11 @@ function generateHeapSteps(): Step[] {
       steps.push({
         explanation: `Pop (${cost}, ${node}): node ${node} is already in the tree → skip (a cheaper edge already connected it).`,
         anchor: { match: 'if node in visited:' },
-        state: {
-          type: 'graph',
-          nodes: nodeList(visited, node),
-          edges: mstEdges(treeEdges, null),
+        state: mkState(visited, treeEdges, node, {
           stackItems: heapItems(),
           stackLabel: 'minHeap (cost, node)',
           counters: [{ label: 'totalCost', value: totalCost }, { label: 'in tree', value: `${visited.size} / ${N}` }],
-        },
+        }),
         variables: [{ name: 'popped', value: `(${cost}, ${node})` }, { name: 'action', value: 'skip' }],
       });
       continue;
@@ -88,14 +81,11 @@ function generateHeapSteps(): Step[] {
     steps.push({
       explanation: `Pop (${cost}, ${node}): node ${node} is new → add it to the tree via edge ${parent >= 0 ? `${parent}–${node}` : '(root)'} of cost ${cost}. totalCost = ${totalCost}.`,
       anchor: { match: 'totalCost+=cost', to: { match: 'visited.add(node)' } },
-      state: {
-        type: 'graph',
-        nodes: nodeList(visited, node),
-        edges: mstEdges(treeEdges, null),
+      state: mkState(visited, treeEdges, node, {
         stackItems: heapItems(),
         stackLabel: 'minHeap (cost, node)',
         counters: [{ label: 'totalCost', value: totalCost }, { label: 'in tree', value: `${visited.size} / ${N}` }],
-      },
+      }),
       variables: [{ name: 'node', value: node, highlight: true }, { name: 'totalCost', value: totalCost, highlight: true }],
     });
 
@@ -111,14 +101,11 @@ function generateHeapSteps(): Step[] {
       steps.push({
         explanation: `From node ${node}, push an edge to every unvisited node: ${pushed.map((p) => `→${p.split(':')[0]} cost ${p.split(':')[1]}`).join(', ')}. The heap keeps the globally cheapest frontier edge on top.`,
         anchor: { match: 'heapq.heappush(minHeap, (distance, neighbor))' },
-        state: {
-          type: 'graph',
-          nodes: nodeList(visited, node),
-          edges: mstEdges(treeEdges, null),
+        state: mkState(visited, treeEdges, node, {
           stackItems: heapItems(),
           stackLabel: 'minHeap (cost, node)',
           counters: [{ label: 'totalCost', value: totalCost }, { label: 'in tree', value: `${visited.size} / ${N}` }],
-        },
+        }),
         variables: [{ name: 'pushed edges', value: pushed.length }],
       });
     }
@@ -127,13 +114,7 @@ function generateHeapSteps(): Step[] {
   steps.push({
     explanation: `All ${N} points connected → return totalCost = ${totalCost}. The MST edges are highlighted.`,
     anchor: { match: 'return totalCost' },
-    state: {
-      type: 'graph',
-      nodes: nodeList(visited, null),
-      edges: mstEdges(treeEdges, null),
-      stackItems: [],
-      counters: [{ label: 'answer', value: totalCost }],
-    },
+    state: mkState(visited, treeEdges, null, { stackItems: [], counters: [{ label: 'answer', value: totalCost }] }),
     variables: [{ name: 'return', value: totalCost, highlight: true }],
   });
 
@@ -149,7 +130,7 @@ function generateArraySteps(): Step[] {
   const parent = new Array<number>(N).fill(-1);
   const treeEdges: [number, number][] = [];
 
-  const distMap = (active: number | null): Record<string | number, string> => {
+  const distMap = (): Record<string | number, string> => {
     const m: Record<string | number, string> = {};
     distance.forEach((d, i) => (m[i] = visited.has(i) ? '✓' : d === Infinity ? '∞' : `${d}`));
     return m;
@@ -159,14 +140,11 @@ function generateArraySteps(): Step[] {
     explanation:
       "Same Prim's MST, but O(n²) with no heap. distance[i] = cheapest edge from the current tree to node i (∞ until reachable, 0 for the start). Each round: getCandidate() scans for the closest unvisited node, add it, and relax() every other node's distance against it.",
     anchor: { match: 'distance = [math.inf] * len(points)', to: { match: 'distance[0] = 0' } },
-    state: {
-      type: 'graph',
-      nodes: nodeList(visited, null),
-      edges: mstEdges(treeEdges, null),
-      hashmap: distMap(null),
+    state: mkState(visited, treeEdges, null, {
+      hashmap: distMap(),
       hashmapLabel: 'distance[]',
       counters: [{ label: 'in tree', value: `0 / ${N}` }],
-    },
+    }),
     variables: [{ name: 'distance', value: `[${distance.map((d) => (d === Infinity ? '∞' : d)).join(', ')}]` }],
   });
 
@@ -189,14 +167,11 @@ function generateArraySteps(): Step[] {
     steps.push({
       explanation: `getCandidate() → candidate ${closest} (candidateValue ${closestDist}${activeEdge ? `, via edge ${activeEdge[0]}–${activeEdge[1]}` : ' — the start'}). Add it to visited.`,
       anchor: { match: 'def getCandidate():', to: { match: 'return candidate' } },
-      state: {
-        type: 'graph',
-        nodes: nodeList(visited, closest),
-        edges: mstEdges(treeEdges, null),
-        hashmap: distMap(closest),
+      state: mkState(visited, treeEdges, closest, {
+        hashmap: distMap(),
         hashmapLabel: 'distance[]',
         counters: [{ label: 'in tree', value: `${visited.size} / ${N}` }, { label: 'added', value: closest }],
-      },
+      }),
       variables: [{ name: 'candidate', value: closest, highlight: true }, { name: 'candidateValue', value: closestDist }],
     });
 
@@ -216,14 +191,11 @@ function generateArraySteps(): Step[] {
     steps.push({
       explanation: `relax(${closest}): for each i not in visited, distance[i] = min(distance[i], manhattanDistance(${closest}, i)). ${updates.length > 0 ? `Improved: ${updates.join(', ')}.` : 'No improvements this round.'}`,
       anchor: { match: 'def relax(candidate):', to: { match: 'distance[i] = min(distance[i], manhattanDistance)' } },
-      state: {
-        type: 'graph',
-        nodes: nodeList(visited, closest),
-        edges: mstEdges(treeEdges, null),
-        hashmap: distMap(closest),
+      state: mkState(visited, treeEdges, closest, {
+        hashmap: distMap(),
         hashmapLabel: 'distance[]',
         counters: [{ label: 'in tree', value: `${visited.size} / ${N}` }],
-      },
+      }),
       variables: [{ name: 'distance', value: `[${distance.map((d, i) => (visited.has(i) ? '✓' : d === Infinity ? '∞' : d)).join(', ')}]`, highlight: updates.length > 0 }],
     });
   }
@@ -232,14 +204,11 @@ function generateArraySteps(): Step[] {
   steps.push({
     explanation: `All nodes visited → return sum(distance) = ${total}. Each entry is the edge cost that first connected that node to the tree, so the sum is the MST weight.`,
     anchor: { match: 'return sum(distance)' },
-    state: {
-      type: 'graph',
-      nodes: nodeList(visited, null),
-      edges: mstEdges(treeEdges, null),
-      hashmap: distMap(null),
+    state: mkState(visited, treeEdges, null, {
+      hashmap: distMap(),
       hashmapLabel: 'distance[]',
       counters: [{ label: 'answer', value: total }],
-    },
+    }),
     variables: [{ name: 'return', value: total, highlight: true }],
   });
 

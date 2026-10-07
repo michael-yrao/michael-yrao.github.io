@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { ArrayStateOptions, arrayState } from '../../core/steps';
 
 // Traces cse-progress's canFinish_20260613 verbatim: Kahn's BFS with prereqMap,
 // prereqCounter, canTake and numberOfCoursesTaken. Building prereqMap/prereqCounter
@@ -18,25 +19,18 @@ const adjHashmap: Record<string, string> = {
   '3': '[]',
 };
 
-const adj: Record<number, number[]> = { 0: [1, 2], 1: [3], 2: [3], 3: [] };
-
-function makeCells(
+function courseState(
+  deg: number[],
   active: number | null,
   visited: Set<number>,
   found: Set<number>,
-  deg: number[]
+  options: ArrayStateOptions,
 ) {
-  return [0, 1, 2, 3].map(i => ({
-    value: deg[i] as string | number,
-    state:
-      found.has(i)
-        ? ('found' as const)
-        : i === active
-        ? ('active' as const)
-        : visited.has(i)
-        ? ('visited' as const)
-        : ('default' as const),
-  }));
+  return arrayState(deg, {
+    cellState: (i) => (found.has(i) ? 'found' : i === active ? 'active' : visited.has(i) ? 'visited' : 'default'),
+    hashmap: adjHashmap,
+    ...options,
+  });
 }
 
 function generateStepsBFS(): Step[] {
@@ -52,21 +46,18 @@ function generateStepsBFS(): Step[] {
   steps.push({
     explanation: `Course Schedule: can we finish all 4 courses given prerequisites [[1,0],[2,0],[3,1],[3,2]]? Strategy: Kahn's BFS topological sort. Build prereqCounter (in-degree per course) and prereqMap (prereq → list of dependent courses). Cell values show each course's current in-degree.`,
     anchor: { match: 'prereqCounter = [0] * numCourses' },
-    state: {
-      type: 'array',
-      cells: [0, 1, 2, 3].map(i => ({ value: deg[i] as string | number, state: 'default' as const })),
+    state: courseState(deg, null, visited, found, {
       pointers: [
         { index: 0, label: 'course 0' },
         { index: 1, label: 'course 1' },
         { index: 2, label: 'course 2' },
         { index: 3, label: 'course 3' },
       ],
-      hashmap: adjHashmap,
       counters: [
         { label: 'queue', value: '[]' },
         { label: 'coursesTaken', value: 0 },
       ],
-    },
+    }),
     variables: [
       { name: 'numCourses', value: numCourses },
       { name: 'prerequisites', value: '[[1,0],[2,0],[3,1],[3,2]]' },
@@ -77,16 +68,12 @@ function generateStepsBFS(): Step[] {
   steps.push({
     explanation: `Build prereqCounter and prereqMap. For each [course, prereq]: prereqMap[prereq].append(course), then prereqCounter[course]++. Result: prereqCounter = [0,1,1,2], prereqMap = {0:[1,2], 1:[3], 2:[3]}. The hashmap on the right shows prereqMap.`,
     anchor: { match: 'for row in prerequisites:', to: { match: 'prereqCounter[course]+=1' } },
-    state: {
-      type: 'array',
-      cells: [0, 1, 2, 3].map(i => ({ value: deg[i] as string | number, state: 'default' as const })),
-      pointers: [],
-      hashmap: adjHashmap,
+    state: courseState(deg, null, visited, found, {
       counters: [
         { label: 'queue', value: '[]' },
         { label: 'coursesTaken', value: 0 },
       ],
-    },
+    }),
     variables: [
       { name: 'prereqCounter', value: '[0,1,1,2]' },
       { name: 'prereqMap', value: '{0:[1,2], 1:[3], 2:[3]}' },
@@ -98,16 +85,13 @@ function generateStepsBFS(): Step[] {
   steps.push({
     explanation: `Seed BFS queue: scan prereqCounter and enqueue all courses with in-degree 0. Only course 0 qualifies. canTake = [0]. These are the courses with no prerequisites — our BFS starting points.`,
     anchor: { match: 'for i in range(len(prereqCounter)):', to: { match: 'canTake.append(i)' } },
-    state: {
-      type: 'array',
-      cells: makeCells(0, new Set(), new Set(), deg),
+    state: courseState(deg, 0, new Set(), new Set(), {
       pointers: [{ index: 0, label: 'queued' }],
-      hashmap: adjHashmap,
       counters: [
         { label: 'queue', value: '[0]' },
         { label: 'coursesTaken', value: 0 },
       ],
-    },
+    }),
     variables: [{ name: 'canTake', value: '[0]' }],
   });
 
@@ -119,16 +103,13 @@ function generateStepsBFS(): Step[] {
   steps.push({
     explanation: `BFS iteration 1: dequeue course 0. coursesTaken = ${coursesTaken}. Examine prereqMap[0]: [1, 2]. For each dependent course, decrement its prereqCounter since course 0 is now satisfied.`,
     anchor: { match: 'currentCourse = canTake.popleft()', to: { match: 'numberOfCoursesTaken+=1' } },
-    state: {
-      type: 'array',
-      cells: makeCells(0, visited, found, deg),
+    state: courseState(deg, 0, visited, found, {
       pointers: [{ index: 0, label: 'dequeued' }],
-      hashmap: adjHashmap,
       counters: [
         { label: 'queue', value: '[]' },
         { label: 'coursesTaken', value: coursesTaken },
       ],
-    },
+    }),
     variables: [
       { name: 'currentCourse', value: 0 },
       { name: 'neighbors', value: '[1, 2]' },
@@ -143,19 +124,16 @@ function generateStepsBFS(): Step[] {
   steps.push({
     explanation: `Decrement neighbors of course 0. prereqCounter[1]: 1→0 (enqueue course 1). prereqCounter[2]: 1→0 (enqueue course 2). Queue is now [1, 2]. Cell values updated to reflect new in-degrees.`,
     anchor: { match: 'for course in prereqMap[currentCourse]:', to: { match: 'canTake.append(course)' } },
-    state: {
-      type: 'array',
-      cells: makeCells(null, visited, found, deg),
+    state: courseState(deg, null, visited, found, {
       pointers: [
         { index: 1, label: 'in-deg→0' },
         { index: 2, label: 'in-deg→0' },
       ],
-      hashmap: adjHashmap,
       counters: [
         { label: 'queue', value: '[1, 2]' },
         { label: 'coursesTaken', value: coursesTaken },
       ],
-    },
+    }),
     variables: [
       { name: 'prereqCounter[1]', value: deg[1] },
       { name: 'prereqCounter[2]', value: deg[2] },
@@ -170,16 +148,13 @@ function generateStepsBFS(): Step[] {
   steps.push({
     explanation: `BFS iteration 2: dequeue course 1. coursesTaken = ${coursesTaken}. Examine prereqMap[1]: [3]. Decrement prereqCounter[3]: 2→1. Course 3 still needs course 2 — not enqueued yet.`,
     anchor: { match: 'currentCourse = canTake.popleft()', to: { match: 'numberOfCoursesTaken+=1' } },
-    state: {
-      type: 'array',
-      cells: makeCells(1, visited, found, deg),
+    state: courseState(deg, 1, visited, found, {
       pointers: [{ index: 1, label: 'dequeued' }],
-      hashmap: adjHashmap,
       counters: [
         { label: 'queue', value: '[2]' },
         { label: 'coursesTaken', value: coursesTaken },
       ],
-    },
+    }),
     variables: [
       { name: 'currentCourse', value: 1 },
       { name: 'neighbors', value: '[3]' },
@@ -191,16 +166,13 @@ function generateStepsBFS(): Step[] {
   steps.push({
     explanation: `prereqCounter[3]: 2→1. Course 3 still has one unsatisfied prerequisite (course 2). It stays out of the queue. Continue dequeuing.`,
     anchor: { match: 'for course in prereqMap[currentCourse]:', to: { match: 'canTake.append(course)' } },
-    state: {
-      type: 'array',
-      cells: makeCells(null, visited, found, deg),
+    state: courseState(deg, null, visited, found, {
       pointers: [{ index: 3, label: 'in-deg→1' }],
-      hashmap: adjHashmap,
       counters: [
         { label: 'queue', value: '[2]' },
         { label: 'coursesTaken', value: coursesTaken },
       ],
-    },
+    }),
     variables: [{ name: 'prereqCounter[3]', value: deg[3] }],
   });
 
@@ -212,16 +184,13 @@ function generateStepsBFS(): Step[] {
   steps.push({
     explanation: `BFS iteration 3: dequeue course 2. coursesTaken = ${coursesTaken}. Examine prereqMap[2]: [3]. Decrement prereqCounter[3]: 1→0. Course 3 now has all prerequisites met — enqueue it.`,
     anchor: { match: 'currentCourse = canTake.popleft()', to: { match: 'numberOfCoursesTaken+=1' } },
-    state: {
-      type: 'array',
-      cells: makeCells(2, visited, found, deg),
+    state: courseState(deg, 2, visited, found, {
       pointers: [{ index: 2, label: 'dequeued' }],
-      hashmap: adjHashmap,
       counters: [
         { label: 'queue', value: '[]' },
         { label: 'coursesTaken', value: coursesTaken },
       ],
-    },
+    }),
     variables: [
       { name: 'currentCourse', value: 2 },
       { name: 'neighbors', value: '[3]' },
@@ -234,16 +203,13 @@ function generateStepsBFS(): Step[] {
   steps.push({
     explanation: `prereqCounter[3]: 1→0 → enqueue course 3. Queue is now [3]. All of course 3's prerequisites (courses 1 and 2) have been taken.`,
     anchor: { match: 'for course in prereqMap[currentCourse]:', to: { match: 'canTake.append(course)' } },
-    state: {
-      type: 'array',
-      cells: makeCells(null, visited, found, deg),
+    state: courseState(deg, null, visited, found, {
       pointers: [{ index: 3, label: 'in-deg→0' }],
-      hashmap: adjHashmap,
       counters: [
         { label: 'queue', value: '[3]' },
         { label: 'coursesTaken', value: coursesTaken },
       ],
-    },
+    }),
     variables: [{ name: 'prereqCounter[3]', value: deg[3] }],
   });
 
@@ -255,16 +221,13 @@ function generateStepsBFS(): Step[] {
   steps.push({
     explanation: `BFS iteration 4: dequeue course 3. coursesTaken = ${coursesTaken}. prereqMap[3] is empty — no dependents to decrement. Queue is now empty. BFS complete — all 4 courses taken.`,
     anchor: { match: 'currentCourse = canTake.popleft()', to: { match: 'numberOfCoursesTaken+=1' } },
-    state: {
-      type: 'array',
-      cells: makeCells(3, visited, found, deg),
+    state: courseState(deg, 3, visited, found, {
       pointers: [{ index: 3, label: 'dequeued' }],
-      hashmap: adjHashmap,
       counters: [
         { label: 'queue', value: '[]' },
         { label: 'coursesTaken', value: coursesTaken },
       ],
-    },
+    }),
     variables: [
       { name: 'currentCourse', value: 3 },
       { name: 'neighbors', value: '[]' },
@@ -275,20 +238,14 @@ function generateStepsBFS(): Step[] {
   steps.push({
     explanation: `Result: numberOfCoursesTaken (${coursesTaken}) >= numCourses (${numCourses}) → return true. Every course was processed in topological order — no cycle exists. If a cycle had existed, some nodes would stay stuck with in-degree > 0 forever, and numberOfCoursesTaken would be < numCourses. O(V+E) time, O(V+E) space.`,
     anchor: { match: 'return numberOfCoursesTaken >= numCourses' },
-    state: {
-      type: 'array',
-      cells: [0, 1, 2, 3].map(i => ({
-        value: deg[i] as string | number,
-        state: 'found' as const,
-      })),
-      pointers: [],
-      hashmap: adjHashmap,
+    state: courseState(deg, null, visited, found, {
+      cellState: () => 'found',
       counters: [
         { label: 'queue', value: '[]' },
         { label: 'coursesTaken', value: coursesTaken },
         { label: 'result', value: 'true' },
       ],
-    },
+    }),
     variables: [{ name: 'return', value: `${coursesTaken} >= ${numCourses} → true`, highlight: true }],
   });
 

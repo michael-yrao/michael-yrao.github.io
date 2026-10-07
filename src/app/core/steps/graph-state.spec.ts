@@ -22,6 +22,7 @@ describe('graphState', () => {
     const custom = graphState(nodes, edges, {
       nodeState: (node, i) => (i === 0 ? 'active' : node.label ? 'found' : 'default'),
       edgeState: () => 'visited',
+      directed: true,
       hashmap: { 1: 1 },
       hashmapLabel: 'parentMap',
       hashmap2: { 1: 0 },
@@ -32,6 +33,7 @@ describe('graphState', () => {
     });
     expect(custom.nodes.map((n) => n.state), 'nodeState overrides the default').toEqual(['active', 'found']);
     expect(custom.edges[0].state, 'edgeState overrides the default').toBe('visited');
+    expect(custom.directed, 'directed').toBe(true);
     expect(custom.hashmap, 'hashmap').toEqual({ 1: 1 });
     expect(custom.hashmapLabel, 'hashmapLabel').toBe('parentMap');
     expect(custom.hashmap2, 'hashmap2').toEqual({ 1: 0 });

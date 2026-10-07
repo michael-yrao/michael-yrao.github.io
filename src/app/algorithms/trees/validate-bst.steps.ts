@@ -1,4 +1,5 @@
-import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNodeState } from '../../core/models/algorithm.model';
+import { TreeNodeInput, treeState } from '../../core/steps';
 
 // Traces cse-progress's isValidBST_iterativeDFS verbatim: an explicit stack of
 // [node, low, high] frames, with `if not currentNode: continue` guarding every pop — always
@@ -6,7 +7,7 @@ import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core
 // earlier hand simulation, only anchors change.
 
 // BST: [5, 3, 6, 2, 4, null, 7]
-const NODES: Omit<TreeNode, 'state'>[] = [
+const NODES: TreeNodeInput[] = [
   { id: 'n0', value: 5, leftId: 'n1', rightId: 'n2' },
   { id: 'n1', value: 3, leftId: 'n3', rightId: 'n4' },
   { id: 'n2', value: 6, leftId: null, rightId: 'n5' },
@@ -21,12 +22,9 @@ function generateSteps(): Step[] {
   const valueOf = (id: string) => nodeMap.get(id)!.value as number;
   const fmt = (n: number) => (n === -Infinity ? '−∞' : n === Infinity ? '+∞' : String(n));
 
-  const colour: Record<string, TreeNode['state']> = {};
+  const colour: Record<string, TreeNodeState> = {};
   type Frame = [string, number, number];
   const stack: Frame[] = [['n0', -Infinity, Infinity]];
-
-  const makeNodes = (): TreeNode[] =>
-    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
 
   const stackStr = () =>
     '[' + stack.map(([id, lo, hi]) => `(${valueOf(id)}: ${fmt(lo)}<x<${fmt(hi)})`).join(', ') + ']';
@@ -42,12 +40,11 @@ function generateSteps(): Step[] {
     steps.push({
       explanation,
       anchor,
-      state: {
-        type: 'tree',
-        nodes: makeNodes(),
+      state: treeState(NODES, {
+        nodeState: (n) => colour[n.id] ?? 'default',
         pointers: opts.current ? [{ nodeId: opts.current, label: '▶ checking' }] : [],
         counters: [{ label: 'stack', value: stackStr() }],
-      } as TreeState,
+      }),
       variables: opts.vars,
     });
   };

@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's kClosest_20260703 verbatim: euclideanDistance(x, y) takes the raw
 // coordinates directly (not two points), the heap variable is named `heap` (not `maxHeap`),
@@ -18,18 +19,15 @@ function generateSteps(): Step[] {
   const inHeap = (p: [number, number]) => heap.some((h) => h[0] === p[0] && h[1] === p[1]);
   const heapStr = () => (heap.length ? heap.map((p) => `${ptStr(p)}:d=${dist(p)}`).join(', ') : '∅');
 
-  const snap = (activeIdx: number | null) => ({
-    type: 'array' as const,
-    cells: points.map((p, i) => ({
-      value: ptStr(p),
-      state: i === activeIdx ? ('active' as const) : inHeap(p) ? ('window' as const) : ('default' as const),
-    })),
-    pointers: activeIdx !== null ? [{ index: activeIdx, label: 'point' }] : [],
-    counters: [
-      { label: 'k', value: k },
-      { label: 'heap (farthest on top)', value: heapStr() },
-    ],
-  });
+  const snap = (activeIdx: number | null) =>
+    arrayState(points.map(ptStr), {
+      cellState: (i): CellState => (i === activeIdx ? 'active' : inHeap(points[i]) ? 'window' : 'default'),
+      pointers: activeIdx !== null ? [{ index: activeIdx, label: 'point' }] : [],
+      counters: [
+        { label: 'k', value: k },
+        { label: 'heap (farthest on top)', value: heapStr() },
+      ],
+    });
 
   steps.push({
     explanation: `Keep a size-k heap, keyed by distance from the origin. euclideanDistance(x, y) takes the coordinates directly. The farthest of the current k sits on top, so when a closer point arrives we evict the farthest. What survives is the k closest. (Python pushes (−distance, (x,y)) into a min-heap to mimic a max-heap.)`,
@@ -71,12 +69,10 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Heap now holds the ${k} closest points: ${heap.map((p) => `${ptStr(p)}(d=${dist(p)})`).join(', ')}. Pop them into the result → [${result.join(', ')}]. O(n log k) time, O(k) space.`,
     anchor: { match: 'while heap:', to: { match: 'result.append([x,y])' } },
-    state: {
-      type: 'array',
-      cells: points.map((p) => ({ value: ptStr(p), state: inHeap(p) ? ('found' as const) : ('eliminated' as const) })),
-      pointers: [],
+    state: arrayState(points.map(ptStr), {
+      cellState: (i): CellState => (inHeap(points[i]) ? 'found' : 'eliminated'),
       counters: [{ label: 'result', value: `[${result.join(', ')}]` }],
-    },
+    }),
     variables: [{ name: 'return', value: `[${result.join(', ')}]`, highlight: true }],
   });
 

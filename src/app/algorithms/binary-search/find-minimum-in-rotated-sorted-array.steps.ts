@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's findMin verbatim: l, r = 0, len(nums)-1; while l < r; mid = (l+r)//2;
 // if nums[mid] > nums[r]: l = mid+1 else r = mid; return nums[l].
@@ -8,29 +9,22 @@ function generateSteps(): Step[] {
   const steps: Step[] = [];
 
   const snap = (l: number, r: number, mid: number | null, found: number | null) =>
-    nums.map((v, i) => ({
-      value: v,
-      state:
-        found !== null && i === found
-          ? ('min-ptr' as const)
-          : found !== null
-          ? ('eliminated' as const)
-          : i === mid
-          ? ('active' as const)
-          : i >= l && i <= r
-          ? ('window' as const)
-          : ('eliminated' as const),
-    }));
+    (i: number): CellState =>
+      found !== null && i === found
+        ? 'min-ptr'
+        : found !== null
+        ? 'eliminated'
+        : i === mid
+        ? 'active'
+        : i >= l && i <= r
+        ? 'window'
+        : 'eliminated';
 
   steps.push({
     explanation:
       'Find the minimum in a rotated sorted array [3,4,5,1,2] in O(log n). Key insight: compare nums[mid] vs nums[r]. If nums[mid] > nums[r], the minimum must be to the right of mid (left half is ascending and larger). Otherwise the minimum is at mid or to the left.',
     anchor: { match: 'def findMin(self, nums: List[int]) -> int:' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
-    },
+    state: arrayState(nums),
     variables: [{ name: 'nums', value: '[3,4,5,1,2]' }],
   });
 
@@ -40,11 +34,10 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Initialize l=${l}, r=${r}. We use l < r (not l ≤ r) because we want to converge on the minimum without overshooting — when l === r, that index is the answer.`,
     anchor: { match: 'l, r = 0, len(nums) - 1' },
-    state: {
-      type: 'array',
-      cells: snap(l, r, null, null),
+    state: arrayState(nums, {
+      cellState: snap(l, r, null, null),
       pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-    },
+    }),
     variables: [{ name: 'l', value: l }, { name: 'r', value: r }],
   });
 
@@ -57,15 +50,14 @@ function generateSteps(): Step[] {
       anchor: goRight
         ? { match: 'if nums[mid] > nums[r]:' }
         : { match: 'r = mid' },
-      state: {
-        type: 'array',
-        cells: snap(l, r, mid, null),
+      state: arrayState(nums, {
+        cellState: snap(l, r, mid, null),
         pointers: [
           { index: l, label: 'l' },
           { index: mid, label: 'mid' },
           { index: r, label: 'r' },
         ],
-      },
+      }),
       variables: [
         { name: 'mid', value: mid },
         { name: 'nums[mid]', value: nums[mid] },
@@ -82,11 +74,10 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `l === r === ${l}. Converged! nums[${l}] = ${nums[l]} is the minimum. It's the start of the original sorted array before rotation. O(log n) time, O(1) space.`,
     anchor: { match: 'return nums[l]' },
-    state: {
-      type: 'array',
-      cells: snap(l, r, null, l),
+    state: arrayState(nums, {
+      cellState: snap(l, r, null, l),
       pointers: [{ index: l, label: 'min' }],
-    },
+    }),
     variables: [
       { name: 'l', value: l },
       { name: 'return', value: nums[l], highlight: true },

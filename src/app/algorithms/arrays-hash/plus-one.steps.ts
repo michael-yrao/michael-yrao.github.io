@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -14,11 +15,7 @@ function generateSteps(): Step[] {
     explanation:
       'Plus One on [1,2,9]: add 1 to the integer represented as an array of digits. Walk from the rightmost digit. If it\'s 9, set it to 0 (carry) and continue left. Otherwise add 1 and return. If all digits were 9, prepend a 1.',
     anchor: { match: 'for i in range(len(digits)-1,-1,-1):' },
-    state: {
-      type: 'array',
-      cells: digits.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
-    },
+    state: arrayState(digits),
     variables: [{ name: 'digits', value: '[1,2,9]' }],
   });
 
@@ -30,19 +27,10 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `i=${i}: digits[${i}]=${cur}. ${cur !== 9 ? `Not 9 → increment to ${cur + 1} and return.` : `It's 9 → set to 0 (carry over), continue left.`}`,
       anchor: { match: 'if digits[i] != 9:' },
-      state: {
-        type: 'array',
-        cells: digits.map((v, idx) => ({
-          value: v,
-          state:
-            idx === i
-              ? ('active' as const)
-              : idx > i
-              ? ('visited' as const)
-              : ('default' as const),
-        })),
+      state: arrayState(digits, {
+        cellState: (idx) => (idx === i ? 'active' : idx > i ? 'visited' : 'default'),
         pointers: [{ index: i, label: 'i' }],
-      },
+      }),
       variables: [
         { name: 'i', value: i },
         { name: 'digits[i]', value: cur, highlight: true },
@@ -55,14 +43,7 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `digits[${i}] incremented to ${digits[i]}. Result: [${digits.join(',')}]. Return.`,
         anchor: { match: 'digits[i]+=1', to: { match: 'return digits' } },
-        state: {
-          type: 'array',
-          cells: digits.map((v, idx) => ({
-            value: v,
-            state: ('found' as const),
-          })),
-          pointers: [],
-        },
+        state: arrayState(digits, { cellState: () => 'found' }),
         variables: [{ name: 'return', value: `[${digits.join(',')}]`, highlight: true }],
       });
       return steps;
@@ -73,19 +54,10 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `Set digits[${i}] = 0. Carry propagates left.`,
       anchor: { match: 'digits[i] = 0' },
-      state: {
-        type: 'array',
-        cells: digits.map((v, idx) => ({
-          value: v,
-          state:
-            idx === i
-              ? ('visited' as const)
-              : idx > i
-              ? ('visited' as const)
-              : ('default' as const),
-        })),
+      state: arrayState(digits, {
+        cellState: (idx) => (idx >= i ? 'visited' : 'default'),
         pointers: i > 0 ? [{ index: i - 1, label: 'next i' }] : [],
-      },
+      }),
       variables: [
         { name: 'digits[i]', value: 0 },
         { name: 'carry', value: 1, highlight: true },
@@ -100,11 +72,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `All digits were 9 and set to 0. Prepend 1 → [${result.join(',')}].`,
     anchor: { match: 'return [1] + digits' },
-    state: {
-      type: 'array',
-      cells: result.map(v => ({ value: v, state: 'found' as const })),
-      pointers: [],
-    },
+    state: arrayState(result, { cellState: () => 'found' }),
     variables: [{ name: 'return', value: `[${result.join(',')}]`, highlight: true }],
   });
 

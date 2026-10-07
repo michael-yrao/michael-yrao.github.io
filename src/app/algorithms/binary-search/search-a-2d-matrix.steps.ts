@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -20,20 +21,16 @@ function generateSteps(): Step[] {
   const flat = matrix.flat(); // length = rows * cols = 12
   const steps: Step[] = [];
 
-  const snap = (lo: number, hi: number, mid: number | null, foundIdx: number | null) =>
-    flat.map((v, i) => ({
-      value: v,
-      state:
-        foundIdx !== null
-          ? i === foundIdx
-            ? ('found' as const)
-            : ('eliminated' as const)
-          : i === mid
-          ? ('active' as const)
-          : i >= lo && i <= hi
-          ? ('window' as const)
-          : ('eliminated' as const),
-    }));
+  const snapCellState = (lo: number, hi: number, mid: number | null, foundIdx: number | null) => (i: number): CellState =>
+    foundIdx !== null
+      ? i === foundIdx
+        ? 'found'
+        : 'eliminated'
+      : i === mid
+      ? 'active'
+      : i >= lo && i <= hi
+      ? 'window'
+      : 'eliminated';
 
   const flatLabel = (flatIdx: number) => {
     const row = Math.floor(flatIdx / cols);
@@ -45,11 +42,7 @@ function generateSteps(): Step[] {
     explanation:
       'Search a 2D matrix [[1,3,5,7],[10,11,16,20],[23,30,34,60]] for target=3. Phase 1 finds the row that could hold target (comparing only matrix[m][0], the first element of each row); Phase 2 binary-searches within that row.',
     anchor: { match: 'l, r = 0, len(matrix) - 1', to: { match: 'while l < r:' } },
-    state: {
-      type: 'array',
-      cells: flat.map((v) => ({ value: v, state: 'default' as const })),
-      pointers: [],
-    },
+    state: arrayState(flat),
     variables: [
       { name: 'target', value: target },
       { name: 'l', value: 0 },
@@ -70,7 +63,7 @@ function generateSteps(): Step[] {
         explanation: `while l < r (${l}<${r}): m = (l+r+1)//2 = ${m}. matrix[m][0]=${firstOfM} > target=${target} → r = m-1 = ${m - 1}.`,
         // nth 1: row-phase's own 'r = m - 1'; hit 2 is col-phase's 'r = m - 1' further down.
         anchor: { match: 'if matrix[m][0] > target:', to: { match: 'r = m - 1', nth: 1 } },
-        state: { type: 'array', cells: flat.map((v) => ({ value: v, state: 'default' as const })), pointers: [] },
+        state: arrayState(flat),
         variables: [
           { name: 'm', value: m },
           { name: 'matrix[m][0]', value: firstOfM },
@@ -84,7 +77,7 @@ function generateSteps(): Step[] {
         // Skips nth=1's 'l = m' — no, this IS nth=1 (row phase). Note 'l = m' is a substring of
         // the col-phase's 'l = m + 1' too, so nth pins this to the row-phase occurrence.
         anchor: { match: 'else:', nth: 1, to: { match: 'l = m', nth: 1 } },
-        state: { type: 'array', cells: flat.map((v) => ({ value: v, state: 'default' as const })), pointers: [] },
+        state: arrayState(flat),
         variables: [
           { name: 'm', value: m },
           { name: 'matrix[m][0]', value: firstOfM },
@@ -100,14 +93,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Row search converged: rowNumber = l = ${rowNumber}. Row ${rowNumber} is [${matrix[rowNumber].join(',')}]. Now binary search within this row.`,
     anchor: { match: 'rowNumber = l' },
-    state: {
-      type: 'array',
-      cells: flat.map((v, i) => ({
-        value: v,
-        state: Math.floor(i / cols) === rowNumber ? ('window' as const) : ('eliminated' as const),
-      })),
-      pointers: [],
-    },
+    state: arrayState(flat, { cellState: (i): CellState => (Math.floor(i / cols) === rowNumber ? 'window' : 'eliminated') }),
     variables: [
       { name: 'rowNumber', value: rowNumber, highlight: true },
       { name: 'row values', value: `[${matrix[rowNumber].join(',')}]` },
@@ -122,17 +108,13 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `l, r = 0, len(matrix[rowNumber])-1 → l=${l}, r=${r}.`,
     anchor: { match: 'l, r = 0, len(matrix[rowNumber]) - 1', to: { match: 'while l <= r:' } },
-    state: {
-      type: 'array',
-      cells: flat.map((v, i) => ({
-        value: v,
-        state: Math.floor(i / cols) === rowNumber && i % cols >= l && i % cols <= r ? ('window' as const) : ('eliminated' as const),
-      })),
+    state: arrayState(flat, {
+      cellState: (i): CellState => (Math.floor(i / cols) === rowNumber && i % cols >= l && i % cols <= r ? 'window' : 'eliminated'),
       pointers: [
         { index: rowNumber * cols + l, label: 'l' },
         { index: rowNumber * cols + r, label: 'r' },
       ],
-    },
+    }),
     variables: [{ name: 'l', value: l }, { name: 'r', value: r }],
   });
 
@@ -146,11 +128,10 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `while l <= r (${l}<=${r}): m=${m}. matrix[rowNumber][m]=${midVal} == target=${target} → return True. Found at ${flatLabel(flatIdx)}.`,
         anchor: { match: 'if matrix[rowNumber][m] == target:', to: { match: 'return True' } },
-        state: {
-          type: 'array',
-          cells: snap(rowNumber * cols + l, rowNumber * cols + r, flatIdx, foundFlatIdx),
+        state: arrayState(flat, {
+          cellState: snapCellState(rowNumber * cols + l, rowNumber * cols + r, flatIdx, foundFlatIdx),
           pointers: [{ index: flatIdx, label: 'found' }],
-        },
+        }),
         variables: [
           { name: 'm', value: m },
           { name: 'matrix[rowNumber][m]', value: midVal, highlight: true },
@@ -166,15 +147,14 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `while l <= r (${l}<=${r}): m=${m}. matrix[rowNumber][m]=${midVal} < target=${target} → elif fires: l = m+1 = ${m + 1}.`,
         anchor: { match: 'elif matrix[rowNumber][m] < target:', to: { match: 'l = m + 1' } },
-        state: {
-          type: 'array',
-          cells: snap(rowNumber * cols + l, rowNumber * cols + r, flatIdx, null),
+        state: arrayState(flat, {
+          cellState: snapCellState(rowNumber * cols + l, rowNumber * cols + r, flatIdx, null),
           pointers: [
             { index: rowNumber * cols + l, label: 'l' },
             { index: flatIdx, label: 'm' },
             { index: rowNumber * cols + r, label: 'r' },
           ],
-        },
+        }),
         variables: [
           { name: 'm', value: m },
           { name: 'matrix[rowNumber][m]', value: midVal },
@@ -187,15 +167,14 @@ function generateSteps(): Step[] {
         explanation: `while l <= r (${l}<=${r}): m=${m}. matrix[rowNumber][m]=${midVal} ≥ target=${target}, not <, not == → else: r = m-1 = ${m - 1}.`,
         // nth 2/2: hit 1 of each is row-phase's own 'else:'/'r = m - 1' above; this is col-phase's.
         anchor: { match: 'else:', nth: 2, to: { match: 'r = m - 1', nth: 2 } },
-        state: {
-          type: 'array',
-          cells: snap(rowNumber * cols + l, rowNumber * cols + r, flatIdx, null),
+        state: arrayState(flat, {
+          cellState: snapCellState(rowNumber * cols + l, rowNumber * cols + r, flatIdx, null),
           pointers: [
             { index: rowNumber * cols + l, label: 'l' },
             { index: flatIdx, label: 'm' },
             { index: rowNumber * cols + r, label: 'r' },
           ],
-        },
+        }),
         variables: [
           { name: 'm', value: m },
           { name: 'matrix[rowNumber][m]', value: midVal },
@@ -210,11 +189,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `l > r: search exhausted. target=${target} not found → return False.`,
       anchor: { match: 'return False' },
-      state: {
-        type: 'array',
-        cells: flat.map((v) => ({ value: v, state: 'eliminated' as const })),
-        pointers: [],
-      },
+      state: arrayState(flat, { cellState: () => 'eliminated' }),
       variables: [{ name: 'return', value: 'False', highlight: true }],
     });
   }

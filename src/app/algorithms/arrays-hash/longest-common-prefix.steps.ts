@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -22,12 +23,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Find the longest prefix shared by all ${strs.length} strings. Strategy: scan by index against strs[0] = "${reference}" (the FIRST string, not the shortest). At each i, check every string: if i is past that string's length, or its char at i differs from strs[0][i], the common prefix ends there.`,
     anchor: { match: 'prefix = ""' },
-    state: {
-      type: 'array',
-      cells: reference.split('').map(c => ({ value: c, state: 'default' as const })),
-      pointers: [],
-      hashmap: Object.fromEntries(strs.map((s, i) => [`str${i + 1}`, s])),
-    },
+    state: arrayState(reference.split(''), { hashmap: Object.fromEntries(strs.map((s, i) => [`str${i + 1}`, s])) }),
     variables: [
       { name: 'strs[0]', value: reference },
       { name: 'prefix', value: '""' },
@@ -63,16 +59,11 @@ function generateSteps(): Step[] {
         anchor: diverges
           ? { match: 'if i == len(string) or string[i] != strs[0][i]:', to: { match: 'return prefix', nth: 2 } } // nth:2 skips the plan comment (hit 1) and the final `return prefix` (hit 3)
           : { match: 'if i == len(string) or string[i] != strs[0][i]:' },
-        state: {
-          type: 'array',
-          cells: reference.split('').map((c, j) => ({
-            value: c,
-            state:
-              j < i ? ('found' as const) : j === i ? (diverges ? ('eliminated' as const) : ('active' as const)) : ('default' as const),
-          })),
+        state: arrayState(reference.split(''), {
+          cellState: (j) => (j < i ? 'found' : j === i ? (diverges ? 'eliminated' : 'active') : 'default'),
           pointers: [{ index: i, label: 'i' }],
           hashmap: strMap(k, diverges ? 'bad' : 'ok'),
-        },
+        }),
         variables: [
           { name: 'i', value: i },
           { name: 'string', value: `"${s}"`, highlight: true },
@@ -92,20 +83,11 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `i=${i}: every string had "${ch}" at position ${i} ✓ (no bounds issue, no mismatch). Commit it — prefix grows to "${prefix}". Move to the next position.`,
       anchor: { match: 'prefix += strs[0][i]' },
-      state: {
-        type: 'array',
-        cells: reference.split('').map((c, j) => ({
-          value: c,
-          state:
-            j < prefix.length
-              ? ('found' as const)
-              : j === prefix.length
-              ? ('active' as const)
-              : ('default' as const),
-        })),
+      state: arrayState(reference.split(''), {
+        cellState: (j) => (j < prefix.length ? 'found' : j === prefix.length ? 'active' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         hashmap: strMap(null),
-      },
+      }),
       variables: [
         { name: 'i', value: i },
         { name: 'char', value: ch },
@@ -118,12 +100,10 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `i reached len(strs[0]) = ${reference.length} with no divergence. Return prefix="${prefix}".`,
       anchor: { match: 'return prefix', nth: 3 }, // nth:3 — the final `return prefix` after the loop completes
-      state: {
-        type: 'array',
-        cells: reference.split('').map(c => ({ value: c, state: 'found' as const })),
-        pointers: [],
+      state: arrayState(reference.split(''), {
+        cellState: () => 'found',
         hashmap: Object.fromEntries(strs.map((s, i) => [`str${i + 1}`, s])),
-      },
+      }),
       variables: [{ name: 'return', value: `"${prefix}"`, highlight: true }],
     });
   }

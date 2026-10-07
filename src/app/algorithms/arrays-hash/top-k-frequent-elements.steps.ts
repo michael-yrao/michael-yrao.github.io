@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Heap helpers ──────────────────────────────────────────────────────────────
 //
@@ -79,12 +80,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Find the top ${k} most frequent elements in [${nums.join(',')}]. Phase 1: build a frequency map. Phase 2: maintain a min-heap of size k — pop when it exceeds k, so only the top-k survive.`,
     anchor: { match: 'freqMap = {}' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
-      hashmap: {},
-    },
+    state: arrayState(nums, { hashmap: {} }),
     variables: [{ name: 'k', value: k }],
   });
 
@@ -94,15 +90,11 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `freqMap[${nums[i]}] = 1 + freqMap.get(${nums[i]},0) = ${freq[nums[i]]}.`,
       anchor: { match: 'freqMap[n] = 1 + freqMap.get(n,0)' },
-      state: {
-        type: 'array',
-        cells: nums.map((v, j) => ({
-          value: v,
-          state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
-        })),
+      state: arrayState(nums, {
+        cellState: (j) => (j === i ? 'active' : j < i ? 'visited' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         hashmap: { ...freq },
-      },
+      }),
       variables: [
         { name: `freqMap[${nums[i]}]`, value: freq[nums[i]], highlight: true },
       ],
@@ -116,13 +108,11 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Frequency map complete: {${Object.entries(freq).map(([n, f]) => `${n}:${f}`).join(', ')}}. Now iterate over freqMap.keys() and maintain heap as a min-heap of size k=${k}, keyed by (freq, num).`,
     anchor: { match: 'heap = []' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'visited' as const })),
-      pointers: [],
+    state: arrayState(nums, {
+      cellState: () => 'visited',
       hashmap: { ...freq },
       counters: [{ label: 'heap', value: '(empty)' }],
-    },
+    }),
     variables: [{ name: 'freqMap', value: `{${Object.entries(freq).map(([n, f]) => `${n}:${f}`).join(', ')}}` }],
   });
 
@@ -134,16 +124,11 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `heapq.heappush(heap, (${entryFreq}, ${num})). Heap array (heap order, not sorted): ${heapStr()}.`,
       anchor: { match: 'heapq.heappush(heap, (freqMap[num],num))' },
-      state: {
-        type: 'array',
-        cells: nums.map(v => ({
-          value: v,
-          state: v === num ? ('active' as const) : ('visited' as const),
-        })),
-        pointers: [],
+      state: arrayState(nums, {
+        cellState: (_, v) => (v === num ? 'active' : 'visited'),
         hashmap: { ...freq },
         counters: [{ label: 'heap', value: heapStr() }],
-      },
+      }),
       variables: [
         { name: 'pushed', value: `(freq=${entryFreq}, val=${num})`, highlight: true },
         { name: 'len(heap)', value: heap.length },
@@ -155,16 +140,11 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `len(heap) = ${heap.length + 1} > k=${k}. heapq.heappop(heap) removes the minimum: (freq=${popped[0]}, val=${popped[1]}). Heap array now: ${heapStr()}.`,
         anchor: { match: 'if len(heap) > k:', to: { match: 'heapq.heappop(heap)' } },
-        state: {
-          type: 'array',
-          cells: nums.map(v => ({
-            value: v,
-            state: v === popped[1] ? ('eliminated' as const) : ('visited' as const),
-          })),
-          pointers: [],
+        state: arrayState(nums, {
+          cellState: (_, v) => (v === popped[1] ? 'eliminated' : 'visited'),
           hashmap: { ...freq },
           counters: [{ label: 'heap', value: heapStr() }],
-        },
+        }),
         variables: [
           { name: 'popped', value: `val=${popped[1]}`, highlight: true },
           { name: 'len(heap)', value: heap.length },
@@ -174,36 +154,27 @@ function generateSteps(): Step[] {
   }
 
   const result = heap.map(([, entryNum]) => entryNum);
+  const inResultState = (_: number, v: number): CellState => (result.includes(v) ? 'found' : 'eliminated');
 
   steps.push({
     explanation: `Build result by reading the heap array in its current order (no sort): ${heapStr()} → for freq, value in heap: result.append(value). Result so far: [${result.join(', ')}].`,
     anchor: { match: 'for freq, value in heap:', to: { match: 'result.append(value)' } },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({
-        value: v,
-        state: result.includes(v) ? ('found' as const) : ('eliminated' as const),
-      })),
-      pointers: [],
+    state: arrayState(nums, {
+      cellState: inResultState,
       hashmap: { ...freq },
       counters: [{ label: 'result', value: `[${result.join(', ')}]` }],
-    },
+    }),
     variables: [{ name: 'result', value: `[${result.join(', ')}]`, highlight: true }],
   });
 
   steps.push({
     explanation: `Return result = [${result.join(', ')}] — the top-${k} most frequent elements, in heap array order (not sorted by frequency). O(n log k) time.`,
     anchor: { match: 'return result' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({
-        value: v,
-        state: result.includes(v) ? ('found' as const) : ('eliminated' as const),
-      })),
-      pointers: [],
+    state: arrayState(nums, {
+      cellState: inResultState,
       hashmap: { ...freq },
       counters: [{ label: 'result', value: `[${result.join(', ')}]` }],
-    },
+    }),
     variables: [{ name: 'return', value: `[${result.join(', ')}]`, highlight: true }],
   });
 

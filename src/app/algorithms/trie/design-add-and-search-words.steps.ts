@@ -36,7 +36,7 @@ const CHAR_MATCHES_DESCEND: StepAnchor = {
 };
 
 // Fixed trie for the words bad / dad / mad (unique node ids, shared char labels).
-type TNode = { id: string; char: string; x: number; y: number; children: Record<string, string>; isWord: boolean };
+interface TNode { id: string; char: string; x: number; y: number; children: Record<string, string>; isWord: boolean }
 const TRIE: Record<string, TNode> = {
   r: { id: 'r', char: '•', x: 180, y: 30, children: { b: 'nb', d: 'nd', m: 'nm' }, isWord: false },
   nb: { id: 'nb', char: 'b', x: 70, y: 95, children: { a: 'nba' }, isWord: false },

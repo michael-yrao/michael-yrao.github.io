@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -41,16 +42,11 @@ function generateSteps(): Step[] {
   const s2Array = new Array(ALPHABET_SIZE).fill(0);
 
   const snap = (l: number, r: number, found: boolean) =>
-    s2.split('').map((ch, i) => ({
-      value: ch,
-      state: (found && i >= l && i <= r
-        ? 'found'
-        : i >= l && i <= r
-        ? 'window'
-        : i < l
-        ? 'eliminated'
-        : 'default') as 'found' | 'window' | 'eliminated' | 'default',
-    }));
+    arrayState(s2.split(''), {
+      cellState: (i): CellState => (i >= l && i <= r ? (found ? 'found' : 'window') : i < l ? 'eliminated' : 'default'),
+      pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
+      hashmap: displayFreq(s2Array),
+    });
 
   steps.push({
     explanation:
@@ -58,14 +54,14 @@ function generateSteps(): Step[] {
     // nth 1: compareS1andS2()'s own 'return True'; hit 2 is the outer function's 'return True'
     // upon a match, further down.
     anchor: { match: 'def compareS1andS2() -> bool:', to: { match: 'return True', nth: 1 } },
-    state: { type: 'array', cells: s2.split('').map((ch) => ({ value: ch, state: 'default' as const })), pointers: [] },
+    state: arrayState(s2.split('')),
     variables: [{ name: 's1', value: s1 }, { name: 's2', value: s2 }],
   });
 
   steps.push({
     explanation: 's1Array = [0]*26; s2Array = [0]*26. Both start empty.',
     anchor: { match: 's1Array = [0] * 26', to: { match: 's2Array = [0] * 26' } },
-    state: { type: 'array', cells: s2.split('').map((ch) => ({ value: ch, state: 'default' as const })), pointers: [] },
+    state: arrayState(s2.split('')),
     variables: [{ name: 's1Array', value: '[0]*26' }, { name: 's2Array', value: '[0]*26' }],
   });
 
@@ -74,7 +70,7 @@ function generateSteps(): Step[] {
     // nth 2: hit 1 is compareS1andS2()'s own 'return False' (it's defined earlier in the file);
     // this guard's own 'return False' is the 2nd; hit 3 is the final "exhausted" return.
     anchor: { match: 'if len(s1) > len(s2):', to: { match: 'return False', nth: 2 } },
-    state: { type: 'array', cells: s2.split('').map((ch) => ({ value: ch, state: 'default' as const })), pointers: [{ index: 0, label: 'l=r' }] },
+    state: arrayState(s2.split(''), { pointers: [{ index: 0, label: 'l=r' }] }),
     variables: [{ name: 'l', value: 0 }, { name: 'r', value: 0 }],
   });
 
@@ -83,7 +79,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `for i in range(len(s1)): s1Array[ord(s1[${i}])-ord('a')] += 1 → s1Array counts '${s1[i]}'. s1Array so far: ${JSON.stringify(displayFreq(s1Array))}.`,
       anchor: { match: 'for i in range(len(s1)):', to: { match: "s1Array[ord(s1[i]) - ord('a')] += 1" } },
-      state: { type: 'array', cells: s2.split('').map((ch) => ({ value: ch, state: 'default' as const })), pointers: [], hashmap: displayFreq(s1Array) },
+      state: arrayState(s2.split(''), { hashmap: displayFreq(s1Array) }),
       variables: [{ name: 's1[i]', value: s1[i], highlight: true }, { name: 's1Array', value: JSON.stringify(displayFreq(s1Array)) }],
     });
   }
@@ -96,7 +92,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `while r < len(s2): s2Array[ord(s2[${r}])-ord('a')] += 1 → s2Array counts '${s2[r]}'.`,
       anchor: { match: 'while r < len(s2):', to: { match: "s2Array[ord(s2[r]) - ord('a')] += 1" } },
-      state: { type: 'array', cells: snap(l, r, false), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }], hashmap: displayFreq(s2Array) },
+      state: snap(l, r, false),
       variables: [{ name: 'r', value: r, highlight: true }, { name: 's2[r]', value: s2[r] }],
     });
 
@@ -108,7 +104,7 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `while r-l+1 > len(s1) (${r - oldL + 1} > ${s1.length}): s2Array[ord(s2[l])-ord('a')] -= 1 → remove '${removedCh}'. l+=1 → ${l}.`,
         anchor: { match: 'while r - l + 1 > len(s1):', to: { match: 'l+=1' } },
-        state: { type: 'array', cells: snap(l, r, false), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }], hashmap: displayFreq(s2Array) },
+        state: snap(l, r, false),
         variables: [{ name: 'removed', value: removedCh, highlight: true }, { name: 'l', value: l, highlight: true }],
       });
     }
@@ -121,7 +117,7 @@ function generateSteps(): Step[] {
         // nth 2: hit 1 is compareS1andS2()'s own 'return True' inside the helper; this is the
         // outer function's return upon a match.
         anchor: { match: 'if compareS1andS2():', to: { match: 'return True', nth: 2 } },
-        state: { type: 'array', cells: snap(l, r, true), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }], hashmap: displayFreq(s2Array) },
+        state: snap(l, r, true),
         variables: [{ name: 'window', value: s2.slice(l, r + 1) }, { name: 'match?', value: 'YES → True', highlight: true }],
       });
       return steps;
@@ -130,7 +126,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `if compareS1andS2(): window [${l}..${r}] = "${s2.slice(l, r + 1)}" — s2Array ≠ s1Array, the if doesn't fire. r+=1.`,
       anchor: { match: 'r+=1' },
-      state: { type: 'array', cells: snap(l, r, false), pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }], hashmap: displayFreq(s2Array) },
+      state: snap(l, r, false),
       variables: [{ name: 'window', value: s2.slice(l, r + 1) }, { name: 'match?', value: 'no' }],
     });
   }
@@ -140,7 +136,7 @@ function generateSteps(): Step[] {
     // nth 3: hit 1 is compareS1andS2()'s own 'return False'; hit 2 is the length-guard's near
     // the top; this is the final, loop-exhausted return.
     anchor: { match: 'return False', nth: 3 },
-    state: { type: 'array', cells: s2.split('').map((ch) => ({ value: ch, state: 'eliminated' as const })), pointers: [] },
+    state: arrayState(s2.split(''), { cellState: () => 'eliminated' }),
     variables: [{ name: 'return', value: 'False', highlight: true }],
   });
 

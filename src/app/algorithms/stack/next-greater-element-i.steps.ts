@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ArrayCell, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, ArrayState, CellState, Pointer, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -16,31 +17,31 @@ function generateSteps(): Step[] {
   const decreasingStack: number[] = [];
   const nextGreaterMap: Record<number, number> = {};
 
-  const nums2Cells = (activeIdx: number, poppedVal?: number): ArrayCell[] =>
-    nums2.map((v, idx) => {
-      let state: ArrayCell['state'] = 'default';
-      if (idx < activeIdx) state = 'visited';
-      if (idx === activeIdx) state = 'active';
-      if (poppedVal !== undefined && v === poppedVal) state = 'found';
-      return { value: v, state };
-    });
+  const nums2Cell = (activeIdx: number, poppedVal?: number) => (idx: number, v: number): CellState => {
+    if (v === poppedVal) return 'found';
+    if (idx === activeIdx) return 'active';
+    return idx < activeIdx ? 'visited' : 'default';
+  };
 
   const mapLabel = 'nextGreaterMap (num→next greater)';
+  const nums2Label = 'nums2 (scan to build the map)';
+
+  const mapState = (
+    values: number[],
+    arrayLabel: string,
+    cellState: (idx: number, v: number) => CellState,
+    pointers: Pointer[],
+    stackItems: number[],
+    counters?: ArrayState['counters'],
+  ): ArrayState =>
+    arrayState(values, { cellState, pointers, arrayLabel, stackItems, hashmap: { ...nextGreaterMap }, hashmapLabel: mapLabel, counters });
 
   // ── Intro ──────────────────────────────────────────────────────────────────
   steps.push({
     explanation:
       'For every value in nums2 we want its "next greater element" — the first larger value to its right. Brute force is O(n²). A monotonic decreasing stack does it in one pass: whenever a new value is bigger than the stack top, that new value is the answer for everything it pops. Then nums1 queries are O(1) map lookups.',
     anchor: { match: 'nextGreaterMap = {}', to: { match: 'decreasingStack = []' } },
-    state: {
-      type: 'array',
-      cells: nums2Cells(-1),
-      pointers: [],
-      arrayLabel: 'nums2 (scan to build the map)',
-      stackItems: [],
-      hashmap: {},
-      hashmapLabel: mapLabel,
-    },
+    state: mapState(nums2, nums2Label, nums2Cell(-1), [], []),
     variables: [
       { name: 'nums1', value: '[4, 1, 2]' },
       { name: 'nums2', value: '[1, 3, 4, 2]' },
@@ -55,15 +56,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `Look at nums2[${i}] = ${num}. Compare it against the top of decreasingStack. While ${num} is greater than the stack top, that top has just found its next greater element.`,
       anchor: { match: 'for num in nums2:' },
-      state: {
-        type: 'array',
-        cells: nums2Cells(i),
-        pointers: [{ index: i, label: 'i' }],
-        arrayLabel: 'nums2 (scan to build the map)',
-        stackItems: [...decreasingStack],
-        hashmap: { ...nextGreaterMap },
-        hashmapLabel: mapLabel,
-      },
+      state: mapState(nums2, nums2Label, nums2Cell(i), [{ index: i, label: 'i' }], [...decreasingStack]),
       variables: [
         { name: 'num', value: num, highlight: true },
         { name: 'decreasingStack', value: decreasingStack.length ? `[${decreasingStack.join(', ')}]` : '[]' },
@@ -80,15 +73,7 @@ function generateSteps(): Step[] {
           match: 'while decreasingStack and num > decreasingStack[-1]:',
           to: { match: 'nextGreaterMap[priorNode] = num' },
         },
-        state: {
-          type: 'array',
-          cells: nums2Cells(i, priorNode),
-          pointers: [{ index: i, label: 'i' }],
-          arrayLabel: 'nums2 (scan to build the map)',
-          stackItems: [...decreasingStack],
-          hashmap: { ...nextGreaterMap },
-          hashmapLabel: mapLabel,
-        },
+        state: mapState(nums2, nums2Label, nums2Cell(i, priorNode), [{ index: i, label: 'i' }], [...decreasingStack]),
         variables: [
           { name: 'priorNode (popped)', value: priorNode, highlight: true },
           { name: `nextGreaterMap[${priorNode}]`, value: num, highlight: true },
@@ -101,15 +86,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `Nothing left on decreasingStack is smaller than ${num}. decreasingStack.append(${num}). The stack stays monotonically decreasing bottom→top — each value waits here until a larger one arrives.`,
       anchor: { match: 'decreasingStack.append(num)' },
-      state: {
-        type: 'array',
-        cells: nums2Cells(i),
-        pointers: [{ index: i, label: 'i' }],
-        arrayLabel: 'nums2 (scan to build the map)',
-        stackItems: [...decreasingStack],
-        hashmap: { ...nextGreaterMap },
-        hashmapLabel: mapLabel,
-      },
+      state: mapState(nums2, nums2Label, nums2Cell(i), [{ index: i, label: 'i' }], [...decreasingStack]),
       variables: [
         { name: 'pushed', value: num, highlight: true },
         { name: 'decreasingStack', value: `[${decreasingStack.join(', ')}]` },
@@ -120,15 +97,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Scan of nums2 complete. Anything still on decreasingStack ([${decreasingStack.join(', ')}]) never found a greater element to its right — those values simply aren't in the map and will default to -1. Final map: ${JSON.stringify(nextGreaterMap)}.`,
     anchor: { match: 'result = []' },
-    state: {
-      type: 'array',
-      cells: nums2.map((v) => ({ value: v, state: 'visited' as const })),
-      pointers: [],
-      arrayLabel: 'nums2 (fully scanned)',
-      stackItems: [...decreasingStack],
-      hashmap: { ...nextGreaterMap },
-      hashmapLabel: mapLabel,
-    },
+    state: mapState(nums2, 'nums2 (fully scanned)', () => 'visited', [], [...decreasingStack]),
     variables: [
       { name: 'nextGreaterMap', value: JSON.stringify(nextGreaterMap) },
       { name: 'unresolved', value: decreasingStack.length ? `[${decreasingStack.join(', ')}] → -1` : 'none' },
@@ -151,18 +120,13 @@ function generateSteps(): Step[] {
       anchor: found
         ? { match: 'if num in nextGreaterMap:', to: { match: 'result.append(nextGreaterMap[num])' } }
         : { match: 'if num in nextGreaterMap:', to: { match: 'result.append(-1)' } },
-      state: {
-        type: 'array',
-        cells: nums1.map((v, idx) => ({
-          value: v,
-          state: idx < i ? ('visited' as const) : idx === i ? (found ? ('found' as const) : ('eliminated' as const)) : ('default' as const),
-        })),
-        pointers: [{ index: i, label: 'num' }],
-        arrayLabel: 'nums1 (answer each query)',
-        stackItems: [],
-        hashmap: { ...nextGreaterMap },
-        hashmapLabel: mapLabel,
-      },
+      state: mapState(
+        nums1,
+        'nums1 (answer each query)',
+        (idx) => (idx < i ? 'visited' : idx === i ? (found ? 'found' : 'eliminated') : 'default'),
+        [{ index: i, label: 'num' }],
+        [],
+      ),
       variables: [
         { name: 'num', value: num, highlight: true },
         { name: 'nextGreaterMap[num]', value: found ? ans : 'absent', highlight: true },
@@ -174,16 +138,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `All nums1 queries answered by O(1) map lookups. Result: [${result.join(', ')}]. Building the map is O(n) — each nums2 value is pushed and popped at most once — and the queries add O(m), for O(n + m) total.`,
     anchor: { match: 'return result' },
-    state: {
-      type: 'array',
-      cells: nums1.map((v) => ({ value: v, state: 'found' as const })),
-      pointers: [],
-      arrayLabel: 'nums1 (done)',
-      stackItems: [],
-      hashmap: { ...nextGreaterMap },
-      hashmapLabel: mapLabel,
-      counters: [{ label: 'result', value: `[${result.join(', ')}]` }],
-    },
+    state: mapState(nums1, 'nums1 (done)', () => 'found', [], [], [{ label: 'result', value: `[${result.join(', ')}]` }]),
     variables: [
       { name: 'result', value: `[${result.join(', ')}]`, highlight: true },
     ],

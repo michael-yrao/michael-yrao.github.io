@@ -1,4 +1,7 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
+
+const DIFF_MAP_LABEL = 'diffMap (sum→count)';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -14,21 +17,18 @@ function generateSteps(): Step[] {
   let result = 0;
   let runningSum = 0;
 
-  const snap = (active: number | null) => ({
-    type: 'array' as const,
-    cells: nums.map((v, i) => ({
-      value: v,
-      state: i === active ? ('active' as const) : i < (active ?? 0) ? ('visited' as const) : ('default' as const),
-    })),
-    pointers: active !== null ? [{ index: active, label: 'n' }] : [],
-    hashmap: { ...diffMap },
-    hashmapLabel: 'diffMap (sum→count)',
-    counters: [
-      { label: 'runningSum', value: runningSum },
-      { label: 'result', value: result },
-      { label: 'k', value: k },
-    ],
-  });
+  const snap = (active: number | null) =>
+    arrayState(nums, {
+      cellState: (i) => (i === active ? 'active' : i < (active ?? 0) ? 'visited' : 'default'),
+      pointers: active !== null ? [{ index: active, label: 'n' }] : [],
+      hashmap: { ...diffMap },
+      hashmapLabel: DIFF_MAP_LABEL,
+      counters: [
+        { label: 'runningSum', value: runningSum },
+        { label: 'result', value: result },
+        { label: 'k', value: k },
+      ],
+    });
 
   steps.push({
     explanation: `Count subarrays summing to k=${k}. Trick (like Two Sum on prefix sums): a subarray (i, j] sums to k iff runningSum[j] − runningSum[i] = k, i.e. runningSum − k was a prefix we've seen. Store counts of each prefix sum in diffMap; seed it with {0: 1} so a prefix that itself equals k is counted.`,
@@ -76,14 +76,12 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `All elements processed. ${result} subarray(s) sum to ${k} ([1,2] and [3]). Return ${result}. One pass, O(n) time and O(n) space — the map turns the O(n²) prefix-pair search into O(1) lookups.`,
     anchor: { match: 'return result' },
-    state: {
-      type: 'array',
-      cells: nums.map((v) => ({ value: v, state: 'found' as const })),
-      pointers: [],
+    state: arrayState(nums, {
+      cellState: () => 'found',
       hashmap: { ...diffMap },
-      hashmapLabel: 'diffMap (sum→count)',
+      hashmapLabel: DIFF_MAP_LABEL,
       counters: [{ label: 'result', value: result }],
-    },
+    }),
     variables: [{ name: 'return', value: result, highlight: true }],
   });
 

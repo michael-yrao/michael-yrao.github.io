@@ -1,4 +1,14 @@
-import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, ArrayState, CellState, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
+
+/** The string `s` with char `i` in `focusState`, earlier chars visited, the rest default. */
+function bracketState(s: string, i: number, focusState: CellState, stackItems: string[]): ArrayState {
+  return arrayState(s.split(''), {
+    cellState: (idx) => (idx === i ? focusState : idx < i ? 'visited' : 'default'),
+    pointers: [{ index: i, label: 'i' }],
+    stackItems,
+  });
+}
 
 // ── Solution 1: Stack (close → open map) ─────────────────────────────────────
 //
@@ -19,12 +29,7 @@ function generateSteps(): Step[] {
     explanation:
       `Input: "${s}". bracketMap maps each CLOSING bracket to the opener it must match: {'}':'{', ']':'[', ')':'('}. For each char: if it's NOT a key of bracketMap, it's an opener — push it. If it IS a key, it's a closer — pop and compare against bracketMap[char].`,
     anchor: { match: "bracketMap = {'}':'{', ']':'[', ')':'('}", to: { match: 'stack = []' } },
-    state: {
-      type: 'array',
-      cells: s.split('').map((c) => ({ value: c, state: 'default' })),
-      pointers: [],
-      stackItems: [],
-    },
+    state: arrayState(s.split(''), { stackItems: [] }),
     variables: [{ name: 'stack', value: '[]' }],
   });
 
@@ -32,21 +37,11 @@ function generateSteps(): Step[] {
     const char = s[i];
     const isCloser = char in bracketMap;
 
-    const cells = s.split('').map((c, idx) => ({
-      value: c,
-      state: idx === i ? ('active' as const) : idx < i ? ('visited' as const) : ('default' as const),
-    }));
-
     if (!isCloser) {
       steps.push({
         explanation: `'${char}' not in bracketMap → it's an opener. stack.append('${char}').`,
         anchor: { match: 'if char not in bracketMap:', to: { match: 'stack.append(char)' } },
-        state: {
-          type: 'array',
-          cells,
-          pointers: [{ index: i, label: 'i' }],
-          stackItems: [...stack, char],
-        },
+        state: bracketState(s, i, 'active', [...stack, char]),
         variables: [
           { name: 'char', value: char, highlight: true },
           { name: 'stack[-1]', value: char, highlight: true },
@@ -62,12 +57,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `'${char}' in bracketMap → it's a closer. prevNode = stack.pop() = '${prevNode}'. bracketMap['${char}'] = '${bracketMap[char]}' == prevNode → match, keep going.`,
       anchor: { match: 'prevNode = stack.pop()', to: { match: 'if bracketMap[char] != prevNode:' } },
-      state: {
-        type: 'array',
-        cells: cells.map((c, idx) => ({ ...c, state: idx === i ? ('found' as const) : c.state })),
-        pointers: [{ index: i, label: 'i' }],
-        stackItems: [...stack],
-      },
+      state: bracketState(s, i, 'found', [...stack]),
       variables: [
         { name: 'char', value: char, highlight: true },
         { name: 'prevNode', value: prevNode },
@@ -80,13 +70,11 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `All characters processed. len(stack) == 0 is ${stack.length === 0}. Return ${stack.length === 0}.`,
     anchor: { match: 'return len(stack) == 0' },
-    state: {
-      type: 'array',
-      cells: s.split('').map((c) => ({ value: c, state: 'visited' })),
-      pointers: [],
+    state: arrayState(s.split(''), {
+      cellState: () => 'visited',
       stackItems: [...stack],
       counters: [{ label: 'result', value: stack.length === 0 ? 'true' : 'false' }],
-    },
+    }),
     variables: [
       { name: 'stack', value: stack.length === 0 ? 'empty' : `[${stack.join(', ')}]` },
       { name: 'result', value: String(stack.length === 0), highlight: true },
@@ -121,12 +109,7 @@ function buildParenSteps(intro: string, A: ParenAnchor): Step[] {
   steps.push({
     explanation: intro,
     anchor: A.intro,
-    state: {
-      type: 'array',
-      cells: s.split('').map((c) => ({ value: c, state: 'default' })),
-      pointers: [],
-      stackItems: [],
-    },
+    state: arrayState(s.split(''), { stackItems: [] }),
     variables: [
       { name: 'stack', value: '[]' },
     ],
@@ -137,11 +120,6 @@ function buildParenSteps(intro: string, A: ParenAnchor): Step[] {
     const isClose = closeSet.has(char);
     const isOpen = char in openToClose;
 
-    const cells = s.split('').map((c, idx) => ({
-      value: c,
-      state: idx === i ? ('active' as const) : idx < i ? ('visited' as const) : ('default' as const),
-    }));
-
     if (isClose) {
       const topOfStack = stack[stack.length - 1];
       const expected = topOfStack ? openToClose[topOfStack] : null;
@@ -151,15 +129,7 @@ function buildParenSteps(intro: string, A: ParenAnchor): Step[] {
         steps.push({
           explanation: `'${char}' is in closeBrackets. Top of stack is '${topOfStack}', whose expected closer is '${expected}'. They match! Pop '${topOfStack}' off the stack.`,
           anchor: A.pop,
-          state: {
-            type: 'array',
-            cells: cells.map((c, idx) => ({
-              ...c,
-              state: idx === i ? ('found' as const) : c.state,
-            })),
-            pointers: [{ index: i, label: 'i' }],
-            stackItems: [...stack],
-          },
+          state: bracketState(s, i, 'found', [...stack]),
           variables: [
             { name: 'char', value: char, highlight: true },
             { name: 'stack[-1]', value: topOfStack },
@@ -172,15 +142,7 @@ function buildParenSteps(intro: string, A: ParenAnchor): Step[] {
         steps.push({
           explanation: `'${char}' is in closeBrackets but ${topOfStack ? `top of stack '${topOfStack}' expects '${expected}', not '${char}'` : 'the stack is empty'}. Mismatch — return false.`,
           anchor: A.mismatch,
-          state: {
-            type: 'array',
-            cells: cells.map((c, idx) => ({
-              ...c,
-              state: idx === i ? ('eliminated' as const) : c.state,
-            })),
-            pointers: [{ index: i, label: 'i' }],
-            stackItems: [...stack],
-          },
+          state: bracketState(s, i, 'eliminated', [...stack]),
           variables: [
             { name: 'char', value: char, highlight: true },
             { name: 'stack[-1]', value: topOfStack ?? 'empty', highlight: true },
@@ -197,12 +159,7 @@ function buildParenSteps(intro: string, A: ParenAnchor): Step[] {
       steps.push({
         explanation: `'${char}' is in openToCloseMap. Push it onto the stack. We'll match it when we see its partner '${openToClose[char]}'. Stack is LIFO — last in, first out.`,
         anchor: A.push,
-        state: {
-          type: 'array',
-          cells,
-          pointers: [{ index: i, label: 'i' }],
-          stackItems: [...stack, char],
-        },
+        state: bracketState(s, i, 'active', [...stack, char]),
         variables: [
           { name: 'char', value: char, highlight: true },
           { name: 'openToCloseMap[char]', value: openToClose[char] },
@@ -216,13 +173,11 @@ function buildParenSteps(intro: string, A: ParenAnchor): Step[] {
   steps.push({
     explanation: `All characters processed. Stack is ${stack.length === 0 ? 'empty — every opener was matched' : 'not empty — some openers were never closed'}. Return ${stack.length === 0}.`,
     anchor: A.final,
-    state: {
-      type: 'array',
-      cells: s.split('').map((c) => ({ value: c, state: 'visited' })),
-      pointers: [],
+    state: arrayState(s.split(''), {
+      cellState: () => 'visited',
       stackItems: [...stack],
       counters: [{ label: 'result', value: stack.length === 0 ? 'true' : 'false' }],
-    },
+    }),
     variables: [
       { name: 'stack', value: stack.length === 0 ? 'empty' : `[${stack.join(', ')}]` },
       { name: 'result', value: String(stack.length === 0), highlight: true },

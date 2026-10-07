@@ -1,4 +1,5 @@
-import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNodeState } from '../../core/models/algorithm.model';
+import { TreeNodeInput, treeState } from '../../core/steps';
 
 // Traces cse-progress's isSameTree verbatim: no separate nested helper — self.isSameTree
 // recurses directly, and both children are chained in ONE return with `and` (short-circuit:
@@ -8,7 +9,7 @@ import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core
 
 // p = [1,2,3], q = [1,2,3] — identical, so we render one shared shape and
 // compare p.val vs q.val at each position.
-const NODES: Omit<TreeNode, 'state'>[] = [
+const NODES: TreeNodeInput[] = [
   { id: 'n0', value: 1, leftId: 'n1', rightId: 'n2' },
   { id: 'n1', value: 2, leftId: null, rightId: null },
   { id: 'n2', value: 3, leftId: null, rightId: null },
@@ -19,11 +20,8 @@ function generateSteps(): Step[] {
   const nodeMap = new Map(NODES.map((n) => [n.id, n]));
   const valueOf = (id: string) => nodeMap.get(id)!.value as number;
 
-  const colour: Record<string, TreeNode['state']> = {};
+  const colour: Record<string, TreeNodeState> = {};
   let stackDepth = 0;
-
-  const makeNodes = (): TreeNode[] =>
-    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
 
   const push = (
     explanation: string,
@@ -36,12 +34,11 @@ function generateSteps(): Step[] {
     steps.push({
       explanation,
       anchor,
-      state: {
-        type: 'tree',
-        nodes: makeNodes(),
+      state: treeState(NODES, {
+        nodeState: (n) => colour[n.id] ?? 'default',
         pointers: opts.current ? [{ nodeId: opts.current, label: '▶ comparing' }] : [],
         counters: [{ label: 'call stack depth', value: stackDepth }],
-      } as TreeState,
+      }),
       variables: opts.vars,
     });
   };

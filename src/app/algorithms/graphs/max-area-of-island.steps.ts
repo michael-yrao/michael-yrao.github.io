@@ -17,8 +17,6 @@ const RAW_GRID = [
 const ROWS = RAW_GRID.length;
 const COLS = RAW_GRID[0].length;
 
-type CellOverride = 'water' | 'land' | 'visited' | 'queued';
-
 function buildGrid(
   visited: Set<string>,
   active: Set<string>,
@@ -38,8 +36,6 @@ function generateSteps(): Step[] {
   const visited = new Set<string>();
   let maxArea = 0;
   const maxCells = new Set<string>();
-
-  const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
   steps.push({
     explanation:

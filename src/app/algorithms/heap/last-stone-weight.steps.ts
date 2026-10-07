@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's lastStoneWeight_20260726 verbatim: both pops are unconditional
 // (the loop condition `len(maxHeap) > 1` already guarantees a second element, so there's
@@ -14,15 +15,11 @@ function generateSteps(): Step[] {
   // min-heap; conceptually it's a max-heap — the two heaviest are always on top).
   let heap = [...stones].sort((a, b) => b - a);
 
-  const snap = (activeIdx: number[], doneIdx: number[] = []) => ({
-    type: 'array' as const,
-    cells: heap.map((v, i) => ({
-      value: v,
-      state: activeIdx.includes(i) ? ('active' as const) : doneIdx.includes(i) ? ('found' as const) : ('default' as const),
-    })),
-    pointers: [],
-    counters: [{ label: 'heap size', value: heap.length }],
-  });
+  const snap = (activeIdx: number[]) =>
+    arrayState(heap, {
+      cellState: (i): CellState => (activeIdx.includes(i) ? 'active' : 'default'),
+      counters: [{ label: 'heap size', value: heap.length }],
+    });
 
   steps.push({
     explanation: `Push −stone for every stone, so heapq's min-heap holds the negated weights and the heaviest stone is always at index 0. maxHeap = [${heap.join(', ')}] (shown here as the positive weights).`,
@@ -74,12 +71,7 @@ function generateSteps(): Step[] {
     anchor: isEmpty
       ? { match: 'if not maxHeap:', to: { match: 'return 0' } }
       : { match: 'return -heapq.heappop(maxHeap)' },
-    state: {
-      type: 'array',
-      cells: heap.map((v) => ({ value: v, state: 'found' as const })),
-      pointers: [],
-      counters: [{ label: 'result', value: result }],
-    },
+    state: arrayState(heap, { cellState: () => 'found', counters: [{ label: 'result', value: result }] }),
     variables: [{ name: 'return', value: result, highlight: true }],
   });
 

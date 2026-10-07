@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's cloneGraph verbatim (with helper class Node): DFS with an
 // oldToNew map, checked before creating a clone, caching the new node before recursing
@@ -20,27 +21,10 @@ function generateSteps(): Step[] {
   // Track cloned map: key = "node N" → "clone N"
   const cloned: Record<string, string> = {};
 
-  const snap = (activeVal: number | null, visitedVals: Set<number>) =>
-    nodeValues.map(v => ({
-      value: v,
-      state:
-        v === activeVal
-          ? ('active' as const)
-          : visitedVals.has(v)
-          ? ('visited' as const)
-          : ('default' as const),
-    }));
-
   steps.push({
     explanation: `Clone a connected undirected graph with 4 nodes. Adjacency: 1↔{2,4}, 2↔{1,3}, 3↔{2,4}, 4↔{1,3}. Strategy: DFS from node 1, maintaining a map oldToNew. When we visit a node for the first time, create its clone and record it. When we re-encounter a node, return the cached clone to avoid infinite loops.`,
     anchor: { match: 'oldToNew = {}' },
-    state: {
-      type: 'array',
-      cells: nodeValues.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
-      hashmap: {},
-      counters: [{ label: 'nodes cloned', value: 0 }],
-    },
+    state: arrayState(nodeValues, { hashmap: {}, counters: [{ label: 'nodes cloned', value: 0 }] }),
     variables: [
       { name: 'graph', value: 'adjList = [[2,4],[1,3],[2,4],[1,3]]' },
       { name: 'start', value: 'node 1' },
@@ -56,13 +40,12 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `dfs(node ${val}): node ${val} not in oldToNew. Create clone of node ${val}. Map node${val} → clone${val} in oldToNew.`,
       anchor: { match: 'newNode = Node(oldNode.val)', to: { match: 'oldToNew[oldNode] = newNode' } },
-      state: {
-        type: 'array',
-        cells: snap(val, new Set(visited)),
+      state: arrayState(nodeValues, {
+        cellState: (_, v) => (v === val ? 'active' : visited.has(v) ? 'visited' : 'default'),
         pointers: [{ index: val - 1, label: 'visiting' }],
         hashmap: { ...cloned },
         counters: [{ label: 'nodes cloned', value: visited.size }],
-      },
+      }),
       variables: [
         { name: 'oldNode', value: `node ${val}` },
         { name: 'newNode', value: `clone ${val}` },
@@ -77,13 +60,12 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `node ${val} cloned and mapped. Now iterate over neighbors of node ${val}: [${neighbors.join(', ')}]. For each neighbor, call dfs(neighbor) and append result to clone${val}.neighbors.`,
       anchor: { match: 'for neighbor in oldNode.neighbors:', to: { match: 'newNode.neighbors.append(dfs(neighbor))' } },
-      state: {
-        type: 'array',
-        cells: snap(val, new Set(visited)),
+      state: arrayState(nodeValues, {
+        cellState: (_, v) => (v === val ? 'active' : visited.has(v) ? 'visited' : 'default'),
         pointers: [{ index: val - 1, label: `clone ${val}` }],
         hashmap: { ...cloned },
         counters: [{ label: 'nodes cloned', value: visited.size }],
-      },
+      }),
       variables: [
         { name: 'node', value: val },
         { name: 'neighbors', value: `[${neighbors.join(', ')}]` },
@@ -96,23 +78,13 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `Processing neighbors of node ${val}: ${cachedNeighbors.map(nb => `node ${nb} already in oldToNew → return clone ${nb} (cached)`).join('; ')}. No re-clone needed — the map prevents infinite recursion on graph cycles.`,
         anchor: { match: 'if oldNode in oldToNew:', to: { match: 'return oldToNew[oldNode]' } },
-        state: {
-          type: 'array',
-          cells: nodeValues.map(v => ({
-            value: v,
-            state:
-              cachedNeighbors.includes(v)
-                ? ('found' as const)
-                : v === val
-                ? ('active' as const)
-                : visited.has(v)
-                ? ('visited' as const)
-                : ('default' as const),
-          })),
+        state: arrayState(nodeValues, {
+          cellState: (_, v) =>
+            cachedNeighbors.includes(v) ? 'found' : v === val ? 'active' : visited.has(v) ? 'visited' : 'default',
           pointers: [{ index: val - 1, label: `node ${val}` }],
           hashmap: { ...cloned },
           counters: [{ label: 'nodes cloned', value: visited.size }],
-        },
+        }),
         variables: [
           { name: 'cached lookups', value: cachedNeighbors.map(nb => `node ${nb}`).join(', ') },
         ],
@@ -124,13 +96,12 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `DFS complete. All 4 nodes cloned and all neighbor references wired. oldToNew = {${Object.entries(cloned).map(([k, v]) => `${k}→${v}`).join(', ')}}. Return clone 1 as the entry point of the cloned graph. O(V+E) time (visit each node and edge once), O(V) space for oldToNew.`,
     anchor: { match: 'return dfs(node)' },
-    state: {
-      type: 'array',
-      cells: nodeValues.map(v => ({ value: v, state: 'found' as const })),
+    state: arrayState(nodeValues, {
+      cellState: () => 'found',
       pointers: [{ index: 0, label: 'return' }],
       hashmap: { ...cloned },
       counters: [{ label: 'nodes cloned', value: 4 }],
-    },
+    }),
     variables: [{ name: 'return', value: 'clone 1 (deep copy)', highlight: true }],
   });
 

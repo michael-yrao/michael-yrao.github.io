@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Solution 1: Set iteration ────────────────────────────────────────────────
 //
@@ -15,12 +16,7 @@ function generateSetIterationSteps(): Step[] {
     explanation:
       'We initialize an empty set. A set gives us O(1) membership checks — much faster than scanning the array each time. We\'ll walk through nums and ask "have I seen this before?"',
     anchor: { match: 'numsSet = set()' },
-    state: {
-      type: 'array',
-      cells: nums.map((v) => ({ value: v, state: 'default' })),
-      pointers: [],
-      hashmap: {},
-    },
+    state: arrayState(nums, { hashmap: {} }),
     variables: [
       { name: 'numsSet', value: '{}' },
     ],
@@ -30,28 +26,17 @@ function generateSetIterationSteps(): Step[] {
     const n = nums[i];
     const inSet = seen.has(n);
 
-    const cells = nums.map((v, idx) => ({
-      value: v,
-      state:
-        idx === i
-          ? inSet
-            ? ('found' as const)
-            : ('active' as const)
-          : idx < i
-          ? ('visited' as const)
-          : ('default' as const),
-    }));
+    const state = arrayState(nums, {
+      cellState: (idx) => (idx === i ? (inSet ? 'found' : 'active') : idx < i ? 'visited' : 'default'),
+      pointers: [{ index: i, label: 'i' }],
+      hashmap: Object.fromEntries([...seen].map((v) => [v, '✓'])),
+    });
 
     if (inSet) {
       steps.push({
         explanation: `Index ${i}, value ${n}. Is ${n} in our set? YES! We've seen it before. Return true — duplicate found. The set caught this in O(1).`,
         anchor: { match: 'return True' },
-        state: {
-          type: 'array',
-          cells,
-          pointers: [{ index: i, label: 'i' }],
-          hashmap: Object.fromEntries([...seen].map((v) => [v, '✓'])),
-        },
+        state,
         variables: [
           { name: 'integer', value: n, highlight: true },
           { name: 'integer in numsSet', value: 'yes', highlight: true },
@@ -64,12 +49,7 @@ function generateSetIterationSteps(): Step[] {
     steps.push({
       explanation: `Index ${i}, value ${n}. Not in the set yet — no duplicate so far. Add ${n} to the set so we can detect it if it appears again.`,
       anchor: { match: 'numsSet.add(integer)' },
-      state: {
-        type: 'array',
-        cells,
-        pointers: [{ index: i, label: 'i' }],
-        hashmap: Object.fromEntries([...seen].map((v) => [v, '✓'])),
-      },
+      state,
       variables: [
         { name: 'integer', value: n, highlight: true },
         { name: 'integer in numsSet', value: 'no' },
@@ -99,12 +79,7 @@ function generateLenComparisonSteps(): Step[] {
     explanation:
       'Different idea: a set automatically discards duplicates. So if we drop the whole array into a set and it comes out SHORTER than the array, at least one value collapsed — meaning there was a duplicate. We\'ll build set(nums) one element at a time to watch it happen, then compare the two lengths.',
     anchor: { match: 'return len(set(nums)) < len(nums)' },
-    state: {
-      type: 'array',
-      cells: nums.map((v) => ({ value: v, state: 'default' })),
-      pointers: [],
-      hashmap: {},
-    },
+    state: arrayState(nums, { hashmap: {} }),
     variables: [
       { name: 'len(nums)', value: nums.length },
       { name: 'set(nums)', value: '{}' },
@@ -116,29 +91,17 @@ function generateLenComparisonSteps(): Step[] {
     const already = seen.has(n);
     if (!already) seen.add(n);
 
-    const cells = nums.map((v, idx) => ({
-      value: v,
-      state:
-        idx === i
-          ? already
-            ? ('found' as const) // this element collapsed into an existing one
-            : ('active' as const)
-          : idx < i
-          ? ('visited' as const)
-          : ('default' as const),
-    }));
-
     steps.push({
       explanation: already
         ? `set(nums) construction, index ${i}: value ${n} is ALREADY in the set, so adding it changes nothing — the set stays size ${seen.size}. This is the duplicate being silently dropped.`
         : `set(nums) construction, index ${i}: value ${n} is new, add it. Set grows to size ${seen.size}.`,
       anchor: { match: 'return len(set(nums)) < len(nums)' },
-      state: {
-        type: 'array',
-        cells,
+      state: arrayState(nums, {
+        // 'found': this element collapsed into an existing one
+        cellState: (idx) => (idx === i ? (already ? 'found' : 'active') : idx < i ? 'visited' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         hashmap: Object.fromEntries([...seen].map((v) => [v, '✓'])),
-      },
+      }),
       variables: [
         { name: 'value', value: n, highlight: true },
         { name: 'already in set?', value: already ? 'yes (dropped)' : 'no (added)', highlight: already },
@@ -151,12 +114,10 @@ function generateLenComparisonSteps(): Step[] {
   steps.push({
     explanation: `Set built. len(set(nums)) = ${seen.size}, len(nums) = ${nums.length}. Is ${seen.size} < ${nums.length}? ${dup ? 'Yes → the set is shorter, so a duplicate was dropped. Return True.' : 'No → same length, every value was unique. Return False.'}`,
     anchor: { match: 'return len(set(nums)) < len(nums)' },
-    state: {
-      type: 'array',
-      cells: nums.map((v) => ({ value: v, state: dup ? ('found' as const) : ('visited' as const) })),
-      pointers: [],
+    state: arrayState(nums, {
+      cellState: () => (dup ? 'found' : 'visited'),
       hashmap: Object.fromEntries([...seen].map((v) => [v, '✓'])),
-    },
+    }),
     variables: [
       { name: 'len(set(nums))', value: seen.size },
       { name: 'len(nums)', value: nums.length },

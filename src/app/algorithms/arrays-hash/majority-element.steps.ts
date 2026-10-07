@@ -1,4 +1,7 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
+
+const scanState = (i: number) => (j: number): CellState => (j < i ? 'visited' : j === i ? 'active' : 'default');
 
 // ── Solution 1: Frequency map ────────────────────────────────────────────────
 //
@@ -19,13 +22,10 @@ function generateFreqMapSteps(): Step[] {
     explanation:
       'Build a frequency map in one pass. Keep a running result: whenever freqMap[n] exceeds the current maxCount, result becomes n. maxCount is then refreshed to the larger of itself and freqMap[n] every iteration, whether or not result just changed.',
     anchor: { match: 'freqMap = {}', to: { match: 'result, maxCount = 0, 0' } },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
+    state: arrayState(nums, {
       hashmap: {},
       counters: [{ label: 'result', value: 0 }, { label: 'maxCount', value: 0 }],
-    },
+    }),
     variables: [{ name: 'nums', value: `[${nums.join(', ')}]` }],
   });
 
@@ -45,16 +45,12 @@ function generateFreqMapSteps(): Step[] {
         match: 'freqMap[n] = 1 + freqMap.get(n,0)',
         to: { match: 'maxCount = max(maxCount, freqMap[n])' },
       },
-      state: {
-        type: 'array',
-        cells: nums.map((v, j) => ({
-          value: v,
-          state: j < i ? ('visited' as const) : j === i ? ('active' as const) : ('default' as const),
-        })),
+      state: arrayState(nums, {
+        cellState: scanState(i),
         pointers: [{ index: i, label: 'i' }],
-        hashmap: { ...freqMap } as Record<string | number, number>,
+        hashmap: { ...freqMap },
         counters: [{ label: 'result', value: result }, { label: 'maxCount', value: maxCount }],
-      },
+      }),
       variables: [
         { name: 'n', value: n, highlight: true },
         { name: `freqMap[${n}]`, value: freqMap[n], highlight: true },
@@ -67,16 +63,11 @@ function generateFreqMapSteps(): Step[] {
   steps.push({
     explanation: `All elements processed. result = ${result} with frequency ${maxCount} (> n/2 = ${Math.floor(nums.length / 2)}). O(n) time, O(n) space.`,
     anchor: { match: 'return result' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({
-        value: v,
-        state: v === result ? ('found' as const) : ('eliminated' as const),
-      })),
-      pointers: [],
-      hashmap: { ...freqMap } as Record<string | number, number>,
+    state: arrayState(nums, {
+      cellState: (_, v) => (v === result ? 'found' : 'eliminated'),
+      hashmap: { ...freqMap },
       counters: [{ label: 'result', value: result }],
-    },
+    }),
     variables: [{ name: 'return', value: result, highlight: true }],
   });
 
@@ -100,15 +91,12 @@ function generateBoyerMooreSteps(): Step[] {
     explanation:
       'Boyer-Moore Voting: the majority element (> n/2 occurrences) can "outlast" all other values combined. Maintain maxElement and counter, seeded from nums[0]. When counter reaches 0 after a mismatch, the current candidate has been cancelled — swap to the current element and restart.',
     anchor: { match: 'maxElement, counter = nums[0], 0' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
+    state: arrayState(nums, {
       counters: [
         { label: 'maxElement', value: maxElement },
         { label: 'counter', value: counter },
       ],
-    },
+    }),
     variables: [
       { name: 'maxElement', value: maxElement },
       { name: 'counter', value: counter },
@@ -144,18 +132,14 @@ function generateBoyerMooreSteps(): Step[] {
     steps.push({
       explanation,
       anchor,
-      state: {
-        type: 'array',
-        cells: nums.map((v, j) => ({
-          value: v,
-          state: j < i ? ('visited' as const) : j === i ? ('active' as const) : ('default' as const),
-        })),
+      state: arrayState(nums, {
+        cellState: scanState(i),
         pointers: [{ index: i, label: 'i' }],
         counters: [
           { label: 'maxElement', value: maxElement },
           { label: 'counter', value: counter },
         ],
-      },
+      }),
       variables: [
         { name: 'n', value: n, highlight: true },
         { name: 'maxElement', value: maxElement, highlight: switched },
@@ -167,18 +151,13 @@ function generateBoyerMooreSteps(): Step[] {
   steps.push({
     explanation: `Done. maxElement = ${maxElement}. Every non-majority element has been cancelled out at least once. O(n) time, O(1) space.`,
     anchor: { match: 'return maxElement' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({
-        value: v,
-        state: v === maxElement ? ('found' as const) : ('eliminated' as const),
-      })),
-      pointers: [],
+    state: arrayState(nums, {
+      cellState: (_, v) => (v === maxElement ? 'found' : 'eliminated'),
       counters: [
         { label: 'maxElement', value: maxElement },
         { label: 'counter', value: counter },
       ],
-    },
+    }),
     variables: [{ name: 'return', value: maxElement, highlight: true }],
   });
 

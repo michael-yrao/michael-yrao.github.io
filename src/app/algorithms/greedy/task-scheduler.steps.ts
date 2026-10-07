@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ArrayCell, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, ArrayState, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Both variants below trace their cse-progress attempts (leastInterval, leastInterval_20260809)
 // with an EXPLICIT heap array, not a recomputed-each-slot `remaining` count: recomputing
@@ -26,15 +27,17 @@ function buildInitialHeap(tasks: readonly string[]): HeapEntry[] {
   return heapSort(entries);
 }
 
-function heapCells(heap: readonly HeapEntry[], active: string | null): ArrayCell[] {
-  return heap.map(([negCount, task]) => ({
-    value: `${task}×${-negCount}`,
-    state: task === active ? ('active' as const) : ('default' as const),
-  }));
-}
-
 function heapItems(heap: readonly HeapEntry[]): (string | number)[] {
   return heap.map(([negCount, task]) => `(${negCount}, ${task})`);
+}
+
+/** The heap as `task×count` cells, with its raw (negCount, task) tuples listed as stack items. */
+function heapState(heap: readonly HeapEntry[], active: string | null, counters: ArrayState['counters']): ArrayState {
+  return arrayState(heap.map(([negCount, task]) => `${task}×${-negCount}`), {
+    cellState: (i): CellState => (heap[i][1] === active ? 'active' : 'default'),
+    counters,
+    stackItems: heapItems(heap),
+  });
 }
 
 // ── Variant A: leastInterval — per-slot simulation counting idles ─────────────
@@ -47,13 +50,7 @@ function generateSimSteps(): Step[] {
     explanation:
       'Count each task (A×3, B×3) and push (−count, task) onto a heap — heapq pops the most negative first, i.e. the current highest count. n = 2 → each cooldown window holds n+1 = 3 slots.',
     anchor: { match: 'for key, value in freqMap.items():', to: { match: 'heapq.heappush(maxHeap,(-value, key))' } },
-    state: {
-      type: 'array',
-      cells: heapCells(heap, null),
-      pointers: [],
-      stackItems: heapItems(heap),
-      counters: [{ label: 'result', value: 0 }, { label: 'n+1', value: N + 1 }],
-    },
+    state: heapState(heap, null, [{ label: 'result', value: 0 }, { label: 'n+1', value: N + 1 }]),
     variables: [],
   });
 
@@ -65,13 +62,7 @@ function generateSimSteps(): Step[] {
     steps.push({
       explanation: `Round ${round}: tasksLeftOver = set(). Pop up to n+1=${N + 1} tasks off maxHeap this window; anything still negative after +1 goes into tasksLeftOver to push back at the end of the round.`,
       anchor: { match: 'tasksLeftOver = set()' },
-      state: {
-        type: 'array',
-        cells: heapCells(heap, null),
-        pointers: [],
-        stackItems: heapItems(heap),
-        counters: [{ label: 'round', value: round }, { label: 'result', value: result }],
-      },
+      state: heapState(heap, null, [{ label: 'round', value: round }, { label: 'result', value: result }]),
       variables: [],
     });
 
@@ -86,17 +77,11 @@ function generateSimSteps(): Step[] {
         steps.push({
           explanation: `Slot ${slot + 1}: pop (${negCount}, ${task}) off maxHeap. currentTaskCounter = ${negCount} + 1 = ${currentTaskCounter}. result += 1 → ${result}. ${currentTaskCounter < 0 ? `Still negative → tasksLeftOver.add((${currentTaskCounter}, ${task})).` : `Reached 0 → ${task} drops out (not re-added).`}`,
           anchor: { match: 'currentTaskCounter, currentTask = heapq.heappop(maxHeap)', to: { match: 'tasksLeftOver.add((currentTaskCounter, currentTask))' } },
-          state: {
-            type: 'array',
-            cells: heapCells(heap, task),
-            pointers: [],
-            stackItems: heapItems(heap),
-            counters: [
-              { label: 'round', value: round },
-              { label: 'slot', value: `${slot + 1}/${N + 1}` },
-              { label: 'result', value: result },
-            ],
-          },
+          state: heapState(heap, task, [
+            { label: 'round', value: round },
+            { label: 'slot', value: `${slot + 1}/${N + 1}` },
+            { label: 'result', value: result },
+          ]),
           variables: [
             { name: 'currentTask', value: task, highlight: true },
             { name: 'currentTaskCounter', value: currentTaskCounter },
@@ -109,13 +94,7 @@ function generateSimSteps(): Step[] {
           // nth 1 hit: contract line 132 `return result` (the loop's early return).
           // skips line 138, the loop's final `return result`.
           anchor: { match: 'if not tasksLeftOver:', to: { match: 'return result', nth: 1 } },
-          state: {
-            type: 'array',
-            cells: [],
-            pointers: [],
-            stackItems: [],
-            counters: [{ label: 'result (final)', value: result }],
-          },
+          state: heapState([], null, [{ label: 'result (final)', value: result }]),
           variables: [{ name: 'return', value: result, highlight: true }],
         });
         return steps;
@@ -126,17 +105,11 @@ function generateSimSteps(): Step[] {
           // nth 2 hit: contract line 134 `result+=1` (the else/idle branch's increment).
           // skips line 124, the pop branch's `result+=1`.
           anchor: { match: 'else:', to: { match: 'result+=1', nth: 2 } },
-          state: {
-            type: 'array',
-            cells: heapCells(heap, null),
-            pointers: [],
-            stackItems: heapItems(heap),
-            counters: [
-              { label: 'round', value: round },
-              { label: 'slot', value: `${slot + 1}/${N + 1} (idle)` },
-              { label: 'result', value: result },
-            ],
-          },
+          state: heapState(heap, null, [
+            { label: 'round', value: round },
+            { label: 'slot', value: `${slot + 1}/${N + 1} (idle)` },
+            { label: 'result', value: result },
+          ]),
           variables: [{ name: 'idle', value: 'yes', highlight: true }],
         });
       }
@@ -147,13 +120,7 @@ function generateSimSteps(): Step[] {
       steps.push({
         explanation: `End of round ${round}: push tasksLeftOver [${tasksLeftOver.map(([c, t]) => `(${c}, ${t})`).join(', ')}] back onto maxHeap → [${heapItems(heap).join(', ')}].`,
         anchor: { match: 'for _ in range(len(tasksLeftOver)):', to: { match: 'heapq.heappush(maxHeap, tasksLeftOver.pop())' } },
-        state: {
-          type: 'array',
-          cells: heapCells(heap, null),
-          pointers: [],
-          stackItems: heapItems(heap),
-          counters: [{ label: 'result', value: result }],
-        },
+        state: heapState(heap, null, [{ label: 'result', value: result }]),
         variables: [],
       });
     }
@@ -164,13 +131,7 @@ function generateSimSteps(): Step[] {
     // nth 2 hit: contract line 138, the loop's final `return result`.
     // skips line 132, the loop's early `return result`.
     anchor: { match: 'return result', nth: 2 },
-    state: {
-      type: 'array',
-      cells: [],
-      pointers: [],
-      stackItems: [],
-      counters: [{ label: 'result (final)', value: result }],
-    },
+    state: heapState([], null, [{ label: 'result (final)', value: result }]),
     variables: [{ name: 'return', value: result, highlight: true }],
   });
 
@@ -188,13 +149,7 @@ function generateBulkSteps(): Step[] {
     explanation:
       'Same heap, built the same way, but never counts idle slots one-by-one. Each round pops min(numUniqueTasks, tasksPerCycle) tasks, then jumps the clock: a full tasksPerCycle window if any tasks remain (the gap must be filled), otherwise just the tasks actually done.',
     anchor: { match: 'for task, freq in freqMap.items():', to: { match: 'heapq.heappush(maxHeap,(-freq, task))' } },
-    state: {
-      type: 'array',
-      cells: heapCells(heap, null),
-      pointers: [],
-      stackItems: heapItems(heap),
-      counters: [{ label: 'intervals', value: 0 }, { label: 'tasksPerCycle', value: tasksPerCycle }],
-    },
+    state: heapState(heap, null, [{ label: 'intervals', value: 0 }, { label: 'tasksPerCycle', value: tasksPerCycle }]),
     variables: [],
   });
 
@@ -208,17 +163,11 @@ function generateBulkSteps(): Step[] {
     steps.push({
       explanation: `Round ${round}: numUniqueTasks = len(maxHeap) = ${numUniqueTasks}. maxAllotedTasks = min(tasksPerCycle, numUniqueTasks) = min(${tasksPerCycle}, ${numUniqueTasks}) = ${maxAllotedTasks}. Pop that many and increment each.`,
       anchor: { match: 'numUniqueTasks = len(maxHeap)', to: { match: 'tasksLeft = []' } },
-      state: {
-        type: 'array',
-        cells: heapCells(heap, null),
-        pointers: [],
-        stackItems: heapItems(heap),
-        counters: [
-          { label: 'round', value: round },
-          { label: 'maxAllotedTasks', value: maxAllotedTasks },
-          { label: 'intervals', value: intervals },
-        ],
-      },
+      state: heapState(heap, null, [
+        { label: 'round', value: round },
+        { label: 'maxAllotedTasks', value: maxAllotedTasks },
+        { label: 'intervals', value: intervals },
+      ]),
       variables: [{ name: 'numUniqueTasks', value: numUniqueTasks }],
     });
 
@@ -231,17 +180,11 @@ function generateBulkSteps(): Step[] {
       steps.push({
         explanation: `Pop (${negFreq}, ${task}) off maxHeap. currentTaskFreq = ${negFreq} + 1 = ${currentTaskFreq}. ${currentTaskFreq !== 0 ? `!= 0 → tasksLeft.append((${currentTaskFreq}, ${task})).` : `== 0 → ${task} is done, not re-added.`}`,
         anchor: { match: 'currentTaskFreq, currentTask = heapq.heappop(maxHeap)', to: { match: 'tasksLeft.append((currentTaskFreq,currentTask))' } },
-        state: {
-          type: 'array',
-          cells: heapCells(heap, task),
-          pointers: [],
-          stackItems: heapItems(heap),
-          counters: [
-            { label: 'round', value: round },
-            { label: 'popped', value: `${i + 1}/${maxAllotedTasks}` },
-            { label: 'intervals', value: intervals },
-          ],
-        },
+        state: heapState(heap, task, [
+          { label: 'round', value: round },
+          { label: 'popped', value: `${i + 1}/${maxAllotedTasks}` },
+          { label: 'intervals', value: intervals },
+        ]),
         variables: [
           { name: 'currentTask', value: task, highlight: true },
           { name: 'currentTaskFreq', value: currentTaskFreq },
@@ -254,13 +197,7 @@ function generateBulkSteps(): Step[] {
       steps.push({
         explanation: `Push tasksLeft [${tasksLeft.map(([c, t]) => `(${c}, ${t})`).join(', ')}] back onto maxHeap → [${heapItems(heap).join(', ')}].`,
         anchor: { match: 'for taskFreq, task in tasksLeft:', to: { match: 'heapq.heappush(maxHeap,(taskFreq,task))' } },
-        state: {
-          type: 'array',
-          cells: heapCells(heap, null),
-          pointers: [],
-          stackItems: heapItems(heap),
-          counters: [{ label: 'round', value: round }, { label: 'intervals', value: intervals }],
-        },
+        state: heapState(heap, null, [{ label: 'round', value: round }, { label: 'intervals', value: intervals }]),
         variables: [],
       });
     }
@@ -274,16 +211,10 @@ function generateBulkSteps(): Step[] {
       anchor: stillLeft
         ? { match: 'if maxHeap:', to: { match: 'intervals+=tasksPerCycle' } }
         : { match: 'else:', to: { match: 'intervals+=maxAllotedTasks' } },
-      state: {
-        type: 'array',
-        cells: heapCells(heap, null),
-        pointers: [],
-        stackItems: heapItems(heap),
-        counters: [
-          { label: 'round', value: round },
-          { label: 'intervals', value: intervals },
-        ],
-      },
+      state: heapState(heap, null, [
+        { label: 'round', value: round },
+        { label: 'intervals', value: intervals },
+      ]),
       variables: [{ name: 'intervals', value: intervals, highlight: true }],
     });
   }
@@ -291,13 +222,7 @@ function generateBulkSteps(): Step[] {
   steps.push({
     explanation: `maxHeap is empty → return intervals = ${intervals}. Same answer as the per-slot simulation, computed without touching individual idle slots.`,
     anchor: { match: 'return intervals' },
-    state: {
-      type: 'array',
-      cells: [],
-      pointers: [],
-      stackItems: [],
-      counters: [{ label: 'intervals (final)', value: intervals }],
-    },
+    state: heapState([], null, [{ label: 'intervals (final)', value: intervals }]),
     variables: [{ name: 'return', value: intervals, highlight: true }],
   });
 

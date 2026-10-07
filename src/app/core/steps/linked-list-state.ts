@@ -1,4 +1,5 @@
 import { LinkedListNode, LinkedListState } from '../models/algorithm.model';
+import { definedFields } from './defined-fields';
 
 export type LinkedListNodeState = LinkedListNode['state'];
 export type LinkedListValue = LinkedListNode['value'];
@@ -9,6 +10,7 @@ export interface LinkedListStateOptions {
   pointers?: LinkedListState['pointers'];
   /** Node ids are `${idPrefix}${index}`; `'n'` when omitted. */
   idPrefix?: string;
+  result?: LinkedListState['result'];
 }
 
 const DEFAULT_NODE_STATE: LinkedListNodeState = 'default';
@@ -19,7 +21,7 @@ export function linkedListState(
   values: readonly LinkedListValue[],
   options: LinkedListStateOptions = {},
 ): LinkedListState {
-  const { nodeState = () => DEFAULT_NODE_STATE, pointers = [], idPrefix = DEFAULT_ID_PREFIX } = options;
+  const { nodeState = () => DEFAULT_NODE_STATE, pointers = [], idPrefix = DEFAULT_ID_PREFIX, result } = options;
   const lastIndex = values.length - 1;
   return {
     type: 'linked-list',
@@ -30,5 +32,6 @@ export function linkedListState(
       state: nodeState(index, value),
     })),
     pointers,
+    ...definedFields({ result }),
   };
 }

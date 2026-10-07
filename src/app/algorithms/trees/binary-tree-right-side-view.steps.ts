@@ -1,4 +1,5 @@
-import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNodeState } from '../../core/models/algorithm.model';
+import { TreeNodeInput, treeState } from '../../core/steps';
 
 // Traces cse-progress's rightSideView verbatim: an explicit `if not root: return []` guard
 // up front (always False for this non-empty example, but narrated), then BFS level by level,
@@ -10,7 +11,7 @@ import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core
 //      2   3
 //       \    \
 //        5    4
-const NODES: Omit<TreeNode, 'state'>[] = [
+const NODES: TreeNodeInput[] = [
   { id: 'n0', value: 1, leftId: 'n1', rightId: 'n2' },
   { id: 'n1', value: 2, leftId: null, rightId: 'n3' },
   { id: 'n2', value: 3, leftId: null, rightId: 'n4' },
@@ -23,12 +24,9 @@ function generateSteps(): Step[] {
   const nodeMap = new Map(NODES.map((n) => [n.id, n]));
   const valueOf = (id: string) => nodeMap.get(id)!.value as number;
 
-  const colour: Record<string, TreeNode['state']> = {};
+  const colour: Record<string, TreeNodeState> = {};
   const queue: string[] = ['n0'];
   const result: number[] = [];
-
-  const makeNodes = (): TreeNode[] =>
-    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
 
   const queueStr = () => '[' + queue.map((id) => valueOf(id)).join(', ') + ']';
   const resultStr = () => '[' + result.join(', ') + ']';
@@ -41,15 +39,14 @@ function generateSteps(): Step[] {
     steps.push({
       explanation,
       anchor,
-      state: {
-        type: 'tree',
-        nodes: makeNodes(),
+      state: treeState(NODES, {
+        nodeState: (n) => colour[n.id] ?? 'default',
         pointers: opts.current ? [{ nodeId: opts.current, label: '▶ here' }] : [],
         counters: [
           { label: 'queue', value: queueStr() },
           { label: 'result', value: resultStr() },
         ],
-      } as TreeState,
+      }),
       variables: opts.vars,
     });
   };

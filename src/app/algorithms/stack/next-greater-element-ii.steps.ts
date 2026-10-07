@@ -3,7 +3,8 @@
 // the loop never resolves. Only a SEPARATE post-loop pass (for i in range(len(greater)))
 // converts any leftover -inf entries to -1. Names: actualIndex, currentNumber, prevNode,
 // greater (not currentNumberIndex/priorNumberIndex/result — those never appear in the code).
-import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, ArrayCell, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, CellState, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 const NUMS = [1, 2, 3, 4, 3];
 const UNSET = -Infinity;
@@ -14,12 +15,8 @@ function generateSteps(): Step[] {
   const greater: number[] = new Array(n).fill(UNSET);
   const stack: number[] = []; // indices
 
-  const cells = (curIdx: number): ArrayCell[] =>
-    NUMS.map((v, i) => ({
-      value: v,
-      state:
-        i === curIdx ? 'active' : stack.includes(i) ? 'window' : greater[i] !== UNSET ? 'found' : 'default',
-    }));
+  const cellState = (curIdx: number) => (i: number): CellState =>
+    i === curIdx ? 'active' : stack.includes(i) ? 'window' : greater[i] !== UNSET ? 'found' : 'default';
 
   const stackItems = (): (string | number)[] => stack.map((i) => `i${i}(${NUMS[i]})`);
 
@@ -30,13 +27,12 @@ function generateSteps(): Step[] {
     steps.push({
       explanation,
       anchor,
-      state: {
-        type: 'array',
-        cells: cells(curIdx),
+      state: arrayState(NUMS, {
+        cellState: cellState(curIdx),
         pointers: curIdx >= 0 ? [{ index: curIdx, label: 'actualIndex' }] : [],
         stackItems: stackItems(),
         counters: [{ label: 'greater', value: greaterStr() }],
-      },
+      }),
       variables: extraVars,
     });
   }
@@ -101,13 +97,12 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `Cleanup pass: greater[${i}] = ${fmt(isUnset ? UNSET : greater[i])}. ${isUnset ? `Still -inf → no greater element was ever found → set greater[${i}] = -1.` : `Already a real value — leave it.`}`,
       anchor: isUnset ? { match: 'greater[i] = -1' } : { match: 'if greater[i] == -math.inf:' },
-      state: {
-        type: 'array',
-        cells: NUMS.map((v, idx) => ({ value: v, state: idx === i ? 'active' : greater[idx] !== UNSET ? 'found' : 'default' })),
+      state: arrayState(NUMS, {
+        cellState: (idx) => (idx === i ? 'active' : greater[idx] !== UNSET ? 'found' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         stackItems: [],
         counters: [{ label: 'greater', value: greaterStr() }],
-      },
+      }),
       variables: [{ name: `greater[${i}]`, value: fmt(greater[i]), highlight: isUnset }],
     });
   }
@@ -115,13 +110,11 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Cleanup done. Final: ${greaterStr()}.`,
     anchor: { match: 'return greater' },
-    state: {
-      type: 'array',
-      cells: NUMS.map((v, i) => ({ value: v, state: greater[i] !== -1 ? 'found' : 'eliminated' })),
-      pointers: [],
+    state: arrayState(NUMS, {
+      cellState: (i) => (greater[i] !== -1 ? 'found' : 'eliminated'),
       stackItems: [],
       counters: [{ label: 'greater', value: greaterStr() }],
-    },
+    }),
     variables: [{ name: 'return', value: greaterStr(), highlight: true }],
   });
 

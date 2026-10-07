@@ -2,7 +2,8 @@
 // existing key's node then always creates and inserts a NEW node, and evicts with a
 // while loop while over capacity. Control flow is unchanged from the earlier hand
 // simulation below; only the class/helper naming changed.
-import { AlgorithmMeta, SolutionVariant, Step, GraphNode, GraphEdge, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { graphState } from '../../core/steps';
 
 type Op = { kind: 'put'; key: number; value: number } | { kind: 'get'; key: number };
 const CAPACITY = 2;
@@ -34,28 +35,19 @@ function generateSteps(): Step[] {
     counters: { label: string; value: number | string }[]
   ): Step['state'] => {
     const chain = ['H', ...order.map((e) => `k${e.key}`), 'T'];
-    const nodes: GraphNode[] = chain.map((id, i) => {
-      const isDummy = id === 'H' || id === 'T';
-      const entry = isDummy ? null : order.find((e) => `k${e.key}` === id)!;
-      return {
-        id,
-        x: 40 + i * 82,
-        y: 110,
-        state: (isDummy ? 'default' : entry && entry.key === activeKey ? 'active' : 'visited') as GraphNode['state'],
-        label: isDummy ? (id === 'H' ? 'head' : 'tail') : `${entry!.key}:${entry!.value}`,
-      };
+    // chain[i] is order[i - 1]; the dummy head and tail have no entry
+    const nodes = chain.map((id, i) => {
+      const entry = order[i - 1];
+      return { id, x: 40 + i * 82, y: 110, label: entry ? `${entry.key}:${entry.value}` : id === 'H' ? 'head' : 'tail' };
     });
-    const edges: GraphEdge[] = [];
-    for (let i = 0; i < chain.length - 1; i++) edges.push({ from: chain[i], to: chain[i + 1], state: 'default' });
-    return {
-      type: 'graph',
+    const edges = chain.slice(0, -1).map((from, i) => ({ from, to: chain[i + 1] }));
+    return graphState(nodes, edges, {
+      nodeState: (_, i) => (!order[i - 1] ? 'default' : order[i - 1].key === activeKey ? 'active' : 'visited'),
       directed: true,
-      nodes,
-      edges,
       hashmap: cacheMap(),
       hashmapLabel: 'cache (key→val)',
       counters,
-    };
+    });
   };
 
   steps.push({

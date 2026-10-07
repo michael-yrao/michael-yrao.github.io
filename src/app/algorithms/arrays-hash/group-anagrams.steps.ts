@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Solution 1: Sort Key HashMap ─────────────────────────────────────────────
 //
@@ -16,12 +17,7 @@ function generateSteps(): Step[] {
     explanation:
       'Anagrams share the same characters. Sort each string to get a canonical sortedStr key — all anagrams produce the same key. Group by that key in anagramMap.',
     anchor: { match: 'anagramMap = {}' },
-    state: {
-      type: 'array',
-      cells: strs.map(s => ({ value: s, state: 'default' as const })),
-      pointers: [],
-      hashmap: {},
-    },
+    state: arrayState(strs, { hashmap: {} }),
     variables: [{ name: 'strs', value: `[${strs.map(s => `"${s}"`).join(', ')}]` }],
   });
 
@@ -43,20 +39,11 @@ function generateSteps(): Step[] {
       anchor: firstTouch
         ? { match: 'if sortedStr not in anagramMap:', to: { match: 'anagramMap[sortedStr].append(str)' } }
         : { match: 'anagramMap[sortedStr].append(str)' },
-      state: {
-        type: 'array',
-        cells: strs.map((w, j) => ({
-          value: w,
-          state:
-            j === i
-              ? ('active' as const)
-              : j < i
-              ? ('visited' as const)
-              : ('default' as const),
-        })),
+      state: arrayState(strs, {
+        cellState: (j) => (j === i ? 'active' : j < i ? 'visited' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         hashmap: hashmapSnapshot,
-      },
+      }),
       variables: [
         { name: 'str', value: `"${s}"` },
         { name: 'sortedStr', value: `"${key}"`, highlight: true },
@@ -74,12 +61,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `All strings grouped. ${result.length} groups: ${result.map(g => '[' + g.map(w => `"${w}"`).join(', ') + ']').join(', ')}. O(n·k log k) time where k is max string length.`,
     anchor: { match: 'return list(anagramMap.values())' },
-    state: {
-      type: 'array',
-      cells: strs.map(s => ({ value: s, state: 'found' as const })),
-      pointers: [],
-      hashmap: hashmapFinal,
-    },
+    state: arrayState(strs, { cellState: () => 'found', hashmap: hashmapFinal }),
     variables: [{ name: 'anagramMap', value: result.length, highlight: true }],
   });
 
@@ -101,12 +83,7 @@ function generateAltSteps(): Step[] {
     explanation:
       'Same sort-the-key idea, but anagramMap = defaultdict(list). The difference: with a plain dict you must write "if key not in map: map[key] = []" before appending. defaultdict creates that empty list automatically the first time a key is touched, so we can append directly — one fewer line and no missing-key check.',
     anchor: { match: 'anagramMap = defaultdict(list)' },
-    state: {
-      type: 'array',
-      cells: strs.map((s) => ({ value: s, state: 'default' as const })),
-      pointers: [],
-      hashmap: {},
-    },
+    state: arrayState(strs, { hashmap: {} }),
     variables: [{ name: 'anagramMap', value: 'defaultdict(list)' }],
   });
 
@@ -125,15 +102,11 @@ function generateAltSteps(): Step[] {
     steps.push({
       explanation: `"${s}" → sortedStr = "${key}". ${firstTouch ? `"${key}" is new — defaultdict auto-creates an empty list, then we append.` : `"${key}" already exists — append directly.`} Group is now ${hashmapSnapshot[key]}.`,
       anchor: { match: 'anagramMap[sortedStr].append(str)' },
-      state: {
-        type: 'array',
-        cells: strs.map((w, j) => ({
-          value: w,
-          state: j === i ? ('active' as const) : j < i ? ('visited' as const) : ('default' as const),
-        })),
+      state: arrayState(strs, {
+        cellState: (j) => (j === i ? 'active' : j < i ? 'visited' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         hashmap: hashmapSnapshot,
-      },
+      }),
       variables: [
         { name: 'str', value: `"${s}"` },
         { name: 'sortedStr', value: `"${key}"`, highlight: true },
@@ -152,12 +125,7 @@ function generateAltSteps(): Step[] {
   steps.push({
     explanation: `All strings grouped into ${result.length} buckets: ${result.map((g) => '[' + g.map((w) => `"${w}"`).join(', ') + ']').join(', ')}. Return the map's values.`,
     anchor: { match: 'return list(anagramMap.values())' },
-    state: {
-      type: 'array',
-      cells: strs.map((s) => ({ value: s, state: 'found' as const })),
-      pointers: [],
-      hashmap: hashmapFinal,
-    },
+    state: arrayState(strs, { cellState: () => 'found', hashmap: hashmapFinal }),
     variables: [{ name: 'anagramMap', value: result.length, highlight: true }],
   });
 

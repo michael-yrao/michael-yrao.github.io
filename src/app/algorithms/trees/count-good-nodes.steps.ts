@@ -1,4 +1,5 @@
-import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNodeState } from '../../core/models/algorithm.model';
+import { TreeNodeInput, treeState } from '../../core/steps';
 
 // Traces cse-progress's goodNodes verbatim: an explicit stack of [node, currentMax] pairs
 // (both children pushed even when null), popped with `currentNode, currentMax = stack.pop()`,
@@ -6,7 +7,7 @@ import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core
 // simulation, only anchors change.
 
 // Tree: [3, 1, 4, 3, null, 1, 5]
-const NODES: Omit<TreeNode, 'state'>[] = [
+const NODES: TreeNodeInput[] = [
   { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
   { id: 'n1', value: 1, leftId: 'n3', rightId: null },
   { id: 'n2', value: 4, leftId: 'n4', rightId: 'n5' },
@@ -20,15 +21,12 @@ function generateSteps(): Step[] {
   const nodeMap = new Map(NODES.map((n) => [n.id, n]));
   const valueOf = (id: string) => nodeMap.get(id)!.value as number;
 
-  const colour: Record<string, TreeNode['state']> = {};
+  const colour: Record<string, TreeNodeState> = {};
   let result = 0;
 
   // Explicit stack of [nodeId|null, currentMax] — mirrors the Python deque.
   type Frame = [string | null, number];
   const stack: Frame[] = [['n0', 3]];
-
-  const makeNodes = (): TreeNode[] =>
-    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
 
   const stackStr = () =>
     '[' +
@@ -48,15 +46,14 @@ function generateSteps(): Step[] {
     steps.push({
       explanation,
       anchor,
-      state: {
-        type: 'tree',
-        nodes: makeNodes(),
+      state: treeState(NODES, {
+        nodeState: (n) => colour[n.id] ?? 'default',
         pointers: opts.current ? [{ nodeId: opts.current, label: '▶ popped' }] : [],
         counters: [
           { label: 'result', value: result },
           { label: 'stack', value: stackStr() },
         ],
-      } as TreeState,
+      }),
       variables: opts.vars,
     });
   };

@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, StepAnchor, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's removeDuplicates_20260805 verbatim: l is the write cursor, r is the
 // read cursor; index 0 is always valid so both start at 1. There is no separate counter — the
@@ -9,27 +10,16 @@ function generateSteps(): Step[] {
   const steps: Step[] = [];
 
   const snap = (l: number, r: number) =>
-    nums.map((v, i) => ({
-      value: v,
-      state:
-        i < l
-          ? ('found' as const)
-          : i === l
-          ? ('active' as const)
-          : i === r && r !== l
-          ? ('min-ptr' as const)
-          : ('default' as const),
-    }));
+    arrayState(nums, {
+      cellState: (i) => (i < l ? 'found' : i === l ? 'active' : i === r && r !== l ? 'min-ptr' : 'default'),
+      pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
+    });
 
   function emit(explanation: string, anchor: StepAnchor, l: number, r: number, highlightL = false): void {
     steps.push({
       explanation,
       anchor,
-      state: {
-        type: 'array',
-        cells: snap(l, r),
-        pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-      },
+      state: snap(l, r),
       variables: [
         { name: 'l', value: l, highlight: highlightL },
         { name: 'r', value: r },
@@ -41,11 +31,7 @@ function generateSteps(): Step[] {
     explanation:
       'Two-pointer in-place dedup: l marks the next write slot, r scans forward. Index 0 is always valid, so both start at 1. Write nums[r] to nums[l] only when it differs from nums[l-1].',
     anchor: { match: 'l = r = 1' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
-    },
+    state: arrayState(nums),
     variables: [{ name: 'nums', value: `[${nums.join(', ')}]` }],
   });
 
@@ -58,11 +44,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `r=${r}: nums[r]=${nums[r]} vs nums[l-1]=${nums[l - 1]} → ${differs ? 'different — write & advance l' : 'duplicate — skip'}.`,
       anchor: { match: 'if nums[r] != nums[l-1]:' },
-      state: {
-        type: 'array',
-        cells: snap(l, r),
-        pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-      },
+      state: snap(l, r),
       variables: [
         { name: 'l', value: l },
         { name: 'r', value: r },
@@ -88,14 +70,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Done. First ${l} elements are the unique sorted values. Return ${l}. O(n) time, O(1) space.`,
     anchor: { match: 'return l' },
-    state: {
-      type: 'array',
-      cells: nums.map((v, i) => ({
-        value: v,
-        state: i < l ? ('found' as const) : ('eliminated' as const),
-      })),
-      pointers: [],
-    },
+    state: arrayState(nums, { cellState: (i) => (i < l ? 'found' : 'eliminated') }),
     variables: [{ name: 'return', value: l, highlight: true }],
   });
 

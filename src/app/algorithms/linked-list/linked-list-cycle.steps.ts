@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, LinkedListNode, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { linkedListState } from '../../core/steps';
 
 // Traces cse-progress's hasCycle_20260701 verbatim: slow and fast are assigned on
 // separate lines (not slow = fast = head), the loop condition is just `while fast:`,
@@ -17,33 +18,20 @@ const nextIndexOf = (i: number): number => (i === LAST_INDEX ? CYCLE_TARGET_INDE
 function generateFloydsSteps(): Step[] {
   const steps: Step[] = [];
 
-  const makeNodes = (slowIdx: number, fastIdx: number): LinkedListNode[] =>
-    VALS.map((v, i) => ({
-      id: `n${i}`,
-      value: v,
-      nextId: i < VALS.length - 1 ? `n${i + 1}` : null,
-      state:
-        i === slowIdx && i === fastIdx
-          ? ('active' as const)
-          : i === slowIdx
-          ? ('curr' as const)
-          : i === fastIdx
-          ? ('next-node' as const)
-          : ('default' as const),
-    }));
+  const makeState = (slowIdx: number, fastIdx: number) =>
+    linkedListState(VALS, {
+      nodeState: (i) => (i === slowIdx && i === fastIdx ? 'active' : i === slowIdx ? 'curr' : i === fastIdx ? 'next-node' : 'default'),
+      pointers: [
+        { nodeId: `n${slowIdx}`, label: 'slow' },
+        { nodeId: `n${fastIdx}`, label: 'fast' },
+      ],
+    });
 
   steps.push({
     explanation:
       "Floyd's cycle detection: slow = head, then fast = head — two separate assignments. slow moves 1 step per loop, fast moves 2. List: [3→2→0→-4→(back to 2)]. The -4 node's next pointer goes back to node 2.",
     anchor: { match: 'slow = head', to: { match: 'fast = head' } },
-    state: {
-      type: 'linked-list',
-      nodes: makeNodes(0, 0),
-      pointers: [
-        { nodeId: 'n0', label: 'slow' },
-        { nodeId: 'n0', label: 'fast' },
-      ],
-    },
+    state: makeState(0, 0),
     variables: [
       { name: 'slow.val', value: VALS[0] },
       { name: 'fast.val', value: VALS[0] },
@@ -65,14 +53,7 @@ function generateFloydsSteps(): Step[] {
     steps.push({
       explanation: `while fast: true → check if not fast.next: fast.next exists, so no early return. slow(${VALS[slow]}) = slow.next → slow(${VALS[newSlow]}). fast(${VALS[fast]}) = fast.next.next → fast(${VALS[newFast]}) via ${VALS[midFast]}. ${met ? 'slow == fast! Cycle confirmed → return True.' : 'slow != fast — loop continues.'}`,
       anchor: { match: 'while fast:', to: { match: 'fast = fast.next.next' } },
-      state: {
-        type: 'linked-list',
-        nodes: makeNodes(newSlow, newFast),
-        pointers: [
-          { nodeId: `n${newSlow}`, label: 'slow' },
-          { nodeId: `n${newFast}`, label: 'fast' },
-        ],
-      },
+      state: makeState(newSlow, newFast),
       variables: [
         { name: 'slow.val', value: VALS[newSlow], highlight: met },
         { name: 'fast.val', value: VALS[newFast], highlight: met },
@@ -87,14 +68,7 @@ function generateFloydsSteps(): Step[] {
       steps.push({
         explanation: `if slow == fast: True — slow(${VALS[slow]}) and fast(${VALS[fast]}) are the same node. return True.`,
         anchor: { match: 'if slow == fast:', to: { match: 'return True', nth: 2 } }, // 2nd hit: the actual return (the 1st is the leading comment "# if slow == fast at any point, return True")
-        state: {
-          type: 'linked-list',
-          nodes: makeNodes(slow, fast),
-          pointers: [
-            { nodeId: `n${slow}`, label: 'slow' },
-            { nodeId: `n${fast}`, label: 'fast' },
-          ],
-        },
+        state: makeState(slow, fast),
         variables: [{ name: 'return', value: 'True', highlight: true }],
       });
       break;

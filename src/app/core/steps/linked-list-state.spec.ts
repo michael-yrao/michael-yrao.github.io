@@ -24,5 +24,8 @@ describe('linkedListState', () => {
       ['r1', null, 'done'],
     ]);
     expect(custom.pointers, 'pointers override the default').toBe(pointers);
+
+    const result = linkedListState([3], { idPrefix: 'r' }).nodes;
+    expect(linkedListState([1], { result }).result, 'a passed result appears').toBe(result);
   });
 });

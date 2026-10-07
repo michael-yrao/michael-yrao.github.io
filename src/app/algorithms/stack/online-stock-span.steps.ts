@@ -1,6 +1,7 @@
 // Traces cse-progress's StockSpanner_20260823 verbatim — same monotonic-decreasing-stack
 // algorithm as the earlier hand simulation below; only the class name and comments changed.
-import { AlgorithmMeta, SolutionVariant, Step, ArrayCell, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, CellState, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 function generateSteps(): Step[] {
   const prices = [100, 80, 60, 70, 60, 75, 85];
@@ -10,11 +11,8 @@ function generateSteps(): Step[] {
   const stack: { value: number; span: number }[] = [];
   const results: (number | string)[] = prices.map(() => '?');
 
-  const renderCells = (activeIdx: number): ArrayCell[] =>
-    prices.map((p, i) => ({
-      value: p,
-      state: i < activeIdx ? 'visited' : i === activeIdx ? 'active' : 'default',
-    }));
+  const cellState = (activeIdx: number, activeState: CellState = 'active') => (i: number): CellState =>
+    i < activeIdx ? 'visited' : i === activeIdx ? activeState : 'default';
 
   const renderStack = (): (string | number)[] =>
     stack.map((e) => `(${e.value}, ${e.span})`);
@@ -23,13 +21,11 @@ function generateSteps(): Step[] {
     explanation:
       'StockSpanner.next(price) returns how many consecutive prior days (including today) had price ≤ today. We keep a monotonic decreasing stack of (price, span) pairs: each entry already absorbs the span of every smaller day it swallowed.',
     anchor: { match: 'class StockSpanner_20260823:' },
-    state: {
-      type: 'array',
-      cells: renderCells(-1),
-      pointers: [],
+    state: arrayState(prices, {
+      cellState: cellState(-1),
       stackItems: [],
       counters: [{ label: 'decreasingStack', value: 'empty' }],
-    },
+    }),
     variables: [],
   });
 
@@ -41,9 +37,8 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `next(${price}) — call #${i + 1}. currentSpan starts at 1 (today counts). Now pop every stacked day whose price ≤ ${price}, folding its span in.`,
       anchor: { match: 'currentSpan = 1' },
-      state: {
-        type: 'array',
-        cells: renderCells(i),
+      state: arrayState(prices, {
+        cellState: cellState(i),
         pointers: [{ index: i, label: 'today' }],
         stackItems: renderStack(),
         counters: [
@@ -51,7 +46,7 @@ function generateSteps(): Step[] {
           { label: 'currentSpan', value: currentSpan },
           { label: 'result', value: results.map((r) => (r === '?' ? '·' : r)).join(' ') },
         ],
-      },
+      }),
       variables: [
         { name: 'price', value: price, highlight: true },
         { name: 'currentSpan', value: currentSpan },
@@ -66,9 +61,8 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `Top of stack is (${top.value}, ${top.span}) and ${top.value} ≤ ${price}, so it is engulfed: pop it and add its span ${top.span} → currentSpan = ${currentSpan}.`,
         anchor: { match: 'priorValue, priorSpan = self.decreasingStack.pop()' },
-        state: {
-          type: 'array',
-          cells: renderCells(i),
+        state: arrayState(prices, {
+          cellState: cellState(i),
           pointers: [{ index: i, label: 'today' }],
           stackItems: renderStack(),
           counters: [
@@ -76,7 +70,7 @@ function generateSteps(): Step[] {
             { label: 'currentSpan', value: currentSpan },
             { label: 'popped span', value: top.span },
           ],
-        },
+        }),
         variables: [
           { name: 'priorValue', value: top.value },
           { name: 'priorSpan', value: top.span },
@@ -95,12 +89,8 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `Push (${price}, ${currentSpan}) — ${stopReason}. return ${currentSpan}. This is the span for day ${i + 1}.`,
       anchor: { match: 'self.decreasingStack.append((price, currentSpan))' },
-      state: {
-        type: 'array',
-        cells: prices.map((p, idx) => ({
-          value: p,
-          state: idx < i ? 'visited' : idx === i ? 'found' : 'default',
-        })),
+      state: arrayState(prices, {
+        cellState: cellState(i, 'found'),
         pointers: [{ index: i, label: 'today' }],
         stackItems: renderStack(),
         counters: [
@@ -108,7 +98,7 @@ function generateSteps(): Step[] {
           { label: 'returned span', value: currentSpan },
           { label: 'result', value: results.map((r) => (r === '?' ? '·' : r)).join(' ') },
         ],
-      },
+      }),
       variables: [
         { name: 'return', value: currentSpan, highlight: true },
       ],
@@ -118,13 +108,11 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `All calls done. Spans returned in order: [${results.join(', ')}]. Each next() is amortized O(1): every price is pushed once and popped at most once across all calls.`,
     anchor: { match: 'return currentSpan' },
-    state: {
-      type: 'array',
-      cells: prices.map((p) => ({ value: p, state: 'found' as const })),
-      pointers: [],
+    state: arrayState(prices, {
+      cellState: () => 'found',
       stackItems: renderStack(),
       counters: [{ label: 'spans', value: results.join(' ') }],
-    },
+    }),
     variables: [],
   });
 

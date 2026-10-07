@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -14,15 +15,12 @@ function generateSteps(): Step[] {
     explanation:
       `Best Time to Buy and Sell Stock II: prices=[${prices.join(',')}]. Greedy approach: every time prices[i] > prices[i-1], add that gain to profit (equivalent to buying at every local min, selling at every local max). Sum all positive day-over-day differences.`,
     anchor: { match: 'profit = 0' },
-    state: {
-      type: 'array',
-      cells: prices.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
+    state: arrayState(prices, {
       counters: [
         { label: 'profit', value: 0 },
         { label: 'i', value: 1 },
       ],
-    },
+    }),
     variables: [
       { name: 'prices', value: `[${prices.join(',')}]` },
       { name: 'profit', value: 0 },
@@ -38,26 +36,22 @@ function generateSteps(): Step[] {
       anchor: isProfitable
         ? { match: 'profit+=(prices[i]-prices[i-1])' }
         : { match: 'if prices[i] > prices[i-1]:' },
-      state: {
-        type: 'array',
-        cells: prices.map((v, idx) => ({
-          value: v,
-          state:
-            idx === i
-              ? (isProfitable ? ('found' as const) : ('eliminated' as const))
-              : idx === i - 1
-              ? ('active' as const)
-              : idx < i - 1
-              ? ('visited' as const)
-              : ('default' as const),
-        })),
+      state: arrayState(prices, {
+        cellState: (idx) =>
+          idx === i
+            ? (isProfitable ? 'found' : 'eliminated')
+            : idx === i - 1
+            ? 'active'
+            : idx < i - 1
+            ? 'visited'
+            : 'default',
         pointers: [{ index: i, label: `i=${i}` }],
         counters: [
           { label: 'i', value: i },
           { label: 'gain', value: gain },
           { label: 'profit', value: isProfitable ? profit + gain : profit },
         ],
-      },
+      }),
       variables: [
         { name: 'i', value: i },
         { name: `prices[${i}]-prices[${i - 1}]`, value: gain, highlight: true },
@@ -73,20 +67,11 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `All days processed. Total profit = ${profit}. Profitable days (green) contributed gains; unprofitable days (red) were skipped. Return ${profit}.`,
     anchor: { match: 'return profit' },
-    state: {
-      type: 'array',
-      cells: prices.map((v, idx) => ({
-        value: v,
-        state:
-          idx === 0
-            ? ('visited' as const)
-            : prices[idx] - prices[idx - 1] > 0
-            ? ('found' as const)
-            : ('eliminated' as const),
-      })),
-      pointers: [],
+    state: arrayState(prices, {
+      cellState: (idx) =>
+        idx === 0 ? 'visited' : prices[idx] - prices[idx - 1] > 0 ? 'found' : 'eliminated',
       counters: [{ label: 'return profit', value: profit }],
-    },
+    }),
     variables: [{ name: 'return profit', value: profit, highlight: true }],
   });
 

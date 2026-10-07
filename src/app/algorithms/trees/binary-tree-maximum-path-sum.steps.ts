@@ -1,11 +1,12 @@
-import { AlgorithmMeta, SolutionVariant, Step, TreeNode, TreeNodeState, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, TreeNodeState, ProblemExample } from '../../core/models/algorithm.model';
+import { TreeNodeInput, treeState } from '../../core/steps';
 
 // Traces cse-progress's maxPathSum verbatim: postorder DFS with a nonlocal maxPath, clamping
 // each side to 0 before computing the through-node candidate, same control flow as the
 // earlier hand simulation — only anchors and the odd `leftPath = max(dfs(node.left),0)`
 // (no space before the 0) spacing change here.
 
-type NodeDef = { val: number; left: string | null; right: string | null };
+interface NodeDef { val: number; left: string | null; right: string | null }
 const NODES: Record<string, NodeDef> = {
   a: { val: -10, left: 'b', right: 'c' },
   b: { val: 9, left: null, right: null },
@@ -22,20 +23,11 @@ function generateSteps(): Step[] {
   Object.keys(NODES).forEach((id) => (stateMap[id] = 'default'));
   let maxPath = -Infinity;
 
-  const treeNodes = (): TreeNode[] =>
-    Object.entries(NODES).map(([id, d]) => ({
-      id,
-      value: d.val,
-      state: stateMap[id],
-      leftId: d.left,
-      rightId: d.right,
-    }));
+  const treeNodes = (): TreeNodeInput[] =>
+    Object.entries(NODES).map(([id, d]) => ({ id, value: d.val, leftId: d.left, rightId: d.right }));
 
-  const buildState = (counters: { label: string; value: number | string }[]): Step['state'] => ({
-    type: 'tree',
-    nodes: treeNodes(),
-    counters,
-  });
+  const buildState = (counters: { label: string; value: number | string }[]): Step['state'] =>
+    treeState(treeNodes(), { nodeState: (n) => stateMap[n.id], counters });
 
   const fmtMax = () => (maxPath === -Infinity ? '-∞' : `${maxPath}`);
 

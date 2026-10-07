@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -20,27 +21,21 @@ function generateSteps(): Step[] {
   let maxLength = 0;
 
   const snap = (curL: number, curR: number) =>
-    s.split('').map((ch, i) => ({
-      value: ch,
-      state: (i === curR
-        ? 'active'
-        : i >= curL && i < curR
-        ? 'window'
-        : i < curL
-        ? 'eliminated'
-        : 'default') as 'active' | 'window' | 'eliminated' | 'default',
-    }));
+    arrayState(s.split(''), {
+      cellState: (i): CellState => (i === curR ? 'active' : i >= curL && i < curR ? 'window' : i < curL ? 'eliminated' : 'default'),
+      pointers: [{ index: curL, label: 'l' }, { index: curR, label: 'r' }],
+      hashmap: { ...freqMap },
+      counters: [{ label: 'maxLength', value: maxLength }, { label: 'maxFreq', value: maxFreq }],
+    });
 
   steps.push({
     explanation: `Longest Repeating Character Replacement on "${s}", k=${k}. l = r = 0; freqMap = defaultdict(int); maxFreq = 0; maxLength = 0. Window [l..r] is valid while (r-l+1) - maxFreq <= k, i.e. r-l+1 <= maxFreq+k.`,
     anchor: { match: 'l = r = 0', to: { match: 'maxLength = 0' } },
-    state: {
-      type: 'array',
-      cells: s.split('').map((ch) => ({ value: ch, state: 'default' as const })),
+    state: arrayState(s.split(''), {
       pointers: [{ index: 0, label: 'l=r' }],
       hashmap: {},
       counters: [{ label: 'maxLength', value: 0 }, { label: 'maxFreq', value: 0 }],
-    },
+    }),
     variables: [{ name: 's', value: s }, { name: 'k', value: k }],
   });
 
@@ -51,14 +46,8 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `while r < len(s): freqMap[s[${r}]]+=1 → freqMap['${ch}']=${freqMap[ch]}.`,
       anchor: { match: 'while r < len(s):', to: { match: 'freqMap[s[r]]+=1' } },
-      state: {
-        type: 'array',
-        cells: snap(l, r),
-        pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-        hashmap: { ...freqMap },
-        counters: [{ label: 'maxLength', value: maxLength }, { label: 'maxFreq', value: maxFreq }],
-      },
-      variables: [{ name: 'r', value: r }, { name: `freqMap['${ch}']`, value: freqMap[ch], highlight: true }],
+      state: snap(l, r),
+      variables: [{ name: 'r', value: r },{ name: `freqMap['${ch}']`, value: freqMap[ch], highlight: true }],
     });
 
     const oldMaxFreq = maxFreq;
@@ -67,13 +56,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `maxFreq = max(maxFreq, freqMap[s[r]]) = max(${oldMaxFreq}, ${freqMap[ch]}) = ${maxFreq}. This is the ONLY place maxFreq is ever set — it never gets rescanned or decreased on shrink.`,
       anchor: { match: 'maxFreq = max(maxFreq,freqMap[s[r]])' },
-      state: {
-        type: 'array',
-        cells: snap(l, r),
-        pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-        hashmap: { ...freqMap },
-        counters: [{ label: 'maxLength', value: maxLength }, { label: 'maxFreq', value: maxFreq }],
-      },
+      state: snap(l, r),
       variables: [{ name: 'maxFreq', value: maxFreq, highlight: true }],
     });
 
@@ -86,13 +69,7 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `while r-l+1 > maxFreq+k (${r - oldL + 1} > ${maxFreq}+${k}): shrink. freqMap[s[l]]-=1 → freqMap['${shrinkCh}']=${freqMap[shrinkCh]}. l+=1 → ${l}. maxFreq is UNCHANGED at ${maxFreq} — still stale from before this shrink.`,
         anchor: { match: 'while r - l + 1 > maxFreq + k:', to: { match: 'l+=1' } },
-        state: {
-          type: 'array',
-          cells: snap(l, r),
-          pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-          hashmap: { ...freqMap },
-          counters: [{ label: 'maxLength', value: maxLength }, { label: 'maxFreq', value: maxFreq }],
-        },
+        state: snap(l, r),
         variables: [{ name: 'removed', value: shrinkCh, highlight: true }, { name: 'l', value: l, highlight: true }],
       });
     }
@@ -103,13 +80,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `maxLength = max(maxLength, r-l+1) = max(previous, ${windowSize}) = ${maxLength}. r+=1.`,
       anchor: { match: 'maxLength = max(maxLength, r - l + 1)', to: { match: 'r+=1' } },
-      state: {
-        type: 'array',
-        cells: snap(l, r),
-        pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-        hashmap: { ...freqMap },
-        counters: [{ label: 'maxLength', value: maxLength }, { label: 'maxFreq', value: maxFreq }],
-      },
+      state: snap(l, r),
       variables: [{ name: 'windowSize', value: windowSize }, { name: 'maxLength', value: maxLength, highlight: true }],
     });
   }
@@ -118,10 +89,8 @@ function generateSteps(): Step[] {
     explanation: `Loop exhausted (r=${s.length}). Return maxLength = ${maxLength}.`,
     anchor: { match: 'return maxLength' },
     state: {
-      type: 'array',
-      cells: snap(l, s.length - 1),
+      ...snap(l, s.length - 1),
       pointers: [],
-      hashmap: { ...freqMap },
       counters: [{ label: 'maxLength', value: maxLength }],
     },
     variables: [{ name: 'return', value: maxLength, highlight: true }],

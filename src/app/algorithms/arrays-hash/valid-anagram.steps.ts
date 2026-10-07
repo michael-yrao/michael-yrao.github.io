@@ -1,4 +1,5 @@
 import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Solution 1: Hash map ─────────────────────────────────────────────────────
 //
@@ -14,24 +15,11 @@ function generateSteps(): Step[] {
   const tMap: Record<string, number> = {};
 
   const sChars = s.split('');
-  const tChars = t.split('');
-
-  const sSnap = (activeIdx: number) =>
-    sChars.map((c, i) => ({
-      value: c,
-      state:
-        i < activeIdx ? ('visited' as const) : i === activeIdx ? ('active' as const) : ('default' as const),
-    }));
 
   steps.push({
     explanation: `Create two empty frequency maps: sMap for "${s}", tMap for "${t}".`,
     anchor: { match: 'sMap, tMap = {}, {}' },
-    state: {
-      type: 'array',
-      cells: sChars.map(c => ({ value: c, state: 'default' as const })),
-      pointers: [],
-      hashmap: {},
-    },
+    state: arrayState(sChars, { hashmap: {} }),
     variables: [
       { name: 's', value: s },
       { name: 't', value: t },
@@ -43,12 +31,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Check len(s) != len(t): ${s.length} != ${t.length} is false — lengths match, so no early return. One pass builds both maps simultaneously.`,
     anchor: { match: 'if len(s) != len(t):' },
-    state: {
-      type: 'array',
-      cells: sChars.map(c => ({ value: c, state: 'default' as const })),
-      pointers: [],
-      hashmap: {},
-    },
+    state: arrayState(sChars, { hashmap: {} }),
     variables: [
       { name: 'len(s)', value: s.length },
       { name: 'len(t)', value: t.length },
@@ -62,13 +45,12 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `i=${i}: both maps update on this index — sMap['${s[i]}'] → ${sMap[s[i]]}; tMap['${t[i]}'] → ${tMap[t[i]]}.`,
       anchor: { match: 'sMap[s[i]] = 1 + sMap.get(s[i],0)', to: { match: 'tMap[t[i]] = 1 + tMap.get(t[i],0)' } },
-      state: {
-        type: 'array',
-        cells: sSnap(i),
+      state: arrayState(sChars, {
+        cellState: (j) => (j < i ? 'visited' : j === i ? 'active' : 'default'),
         pointers: [{ index: i, label: 'i' }],
         hashmap: { ...sMap },
         counters: Object.entries(tMap).map(([k, v]) => ({ label: `t['${k}']`, value: v })),
-      },
+      }),
       variables: [
         { name: 'i', value: i, highlight: true },
         { name: "s[i]", value: s[i], highlight: true },
@@ -88,13 +70,11 @@ function generateSteps(): Step[] {
       ? `sMap == tMap — every character appears the same number of times in both strings. Return true: "${s}" and "${t}" are anagrams.`
       : `sMap != tMap — at least one character frequency differs. Return false.`,
     anchor: { match: 'return sMap == tMap' },
-    state: {
-      type: 'array',
-      cells: sChars.map(c => ({ value: c, state: equal ? ('found' as const) : ('eliminated' as const) })),
-      pointers: [],
+    state: arrayState(sChars, {
+      cellState: () => (equal ? 'found' : 'eliminated'),
       hashmap: { ...sMap },
       counters: Object.entries(tMap).map(([k, v]) => ({ label: `t['${k}']`, value: v })),
-    },
+    }),
     variables: [
       { name: 'sMap == tMap', value: equal ? 'true' : 'false', highlight: true },
       { name: 'result', value: String(equal), highlight: true },
@@ -121,12 +101,7 @@ function generateSortedSteps(): Step[] {
   steps.push({
     explanation: `Sort both strings. If they produce the same sequence of characters, they are anagrams. s="${s}", t="${t}".`,
     anchor: { match: SORT_RETURN_LINE },
-    state: {
-      type: 'array',
-      cells: s.split('').map(c => ({ value: c, state: 'default' as const })),
-      pointers: [],
-      hashmap: { t },
-    },
+    state: arrayState(s.split(''), { hashmap: { t } }),
     variables: [{ name: 's', value: s }, { name: 't', value: t }],
   });
 
@@ -134,12 +109,10 @@ function generateSortedSteps(): Step[] {
   steps.push({
     explanation: `sorted(s) = "${sortedS}".`,
     anchor: { match: SORT_RETURN_LINE },
-    state: {
-      type: 'array',
-      cells: sortedS.split('').map(c => ({ value: c, state: 'visited' as const })),
-      pointers: [],
+    state: arrayState(sortedS.split(''), {
+      cellState: () => 'visited',
       hashmap: { 't': t, 'sorted(t)': '...' },
-    },
+    }),
     variables: [{ name: 'sorted(s)', value: sortedS, highlight: true }],
   });
 
@@ -147,12 +120,10 @@ function generateSortedSteps(): Step[] {
   steps.push({
     explanation: `sorted(t) = "${sortedT}".`,
     anchor: { match: SORT_RETURN_LINE },
-    state: {
-      type: 'array',
-      cells: sortedT.split('').map(c => ({ value: c, state: 'visited' as const })),
-      pointers: [],
+    state: arrayState(sortedT.split(''), {
+      cellState: () => 'visited',
       hashmap: { 'sorted(s)': sortedS, 'sorted(t)': sortedT },
-    },
+    }),
     variables: [{ name: 'sorted(t)', value: sortedT, highlight: true }],
   });
 
@@ -160,15 +131,10 @@ function generateSortedSteps(): Step[] {
   steps.push({
     explanation: `sorted(s) "${sortedS}" ${equal ? '==' : '!='} sorted(t) "${sortedT}" → return ${equal}.`,
     anchor: { match: SORT_RETURN_LINE },
-    state: {
-      type: 'array',
-      cells: sortedS.split('').map((c, i) => ({
-        value: c,
-        state: equal ? ('found' as const) : (c === sortedT[i] ? ('visited' as const) : ('eliminated' as const)),
-      })),
-      pointers: [],
+    state: arrayState(sortedS.split(''), {
+      cellState: (i, c) => (equal ? 'found' : c === sortedT[i] ? 'visited' : 'eliminated'),
       hashmap: { 'sorted(s)': sortedS, 'sorted(t)': sortedT },
-    },
+    }),
     variables: [{ name: 'return', value: String(equal), highlight: true }],
   });
 

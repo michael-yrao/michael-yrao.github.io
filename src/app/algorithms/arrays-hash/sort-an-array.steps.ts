@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ArrayState, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -9,8 +10,16 @@ import { AlgorithmMeta, SolutionVariant, Step, ArrayState, ProblemExample } from
 // rightArray)` builds a NEW resultArray with `.append()`, tracked by two local
 // pointers li/ri, not a third "numsPointer" writing back into a source array.
 
-const cellsFor = (arr: readonly number[], activeIdx?: number) =>
-  arr.map((v, i) => ({ value: v, state: (i === activeIdx ? 'active' : 'default') as 'active' | 'default' }));
+const activeAt =
+  (activeIdx: number) =>
+  (i: number): CellState =>
+    i === activeIdx ? 'active' : 'default';
+
+/** Cell state for `[...left, ...right]`: `li` is active in the left half, `ri` in the right half. */
+const bothHalvesState =
+  (leftLength: number, li: number, ri: number) =>
+  (i: number): CellState =>
+    i < leftLength ? activeAt(li)(i) : activeAt(ri)(i - leftLength);
 
 function generateSteps(): Step[] {
   const steps: Step[] = [];
@@ -20,7 +29,7 @@ function generateSteps(): Step[] {
     explanation:
       'Sort nums=[5,2,3,1] using Merge Sort. mergeSort(inputArray) slices the array in half and recurses on each NEW slice until len(inputArray) <= 1, then merge() combines two sorted slices into a brand-new resultArray. Time O(n log n), Space O(n) for the new arrays created at every level.',
     anchor: { match: 'def sortArrayMergeSort_20260725(self, nums: List[int]) -> List[int]:' },
-    state: { type: 'array', cells: cellsFor(nums), pointers: [], arrayLabel: 'nums' } as ArrayState,
+    state: arrayState(nums, { arrayLabel: 'nums' }),
   });
 
   // ── merge(leftArray, rightArray): builds resultArray via .append() ─────────
@@ -38,13 +47,11 @@ function generateSteps(): Step[] {
             // nth:1 li+=1 is the main-loop's own increment; nth:2 (used by the drain step below) is the drain loop's.
             to: { match: 'li+=1', nth: 1 },
           },
-          state: {
-            type: 'array',
-            cells: [...cellsFor(leftArray, li), ...cellsFor(rightArray, ri)],
-            pointers: [],
+          state: arrayState([...leftArray, ...rightArray], {
+            cellState: bothHalvesState(leftArray.length, li, ri),
             arrayLabel: `${label}: leftArray=[${leftArray.join(',')}] rightArray=[${rightArray.join(',')}]`,
             counters: [{ label: 'resultArray', value: `[${resultArray.join(',')}]` }],
-          } as ArrayState,
+          }),
         });
         resultArray.push(leftArray[li]);
         li++;
@@ -56,13 +63,11 @@ function generateSteps(): Step[] {
             // nth:1 ri+=1 is the main-loop's own increment; nth:2 (used by the drain step below) is the drain loop's.
             to: { match: 'ri+=1', nth: 1 },
           },
-          state: {
-            type: 'array',
-            cells: [...cellsFor(leftArray, li), ...cellsFor(rightArray, ri)],
-            pointers: [],
+          state: arrayState([...leftArray, ...rightArray], {
+            cellState: bothHalvesState(leftArray.length, li, ri),
             arrayLabel: `${label}: leftArray=[${leftArray.join(',')}] rightArray=[${rightArray.join(',')}]`,
             counters: [{ label: 'resultArray', value: `[${resultArray.join(',')}]` }],
-          } as ArrayState,
+          }),
         });
         resultArray.push(rightArray[ri]);
         ri++;
@@ -75,13 +80,11 @@ function generateSteps(): Step[] {
         explanation: `${label}: rightArray exhausted. Drain the rest of leftArray (${JSON.stringify(drained)}) into resultArray. resultArray=[${[...resultArray, ...drained].join(',')}].`,
         // nth:2 skips the main-loop's li+=1 (hit 1) and lands on this drain loop's own li+=1.
         anchor: { match: 'while li < len(leftArray):', to: { match: 'li+=1', nth: 2 } },
-        state: {
-          type: 'array',
-          cells: cellsFor(leftArray, li),
-          pointers: [],
+        state: arrayState(leftArray, {
+          cellState: activeAt(li),
           arrayLabel: `${label}: draining leftArray`,
           counters: [{ label: 'resultArray', value: `[${resultArray.join(',')}]` }],
-        } as ArrayState,
+        }),
       });
       resultArray.push(...drained);
     } else if (ri < rightArray.length) {
@@ -90,13 +93,11 @@ function generateSteps(): Step[] {
         explanation: `${label}: leftArray exhausted. Drain the rest of rightArray (${JSON.stringify(drained)}) into resultArray. resultArray=[${[...resultArray, ...drained].join(',')}].`,
         // nth:2 skips the main-loop's ri+=1 (hit 1) and lands on this drain loop's own ri+=1.
         anchor: { match: 'while ri < len(rightArray):', to: { match: 'ri+=1', nth: 2 } },
-        state: {
-          type: 'array',
-          cells: cellsFor(rightArray, ri),
-          pointers: [],
+        state: arrayState(rightArray, {
+          cellState: activeAt(ri),
           arrayLabel: `${label}: draining rightArray`,
           counters: [{ label: 'resultArray', value: `[${resultArray.join(',')}]` }],
-        } as ArrayState,
+        }),
       });
       resultArray.push(...drained);
     }
@@ -104,12 +105,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `${label}: return resultArray = [${resultArray.join(',')}].`,
       anchor: { match: 'return resultArray' },
-      state: {
-        type: 'array',
-        cells: cellsFor(resultArray),
-        pointers: [],
-        arrayLabel: `${label}: resultArray (merged)`,
-      } as ArrayState,
+      state: arrayState(resultArray, { arrayLabel: `${label}: resultArray (merged)` }),
     });
 
     return resultArray;
@@ -121,7 +117,7 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `mergeSort(${label}=[${inputArray.join(',')}]): len(inputArray) <= 1 → base case, return inputArray unchanged.`,
         anchor: { match: 'if len(inputArray) <= 1:', to: { match: 'return inputArray' } },
-        state: { type: 'array', cells: cellsFor(inputArray), pointers: [], arrayLabel: `${label} (base case)` } as ArrayState,
+        state: arrayState(inputArray, { arrayLabel: `${label} (base case)` }),
       });
       return inputArray;
     }
@@ -133,12 +129,9 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `mergeSort(${label}=[${inputArray.join(',')}]): mid = len(inputArray)//2 = ${mid}. leftSide = mergeSort(inputArray[:${mid}]) on [${leftSlice.join(',')}], rightSide = mergeSort(inputArray[${mid}:]) on [${rightSlice.join(',')}] — both brand-new slices, not the original array.`,
       anchor: { match: 'mid = len(inputArray) // 2', to: { match: 'rightSide = mergeSort(inputArray[mid:])' } },
-      state: {
-        type: 'array',
-        cells: [...cellsFor(leftSlice), ...cellsFor(rightSlice)],
-        pointers: [],
+      state: arrayState([...leftSlice, ...rightSlice], {
         arrayLabel: `${label}: split into [${leftSlice.join(',')}] | [${rightSlice.join(',')}]`,
-      } as ArrayState,
+      }),
     });
 
     const leftSide = simulateMergeSort(leftSlice, `${label}.left`);
@@ -148,7 +141,7 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `mergeSort(${label}): return merge(leftSide, rightSide) = [${merged.join(',')}].`,
       anchor: { match: 'return merge(leftSide, rightSide)' },
-      state: { type: 'array', cells: cellsFor(merged), pointers: [], arrayLabel: `${label} (sorted)` } as ArrayState,
+      state: arrayState(merged, { arrayLabel: `${label} (sorted)` }),
     });
 
     return merged;
@@ -159,16 +152,14 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `All recursive calls complete. return mergeSort(nums) = [${sorted.join(',')}]. Merge Sort divides into O(log n) levels, each doing O(n) work of comparisons and appends → O(n log n) total. Space O(n): every call slices and builds brand-new arrays.`,
     anchor: { match: 'return mergeSort(nums)' },
-    state: {
-      type: 'array',
-      cells: sorted.map((v) => ({ value: v, state: 'found' as const })),
-      pointers: [],
+    state: arrayState(sorted, {
+      cellState: () => 'found',
       counters: [
         { label: 'output', value: `[${sorted.join(',')}]` },
         { label: 'time', value: 'O(n log n)' },
         { label: 'space', value: 'O(n)' },
       ],
-    } as ArrayState,
+    }),
   });
 
   return steps;

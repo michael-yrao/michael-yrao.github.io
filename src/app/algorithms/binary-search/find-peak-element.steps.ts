@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // Traces cse-progress's findPeakElement verbatim: min-boundary binary search where
 // is_valid(mid) = nums[mid] >= nums[mid + 1] (peak at or left of mid).
@@ -8,29 +9,22 @@ function generateSteps(): Step[] {
   const steps: Step[] = [];
 
   const snap = (l: number, r: number, mid: number | null, foundIdx: number | null) =>
-    nums.map((v, i) => ({
-      value: v,
-      state:
-        foundIdx !== null
-          ? i === foundIdx
-            ? ('found' as const)
-            : ('eliminated' as const)
-          : i === mid
-          ? ('active' as const)
-          : i >= l && i <= r
-          ? ('window' as const)
-          : ('eliminated' as const),
-    }));
+    (i: number): CellState =>
+      foundIdx !== null
+        ? i === foundIdx
+          ? 'found'
+          : 'eliminated'
+        : i === mid
+        ? 'active'
+        : i >= l && i <= r
+        ? 'window'
+        : 'eliminated';
 
   steps.push({
     explanation:
       'Find a peak element in [1,2,3,1] in O(log n). Key insight: if nums[mid] < nums[mid+1], the slope is rising right — a peak must exist to the right of mid. Otherwise, nums[mid] ≥ nums[mid+1] means mid itself could be the peak, so we keep it.',
     anchor: { match: 'def findPeakElement(self, nums: List[int]) -> int:' },
-    state: {
-      type: 'array',
-      cells: nums.map(v => ({ value: v, state: 'default' as const })),
-      pointers: [],
-    },
+    state: arrayState(nums),
     variables: [{ name: 'nums', value: '[1,2,3,1]' }],
   });
 
@@ -40,11 +34,10 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `Initialize l=${l}, r=${r}. We use l < r to converge on the peak without overshooting.`,
     anchor: { match: 'l, r = 0, len(nums) - 1' },
-    state: {
-      type: 'array',
-      cells: snap(l, r, null, null),
+    state: arrayState(nums, {
+      cellState: snap(l, r, null, null),
       pointers: [{ index: l, label: 'l' }, { index: r, label: 'r' }],
-    },
+    }),
     variables: [{ name: 'l', value: l }, { name: 'r', value: r }],
   });
 
@@ -57,15 +50,14 @@ function generateSteps(): Step[] {
       anchor: risingRight
         ? { match: 'if nums[mid] < nums[mid + 1]:' }
         : { match: 'r = mid' },
-      state: {
-        type: 'array',
-        cells: snap(l, r, mid, null),
+      state: arrayState(nums, {
+        cellState: snap(l, r, mid, null),
         pointers: [
           { index: l, label: 'l' },
           { index: mid, label: 'mid' },
           { index: r, label: 'r' },
         ],
-      },
+      }),
       variables: [
         { name: 'mid', value: mid },
         { name: 'nums[mid]', value: nums[mid] },
@@ -81,11 +73,10 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `l === r === ${l}. Converged! nums[${l}] = ${nums[l]} is a peak element (greater than both neighbors). Return index ${l}.`,
     anchor: { match: 'return l' },
-    state: {
-      type: 'array',
-      cells: snap(l, r, null, l),
+    state: arrayState(nums, {
+      cellState: snap(l, r, null, l),
       pointers: [{ index: l, label: 'peak' }],
-    },
+    }),
     variables: [
       { name: 'l', value: l },
       { name: 'return', value: l, highlight: true },

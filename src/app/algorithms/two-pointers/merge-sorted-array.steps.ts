@@ -1,4 +1,5 @@
-import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, CellState, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { arrayState } from '../../core/steps';
 
 // ── Step generator ────────────────────────────────────────────────────────────
 //
@@ -9,8 +10,6 @@ import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core
 // from nums1; otherwise (nums1 exhausted OR nums2's tail wins) take from nums2. iterator
 // always decrements, regardless of branch.
 
-type CellVisualState = 'default' | 'active' | 'found' | 'min-ptr';
-
 function generateSteps(): Step[] {
   const nums1Start = [1, 2, 3, 0, 0, 0];
   const nums2 = [2, 5, 6];
@@ -19,30 +18,20 @@ function generateSteps(): Step[] {
   const nums1 = [...nums1Start];
   const steps: Step[] = [];
 
-  const snap = (nums1Ptr: number, iterator: number) =>
-    nums1.map((v, idx) => ({
-      value: v,
-      state: (idx === iterator
-        ? 'active'
-        : idx === nums1Ptr && idx < m
-        ? 'min-ptr'
-        : idx > iterator
-        ? 'found'
-        : 'default') as CellVisualState,
-    }));
+  const snapCellState = (nums1Ptr: number, iterator: number) => (idx: number): CellState =>
+    idx === iterator ? 'active' : idx === nums1Ptr && idx < m ? 'min-ptr' : idx > iterator ? 'found' : 'default';
 
   steps.push({
     explanation: `nums1=[${nums1.join(', ')}] holds m=${m} real values then spare zeros; nums2=[${nums2.join(', ')}] has n=${n} values. nums1Ptr, nums2Ptr = m-1, n-1 → ${m - 1}, ${n - 1}. iterator = m+n-1 = ${m + n - 1}. The loop below only runs while nums2Ptr >= 0 — once nums2 is used up, whatever's left at the front of nums1 is already sorted in place.`,
     anchor: { match: 'nums1Ptr, nums2Ptr = m - 1, n - 1', to: { match: 'iterator = m + n - 1' } },
-    state: {
-      type: 'array',
-      cells: nums1.map((v, i) => ({ value: v, state: (i < m ? 'active' : 'default') as CellVisualState })),
+    state: arrayState(nums1, {
+      cellState: (i) => (i < m ? 'active' : 'default'),
       pointers: [{ index: m - 1, label: 'nums1Ptr' }],
       counters: [
         { label: 'nums2', value: `[${nums2.join(', ')}]` },
         { label: 'nums2Ptr', value: n - 1 },
       ],
-    },
+    }),
     variables: [
       { name: 'm', value: m },
       { name: 'n', value: n },
@@ -60,15 +49,14 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `iterator=${iterator}: nums1Ptr=${nums1Ptr} ≥ 0 and nums1[nums1Ptr]=${nums1[nums1Ptr]} > nums2[nums2Ptr]=${nums2[nums2Ptr]} → nums1[iterator]=nums1[nums1Ptr]=${nums1[nums1Ptr]}. nums1Ptr-=1.`,
         anchor: { match: 'if nums1Ptr >= 0 and nums1[nums1Ptr] > nums2[nums2Ptr]:', to: { match: 'nums1Ptr-=1' } },
-        state: {
-          type: 'array',
-          cells: snap(nums1Ptr, iterator),
+        state: arrayState(nums1, {
+          cellState: snapCellState(nums1Ptr, iterator),
           pointers: [{ index: iterator, label: 'iterator' }, { index: nums1Ptr, label: 'nums1Ptr' }],
           counters: [
             { label: 'nums2', value: `[${nums2.join(', ')}]` },
             { label: 'nums2Ptr', value: nums2Ptr },
           ],
-        },
+        }),
         variables: [
           { name: 'nums1Ptr', value: nums1Ptr },
           { name: 'nums2Ptr', value: nums2Ptr },
@@ -85,15 +73,14 @@ function generateSteps(): Step[] {
       steps.push({
         explanation: `iterator=${iterator}: ${reason} → falls to else. nums1[iterator]=nums2[nums2Ptr]=${nums2[nums2Ptr]}. nums2Ptr-=1.`,
         anchor: { match: 'else:', to: { match: 'nums2Ptr-=1' } },
-        state: {
-          type: 'array',
-          cells: snap(nums1Ptr, iterator),
+        state: arrayState(nums1, {
+          cellState: snapCellState(nums1Ptr, iterator),
           pointers: [{ index: iterator, label: 'iterator' }, ...(nums1Ptr >= 0 ? [{ index: nums1Ptr, label: 'nums1Ptr' }] : [])],
           counters: [
             { label: 'nums2', value: `[${nums2.join(', ')}]` },
             { label: 'nums2Ptr', value: nums2Ptr },
           ],
-        },
+        }),
         variables: [
           { name: 'nums1Ptr', value: nums1Ptr },
           { name: 'nums2Ptr', value: nums2Ptr },
@@ -107,12 +94,11 @@ function generateSteps(): Step[] {
     steps.push({
       explanation: `iterator-=1 → ${iterator - 1}.`,
       anchor: { match: 'iterator-=1' },
-      state: {
-        type: 'array',
-        cells: snap(nums1Ptr, iterator - 1),
+      state: arrayState(nums1, {
+        cellState: snapCellState(nums1Ptr, iterator - 1),
         pointers: [{ index: iterator - 1, label: 'iterator' }],
         counters: [{ label: 'nums2Ptr', value: nums2Ptr }],
-      },
+      }),
       variables: [{ name: 'iterator', value: iterator - 1, highlight: true }],
     });
     iterator -= 1;
@@ -121,12 +107,7 @@ function generateSteps(): Step[] {
   steps.push({
     explanation: `nums2Ptr=${nums2Ptr} < 0 → loop ends. nums1[0..${nums1Ptr}] were never touched — already sorted and correctly placed. Result: [${nums1.join(', ')}]. O(m+n) time, O(1) space.`,
     anchor: { match: 'while nums2Ptr >= 0:' },
-    state: {
-      type: 'array',
-      cells: nums1.map((v) => ({ value: v, state: 'found' as const })),
-      pointers: [],
-      counters: [{ label: 'nums2', value: 'exhausted' }],
-    },
+    state: arrayState(nums1, { cellState: () => 'found', counters: [{ label: 'nums2', value: 'exhausted' }] }),
     variables: [{ name: 'result', value: `[${nums1.join(', ')}]`, highlight: true }],
   });
 

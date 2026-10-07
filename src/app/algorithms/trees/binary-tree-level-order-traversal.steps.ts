@@ -1,4 +1,5 @@
-import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, Step, StepAnchor, TreeNodeState } from '../../core/models/algorithm.model';
+import { TreeNodeInput, treeState } from '../../core/steps';
 
 // Traces cse-progress's levelOrder verbatim: unlike a "never enqueue None" BFS, this attempt
 // seeds the queue with root unconditionally and guards every dequeue with `if currentNode:`
@@ -6,7 +7,7 @@ import { AlgorithmMeta, Step, StepAnchor, TreeNode, TreeState } from '../../core
 // True for this non-empty example, but we still narrate it since it's really there.
 
 // Tree: [3, 9, 20, null, null, 15, 7]
-const NODES: Omit<TreeNode, 'state'>[] = [
+const NODES: TreeNodeInput[] = [
   { id: 'n0', value: 3, leftId: 'n1', rightId: 'n2' },
   { id: 'n1', value: 9, leftId: null, rightId: null },
   { id: 'n2', value: 20, leftId: 'n3', rightId: 'n4' },
@@ -19,12 +20,9 @@ function generateSteps(): Step[] {
   const nodeMap = new Map(NODES.map((n) => [n.id, n]));
   const valueOf = (id: string) => nodeMap.get(id)!.value as number;
 
-  const colour: Record<string, TreeNode['state']> = {};
+  const colour: Record<string, TreeNodeState> = {};
   const queue: string[] = ['n0'];
   const returnList: number[][] = [];
-
-  const makeNodes = (): TreeNode[] =>
-    NODES.map((n) => ({ ...n, state: colour[n.id] ?? 'default' }));
 
   const queueStr = () => '[' + queue.map((id) => valueOf(id)).join(', ') + ']';
   const resultStr = () => '[' + returnList.map((l) => '[' + l.join(',') + ']').join(', ') + ']';
@@ -37,15 +35,14 @@ function generateSteps(): Step[] {
     steps.push({
       explanation,
       anchor,
-      state: {
-        type: 'tree',
-        nodes: makeNodes(),
+      state: treeState(NODES, {
+        nodeState: (n) => colour[n.id] ?? 'default',
         pointers: opts.current ? [{ nodeId: opts.current, label: '▶ processing' }] : [],
         counters: [
           { label: 'queue', value: queueStr() },
           { label: 'returnList', value: resultStr() },
         ],
-      } as TreeState,
+      }),
       variables: opts.vars,
     });
   };

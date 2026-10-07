@@ -116,8 +116,7 @@ function generateSteps(): Step[] {
     const ids = PATH['apple'];
     const walked: string[] = ['root'];
     let prevId = 'root';
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i];
+    for (const id of ids) {
       const ch = POS[id].char;
       revealed.add(id); // char not in children → create a new TrieNode child
       walked.push(id);
@@ -160,8 +159,7 @@ function generateSteps(): Step[] {
     const ids = PATH['app'];
     const walked: string[] = ['root'];
     let prevId = 'root';
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i];
+    for (const id of ids) {
       const ch = POS[id].char;
       walked.push(id); // already revealed — char in children, no new node
       steps.push(
@@ -203,8 +201,7 @@ function generateSteps(): Step[] {
     const ids = PATH['bad'];
     const walked: string[] = ['root'];
     let prevId = 'root';
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i];
+    for (const id of ids) {
       const ch = POS[id].char;
       revealed.add(id);
       walked.push(id);
