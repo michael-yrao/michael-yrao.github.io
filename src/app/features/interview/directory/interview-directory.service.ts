@@ -2,9 +2,10 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { Injectable, InjectionToken, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
+import { isRecord } from '../../../core/contracts/is-record';
 import { INTERVIEW_CODES_ENABLED, WORKER_API_URL } from '../../../core/data/site-links';
-import { HostKeys, parsePackedKey, verifyProblem } from '../session/host-key';
-import { PreparedEntry } from '../session/prepared-store';
+import { HostKeys, parsePackedKey, verifyProblem } from '../session/crypto/host-key';
+import { PreparedEntry } from '../session/store/prepared-store';
 import { deriveIds } from '../session/session-support';
 import {
   CandidateRecordResponse,
@@ -62,10 +63,6 @@ interface RawResponse {
 interface KeyIdentity {
   readonly keys: HostKeys;
   readonly sessionId: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 function isBase64UrlOfLength(value: unknown, length: number): value is string {

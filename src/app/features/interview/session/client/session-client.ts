@@ -1,6 +1,6 @@
-import { createNonce, signChallenge, verifyChallenge } from './host-key';
-import { InterviewProblem, SignedProblem } from './interview-problem';
-import { PeerFactory, Transport } from './peer-transport';
+import { createNonce, signChallenge, verifyChallenge } from '../crypto/host-key';
+import { InterviewProblem, SignedProblem } from '../interview-problem';
+import { PeerFactory, Transport } from '../peer-transport';
 import {
   HelloMessage,
   InitMessage,
@@ -11,8 +11,8 @@ import {
   SessionMessage,
   WireUpdate,
   parseSessionMessage,
-} from './session-message';
-import { END_GRACE_MS } from './session-support';
+} from '../session-message';
+import { END_GRACE_MS } from '../session-support';
 
 export const CONNECT_TIMEOUT_MS = 20_000;
 /** How long a host may take to answer the challenge once the connection is open. */

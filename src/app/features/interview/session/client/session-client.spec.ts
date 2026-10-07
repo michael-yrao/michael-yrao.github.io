@@ -1,9 +1,9 @@
 import type { Mock, Mocked } from 'vitest';
 
-import { HostKeys, createNonce, generateHostKeys, signChallenge, verifyChallenge } from './host-key';
-import { Transport } from './peer-transport';
+import { HostKeys, createNonce, generateHostKeys, signChallenge, verifyChallenge } from '../crypto/host-key';
+import { Transport } from '../peer-transport';
 import { ClientConnection, ClientHooks, ClientIdentity } from './session-client';
-import { HelloMessage } from './session-message';
+import { HelloMessage } from '../session-message';
 
 const SESSION_ID = 'po-session';
 

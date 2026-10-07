@@ -1,55 +1,30 @@
 import { Update } from '@codemirror/collab';
 
-import { Authority, authorityVersion, createAuthority, receivePush } from './collab-authority';
-import { HostKeys, createNonce, signChallenge, signProblemAt, verifyChallenge, verifyProblem } from './host-key';
-import { InterviewProblem, SignedProblem, parseInterviewProblem } from './interview-problem';
-import { CandidateDialer } from './candidate-listener';
-import { EndSummary } from './debrief';
-import { Host, Transport } from './peer-transport';
+import { CandidateDialer } from '../client/candidate-listener';
+import { CONNECT_TIMEOUT_MS } from '../client/session-client';
+import { Authority, authorityVersion, createAuthority, receivePush } from '../collab/collab-authority';
+import { decodeUpdates, textOf, toWire } from '../collab/wire-updates';
+import { HostKeys, createNonce, signChallenge, verifyChallenge } from '../crypto/host-key';
+import { EndSummary } from '../debrief';
+import { InterviewProblem, SignedProblem } from '../interview-problem';
+import { Host, Transport } from '../peer-transport';
 import {
   CandidateSeat,
   EditProblemMessage,
   HelloMessage,
   InitMessage,
-  NAME_MAX_LENGTH,
   NO_MARKS,
   Participant,
   RevisedDoc,
   SessionMessage,
   parseSessionMessage,
-} from './session-message';
-import { CONNECT_TIMEOUT_MS } from './session-client';
-import { END_GRACE_MS, RECONNECT_DELAY_MS, isBrokerError, isUnavailableId } from './session-support';
-import { decodeUpdates, textOf, toWire } from './wire-updates';
-
-/** What the host knows when it must decide which text becomes the canonical document. */
-export interface AuthorityInputs {
-  /** The doc saved for the interviewer role in this browser. */
-  readonly saved: RevisedDoc | null;
-  /** A tab that took over: its own synced doc. */
-  readonly takeover: RevisedDoc | null;
-  /** The doc of each hello received so far, in arrival order; null when that side had none. */
-  readonly hellos: readonly (RevisedDoc | null)[];
-  /** True while a connected peer has not finished its handshake: its doc may still arrive, so the stub must wait. */
-  readonly hasPendingHandshake: boolean;
-}
+} from '../session-message';
+import { END_GRACE_MS, RECONNECT_DELAY_MS, isBrokerError, isUnavailableId } from '../session-support';
+import { chooseAuthorityDoc, cleanName, isHelloRefused, withAway } from './host-rules';
+import { HostProblem } from './host-problem';
 
 /** A connection that has not reached `ready` by now is closed, so one stuck peer cannot block every init. */
 const HANDSHAKE_TIMEOUT_MS = CONNECT_TIMEOUT_MS;
-
-/**
- * The text the session starts from: the candidate with the highest revision among the saved doc, the
- * takeover doc and the hellos (a tie keeps that order, so the first hello wins among hellos), else (every hello
- * was empty and no handshake is pending) the stub at revision 0. Null while there is nothing to decide on yet.
- */
-export function chooseAuthorityDoc(inputs: AuthorityInputs, stubFn: () => string): RevisedDoc | null {
-  const candidates = [inputs.saved, inputs.takeover, ...inputs.hellos].filter((entry) => entry !== null);
-  const newest = candidates.reduce<RevisedDoc | null>((best, entry) => (best === null || entry.rev > best.rev ? entry : best), null);
-  if (newest !== null) {
-    return newest;
-  }
-  return inputs.hellos.length > 0 && !inputs.hasPendingHandshake ? { doc: stubFn(), rev: 0 } : null;
-}
 
 export interface HostConfig {
   readonly sessionId: string;
@@ -102,18 +77,6 @@ interface ConnectionRecord {
   readonly isDialed: boolean;
 }
 
-function cleanName(name: string): string {
-  return name.trim().slice(0, NAME_MAX_LENGTH);
-}
-
-/** The seat after the candidate's `away` report: a repeat changes nothing, and only a new absence is counted. */
-function withAway(seat: CandidateSeat, isAway: boolean): CandidateSeat {
-  if (seat.isAway === isAway) {
-    return seat;
-  }
-  return { ...seat, isAway, awayCount: isAway ? seat.awayCount + 1 : seat.awayCount };
-}
-
 /**
  * The authority side of a session: it answers each connection's challenge, admits participants
  * whose hello checks out, keeps the roster, owns the canonical document and relays accepted updates.
@@ -130,10 +93,7 @@ export class SessionHost {
   private endGraceTimer: ReturnType<typeof setTimeout> | null = null;
   /** Held outside the connection records, so it survives the candidate reconnecting. */
   private candidateSeat: CandidateSeat;
-  /** The newest problem, signed by the interviewer key; changed only inside enqueue. */
-  private signedProblem: SignedProblem | null;
-  /** Every change to the problem runs through this chain, so revisions are assigned in arrival order. */
-  private problemChain: Promise<void> = Promise.resolve();
+  private readonly problem: HostProblem;
 
   private readonly dialer: CandidateDialer;
 
@@ -142,7 +102,10 @@ export class SessionHost {
     private readonly events: HostEvents,
   ) {
     this.candidateSeat = config.candidateSeat;
-    this.signedProblem = config.problem;
+    this.problem = new HostProblem(config.problem, config.keys, config.sessionId, {
+      isClosed: () => this.isClosed,
+      onPublished: (signed, problem) => this.publishProblem(signed, problem),
+    });
     this.dialer = new CandidateDialer({
       dial: config.dialCandidate,
       isNeeded: () => this.isCandidateNeeded(),
@@ -228,17 +191,12 @@ export class SessionHost {
 
   /** The problem as the host holds it, or null before there is one. */
   getProblem(): SignedProblem | null {
-    return this.signedProblem;
+    return this.problem.current;
   }
 
   /** The hosting tab's own problem edit: validated, then signed and published in turn with every other edit. */
   editLocal(problem: InterviewProblem): Promise<void> {
-    const valid = parseInterviewProblem(problem);
-    if (valid === null) {
-      console.error('Interview host: dropped a local problem edit that is not a valid problem');
-      return Promise.resolve();
-    }
-    return this.enqueue(() => this.publishEdit(valid));
+    return this.problem.editLocal(problem);
   }
 
   /** The hosting tab's name changed. */
@@ -390,37 +348,11 @@ export class SessionHost {
       console.error('Interview host: dropped a problem edit from a connection that is not an interviewer');
       return;
     }
-    void this.enqueue(() => this.publishEdit(message.problem));
+    this.problem.editRemote(message.problem);
   }
 
-  /** Runs `task` after every earlier task; a failure is logged, so the chain never rejects. */
-  private enqueue(task: () => Promise<void>): Promise<void> {
-    this.problemChain = this.problemChain
-      .then(task)
-      .catch((error: unknown) => console.error('Interview host: a problem change failed', error));
-    return this.problemChain;
-  }
-
-  /** Numbers, signs and publishes problem; the revision is read here, inside the chain, so it is current. */
-  private async publishEdit(problem: InterviewProblem): Promise<void> {
-    if (this.isClosed) {
-      return;
-    }
-    const rev = (this.signedProblem?.rev ?? 0) + 1;
-    try {
-      const { keys, sessionId } = this.config;
-      const signed = await signProblemAt(keys.privateKey, sessionId, rev, problem);
-      if (!this.isClosed) {
-        this.publishProblem(signed, problem);
-      }
-    } catch (error) {
-      console.error('Interview host: could not sign a problem edit', error);
-    }
-  }
-
-  /** Makes signed the held problem, tells the hosting tab and sends it to every ready participant. */
+  /** `signed` is now the held problem: tells the hosting tab and sends it to every ready participant. */
   private publishProblem(signed: SignedProblem, problem: InterviewProblem): void {
-    this.signedProblem = signed;
     this.events.onProblem(signed, problem);
     this.broadcast({ type: 'problem', problem: signed });
   }
@@ -471,7 +403,7 @@ export class SessionHost {
       transport.close();
       return;
     }
-    await this.adoptHelloProblem(hello.problem);
+    await this.problem.adoptFromHello(hello.problem);
     if (this.isClosed || this.find(transport) === undefined) {
       return;
     }
@@ -483,32 +415,6 @@ export class SessionHost {
     this.markReady(transport, hello);
   }
 
-  /**
-   * A hello's problem is taken only when its revision is higher than the held one and the interviewer key signed
-   * it for this session. Runs in the chain, so it never interleaves with an edit being signed. The hello is
-   * admitted either way.
-   */
-  private adoptHelloProblem(signed: SignedProblem | undefined): Promise<void> {
-    if (signed === undefined) {
-      return Promise.resolve();
-    }
-    return this.enqueue(async () => {
-      if (this.isClosed || signed.rev <= (this.signedProblem?.rev ?? 0)) {
-        return;
-      }
-      const { keys, sessionId } = this.config;
-      const problem = await verifyProblem(keys.publicKey, sessionId, signed);
-      if (this.isClosed) {
-        return;
-      }
-      if (problem === null) {
-        console.error('Interview host: ignored a problem that the interviewer key did not sign for this session');
-        return;
-      }
-      this.publishProblem(signed, problem);
-    });
-  }
-
   private async isInterviewerHelloValid(hello: HelloMessage, hostNonce: string): Promise<boolean> {
     if (hello.signature === undefined) {
       return false;
@@ -517,12 +423,9 @@ export class SessionHost {
     return verifyChallenge(keys.publicKey, 'hello', hostNonce, sessionId, hello.signature);
   }
 
-  /** One candidate at most, and no id twice (the host's own included). */
   private isHelloRefused(hello: HelloMessage): boolean {
-    const ready = this.records.flatMap((record) => (record.participant === null ? [] : [record.participant]));
-    const isIdTaken = hello.id === this.config.selfId || ready.some((participant) => participant.id === hello.id);
-    const isSecondCandidate = hello.role === 'candidate' && ready.some((participant) => participant.role === 'candidate');
-    return isIdTaken || isSecondCandidate;
+    const admitted = this.records.flatMap((record) => (record.participant === null ? [] : [record.participant]));
+    return isHelloRefused(hello, this.config.selfId, admitted);
   }
 
   private markReady(transport: Transport, hello: HelloMessage): void {
@@ -583,7 +486,7 @@ export class SessionHost {
   }
 
   private sendInit(transport: Transport, authority: Authority): void {
-    const problem = this.signedProblem;
+    const problem = this.problem.current;
     transport.send({
       type: 'init',
       version: authorityVersion(authority),

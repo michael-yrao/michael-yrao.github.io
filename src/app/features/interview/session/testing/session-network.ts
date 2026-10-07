@@ -5,12 +5,12 @@ import { EditorView } from '@codemirror/view';
 import { vi } from 'vitest';
 
 import { InterviewDirectoryService } from '../../directory/interview-directory.service';
-import { HostKeys, createNonce, parsePackedKey, signChallenge } from '../host-key';
+import { HostKeys, createNonce, parsePackedKey, signChallenge } from '../crypto/host-key';
 import { InterviewProblem } from '../interview-problem';
 import { InterviewSessionService, RECONNECT_DELAY_MS } from '../interview-session.service';
 import { Host, PEER_FACTORY, PeerFactory, Transport } from '../peer-transport';
 import { PreparedInterviewsService } from '../prepared-interviews.service';
-import { hostPeerIdFromPacked, sessionIdFromPublicKey } from '../session-id';
+import { hostPeerIdFromPacked, sessionIdFromPublicKey } from '../crypto/session-id';
 
 export const STUB = 'stub';
 export const PROBLEM: InterviewProblem = {

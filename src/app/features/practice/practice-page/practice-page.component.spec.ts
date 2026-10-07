@@ -10,8 +10,8 @@ import { RunState } from '../../../core/runner/runner.model';
 import { GOLD_STANDARD_REPO, LoadStatus } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { ShowcaseService } from '../../../core/services/showcase.service';
-import { CodeEditorComponent } from '../code-editor/code-editor.component';
-import { SAMPLE_CASE_COUNT } from '../practice-shortcuts';
+import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
+import { SAMPLE_CASE_COUNT } from '../../../shared/utils/practice-shortcuts';
 import { PracticePageComponent } from './practice-page.component';
 
 const STUB = 'class Solution:\n    pass\n';

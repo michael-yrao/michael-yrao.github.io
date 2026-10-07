@@ -1,11 +1,11 @@
 import { Injector } from '@angular/core';
 
 import { InterviewerFetch, InterviewDirectoryService, PushOutcome, RemoveOutcome } from '../directory/interview-directory.service';
-import { parsePackedKey, signProblemAt } from './host-key';
+import { parsePackedKey, signProblemAt } from './crypto/host-key';
 import { InterviewProblem, SignedProblem } from './interview-problem';
 import { InterviewSchedule } from './interview-schedule';
 import { LIVE_PUSH_MIN_MS, PreparedInterviewsService } from './prepared-interviews.service';
-import { PreparedEntry, listPrepared, loadPrepared, mirrorPreparedProblem } from './prepared-store';
+import { PreparedEntry, listPrepared, loadPrepared, mirrorPreparedProblem } from './store/prepared-store';
 
 const BASE_URL = 'https://site.test/interview';
 const NO_SUCH_SESSION = 'po-no-such-session';

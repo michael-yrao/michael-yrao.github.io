@@ -1,10 +1,10 @@
-import { MAX_PENDING_HANDSHAKES } from './candidate-side';
+import { MAX_PENDING_HANDSHAKES } from './client/candidate-side';
 import { lockedProblem } from './candidate-lock';
-import { generateHostKeys } from './host-key';
+import { generateHostKeys } from './crypto/host-key';
 import { RECLAIM_TIMEOUT_MS, RECONNECT_DELAY_MS } from './interview-session.service';
 import { PeerFactory } from './peer-transport';
-import { sessionIdFromPublicKey } from './session-id';
-import { loadSession } from './session-store';
+import { sessionIdFromPublicKey } from './crypto/session-id';
+import { loadSession } from './store/session-store';
 import {
   COARSE_STEP_MS,
   PROBLEM,

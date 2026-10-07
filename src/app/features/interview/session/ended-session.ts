@@ -1,7 +1,7 @@
 import { EMPTY_NOTES, EndSummary } from './debrief';
 import { InterviewProblem } from './interview-problem';
 import { CandidateSeat } from './session-message';
-import { loadNotes } from './notes-store';
+import { loadNotes } from './store/notes-store';
 
 const SUMMARY_VERSION = 1;
 

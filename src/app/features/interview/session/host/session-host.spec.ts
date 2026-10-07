@@ -1,11 +1,12 @@
 import type { Mock } from 'vitest';
 
-import { HostKeys, createNonce, generateHostKeys, signChallenge, signProblem } from './host-key';
-import { InterviewProblem, SignedProblem } from './interview-problem';
-import { Host, Transport } from './peer-transport';
-import { CONNECT_TIMEOUT_MS } from './session-client';
-import { AuthorityInputs, HostConfig, HostEvents, SessionHost, chooseAuthorityDoc } from './session-host';
-import { CandidateSeat, HelloMessage, InitMessage, NO_MARKS, Participant, ParticipantRole, ProblemMessage, RevisedDoc } from './session-message';
+import { CONNECT_TIMEOUT_MS } from '../client/session-client';
+import { HostKeys, createNonce, generateHostKeys, signChallenge, signProblem } from '../crypto/host-key';
+import { InterviewProblem, SignedProblem } from '../interview-problem';
+import { Host, Transport } from '../peer-transport';
+import { AuthorityInputs, chooseAuthorityDoc } from './host-rules';
+import { HostConfig, HostEvents, SessionHost } from './session-host';
+import { CandidateSeat, HelloMessage, InitMessage, NO_MARKS, Participant, ParticipantRole, ProblemMessage, RevisedDoc } from '../session-message';
 
 const SESSION_ID = 'po-session';
 const SELF_ID = 'host-tab';

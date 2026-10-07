@@ -19,7 +19,6 @@ import {
   PlannedProblem,
   ProblemProgress,
   Technique,
-  TechniqueTier,
 } from '../../../core/models/progress.model';
 import { fileUrl, RepoRef } from '../../../core/services/github-file.service';
 import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-date';
@@ -27,8 +26,6 @@ import { walkthroughRouteFor } from '../solution-link-mode';
 import { PRACTICE_GLYPH } from '../practice-link';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import {
-  columnFor,
-  compareTechniques,
   CoverageBox,
   coverageBoxes,
   deriveTechniqueStats,
@@ -37,12 +34,20 @@ import {
   ratioDenominatorOf,
   readStoredView,
   shortName as shortNameFor,
-  TechniqueColumn,
   TechniqueSortKey,
   TechniqueStats,
   TechniqueView,
   writeStoredView,
 } from './technique-view';
+import {
+  BoardColumn,
+  TierGroup,
+  boardFamiliesOf,
+  boardInScope,
+  buildBoardColumns,
+  groupByTier,
+  judgeLabel,
+} from './technique-groups';
 
 /** A request to jump to one technique. `at` makes the same name focusable twice in a row. */
 export interface TechniqueFocus {
@@ -50,60 +55,7 @@ export interface TechniqueFocus {
   at: number;
 }
 
-interface FamilyGroup {
-  family: string;
-  items: Technique[];
-}
-
-interface TierGroup {
-  tier: TechniqueTier;
-  label: string;
-  families: FamilyGroup[];
-}
-
-// Fixed order (not alphabetical — alphabetical would put 'core' after 'dp'), matching the
-// intermediate/advanced line: core (started) is always first; dp/tier1 are above the line;
-// tier2/tier3 are below it.
-const TIER_ORDER: TechniqueTier[] = ['core', 'dp', 'tier1', 'tier2', 'tier3'];
-const TIER_LABEL: Record<TechniqueTier, string> = {
-  core: 'Core',
-  dp: 'DP framework — not started',
-  tier1: 'Tier 1 · intermediate — not started',
-  tier2: 'Tier 2 · advanced — not started',
-  tier3: 'Tier 3 · advanced — not started',
-};
-
-// An advanced technique (tier2/tier3) is hidden from the board by default — same
-// intermediate/advanced line TIER_LABEL already names — until the learner opts in via the toggle.
-const HORIZON_TIERS: ReadonlySet<TechniqueTier> = new Set(['tier2', 'tier3']);
-
-interface BoardColumn {
-  readonly key: TechniqueColumn;
-  readonly label: string;
-  readonly items: Technique[];
-}
-
-// Least- to most-advanced, matching how a technique actually progresses.
-const BOARD_COLUMN_ORDER: TechniqueColumn[] = ['notStarted', 'inProgress', 'covered', 'mastered'];
-const BOARD_COLUMN_LABEL: Record<TechniqueColumn, string> = {
-  notStarted: 'Not started',
-  inProgress: 'In progress',
-  covered: 'Covered',
-  mastered: 'Mastered',
-};
-
 const BOARD_SORT_KEYS: readonly TechniqueSortKey[] = ['name', 'coverage', 'lastPracticed'];
-
-// judgeLabel()'s host → short label map. Keyed by the bare hostname (no leading `www.` —
-// judgeLabel strips that before lookup). A host with no entry here falls back to itself.
-const JUDGE_HOST_LABELS: Readonly<Record<string, string>> = {
-  'leetcode.com': 'LC',
-  'neetcode.io': 'NC',
-  'open.kattis.com': 'Kattis',
-  'cses.fi': 'CSES',
-  'hellointerview.com': 'HelloInterview',
-  'progressiveoverflow.com': 'progressiveoverflow',
-};
 
 /**
  * The technique-breadth drill: "which 94, and how am I doing on each?" Grouped by TIER
@@ -159,6 +111,7 @@ export class TechniqueListComponent {
   readonly plannedTotalOf = plannedTotalOf;
   readonly ratioDenominatorOf = ratioDenominatorOf;
   readonly coverageBoxes = coverageBoxes;
+  readonly judgeLabel = judgeLabel;
 
   private readonly expandedNames = signal<ReadonlySet<string>>(new Set());
 
@@ -208,36 +161,7 @@ export class TechniqueListComponent {
     target?.scrollIntoView({ block: 'center' });
   }
 
-  readonly groups = computed<TierGroup[]>(() => {
-    const byTier = new Map<TechniqueTier, Technique[]>();
-    for (const t of this.techniques()) {
-      const bucket = byTier.get(t.tier);
-      if (bucket) {
-        bucket.push(t);
-      } else {
-        byTier.set(t.tier, [t]);
-      }
-    }
-    return TIER_ORDER.filter((tier) => byTier.has(tier)).map((tier) => {
-      const items = byTier.get(tier)!;
-      const byFamily = new Map<string, Technique[]>();
-      for (const t of items) {
-        const bucket = byFamily.get(t.family);
-        if (bucket) {
-          bucket.push(t);
-        } else {
-          byFamily.set(t.family, [t]);
-        }
-      }
-      const families: FamilyGroup[] = [...byFamily.entries()]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([family, familyItems]) => ({
-          family,
-          items: [...familyItems].sort((a, b) => a.name.localeCompare(b.name)),
-        }));
-      return { tier, label: TIER_LABEL[tier], families };
-    });
-  });
+  readonly groups = computed<TierGroup[]>(() => groupByTier(this.techniques()));
 
   /** All fetched problem details, keyed by LC number — the one join both problemsFor() and
    *  statsFor() read, so it's built once per details() change rather than once per call. */
@@ -324,39 +248,16 @@ export class TechniqueListComponent {
   /** The techniques the horizon toggle lets through — the pool both the family filter's
    *  option list and the board itself draw from, so the filter never offers a family whose
    *  every technique is hidden. */
-  private readonly boardInScope = computed<Technique[]>(() => {
-    const showHorizon = this.showHorizon();
-    return this.techniques().filter((t) => showHorizon || !HORIZON_TIERS.has(t.tier));
-  });
-
-  readonly boardFamilies = computed<string[]>(() =>
-    [...new Set(this.boardInScope().map((t) => t.family))].sort((a, b) => a.localeCompare(b)),
+  private readonly boardScope = computed<Technique[]>(() =>
+    boardInScope(this.techniques(), this.showHorizon()),
   );
 
-  private readonly boardFiltered = computed<Technique[]>(() => {
-    const family = this.boardFamily();
-    return this.boardInScope().filter((t) => family === null || t.family === family);
-  });
+  readonly boardFamilies = computed<string[]>(() => boardFamiliesOf(this.boardScope()));
 
-  private readonly boardSorted = computed<Technique[]>(() => {
-    const key = this.boardSort();
-    const stats = this.stats();
-    return [...this.boardFiltered()].sort((a, b) => compareTechniques(a, b, key, stats));
-  });
-
-  /** The board's four columns, in `BOARD_COLUMN_ORDER`, each carrying its own count — a plain
-   *  `filter` per column over the already-sorted/filtered list, so each column's items stay in
-   *  sort order with no mutation. The technique list is small enough that filtering it once per
-   *  column costs nothing worth optimizing for. */
-  readonly boardColumns = computed<BoardColumn[]>(() => {
-    const stats = this.stats();
-    const sorted = this.boardSorted();
-    return BOARD_COLUMN_ORDER.map((key) => ({
-      key,
-      label: BOARD_COLUMN_LABEL[key],
-      items: sorted.filter((t) => columnFor(t, stats.get(t.name)) === key),
-    }));
-  });
+  /** The board's four columns — see `buildBoardColumns` in technique-groups.ts. */
+  readonly boardColumns = computed<BoardColumn[]>(() =>
+    buildBoardColumns(this.boardScope(), this.boardFamily(), this.boardSort(), this.stats()),
+  );
 
   setView(next: TechniqueView): void {
     this.view.set(next);
@@ -424,21 +325,6 @@ export class TechniqueListComponent {
     if (names.length === 1) return '1 variation not tried';
     if (names.length > 1) return `${names.length} variations not tried`;
     return t.hasVariantGap ? 'a variation not tried' : null;
-  }
-
-  /** The judge a planned problem's `url` points at, for the detail row's number/label slot
-   *  (`Kattis` instead of `#9001`). Bare hostname with `www.` stripped when the host isn't in
-   *  `JUDGE_HOST_LABELS`; '' for a null or unparsable url — never throws. */
-  judgeLabel(url: string | null): string {
-    if (!url) return '';
-    let hostname: string;
-    try {
-      hostname = new URL(url).hostname;
-    } catch {
-      return '';
-    }
-    const bareHost = hostname.replace(/^www\./, '');
-    return JUDGE_HOST_LABELS[bareHost] ?? bareHost;
   }
 
   /** A problem row's GitHub fallback link: the learner's own solution file (progress.json's

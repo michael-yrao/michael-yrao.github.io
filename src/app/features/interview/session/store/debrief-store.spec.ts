@@ -1,4 +1,4 @@
-import { Debrief, EMPTY_NOTES } from './debrief';
+import { Debrief, EMPTY_NOTES } from '../debrief';
 import { DEBRIEFS_MAX, DEBRIEF_KEY_PREFIX, listDebriefs, loadDebrief, removeDebrief, saveDebrief } from './debrief-store';
 
 const debriefAt = (index: number): Debrief => ({

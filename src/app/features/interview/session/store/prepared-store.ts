@@ -1,6 +1,6 @@
-import { SignedProblem } from './interview-problem';
-import { InterviewSchedule, parseSchedule } from './interview-schedule';
-import { isSignedProblem } from './session-message';
+import { SignedProblem } from '../interview-problem';
+import { InterviewSchedule, parseSchedule } from '../interview-schedule';
+import { isSignedProblem } from '../session-message';
 
 /**
  * A prepared interview kept in this browser: the interviewer key (packed, so it holds the private half), the

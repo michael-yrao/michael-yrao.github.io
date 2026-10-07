@@ -1,4 +1,4 @@
-import { decodeBase64Url, encodeBase64Url } from '../session/host-key';
+import { decodeBase64Url, encodeBase64Url } from '../session/crypto/host-key';
 import { SignedProblem } from '../session/interview-problem';
 import { InterviewSchedule } from '../session/interview-schedule';
 import { DirectoryPlaintext, InterviewerSecrets, Sealed, candidateLookupId, deriveInterviewerSecrets, seal, unseal } from './directory-crypto';

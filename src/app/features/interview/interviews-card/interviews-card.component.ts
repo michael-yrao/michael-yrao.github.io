@@ -4,7 +4,7 @@ import { CopyButtonComponent } from '../copy-button/copy-button.component';
 import { formatScheduledAt, scheduleWhen } from '../interview-page/interview-format';
 import { OFFLINE_MESSAGE } from '../interview-messages';
 import { PublishStateComponent } from '../publish-state/publish-state.component';
-import { listDebriefs } from '../session/debrief-store';
+import { listDebriefs } from '../session/store/debrief-store';
 import { InterviewSessionService } from '../session/interview-session.service';
 import { inviteEmailHref } from '../session/invite-share';
 import { PreparedInterviewsService } from '../session/prepared-interviews.service';
@@ -41,7 +41,7 @@ function toRow(summary: PreparedSummary, codes: PreparedCodes | null): Interview
 @Component({
   selector: 'app-interviews-card',
   templateUrl: './interviews-card.component.html',
-  styleUrls: ['../../practice/practice-page/practice-page.component.scss', './interviews-card.component.scss'],
+  styleUrls: ['./interviews-card.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CopyButtonComponent, PublishStateComponent],
 })

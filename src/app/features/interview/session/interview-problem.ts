@@ -1,3 +1,4 @@
+import { isRecord } from '../../../core/contracts/is-record';
 import type {
   CompareMode,
   PracticeCase,
@@ -43,10 +44,6 @@ export interface SignedProblem {
   readonly rev: number;
   readonly json: string;
   readonly signature: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 function isTextWithin(value: unknown, max: number): value is string {

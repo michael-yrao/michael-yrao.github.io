@@ -18,7 +18,7 @@ interface SetupTarget {
 @Component({
   selector: 'app-saved-problems-card',
   templateUrl: './saved-problems-card.component.html',
-  styleUrls: ['../../../practice/practice-page/practice-page.component.scss', './saved-problems-card.component.scss'],
+  styleUrls: ['./saved-problems-card.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [InterviewSetupComponent, ModalComponent, RouterLink],
 })

@@ -1,8 +1,8 @@
-import { Host, PeerFactory, Transport } from './peer-transport';
-import { dialWithTimeout } from './session-client';
+import { dialWithTimeout } from '../client/session-client';
+import { Host, PeerFactory, Transport } from '../peer-transport';
+import { RevisedDoc } from '../session-message';
+import { RECLAIM_TIMEOUT_MS, RECONNECT_DELAY_MS, errorType, isUnavailableId } from '../session-support';
 import { SessionHost } from './session-host';
-import { RevisedDoc } from './session-message';
-import { RECLAIM_TIMEOUT_MS, RECONNECT_DELAY_MS, errorType, isUnavailableId } from './session-support';
 
 type AttemptOutcome = 'done' | 'retry' | 'superseded';
 

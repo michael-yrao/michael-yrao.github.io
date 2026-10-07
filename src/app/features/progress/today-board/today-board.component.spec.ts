@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import { TodayBoardComponent, endNoteMeaning } from './today-board.component';
+import { TodayBoardComponent } from './today-board.component';
+import { endNoteMeaning } from './board-rows';
 import { SOLUTION_LINK_MODE_STORAGE_KEY } from '../solution-link-mode';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemProgress, Schedule, ScheduleItem, WorkloadDay } from '../../../core/models/progress.model';

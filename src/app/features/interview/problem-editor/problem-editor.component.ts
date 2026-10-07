@@ -5,9 +5,9 @@ import { loadMetaOrNull } from '../../../core/data/load-meta';
 import type { CompareMode, PracticeCase } from '../../../core/models/practice.model';
 import { isPracticeCase } from '../../../core/practice/practice-validation';
 import { PracticeService } from '../../../core/services/practice.service';
-import { CodeEditorComponent } from '../../practice/code-editor/code-editor.component';
-import { injectPracticeContract } from '../../practice/practice-contract';
-import { PROBLEM_TRACK, WORK_TRACK } from '../../practice/practice-split';
+import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
+import { injectPracticeContract } from '../../../shared/utils/practice-contract';
+import { PROBLEM_TRACK, WORK_TRACK } from '../../../shared/utils/practice-split';
 import { entryFromStarter, importProblem } from '../problem-import';
 import {
   CASES_MAX,
@@ -99,7 +99,7 @@ function toRow(testCase: PracticeCase): CaseRow {
 @Component({
   selector: 'app-problem-editor',
   templateUrl: './problem-editor.component.html',
-  styleUrls: ['../../practice/practice-page/practice-page.component.scss', './problem-editor.component.scss'],
+  styleUrls: ['./problem-editor.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CodeEditorComponent],
   host: { '[class.problem-editor--split]': 'isSplit()' },

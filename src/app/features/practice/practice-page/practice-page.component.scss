@@ -1,44 +1,6 @@
-$value-max-height: 12rem;
-$content-max-width: 60rem;
-$split-breakpoint: 900px;
-$nav-height: 56px;
-$divider-width: 0.75rem;
+@use '../../../shared/styles/workbench';
+
 $divider-line-width: 2px;
-$output-max-height: 40%;
-$icon-size: 1.1rem;
-$tab-underline-width: 2px;
-
-.practice {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  padding: var(--space-lg) var(--page-gutter);
-  color: var(--color-text);
-}
-
-.practice__message,
-.practice__skeleton {
-  width: 100%;
-  max-width: $content-max-width;
-  margin-inline: auto;
-}
-
-.practice__message { margin-block: 0; }
-
-.practice__split,
-.practice__problem,
-.practice__work,
-.practice__output {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  width: 100%;
-  max-width: $content-max-width;
-  margin-inline: auto;
-}
-.practice__problem,
-.practice__work,
-.practice__output { max-width: none; margin-inline: 0; }
 
 .practice__divider,
 .practice__row-divider { display: none; }
@@ -58,83 +20,10 @@ $tab-underline-width: 2px;
   .practice__skeleton { animation: none; }
 }
 
-.practice__value {
-  margin: 0;
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-card);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  white-space: pre-wrap;
-  overflow: auto;
-  max-height: $value-max-height;
-}
-
-.practice__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-sm);
-}
 .practice__spacer { flex: 1 1 auto; }
-
-.practice__btn {
-  padding: var(--space-xs) var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-raised);
-  color: var(--color-text);
-  font: inherit;
-  cursor: pointer;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
-  &:hover:not(:disabled) { border-color: var(--color-accent); }
-  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
-.practice__btn--icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-xs);
-  svg { width: $icon-size; height: $icon-size; }
-}
-.practice__btn--primary {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: var(--color-seg-ink);
-  font-weight: 600;
-}
-
-.practice__status,
-.practice__summary,
-.practice__word {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-.practice__summary { color: var(--color-text); font-weight: 600; }
 
 .practice__icon--ok { color: var(--color-found); }
 .practice__icon--fail { color: var(--color-hard); }
-
-.practice__block,
-.practice__detail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-.practice__detail { padding: var(--space-sm) 0 var(--space-md) var(--space-lg); }
-
-.practice__label {
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-}
-.practice__label--bad { color: var(--color-hard); }
-
-.practice__value--bad { color: var(--color-hard); }
 
 .practice__pane-head {
   display: flex;
@@ -154,8 +43,8 @@ $tab-underline-width: 2px;
 .practice__pane-head .practice__summary { margin-left: auto; }
 
 .practice__chevron {
-  width: $icon-size;
-  height: $icon-size;
+  width: workbench.$icon-size;
+  height: workbench.$icon-size;
   flex: 0 0 auto;
   margin-left: auto;
   transition: transform var(--transition-fast);
@@ -167,63 +56,7 @@ $tab-underline-width: 2px;
   .practice__chevron { transition: none; }
 }
 
-.practice__code-body {
-  display: flex;
-  flex-direction: column;
-  &[hidden] { display: none; }
-}
-
-.practice__output-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.practice__tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  border-bottom: 1px solid var(--color-border);
-}
-.practice__tab {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-xs) var(--space-md);
-  border: 0;
-  border-bottom: $tab-underline-width solid transparent;
-  background: none;
-  color: var(--color-text-muted);
-  font: inherit;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
-  &:hover { color: var(--color-text); }
-  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-}
-.practice__tab--active { border-bottom-color: var(--color-accent); color: var(--color-text); }
-
-.practice__mark--pass { color: var(--color-found); }
-.practice__mark--fail { color: var(--color-hard); }
-.practice__case { font-family: var(--font-mono); }
-
-// Two panes under the nav: the problem on the left, the editor and its results on the right.
-@media (min-width: $split-breakpoint) {
-  .practice {
-    height: calc(100vh - #{$nav-height});
-    overflow: hidden;
-  }
-
-  .practice__split {
-    flex: 1 1 auto;
-    min-height: 0;
-    max-width: none;
-    display: grid;
-    // minmax(0, …) tracks: a pane's content (a long editor line) can never widen its track.
-    // The track weights come from the template's --problem-track / --work-track bindings.
-    grid-template-columns: minmax(0, var(--problem-track, 50fr)) $divider-width minmax(0, var(--work-track, 50fr));
-    grid-template-rows: minmax(0, 1fr);
-  }
+@media (min-width: workbench.$split-breakpoint) {
   // The problem pane folded to a rail: it takes only its head's width, the work pane the rest.
   .practice__split--problem-closed { grid-template-columns: auto minmax(0, 1fr); }
   // No editor to share the row with: the left pane takes the full width.
@@ -252,20 +85,7 @@ $tab-underline-width: 2px;
     .practice__split--dragging &::before { background: var(--color-accent); }
   }
 
-  .practice__problem,
-  .practice__work { min-width: 0; }
-  .practice__problem { overflow: auto; }
-  app-practice-header,
-  app-practice-description { flex: 0 0 auto; }
-
-  .practice__work { min-height: 0; }
-  .practice__toolbar { flex: 0 0 auto; }
-
-  .practice__output {
-    flex: 0 1 auto;
-    max-height: $output-max-height;
-    overflow: auto;
-  }
+  app-practice-header { flex: 0 0 auto; }
 
   // The dragged share of the work column's height; the editor takes the rest.
   .practice__output--sized {
@@ -277,7 +97,7 @@ $tab-underline-width: 2px;
     display: block;
     position: relative;
     flex: 0 0 auto;
-    height: $divider-width;
+    height: workbench.$divider-width;
     margin-block: calc(var(--space-md) / -2);
     cursor: row-resize;
     touch-action: none;
@@ -296,18 +116,6 @@ $tab-underline-width: 2px;
     &:hover::before,
     &:focus-visible::before,
     .practice__split--dragging &::before { background: var(--color-accent); }
-  }
-
-  .practice__code-body {
-    flex: 1 1 0;
-    min-height: 0;
-    --editor-height: 100%;
-    --editor-min-height: 0;
-    --editor-max-height: none;
-  }
-  app-code-editor {
-    flex: 1 1 0;
-    min-height: 0;
   }
 
   .practice__work--code-closed .practice__output {

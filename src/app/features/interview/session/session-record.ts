@@ -1,10 +1,10 @@
 import { Signal, signal } from '@angular/core';
 
 import { clearCandidateLock, writeCandidateLock } from './candidate-lock';
-import { verifyProblem } from './host-key';
+import { verifyProblem } from './crypto/host-key';
 import { InterviewProblem, SignedProblem } from './interview-problem';
 import { RevisedDoc } from './session-message';
-import { StoredSession, loadSession, saveSession } from './session-store';
+import { StoredSession, loadSession, saveSession } from './store/session-store';
 
 /** The revision a tab with no problem holds: below every signed one. */
 const NO_PROBLEM_REV = 0;

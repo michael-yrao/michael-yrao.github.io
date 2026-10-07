@@ -1,4 +1,4 @@
-import { Debrief, DebriefSummary, parseEndSummary } from './debrief';
+import { Debrief, DebriefSummary, parseEndSummary } from '../debrief';
 
 export const DEBRIEF_KEY_PREFIX = 'po-interview-debrief:';
 /** The newest this many debriefs are kept; saving another drops the oldest. */

@@ -34,7 +34,7 @@ function readFormInput(form: HTMLFormElement): SetupInput {
 @Component({
   selector: 'app-interview-setup',
   templateUrl: './interview-setup.component.html',
-  styleUrls: ['../../practice/practice-page/practice-page.component.scss', './interview-setup.component.scss'],
+  styleUrls: ['./interview-setup.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CopyButtonComponent, PublishStateComponent],
 })

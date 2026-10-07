@@ -3,10 +3,10 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import type { PracticeProblem } from '../../../core/models/practice.model';
 import { PageHeaderComponent, type BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
-import { CodeEditorComponent } from '../../practice/code-editor/code-editor.component';
-import { PracticeDescriptionComponent } from '../../practice/practice-description/practice-description.component';
-import { shortcutFor } from '../../practice/practice-shortcuts';
-import { PROBLEM_TRACK, WORK_TRACK } from '../../practice/practice-split';
+import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
+import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
+import { shortcutFor } from '../../../shared/utils/practice-shortcuts';
+import { PROBLEM_TRACK, WORK_TRACK } from '../../../shared/utils/practice-split';
 import { toPracticeProblem } from '../problem-import';
 import { RunPanelComponent } from '../run-panel/run-panel.component';
 import { injectCodeRun } from '../run/code-run';
@@ -24,7 +24,7 @@ const BREADCRUMB: BreadcrumbEntry[] = [
 @Component({
   selector: 'app-interview-try',
   templateUrl: './interview-try.component.html',
-  styleUrls: ['../../practice/practice-page/practice-page.component.scss', './interview-try.component.scss'],
+  styleUrls: ['./interview-try.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CodeEditorComponent, PageHeaderComponent, PracticeDescriptionComponent, RouterLink, RunPanelComponent],
   host: { '(document:keydown)': 'onKeydown($event)' },

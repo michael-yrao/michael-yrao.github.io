@@ -1,5 +1,5 @@
-import { HostKeys } from './host-key';
-import { hostPeerIdFromPacked, sessionIdFromPublicKey } from './session-id';
+import { HostKeys } from './crypto/host-key';
+import { hostPeerIdFromPacked, sessionIdFromPublicKey } from './crypto/session-id';
 import { NAME_MAX_LENGTH } from './session-message';
 
 /** The pause between dial/host attempts, between a drop and the re-dial, and between broker reconnects. */

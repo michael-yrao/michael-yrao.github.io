@@ -1,3 +1,5 @@
+import { pad2 } from '../../../shared/utils/pad2';
+
 /** Level-raiser moves, in the order the coach's reference lists them. */
 export const LEVEL_RAISER_MOVES = ['stream', 'scale-out', 'repeated-queries', 'generalize', 'tighten', 'relax', 'productionize'] as const;
 export type LevelRaiserMove = (typeof LEVEL_RAISER_MOVES)[number];
@@ -182,10 +184,6 @@ export function parseEndSummary(value: unknown): EndSummary | null {
 /** Lowercase, every run of characters other than a-z0-9 becomes one `_`, trimmed of `_` at both ends. */
 function slugOf(title: string): string {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-}
-
-function pad2(value: number): string {
-  return String(value).padStart(2, '0');
 }
 
 /** `YYYYMMDD` in the viewer's local time zone. */

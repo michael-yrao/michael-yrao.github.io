@@ -1,6 +1,6 @@
 import { watchAway } from './candidate-activity';
 import { CandidateListener } from './candidate-listener';
-import { PeerFactory, Transport } from './peer-transport';
+import { PeerFactory, Transport } from '../peer-transport';
 import { ClientConnection } from './session-client';
 
 /** The most incoming connections that may be mid-handshake at once; a stranger cannot hold more slots than this. */

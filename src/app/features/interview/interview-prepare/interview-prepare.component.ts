@@ -7,9 +7,9 @@ import { loadMetaOrNull } from '../../../core/data/load-meta';
 import type { PracticeProblem } from '../../../core/models/practice.model';
 import { PracticeService } from '../../../core/services/practice.service';
 import { PageHeaderComponent, type BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
-import { CodeEditorComponent } from '../../practice/code-editor/code-editor.component';
-import { PracticeDescriptionComponent } from '../../practice/practice-description/practice-description.component';
-import { PROBLEM_TRACK, WORK_TRACK } from '../../practice/practice-split';
+import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
+import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
+import { PROBLEM_TRACK, WORK_TRACK } from '../../../shared/utils/practice-split';
 import { SAVE_REFUSED_MESSAGE } from '../interview-messages';
 import { ProblemEditorComponent } from '../problem-editor/problem-editor.component';
 import { importProblem, toPracticeProblem } from '../problem-import';
@@ -40,7 +40,7 @@ const TABS: readonly { readonly id: Tab; readonly label: string }[] = [
 @Component({
   selector: 'app-interview-prepare',
   templateUrl: './interview-prepare.component.html',
-  styleUrls: ['../../practice/practice-page/practice-page.component.scss', './interview-prepare.component.scss'],
+  styleUrls: ['./interview-prepare.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CodeEditorComponent, PageHeaderComponent, PracticeDescriptionComponent, ProblemEditorComponent],
 })

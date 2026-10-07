@@ -12,7 +12,7 @@ import {
 } from '../../../shared/components/page-header/page-header.component';
 import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
 import { PRACTICE_GLYPH } from '../../progress/practice-link';
-import { injectPracticeContract } from '../practice-contract';
+import { injectPracticeContract } from '../../../shared/utils/practice-contract';
 import {
   CatalogueEntry,
   CatalogueFilters,

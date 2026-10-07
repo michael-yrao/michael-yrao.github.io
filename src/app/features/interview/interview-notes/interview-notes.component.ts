@@ -14,8 +14,8 @@ import {
   type Recognition,
 } from '../session/debrief';
 import { InterviewSessionService } from '../session/interview-session.service';
-import { loadNotes, saveNotes } from '../session/notes-store';
-import { loadPrepared } from '../session/prepared-store';
+import { loadNotes, saveNotes } from '../session/store/notes-store';
+import { loadPrepared } from '../session/store/prepared-store';
 import { VERDICT_LABELS } from './verdict-labels';
 
 const MS_PER_MINUTE = 60_000;

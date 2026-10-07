@@ -5,12 +5,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PRACTICE_SECTIONS } from '../../../core/data/practice-sections';
 import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
 import { PageHeaderComponent, type BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
-import { CodeEditorComponent } from '../../practice/code-editor/code-editor.component';
+import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { COPY_FEEDBACK_MS, copyText, type CopyMark } from '../copy-text';
 import { formatDebriefDate, roleLabel } from '../interview-page/interview-format';
 import { VERDICT_LABELS } from '../interview-notes/verdict-labels';
 import { CHECK_KEYS, CHECK_NAMES, debriefMarkdown, verdictOf, type Debrief } from '../session/debrief';
-import { loadDebrief, removeDebrief } from '../session/debrief-store';
+import { loadDebrief, removeDebrief } from '../session/store/debrief-store';
 
 const MS_PER_MINUTE = 60_000;
 const DELETE_CONFIRM = 'Delete this debrief?';
@@ -23,7 +23,7 @@ const READ_ONLY_EXTENSIONS: readonly Extension[] = [EditorState.readOnly.of(true
 @Component({
   selector: 'app-interview-debrief',
   templateUrl: './interview-debrief.component.html',
-  styleUrls: ['../../practice/practice-page/practice-page.component.scss', './interview-debrief.component.scss'],
+  styleUrls: ['./interview-debrief.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CodeEditorComponent, LibrarySubnavComponent, PageHeaderComponent],
 })

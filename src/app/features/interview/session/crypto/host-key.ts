@@ -7,7 +7,7 @@
  * The private key must never be logged: error messages say what was wrong, never the value.
  */
 
-import { InterviewProblem, SignedProblem, parseInterviewProblem } from './interview-problem';
+import { InterviewProblem, SignedProblem, parseInterviewProblem } from '../interview-problem';
 
 export type SignaturePurpose = 'proof' | 'hello';
 

@@ -6,13 +6,13 @@ import { of } from 'rxjs';
 import { vi } from 'vitest';
 
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
-import { CodeEditorComponent } from '../../practice/code-editor/code-editor.component';
+import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { ProblemEditorComponent } from '../problem-editor/problem-editor.component';
 import { toPracticeProblem } from '../problem-import';
 import { InterviewBarComponent } from '../session/interview-bar/interview-bar.component';
 import { STARTER_MAX_LENGTH, type InterviewProblem } from '../session/interview-problem';
 import { EMPTY_NOTES } from '../session/debrief';
-import { listDebriefs, saveDebrief } from '../session/debrief-store';
+import { listDebriefs, saveDebrief } from '../session/store/debrief-store';
 import { InterviewSessionService, type EndedSession } from '../session/interview-session.service';
 import { PreparedInterviewsService, type CodeEntry } from '../session/prepared-interviews.service';
 import { formatDebriefDate } from './interview-format';

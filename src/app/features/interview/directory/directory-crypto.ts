@@ -3,7 +3,7 @@
  * stored record. Nothing here logs a code, key, token or plaintext.
  */
 
-import { decodeBase64Url, encodeBase64Url } from '../session/host-key';
+import { decodeBase64Url, encodeBase64Url } from '../session/crypto/host-key';
 import { SignedProblem } from '../session/interview-problem';
 import { InterviewSchedule, parseSchedule } from '../session/interview-schedule';
 import { isSignedProblem } from '../session/session-message';

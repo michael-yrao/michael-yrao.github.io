@@ -2,7 +2,7 @@ import { Injectable, Signal, inject, signal } from '@angular/core';
 
 import { CandidateLookup, DirectoryFailure, InterviewDirectoryService, PushOutcome } from '../directory/interview-directory.service';
 import { codeUrl, generateCode, normalizeCode } from '../directory/interview-code';
-import { HostKeys, generateHostKeys, parsePackedKey, signProblemAt } from './host-key';
+import { HostKeys, generateHostKeys, parsePackedKey, signProblemAt } from './crypto/host-key';
 import { InterviewProblem, SignedProblem, parseInterviewProblem } from './interview-problem';
 import { InterviewSchedule } from './interview-schedule';
 import {
@@ -14,7 +14,7 @@ import {
   mirrorPreparedProblem,
   removePrepared,
   savePrepared,
-} from './prepared-store';
+} from './store/prepared-store';
 import {
   FIRST_PROBLEM_REV,
   PreparedCodes,

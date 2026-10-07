@@ -1,3 +1,4 @@
+import { pad2 } from '../../../shared/utils/pad2';
 import {
   DEFAULT_DURATION_MIN,
   DURATION_PRESETS_MIN,
@@ -39,12 +40,10 @@ export const SETUP_ERROR_TEXT: Readonly<Record<SetupError, string>> = {
   'email-invalid': 'Enter a valid email address, or leave it blank.',
 };
 
-const pad = (value: number): string => String(value).padStart(2, '0');
-
 /** `ms` as the local `YYYY-MM-DDTHH:mm` a `datetime-local` input takes. */
 export function toDateTimeLocal(ms: number): string {
   const date = new Date(ms);
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 }
 
 /** The next full local hour after `now`, in epoch milliseconds. */

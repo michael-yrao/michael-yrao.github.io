@@ -1,5 +1,5 @@
-import { SignedProblem } from './interview-problem';
-import { InterviewSchedule } from './interview-schedule';
+import { SignedProblem } from '../interview-problem';
+import { InterviewSchedule } from '../interview-schedule';
 import {
   PREPARED_KEY_PREFIX,
   PreparedEntry,

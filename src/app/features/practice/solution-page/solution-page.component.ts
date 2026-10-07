@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 
-import { PracticeDescriptionComponent } from '../practice-description/practice-description.component';
+import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
 import { injectPracticeProblem } from '../practice-problem';
 import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
 import { SolutionCodeComponent } from '../solution-code/solution-code.component';

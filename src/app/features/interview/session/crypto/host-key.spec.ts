@@ -1,5 +1,5 @@
 import { HostKeys, generateHostKeys, createNonce, parsePackedKey, parsePublicKey, signChallenge, signProblem, verifyChallenge, verifyProblem } from './host-key';
-import { InterviewProblem } from './interview-problem';
+import { InterviewProblem } from '../interview-problem';
 
 const SESSION_ID = 'po-abc';
 const OTHER_SESSION_ID = 'po-xyz';

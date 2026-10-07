@@ -1,5 +1,5 @@
-import { SignedProblem } from './interview-problem';
-import { isSignedProblem } from './session-message';
+import { SignedProblem } from '../interview-problem';
+import { isSignedProblem } from '../session-message';
 
 /** A role's saved session, so a reloaded tab can resume it. */
 export interface StoredSession {

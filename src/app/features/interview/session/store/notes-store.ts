@@ -1,4 +1,4 @@
-import { InterviewNotes, parseNotes } from './debrief';
+import { InterviewNotes, parseNotes } from '../debrief';
 
 export const NOTES_KEY_PREFIX = 'po-interview-notes:';
 

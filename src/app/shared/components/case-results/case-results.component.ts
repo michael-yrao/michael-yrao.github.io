@@ -2,13 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 
 import type { Codec, PracticeCase } from '../../../core/models/practice.model';
 import { RunState } from '../../../core/runner/runner.model';
-import { defaultCaseIndex, toResultRow } from '../practice-results';
+import { defaultCaseIndex, toResultRow } from '../../utils/practice-results';
 
 /** A run's output: its error, one tab per case, and the selected case's detail. */
 @Component({
   selector: 'app-case-results',
   templateUrl: './case-results.component.html',
-  styleUrls: ['../practice-page/practice-page.component.scss'],
+  styleUrls: ['./case-results.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CaseResultsComponent {

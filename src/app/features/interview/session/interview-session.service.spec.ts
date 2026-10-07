@@ -1,11 +1,11 @@
-import { generateHostKeys, parsePackedKey, signProblemAt } from './host-key';
+import { generateHostKeys, parsePackedKey, signProblemAt } from './crypto/host-key';
 import { CONNECT_TIMEOUT_MS, RECLAIM_TIMEOUT_MS, RECONNECT_DELAY_MS } from './interview-session.service';
 import { Host, PeerFactory, Transport } from './peer-transport';
-import { PREPARED_KEY_PREFIX, loadPrepared, mirrorPreparedProblem, savePrepared } from './prepared-store';
-import { SessionHost } from './session-host';
+import { PREPARED_KEY_PREFIX, loadPrepared, mirrorPreparedProblem, savePrepared } from './store/prepared-store';
+import { SessionHost } from './host/session-host';
 import { NO_MARKS } from './session-message';
-import { hostPeerIdFromPacked, sessionIdFromPublicKey } from './session-id';
-import { saveSession } from './session-store';
+import { hostPeerIdFromPacked, sessionIdFromPublicKey } from './crypto/session-id';
+import { saveSession } from './store/session-store';
 import {
   COARSE_STEP_MS,
   PROBLEM,

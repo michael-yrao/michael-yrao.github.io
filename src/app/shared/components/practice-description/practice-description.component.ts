@@ -6,9 +6,9 @@ import { figureStateFor } from '../../../core/practice/example-figure';
 import { TextRun, splitInlineCode } from '../../../core/practice/inline-code';
 import { reflowProse } from '../../../core/practice/reflow';
 import { splitStatement } from '../../../core/practice/statement-segments';
-import { HintCardComponent } from '../../../shared/components/hint-card/hint-card.component';
-import { GraphVisualizerComponent } from '../../../shared/visualizers/graph-visualizer/graph-visualizer.component';
-import { GridVisualizerComponent } from '../../../shared/visualizers/grid-visualizer/grid-visualizer.component';
+import { HintCardComponent } from '../hint-card/hint-card.component';
+import { GraphVisualizerComponent } from '../../visualizers/graph-visualizer/graph-visualizer.component';
+import { GridVisualizerComponent } from '../../visualizers/grid-visualizer/grid-visualizer.component';
 
 /** One example case's input drawn as a diagram, captioned by its place among the examples. */
 export interface ExampleFigure {

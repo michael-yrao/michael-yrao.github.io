@@ -16,7 +16,7 @@ import { PracticeService } from '../../core/services/practice.service';
 import { ShowcaseService } from '../../core/services/showcase.service';
 import { showcaseKey } from '../../core/showcase/showcase-key';
 import { CatalogueNeighbors, buildCatalogue, neighborsOf } from './practice-catalogue';
-import { injectPracticeContract } from './practice-contract';
+import { injectPracticeContract } from '../../shared/utils/practice-contract';
 
 const POSITIVE_INTEGER = /^[1-9]\d*$/;
 const NO_NEIGHBORS: CatalogueNeighbors = { prev: null, next: null };

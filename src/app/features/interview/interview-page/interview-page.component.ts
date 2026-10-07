@@ -13,10 +13,10 @@ import type { Extension } from '@codemirror/state';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import type { PracticeProblem } from '../../../core/models/practice.model';
-import { CodeEditorComponent } from '../../practice/code-editor/code-editor.component';
-import { PracticeDescriptionComponent } from '../../practice/practice-description/practice-description.component';
-import { shortcutFor } from '../../practice/practice-shortcuts';
-import { PROBLEM_TRACK, WORK_TRACK } from '../../practice/practice-split';
+import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
+import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
+import { shortcutFor } from '../../../shared/utils/practice-shortcuts';
+import { PROBLEM_TRACK, WORK_TRACK } from '../../../shared/utils/practice-split';
 import { toPracticeProblem } from '../problem-import';
 import { ProblemEditorComponent } from '../problem-editor/problem-editor.component';
 import { InterviewNotesComponent } from '../interview-notes/interview-notes.component';
@@ -33,8 +33,8 @@ import { InterviewSessionService } from '../session/interview-session.service';
 import { PreparedInterviewsService } from '../session/prepared-interviews.service';
 import { EMPTY_PROBLEM } from '../interview-prepare/interview-draft';
 import type { DebriefSummary } from '../session/debrief';
-import { listDebriefs, saveDebrief } from '../session/debrief-store';
-import { clearNotes } from '../session/notes-store';
+import { listDebriefs, saveDebrief } from '../session/store/debrief-store';
+import { clearNotes } from '../session/store/notes-store';
 import { formatDebriefDate, roleLabel } from './interview-format';
 import { LANDING_MESSAGES } from './landing-messages';
 import { SavedProblemsCardComponent } from './saved-problems-card/saved-problems-card.component';
@@ -66,7 +66,7 @@ const DEBRIEF_PATH = '/interview/debrief';
 @Component({
   selector: 'app-interview-page',
   templateUrl: './interview-page.component.html',
-  styleUrls: ['../../practice/practice-page/practice-page.component.scss', './interview-page.component.scss'],
+  styleUrls: ['./interview-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CodeEditorComponent,

@@ -13,14 +13,14 @@ import { PythonRunnerService } from '../../../core/runner/python-runner.service'
 import type { PracticeProblem } from '../../../core/models/practice.model';
 import { RunState } from '../../../core/runner/runner.model';
 import { lockedProblem } from '../../interview/session/candidate-lock';
-import { CaseResultsComponent } from '../case-results/case-results.component';
-import { CodeEditorComponent } from '../code-editor/code-editor.component';
-import { PracticeDescriptionComponent } from '../practice-description/practice-description.component';
+import { CaseResultsComponent } from '../../../shared/components/case-results/case-results.component';
+import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
+import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
 import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
 import { injectPracticeProblem } from '../practice-problem';
 import { clearDraft, draftKey, loadDraft, saveDraft } from '../practice-draft';
-import { countPassed } from '../practice-results';
-import { SAMPLE_CASE_COUNT, shortcutFor } from '../practice-shortcuts';
+import { countPassed } from '../../../shared/utils/practice-results';
+import { SAMPLE_CASE_COUNT, shortcutFor } from '../../../shared/utils/practice-shortcuts';
 import {
   DEFAULT_PROBLEM_SHARE,
   KEYBOARD_STEP,
@@ -33,7 +33,7 @@ import {
   loadShare,
   saveShare,
   shareFromPointer,
-} from '../practice-split';
+} from '../../../shared/utils/practice-split';
 
 const DRAFT_SAVE_DELAY_MS = 500;
 const COPY_FEEDBACK_MS = 1500;

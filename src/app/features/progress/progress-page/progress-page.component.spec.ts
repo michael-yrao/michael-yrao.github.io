@@ -5,7 +5,8 @@ import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angul
 import { Observable, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
-import { ProgressPageComponent, ProgressTab } from './progress-page.component';
+import { ProgressPageComponent } from './progress-page.component';
+import { ProgressTab } from './progress-derivations';
 import { By } from '@angular/platform-browser';
 import { ProgressService } from '../../../core/services/progress.service';
 import { PracticeService } from '../../../core/services/practice.service';

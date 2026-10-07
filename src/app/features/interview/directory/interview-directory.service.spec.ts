@@ -3,9 +3,9 @@ import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@a
 import { TestBed } from '@angular/core/testing';
 
 import { WORKER_API_URL } from '../../../core/data/site-links';
-import { HostKeys, generateHostKeys, signProblemAt } from '../session/host-key';
+import { HostKeys, generateHostKeys, signProblemAt } from '../session/crypto/host-key';
 import { InterviewProblem } from '../session/interview-problem';
-import { PreparedEntry } from '../session/prepared-store';
+import { PreparedEntry } from '../session/store/prepared-store';
 import { deriveIds } from '../session/session-support';
 import { DirectoryPlaintext, candidateLookupId, deriveInterviewerSecrets, seal } from './directory-crypto';
 import { DIRECTORY_ENABLED, InterviewDirectoryService } from './interview-directory.service';

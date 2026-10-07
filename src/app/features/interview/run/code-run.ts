@@ -4,7 +4,7 @@ import type { Subscription } from 'rxjs';
 import type { PracticeProblem } from '../../../core/models/practice.model';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
 import { FreeRunState, RunState, RunStatus } from '../../../core/runner/runner.model';
-import { countPassed } from '../../practice/practice-results';
+import { countPassed } from '../../../shared/utils/practice-results';
 import { toPracticeProblem } from '../problem-import';
 import type { InterviewProblem } from '../session/interview-problem';
 

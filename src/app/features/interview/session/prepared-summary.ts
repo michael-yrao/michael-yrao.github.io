@@ -1,7 +1,7 @@
 import { codeUrl } from '../directory/interview-code';
 import { InterviewProblem, parseInterviewProblem } from './interview-problem';
 import { InterviewSchedule } from './interview-schedule';
-import { PreparedEntry } from './prepared-store';
+import { PreparedEntry } from './store/prepared-store';
 
 /** The revision a prepared problem is first signed at: the one a session starts with. */
 export const FIRST_PROBLEM_REV = 1;

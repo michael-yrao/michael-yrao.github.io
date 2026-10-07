@@ -4,8 +4,8 @@ import { vi } from 'vitest';
 
 import { InterviewSessionService } from '../session/interview-session.service';
 import type { InterviewSchedule } from '../session/interview-schedule';
-import { loadNotes } from '../session/notes-store';
-import { savePrepared, type PreparedEntry } from '../session/prepared-store';
+import { loadNotes } from '../session/store/notes-store';
+import { savePrepared, type PreparedEntry } from '../session/store/prepared-store';
 import { InterviewNotesComponent } from './interview-notes.component';
 
 const SESSION_ID = 'session-1';

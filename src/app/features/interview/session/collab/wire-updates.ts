@@ -1,7 +1,7 @@
 import { Update } from '@codemirror/collab';
 import { ChangeSet, Text } from '@codemirror/state';
 
-import { WireUpdate } from './session-message';
+import { WireUpdate } from '../session-message';
 
 export function toWire(update: Update): WireUpdate {
   return { clientID: update.clientID, changes: update.changes.toJSON() };

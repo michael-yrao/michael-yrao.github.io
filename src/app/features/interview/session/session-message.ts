@@ -1,4 +1,5 @@
-import { NONCE_LENGTH, SIGNATURE_LENGTH } from './host-key';
+import { isRecord } from '../../../core/contracts/is-record';
+import { NONCE_LENGTH, SIGNATURE_LENGTH } from './crypto/host-key';
 import { InterviewProblem, PROBLEM_JSON_MAX_LENGTH, SignedProblem, parseInterviewProblem } from './interview-problem';
 
 /** One accepted or pending edit on the wire: the sender's id and a `ChangeSet` as JSON. */
@@ -140,10 +141,6 @@ export const PARTICIPANT_ID_MAX_LENGTH = 64;
 
 const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/;
 const ROLES: readonly string[] = ['interviewer', 'candidate'];
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 function isCount(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0;

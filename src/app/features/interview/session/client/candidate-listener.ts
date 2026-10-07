@@ -1,5 +1,5 @@
-import { Host, PeerFactory, Transport } from './peer-transport';
-import { RECLAIM_TIMEOUT_MS, RECONNECT_DELAY_MS, errorType, isUnavailableId } from './session-support';
+import { Host, PeerFactory, Transport } from '../peer-transport';
+import { RECLAIM_TIMEOUT_MS, RECONNECT_DELAY_MS, errorType, isUnavailableId } from '../session-support';
 
 /** How a candidate's listener hands things to its tab. */
 export interface ListenerEvents {

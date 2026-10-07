@@ -5,7 +5,7 @@ import { of } from 'rxjs';
 import { vi } from 'vitest';
 
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
-import { CodeEditorComponent } from '../../practice/code-editor/code-editor.component';
+import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { createSavedProblem } from '../saved-problem-store';
 import type { InterviewProblem } from '../session/interview-problem';
 import { InterviewTryComponent } from './interview-try.component';
