@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
 import { AlgorithmMeta, GraphState, GridState } from '../../../core/models/algorithm.model';
@@ -39,7 +40,7 @@ export interface StatementBlock {
   templateUrl: './practice-description.component.html',
   styleUrls: ['./practice-description.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [HintCardComponent, GraphVisualizerComponent, GridVisualizerComponent],
+  imports: [NgTemplateOutlet, HintCardComponent, GraphVisualizerComponent, GridVisualizerComponent],
 })
 export class PracticeDescriptionComponent {
   readonly problem = input<PracticeProblem | null>(null);

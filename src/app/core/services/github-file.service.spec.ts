@@ -200,6 +200,37 @@ describe('GitHubFileService', () => {
     );
   });
 
+  it('encodes the branch in both URLs, keeping slashes literal on the raw host', () => {
+    const rows = [
+      { branch: 'feature/x', rawPart: '/feature/x/', apiSuffix: '?ref=feature%2Fx' },
+      { branch: 'a#b', rawPart: '/a%23b/', apiSuffix: '?ref=a%23b' },
+    ];
+    for (const row of rows) {
+      const calls: string[] = [];
+      const http = {
+        get: (url: string) => {
+          if (url.includes('manifest.json')) return throwError(() => ({ status: 404 }));
+          calls.push(url);
+          return url.includes('api.github.com')
+            ? throwError(() => ({ status: 403 }))
+            : of({ ok: true });
+        },
+      };
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [GitHubFileService, { provide: HttpClient, useValue: http }],
+      });
+      const service = TestBed.inject(GitHubFileService);
+
+      service
+        .fetch$({ ...GOLD_STANDARD_REPO, branch: row.branch }, 'dashboard/showcase.json', false)
+        .subscribe();
+
+      expect(calls[0].endsWith(row.apiSuffix)).toBe(true);
+      expect(calls[1]).toContain(row.rawPart);
+    }
+  });
+
   describe('manifest-keyed fetch', () => {
     const HASH = 'a'.repeat(64);
     const FILE = 'dashboard/showcase.json';

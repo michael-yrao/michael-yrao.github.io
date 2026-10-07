@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
+import { AlgorithmMeta } from '../../../core/models/algorithm.model';
 import { PracticeProblem } from '../../../core/models/practice.model';
 import { PracticeDescriptionComponent } from './practice-description.component';
 
@@ -17,15 +18,48 @@ const PROBLEM: PracticeProblem = {
   ],
 };
 
-function setUp(problem: PracticeProblem): HTMLElement {
+function setUp(problem: PracticeProblem, meta?: AlgorithmMeta): HTMLElement {
   TestBed.configureTestingModule({ imports: [PracticeDescriptionComponent] });
   const fixture = TestBed.createComponent(PracticeDescriptionComponent);
   fixture.componentRef.setInput('problem', problem);
+  if (meta) fixture.componentRef.setInput('meta', meta);
   fixture.detectChanges();
   return fixture.nativeElement;
 }
 
+const META: AlgorithmMeta = {
+  id: 'subsets-ii',
+  lcNumber: 90,
+  title: 'Subsets II',
+  difficulty: 'Medium',
+  category: 'backtracking',
+  tags: [],
+  description: 'Return all subsets.',
+  examples: [],
+  constraints: [],
+  hint: '',
+  solutions: [],
+};
+
 describe('PracticeDescriptionComponent', () => {
+  it('draws the example diagram on the fallback branch when the problem has no statement', () => {
+    const problem: PracticeProblem = {
+      ...PROBLEM,
+      statement: null,
+      figure: { kind: 'graph', directed: false, edgesArg: 1, nodeCountArg: 0 },
+      cases: [
+        { args: [2, [[0, 1]]], expected: 1, example: true },
+        { args: [3, [[0, 1], [1, 2]]], expected: 2, example: false },
+      ],
+    };
+    const root = setUp(problem, META);
+
+    expect(root.querySelectorAll('app-graph-visualizer').length).toBe(1);
+    const captions = root.querySelectorAll('.practice-description__figure-caption');
+    expect(captions.length).toBe(1);
+    expect(captions[0].textContent?.trim()).toBe('Example 1');
+  });
+
   it('draws each example diagram under its own example text, without a caption', () => {
     const statement =
       'Find the tree.\n\nExample 1:\n    Input: n = 2\n\nExample 2:\n    Input: n = 3\n\nConstraints:\n    n >= 1';

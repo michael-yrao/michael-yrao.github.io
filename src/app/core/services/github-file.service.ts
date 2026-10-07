@@ -39,6 +39,11 @@ const TOO_MANY_REQUESTS_STATUS = 429;
 const SERVER_ERROR_STATUS = 500;
 const OFFLINE_STATUS = 0;
 
+/** Encodes each `/`-separated branch segment, keeping the slashes literal for the raw host. */
+function encodeBranchPath(branch: string): string {
+  return branch.split('/').map(encodeURIComponent).join('/');
+}
+
 function splitSlug(slug: string, branch: string): RepoRef {
   const [owner, repo] = slug.split('/');
   return { owner, repo, branch };
@@ -122,13 +127,13 @@ export class GitHubFileService {
 
   /** The content hash (`v`) is the cache key; with none, a bust falls back to a timestamp. */
   private apiUrl(ref: RepoRef, file: string, hash: string | null, bust: boolean): string {
-    const base = `https://api.github.com/repos/${ref.owner}/${ref.repo}/contents/${file}?ref=${encodeURIComponent(ref.branch)}`;
+    const base = `https://api.github.com/repos/${encodeURIComponent(ref.owner)}/${encodeURIComponent(ref.repo)}/contents/${file}?ref=${encodeURIComponent(ref.branch)}`;
     if (hash) return `${base}&v=${hash}`;
     return bust ? `${base}&_=${Date.now()}` : base;
   }
 
   private rawUrl(ref: RepoRef, file: string): string {
-    return `https://raw.githubusercontent.com/${ref.owner}/${ref.repo}/${ref.branch}/${file}`;
+    return `https://raw.githubusercontent.com/${encodeURIComponent(ref.owner)}/${encodeURIComponent(ref.repo)}/${encodeBranchPath(ref.branch)}/${file}`;
   }
 
   // Refs whose memoized manifest request has finished; a bust reuses one still in flight, so a

@@ -1,3 +1,23 @@
+<ng-template #figureTpl let-figure let-isCaptioned="isCaptioned">
+  <figure class="practice-description__figure">
+    @if (isCaptioned) {
+      <figcaption class="practice-description__figure-caption">{{ figure.caption }}</figcaption>
+    }
+    <div class="practice-description__figure-art">
+      @if (figure.state.type === 'graph') {
+        <app-graph-visualizer [state]="figure.state" />
+      } @else {
+        <app-grid-visualizer [state]="figure.state" />
+      }
+    </div>
+    @if (figure.hasHighlight) {
+      <div class="practice-description__figure-key">
+        <span class="practice-description__figure-swatch"></span>Output
+      </div>
+    }
+  </figure>
+</ng-template>
+
 @if (hasStatement()) {
   <div class="practice-description__statement">
     @for (block of statementBlocks(); track $index) {
@@ -5,23 +25,9 @@
         <div class="practice-description__segment">@for (run of block.runs; track $index) {@if (run.isCode) {<code class="practice-description__code">{{ run.text }}</code>} @else {{{ run.text }}}}</div>
       }
       @if (block.figure; as figure) {
-        <figure class="practice-description__figure">
-          @if (block.isCaptioned) {
-            <figcaption class="practice-description__figure-caption">{{ figure.caption }}</figcaption>
-          }
-          <div class="practice-description__figure-art">
-            @if (figure.state.type === 'graph') {
-              <app-graph-visualizer [state]="figure.state" />
-            } @else {
-              <app-grid-visualizer [state]="figure.state" />
-            }
-          </div>
-          @if (figure.hasHighlight) {
-            <div class="practice-description__figure-key">
-              <span class="practice-description__figure-swatch"></span>Output
-            </div>
-          }
-        </figure>
+        <ng-container
+          *ngTemplateOutlet="figureTpl; context: { $implicit: figure, isCaptioned: block.isCaptioned }"
+        />
       }
     }
   </div>
@@ -53,6 +59,11 @@
             </div>
           }
         </div>
+      }
+      @for (figure of exampleFigures(); track figure.number) {
+        <ng-container
+          *ngTemplateOutlet="figureTpl; context: { $implicit: figure, isCaptioned: true }"
+        />
       }
       @if (algorithm.constraints.length) {
         <ul class="prob-constraints">
