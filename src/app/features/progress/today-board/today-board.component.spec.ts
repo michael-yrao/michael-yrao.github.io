@@ -360,23 +360,47 @@ describe('TodayBoardComponent', () => {
   });
 
   it('draws the dimmed planned fill always, and a solid done fill only when the day has a matching workload entry with done > 0', () => {
-    const cases: { workload: WorkloadDay[] | undefined; expectedLabel: string; expectedFillCount: number }[] = [
+    const movedItem: ScheduleItem = {
+      lcNumber: 202, title: 'Moved Problem', technique: null, startComfort: null, difficulty: null,
+      done: false, deferredTo: '2099-01-01',
+    };
+    const cases: {
+      dayUnits: number;
+      extraItems: ScheduleItem[];
+      workload: WorkloadDay[] | undefined;
+      expectedLabel: string;
+      expectedFillCount: number;
+    }[] = [
       {
+        dayUnits: 7.7,
+        extraItems: [],
         workload: [{ date: todayLocalISO(), planned: 7.7, done: 7.3, built: 7.7, partial: false }],
         expectedLabel: '7.3 of 7.7 units done · ceiling 8 · Heavy',
         expectedFillCount: 2, // the dimmed planned fill + the solid done fill on top of it.
       },
       {
+        dayUnits: 7.7,
+        extraItems: [],
         workload: undefined,
         expectedLabel: '7.7 / 8 units · Heavy', // unchanged: no matching entry -> no done fill.
         expectedFillCount: 1, // just the dimmed planned fill.
       },
+      {
+        // A started day whose header dropped to built (3.8) after a row moved off: Y and the band
+        // read from the entry's frozen planned (7.7), not the lowered header.
+        dayUnits: 3.8,
+        extraItems: [movedItem],
+        workload: [{ date: todayLocalISO(), planned: 7.7, done: 3.8, built: 3.8, partial: false }],
+        expectedLabel: '3.8 of 7.7 units done · ceiling 8 · Heavy',
+        expectedFillCount: 2,
+      },
     ];
 
-    for (const { workload, expectedLabel, expectedFillCount } of cases) {
+    for (const { dayUnits, extraItems, workload, expectedLabel, expectedFillCount } of cases) {
       TestBed.resetTestingModule();
       const schedule = makeSchedule();
-      schedule.days[0].units = 7.7; // 7.7 / 8 = 96.25% >= 90% -> Heavy, in both cases.
+      schedule.days[0].units = dayUnits; // 7.7 / 8 = 96.25% >= 90% -> Heavy, in every case.
+      schedule.days[0].items = [...schedule.days[0].items, ...extraItems];
 
       const fixture = createFixture(schedule, 8, undefined, undefined, undefined, undefined, workload);
 

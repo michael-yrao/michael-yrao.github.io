@@ -210,6 +210,7 @@ export interface ScheduleDay {
   date: string;
   weekday: string;
   label: string | null;
+  /** The header's first figure: the day's built units (see `WorkloadDay.planned` for the plan). */
   units?: number | null;
   items: ScheduleItem[];
 }
@@ -234,7 +235,9 @@ export interface ScheduleHistory {
 
 /** One scheduled day's effort-unit accounting (cse-progress gamify.py's workload export) —
  *  one entry per day that has a schedule header, live week or archive, sorted by date.
- *  `planned` is the header's stated units (null when the header states none); `done` sums
+ *  `planned` is the schedule header's pinned planned figure (frozen when a row was first
+ *  deferred off the started day) when present, else the header's stated units (null when the
+ *  header states none); `done` sums
  *  the struck-through rows' price and `built` sums every row's price (done + remaining),
  *  both re-priced under the CURRENT cse.config.yml — a rep struck weeks ago under an older
  *  config still contributes its current-config price, not what it cost at the time.

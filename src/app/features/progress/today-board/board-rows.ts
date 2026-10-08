@@ -10,6 +10,7 @@ import { addDaysISO, shortMonthDay, weekdayShort } from '../../../core/utils/loc
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
 
 export interface WorkloadBar {
+  /** Planned units (`workload[].planned`, else `day.units`). */
   units: number;
   ceiling: number;
   pct: number;
@@ -173,11 +174,13 @@ export function buildWorkloadBar(
   floor: number | undefined,
   workload: readonly WorkloadDay[] | undefined,
 ): WorkloadBar | null {
-  if (!day || day.units == null || ceiling == null || ceiling <= 0) return null;
-  const units = day.units;
+  if (!day || ceiling == null || ceiling <= 0) return null;
+  const entry = workload?.find((w) => w.date === day.date);
+  const units = entry?.planned ?? day.units;
+  if (units == null) return null;
   const pct = Math.min(MAX_PCT, (units / ceiling) * MAX_PCT);
   const band = workloadBand(units, ceiling, floor);
-  const doneUnits = workload?.find((w) => w.date === day.date)?.done ?? 0;
+  const doneUnits = entry?.done ?? 0;
   const done = doneUnits > 0 ? doneUnits : null;
   const donePct = done != null ? Math.min(MAX_PCT, (done / ceiling) * MAX_PCT) : null;
   return { units, ceiling, pct, band, done, donePct };
