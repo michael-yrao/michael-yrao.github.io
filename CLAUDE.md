@@ -187,3 +187,15 @@ Mac with Homebrew that is the keg-only `node@24`: prefix commands with
 global (undefined without `--localstorage-file`) that shadows jsdom's in the vitest environment and
 fails the Big-O trainer's filter-persistence specs; they pass on 24. Angular 22 / TypeScript 6 as
 of Sep 24, 2026 — `ng update` refuses a dirty working tree, so commit first.
+
+## VibeWise learning mode
+
+This repo runs in VibeWise learning mode: `.vibe-wise/profile.md` is `Learning mode: active`, and the
+plugin's SessionStart hook restores it when a session starts here. A session started in another repo
+gets the same context from `~/.claude/hooks/vibe_wise_crossrepo.py` on its first Read or edit of a file
+here. The learner owns every design decision through Build/Design checkpoints; **"Implement this step"
+is the approval that releases the brief to Sonnet engineers under `~/.claude/rules/execution-workflow.md`**,
+so VibeWise's "don't switch to a subagent by default" yields to that rule, as the profile's
+implementation-style preference records. To pause: set `Learning mode: paused` in the profile, or say
+"pause learning". `.vibe-wise/` is committed, so the mode and the learning notes carry to every clone and
+every editor of this repo.
