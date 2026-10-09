@@ -6,8 +6,8 @@ Onboarding: complete
 ## Project
 Situation: Existing
 Building: progressiveoverflow.com, an Angular algorithm-visualizer and progress site with a Cloudflare Worker (worker/) for events and interview codes
-Codebase familiarity: Know it well
-Learning scope: Parts we touch
+Codebase familiarity: Low — the learner was not in the loop for the design decisions (stated 2026-10-08); teach each layer first, then invite reasoning
+Learning scope: Entire system (full walkthrough started 2026-10-08), then parts we touch
 
 ## Experience
 Overall programming: Intermediate, working up to Advanced

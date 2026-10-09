@@ -14,7 +14,11 @@ Unknown. The files inspected state conventions (visualizer quality bar, contract
 - Practice: `src/app/features/practice/` (practice page, solution page, step visualizer), `src/app/core/services/practice.service.ts`.
 - Interview feature: `src/app/features/interview/` (setup, prepare, page, directory, debrief), with `src/app/features/interview/directory/directory-contract.ts` mirrored from the worker.
 - Events feature: `src/app/features/events/`, `src/app/core/services/events.service.ts`, model `src/app/core/models/events.model.ts`.
-- Other features present as directories: `src/app/features/about`, `algorithms`, `coach`, `games`, `learn`, `library`, `quiz`. Responsibilities not inspected.
+- Algorithms route: `src/app/features/algorithms/algorithms.routes.ts` is redirects only (legacy `/algorithms/:category/:id` -> `/practice/<n>/solution`, query string preserved). The visualizer page is `features/practice/solution-page`.
+- Library hub `src/app/features/library/` (link cards + `GroundednessMeter`; `CHEAT_SHEET_COUNT` is a hand-kept literal). Learn `src/app/features/learn/` (18 technique cheat sheets from `cheat-sheet.service.ts`, repo JSON with bundled fallback; decision tree dark-launched behind `LEARN_DECISION_TREE_ENABLED`). Quiz `src/app/features/quiz/` (Pattern Sense over `ALGORITHM_INDEX`; Big-O trainer over `dashboard/big-o.json`). Games `src/app/features/games/` (5 runtime-generated mini-games with pure `*.solver.ts`/`*.rounds.ts` files; plain fields + manual `markForCheck`). Coach `src/app/features/coach/` (static explainer; CTA gated by `COACH_REPO_IS_PUBLIC`). About `src/app/features/about/` (bio + signal-driven SVG barbell lifter).
+- Shared `src/app/shared/`: five visualizers dispatched by `state.type` in `features/practice/step-visualizer` (`@switch`, no default); 13 components (page-header, library-subnav, code-viewer, code-editor (CodeMirror), grounded-code-panel, groundedness-meter, step-controls, ...); `_workbench.scss`; utils (shuffle, practice-split, practice-shortcuts, practice-contract).
+- Practice runtime: `src/app/core/runner/` runs learner Python in a module Web Worker with Pyodide from jsDelivr (`PYODIDE_INDEX_URL`); verdicts are judged in TS by `core/practice/compare.ts`.
+- Data funnel: `src/app/core/services/github-file.service.ts` (manifest sha -> Cache API -> Contents API -> raw on 403); `author-fallback.ts` (viewer repo, gold on 404 only).
 - Other services: `src/app/core/services/big-o.service.ts`, `cheat-sheet.service.ts`, `contract-cache.ts`, `contract-manifest.ts`.
 - Site links and worker URL: `src/app/core/data/site-links.ts` (`WORKER_API_URL`, `EVENTS_API_URL`, `INTERVIEW_CODES_ENABLED`, `EVENTS_FEED_ENABLED`).
 - Worker `po-api`: `worker/` (own toolchain), config `worker/wrangler.toml`, docs `worker/README.md`, source under `worker/src/` (`sources.ts`, `contract.ts`, `normalize.ts`, `interviews/`).
@@ -44,7 +48,11 @@ worker po-api (public event feeds, KV interview records) --(HTTP, CORS)--> Event
 
 ## Unknowns
 - Requirements beyond the conventions in `CLAUDE.md`.
-- Internals and responsibilities of the about, algorithms, coach, games, learn, library and quiz features.
-- Whether any auth exists beyond what the inspected files show (none found).
-- Exact worker routes beyond `/interviews/c/{id}` and `/interviews/i/{id}` and the events feed at the root (only the start of `worker/README.md` was read).
-- Contents of `.github/workflows/groundedness.yml` and how `/coach` links to the cse-coach repo.
+- Whether `cse-progress` actually sends the `cse-progress-updated` repository_dispatch (sender is outside this repo).
+- Whether the "bundle-size" rationale for host metadata over `@HostListener` was measured (comments assert it; `step-controls` uses `@HostListener`).
+
+## Verified 2026-10-08 (walkthrough sweep)
+- Worker routes: `GET` any non-`/interviews/` path -> events feed; `/interviews/c/{id}` GET; `/interviews/i/{id}` GET/PUT/DELETE (`worker/src/interviews/handler.ts`). KV `INTERVIEWS`, 180-day TTL, tombstones on delete, fail-closed rate limits (reads 60/min, writes 6/min).
+- `groundedness.yml`: daily cron + `repository_dispatch` + manual; curls live showcase.json and runs `check:groundedness`; publishes nothing.
+- `/coach` links `SITE_LINKS.coachRepo` (github.com/michael-yrao/cse-coach); CTA reads "Request access" while `COACH_REPO_IS_PUBLIC` is false.
+- Auth: none in the site; the interview directory uses a bearer write token derived from the interviewer code (PBKDF2), stored server-side only as a SHA-256 hash.
