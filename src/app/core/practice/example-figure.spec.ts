@@ -84,6 +84,20 @@ describe('figureStateFor', () => {
     const unhighlighted = figureStateFor(HIGHLIGHT, [[[0, 1], [1, 2]]], 3);
     expect(summary(unhighlighted).edges.map((e) => e[3])).toEqual(['default', 'default']);
 
+    const MATRIX_EXPECTED: PracticeFigure = { kind: 'graph', directed: false, matrixArg: 0, edges: 'expected' };
+    const distances = [[0, 1, 1, 2], [1, 0, 2, 3], [1, 2, 0, 3], [2, 3, 3, 0]];
+    const fromAnswer = figureStateFor(MATRIX_EXPECTED, [distances], [[0, 1], [0, 2], [0, 3]]);
+    expect(summary(fromAnswer).nodes).toEqual([0, 1, 2, 3]);
+    expect(summary(fromAnswer).edges).toEqual([[0, 1, '1', 'default'], [0, 2, '1', 'default'], [0, 3, '2', 'default']]);
+
+    const answerMisfits: [string, unknown][] = [
+      ['expected not a list of pairs', 5],
+      ['pair naming a node outside the matrix', [[0, 4]]],
+    ];
+    for (const [label, expected] of answerMisfits) {
+      expect(figureStateFor(MATRIX_EXPECTED, [distances], expected), label).toBeNull();
+    }
+
     const misfits: [string, PracticeFigure, unknown[]][] = [
       ['matrix over the cap', MATRIX, [square(MAX_MATRIX_FIGURE_NODES + 1)]],
       ['non-square matrix', MATRIX, [[[0, 1], [1, 0], [0, 0]]]],

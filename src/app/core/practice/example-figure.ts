@@ -100,18 +100,44 @@ function isNumberRow(row: unknown, width: number): boolean {
   return Array.isArray(row) && row.length === width && row.every((cell) => typeof cell === 'number');
 }
 
-/** The upper triangle of a square weight matrix: one undirected edge per nonzero pair. */
-function matrixTopology(figure: MatrixFigure, args: readonly unknown[]): Topology | null {
-  const matrix = args[figure.matrixArg];
-  if (!Array.isArray(matrix) || matrix.length === 0 || matrix.length > MAX_MATRIX_FIGURE_NODES) {
+/** The matrix when it is a non-empty square of numbers within the node cap, else null. */
+function squareMatrix(value: unknown): number[][] | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_MATRIX_FIGURE_NODES) {
     return null;
   }
-  const size = matrix.length;
-  if (!matrix.every((row) => isNumberRow(row, size))) return null;
-  const edges = (matrix as number[][]).flatMap((row, i) =>
+  return value.every((row) => isNumberRow(row, value.length)) ? (value as number[][]) : null;
+}
+
+/** One undirected edge per nonzero pair in the matrix's upper triangle. */
+function inputMatrixEdges(matrix: readonly (readonly number[])[]): EdgeTuple[] {
+  return matrix.flatMap((row, i) =>
     row.flatMap((weight, j): EdgeTuple[] => (j > i && weight !== 0 ? [[i, j, weight]] : [])),
   );
-  return { ids: Array.from({ length: size }, (_, i) => i), edges };
+}
+
+/** One edge per pair in `expected`, weighted by the matrix entry; null when `expected` is not a
+ *  list of pairs or a pair names a node outside `0..n-1`. */
+function expectedMatrixEdges(matrix: readonly (readonly number[])[], expected: unknown): EdgeTuple[] | null {
+  const pairs = expectedPairs(expected);
+  if (pairs === null) return null;
+  const isInRange = (id: NodeId): id is number =>
+    typeof id === 'number' && id < matrix.length;
+  if (!pairs.every(([u, v]) => isInRange(u) && isInRange(v))) return null;
+  return pairs.map(([u, v]): EdgeTuple => [u, v, matrix[u as number][v as number]]);
+}
+
+/** A square weight matrix on nodes `0..n-1`: edges from its nonzero upper triangle, or from the
+ *  case's expected pairs when the figure sets `edges: 'expected'`. */
+function matrixTopology(
+  figure: MatrixFigure,
+  args: readonly unknown[],
+  expected: unknown,
+): Topology | null {
+  const matrix = squareMatrix(args[figure.matrixArg]);
+  if (matrix === null) return null;
+  const edges = figure.edges === 'expected' ? expectedMatrixEdges(matrix, expected) : inputMatrixEdges(matrix);
+  if (edges === null) return null;
+  return { ids: Array.from({ length: matrix.length }, (_, i) => i), edges };
 }
 
 /** Each pair once, whichever of its two ends listed it. */
@@ -139,9 +165,13 @@ function adjacencyTopology(figure: AdjacencyFigure, args: readonly unknown[]): T
   return { ids, edges: figure.directed ? arcs : dedupePairs(arcs) };
 }
 
-function topologyFor(figure: GraphFigure, args: readonly unknown[]): Topology | null {
+function topologyFor(
+  figure: GraphFigure,
+  args: readonly unknown[],
+  expected: unknown,
+): Topology | null {
   if ('edgesArg' in figure) return edgeListTopology(figure, args);
-  if ('matrixArg' in figure) return matrixTopology(figure, args);
+  if ('matrixArg' in figure) return matrixTopology(figure, args, expected);
   return adjacencyTopology(figure, args);
 }
 
@@ -194,7 +224,7 @@ function graphStateFor(
   args: readonly unknown[],
   expected: unknown,
 ): GraphState | null {
-  const topology = topologyFor(figure, args);
+  const topology = topologyFor(figure, args, expected);
   if (topology === null || topology.ids.length === 0 || topology.ids.length > MAX_FIGURE_NODES) {
     return null;
   }

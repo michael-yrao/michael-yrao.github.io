@@ -66,9 +66,12 @@ export interface EdgeListFigure extends GraphFigureBase {
   readonly nodesArg?: number;
 }
 
-/** Which arg of a case holds a square weight matrix (undirected; 0 means no edge). */
+/** Which arg of a case holds a square weight matrix (undirected; 0 means no edge), unless
+ *  `edges: 'expected'` draws the lines from the case's expected answer instead. */
 export interface MatrixFigure extends GraphFigureBase {
   readonly directed: false;
+  /** When 'expected', only the pairs named by the case's `expected` are drawn, labeled from the matrix. */
+  readonly edges?: 'expected';
   readonly matrixArg: number;
 }
 

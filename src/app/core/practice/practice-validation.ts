@@ -59,12 +59,17 @@ function isAbsentOrArgIndex(value: unknown): boolean {
 /** A graph figure has exactly one edge source (`edgesArg`, `matrixArg` or `adjArg`, an integer
  *  argument index), a boolean `directed`, and only the optional keys that source allows:
  *  `nodeCountArg` (integer or null) and `nodesArg` with `edgesArg`, boolean `oneBased` with
- *  `adjArg`; `highlight` is only 'expected'. */
+ *  `adjArg`; `highlight` is only 'expected'; `edges` is only 'expected', only with `matrixArg`,
+ *  and never together with `highlight`. */
 function isValidGraphFigure(value: Record<string, unknown>): boolean {
   if (typeof value['directed'] !== 'boolean') return false;
   if (value['highlight'] !== undefined && value['highlight'] !== 'expected') return false;
   const sources = EDGE_SOURCE_KEYS.filter((key) => value[key] !== undefined);
   if (sources.length !== 1 || !isArgIndex(value[sources[0]])) return false;
+  if (value['edges'] !== undefined) {
+    if (value['edges'] !== 'expected' || sources[0] !== 'matrixArg') return false;
+    if (value['highlight'] !== undefined) return false;
+  }
   if (sources[0] === 'matrixArg' && value['directed'] !== false) return false;
   const isEdgeList = sources[0] === 'edgesArg';
   const nodeCountArg = value['nodeCountArg'];
