@@ -385,11 +385,12 @@ $workload-planned-opacity: 0.35;
 .tag--new { background: var(--color-accent-dim); color: var(--color-accent); border-color: transparent; }
 .tag--probe { font-style: italic; }
 
-// LeetCode stays alone at the row's right edge — pushed there by the flex row's own wrap,
-// never adjacent to the leading status badge (the walkthrough link, when there is one).
+// The run and external slots sit together at the row's right edge — pushed there by the flex
+// row's own wrap, never adjacent to the leading status badge.
 .today-board__links {
   @include prow.links;
 }
+.today-board__slot { @include prow.link-slot; }
 // The row's comfort-history toggle — sits with the other row icons (</>, ↗); muted at
 // rest, accent on hover/focus and while its panel is open.
 .today-board__trend-btn {

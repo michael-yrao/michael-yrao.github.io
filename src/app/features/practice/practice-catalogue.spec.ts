@@ -32,6 +32,7 @@ function entry(overrides: Partial<CatalogueEntry> & Pick<CatalogueEntry, 'number
     category: null,
     tags: [],
     isRunnable: false,
+    url: null,
     isVisualized: false,
     hasSolution: false,
     ...overrides,

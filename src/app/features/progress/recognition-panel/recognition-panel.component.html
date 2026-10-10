@@ -18,24 +18,29 @@
             <span class="recognition__title">{{ item.title }}</span>
             <span class="recognition__date">{{ item.date }}</span>
             <span class="recognition__links">
-              @if (item.lcNumber && practiceNumbers().has(item.lcNumber)) {
-                <a
-                  [routerLink]="['/practice', item.lcNumber]"
-                  queryParamsHandling="preserve"
-                  class="recognition__link practice-link"
-                  aria-label="Run code"
-                  title="Run code"
-                >{{ practiceGlyph }}</a>
-              } @else if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
-                <a
-                  [href]="lc"
-                  target="_blank"
-                  rel="noopener"
-                  class="recognition__link"
-                  aria-label="Open on LeetCode"
-                  title="LeetCode"
-                >↗</a>
-              }
+              <span class="recognition__slot">
+                @if (item.lcNumber && practiceNumbers().has(item.lcNumber)) {
+                  <a
+                    [routerLink]="['/practice', item.lcNumber]"
+                    queryParamsHandling="preserve"
+                    class="recognition__link practice-link"
+                    aria-label="Run code"
+                    title="Run code"
+                  >{{ practiceGlyph }}</a>
+                }
+              </span>
+              <span class="recognition__slot">
+                @if (externalJudgeUrlFor(item.url, item.lcNumber); as ext) {
+                  <a
+                    [href]="ext"
+                    target="_blank"
+                    rel="noopener"
+                    class="recognition__link"
+                    aria-label="External"
+                    title="External"
+                  >↗</a>
+                }
+              </span>
             </span>
           </li>
         }

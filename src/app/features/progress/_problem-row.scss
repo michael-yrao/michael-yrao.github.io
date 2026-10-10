@@ -115,6 +115,15 @@ $row-mobile-breakpoint: 680px;
   .practice-link { font-family: var(--font-mono); white-space: nowrap; }
 }
 
+// One link mark (run, or external ↗) in its own fixed-width box, so an absent mark leaves its
+// column empty and the other mark stays put.
+@mixin link-slot {
+  display: inline-flex;
+  justify-content: center;
+  width: $status-badge-width;
+  flex: none;
+}
+
 @mixin tag {
   font-size: 0.7rem;
   padding: 2px 6px;

@@ -11,6 +11,8 @@ export interface CatalogueEntry {
   readonly tags: readonly string[];
   /** The `?repo=` contract has this number, so the editor can run it. */
   readonly isRunnable: boolean;
+  /** The contract's judge page for this problem; null when the contract has none. */
+  readonly url: string | null;
   /** The static algorithm has at least one step-by-step visualization. */
   readonly isVisualized: boolean;
   /** The number is in `ALGORITHM_INDEX`, so the Solution tab exists. */
@@ -42,6 +44,7 @@ function toEntry(
     category: algorithm?.category ?? null,
     tags: algorithm?.tags ?? [],
     isRunnable: problem !== undefined,
+    url: problem?.url ?? null,
     isVisualized: algorithm?.hasVisualization ?? false,
     hasSolution: algorithm !== undefined,
   };

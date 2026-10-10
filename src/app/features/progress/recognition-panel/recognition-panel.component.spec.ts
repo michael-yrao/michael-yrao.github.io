@@ -53,7 +53,7 @@ describe('RecognitionPanelComponent', () => {
     expect(link?.getAttribute('href')).toContain('leetcode.com');
   });
 
-  it('draws one problem link per probe row: Run when the number is in practiceNumbers, else the external link', () => {
+  it('draws the external link on every probe row, and Run beside it when the number is in practiceNumbers', () => {
     TestBed.configureTestingModule({ imports: [RecognitionPanelComponent], providers: [provideRouter([])] });
     const fixture = TestBed.createComponent(RecognitionPanelComponent);
     fixture.componentRef.setInput('probes', makeProbes());
@@ -67,8 +67,8 @@ describe('RecognitionPanelComponent', () => {
     const run = practiced.querySelector('a[title="Run code"]');
     expect(run?.textContent?.trim()).toBe('>_');
     expect(run?.getAttribute('href')).toBe('/practice/1');
-    expect(practiced.querySelector('a[title="LeetCode"]')).toBeFalsy();
-    expect(external.querySelector('a[title="LeetCode"]')).toBeTruthy();
+    expect(practiced.querySelector('a[title="External"]')).toBeTruthy();
+    expect(external.querySelector('a[title="External"]')).toBeTruthy();
     expect(external.querySelector('a[title="Run code"]')).toBeFalsy();
   });
 

@@ -537,7 +537,7 @@ describe('TodayBoardComponent', () => {
     expect(links.contains(badge)).toBe(false);
     const lcLink: HTMLAnchorElement = links.querySelector('a')!;
     expect(lcLink.textContent?.trim()).toBe('↗');
-    expect(lcLink.getAttribute('aria-label')).toContain('LeetCode');
+    expect(lcLink.getAttribute('aria-label')).toBe('External');
   });
 
   it('renders a plain SPAN status badge (○, aria-label "not done") for a not-done row with no registered walkthrough route', () => {
@@ -575,7 +575,7 @@ describe('TodayBoardComponent', () => {
   it.each([
     { lcNumber: 39, isPracticed: true },
     { lcNumber: 40, isPracticed: false },
-  ])('draws one problem link per row: Run for a practiced number, else the LeetCode link ()', ({ lcNumber, isPracticed }) => {
+  ])('draws the external link on every row, and Run beside it only for a practiced number', ({ lcNumber, isPracticed }) => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
       { lcNumber, title: 'Combination Sum', technique: null, startComfort: null,
@@ -586,14 +586,13 @@ describe('TodayBoardComponent', () => {
     fixture.detectChanges();
 
     const run: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a[title="Run code"]');
-    const external = fixture.nativeElement.querySelector('a[title="LeetCode"]');
+    const external = fixture.nativeElement.querySelector('a[title="External"]');
+    expect(external).toBeTruthy();
     if (isPracticed) {
       expect(run?.textContent?.trim()).toBe('>_');
       expect(run?.getAttribute('href')).toBe('/practice/39');
-      expect(external).toBeFalsy();
       return;
     }
-    expect(external).toBeTruthy();
     expect(run).toBeFalsy();
   });
 
@@ -615,7 +614,7 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('#39');
     const lcLink: HTMLAnchorElement = fixture.nativeElement.querySelector('.today-board__links a');
     expect(lcLink.textContent?.trim()).toBe('↗');
-    expect(lcLink.getAttribute('aria-label')).toContain('LeetCode');
+    expect(lcLink.getAttribute('aria-label')).toBe('External');
   });
 
   it('renders the status badge as a GitHub solution-file link when the row has no walkthrough route but has a `file` and a repo ref', () => {

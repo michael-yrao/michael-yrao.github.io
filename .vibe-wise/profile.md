@@ -26,7 +26,8 @@ Implementation style: AI writes code — on "Implement this step" the session br
 No demonstrated understanding recorded yet.
 
 ## Developing Concepts
-None recorded yet.
+- Where a data decision lives in a multi-repo pipeline (judge priority is upstream, the site renders one url) — 2026-10-09
+- Valid interactive markup: no nested anchors; grid on the container, link as a grid item — 2026-10-09
 
 ## Revisit
 None recorded yet.

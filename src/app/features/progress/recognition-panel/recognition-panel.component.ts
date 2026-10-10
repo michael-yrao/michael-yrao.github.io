@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { RouterLink } from '@angular/router';
 
 import { Probes } from '../../../core/models/progress.model';
-import { leetCodeUrlFor } from '../../../core/data/lc-url';
+import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { PRACTICE_GLYPH } from '../practice-link';
 
 const CLEAN_HIGH = 0.85;
@@ -46,6 +46,6 @@ export class RecognitionPanelComponent {
   // Most recent first.
   readonly recent = computed(() => [...(this.probes()?.items ?? [])].reverse());
 
-  protected readonly leetCodeUrlFor = leetCodeUrlFor;
+  protected readonly externalJudgeUrlFor = externalJudgeUrlFor;
   protected readonly practiceGlyph = PRACTICE_GLYPH;
 }

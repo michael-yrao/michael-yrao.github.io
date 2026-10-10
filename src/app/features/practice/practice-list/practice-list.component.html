@@ -52,8 +52,8 @@
 
   <ul class="practice-list__rows">
     @for (row of rows(); track row.number) {
-      <li>
-        <a class="practice-list__row" [routerLink]="['/practice', row.number]" queryParamsHandling="preserve">
+      <li class="practice-list__row">
+        <a class="practice-list__link" [routerLink]="['/practice', row.number]" queryParamsHandling="preserve">
           <span class="practice-list__num">#{{ row.number }}</span>&ngsp;
           <span class="practice-list__title-area">
             <span class="practice-list__title">{{ row.title }}</span>
@@ -71,17 +71,22 @@
               <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
             }
           </span>
-          <span class="practice-list__mark practice-list__mark--run">
-            @if (row.isRunnable) {
-              <span title="Run code">{{ practiceGlyph }}</span>
-            }
-          </span>
-          <span class="practice-list__mark">
-            @if (row.isVisualized) {
-              <span title="Visualization available">⬡</span>
-            }
-          </span>
         </a>
+        <span class="practice-list__mark practice-list__mark--run">
+          @if (row.isRunnable) {
+            <span title="Run code">{{ practiceGlyph }}</span>
+          }
+        </span>
+        <span class="practice-list__mark">
+          @if (row.isVisualized) {
+            <span title="Visualization available">⬡</span>
+          }
+        </span>
+        <span class="practice-list__mark">
+          @if (externalJudgeUrlFor(row.url, row.number); as ext) {
+            <a [href]="ext" target="_blank" rel="noopener" aria-label="External" title="External">↗</a>
+          }
+        </span>
       </li>
     }
   </ul>

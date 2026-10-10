@@ -198,6 +198,7 @@ $tech-box-gap: 3px;
 .tech-row__problem-num { @include prow.num; }
 .tech-row__problem-title { @include prow.title; }
 .tech-row__problem-links { @include prow.links; }
+.tech-row__problem-slot { @include prow.link-slot; }
 
 .tag {
   @include prow.tag;

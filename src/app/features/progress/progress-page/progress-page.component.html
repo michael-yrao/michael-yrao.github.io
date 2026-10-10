@@ -78,31 +78,36 @@
         >
       }
       <span class="problem__links">
-        @if (practiceNumbers().has(p.lcNumber)) {
-          <a
-            [routerLink]="['/practice', p.lcNumber]"
-            queryParamsHandling="preserve"
-            class="practice-link"
-            aria-label="Run code"
-            title="Run code"
-            (click)="$event.stopPropagation()"
-            (keydown.enter)="$event.stopPropagation()"
-            (keydown.space)="$event.stopPropagation()"
-            >{{ practiceGlyph }}</a
-          >
-        } @else if (p.url) {
-          <a
-            [href]="p.url"
-            target="_blank"
-            rel="noopener"
-            aria-label="Open on LeetCode"
-            title="LeetCode"
-            (click)="$event.stopPropagation()"
-            (keydown.enter)="$event.stopPropagation()"
-            (keydown.space)="$event.stopPropagation()"
-            >↗</a
-          >
-        }
+        <span class="problem__slot">
+          @if (practiceNumbers().has(p.lcNumber)) {
+            <a
+              [routerLink]="['/practice', p.lcNumber]"
+              queryParamsHandling="preserve"
+              class="practice-link"
+              aria-label="Run code"
+              title="Run code"
+              (click)="$event.stopPropagation()"
+              (keydown.enter)="$event.stopPropagation()"
+              (keydown.space)="$event.stopPropagation()"
+              >{{ practiceGlyph }}</a
+            >
+          }
+        </span>
+        <span class="problem__slot">
+          @if (externalJudgeUrlFor(p.url, null); as ext) {
+            <a
+              [href]="ext"
+              target="_blank"
+              rel="noopener"
+              aria-label="External"
+              title="External"
+              (click)="$event.stopPropagation()"
+              (keydown.enter)="$event.stopPropagation()"
+              (keydown.space)="$event.stopPropagation()"
+              >↗</a
+            >
+          }
+        </span>
       </span>
       <span class="problem__caret" [class.problem__caret--open]="isExpanded(p)">▸</span>
     </div>

@@ -20,6 +20,7 @@ import { ProblemProgress, ScheduleItem, Technique } from '../../../core/models/p
 import { todayLocalISO } from '../../../core/utils/local-date';
 import { walkthroughRouteFor } from '../solution-link-mode';
 import { PRACTICE_GLYPH } from '../practice-link';
+import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { BadgeGridComponent } from '../badge-grid/badge-grid.component';
@@ -143,6 +144,7 @@ export class ProgressPageComponent {
 
   // Which rows get a Run link — PracticeNumbers also owns the practice-index load effect.
   protected readonly practiceGlyph = PRACTICE_GLYPH;
+  protected readonly externalJudgeUrlFor = externalJudgeUrlFor;
   readonly practiceNumbers = new PracticeNumbers(inject(PracticeService), this.repoRef).numbers;
 
   // Inline `?repo=` picker — state and submit rule live in RepoPicker; the aliases keep the

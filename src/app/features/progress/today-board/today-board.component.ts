@@ -19,7 +19,7 @@ import {
 } from '../../../core/models/progress.model';
 import { LoadStatus } from '../../../core/services/progress.service';
 import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
-import { leetCodeUrlFor } from '../../../core/data/lc-url';
+import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { shortMonthDay } from '../../../core/utils/local-date';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
@@ -72,7 +72,7 @@ import { WeekNavigation } from './week-navigation';
  * ScheduleItem's `url` (round 5) carries the tracker's canonical LeetCode URL, joined by
  * lcNumber server-side (cse-progress gamify.py's problem_urls()) — the site's own
  * AlgorithmMeta.id is a shortened route slug, not the LC slug, so it can't build this link
- * itself. leetCodeUrlFor() falls back to the number-based search/redirect URL only for a row
+ * itself. externalJudgeUrlFor() falls back to the number-based search/redirect URL only for a row
  * with no tracker url (e.g. a number not yet in dsa_progress.md).
  */
 @Component({
@@ -310,7 +310,7 @@ export class TodayBoardComponent {
     return countRows(this.rowsFor(day));
   }
 
-  protected readonly leetCodeUrlFor = leetCodeUrlFor;
+  protected readonly externalJudgeUrlFor = externalJudgeUrlFor;
   protected readonly shortMonthDay = shortMonthDay;
   protected readonly endNoteMeaning = endNoteMeaning;
   protected readonly isGateRow = isGateRow;

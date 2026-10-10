@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink } from '@angular/router';
 
 import { ALGORITHM_INDEX } from '../../../core/data/algorithms.data';
+import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { CATEGORY_LABELS, Category, Difficulty } from '../../../core/models/algorithm.model';
 import { PRACTICE_SECTIONS } from '../../../core/data/practice-sections';
 import { PracticeService } from '../../../core/services/practice.service';
@@ -41,6 +42,7 @@ export class PracticeListComponent {
   readonly categoryLabels = CATEGORY_LABELS;
   readonly practiceGlyph = PRACTICE_GLYPH;
   readonly tagsPerRow = TAGS_PER_ROW;
+  readonly externalJudgeUrlFor = externalJudgeUrlFor;
 
   readonly invalidSlug = this.contract.invalidSlug;
   readonly status = this.contract.status;

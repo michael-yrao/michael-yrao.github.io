@@ -24,6 +24,7 @@ import { fileUrl, RepoRef } from '../../../core/services/github-file.service';
 import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-date';
 import { walkthroughRouteFor } from '../solution-link-mode';
 import { PRACTICE_GLYPH } from '../practice-link';
+import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import {
   CoverageBox,
@@ -97,6 +98,7 @@ export class TechniqueListComponent {
    *  its card in Board view, then scrolls it into view. An unknown name is a no-op. */
   readonly focus = input<TechniqueFocus | null>(null);
   protected readonly practiceGlyph = PRACTICE_GLYPH;
+  protected readonly externalJudgeUrlFor = externalJudgeUrlFor;
   readonly expand = output<Technique>();
 
   // The shared, page-header-level Solution Links setting (settings-menu.component.ts's ⚙

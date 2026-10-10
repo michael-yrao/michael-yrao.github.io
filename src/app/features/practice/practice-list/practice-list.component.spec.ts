@@ -56,15 +56,15 @@ function setUp(status: LoadStatus, error: string | null, problems: readonly Prac
   return fixture;
 }
 
-function rows(root: HTMLElement): HTMLAnchorElement[] {
-  return Array.from(root.querySelectorAll<HTMLAnchorElement>('a.practice-list__row'));
+function rows(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>('li.practice-list__row'));
 }
 
-function rowNumber(row: HTMLAnchorElement): number {
+function rowNumber(row: HTMLElement): number {
   return Number(row.querySelector('.practice-list__num')?.textContent?.replace('#', ''));
 }
 
-function rowFor(root: HTMLElement, number: number): HTMLAnchorElement {
+function rowFor(root: HTMLElement, number: number): HTMLElement {
   const row = rows(root).find((r) => rowNumber(r) === number);
   if (!row) throw new Error(`no row #${number}`);
   return row;
@@ -86,7 +86,7 @@ describe('PracticeListComponent', () => {
     expect(numbers.at(-1)).toBe(CONTRACT_ONLY_NUMBER);
 
     const both = rowFor(root, STATIC_AND_CONTRACT_NUMBER);
-    expect(both.getAttribute('href')).toBe('/practice/20');
+    expect(both.querySelector('a.practice-list__link')?.getAttribute('href')).toBe('/practice/20');
     expect(text(both)).toContain(RUN_MARK);
     expect(text(both)).toContain(VISUALIZED_MARK);
     expect(both.querySelector('.difficulty-badge')).not.toBeNull();

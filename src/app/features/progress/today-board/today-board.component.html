@@ -85,11 +85,16 @@
       <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
     }
     <span class="today-board__links">
-      @if (item.lcNumber && practiceNumbers().has(item.lcNumber)) {
-        <a [routerLink]="['/practice', item.lcNumber]" queryParamsHandling="preserve" aria-label="Run code" title="Run code" class="practice-link">{{ practiceGlyph }}</a>
-      } @else if (leetCodeUrlFor(item.url, item.lcNumber); as lc) {
-        <a [href]="lc" target="_blank" rel="noopener" aria-label="Open on LeetCode" title="LeetCode">↗</a>
-      }
+      <span class="today-board__slot">
+        @if (item.lcNumber && practiceNumbers().has(item.lcNumber)) {
+          <a [routerLink]="['/practice', item.lcNumber]" queryParamsHandling="preserve" aria-label="Run code" title="Run code" class="practice-link">{{ practiceGlyph }}</a>
+        }
+      </span>
+      <span class="today-board__slot">
+        @if (externalJudgeUrlFor(item.url, item.lcNumber); as ext) {
+          <a [href]="ext" target="_blank" rel="noopener" aria-label="External" title="External">↗</a>
+        }
+      </span>
       @if (item.lcNumber) {
         <button type="button" class="today-board__trend-btn" title="Comfort history"
           [attr.aria-label]="trendAriaLabel(item)"

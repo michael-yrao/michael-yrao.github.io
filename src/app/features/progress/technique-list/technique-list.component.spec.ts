@@ -166,7 +166,7 @@ describe('TechniqueListComponent', () => {
     expect(emitted.length).toBe(0);
   });
 
-  it('draws one problem link per row: Run when the number is in practiceNumbers, else the external link', () => {
+  it('draws the external link on every row, and Run beside it when the number is in practiceNumbers', () => {
     const fixture = createFixture(
       [makeTechnique({ problems: [11, 12] })],
       [makeProblem({ lcNumber: 11 }), makeProblem({ lcNumber: 12, title: 'Other', url: 'https://leetcode.com/problems/other/' })],
@@ -181,8 +181,8 @@ describe('TechniqueListComponent', () => {
     const run = practiced.querySelector('a[title="Run code"]');
     expect(run?.textContent?.trim()).toBe('>_');
     expect(run?.getAttribute('href')).toBe('/practice/11');
-    expect(practiced.querySelector('a[title="LeetCode"]')).toBeFalsy();
-    expect(external.querySelector('a[title="LeetCode"]')).toBeTruthy();
+    expect(practiced.querySelector('a[title="External"]')).toBeTruthy();
+    expect(external.querySelector('a[title="External"]')).toBeTruthy();
     expect(external.querySelector('a[title="Run code"]')).toBeFalsy();
   });
 
@@ -247,9 +247,9 @@ describe('TechniqueListComponent', () => {
     expect(row?.firstElementChild?.classList.contains('tech-row__problem-status')).toBe(true);
     expect(row?.firstElementChild?.classList.contains('tech-row__problem-status--link')).toBe(true);
 
-    const link: HTMLAnchorElement | null = row?.querySelector('.tech-row__problem-links a') ?? null;
+    const link: HTMLAnchorElement | null = row?.querySelector('.tech-row__problem-links a[title="External"]') ?? null;
     expect(link?.textContent?.trim()).toBe('↗');
-    expect(link?.getAttribute('aria-label')).toBe('Open on LeetCode');
+    expect(link?.getAttribute('aria-label')).toBe('External');
   });
 
   // #9999 is deliberately unregistered — same convention as today-board.component.spec.ts's

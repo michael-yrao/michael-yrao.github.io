@@ -4,6 +4,26 @@
 // no tracker url (the number isn't in dsa_progress.md yet, or has no lcNumber to join on)
 // falls back to the number-based search/redirect URL, which needs no slug and always
 // resolves to the right problem.
+const SITE_HOST = 'progressiveoverflow.com';
+
+function isSiteUrl(url: string): boolean {
+  try {
+    return new URL(url).host === SITE_HOST;
+  } catch {
+    return false;
+  }
+}
+
+/** The link for a row's external ↗ slot: the judge page, or null when the judge is this site itself
+ *  (an external-judge problem whose url is its own /practice page, already covered by the run slot). */
+export function externalJudgeUrlFor(
+  url: string | null | undefined,
+  lcNumber: number | null | undefined,
+): string | null {
+  if (url && isSiteUrl(url)) return null;
+  return leetCodeUrlFor(url, lcNumber);
+}
+
 export function leetCodeUrlFor(
   url: string | null | undefined,
   lcNumber: number | null | undefined,
