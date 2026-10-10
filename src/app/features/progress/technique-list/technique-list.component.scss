@@ -106,7 +106,6 @@
   &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
 }
 
-.tech-row__comfort { font-size: 1rem; }
 .tech-row__name { font-weight: 600; flex: 1 1 auto; }
 .tech-row__ratio { font-family: var(--font-mono); color: var(--color-text-muted); font-size: 0.78rem; }
 .tech-row__caret {
@@ -132,8 +131,8 @@
 
 // ── Coverage boxes (Sep 27, 2026 — replaces the done/planned bar, its tick, and its hover
 // tooltip: one small square per unit of the ratio's denominator, "show, don't tell") ──────────
-// Forces the box row onto its own flex line under the row's wrapped comfort/name/ratio/chips/
-// caret line — the row is only ~260px wide on a 360px phone, so that content already wraps.
+// Forces the box row onto its own flex line under the row's wrapped name/ratio/chips/caret
+// line — the row is only ~260px wide on a 360px phone, so that content already wraps.
 $tech-box-size: 10px;
 $tech-box-radius: 2px;
 $tech-box-gap: 3px;
@@ -281,8 +280,8 @@ $tech-box-gap: 3px;
   gap: var(--space-xs);
 }
 
-// One flex-wrap row per card, same shape as a list row's own .tech-row__toggle — comfort/
-// name/ratio/chips wrap together, and .tech-row__boxes (its existing `flex: 1 0 100%`)
+// One flex-wrap row per card, same shape as a list row's own .tech-row__toggle — name/
+// ratio/chips wrap together, and .tech-row__boxes (its existing `flex: 1 0 100%`)
 // forces the coverage boxes onto their own line beneath them, reused as-is.
 .tech-board__card {
   appearance: none;

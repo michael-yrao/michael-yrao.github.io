@@ -77,7 +77,6 @@
                     [attr.aria-pressed]="isBoardSelected(t)"
                     (click)="selectInBoard(t)"
                   >
-                    <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
                     <span class="tech-board__card-name">{{ shortName(t.name) }}</span>
                     <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
                     @if (t.started) {
@@ -110,7 +109,7 @@
       @let stats = statsFor(t);
       <div class="tech-row__detail tech-board__detail">
         <h5 class="tech-board__detail-title">
-          {{ t.bestComfort || '—' }} {{ t.name }}
+          {{ t.name }}
           <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
           @if (stats.greenCount > 0 || stats.lastTouched) {
             <span class="tech-board__detail-stats">
@@ -140,7 +139,6 @@
                     [attr.aria-expanded]="isExpanded(t)"
                     (click)="toggle(t)"
                   >
-                    <span class="tech-row__comfort">{{ t.bestComfort || '—' }}</span>
                     <span class="tech-row__name">{{ t.name }}</span>
                     <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
                     @if (t.started) {

@@ -200,7 +200,7 @@ export class TechniqueListComponent {
    *  read — not just captured once at selection time. `techniques()` can change out from
    *  under an open selection (e.g. a `?repo=` switch to a log that never had this technique),
    *  so this falls back to null rather than a stale/undefined object the template would throw
-   *  on (`t.bestComfort`) via a non-null assertion. */
+   *  on (`t.name`) via a non-null assertion. */
   readonly boardSelected = computed<Technique | null>(() => {
     const name = this.boardSelectedName();
     return name ? this.techniquesByName().get(name) ?? null : null;
