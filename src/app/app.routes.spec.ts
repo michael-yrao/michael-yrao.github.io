@@ -49,12 +49,12 @@ describe('app routes', () => {
     expect(router.url).toBe(to);
   });
 
-  it('loads the events feature at /events', async () => {
+  it('redirects /events to the root route', async () => {
     const router = TestBed.inject(Router);
 
     await router.navigateByUrl('/events');
 
-    expect(router.url).toBe('/events');
+    expect(router.url).toBe('/');
   });
 
   it('loads the solution page at /practice/:number/solution', async () => {

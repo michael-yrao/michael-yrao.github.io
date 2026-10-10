@@ -17,7 +17,6 @@ const STATIC_PATHS = [
   '/games',
   '/quiz',
   '/learn',
-  '/events',
   '/interview',
   '/practice',
 ];

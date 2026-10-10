@@ -59,12 +59,6 @@ export const routes: Routes = [
       import('./features/learn/learn.routes').then((m) => m.LEARN_ROUTES),
   },
   {
-    path: 'events',
-    title: 'Events',
-    loadChildren: () =>
-      import('./features/events/events.routes').then((m) => m.EVENTS_ROUTES),
-  },
-  {
     path: 'interview',
     title: 'Interview',
     loadComponent: () =>

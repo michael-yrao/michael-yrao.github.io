@@ -18,7 +18,6 @@ export const PAGE_DESCRIPTIONS: Readonly<Record<string, string>> = {
   quiz: 'Take quick-fire drills that test naming the pattern and the complexity before writing any code.',
   learn:
     'Read one cheat sheet per technique: when to use it, the canonical template, and the pitfalls.',
-  events: 'Find NYC and online tech meetups pulled from each community’s own feed.',
   interview:
     'Run a practice problem as a live interview with a partner, then keep the debrief.',
   practice:

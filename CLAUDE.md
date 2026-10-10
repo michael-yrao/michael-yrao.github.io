@@ -107,6 +107,8 @@ There is no working-tree/manual step — a push to `main` is the deploy. The cus
 
 ## Events
 
+**Unlinked since 2026-10-09** (no route, no nav entry, no sitemap entry, no title description): the feeds held too few events to justify a page. The feature code under `src/app/features/events/`, `EventsService`, the contract mirror and the worker are kept as-is; re-linking means restoring the `events` route in `app.routes.ts`, the drawer link in `app.component.html`, the `events` entry in `app-title.strategy.ts` and `'/events'` in `scripts/gen-sitemap.mjs`.
+
 The Events page's data comes from a separate Cloudflare Worker in [`worker/`](worker/) — a
 self-contained toolchain (own `package.json`, own `node_modules`, own `tsconfig.json`), **not**
 part of the Angular app's build or its `npm ci` at the repo root. It fetches a curated list of
