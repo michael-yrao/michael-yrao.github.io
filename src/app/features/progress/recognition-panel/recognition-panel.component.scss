@@ -30,16 +30,23 @@
   @include prow.row;
 }
 
-.recognition__result { font-size: 1rem; }
+.recognition__result { font-size: 0.95rem; }
 .recognition__date { @include prow.meta; }
 .recognition__num { @include prow.num; }
-.recognition__title { @include prow.title; }
+// The title stops growing so the difficulty tag sits against its text; the date takes the free space.
+.recognition__title { @include prow.title; flex: 0 1 auto; }
+
+.tag {
+  @include prow.tag;
+  @include prow.tag-difficulty;
+}
 
 // `.recognition__link` (the anchor) gets its color/underline from `prow.links`' own nested
 // `a` selector — no separate rule needed.
 .recognition__links {
   @include prow.links;
 }
+.recognition__result + .recognition__links { margin-left: 0; }
 .recognition__slot { @include prow.link-slot; }
 
 .recognition__note {

@@ -9,14 +9,17 @@
       <ul class="recognition__list">
         @for (item of recent(); track item.date + '-' + item.lcNumber) {
           <li class="recognition__row">
-            @if (item.result) {
-              <span class="recognition__result">{{ item.result }}</span>
-            }
             @if (item.lcNumber) {
               <span class="recognition__num">#{{ item.lcNumber }}</span>
             }
             <span class="recognition__title">{{ item.title }}</span>
+            @if (item.difficulty) {
+              <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
+            }
             <span class="recognition__date">{{ item.date }}</span>
+            @if (item.result) {
+              <span class="recognition__result">{{ item.result }}</span>
+            }
             <span class="recognition__links">
               <span class="recognition__slot">
                 @if (item.lcNumber && practiceNumbers().has(item.lcNumber)) {

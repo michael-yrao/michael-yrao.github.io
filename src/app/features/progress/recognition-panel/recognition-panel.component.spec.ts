@@ -89,22 +89,35 @@ describe('RecognitionPanelComponent', () => {
     }
   });
 
-  it("renders .recognition__date immediately after .recognition__title, then .recognition__links as the row's last child", () => {
+  it("renders num, title, date, result, then .recognition__links as the row's last child", () => {
     const fixture = createFixture(makeProbes());
 
     const rows = fixture.nativeElement.querySelectorAll('.recognition__row');
     for (const row of Array.from(rows) as HTMLElement[]) {
-      const children = Array.from(row.children) as HTMLElement[];
-      const titleIndex = children.findIndex((el) => el.classList.contains('recognition__title'));
-      expect(titleIndex).toBeGreaterThan(-1);
-
-      const dateEl = children[titleIndex + 1];
-      expect(dateEl.classList.contains('recognition__date')).toBe(true);
-
-      const linksEl = children[titleIndex + 2];
-      expect(linksEl.classList.contains('recognition__links')).toBe(true);
-      expect(children.length).toBe(titleIndex + 3);
+      const classes = Array.from(row.children).map((el) => el.className.split(' ')[0]);
+      expect(classes).toEqual([
+        'recognition__num',
+        'recognition__title',
+        'recognition__date',
+        'recognition__result',
+        'recognition__links',
+      ]);
     }
+  });
+
+  it('renders the difficulty tag right after the title when a probe has a difficulty', () => {
+    const fixture = createFixture(
+      makeProbes({
+        items: [{ date: '2026-09-01', lcNumber: 1, title: 'Two Sum', technique: 'Hash Map', result: '🟢', difficulty: 'Easy' }],
+      }),
+    );
+
+    const row: HTMLElement = fixture.nativeElement.querySelector('.recognition__row');
+    const children = Array.from(row.children) as HTMLElement[];
+    const titleIndex = children.findIndex((el) => el.classList.contains('recognition__title'));
+    const tag = children[titleIndex + 1];
+    expect(tag.classList.contains('tag--easy')).toBe(true);
+    expect(tag.textContent?.trim()).toBe('Easy');
   });
 
   it('shows a friendly hint and no crash when probes is null', () => {

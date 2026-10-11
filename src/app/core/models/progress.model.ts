@@ -262,6 +262,8 @@ export interface Probe {
   technique: string;
   result: Comfort | null;
   url?: string | null;
+  /** Joined from the tracker by lcNumber; null when the number has no tracker row. */
+  difficulty?: 'Easy' | 'Medium' | 'Hard' | null;
 }
 
 /** The Probe log's tally — the ONLY place a disposable, cold 🟢 probe is counted (it earns
