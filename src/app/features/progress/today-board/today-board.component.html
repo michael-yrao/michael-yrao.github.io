@@ -16,7 +16,7 @@
         class="today-board__status today-board__status--link"
         title="Solution walkthrough"
         [attr.aria-label]="statusAriaLabel(item, date)"
-        >{{ statusGlyph(item, walkthroughGlyph, date) }}</a
+        >{{ statusGlyph(item, walkthroughGlyph, date, todayISO()) }}</a
       >
     } @else if (solutionUrl(item.file); as src) {
       <a
@@ -26,13 +26,13 @@
         [attr.aria-label]="githubAriaLabel(item, date)"
         target="_blank"
         rel="noopener"
-        >{{ statusGlyph(item, item.done ? '✓' : '○', date) }}</a
+        >{{ statusGlyph(item, item.done ? '✓' : '○', date, todayISO()) }}</a
       >
     } @else {
       <span
         class="today-board__status"
         [attr.aria-label]="isMovedItem(item) ? movedAriaLabel(item, date) : (item.done ? 'done' : 'not done')"
-        >{{ statusGlyph(item, item.done ? '✓' : '○', date) }}</span
+        >{{ statusGlyph(item, item.done ? '✓' : '○', date, todayISO()) }}</span
       >
     }
     @if (item.lcNumber) {

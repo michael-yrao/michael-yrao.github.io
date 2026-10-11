@@ -38,18 +38,38 @@ describe('buildWorkloadBar band', () => {
 describe('moved marker direction', () => {
   const DAY = '2026-10-10';
   const cases = [
-    { name: 'earlier deferredTo moves up', deferredTo: '2026-10-09', glyph: '↶', label: 'Moved up to Fri Oct 9' },
-    { name: 'later deferredTo moves on', deferredTo: '2026-10-11', glyph: '↷', label: 'Moved to Sun Oct 11' },
+    { name: 'earlier deferredTo moves up', deferredTo: '2026-10-09', label: 'Moved up to Fri Oct 9' },
+    { name: 'later deferredTo moves on', deferredTo: '2026-10-11', label: 'Moved to Sun Oct 11' },
   ];
 
-  cases.forEach(({ name, deferredTo, glyph, label }) => {
+  cases.forEach(({ name, deferredTo, label }) => {
     it(name, () => {
       const item: ScheduleItem = {
         lcNumber: 1, title: 'A', technique: null, startComfort: null, difficulty: null,
         done: false, deferredTo,
       };
-      expect(statusGlyph(item, '○', DAY)).toBe(glyph);
       expect(movedAriaLabel(item, DAY)).toBe(label);
+    });
+  });
+});
+
+describe('statusGlyph', () => {
+  const PAST = '2026-10-09';
+  const cases = [
+    { name: 'moved up, done', date: TODAY, done: true, deferredTo: PAST, expected: '↶' },
+    { name: 'moved up, not done', date: TODAY, done: false, deferredTo: PAST, expected: '↶' },
+    { name: 'moved later, not done', date: TODAY, done: false, deferredTo: '2026-10-11', expected: '↷' },
+    { name: 'missed: past day, not done, no deferredTo', date: PAST, done: false, deferredTo: undefined, expected: '↷' },
+    { name: 'today, not done, no deferredTo', date: TODAY, done: false, deferredTo: undefined, expected: '○' },
+  ];
+
+  cases.forEach(({ name, date, done, deferredTo, expected }) => {
+    it(name, () => {
+      const item: ScheduleItem = {
+        lcNumber: 1, title: 'A', technique: null, startComfort: null, difficulty: null,
+        done, deferredTo,
+      };
+      expect(statusGlyph(item, '○', date, TODAY)).toBe(expected);
     });
   });
 });

@@ -303,12 +303,13 @@ export function githubAriaLabel(item: ScheduleItem, date: string): string {
   return `Solution source for #${item.lcNumber} on GitHub, ${item.done ? 'done' : 'not done'}`;
 }
 
-/** The status badge's glyph — `↷` for a moved row, `↶` when it moved up to an earlier date than
- *  its own day `date` (in place of whatever `fallback` this badge form would otherwise show:
- *  `</>`, `✓`/`○`), unchanged otherwise. */
-export function statusGlyph(item: ScheduleItem, fallback: string, date: string): string {
-  if (!isMovedItem(item)) return fallback;
-  return item.deferredTo && isMovedUp(item.deferredTo, date) ? MOVED_UP_GLYPH : MOVED_GLYPH;
+/** The status badge's glyph — `↶` when the row was pulled to an earlier date than its own day
+ *  `date` (done or not), `↷` for a moved or missed row (in place of whatever `fallback` this badge
+ *  form would otherwise show: `</>`, `✓`/`○`), `fallback` otherwise. */
+export function statusGlyph(item: ScheduleItem, fallback: string, date: string, todayISO: string): string {
+  if (item.deferredTo && isMovedUp(item.deferredTo, date)) return MOVED_UP_GLYPH;
+  if (isMovedItem(item) || isMissedItem(item, date, todayISO)) return MOVED_GLYPH;
+  return fallback;
 }
 
 /** Pure lookup in `details` by lcNumber for the trend panel: null when details aren't loaded
