@@ -167,7 +167,8 @@ export function sumRowCounts(rowLists: Iterable<readonly BoardRow[]>): RowCounts
 
 /** The selected day's workload bar — null when there's no day, or the day carries no units, or
  *  the ceiling is unknown/non-positive ("empty/no-board day -> no bar", round 2 item 3). A done
- *  fill only draws when the matching `workload` entry has done units (round 7, §Text f/g). */
+ *  fill only draws when the matching `workload` entry has done units (round 7, §Text f/g). The
+ *  band reads the larger of planned and done, so a day that finishes over the ceiling reads Over. */
 export function buildWorkloadBar(
   day: ScheduleDay | null,
   ceiling: number | undefined,
@@ -179,8 +180,8 @@ export function buildWorkloadBar(
   const units = entry?.planned ?? day.units;
   if (units == null) return null;
   const pct = Math.min(MAX_PCT, (units / ceiling) * MAX_PCT);
-  const band = workloadBand(units, ceiling, floor);
   const doneUnits = entry?.done ?? 0;
+  const band = workloadBand(Math.max(units, doneUnits), ceiling, floor);
   const done = doneUnits > 0 ? doneUnits : null;
   const donePct = done != null ? Math.min(MAX_PCT, (done / ceiling) * MAX_PCT) : null;
   return { units, ceiling, pct, band, done, donePct };

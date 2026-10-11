@@ -350,6 +350,16 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.today-board__workload-fill--heavy')).toBeTruthy();
   });
 
+  it('bands as Over when done exceeds the ceiling even though planned only equals it', () => {
+    // planned=8 (== ceiling -> Heavy alone), done=9 > ceiling 8 -> Over.
+    const workload: WorkloadDay[] = [{ date: todayLocalISO(), planned: 8, done: 9, built: 9, partial: false }];
+    const fixture = createFixture(makeSchedule(), 8, 3, undefined, undefined, undefined, workload);
+
+    const label = fixture.nativeElement.querySelector('.today-board__workload-label');
+    expect(label?.textContent).toContain('Over');
+    expect(fixture.nativeElement.querySelector('.today-board__workload-fill--over')).toBeTruthy();
+  });
+
   it('bands as Light at or below the floor', () => {
     // units=5, ceiling=20, floor=5 -> 5 <= floor -> Light.
     const fixture = createFixture(makeSchedule(), 20, 5);
