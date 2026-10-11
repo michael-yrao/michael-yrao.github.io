@@ -34,6 +34,21 @@
         >{{ statusGlyph(item, item.done ? '✓' : '○') }}</span
       >
     }
+    @if (item.difficulty) {
+      <span class="tag tag--{{ item.difficulty.toLowerCase() }} today-board__difficulty">{{ item.difficulty }}</span>
+    } @else {
+      <span class="today-board__difficulty today-board__difficulty--spacer" aria-hidden="true"></span>
+    }
+    @if (item.lcNumber) {
+      <span class="today-board__num">#{{ item.lcNumber }}</span>
+    }
+    <span class="today-board__title">{{ item.title }}</span>
+    @if (item.kind === 'new') {
+      <span class="tag tag--new">new</span>
+    }
+    @if (item.kind === 'probe') {
+      <span class="tag tag--probe">probe</span>
+    }
     @if (item.endComfort) {
       @if (item.endNote || item.nextReview) {
         <span
@@ -70,19 +85,6 @@
       }
     } @else if (item.startComfort) {
       <span class="today-board__comfort">{{ item.startComfort }}</span>
-    }
-    @if (item.lcNumber) {
-      <span class="today-board__num">#{{ item.lcNumber }}</span>
-    }
-    <span class="today-board__title">{{ item.title }}</span>
-    @if (item.kind === 'new') {
-      <span class="tag tag--new">new</span>
-    }
-    @if (item.kind === 'probe') {
-      <span class="tag tag--probe">probe</span>
-    }
-    @if (item.difficulty) {
-      <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
     }
     <span class="today-board__links">
       <span class="today-board__slot">

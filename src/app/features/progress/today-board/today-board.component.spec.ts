@@ -455,17 +455,19 @@ describe('TodayBoardComponent', () => {
   });
 
   // ── PART 2: the technique tag is gone — difficulty tag is followed straight by links ─
-  it('renders the difficulty tag immediately after the title, with no technique tag at all', () => {
+  it('renders the difficulty tag before the number and title, with no technique tag at all', () => {
     const fixture = createFixture(makeSchedule());
 
     const row = fixture.nativeElement.querySelector('.today-board__row');
     const children = Array.from(row.children) as HTMLElement[];
     const titleIndex = children.findIndex((el) => el.classList.contains('today-board__title'));
-    const nextEl = children[titleIndex + 1];
-    expect(nextEl.classList.contains('tag--medium')).toBe(true);
-    expect(nextEl.textContent).toContain('Medium');
+    // Difficulty leads the row: status, difficulty, #num, title.
+    const difficultyEl = children[titleIndex - 2];
+    expect(difficultyEl.classList.contains('tag--medium')).toBe(true);
+    expect(difficultyEl.textContent).toContain('Medium');
 
-    // Links directly follow the difficulty tag — no technique tag in between.
+    // Comfort then links follow the title — no technique tag in between.
+    expect(children[titleIndex + 1].classList.contains('today-board__comfort')).toBe(true);
     const linksEl = children[titleIndex + 2];
     expect(linksEl.classList.contains('today-board__links')).toBe(true);
     expect(children.length).toBe(titleIndex + 3);
@@ -1179,8 +1181,7 @@ describe('TodayBoardComponent', () => {
     const row = fixture.nativeElement.querySelector('.today-board__row');
     const children = Array.from(row.children) as HTMLElement[];
     const titleIndex = children.findIndex((el) => el.classList.contains('today-board__title'));
-    const nextEl = children[titleIndex + 1];
-    expect(nextEl.classList.contains('tag--medium')).toBe(true);
+    expect(children[titleIndex - 2].classList.contains('tag--medium')).toBe(true);
     const linksEl = children[titleIndex + 2];
     expect(linksEl.classList.contains('today-board__links')).toBe(true);
     expect(children.length).toBe(titleIndex + 3);

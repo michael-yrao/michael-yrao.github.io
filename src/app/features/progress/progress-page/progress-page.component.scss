@@ -407,13 +407,16 @@ $skeleton-card-height: 12rem;
   &:hover, &:focus-visible { @include prow.status-badge-link-hover; }
   &:focus-visible { @include prow.status-badge-link-focus; }
 }
-.problem__comfort { font-size: 1.1rem; }
+// Comfort takes the free space (title stops growing, so nothing after it floats away from
+// the title) and sits with the meta and links at the right edge.
+.problem__comfort { font-size: 1.1rem; margin-left: auto; }
+.problem__difficulty { @include prow.difficulty-slot; }
 .problem__num { @include prow.num; }
-.problem__name { @include prow.title; }
-.problem__meta { @include prow.meta; }
+.problem__name { @include prow.title; flex: 0 1 auto; }
+.problem__meta { @include prow.meta; margin-left: 0; }
 .problem__meta--due { color: var(--color-medium); }
 .problem__meta--today { color: var(--color-accent); }
-.problem__links { @include prow.links; }
+.problem__links { @include prow.links; margin-left: 0; }
 .problem__slot { @include prow.link-slot; }
 .problem__caret {
   display: inline-block;

@@ -211,12 +211,14 @@
             } @else {
               <span class="tech-row__problem-status tech-row__problem-status--spacer" aria-hidden="true"></span>
             }
-            <span class="tech-row__problem-comfort">{{ p.comfort }}</span>
+            @if (p.difficulty) {
+              <span class="tag tag--{{ p.difficulty.toLowerCase() }} tech-row__problem-difficulty">{{ p.difficulty }}</span>
+            } @else {
+              <span class="tech-row__problem-difficulty tech-row__problem-difficulty--spacer" aria-hidden="true"></span>
+            }
             <span class="tech-row__problem-num">#{{ p.lcNumber }}</span>
             <span class="tech-row__problem-title">{{ p.title }}</span>
-            @if (p.difficulty) {
-              <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
-            }
+            <span class="tech-row__problem-comfort">{{ p.comfort }}</span>
             <span class="tech-row__problem-links">
               <span class="tech-row__problem-slot">
                 @if (practiceNumbers().has(p.lcNumber)) {
@@ -243,6 +245,11 @@
         @for (p of plannedFor(t); track p.lcNumber) {
           <li class="tech-row__problem tech-row__problem--planned">
             <span class="tag tag--planned">to do</span>
+            @if (p.difficulty) {
+              <span class="tag tag--{{ p.difficulty.toLowerCase() }} tech-row__problem-difficulty">{{ p.difficulty }}</span>
+            } @else {
+              <span class="tech-row__problem-difficulty tech-row__problem-difficulty--spacer" aria-hidden="true"></span>
+            }
             @let label = judgeLabel(p.url);
             @if (label && label !== 'LC') {
               <span class="tech-row__problem-num">{{ label }}</span>
@@ -250,9 +257,6 @@
               <span class="tech-row__problem-num">#{{ p.lcNumber }}</span>
             }
             <span class="tech-row__problem-title">{{ p.title }}</span>
-            @if (p.difficulty) {
-              <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
-            }
             <span class="tech-row__problem-links">
               @if (p.url) {
                 <a [href]="p.url" target="_blank" rel="noopener" aria-label="Open problem" title="Open problem">↗</a>

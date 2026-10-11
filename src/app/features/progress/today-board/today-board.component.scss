@@ -375,7 +375,23 @@ $workload-planned-opacity: 0.35;
   &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 }
 .today-board__num { @include prow.num; }
-.today-board__title { @include prow.title; }
+// The title stops growing so "new"/"probe" sit right against its text; the comfort block
+// takes the free space instead and is right-aligned just before the links.
+.today-board__title { @include prow.title; flex: 0 1 auto; }
+.today-board__difficulty { @include prow.difficulty-slot; }
+.today-board__comfort,
+.today-board__outcome,
+.today-board__outcome-wrap { margin-left: auto; }
+// The comfort block already took the auto margin; links must not split the space with it.
+.today-board__comfort + .today-board__links,
+.today-board__outcome + .today-board__links,
+.today-board__outcome-wrap + .today-board__links { margin-left: 0; }
+.today-board__outcome-wrap .today-board__outcome { margin-left: 0; }
+@media (max-width: prow.$row-mobile-breakpoint) {
+  .today-board__comfort,
+  .today-board__outcome,
+  .today-board__outcome-wrap { margin-left: 0; }
+}
 
 .tag {
   @include prow.tag;

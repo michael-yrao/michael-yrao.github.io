@@ -193,10 +193,13 @@ $tech-box-gap: 3px;
   &:hover, &:focus-visible { @include prow.status-badge-link-hover; }
   &:focus-visible { @include prow.status-badge-link-focus; }
 }
-.tech-row__problem-comfort { font-size: 0.95rem; }
+// Comfort takes the free space (title stops growing) and sits just before the links.
+.tech-row__problem-comfort { font-size: 0.95rem; margin-left: auto; }
+.tech-row__problem-difficulty { @include prow.difficulty-slot; }
 .tech-row__problem-num { @include prow.num; }
 .tech-row__problem-title { @include prow.title; }
 .tech-row__problem-links { @include prow.links; }
+.tech-row__problem-comfort + .tech-row__problem-links { margin-left: 0; }
 .tech-row__problem-slot { @include prow.link-slot; }
 
 .tag {
