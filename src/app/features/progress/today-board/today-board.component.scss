@@ -378,7 +378,6 @@ $workload-planned-opacity: 0.35;
 // The title stops growing so "new"/"probe" sit right against its text; the comfort block
 // takes the free space instead and is right-aligned just before the links.
 .today-board__title { @include prow.title; flex: 0 1 auto; }
-.today-board__difficulty { @include prow.difficulty-slot; }
 .today-board__comfort,
 .today-board__outcome,
 .today-board__outcome-wrap { margin-left: auto; }

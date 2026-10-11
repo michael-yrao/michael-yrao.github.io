@@ -63,13 +63,11 @@
       } @else {
         <span class="problem__status problem__status--spacer" aria-hidden="true"></span>
       }
-      @if (p.difficulty) {
-        <span class="tag tag--{{ p.difficulty.toLowerCase() }} problem__difficulty">{{ p.difficulty }}</span>
-      } @else {
-        <span class="problem__difficulty problem__difficulty--spacer" aria-hidden="true"></span>
-      }
       <span class="problem__num">#{{ p.lcNumber }}</span>
       <span class="problem__name">{{ p.title }}</span>
+      @if (p.difficulty) {
+        <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
+      }
       <span class="problem__comfort">{{ p.comfort }}</span>
       <span class="problem__meta">{{ p.repDates.length }} reps</span>
       @if (showDue) {

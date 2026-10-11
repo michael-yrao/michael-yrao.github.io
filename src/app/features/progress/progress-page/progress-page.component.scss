@@ -410,7 +410,6 @@ $skeleton-card-height: 12rem;
 // Comfort takes the free space (title stops growing, so nothing after it floats away from
 // the title) and sits with the meta and links at the right edge.
 .problem__comfort { font-size: 1.1rem; margin-left: auto; }
-.problem__difficulty { @include prow.difficulty-slot; }
 .problem__num { @include prow.num; }
 .problem__name { @include prow.title; flex: 0 1 auto; }
 .problem__meta { @include prow.meta; margin-left: 0; }

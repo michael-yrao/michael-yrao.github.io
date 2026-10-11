@@ -455,22 +455,21 @@ describe('TodayBoardComponent', () => {
   });
 
   // ── PART 2: the technique tag is gone — difficulty tag is followed straight by links ─
-  it('renders the difficulty tag before the number and title, with no technique tag at all', () => {
+  it('renders the difficulty tag immediately after the title, with no technique tag at all', () => {
     const fixture = createFixture(makeSchedule());
 
     const row = fixture.nativeElement.querySelector('.today-board__row');
     const children = Array.from(row.children) as HTMLElement[];
     const titleIndex = children.findIndex((el) => el.classList.contains('today-board__title'));
-    // Difficulty leads the row: status, difficulty, #num, title.
-    const difficultyEl = children[titleIndex - 2];
+    const difficultyEl = children[titleIndex + 1];
     expect(difficultyEl.classList.contains('tag--medium')).toBe(true);
     expect(difficultyEl.textContent).toContain('Medium');
 
-    // Comfort then links follow the title — no technique tag in between.
-    expect(children[titleIndex + 1].classList.contains('today-board__comfort')).toBe(true);
-    const linksEl = children[titleIndex + 2];
+    // Comfort then links follow the difficulty tag — no technique tag in between.
+    expect(children[titleIndex + 2].classList.contains('today-board__comfort')).toBe(true);
+    const linksEl = children[titleIndex + 3];
     expect(linksEl.classList.contains('today-board__links')).toBe(true);
-    expect(children.length).toBe(titleIndex + 3);
+    expect(children.length).toBe(titleIndex + 4);
 
     expect(row.textContent).not.toContain('Backtracking');
   });
@@ -1181,10 +1180,10 @@ describe('TodayBoardComponent', () => {
     const row = fixture.nativeElement.querySelector('.today-board__row');
     const children = Array.from(row.children) as HTMLElement[];
     const titleIndex = children.findIndex((el) => el.classList.contains('today-board__title'));
-    expect(children[titleIndex - 2].classList.contains('tag--medium')).toBe(true);
-    const linksEl = children[titleIndex + 2];
+    expect(children[titleIndex + 1].classList.contains('tag--medium')).toBe(true);
+    const linksEl = children[titleIndex + 3];
     expect(linksEl.classList.contains('today-board__links')).toBe(true);
-    expect(children.length).toBe(titleIndex + 3);
+    expect(children.length).toBe(titleIndex + 4);
   });
 
   it('renders no note line in the bubble when endNote is null, but still shows the next-review date', () => {

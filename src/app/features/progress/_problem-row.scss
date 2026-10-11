@@ -10,9 +10,6 @@
 $status-badge-width: 2.25em;
 $status-badge-height: 1.5em;
 
-// Clears "Medium" at the tag's 0.7rem font plus its 6px side padding.
-$difficulty-slot-width: 3.75rem;
-
 $row-mobile-breakpoint: 680px;
 
 // Split so a surface that already draws its own bordered box (Problems' `.problem`) can take
@@ -125,18 +122,6 @@ $row-mobile-breakpoint: 680px;
   justify-content: center;
   width: $status-badge-width;
   flex: none;
-}
-
-// The leading difficulty tag's fixed box (fits "Medium"), so titles align down a list. A row
-// with no difficulty draws `&--spacer` in the same box.
-@mixin difficulty-slot {
-  display: inline-flex;
-  justify-content: center;
-  box-sizing: border-box;
-  width: $difficulty-slot-width;
-  flex: none;
-
-  &--spacer { visibility: hidden; }
 }
 
 @mixin tag {

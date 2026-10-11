@@ -34,15 +34,13 @@
         >{{ statusGlyph(item, item.done ? '✓' : '○') }}</span
       >
     }
-    @if (item.difficulty) {
-      <span class="tag tag--{{ item.difficulty.toLowerCase() }} today-board__difficulty">{{ item.difficulty }}</span>
-    } @else {
-      <span class="today-board__difficulty today-board__difficulty--spacer" aria-hidden="true"></span>
-    }
     @if (item.lcNumber) {
       <span class="today-board__num">#{{ item.lcNumber }}</span>
     }
     <span class="today-board__title">{{ item.title }}</span>
+    @if (item.difficulty) {
+      <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
+    }
     @if (item.kind === 'new') {
       <span class="tag tag--new">new</span>
     }
