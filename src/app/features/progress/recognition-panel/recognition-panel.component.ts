@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 
 import { Probes } from '../../../core/models/progress.model';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
+import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
 import { PRACTICE_GLYPH } from '../practice-link';
 
 const CLEAN_HIGH = 0.85;
@@ -24,6 +25,14 @@ const CLEAN_LOW = 0.7;
 export class RecognitionPanelComponent {
   readonly probes = input<Probes | null | undefined>();
   readonly practiceNumbers = input<ReadonlySet<number>>(new Set());
+  /** The repo/branch the page renders (ProgressService.repoRef); null until known. */
+  readonly repoRef = input<RepoRef | null>(null);
+
+  /** The learner's own solution file on GitHub; null without a file or before the ref is known. */
+  solutionUrl(file: string | null | undefined): string | null {
+    const ref = this.repoRef();
+    return file && ref ? fileUrl(ref, file) : null;
+  }
 
   readonly cleanPct = computed(() => {
     const p = this.probes();

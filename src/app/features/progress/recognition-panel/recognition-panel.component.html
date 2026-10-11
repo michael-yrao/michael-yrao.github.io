@@ -9,6 +9,19 @@
       <ul class="recognition__list">
         @for (item of recent(); track item.date + '-' + item.lcNumber) {
           <li class="recognition__row">
+            @if (solutionUrl(item.file); as src) {
+              <a
+                [href]="src"
+                class="recognition__status recognition__status--link"
+                title="Solution on GitHub"
+                [attr.aria-label]="'Solution source for #' + item.lcNumber + ' on GitHub, done'"
+                target="_blank"
+                rel="noopener"
+                >✓</a
+              >
+            } @else {
+              <span class="recognition__status" aria-label="done">✓</span>
+            }
             @if (item.lcNumber) {
               <span class="recognition__num">#{{ item.lcNumber }}</span>
             }

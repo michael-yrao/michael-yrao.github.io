@@ -89,13 +89,30 @@ describe('RecognitionPanelComponent', () => {
     }
   });
 
-  it("renders num, title, date, result, then .recognition__links as the row's last child", () => {
+  it('renders a GitHub link to the probe file in the leading status badge', () => {
+    TestBed.configureTestingModule({ imports: [RecognitionPanelComponent] });
+    const fixture = TestBed.createComponent(RecognitionPanelComponent);
+    fixture.componentRef.setInput(
+      'probes',
+      makeProbes({
+        items: [{ date: '2026-09-01', lcNumber: 1, title: 'Two Sum', technique: 'Hash Map', result: '🟢', file: 'dsa/probes/1_two_sum.py' }],
+      }),
+    );
+    fixture.componentRef.setInput('repoRef', { owner: 'o', repo: 'r', branch: 'main' });
+    fixture.detectChanges();
+
+    const link: HTMLAnchorElement = fixture.nativeElement.querySelector('.recognition__row a.recognition__status--link');
+    expect(link.getAttribute('href')?.endsWith('dsa/probes/1_two_sum.py')).toBe(true);
+  });
+
+  it("renders status, num, title, date, result, then .recognition__links as the row's last child", () => {
     const fixture = createFixture(makeProbes());
 
     const rows = fixture.nativeElement.querySelectorAll('.recognition__row');
     for (const row of Array.from(rows) as HTMLElement[]) {
       const classes = Array.from(row.children).map((el) => el.className.split(' ')[0]);
       expect(classes).toEqual([
+        'recognition__status',
         'recognition__num',
         'recognition__title',
         'recognition__date',

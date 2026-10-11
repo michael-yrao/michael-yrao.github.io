@@ -264,6 +264,8 @@ export interface Probe {
   url?: string | null;
   /** Joined from the tracker by lcNumber; null when the number has no tracker row. */
   difficulty?: 'Easy' | 'Medium' | 'Hard' | null;
+  /** Repo-relative path of the solution file (the probe's own, else the tracker's); null if none. */
+  file?: string | null;
 }
 
 /** The Probe log's tally — the ONLY place a disposable, cold 🟢 probe is counted (it earns
