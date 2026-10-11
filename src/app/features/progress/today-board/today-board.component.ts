@@ -40,6 +40,7 @@ import {
   githubAriaLabel,
   groupComplexityItems,
   isGateRow,
+  isMissedItem,
   isMovedItem,
   movedAriaLabel,
   outcomeAriaLabel,
@@ -196,7 +197,13 @@ export class TodayBoardComponent {
 
   // null when there's no board/day, or the day carries no units, or ceiling is unknown.
   readonly workloadBar = computed<WorkloadBar | null>(() =>
-    buildWorkloadBar(this.selectedDay(), this.effortCeiling(), this.effortFloor(), this.workload()),
+    buildWorkloadBar(
+      this.selectedDay(),
+      this.effortCeiling(),
+      this.effortFloor(),
+      this.workload(),
+      this.todayISO(),
+    ),
   );
 
   // The units-explainer popover (round 4 item 2 — replaces the native `title` tooltip, which
@@ -315,6 +322,7 @@ export class TodayBoardComponent {
   protected readonly endNoteMeaning = endNoteMeaning;
   protected readonly isGateRow = isGateRow;
   protected readonly isMovedItem = isMovedItem;
+  protected readonly isMissedItem = isMissedItem;
   protected readonly rowKey = rowKey;
   protected readonly dayButtonLabel = dayButtonLabel;
   protected readonly outcomeKey = outcomeKey;

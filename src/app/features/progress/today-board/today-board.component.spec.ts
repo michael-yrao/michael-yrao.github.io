@@ -7,7 +7,7 @@ import { SOLUTION_LINK_MODE_STORAGE_KEY } from '../solution-link-mode';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemProgress, Schedule, ScheduleItem, WorkloadDay } from '../../../core/models/progress.model';
 import { LoadStatus } from '../../../core/services/progress.service';
-import { addDaysISO, currentWeekStart, shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
+import { addDaysISO, currentWeekStart, shortMonthDay, todayLocalISO, weekdayShort } from '../../../core/utils/local-date';
 
 // Every fixture below reads the persisted link mode on construction — clear it after each
 // test so one test's GitHub-mode click never leaks into the next test's fixture.
@@ -792,14 +792,15 @@ describe('TodayBoardComponent', () => {
   // ── Round 7: a `deferredTo` row (not done) renders as "moved" ──────────────────────
   it('renders ↷ with no chip and no line-through for a moved row, with "4 of 5 done · 1 moved"', () => {
     const schedule = makeSchedule();
+    const tomorrow = addDaysISO(todayLocalISO(), 1);
     schedule.days[0].items = [
       { lcNumber: 1, title: 'A', technique: null, startComfort: null, difficulty: null, done: true },
       { lcNumber: 2, title: 'B', technique: null, startComfort: null, difficulty: null, done: true },
       { lcNumber: 3, title: 'C', technique: null, startComfort: null, difficulty: null, done: true },
       { lcNumber: 4, title: 'D', technique: null, startComfort: null, difficulty: null, done: true },
-      // 2026-10-01 is a Thursday — deliberately not done, deferred off this day.
+      // Deliberately not done, deferred off this day to tomorrow (a later date -> the ↷ form).
       { lcNumber: 202, title: 'Moved Problem', technique: null, startComfort: null, difficulty: null,
-        done: false, deferredTo: '2026-10-01' },
+        done: false, deferredTo: tomorrow },
     ];
 
     const fixture = createFixture(schedule);
@@ -811,7 +812,7 @@ describe('TodayBoardComponent', () => {
 
     const badge = movedRow.querySelector('.today-board__status');
     expect(badge?.textContent?.trim()).toBe('↷');
-    expect(badge?.getAttribute('aria-label')).toBe('Moved to Thu Oct 1');
+    expect(badge?.getAttribute('aria-label')).toBe(`Moved to ${weekdayShort(tomorrow)} ${shortMonthDay(tomorrow)}`);
 
     expect(movedRow.querySelector('.today-board__moved')).toBeFalsy();
 

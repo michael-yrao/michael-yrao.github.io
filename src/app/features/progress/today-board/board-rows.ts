@@ -32,6 +32,7 @@ export interface RowCounts {
 
 export const COMPLEXITY_GATE_TITLE = 'Complexity gate';
 const MOVED_GLYPH = '↷';
+const MOVED_UP_GLYPH = '↶';
 // A literal `</>` can't be written inline in the template's interpolation (`{{ '</>' }}`) — the
 // `</` reads to the HTML parser as a closing tag before Angular's interpolation is tokenized —
 // so the walkthrough badge's own glyph lives here instead and the template references it.
@@ -71,6 +72,12 @@ export function isGateRow(row: BoardRow): row is ComplexityGateRow {
  *  from an unrelated round with no marker of its own). */
 export function isMovedItem(item: ScheduleItem): boolean {
   return !item.done && !!item.deferredTo;
+}
+
+/** A row left undone on a day that has already passed, with no `deferredTo` — it gets the same
+ *  red badge as a moved row but is not counted as moved. ISO dates compare lexicographically. */
+export function isMissedItem(item: ScheduleItem, date: string, todayISO: string): boolean {
+  return !item.done && !item.deferredTo && date < todayISO;
 }
 
 /** `isMovedItem` lifted to a `BoardRow` — a gate row is never moved (`deferredTo` only ever
@@ -168,12 +175,15 @@ export function sumRowCounts(rowLists: Iterable<readonly BoardRow[]>): RowCounts
 /** The selected day's workload bar — null when there's no day, or the day carries no units, or
  *  the ceiling is unknown/non-positive ("empty/no-board day -> no bar", round 2 item 3). A done
  *  fill only draws when the matching `workload` entry has done units (round 7, §Text f/g). The
- *  band reads the larger of planned and done, so a day that finishes over the ceiling reads Over. */
+ *  band reads what happened on a day before `todayISO` (its done units; planned when it has no
+ *  `done`), and the larger of planned and done for today and later days, so a day that
+ *  finishes over the ceiling reads Over either way. */
 export function buildWorkloadBar(
   day: ScheduleDay | null,
   ceiling: number | undefined,
   floor: number | undefined,
   workload: readonly WorkloadDay[] | undefined,
+  todayISO: string,
 ): WorkloadBar | null {
   if (!day || ceiling == null || ceiling <= 0) return null;
   const entry = workload?.find((w) => w.date === day.date);
@@ -181,7 +191,9 @@ export function buildWorkloadBar(
   if (units == null) return null;
   const pct = Math.min(MAX_PCT, (units / ceiling) * MAX_PCT);
   const doneUnits = entry?.done ?? 0;
-  const band = workloadBand(Math.max(units, doneUnits), ceiling, floor);
+  const isPastDay = day.date < todayISO;
+  const bandUnits = isPastDay ? (entry?.done ?? units) : Math.max(units, doneUnits);
+  const band = workloadBand(bandUnits, ceiling, floor);
   const done = doneUnits > 0 ? doneUnits : null;
   const donePct = done != null ? Math.min(MAX_PCT, (done / ceiling) * MAX_PCT) : null;
   return { units, ceiling, pct, band, done, donePct };
@@ -259,34 +271,44 @@ export function dayButtonLabel(day: ScheduleDay): string {
   return `${weekdayAbbrev} ${dayOfMonth}`;
 }
 
+/** True when a moved row was pulled to a date earlier than its own day (`date`, the row's day).
+ *  ISO dates compare lexicographically. */
+function isMovedUp(deferredTo: string, date: string): boolean {
+  return deferredTo < date;
+}
+
 /** The status badge's aria-label for a moved row, and the plain (non-link) badge's aria-label
- *  once moved — "Moved to Thu Oct 1" (weekday, month, day of `deferredTo`). Only ever called
+ *  once moved — "Moved to Thu Oct 1", or "Moved up to Thu Oct 1" when `deferredTo` is earlier
+ *  than the row's own day `date` (weekday, month, day of `deferredTo`). Only ever called
  *  once `isMovedItem(item)` is already known true, so `deferredTo` is non-null; the `''`
  *  fallback is defensive, never expected to render. */
-export function movedAriaLabel(item: ScheduleItem): string {
+export function movedAriaLabel(item: ScheduleItem, date: string): string {
   if (!item.deferredTo) return '';
-  return `Moved to ${weekdayShort(item.deferredTo)} ${shortMonthDay(item.deferredTo)}`;
+  const direction = isMovedUp(item.deferredTo, date) ? 'Moved up to' : 'Moved to';
+  return `${direction} ${weekdayShort(item.deferredTo)} ${shortMonthDay(item.deferredTo)}`;
 }
 
 /** The status badge's aria-label when it's the walkthrough link: "Solution walkthrough for
  *  #N, done|not done". A moved row's badge carries no walkthrough/done meaning, so
  *  `movedAriaLabel` takes over instead. */
-export function statusAriaLabel(item: ScheduleItem): string {
-  if (isMovedItem(item)) return movedAriaLabel(item);
+export function statusAriaLabel(item: ScheduleItem, date: string): string {
+  if (isMovedItem(item)) return movedAriaLabel(item, date);
   return `Solution walkthrough for #${item.lcNumber}, ${item.done ? 'done' : 'not done'}`;
 }
 
 /** The status badge's aria-label when it's the GitHub solution-file link — mirrors
  *  `statusAriaLabel`, done-ness (or moved-ness) in place of the walkthrough's. */
-export function githubAriaLabel(item: ScheduleItem): string {
-  if (isMovedItem(item)) return movedAriaLabel(item);
+export function githubAriaLabel(item: ScheduleItem, date: string): string {
+  if (isMovedItem(item)) return movedAriaLabel(item, date);
   return `Solution source for #${item.lcNumber} on GitHub, ${item.done ? 'done' : 'not done'}`;
 }
 
-/** The status badge's glyph — `↷` for a moved row (in place of whatever `fallback` this badge
- *  form would otherwise show: `</>`, `✓`/`○`), unchanged otherwise. */
-export function statusGlyph(item: ScheduleItem, fallback: string): string {
-  return isMovedItem(item) ? MOVED_GLYPH : fallback;
+/** The status badge's glyph — `↷` for a moved row, `↶` when it moved up to an earlier date than
+ *  its own day `date` (in place of whatever `fallback` this badge form would otherwise show:
+ *  `</>`, `✓`/`○`), unchanged otherwise. */
+export function statusGlyph(item: ScheduleItem, fallback: string, date: string): string {
+  if (!isMovedItem(item)) return fallback;
+  return item.deferredTo && isMovedUp(item.deferredTo, date) ? MOVED_UP_GLYPH : MOVED_GLYPH;
 }
 
 /** Pure lookup in `details` by lcNumber for the trend panel: null when details aren't loaded

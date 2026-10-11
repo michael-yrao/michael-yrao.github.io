@@ -7,6 +7,7 @@
     class="today-board__row"
     [class.today-board__row--done]="item.done"
     [class.today-board__row--moved]="isMovedItem(item)"
+    [class.today-board__row--missed]="isMissedItem(item, date, todayISO())"
   >
     @if (walkthroughRoute(item); as route) {
       <a
@@ -14,24 +15,24 @@
         queryParamsHandling="preserve"
         class="today-board__status today-board__status--link"
         title="Solution walkthrough"
-        [attr.aria-label]="statusAriaLabel(item)"
-        >{{ statusGlyph(item, walkthroughGlyph) }}</a
+        [attr.aria-label]="statusAriaLabel(item, date)"
+        >{{ statusGlyph(item, walkthroughGlyph, date) }}</a
       >
     } @else if (solutionUrl(item.file); as src) {
       <a
         [href]="src"
         class="today-board__status today-board__status--link today-board__status--github"
         title="Solution on GitHub"
-        [attr.aria-label]="githubAriaLabel(item)"
+        [attr.aria-label]="githubAriaLabel(item, date)"
         target="_blank"
         rel="noopener"
-        >{{ statusGlyph(item, item.done ? '✓' : '○') }}</a
+        >{{ statusGlyph(item, item.done ? '✓' : '○', date) }}</a
       >
     } @else {
       <span
         class="today-board__status"
-        [attr.aria-label]="isMovedItem(item) ? movedAriaLabel(item) : (item.done ? 'done' : 'not done')"
-        >{{ statusGlyph(item, item.done ? '✓' : '○') }}</span
+        [attr.aria-label]="isMovedItem(item) ? movedAriaLabel(item, date) : (item.done ? 'done' : 'not done')"
+        >{{ statusGlyph(item, item.done ? '✓' : '○', date) }}</span
       >
     }
     @if (item.lcNumber) {
