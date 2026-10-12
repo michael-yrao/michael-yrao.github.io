@@ -61,6 +61,24 @@
             </svg>
           </button>
           <div id="practice-code-body" class="practice__code-body" [hidden]="!isCodeOpen()">
+            <div class="practice__tabs" role="tablist" aria-label="Solutions">
+              @for (_ of tabs().texts; track $index) {
+                <span class="practice__tab-group" role="none">
+                  <button
+                    type="button"
+                    role="tab"
+                    class="practice__tab"
+                    [class.practice__tab--active]="$index === tabs().active"
+                    [attr.aria-selected]="$index === tabs().active"
+                    (click)="selectTab($index)"
+                  >Solution {{ $index + 1 }}</button>
+                  @if (canCloseTab()) {
+                    <button type="button" class="practice__tab-close" [attr.aria-label]="'Close Solution ' + ($index + 1)" (click)="closeTab($index)">×</button>
+                  }
+                </span>
+              }
+              <button type="button" class="practice__tab-close" aria-label="New solution" title="New solution" [disabled]="!canAddTab()" (click)="addTab()">+</button>
+            </div>
             <app-code-editor #editor [initialText]="initialText()" (textChange)="onTextChange($event)" />
           </div>
 
@@ -134,7 +152,7 @@
             </button>
 
             @if (isOutputOpen() && runState(); as state) {
-              <app-case-results id="practice-output-body" class="practice__output-body" [runState]="state" [cases]="p.cases" [resultCodec]="p.types?.result ?? null" [(selected)]="selectedCase" />
+              <app-case-results id="practice-output-body" class="practice__output-body" [runState]="state" [cases]="p.cases" [resultCodec]="p.types?.result ?? null" [selected]="selectedCase()" (selectedChange)="selectCase($event)" />
             }
           </section>
         </div>

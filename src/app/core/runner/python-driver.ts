@@ -5,9 +5,13 @@
  * `CaseOutcome`). The case spec is the entry's fields plus `args`, `ops`, `result` and `types`
  * (see `buildCaseSpec`). `run_free(code)` instead runs code once in a fresh namespace and returns
  * the JSON `{"stdout", "error"}`. Both namespaces start with LeetCode's pre-imported modules
- * and node classes. Kept as source text so the worker stays short; no backticks or
- * dollar-brace sequences may appear below.
+ * and node classes. Kept as source text so the worker stays short; no backticks may appear
+ * below, and the only dollar-brace sequence is the LEARNER_FILE interpolation.
  */
+
+/** The file name the learner's code is compiled under; tracebacks name it. */
+export const LEARNER_FILE = 'solution.py';
+
 export const PYTHON_DRIVER = String.raw`
 import builtins
 import collections
@@ -18,7 +22,7 @@ import linecache
 import sys
 import traceback
 
-_LEARNER_FILE = "solution.py"
+_LEARNER_FILE = "${LEARNER_FILE}"
 _solution = {}
 _DEFAULT_RECURSION_LIMIT = sys.getrecursionlimit()
 

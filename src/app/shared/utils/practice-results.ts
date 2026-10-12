@@ -1,4 +1,5 @@
 import { Codec, PracticeCase } from '../../core/models/practice.model';
+import { LEARNER_FILE } from '../../core/runner/python-driver';
 import { CaseResult, CaseVerdict } from '../../core/runner/runner.model';
 
 export const PASS_MARK = '✓';
@@ -92,6 +93,22 @@ export function toResultRow(
 export function defaultCaseIndex(rows: readonly ResultRow[]): number {
   const firstFailure = rows.findIndex((row) => !row.isPass);
   return firstFailure === -1 ? 0 : firstFailure;
+}
+
+const ESCAPED_LEARNER_FILE = LEARNER_FILE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const LEARNER_FRAME = new RegExp(`File "${ESCAPED_LEARNER_FILE}", line (\\d+)`, 'g');
+
+/** The line of the deepest learner frame in a Python error text (where it was raised), or null. */
+export function errorLine(message: string | null): number | null {
+  if (!message) return null;
+  const frames = [...message.matchAll(LEARNER_FRAME)];
+  const last = frames[frames.length - 1];
+  return last ? Number(last[1]) : null;
+}
+
+/** The case shown in Output: the clicked one if it is still a row, else the default. */
+export function activeCaseIndex(rows: readonly ResultRow[], selected: number | null): number {
+  return selected !== null && selected < rows.length ? selected : defaultCaseIndex(rows);
 }
 
 export function countPassed(results: readonly CaseResult[]): number {

@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 
 import type { Codec, PracticeCase } from '../../../core/models/practice.model';
 import { RunState } from '../../../core/runner/runner.model';
-import { defaultCaseIndex, toResultRow } from '../../utils/practice-results';
+import { activeCaseIndex, toResultRow } from '../../utils/practice-results';
 
 /** A run's output: its error, one tab per case, and the selected case's detail. */
 @Component({
@@ -22,9 +22,6 @@ export class CaseResultsComponent {
   readonly rows = computed(() =>
     this.runState().results.map((result) => toResultRow(result, this.cases(), this.resultCodec())),
   );
-  readonly activeIndex = computed(() => {
-    const selected = this.selected();
-    return selected !== null && selected < this.rows().length ? selected : defaultCaseIndex(this.rows());
-  });
+  readonly activeIndex = computed(() => activeCaseIndex(this.rows(), this.selected()));
   readonly activeRow = computed(() => this.rows()[this.activeIndex()] ?? null);
 }

@@ -18,8 +18,8 @@ import { CodeEditorComponent } from '../../../shared/components/code-editor/code
 import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
 import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
 import { injectPracticeProblem } from '../practice-problem';
-import { clearDraft, draftKey, loadDraft, saveDraft } from '../practice-draft';
-import { countPassed } from '../../../shared/utils/practice-results';
+import { MAX_SOLUTION_TABS, SolutionTabs, loadTabs, saveTabs } from '../practice-tabs';
+import { activeCaseIndex, countPassed, errorLine, toResultRow } from '../../../shared/utils/practice-results';
 import { SAMPLE_CASE_COUNT, shortcutFor } from '../../../shared/utils/practice-shortcuts';
 import {
   DEFAULT_PROBLEM_SHARE,
@@ -40,6 +40,8 @@ const COPY_FEEDBACK_MS = 1500;
 const COPY_OK_MARK = '✓';
 const COPY_FAIL_MARK = '✗';
 const PERCENT = 100;
+const RESET_CONFIRM = 'Reset this solution to the starter code?';
+const closeConfirm = (position: number): string => `Close Solution ${position}? Its code will be deleted.`;
 
 @Component({
   selector: 'app-practice-page',
@@ -81,29 +83,31 @@ export class PracticePageComponent {
     return this.entry() !== null && !(number !== null && lockedProblem() === number);
   });
 
-  private readonly key = computed(() => {
+  /** Read once per problem: the saved tabs (an old single draft becomes Solution 1), else the stub. */
+  private readonly savedTabs = computed<SolutionTabs>(() => {
     const ref = this.ref();
     const problem = this.problem();
-    return ref && problem ? draftKey(ref, problem.number) : null;
+    if (!ref || !problem) return { texts: [''], active: 0 };
+    return loadTabs(ref, problem.number, problem.stub);
   });
 
-  /** Read once per problem by the editor: a saved draft wins over the stub. */
-  readonly initialText = computed(() => {
-    const problem = this.problem();
-    if (!problem) return '';
-    const key = this.key();
-    return (key ? loadDraft(key) : null) ?? problem.stub;
-  });
+  /** Read once per problem by the editor: the open tab's saved text. */
+  readonly initialText = computed(() => this.savedTabs().texts[this.savedTabs().active]);
 
-  /** What the learner has typed (or Reset to) for one problem; null until they do. Tagged
-   *  with its problem so it never leaks onto another problem. */
-  private readonly edited = signal<{ number: number; text: string } | null>(null);
+  /** The tabs the learner has changed (typed, added, closed, switched) for one problem; null until
+   *  they do. Tagged with its problem so it never leaks onto another problem. */
+  private readonly edited = signal<{ number: number; tabs: SolutionTabs } | null>(null);
 
-  /** The editor's current text. */
-  private readonly text = computed(() => {
+  readonly tabs = computed<SolutionTabs>(() => {
     const edited = this.edited();
-    return edited && edited.number === this.problem()?.number ? edited.text : this.initialText();
+    return edited && edited.number === this.problem()?.number ? edited.tabs : this.savedTabs();
   });
+
+  /** The editor's current text: the open tab's. */
+  private readonly text = computed(() => this.tabs().texts[this.tabs().active]);
+
+  readonly canAddTab = computed(() => this.tabs().texts.length < MAX_SOLUTION_TABS);
+  readonly canCloseTab = computed(() => this.tabs().texts.length > 1);
 
   readonly runState = signal<RunState | null>(null);
   readonly isBusy = computed(() => {
@@ -155,7 +159,8 @@ export class PracticePageComponent {
   onTextChange(text: string): void {
     const problem = this.problem();
     if (!problem || text === this.text()) return;
-    this.edited.set({ number: problem.number, text });
+    const { texts, active } = this.tabs();
+    this.edited.set({ number: problem.number, tabs: { texts: texts.map((t, i) => (i === active ? text : t)), active } });
     this.cancelPendingSave();
     this.saveTimer = setTimeout(() => this.flushPendingSave(), DRAFT_SAVE_DELAY_MS);
   }
@@ -197,23 +202,89 @@ export class PracticePageComponent {
     this.runCaseCount.set(cases.length);
     this.isOutputOpen.set(true);
     this.runSubscription = this.runner.run(this.text(), { ...problem, cases }).subscribe({
-      next: (state) => this.runState.set(state),
+      next: (state) => this.showRunState(state),
       error: (err: unknown) => {
         console.error(`Practice run failed for #${problem.number}`, err);
         const message = err instanceof Error ? err.message : String(err);
-        this.runState.set({ status: 'done', results: [], runError: message });
+        this.showRunState({ status: 'done', results: [], runError: message });
       },
     });
   }
 
+  private showRunState(state: RunState): void {
+    this.runState.set(state);
+    this.syncErrorLine();
+  }
+
+  /** A click on a case tab in Output: the tinted line follows the case shown. */
+  selectCase(index: number | null): void {
+    this.selectedCase.set(index);
+    this.syncErrorLine();
+  }
+
+  /** Tints the editor line that raised the error shown in Output (a run error, else the shown case's). */
+  private syncErrorLine(): void {
+    this.editor?.setErrorLine(errorLine(this.shownErrorMessage()));
+  }
+
+  private shownErrorMessage(): string | null {
+    const state = this.runState();
+    const problem = this.problem();
+    if (!state || !problem) return null;
+    if (state.runError) return state.runError;
+    const rows = state.results.map((result) => toResultRow(result, problem.cases, problem.types?.result ?? null));
+    return rows[activeCaseIndex(rows, this.selectedCase())]?.errorMessage ?? null;
+  }
+
   reset(): void {
     const problem = this.problem();
+    if (!problem || !window.confirm(RESET_CONFIRM)) return;
+    const { texts, active } = this.tabs();
+    this.openTabs({ texts: texts.map((text, i) => (i === active ? problem.stub : text)), active });
+  }
+
+  addTab(): void {
+    const problem = this.problem();
+    if (!problem || !this.canAddTab()) return;
+    const { texts } = this.tabs();
+    this.openTabs({ texts: [...texts, problem.stub], active: texts.length });
+  }
+
+  selectTab(index: number): void {
+    const { texts, active } = this.tabs();
+    if (index === active) return;
+    this.openTabs({ texts, active: index });
+  }
+
+  closeTab(index: number): void {
+    const problem = this.problem();
+    const { texts, active } = this.tabs();
+    if (!problem || texts.length < 2) return;
+    if (texts[index] !== problem.stub && !window.confirm(closeConfirm(index + 1))) return;
+    const remaining = texts.filter((_, i) => i !== index);
+    const nextActive = index < active ? active - 1 : Math.min(active, remaining.length - 1);
+    const next = { texts: remaining, active: nextActive };
+    // Closing another tab leaves the open code, its cursor and its Output alone.
+    if (index === active) this.openTabs(next);
+    else this.commitTabs(next);
+  }
+
+  private commitTabs(tabs: SolutionTabs): void {
+    const problem = this.problem();
     if (!problem) return;
-    this.cancelPendingSave();
-    this.edited.set({ number: problem.number, text: problem.stub });
-    this.editor?.setText(problem.stub);
-    const key = this.key();
-    if (key) clearDraft(key);
+    this.edited.set({ number: problem.number, tabs });
+    this.persistTabs();
+  }
+
+  /** Saves `tabs` and puts its open tab's text in the editor. Output belongs to the code that
+   *  ran, so a run in flight is dropped and the results cleared. */
+  private openTabs(tabs: SolutionTabs): void {
+    this.commitTabs(tabs);
+    this.runSubscription?.unsubscribe();
+    this.runState.set(null);
+    this.selectedCase.set(null);
+    this.editor?.setText(tabs.texts[tabs.active]);
+    this.editor?.setErrorLine(null);
   }
 
   copy(): void {
@@ -309,11 +380,16 @@ export class PracticePageComponent {
     this.saveTimer = null;
   }
 
-  /** Writes the draft now if a debounced save is waiting (also run when the page is left). */
+  /** Writes the tabs now if a debounced save is waiting (also run when the page is left). */
   private flushPendingSave(): void {
     if (this.saveTimer === null) return;
+    this.persistTabs();
+  }
+
+  private persistTabs(): void {
     this.cancelPendingSave();
-    const key = this.key();
-    if (key) saveDraft(key, this.text());
+    const ref = this.ref();
+    const problem = this.problem();
+    if (ref && problem) saveTabs(ref, problem.number, this.tabs());
   }
 }

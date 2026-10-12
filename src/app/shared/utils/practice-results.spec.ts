@@ -1,6 +1,6 @@
 import { PracticeCase } from '../../core/models/practice.model';
 import { CaseResult } from '../../core/runner/runner.model';
-import { ResultRow, defaultCaseIndex, toResultRow } from './practice-results';
+import { ResultRow, defaultCaseIndex, errorLine, toResultRow } from './practice-results';
 
 function rowOf(index: number, isPass: boolean): ResultRow {
   return {
@@ -24,6 +24,20 @@ describe('defaultCaseIndex', () => {
     const rows = passes.map((isPass, index) => rowOf(index, isPass));
 
     expect(defaultCaseIndex(rows)).toBe(expected);
+  });
+});
+
+describe('errorLine', () => {
+  const TWO_FRAMES =
+    'Traceback (most recent call last):\n  File "solution.py", line 12, in f\n    return g(x)\n  File "solution.py", line 4, in g\n    return 1 / 0\nZeroDivisionError: division by zero';
+  const SYNTAX = '  File "solution.py", line 3\n    def f(:\n          ^\nSyntaxError: invalid syntax';
+  it.each([
+    { name: 'two learner frames give the last one', message: TWO_FRAMES, expected: 4 },
+    { name: 'a SyntaxError traceback gives its line', message: SYNTAX, expected: 3 },
+    { name: 'no solution.py frame gives null', message: 'RecursionError: maximum recursion depth', expected: null },
+    { name: 'null input gives null', message: null, expected: null },
+  ])('$name', ({ message, expected }) => {
+    expect(errorLine(message)).toBe(expected);
   });
 });
 

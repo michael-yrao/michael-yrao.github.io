@@ -2,6 +2,7 @@ import { Component, input, output, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { EditorView } from '@codemirror/view';
 import { vi } from 'vitest';
 
 import { PracticeData, PracticeProblem } from '../../../core/models/practice.model';
@@ -16,7 +17,11 @@ import { PracticePageComponent } from './practice-page.component';
 
 const STUB = 'class Solution:\n    pass\n';
 const DRAFT_KEY = 'po-practice-draft:michael-yrao/cse-progress:90';
+const TABS_KEY = 'po-practice-tabs:michael-yrao/cse-progress:90';
 const SPLIT_KEY = 'po-practice-split';
+// The Output pane's case tabs and the Code pane's solution tabs are both role="tab".
+const CASE_TAB = '[aria-label="Cases"] [role="tab"]';
+const SOLUTION_TAB = '[aria-label="Solutions"] [role="tab"]';
 
 const PROBLEM: PracticeProblem = {
   number: 90,
@@ -60,6 +65,7 @@ class StubEditorComponent {
   setText(text: string): void {
     setTextSpy(text);
   }
+  setErrorLine(): void {}
 }
 
 function makePracticeStub(
@@ -128,10 +134,13 @@ describe('PracticePageComponent', () => {
     runSpy.mockReset();
     runSpy.mockReturnValue(of(RUN_STATE));
     localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(TABS_KEY);
     localStorage.removeItem(SPLIT_KEY);
   });
   afterEach(() => {
+    vi.restoreAllMocks();
     localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(TABS_KEY);
     localStorage.removeItem(SPLIT_KEY);
   });
 
@@ -142,7 +151,7 @@ describe('PracticePageComponent', () => {
     click(root, 'Run');
     fixture.detectChanges();
 
-    const tabs = Array.from(root.querySelectorAll<HTMLElement>('[role="tab"]'));
+    const tabs = Array.from(root.querySelectorAll<HTMLElement>(CASE_TAB));
     const labelsOfPanel = () =>
       Array.from(root.querySelectorAll('[role="tabpanel"] .practice__label')).map((l) => l.textContent?.trim());
     expect(tabs.map((tab) => tab.querySelector('.practice__mark')?.textContent?.trim())).toEqual(['✓', '✗']);
@@ -184,7 +193,7 @@ describe('PracticePageComponent', () => {
 
     expect(runSpy).toHaveBeenCalledTimes(1);
     expect(runSpy.mock.calls[0][1].cases.length).toBe(2);
-    expect(root.querySelectorAll('[role="tab"]').length).toBe(2);
+    expect(root.querySelectorAll(CASE_TAB).length).toBe(2);
   });
 
   const COLLAPSIBLE_PANES: readonly {
@@ -296,7 +305,8 @@ describe('PracticePageComponent', () => {
     expect(root.querySelector('.practice-header__tab')).not.toBeNull();
   });
 
-  it('Reset restores the stub in the editor and clears the stored draft', () => {
+  it('Reset restores the stub in the editor and clears the stored draft once confirmed', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     localStorage.setItem(DRAFT_KEY, 'my draft');
     const fixture = setUp('90', [PROBLEM]);
 
@@ -304,6 +314,58 @@ describe('PracticePageComponent', () => {
 
     expect(setTextSpy).toHaveBeenCalledWith(STUB);
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('Reset keeps the code and the draft when the confirm is cancelled', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    localStorage.setItem(DRAFT_KEY, 'my draft');
+    const fixture = setUp('90', [PROBLEM]);
+
+    click(fixture.nativeElement, 'Reset');
+
+    expect(setTextSpy).not.toHaveBeenCalled();
+    expect(localStorage.getItem(DRAFT_KEY)).toBe('my draft');
+  });
+
+  it('+ opens a tab holding the stub, switching back restores tab 1, and both persist under the tabs key', () => {
+    localStorage.setItem(DRAFT_KEY, 'my draft');
+    const fixture = setUp('90', [PROBLEM]);
+    const root: HTMLElement = fixture.nativeElement;
+    const tabButtons = () => Array.from(root.querySelectorAll<HTMLElement>(SOLUTION_TAB));
+
+    click(root, 'New solution');
+    fixture.detectChanges();
+
+    expect(setTextSpy).toHaveBeenLastCalledWith(STUB);
+    expect(tabButtons().map((tab) => tab.textContent?.trim())).toEqual(['Solution 1', 'Solution 2']);
+
+    tabButtons()[0].click();
+    fixture.detectChanges();
+
+    expect(setTextSpy).toHaveBeenLastCalledWith('my draft');
+    expect(JSON.parse(localStorage.getItem(TABS_KEY)!)).toEqual({ texts: ['my draft', STUB], active: 0 });
+  });
+
+  it('an error run naming line 3 tints the third editor line, and an edit clears it', () => {
+    const state: RunState = {
+      status: 'done',
+      results: [],
+      runError: 'Traceback (most recent call last):\n  File "solution.py", line 3, in <module>\nNameError: x',
+    };
+    runSpy.mockReturnValue(of(state));
+    const fixture = setUp('90', [PROBLEM], 'ready', null, true);
+    const root: HTMLElement = fixture.nativeElement;
+    const lineHasTint = () => root.querySelectorAll('.cm-line')[2]?.classList.contains('cm-error-line');
+
+    click(root, 'Run');
+    fixture.detectChanges();
+
+    expect(lineHasTint()).toBe(true);
+
+    const view = EditorView.findFromDOM(root.querySelector<HTMLElement>('.cm-editor')!)!;
+    view.dispatch({ changes: { from: 0, insert: 'x' } });
+
+    expect(lineHasTint()).toBe(false);
   });
 
   it('ArrowRight on the divider widens the problem pane by one step and stores it; a double-click resets to 50', () => {

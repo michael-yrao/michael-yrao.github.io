@@ -11,8 +11,8 @@ import {
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { indentUnit, syntaxHighlighting } from '@codemirror/language';
 import { python } from '@codemirror/lang-python';
-import { EditorState, Extension } from '@codemirror/state';
-import { EditorView, KeyBinding, keymap, lineNumbers } from '@codemirror/view';
+import { EditorState, Extension, StateEffect, StateField } from '@codemirror/state';
+import { Decoration, DecorationSet, EditorView, KeyBinding, keymap, lineNumbers } from '@codemirror/view';
 import { darkHighlightStyle } from './editor-highlight';
 
 const INDENT = '    ';
@@ -22,6 +22,28 @@ const BOTTOM_PADDING_LINES = 4;
 
 // The page's document listener owns Ctrl/Cmd+Enter (run); CodeMirror's insertBlankLine must not take it.
 const isNotRunShortcut = (binding: KeyBinding): boolean => binding.key !== RUN_SHORTCUT_KEY;
+
+const ERROR_LINE_CLASS = 'cm-error-line';
+const ERROR_LINE_TINT = 'color-mix(in srgb, var(--color-hard) 18%, transparent)';
+
+/** Sets (a 1-based line) or clears (null) the tinted error line. */
+const setErrorLineEffect = StateEffect.define<number | null>();
+
+function errorLineDecoration(state: EditorState, line: number | null): DecorationSet {
+  if (line === null || line < 1 || line > state.doc.lines) return Decoration.none;
+  return Decoration.set([Decoration.line({ class: ERROR_LINE_CLASS }).range(state.doc.line(line).from)]);
+}
+
+// Any edit clears the tint: the line number would point at moved text.
+const errorLineField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(decorations, transaction) {
+    const effect = transaction.effects.find((candidate) => candidate.is(setErrorLineEffect));
+    if (effect) return errorLineDecoration(transaction.state, effect.value);
+    return transaction.docChanged ? Decoration.none : decorations;
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
 
 // Theme tokens come from the site's CSS custom properties, so the editor follows the light
 // and dark themes with no second palette. The size comes from three custom properties that a
@@ -49,6 +71,7 @@ const editorTheme = EditorView.theme({
     color: 'var(--color-text-muted)',
     border: 'none',
   },
+  [`.${ERROR_LINE_CLASS}`]: { backgroundColor: ERROR_LINE_TINT },
   '.cm-activeLine': { backgroundColor: 'var(--hover-tint)' },
   '.cm-activeLineGutter': { backgroundColor: 'var(--hover-tint)' },
   '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': {
@@ -93,6 +116,9 @@ export class CodeEditorComponent implements AfterViewInit, OnDestroy {
           python(),
           syntaxHighlighting(darkHighlightStyle),
           editorTheme,
+          errorLineField,
+          // Cursor scrolling keeps the padding's worth of space below the typed line.
+          EditorView.scrollMargins.of((view) => ({ bottom: BOTTOM_PADDING_LINES * view.defaultLineHeight })),
           ...this.extensions(),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) this.textChange.emit(update.state.doc.toString());
@@ -112,5 +138,10 @@ export class CodeEditorComponent implements AfterViewInit, OnDestroy {
     const view = this.view;
     if (!view) return;
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+  }
+
+  /** Tints a 1-based line as the error line (null clears it); the next edit clears it too. */
+  setErrorLine(line: number | null): void {
+    this.view?.dispatch({ effects: setErrorLineEffect.of(line) });
   }
 }
