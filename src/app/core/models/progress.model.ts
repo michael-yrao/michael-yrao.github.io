@@ -204,6 +204,10 @@ export interface ScheduleItem {
    *  deferred. Optional, additive: an older contract predating it renders every row as before
    *  (never "moved"). */
   deferredTo?: string | null;
+  /** True for the destination copy of a row pulled to an earlier day (cse-progress gamify.py:
+   *  a leading `←` with no `deferredTo`). The board counts it done but leaves it out of the
+   *  day's total. Optional, additive: an older contract predating it renders every row as before. */
+  pulledIn?: boolean;
 }
 
 export interface ScheduleDay {

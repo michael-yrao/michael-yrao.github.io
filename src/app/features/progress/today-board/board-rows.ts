@@ -33,6 +33,8 @@ export interface RowCounts {
 export const COMPLEXITY_GATE_TITLE = 'Complexity gate';
 const MOVED_GLYPH = '↷';
 const MOVED_UP_GLYPH = '↶';
+const PULLED_IN_GLYPH = '←';
+const PULLED_IN_ARIA_SUFFIX = ', pulled in';
 // A literal `</>` can't be written inline in the template's interpolation (`{{ '</>' }}`) — the
 // `</` reads to the HTML parser as a closing tag before Angular's interpolation is tokenized —
 // so the walkthrough badge's own glyph lives here instead and the template references it.
@@ -84,6 +86,12 @@ export function isMissedItem(item: ScheduleItem, date: string, todayISO: string)
  *  lives on a plain `ScheduleItem`), so this is what the per-day/week moved counts use. */
 function isMovedRow(row: BoardRow): boolean {
   return !isGateRow(row) && isMovedItem(row);
+}
+
+/** A row pulled in from a later day — counted done, but not in the day's total (the origin row
+ *  on its own day already is). A gate row is never pulled in. */
+function isPulledInRow(row: BoardRow): boolean {
+  return !isGateRow(row) && row.pulledIn === true;
 }
 
 function toGateRow(items: readonly ScheduleItem[]): ComplexityGateRow {
@@ -148,11 +156,12 @@ export function groupComplexityItems(items: readonly ScheduleItem[]): BoardRow[]
 }
 
 /** Done/total/moved over a set of board rows — a gate row counts as ONE item toward each
- *  (`done` is defined identically on ScheduleItem and ComplexityGateRow; a gate is never moved). */
+ *  (`done` is defined identically on ScheduleItem and ComplexityGateRow; a gate is never moved).
+ *  A pulled-in row counts toward `done` but not `total`. */
 export function countRows(rows: readonly BoardRow[]): RowCounts {
   return {
     done: rows.filter((r) => r.done).length,
-    total: rows.length,
+    total: rows.filter((r) => !isPulledInRow(r)).length,
     moved: rows.filter((r) => isMovedRow(r)).length,
   };
 }
@@ -288,26 +297,31 @@ export function movedAriaLabel(item: ScheduleItem, date: string): string {
   return `${direction} ${weekdayShort(item.deferredTo)} ${shortMonthDay(item.deferredTo)}`;
 }
 
+function pulledInSuffix(item: ScheduleItem): string {
+  return item.pulledIn ? PULLED_IN_ARIA_SUFFIX : '';
+}
+
 /** The status badge's aria-label when it's the walkthrough link: "Solution walkthrough for
  *  #N, done|not done". A moved row's badge carries no walkthrough/done meaning, so
  *  `movedAriaLabel` takes over instead. */
 export function statusAriaLabel(item: ScheduleItem, date: string): string {
   if (isMovedItem(item)) return movedAriaLabel(item, date);
-  return `Solution walkthrough for #${item.lcNumber}, ${item.done ? 'done' : 'not done'}`;
+  return `Solution walkthrough for #${item.lcNumber}, ${item.done ? 'done' : 'not done'}${pulledInSuffix(item)}`;
 }
 
 /** The status badge's aria-label when it's the GitHub solution-file link — mirrors
  *  `statusAriaLabel`, done-ness (or moved-ness) in place of the walkthrough's. */
 export function githubAriaLabel(item: ScheduleItem, date: string): string {
   if (isMovedItem(item)) return movedAriaLabel(item, date);
-  return `Solution source for #${item.lcNumber} on GitHub, ${item.done ? 'done' : 'not done'}`;
+  return `Solution source for #${item.lcNumber} on GitHub, ${item.done ? 'done' : 'not done'}${pulledInSuffix(item)}`;
 }
 
 /** The status badge's glyph — `↶` when the row was pulled to an earlier date than its own day
- *  `date` (done or not), `↷` for a moved or missed row (in place of whatever `fallback` this badge
+ *  `date` (done or not), `←` for a pulled-in row (the destination copy), `↷` for a moved or missed row (in place of whatever `fallback` this badge
  *  form would otherwise show: `</>`, `✓`/`○`), `fallback` otherwise. */
 export function statusGlyph(item: ScheduleItem, fallback: string, date: string, todayISO: string): string {
   if (item.deferredTo && isMovedUp(item.deferredTo, date)) return MOVED_UP_GLYPH;
+  if (item.pulledIn) return PULLED_IN_GLYPH;
   if (isMovedItem(item) || isMissedItem(item, date, todayISO)) return MOVED_GLYPH;
   return fallback;
 }

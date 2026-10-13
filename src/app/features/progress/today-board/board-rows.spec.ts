@@ -1,6 +1,6 @@
 import { ScheduleDay, ScheduleItem, WorkloadDay } from '../../../core/models/progress.model';
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
-import { buildWorkloadBar, isMissedItem, movedAriaLabel, statusGlyph } from './board-rows';
+import { buildWorkloadBar, countRows, isMissedItem, movedAriaLabel, statusGlyph } from './board-rows';
 
 const CEILING = 8;
 const FLOOR = 4;
@@ -61,16 +61,27 @@ describe('statusGlyph', () => {
     { name: 'moved later, not done', date: TODAY, done: false, deferredTo: '2026-10-11', expected: '↷' },
     { name: 'missed: past day, not done, no deferredTo', date: PAST, done: false, deferredTo: undefined, expected: '↷' },
     { name: 'today, not done, no deferredTo', date: TODAY, done: false, deferredTo: undefined, expected: '○' },
+    { name: 'pulled in, done', date: TODAY, done: true, deferredTo: undefined, pulledIn: true, expected: '←' },
   ];
 
-  cases.forEach(({ name, date, done, deferredTo, expected }) => {
+  cases.forEach(({ name, date, done, deferredTo, expected, ...rest }) => {
     it(name, () => {
       const item: ScheduleItem = {
         lcNumber: 1, title: 'A', technique: null, startComfort: null, difficulty: null,
-        done, deferredTo,
+        done, deferredTo, ...rest,
       };
       expect(statusGlyph(item, '○', date, TODAY)).toBe(expected);
     });
+  });
+});
+
+describe('countRows', () => {
+  it('counts pulled-in rows as done but leaves them out of the total', () => {
+    const plain: ScheduleItem = {
+      lcNumber: 1, title: 'A', technique: null, startComfort: null, difficulty: null, done: true,
+    };
+    const rows = [plain, plain, plain, plain, { ...plain, pulledIn: true }, { ...plain, pulledIn: true }];
+    expect(countRows(rows)).toEqual({ done: 6, total: 4, moved: 0 });
   });
 });
 
