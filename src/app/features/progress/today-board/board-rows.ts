@@ -33,7 +33,7 @@ export interface RowCounts {
 export const COMPLEXITY_GATE_TITLE = 'Complexity gate';
 const MOVED_GLYPH = '↷';
 const MOVED_UP_GLYPH = '↶';
-const PULLED_IN_GLYPH = '←';
+const PULLED_IN_GLYPH = MOVED_UP_GLYPH;
 const PULLED_IN_ARIA_SUFFIX = ', pulled in';
 // A literal `</>` can't be written inline in the template's interpolation (`{{ '</>' }}`) — the
 // `</` reads to the HTML parser as a closing tag before Angular's interpolation is tokenized —
@@ -317,7 +317,7 @@ export function githubAriaLabel(item: ScheduleItem, date: string): string {
 }
 
 /** The status badge's glyph — `↶` when the row was pulled to an earlier date than its own day
- *  `date` (done or not), `←` for a pulled-in row (the destination copy), `↷` for a moved or missed row (in place of whatever `fallback` this badge
+ *  `date` (done or not), the same `↶` for a pulled-in row (the destination copy), `↷` for a moved or missed row (in place of whatever `fallback` this badge
  *  form would otherwise show: `</>`, `✓`/`○`), `fallback` otherwise. */
 export function statusGlyph(item: ScheduleItem, fallback: string, date: string, todayISO: string): string {
   if (item.deferredTo && isMovedUp(item.deferredTo, date)) return MOVED_UP_GLYPH;

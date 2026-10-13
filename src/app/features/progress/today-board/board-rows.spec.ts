@@ -61,7 +61,7 @@ describe('statusGlyph', () => {
     { name: 'moved later, not done', date: TODAY, done: false, deferredTo: '2026-10-11', expected: '↷' },
     { name: 'missed: past day, not done, no deferredTo', date: PAST, done: false, deferredTo: undefined, expected: '↷' },
     { name: 'today, not done, no deferredTo', date: TODAY, done: false, deferredTo: undefined, expected: '○' },
-    { name: 'pulled in, done', date: TODAY, done: true, deferredTo: undefined, pulledIn: true, expected: '←' },
+    { name: 'pulled in, done', date: TODAY, done: true, deferredTo: undefined, pulledIn: true, expected: '↶' },
   ];
 
   cases.forEach(({ name, date, done, deferredTo, expected, ...rest }) => {
