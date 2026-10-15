@@ -7,7 +7,8 @@ import { CheatSheetComponent } from './cheat-sheet/cheat-sheet.component';
 // technique (18 slugs). This maps every old category slug to the technique that now covers
 // it, so links out in the wild (and this site's own algorithm-category links) still land
 // somewhere useful instead of 404ing. An empty-string target means "no single technique
-// covers this category" — it redirects to the /learn landing page instead.
+// covers this category" — it redirects to the /learn landing page instead. Old technique
+// slugs that were folded into another page ('memoization') redirect here too.
 export const LEARN_SLUG_REDIRECTS: Record<string, string> = {
   'arrays-hash': '', // no dedicated hash-map technique page — send old links to /learn
   'two-pointers': 'two-pointer',
@@ -18,11 +19,12 @@ export const LEARN_SLUG_REDIRECTS: Record<string, string> = {
   'graphs': 'topological-sort',
   'stack': 'monotonic-stack',
   'greedy': 'intervals',
-  'dynamic-programming': 'memoization',
+  'dynamic-programming': 'dynamic-programming',
+  'memoization': 'dynamic-programming',
 };
 
-// Only slugs that actually changed become a redirect Route — 'sliding-window' and
-// 'binary-search' map to themselves, and a self-redirect would loop forever.
+// Only slugs that actually changed become a redirect Route — 'sliding-window',
+// 'binary-search' and 'dynamic-programming' map to themselves, and a self-redirect would loop forever.
 const redirectRoutes: Routes = Object.entries(LEARN_SLUG_REDIRECTS)
   .filter(([oldSlug, newSlug]) => oldSlug !== newSlug)
   .map(([oldSlug, newSlug]) => ({

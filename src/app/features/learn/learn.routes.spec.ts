@@ -15,10 +15,12 @@ const OLD_SLUGS = [
   'greedy',
   'dynamic-programming',
 ];
+// Technique slugs retired by folding their page into another one.
+const FOLDED_SLUGS = ['memoization'];
 
 describe('LEARN_SLUG_REDIRECTS', () => {
-  it('covers all 10 old category slugs', () => {
-    expect(Object.keys(LEARN_SLUG_REDIRECTS).sort()).toEqual([...OLD_SLUGS].sort());
+  it('covers all 10 old category slugs plus the folded technique slugs', () => {
+    expect(Object.keys(LEARN_SLUG_REDIRECTS).sort()).toEqual([...OLD_SLUGS, ...FOLDED_SLUGS].sort());
   });
 
   it('maps every old slug either to a known technique id or to the /learn landing page', () => {

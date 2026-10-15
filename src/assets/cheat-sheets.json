@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-24T03:30:50Z",
+  "generatedAt": "2026-10-15T01:29:13Z",
   "signals": [
     {
       "see": "Sorted array + \"find a pair/triple summing to target\"",
@@ -89,8 +89,8 @@
     },
     {
       "see": "Overlapping subproblems / \"min/max/count ways\" with optimal substructure",
-      "reach": "memoization",
-      "note": "DP"
+      "reach": "dynamic-programming",
+      "note": ""
     },
     {
       "see": "\"Kth largest / smallest\", \"top k\", \"k closest\"",
@@ -139,7 +139,7 @@
         "feature": "The output is EVERY valid arrangement (all subsets / permutations / combinations), so exponential work is unavoidable — choose, recurse, un-choose.",
         "notWhen": [
           {
-            "technique": "memoization",
+            "technique": "dynamic-programming",
             "because": "the question is a count / min / max over choices and the same sub-state recurs — cache states instead of enumerating every path"
           }
         ]
@@ -337,6 +337,77 @@
         }
       ],
       "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/dummy_node.md"
+    },
+    {
+      "id": "dynamic-programming",
+      "name": "Dynamic Programming",
+      "family": "dynamic_programming",
+      "tier": "dp",
+      "whenToUse": "The question asks for one number about all the ways to do something (how many, the fewest, the most, or whether any works), and the same sub-question comes up through many different paths. Solve each sub-question once, store it, and build the answer from the stored values.",
+      "signals": [
+        "\"How many ways\", \"minimum / maximum\", \"is it possible\", over a sequence of choices",
+        "The rest of the problem depends only on where you are now, not on how you got there"
+      ],
+      "picking": {
+        "feature": "The answer is a single count / min / max / yes-no, and a state such as \"standing at index i\" is reached by many different paths, so each state is solved once instead of once per path.",
+        "notWhen": []
+      },
+      "variants": [
+        {
+          "title": "Fixed Jumps (top-down)",
+          "when": "each state reads a constant set of other states, one per move, such as `i + 1` and `i + 2`.",
+          "code": "def solve(n):\n    memo = {}\n\n    def f(i):\n        if i == n: return BASE              # base case: finished exactly\n        if i > n: return INVALID            # validity: a move went past the end\n        if i in memo: return memo[i]\n        memo[i] = COMBINE(f(i + step) for step in STEPS)   # decision + combine, stored\n        return memo[i]\n\n    return f(0)",
+          "complexity": {
+            "time": "O(n · k)",
+            "space": "O(n)",
+            "why": "n + 1 states, each combining k fixed moves at O(1) per move; the memo and the recursion chain are both n + 1 deep"
+          }
+        },
+        {
+          "title": "Fixed Jumps (bottom-up)",
+          "when": "the same shape, without recursion: no stack-depth limit, and the table can shrink to the last few entries.",
+          "code": "def solve(n):\n    table = [INVALID] * (n + MAX_STEP + 1)  # slots past n hold the invalid value\n    table[n] = BASE                         # base case, seeded before the loop\n    for i in range(n - 1, -1, -1):          # fill order: i reads i + step, so go right to left\n        table[i] = COMBINE(table[i + step] for step in STEPS)\n    return table[0]",
+          "complexity": {
+            "time": "O(n · k)",
+            "space": "O(n)",
+            "why": "one pass over n states with k reads each; when only the last MAX_STEP entries are read, keep that many variables instead for O(1) space"
+          }
+        },
+        {
+          "title": "Any-Length Piece (top-down)",
+          "when": "each move cuts a piece `s[i:j]` of any length off the front of what is left, and the piece has to pass a check.",
+          "code": "def solve(s):\n    n = len(s)\n    memo = {}\n\n    def f(i):\n        if i == n: return BASE              # base case: the pieces cover the whole input\n        if i in memo: return memo[i]\n        answer = INVALID                    # no valid piece → the invalid value\n        for j in range(i + 1, n + 1):       # decision: every piece that starts at i\n            if is_valid_piece(s, i, j):     # validity\n                answer = COMBINE(answer, f(j))\n        memo[i] = answer\n        return answer\n\n    return f(0)",
+          "complexity": {
+            "time": "O(n² · c)",
+            "space": "O(n)",
+            "why": "n + 1 states, each trying up to n pieces with a check costing c; the memo and the recursion chain are both n + 1 deep"
+          }
+        },
+        {
+          "title": "Any-Length Piece (bottom-up)",
+          "when": "the same shape, without recursion.",
+          "code": "def solve(s):\n    n = len(s)\n    table = [INVALID] * (n + 1)\n    table[n] = BASE                         # base case, seeded before the loop\n    for i in range(n - 1, -1, -1):          # fill order: i reads every j > i, so go right to left\n        for j in range(i + 1, n + 1):\n            if is_valid_piece(s, i, j):\n                table[i] = COMBINE(table[i], table[j])\n    return table[0]",
+          "complexity": {
+            "time": "O(n² · c)",
+            "space": "O(n)",
+            "why": "n entries, each scanning up to n pieces with a check costing c; one table of n + 1"
+          }
+        }
+      ],
+      "pitfalls": [
+        "No invalid-move case: a move that jumps past the end never reaches the base case and recurses until the stack limit (70, Oct 14)",
+        "Returning the combined value without storing it in the memo, so the lookup never finds anything and every repeat is solved again",
+        "A state that leaves out a variable the answer depends on (two situations share one key) or keeps one it does not (`path`), which leaves the cache wrong or useless",
+        "Bottom-up fill order that reads an entry before it is filled",
+        "Pricing a memoized function as its tree without the memo: count distinct states × work per state instead"
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 70,
+          "title": "Climbing Stairs"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/dynamic_programming.md"
     },
     {
       "id": "fast-slow-pointer",
@@ -633,66 +704,6 @@
       "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/intervals.md"
     },
     {
-      "id": "memoization",
-      "name": "Top-Down Memoization",
-      "family": "dynamic_programming",
-      "tier": "dp",
-      "whenToUse": "A recursive search re-solves the same sub-state many times — cache the answer per state so each state is computed once, turning exponential branching into polynomial work.",
-      "signals": [
-        "Overlapping subproblems / \"min/max/count ways\" with optimal substructure",
-        "Subproblem inputs match exactly regardless of branch path",
-        "Space coordinates are identical but resource budgets shift"
-      ],
-      "picking": {
-        "feature": "Overlapping subproblems with optimal substructure: the same (index, budget, …) state recurs, and the whole answer is built from the answers to parts. If states never repeat, it is plain backtracking.",
-        "notWhen": [
-          {
-            "technique": "backtracking",
-            "because": "every candidate must be LISTED, not counted or optimized — a cache cannot shrink an output that is itself exponential"
-          },
-          {
-            "technique": "sliding-window",
-            "because": "the question is about a CONTIGUOUS subarray — that is a window, not a subsequence"
-          }
-        ]
-      },
-      "variants": [
-        {
-          "title": "State Snapshot Memoization",
-          "when": "Caching multi-variable combinations to completely skip computing previously encountered paths.",
-          "code": "def valid_palindrome_snapshot(s: str, skip: int) -> bool:\n    memo = {}\n\n    def backtrack(l: int, r: int, skips_remaining: int) -> bool:\n        state = (l, r, skips_remaining)  # Snapshot of current context status\n        if state in memo: return memo[state]\n        if skips_remaining < 0: return False\n        \n        while l < r:\n            if s[l] == s[r]:\n                l, r = l + 1, r - 1\n            else:\n                memo[state] = (backtrack(l + 1, r, skips_remaining - 1) or \n                               backtrack(l, r - 1, skips_remaining - 1))\n                return memo[state]\n        return True\n    return backtrack(0, len(s) - 1, skip)",
-          "complexity": {
-            "time": "O(n² · k)",
-            "space": "O(n² · k)",
-            "why": "each (l, r, skips) triple is solved once and cached; the memo can hold every triple"
-          }
-        },
-        {
-          "title": "Pruning Boundaries Memoization",
-          "when": "Optimizing multi-dimensional space bounds by tracking and comparing resource variables.",
-          "code": "def valid_palindrome_pruned(s: str, skip: int) -> bool:\n    memo = {}  # Maps (l, r) -> max skips remaining achieved here\n\n    def backtrack(l: int, r: int, skips_remaining: int) -> bool:\n        if skips_remaining < 0: return False\n        # Prune: Exit immediately if a past path reached here with more resources\n        if (l, r) in memo and memo[(l, r)] >= skips_remaining:\n            return False\n            \n        while l < r:\n            if s[l] == s[r]:\n                l, r = l + 1, r - 1\n            else:\n                memo[(l, r)] = skips_remaining  # Record resource benchmark\n                return (backtrack(l + 1, r, skips_remaining - 1) or \n                        backtrack(l, r - 1, skips_remaining - 1))\n        return True\n    return backtrack(0, len(s) - 1, skip)",
-          "complexity": {
-            "time": "O(n²)",
-            "space": "O(n²)",
-            "why": "the memo is keyed by (l, r) only — a revisit with no more budget than before is cut off, so each pair expands at most once per improving budget"
-          }
-        }
-      ],
-      "pitfalls": [
-        "Wrong base cases — the most common cause of off-by-one errors in DP",
-        "Under-specified state — if two different situations share the same key, the memo returns wrong answers",
-        "Confusing subsequence (DP, non-contiguous) with subarray (sliding window, contiguous)",
-        "Memoizing on a key that omits a variable the answer depends on (e.g. caching (l, r) when the skip budget matters) — the pruned form is only correct because it stores the BEST budget seen"
-      ],
-      "keyProblems": [
-        {
-          "lcNumber": 680,
-          "title": "Valid Palindrome II"
-        }
-      ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/memoization.md"
-    },
-    {
       "id": "monotonic-stack",
       "name": "Monotonic Stack",
       "family": "stack",
@@ -917,7 +928,7 @@
             "because": "the structure is a TREE — same idea, but the pre / in / post vocabulary is the one to reason with"
           },
           {
-            "technique": "memoization",
+            "technique": "dynamic-programming",
             "because": "the recursion revisits the same state — add a cache or the call tree explodes"
           }
         ]
@@ -1621,9 +1632,9 @@
           },
           {
             "label": "Min / max / count ways, with overlapping subproblems",
-            "reach": "memoization",
+            "reach": "dynamic-programming",
             "reachLabel": "DP",
-            "note": "memoization"
+            "note": ""
           }
         ]
       }
