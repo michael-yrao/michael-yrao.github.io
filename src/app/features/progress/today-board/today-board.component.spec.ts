@@ -1407,14 +1407,6 @@ describe('TodayBoardComponent — week navigation', () => {
     fixture.detectChanges();
     expect(requests).toBe(1);
 
-    // (c) ▶ is disabled on the current week when no later week is known.
-    TestBed.resetTestingModule();
-    fixture = createFixture(null);
-    const nextBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
-      '.today-board__week-nav-btn[aria-label="Next week"]',
-    );
-    expect(nextBtn.disabled).toBe(true);
-
     // (d) ◀ is disabled once history is ready and the displayed week is the earliest one known.
     TestBed.resetTestingModule();
     fixture = createFixture(null);
@@ -1449,6 +1441,48 @@ describe('TodayBoardComponent — week navigation', () => {
     retryBtn.click();
     fixture.detectChanges();
     expect(requests).toBe(2); // the initial ◀ fetch, plus this Retry
+  });
+
+  describe('▶ on the current week', () => {
+    const currentWeekOf = currentWeekStart(todayLocalISO());
+    const nextWeekOf = addDaysISO(currentWeekOf, 7);
+
+    function emptyWeekOf(weekOf: string): Schedule {
+      return { weekOf, days: [] };
+    }
+
+    function nextBtnOf(fixture: ReturnType<typeof createFixture>): HTMLButtonElement {
+      return fixture.nativeElement.querySelector('.today-board__week-nav-btn[aria-label="Next week"]');
+    }
+
+    const cases: ReadonlyArray<[string, Schedule[] | null, LoadStatus, boolean]> = [
+      ['history not loaded, status idle: enabled', null, 'idle', true],
+      ['history loaded with no later week: disabled', [emptyWeekOf(addDaysISO(currentWeekOf, -7))], 'ready', false],
+      ['history loaded with a later week: enabled', [emptyWeekOf(nextWeekOf)], 'ready', true],
+      ['status error, history null, no later week: disabled', null, 'error', false],
+    ];
+
+    it('is enabled only while the boundary is unknown or a later week exists', () => {
+      for (const [label, history, status, isEnabled] of cases) {
+        TestBed.resetTestingModule();
+        const fixture = createFixture(emptyWeekOf(currentWeekOf));
+        fixture.componentRef.setInput('historyStatus', status);
+        fixture.componentRef.setInput('history', history);
+        fixture.detectChanges();
+        expect(nextBtnOf(fixture).disabled, label).toBe(!isEnabled);
+      }
+    });
+
+    it('requests history and moves forward 7 days when pressed before history has loaded', () => {
+      TestBed.resetTestingModule();
+      const fixture = createFixture(emptyWeekOf(currentWeekOf));
+      let requests = 0;
+      fixture.componentInstance.historyRequest.subscribe(() => requests++);
+      nextBtnOf(fixture).click();
+      fixture.detectChanges();
+      expect(requests).toBe(1);
+      expect(fixture.componentInstance.displayedWeekOf()).toBe(nextWeekOf);
+    });
   });
 });
 

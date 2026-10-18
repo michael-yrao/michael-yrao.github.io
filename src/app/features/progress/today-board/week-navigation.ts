@@ -82,12 +82,14 @@ export class WeekNavigation {
     return weeks.length > 0 && weeks[0] < this.displayedWeekOf();
   });
 
-  /** ▶ is enabled either toward a later week already on hand, or simply toward "now" whenever
-   *  the displayed week is in the past — the latter needs no history fetch, since every week
-   *  up to and including the current one is always resolvable (real or synthetic). */
+  /** ▶ is enabled toward "now" whenever the displayed week is in the past (every week up to and
+   *  including the current one is always resolvable, real or synthetic), and toward a later week
+   *  already on hand. Before history has loaded (and unless its fetch failed) we don't yet know
+   *  whether a later week exists, so — like `canGoPrev` — it stays enabled and a click can fetch. */
   readonly canGoNext = computed(() => {
     const displayed = this.displayedWeekOf();
     if (displayed < this.currentWeekOf()) return true;
+    if (!this.historyLoaded() && this.deps.historyStatus() !== 'error') return true;
     return this.sortedWeekStarts().some((w) => w > displayed);
   });
 
@@ -118,11 +120,16 @@ export class WeekNavigation {
     if (!alreadyKnown && !this.historyLoaded()) this.deps.requestHistory();
   }
 
-  /** Steps the board forward one calendar week — never past the current week (`canGoNext`
-   *  guards that at the template). */
+  /** Steps the board forward one calendar week (`canGoNext` guards that at the template). Mirrors
+   *  `prevWeek()`: when the target isn't in `weeksByStart` and history hasn't loaded yet, also asks
+   *  the page to fetch it; a week still absent once history HAS loaded is shown empty, never
+   *  re-requested. */
   nextWeek(): void {
     if (!this.canGoNext()) return;
-    this.setViewWeek(addDaysISO(this.displayedWeekOf(), DAYS_PER_WEEK));
+    const target = addDaysISO(this.displayedWeekOf(), DAYS_PER_WEEK);
+    const alreadyKnown = this.weeksByStart().has(target);
+    this.setViewWeek(target);
+    if (!alreadyKnown && !this.historyLoaded()) this.deps.requestHistory();
   }
 
   /** The "Couldn't load past weeks." hint's Retry button — just re-requests history, same
