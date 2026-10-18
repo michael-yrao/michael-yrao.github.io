@@ -43,7 +43,10 @@ function makeSummary(): ProgressSummary {
       longest: 5,
       lastStudyDay: '2026-09-20',
       studyDays: 10,
-      restDayAllowance: 1,
+      freezes: 1,
+      freezesLeft: 1,
+      freezeMax: 2,
+      frozenDays: ['2026-09-19'],
     },
     coverage: { total: 56, started: 40, noGreen: 2, thin: 3, variantGaps: 1 },
     onSchedule: { totalActive: 5, dueToday: 1, overdue: 0 },
@@ -392,6 +395,16 @@ describe('ProgressPageComponent', () => {
     );
     expect(indices.every((i) => i >= 0)).toBe(true);
     expect(indices).toEqual([...indices].sort((a, b) => a - b));
+  });
+
+  it('renders the hero streak with no freeze mark for an old-shape streak (restDayAllowance, no freeze fields)', () => {
+    const { freezes, freezesLeft, freezeMax, frozenDays, ...rest } = makeSummary().streak;
+    progress.data.set({ ...makeSummary(), streak: { ...rest, restDayAllowance: 1 } });
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.hero__num').textContent).toContain(String(rest.current));
+    expect(fixture.nativeElement.querySelector('.hero__freezes')).toBeNull();
   });
 
   it('renders the Workload card on the Activity tab when the summary carries workload, first and before the calendar', () => {

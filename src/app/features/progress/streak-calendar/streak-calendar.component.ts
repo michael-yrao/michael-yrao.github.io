@@ -5,6 +5,7 @@ import { todayLocalISO } from '../../../core/utils/local-date';
 interface DayCell {
   date: string;
   studied: boolean;
+  frozen: boolean;
 }
 
 interface MonthColumn {
@@ -35,6 +36,7 @@ const MONTH_ABBREV = [
 })
 export class StreakCalendarComponent {
   readonly studyDays = input.required<string[]>();
+  readonly frozenDays = input<string[]>([]);
   readonly current = input(0);
   readonly longest = input(0);
 
@@ -42,6 +44,7 @@ export class StreakCalendarComponent {
 
   readonly cells = computed<DayCell[]>(() => {
     const studied = new Set(this.studyDays());
+    const frozen = new Set(this.frozenDays());
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const out: DayCell[] = [];
@@ -52,7 +55,7 @@ export class StreakCalendarComponent {
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
       const iso = `${y}-${m}-${day}`;
-      out.push({ date: iso, studied: studied.has(iso) });
+      out.push({ date: iso, studied: studied.has(iso), frozen: frozen.has(iso) });
     }
     return out;
   });
@@ -75,6 +78,8 @@ export class StreakCalendarComponent {
     }
     return cols;
   });
+
+  readonly hasFrozenCell = computed(() => this.cells().some((cell) => cell.frozen));
 
   readonly since = computed(() => this.cells()[0]?.date ?? '');
 

@@ -79,6 +79,13 @@ export class ProgressPageComponent {
   readonly status = this.progress.status;
   readonly error = this.progress.error;
   readonly data = this.progress.data;
+  /** One flag per freeze slot, true when the freeze is still banked — the hero's fill mark. */
+  readonly freezeSlots = computed<boolean[]>(() => {
+    const streak = this.data()?.streak;
+    const max = streak?.freezeMax ?? 0;
+    const left = streak?.freezesLeft ?? 0;
+    return Array.from({ length: max }, (_, i) => i < left);
+  });
   readonly repoSlug = this.progress.repoSlug;
   readonly repoRef = this.progress.repoRef;
   readonly refreshing = this.progress.refreshing;

@@ -38,6 +38,20 @@
   border-color: var(--color-easy);
 }
 
+.streak-cal__cell--frozen {
+  background: var(--color-frozen);
+  border-color: var(--color-frozen);
+}
+
+.streak-cal__key {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: var(--space-sm) 0 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
 .streak-cal__cell--today {
   box-shadow: 0 0 0 1px var(--color-accent);
 }

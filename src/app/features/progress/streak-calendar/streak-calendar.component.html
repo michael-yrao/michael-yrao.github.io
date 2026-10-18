@@ -9,11 +9,18 @@
       <span
         class="streak-cal__cell"
         [class.streak-cal__cell--filled]="cell.studied"
+        [class.streak-cal__cell--frozen]="cell.frozen"
         [class.streak-cal__cell--today]="cell.date === today"
-        [attr.title]="cell.date + (cell.studied ? ' · studied' : '')"
+        [attr.title]="cell.date + (cell.studied ? ' · studied' : cell.frozen ? ' · freeze used' : '')"
       ></span>
     }
   </div>
+  @if (hasFrozenCell()) {
+    <p class="streak-cal__key">
+      <span class="streak-cal__cell streak-cal__cell--frozen"></span>
+      Freeze used
+    </p>
+  }
   <p class="streak-cal__legend">
     last {{ windowWeeks }} weeks · since {{ since() }} · {{ studyDays().length }} study days total ·
     current streak {{ current() }} · longest {{ longest() }}

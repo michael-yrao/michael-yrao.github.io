@@ -50,7 +50,15 @@ export interface Streak {
   longest: number;
   lastStudyDay: string | null;
   studyDays: number;
-  restDayAllowance: number;
+  /** Freeze bank right after `lastStudyDay`. */
+  freezes?: number;
+  /** Freeze bank as of generation day, after trailing misses. */
+  freezesLeft?: number;
+  freezeMax?: number;
+  /** ISO dates a freeze bridged, including trailing ones up to yesterday. */
+  frozenDays?: string[];
+  /** Legacy field, emitted by cse-coach-template repos that predate freezes. */
+  restDayAllowance?: number;
 }
 
 export interface Coverage {

@@ -237,6 +237,17 @@
                 <em>· best {{ d.streak.longest }}</em>
               }
             </span>
+            @if (freezeSlots().length > 0) {
+              <span
+                class="hero__freezes"
+                role="img"
+                [attr.aria-label]="(d.streak.freezesLeft ?? 0) + ' of ' + d.streak.freezeMax + ' streak freezes left'"
+              >
+                @for (isFilled of freezeSlots(); track $index) {
+                  <span class="hero__freeze" [class.hero__freeze--empty]="!isFilled">🧊</span>
+                }
+              </span>
+            }
           </div>
           <div class="hero__tiles">
             <div class="tile"><b>{{ d.totals.reps }}</b><span>reps</span></div>
@@ -438,6 +449,7 @@
                 <p class="card__sub">When did I practice? A filled cell is a study day.</p>
                 <app-streak-calendar
                   [studyDays]="d.studyDays"
+                  [frozenDays]="d.streak.frozenDays ?? []"
                   [current]="d.streak.current"
                   [longest]="d.streak.longest"
                 />

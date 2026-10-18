@@ -292,6 +292,9 @@ $skeleton-card-height: 12rem;
 .hero__num { font-size: 3rem; font-weight: 800; color: var(--color-text); line-height: 1; }
 .hero__label { color: var(--color-text-muted); font-size: 1rem; em { font-style: normal; opacity: 0.8; } }
 
+.hero__freezes { display: inline-flex; gap: var(--space-xs); font-size: 1.25rem; }
+.hero__freeze--empty { filter: grayscale(1); opacity: 0.3; }
+
 .hero__tiles { display: flex; gap: var(--space-lg); flex-wrap: wrap; }
 .tile {
   display: flex; flex-direction: column; align-items: center;
