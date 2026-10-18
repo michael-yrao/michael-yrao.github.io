@@ -7,6 +7,11 @@ import {
   ROUTE_PREFIX,
   type LimitBucket,
 } from './interviews/handler';
+import {
+  handle as handlePatternSense,
+  ROUTE_PREFIX as PATTERN_SENSE_PREFIX,
+  type PatternSenseEnv,
+} from './pattern-sense/handler';
 
 // How long a built feed is served from the in-memory memo before the next request rebuilds it.
 const MEMO_TTL_MS = 5 * 60 * 1000;
@@ -73,7 +78,7 @@ interface RateLimiter {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
-export interface Env {
+export interface Env extends PatternSenseEnv {
   INTERVIEWS: KVNamespace;
   INTERVIEW_READS?: RateLimiter;
   INTERVIEW_WRITES?: RateLimiter;
@@ -100,8 +105,13 @@ export function interviewHandlerFor(env: Env) {
 }
 
 export default {
-  fetch: (request: Request, env: Env) =>
-    new URL(request.url).pathname.startsWith(ROUTE_PREFIX)
+  fetch: (request: Request, env: Env) => {
+    const { pathname } = new URL(request.url);
+    if (pathname.startsWith(PATTERN_SENSE_PREFIX)) {
+      return handlePatternSense(request, env, (input, init) => fetch(input, init));
+    }
+    return pathname.startsWith(ROUTE_PREFIX)
       ? interviewHandlerFor(env).handle(request)
-      : productionWorker.handle(request),
+      : productionWorker.handle(request);
+  },
 };

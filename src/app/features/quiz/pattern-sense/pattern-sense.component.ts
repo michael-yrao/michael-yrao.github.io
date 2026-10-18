@@ -1,9 +1,40 @@
-import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { ALGORITHM_INDEX, AlgorithmIndexEntry } from '../../../core/data/algorithms.data';
+import { labelFor } from '../../../core/data/family-labels';
 import { loadMetaOrNull } from '../../../core/data/load-meta';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { AlgorithmMeta, Category, CATEGORY_LABELS } from '../../../core/models/algorithm.model';
-import { RouterLink } from '@angular/router';
+import { PatternSenseData } from '../../../core/models/pattern-sense.model';
+import {
+  WeekRunState,
+  advance,
+  chooseFamily,
+  chooseTechnique,
+  correctFamily,
+  correctFamilyIndex,
+  correctTechniqueIndex,
+  currentProblem,
+  encodeResults,
+  restoreCode,
+  startWeekRun,
+} from '../../../core/pattern-sense/week-run';
+import { GithubSaveService } from '../../../core/services/github-save.service';
+import {
+  GOLD_STANDARD_REPO,
+  RepoRef,
+  parseRepoSlug,
+  sameRef,
+} from '../../../core/services/github-file.service';
+import { PatternSenseService } from '../../../core/services/pattern-sense.service';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 
@@ -14,6 +45,45 @@ const BREADCRUMB: BreadcrumbEntry[] = [
 ];
 
 const BEST_STREAK_KEY = 'po-pattern-sense-best';
+const WEEK_CODE_KEY_PREFIX = 'po-pattern-sense-week-';
+const WEEK_DECK_PARAM = 'week';
+
+type Tab = 'practice' | 'week';
+type ChipState = 'idle' | 'correct' | 'wrong';
+type CopyState = 'idle' | 'copied' | 'failed';
+
+/** The `?repo=` ref; a malformed slug falls back to the author's repo. */
+function refFromSlug(slug: string | null): RepoRef {
+  return parseRepoSlug(slug) ?? GOLD_STANDARD_REPO;
+}
+
+interface WeekChip {
+  readonly index: number;
+  readonly label: string;
+  readonly state: ChipState;
+}
+
+function chipStateOf(index: number, pick: number | null, correct: number, isAnswered: boolean): ChipState {
+  if (!isAnswered) return 'idle';
+  if (index === correct) return 'correct';
+  return index === pick ? 'wrong' : 'idle';
+}
+
+function readStoredCode(week: string): string | null {
+  try {
+    return localStorage.getItem(WEEK_CODE_KEY_PREFIX + week);
+  } catch {
+    return null; // storage blocked: the week simply replays
+  }
+}
+
+function writeStoredCode(week: string, code: string): void {
+  try {
+    localStorage.setItem(WEEK_CODE_KEY_PREFIX + week, code);
+  } catch {
+    // storage blocked: the code is still on screen for this visit
+  }
+}
 
 /** Why each technique applies — shown after every answer to build recognition. */
 const RECOGNITION_CUES: Record<Category, string> = {
@@ -80,9 +150,172 @@ export class PatternSenseComponent {
   answeredCount = 0;
   finished = false;
 
+  // ── This week deck ──────────────────────────────────────────
+  private readonly patternSense = inject(PatternSenseService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly githubSave = inject(GithubSaveService);
+  private wantsWeek = this.route.snapshot.queryParamMap.get('deck') === WEEK_DECK_PARAM;
+
+  readonly loadFailed = computed(() => this.patternSense.status() === 'error');
+  readonly copyState = signal<CopyState>('idle');
+  readonly saveState = this.githubSave.saveState;
+  readonly login = this.githubSave.login;
+  readonly signInFailed = this.githubSave.signInFailed;
+  readonly installUrl = `https://github.com/apps/${this.githubSave.appSlug}/installations/new`;
+
+  /** Save UI exists only for a configured app, on the viewer's own deck (not the author's fallback). */
+  readonly sourceRef = computed<RepoRef | null>(() =>
+    this.githubSave.isEnabled && !this.patternSense.isAuthorFallback()
+      ? this.patternSense.sourceRef()
+      : null,
+  );
+  /** UX only: the Worker's owner check is the real guarantee. */
+  readonly isRepoOwner = computed(() => {
+    const login = this.login();
+    const ref = this.sourceRef();
+    return login !== null && ref !== null && login.toLowerCase() === ref.owner.toLowerCase();
+  });
+
+  readonly tab = signal<Tab>('practice');
+  /** The published deck; null when the load failed or no deck is published this week. */
+  readonly weekData = computed<PatternSenseData | null>(() => {
+    const data = this.patternSense.status() === 'ready' ? this.patternSense.data() : null;
+    return data !== null && data.week !== null && data.problems.length > 0 ? data : null;
+  });
+  readonly run = signal<WeekRunState>(startWeekRun());
+  private readonly storedCode = signal<string | null>(null);
+
+  /** The finished week's code: the stored one on a return visit, else the one just earned. */
+  readonly weekCode = computed<string | null>(() => {
+    const data = this.weekData();
+    if (data === null) return null;
+    if (this.storedCode() !== null) return this.storedCode();
+    return this.run().phase === 'done' ? encodeResults(data, this.run().answers) : null;
+  });
+
+  readonly weekView = computed(() => {
+    const data = this.weekData();
+    const state = this.run();
+    // A restored code means the week is already finished: show its end screen, not a replay.
+    if (data === null || state.phase === 'done' || this.storedCode() !== null) return null;
+
+    const problem = currentProblem(data, state);
+    const family = correctFamily(data, problem);
+    const familyCorrect = correctFamilyIndex(data, problem);
+    const techniqueCorrect = correctTechniqueIndex(data, problem);
+    const isRevealed = state.phase === 'reveal';
+    const hasTechniqueStep = family.techniques.length > 1;
+
+    return {
+      problem,
+      progress: `${state.index + 1} / ${data.problems.length}`,
+      phase: state.phase,
+      isRevealed,
+      familyChips: data.families.map(
+        (f, i): WeekChip => ({
+          index: i + 1,
+          label: labelFor(f.id),
+          state: chipStateOf(i + 1, state.familyPick, familyCorrect, state.phase !== 'family'),
+        }),
+      ),
+      techniqueChips: family.techniques.map(
+        (name, i): WeekChip => ({
+          index: i + 1,
+          label: name,
+          state: chipStateOf(i + 1, state.techniquePick, techniqueCorrect, isRevealed),
+        }),
+      ),
+      showTechniques: hasTechniqueStep && (state.phase === 'technique' || isRevealed),
+      familyLabel: labelFor(family.id),
+    };
+  });
+
   constructor() {
     this.bestStreak = Number(localStorage.getItem(BEST_STREAK_KEY) ?? 0) || 0;
     this.startRun();
+
+    const params = this.route.snapshot.queryParamMap;
+    const code = params.get('code');
+    const state = params.get('state');
+    if (code && state) void this.finishSignIn(code, state, params.get('repo'));
+    else this.patternSense.load(refFromSlug(params.get('repo')));
+    // Once a deck lands: restore a finished week's code, and honour `?deck=week`.
+    effect(() => {
+      const data = this.weekData();
+      if (data === null) return;
+      untracked(() => {
+        this.storedCode.set(restoreCode(data, readStoredCode(data.week as string)));
+        if (this.wantsWeek) this.tab.set('week');
+      });
+    });
+  }
+
+  showTab(tab: Tab): void {
+    this.tab.set(tab);
+  }
+
+  pickFamily(index: number): void {
+    const data = this.weekData();
+    if (data !== null) this.run.update((state) => chooseFamily(state, data, index));
+  }
+
+  pickTechnique(index: number): void {
+    const data = this.weekData();
+    if (data !== null) this.run.update((state) => chooseTechnique(state, data, index));
+  }
+
+  nextWeekProblem(): void {
+    const data = this.weekData();
+    if (data === null) return;
+    const next = advance(this.run(), data);
+    this.run.set(next);
+    if (next.phase === 'done') writeStoredCode(data.week as string, encodeResults(data, next.answers));
+  }
+
+  async copyCode(): Promise<void> {
+    const code = this.weekCode();
+    if (code === null) return;
+    try {
+      await navigator.clipboard.writeText(code); // throws when the clipboard is unavailable
+      this.copyState.set('copied');
+    } catch {
+      this.copyState.set('failed');
+    }
+  }
+
+  signIn(): void {
+    const ref = this.sourceRef();
+    const week = this.weekData()?.week;
+    if (ref !== null && week) this.githubSave.signIn(ref, week);
+  }
+
+  saveToGithub(): void {
+    const ref = this.sourceRef();
+    const data = this.weekData();
+    const code = this.weekCode();
+    if (ref === null || data === null || code === null || !data.week) return;
+    void this.githubSave.save(ref, data.week, data.vocabHash, code);
+  }
+
+  /** Back from GitHub: trade the code for a token, take the code and state out of the URL, and
+   *  reload the deck the viewer left (the finished week's code is restored from storage). */
+  private async finishSignIn(code: string, state: string, repoParam: string | null): Promise<void> {
+    const pending = await this.githubSave.completeSignIn(code, state);
+    const slug = pending?.repo ?? repoParam;
+    if (pending) this.wantsWeek = true;
+    const ref = refFromSlug(slug);
+    void this.router.navigate([], {
+      queryParams: {
+        repo: sameRef(ref, GOLD_STANDARD_REPO) ? null : slug,
+        deck: this.wantsWeek ? WEEK_DECK_PARAM : null,
+        code: null,
+        state: null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    this.patternSense.load(ref);
   }
 
   get isCorrect(): boolean {

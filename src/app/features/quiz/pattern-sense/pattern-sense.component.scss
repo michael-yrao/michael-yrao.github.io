@@ -2,6 +2,57 @@
   padding: var(--space-xl) var(--page-gutter) var(--space-2xl);
 }
 
+// ── Tabs (Practice · This week) ─────────────────────────────────
+.ps-tabs {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+
+.ps-tab {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  font: inherit;
+  cursor: pointer;
+
+  &--active {
+    color: var(--color-text);
+    border-color: var(--color-accent);
+  }
+}
+
+// ── This week: step prompts and the results code ────────────────
+.ps-step {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+}
+
+.ps-code {
+  display: block;
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  word-break: break-all;
+  user-select: all;
+}
+
+.ps-feedback {
+  margin: 0 var(--space-sm);
+  color: var(--color-text-muted);
+}
+
+.ps-save {
+  margin-top: var(--space-md);
+}
+
 // ── Scoreboard ──────────────────────────────────────────────────
 .ps-stats {
   display: flex;

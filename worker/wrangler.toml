@@ -9,6 +9,12 @@ workers_dev = true
 # pattern = "events-api.progressiveoverflow.com/*"
 # zone_name = "progressiveoverflow.com"
 
+# Pattern Sense GitHub sign-in. The client secret is not stored here:
+#   npx wrangler secret put GITHUB_CLIENT_SECRET
+[vars]
+GITHUB_CLIENT_ID = "Iv23liBo5xiEhlT4mPOg"
+ALLOWED_ORIGINS = "https://progressiveoverflow.com,http://localhost:4200"
+
 # The id comes from `npx wrangler kv namespace create INTERVIEWS`.
 [[kv_namespaces]]
 binding = "INTERVIEWS"

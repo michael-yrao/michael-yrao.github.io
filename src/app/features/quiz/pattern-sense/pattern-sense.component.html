@@ -4,6 +4,120 @@
     Recognizing the pattern is half the problem.
   </app-page-header>
 
+  @if (weekData()) {
+    <div class="ps-tabs" role="tablist">
+      <button
+        class="ps-tab"
+        role="tab"
+        [class.ps-tab--active]="tab() === 'practice'"
+        [attr.aria-selected]="tab() === 'practice'"
+        (click)="showTab('practice')"
+      >Practice</button>
+      <button
+        class="ps-tab"
+        role="tab"
+        [class.ps-tab--active]="tab() === 'week'"
+        [attr.aria-selected]="tab() === 'week'"
+        (click)="showTab('week')"
+      >This week</button>
+    </div>
+  } @else if (loadFailed()) {
+    <p class="ps-feedback">This week's deck didn't load.</p>
+  }
+
+  @if (tab() === 'week' && weekData()) {
+    @if (weekView(); as view) {
+      <section class="ps-scenario">
+        <div class="ps-scenario__label">{{ view.progress }}</div>
+        <p class="ps-scenario__desc">{{ view.problem.prompt }}</p>
+        @if (view.problem.constraints.length) {
+          <ul class="ps-scenario__constraints">
+            @for (c of view.problem.constraints; track c) {
+              <li>{{ c }}</li>
+            }
+          </ul>
+        }
+      </section>
+
+      <h2 class="ps-step">Which family?</h2>
+      <div class="ps-options" role="group" aria-label="Which family?">
+        @for (chip of view.familyChips; track chip.index) {
+          <button
+            class="ps-chip"
+            [class.ps-chip--correct]="chip.state === 'correct'"
+            [class.ps-chip--wrong]="chip.state === 'wrong'"
+            [disabled]="view.phase !== 'family'"
+            (click)="pickFamily(chip.index)"
+          >{{ chip.label }}</button>
+        }
+      </div>
+
+      @if (view.showTechniques) {
+        <h2 class="ps-step">Which technique?</h2>
+        <div class="ps-options" role="group" aria-label="Which technique?">
+          @for (chip of view.techniqueChips; track chip.index) {
+            <button
+              class="ps-chip"
+              [class.ps-chip--correct]="chip.state === 'correct'"
+              [class.ps-chip--wrong]="chip.state === 'wrong'"
+              [disabled]="view.phase !== 'technique'"
+              (click)="pickTechnique(chip.index)"
+            >{{ chip.label }}</button>
+          }
+        </div>
+      }
+
+      @if (view.isRevealed) {
+        <section class="ps-reveal" aria-live="polite">
+          <div class="ps-reveal__verdict">{{ view.familyLabel }} · {{ view.problem.technique }}</div>
+          <p class="ps-reveal__cue">{{ view.problem.cue }}</p>
+          <div class="ps-reveal__actions">
+            <button class="ps-next" (click)="nextWeekProblem()">Next problem →</button>
+          </div>
+        </section>
+      }
+    } @else if (weekCode(); as code) {
+      <div class="ps-summary">
+        <h2 class="ps-summary__title">Deck done. Paste this code to your coach.</h2>
+        <code class="ps-code">{{ code }}</code>
+        <button class="ps-next" (click)="copyCode()">Copy code</button>
+        <span class="ps-feedback" aria-live="polite">
+          @if (copyState() === 'copied') {
+            Copied
+          } @else if (copyState() === 'failed') {
+            Copy failed — select the code and copy it by hand
+          }
+        </span>
+        @if (sourceRef()) {
+          <div class="ps-save" aria-live="polite">
+            @if (login() === null) {
+              @if (signInFailed()) {
+                <span class="ps-feedback">Sign-in failed — try again</span>
+              }
+              <button class="ps-next" (click)="signIn()">Sign in with GitHub</button>
+            } @else if (isRepoOwner()) {
+              @switch (saveState()) {
+                @case ('saved') {
+                  <span class="ps-feedback">Saved</span>
+                }
+                @case ('failed') {
+                  <span class="ps-feedback">Save failed — copy the code instead</span>
+                }
+                @case ('not-installed') {
+                  <a class="ps-see-algo" [href]="installUrl">Allow Pattern Sense to save to this repo</a>
+                }
+                @default {
+                  <button class="ps-next" [disabled]="saveState() === 'saving'" (click)="saveToGithub()">Save to GitHub</button>
+                }
+              }
+            }
+          </div>
+        }
+      </div>
+    }
+  }
+
+  @if (tab() === 'practice') {
   <!-- ── Scoreboard ──────────────────────────────────────────── -->
   <div class="ps-stats" aria-live="polite">
     <div class="stat">
@@ -117,5 +231,6 @@
         </div>
       </section>
     }
+  }
   }
 </div>
