@@ -57,11 +57,34 @@ export function loadTabs(ref: RepoRef, problemNumber: number, stub: string): Sol
   return { texts: [loadDraft(draftKey(ref, problemNumber)) ?? stub], active: 0 };
 }
 
-/** Writes every tab, and drops the old single-draft key so the migration happens once. */
-export function saveTabs(ref: RepoRef, problemNumber: number, tabs: SolutionTabs): void {
+/** What is stored for a problem: `exists` is false with no draft at all; `savedAt` (ms) is null for a
+ *  legacy draft written before records carried a time. */
+export interface DraftStamp {
+  readonly exists: boolean;
+  readonly savedAt: number | null;
+}
+
+function savedAtOf(raw: string | null): number | null {
+  if (raw === null) return null;
+  try {
+    const stamp = (JSON.parse(raw) as { savedAt?: unknown } | null)?.savedAt;
+    return typeof stamp === 'number' && Number.isFinite(stamp) ? stamp : null;
+  } catch {
+    return null; // corrupt record: parseTabs already reports it
+  }
+}
+
+export function loadDraftStamp(ref: RepoRef, problemNumber: number): DraftStamp {
+  const raw = readKey(tabsKey(ref, problemNumber));
+  if (parseTabs(raw)) return { exists: true, savedAt: savedAtOf(raw) };
+  return { exists: loadDraft(draftKey(ref, problemNumber)) !== null, savedAt: null };
+}
+
+/** Writes every tab with the time of the write, and drops the old single-draft key so the migration happens once. */
+export function saveTabs(ref: RepoRef, problemNumber: number, tabs: SolutionTabs, now: number = Date.now()): void {
   const key = tabsKey(ref, problemNumber);
   try {
-    localStorage.setItem(key, JSON.stringify(tabs));
+    localStorage.setItem(key, JSON.stringify({ ...tabs, savedAt: now }));
   } catch (err) {
     console.error(`Practice tabs: could not save ${key}`, err);
     return;

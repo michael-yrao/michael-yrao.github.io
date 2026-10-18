@@ -92,6 +92,27 @@
             @if (isLoadingPython()) {
               <span class="practice__status">Loading Python</span>
             }
+            @if (canSave()) {
+              <button type="button" class="practice__btn" [disabled]="saveStatus().state === 'saving'" (click)="saveToGithub()">Save to GitHub</button>
+              <button type="button" class="practice__btn" [disabled]="!canMarkComplete()" (click)="startRating()">Mark Complete</button>
+              @if (isRating() && canMarkComplete()) {
+                <span class="practice__status">Rate this rep</span>
+                @for (option of ratingOptions; track option.rating) {
+                  <button type="button" class="practice__btn" (click)="rate(option.rating)">{{ option.label }}</button>
+                }
+              }
+              @switch (saveStatus().state) {
+                @case ('saved') {
+                  <span class="practice__status">{{ saveStatus().isComplete ? 'Marked complete' : 'Saved' }}</span>
+                }
+                @case ('failed') {
+                  <span class="practice__status">Save failed — copy the code instead</span>
+                }
+                @case ('not-installed') {
+                  <a class="practice__status" [href]="installUrl">Allow Progressive Overflow to save to this repo</a>
+                }
+              }
+            }
             <span class="practice__spacer"></span>
             <button type="button" class="practice__btn practice__btn--icon" aria-label="Reset" title="Reset" (click)="reset()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">

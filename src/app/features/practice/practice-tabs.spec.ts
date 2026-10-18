@@ -1,3 +1,6 @@
+import { vi } from 'vitest';
+
+import { createMemoryStorage } from '../../core/memory-storage.testing';
 import { GOLD_STANDARD_REPO } from '../../core/services/github-file.service';
 import { draftKey } from './practice-draft';
 import { loadTabs, saveTabs, tabsKey } from './practice-tabs';
@@ -9,12 +12,10 @@ const TABS = tabsKey(GOLD_STANDARD_REPO, NUMBER);
 
 describe('practice tabs storage', () => {
   beforeEach(() => {
-    localStorage.removeItem(DRAFT);
-    localStorage.removeItem(TABS);
+    vi.stubGlobal('localStorage', createMemoryStorage());
   });
   afterEach(() => {
-    localStorage.removeItem(DRAFT);
-    localStorage.removeItem(TABS);
+    vi.unstubAllGlobals();
   });
 
   it.each([
@@ -39,7 +40,7 @@ describe('practice tabs storage', () => {
 
     saveTabs(GOLD_STANDARD_REPO, NUMBER, { texts: ['a'], active: 0 });
 
-    expect(JSON.parse(localStorage.getItem(TABS)!)).toEqual({ texts: ['a'], active: 0 });
+    expect(JSON.parse(localStorage.getItem(TABS)!)).toEqual({ texts: ['a'], active: 0, savedAt: expect.any(Number) });
     expect(localStorage.getItem(DRAFT)).toBeNull();
   });
 });

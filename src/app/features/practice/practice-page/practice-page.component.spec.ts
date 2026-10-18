@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import { EditorView } from '@codemirror/view';
 import { vi } from 'vitest';
 
+import { createMemoryStorage } from '../../../core/memory-storage.testing';
 import { PracticeData, PracticeProblem } from '../../../core/models/practice.model';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
 import { RunState } from '../../../core/runner/runner.model';
@@ -130,6 +131,7 @@ function click(root: HTMLElement, label: string): void {
 
 describe('PracticePageComponent', () => {
   beforeEach(() => {
+    vi.stubGlobal('localStorage', createMemoryStorage());
     setTextSpy.mockClear();
     runSpy.mockReset();
     runSpy.mockReturnValue(of(RUN_STATE));
@@ -138,6 +140,7 @@ describe('PracticePageComponent', () => {
     localStorage.removeItem(SPLIT_KEY);
   });
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
     localStorage.removeItem(DRAFT_KEY);
     localStorage.removeItem(TABS_KEY);
@@ -343,7 +346,11 @@ describe('PracticePageComponent', () => {
     fixture.detectChanges();
 
     expect(setTextSpy).toHaveBeenLastCalledWith('my draft');
-    expect(JSON.parse(localStorage.getItem(TABS_KEY)!)).toEqual({ texts: ['my draft', STUB], active: 0 });
+    expect(JSON.parse(localStorage.getItem(TABS_KEY)!)).toEqual({
+      texts: ['my draft', STUB],
+      active: 0,
+      savedAt: expect.any(Number),
+    });
   });
 
   it('an error run naming line 3 tints the third editor line, and an edit clears it', () => {

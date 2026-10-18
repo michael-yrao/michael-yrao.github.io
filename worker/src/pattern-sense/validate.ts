@@ -8,8 +8,8 @@ const SCHEMA_VERSION = 1;
 const CODE_TAG = 'PS1';
 const RESULTS_DIR = 'dashboard/pattern_sense_results';
 
-const OWNER_PATTERN = /^[A-Za-z0-9-]{1,39}$/;
-const REPO_PATTERN = /^[A-Za-z0-9._-]{1,100}$/;
+export const OWNER_PATTERN = /^[A-Za-z0-9-]{1,39}$/;
+export const REPO_PATTERN =/^[A-Za-z0-9._-]{1,100}$/;
 const WEEK_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const VOCABULARY_PATTERN = /^[0-9a-f]{6}$/;
 const ISO_UTC_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
@@ -82,7 +82,7 @@ function isValidCode(code: string, week: string, vocabulary: string): boolean {
   return code.startsWith(`${CODE_TAG} ${week} ${vocabulary} `);
 }
 
-function isValidTimestamp(value: string): boolean {
+export function isValidTimestamp(value: string): boolean {
   return ISO_UTC_PATTERN.test(value) && Number.isFinite(Date.parse(value));
 }
 

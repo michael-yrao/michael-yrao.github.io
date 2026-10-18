@@ -70,11 +70,13 @@ gets a 503 when a binding is missing.
 
 ## Pattern Sense sign-in
 
-`src/auth/` serves two routes and `src/pattern-sense/` one, for the site's GitHub sign-in:
+`src/auth/` serves two routes, `src/pattern-sense/` one and `src/practice/` two, for the site's GitHub sign-in and saves:
 
 - `src/auth/`: `POST /auth/token` swaps GitHub's one-time login code for a token and returns your GitHub login.
 - `src/auth/`: `POST /auth/refresh` swaps a refresh token for a new token.
 - `src/pattern-sense/`: `POST /pattern-sense/save` writes `dashboard/pattern_sense_results/<YYYYMMDD>.json` to a repo you own.
+- `src/practice/`: `POST /practice/save` writes an attempt to `dsa/attempts/<YYYYMMDD>/` in a repo you own.
+- `src/practice/`: `POST /practice/latest` returns your newest saved attempt for a problem.
 
 Only the origins in `ALLOWED_ORIGINS` (a `[vars]` entry in `wrangler.toml`) are served.
 

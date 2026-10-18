@@ -12,6 +12,12 @@ const NOT_INSTALLED_ERROR = 'not-installed';
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'failed' | 'not-installed';
 
+/** The save state a failed Worker call leaves: the install prompt for a 409 `not-installed`, else failed. */
+export function failureStateFor(err: unknown): SaveState {
+  const isNotInstalled = err instanceof HttpErrorResponse && err.error?.error === NOT_INSTALLED_ERROR;
+  return isNotInstalled ? 'not-installed' : 'failed';
+}
+
 /** Saving a finished week's results through the Worker, as the signed-in viewer. */
 @Injectable({ providedIn: 'root' })
 export class GithubSaveService {
@@ -39,9 +45,7 @@ export class GithubSaveService {
       await firstValueFrom(this.http.post(`${WORKER_API_URL}${ROUTE_PREFIX}save`, body, { headers }));
       this.saveState.set('saved');
     } catch (err) {
-      const isNotInstalled =
-        err instanceof HttpErrorResponse && err.error?.error === NOT_INSTALLED_ERROR;
-      this.saveState.set(isNotInstalled ? 'not-installed' : 'failed');
+      this.saveState.set(failureStateFor(err));
     }
   }
 }

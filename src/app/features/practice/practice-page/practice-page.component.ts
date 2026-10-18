@@ -4,13 +4,19 @@ import {
   DestroyRef,
   computed,
   inject,
+  effect,
   signal,
+  untracked,
   ViewChild,
 } from '@angular/core';
 import { Subscription } from 'rxjs';
 
+import { AuthService } from '../../../core/auth/auth.service';
+import { AttemptMeta, AttemptRating, RATING_OPTIONS, parseAttemptFile } from '../../../core/practice/practice-attempt';
+import { PracticeSaveService } from '../../../core/services/practice-save.service';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
 import type { PracticeProblem } from '../../../core/models/practice.model';
+import type { RepoRef } from '../../../core/services/github-file.service';
 import { RunState } from '../../../core/runner/runner.model';
 import { lockedProblem } from '../../interview/session/candidate-lock';
 import { CaseResultsComponent } from '../../../shared/components/case-results/case-results.component';
@@ -18,7 +24,7 @@ import { CodeEditorComponent } from '../../../shared/components/code-editor/code
 import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
 import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
 import { injectPracticeProblem } from '../practice-problem';
-import { MAX_SOLUTION_TABS, SolutionTabs, loadTabs, saveTabs } from '../practice-tabs';
+import { MAX_SOLUTION_TABS, SolutionTabs, loadDraftStamp, loadTabs, saveTabs } from '../practice-tabs';
 import { activeCaseIndex, countPassed, errorLine, toResultRow } from '../../../shared/utils/practice-results';
 import { SAMPLE_CASE_COUNT, shortcutFor } from '../../../shared/utils/practice-shortcuts';
 import {
@@ -55,6 +61,8 @@ const closeConfirm = (position: number): string => `Close Solution ${position}? 
 export class PracticePageComponent {
   private readonly runner = inject(PythonRunnerService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthService);
+  private readonly saver = inject(PracticeSaveService);
 
   // A decorator query, not viewChild(): the signal-query helper is another runtime symbol
   // that would land in the initial bundle.
@@ -144,11 +152,50 @@ export class PracticePageComponent {
   /** The editor and Output share the column only while both are showing. */
   readonly isOutputResizable = computed(() => this.isOutputOpen() && this.isCodeOpen() && this.runState() !== null);
 
+  /** The code and problem the last Run was asked to run. */
+  private readonly lastRun = signal<{ number: number; code: string } | null>(null);
+
+  /** Saving shows only for the signed-in viewer who owns the loaded practice repo. */
+  readonly canSave = computed(() => {
+    const ref = this.ref();
+    const login = this.auth.login();
+    if (!this.auth.isSignedIn() || ref === null || login === null || this.problem() === null) return false;
+    return ref.owner.toLowerCase() === login.toLowerCase();
+  });
+
+  readonly saveStatus = computed(() => this.saver.statusFor(this.number() ?? 0));
+  readonly installUrl = `https://github.com/apps/${this.auth.appSlug}/installations/new`;
+  readonly ratingOptions = RATING_OPTIONS;
+  readonly isRating = signal(false);
+
+  /** The latest Run on this problem, once finished: how many cases it ran and passed. */
+  private readonly latestTally = computed(() => {
+    const state = this.runState();
+    const run = this.lastRun();
+    if (!state || state.status !== 'done' || state.runError || run?.number !== this.number()) return null;
+    const total = this.runCaseCount();
+    return state.results.length === total && total > 0 ? { passed: this.passedCount(), total } : null;
+  });
+
+  /** Mark Complete: the latest Run passed every case it ran, on exactly the code now in the editor. */
+  readonly canMarkComplete = computed(() => {
+    const tally = this.latestTally();
+    const isSameCode = this.lastRun()?.code === this.text();
+    const isFullRun = tally?.total === this.problem()?.cases.length;
+    return tally !== null && isFullRun && tally.passed === tally.total && isSameCode && this.saveStatus().state !== 'saving';
+  });
+
   private runSubscription: Subscription | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    effect(() => {
+      const ref = this.ref();
+      const number = this.problem()?.number;
+      if (!this.canSave() || !ref || number === undefined) return;
+      untracked(() => void this.loadRemote(ref, number));
+    });
     this.destroyRef.onDestroy(() => this.flushPendingSave());
     this.destroyRef.onDestroy(() => {
       if (this.copyTimer) clearTimeout(this.copyTimer);
@@ -199,6 +246,8 @@ export class PracticePageComponent {
     if (this.isBusy()) return;
     this.runSubscription?.unsubscribe();
     this.selectedCase.set(null);
+    this.isRating.set(false);
+    this.lastRun.set({ number: problem.number, code: this.text() });
     this.runCaseCount.set(cases.length);
     this.isOutputOpen.set(true);
     this.runSubscription = this.runner.run(this.text(), { ...problem, cases }).subscribe({
@@ -285,6 +334,43 @@ export class PracticePageComponent {
     this.selectedCase.set(null);
     this.editor?.setText(tabs.texts[tabs.active]);
     this.editor?.setErrorLine(null);
+  }
+
+  saveToGithub(): void {
+    this.saveAttempt({ complete: false, rating: null, tests: this.testsLabel() });
+  }
+
+  startRating(): void {
+    if (this.canMarkComplete()) this.isRating.set(true);
+  }
+
+  rate(rating: AttemptRating): void {
+    this.isRating.set(false);
+    this.saveAttempt({ complete: true, rating, tests: this.testsLabel() });
+  }
+
+  private testsLabel(): string | null {
+    const tally = this.latestTally();
+    return tally === null ? null : `${tally.passed}/${tally.total}`;
+  }
+
+  private saveAttempt(meta: AttemptMeta): void {
+    const ref = this.ref();
+    const problem = this.problem();
+    if (!this.canSave() || !ref || !problem) return;
+    void this.saver.save(ref, problem, this.text(), meta);
+  }
+
+  /** Loads the newest GitHub copy into the open tab when it is newer than the local draft. A legacy
+   *  draft with no time keeps winning, and so does anything typed while the request was out. */
+  private async loadRemote(ref: RepoRef, number: number): Promise<void> {
+    const content = await this.saver.latest(ref, number);
+    const remote = content === null ? null : parseAttemptFile(content);
+    if (remote === null || this.problem()?.number !== number || this.edited()?.number === number) return;
+    const draft = loadDraftStamp(ref, number);
+    if (draft.exists && (draft.savedAt === null || draft.savedAt >= remote.savedAt)) return;
+    const { texts, active } = this.tabs();
+    this.openTabs({ texts: texts.map((text, i) => (i === active ? remote.code : text)), active });
   }
 
   copy(): void {
