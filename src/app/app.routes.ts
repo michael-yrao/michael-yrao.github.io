@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 
+import { authGuard } from './core/auth/auth.guard';
 import { interviewSolutionGuard } from './features/interview/session/interview-solution.guard';
 import { problemTitleResolver, solutionTitleResolver } from './problem-title.resolver';
 
@@ -9,8 +10,14 @@ export const routes: Routes = [
     // '/progress' below redirects here instead of loading the same chunk a second time.
     path: '',
     title: 'Progress',
+    canActivate: [authGuard],
     loadChildren: () =>
       import('./features/progress/progress.routes').then((m) => m.PROGRESS_ROUTES),
+  },
+  {
+    path: 'auth/callback',
+    loadComponent: () =>
+      import('./core/auth/auth-callback.component').then((m) => m.AuthCallbackComponent),
   },
   {
     path: 'library',

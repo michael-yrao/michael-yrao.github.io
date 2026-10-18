@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  computed,
   effect,
   inject,
   signal,
@@ -13,6 +14,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 
+import { AuthService } from '../../../core/auth/auth.service';
 import { ProgressService } from '../../../core/services/progress.service';
 import { fileUrl } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
@@ -141,6 +143,13 @@ export class ProgressPageComponent {
   }
 
   private readonly repoParam;
+  /** `?repo=` when given, else the signed-in viewer's own repo; null loads the author's. */
+  private readonly activeRepo;
+
+  protected readonly auth = inject(AuthService);
+  /** The repos the App is installed on for the signed-in viewer; null until looked up. */
+  protected readonly ownRepos = signal<readonly string[] | null>(null);
+  protected readonly installUrl = `https://github.com/apps/${this.auth.appSlug}/installations/new`;
 
   // Which rows get a Run link — PracticeNumbers also owns the practice-index load effect.
   protected readonly practiceGlyph = PRACTICE_GLYPH;
@@ -184,13 +193,24 @@ export class ProgressPageComponent {
     // would always look like a change, re-triggering the effect in an infinite loop (and
     // spamming HTTP). `untracked` confines this effect's dependency to `repoParam()` alone;
     // everything loadSummary reads/writes is invisible to it.
+    this.activeRepo = computed(() => this.auth.resolveRepo(this.repoParam()));
     effect(() => {
-      const repo = this.repoParam();
+      const repo = this.activeRepo();
       untracked(() => {
         this.explorer.reset();
         this.progress.loadSummary(repo);
       });
     });
+    // Look up the viewer's own repos once per sign-in.
+    effect(() => {
+      if (!this.auth.isSignedIn()) return;
+      untracked(() => void this.auth.repos().then((slugs) => this.ownRepos.set(slugs)));
+    });
+  }
+
+  /** The "Your repo" select: persists the choice, which reloads the page's data. */
+  onOwnRepoChange(slug: string): void {
+    this.auth.selectRepo(slug);
   }
 
   /** The status badge's GitHub fallback link: the learner's own solution file (progress.json's
@@ -217,7 +237,7 @@ export class ProgressPageComponent {
   }
 
   retry(): void {
-    this.progress.loadSummary(this.repoParam());
+    this.progress.loadSummary(this.activeRepo());
   }
 
   refresh(): void {

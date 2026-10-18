@@ -26,12 +26,12 @@ import {
   restoreCode,
   startWeekRun,
 } from '../../../core/pattern-sense/week-run';
+import { AuthService } from '../../../core/auth/auth.service';
 import { GithubSaveService } from '../../../core/services/github-save.service';
 import {
   GOLD_STANDARD_REPO,
   RepoRef,
   parseRepoSlug,
-  sameRef,
 } from '../../../core/services/github-file.service';
 import { PatternSenseService } from '../../../core/services/pattern-sense.service';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -155,18 +155,21 @@ export class PatternSenseComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly githubSave = inject(GithubSaveService);
-  private wantsWeek = this.route.snapshot.queryParamMap.get('deck') === WEEK_DECK_PARAM;
+  private readonly auth = inject(AuthService);
+  private readonly wantsWeek = this.route.snapshot.queryParamMap.get('deck') === WEEK_DECK_PARAM;
 
   readonly loadFailed = computed(() => this.patternSense.status() === 'error');
   readonly copyState = signal<CopyState>('idle');
   readonly saveState = this.githubSave.saveState;
-  readonly login = this.githubSave.login;
-  readonly signInFailed = this.githubSave.signInFailed;
-  readonly installUrl = `https://github.com/apps/${this.githubSave.appSlug}/installations/new`;
+  readonly login = this.auth.login;
+  readonly installUrl = `https://github.com/apps/${this.auth.appSlug}/installations/new`;
+
+  /** The week deck is for signed-in viewers; with the GitHub App off the tab shows as before. */
+  readonly canShowWeek = computed(() => !this.auth.isEnabled || this.auth.isSignedIn());
 
   /** Save UI exists only for a configured app, on the viewer's own deck (not the author's fallback). */
   readonly sourceRef = computed<RepoRef | null>(() =>
-    this.githubSave.isEnabled && !this.patternSense.isAuthorFallback()
+    this.auth.isEnabled && !this.patternSense.isAuthorFallback()
       ? this.patternSense.sourceRef()
       : null,
   );
@@ -178,6 +181,8 @@ export class PatternSenseComponent {
   });
 
   readonly tab = signal<Tab>('practice');
+  /** The tab on screen: a signed-out viewer is always on Practice. */
+  readonly activeTab = computed<Tab>(() => (this.canShowWeek() ? this.tab() : 'practice'));
   /** The published deck; null when the load failed or no deck is published this week. */
   readonly weekData = computed<PatternSenseData | null>(() => {
     const data = this.patternSense.status() === 'ready' ? this.patternSense.data() : null;
@@ -235,11 +240,9 @@ export class PatternSenseComponent {
     this.bestStreak = Number(localStorage.getItem(BEST_STREAK_KEY) ?? 0) || 0;
     this.startRun();
 
-    const params = this.route.snapshot.queryParamMap;
-    const code = params.get('code');
-    const state = params.get('state');
-    if (code && state) void this.finishSignIn(code, state, params.get('repo'));
-    else this.patternSense.load(refFromSlug(params.get('repo')));
+    this.patternSense.load(
+      refFromSlug(this.auth.resolveRepo(this.route.snapshot.queryParamMap.get('repo'))),
+    );
     // Once a deck lands: restore a finished week's code, and honour `?deck=week`.
     effect(() => {
       const data = this.weekData();
@@ -284,10 +287,13 @@ export class PatternSenseComponent {
     }
   }
 
+  /** Returns to the same page on the week deck, where the finished week's code is restored. */
   signIn(): void {
-    const ref = this.sourceRef();
-    const week = this.weekData()?.week;
-    if (ref !== null && week) this.githubSave.signIn(ref, week);
+    const weekUrl = this.router.createUrlTree([], {
+      queryParams: { deck: WEEK_DECK_PARAM },
+      queryParamsHandling: 'merge',
+    });
+    this.auth.signIn(this.router.serializeUrl(weekUrl));
   }
 
   saveToGithub(): void {
@@ -296,26 +302,6 @@ export class PatternSenseComponent {
     const code = this.weekCode();
     if (ref === null || data === null || code === null || !data.week) return;
     void this.githubSave.save(ref, data.week, data.vocabHash, code);
-  }
-
-  /** Back from GitHub: trade the code for a token, take the code and state out of the URL, and
-   *  reload the deck the viewer left (the finished week's code is restored from storage). */
-  private async finishSignIn(code: string, state: string, repoParam: string | null): Promise<void> {
-    const pending = await this.githubSave.completeSignIn(code, state);
-    const slug = pending?.repo ?? repoParam;
-    if (pending) this.wantsWeek = true;
-    const ref = refFromSlug(slug);
-    void this.router.navigate([], {
-      queryParams: {
-        repo: sameRef(ref, GOLD_STANDARD_REPO) ? null : slug,
-        deck: this.wantsWeek ? WEEK_DECK_PARAM : null,
-        code: null,
-        state: null,
-      },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    });
-    this.patternSense.load(ref);
   }
 
   get isCorrect(): boolean {

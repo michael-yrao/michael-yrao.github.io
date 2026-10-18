@@ -19,12 +19,11 @@ export const COACH_REPO_IS_PUBLIC = false;
  *  must update this URL. */
 export const WORKER_API_URL = isDevMode() ? 'http://localhost:8787/' : 'https://po-api.po-api.workers.dev/';
 
-/** The Pattern Sense GitHub App; its sign-in routes are served by the Worker at `WORKER_API_URL` (see
- *  worker/README.md). These are placeholders until the app is registered; sign-in and "Save to GitHub" stay off
- *  while any value starts with `REPLACE_WITH_`. */
-export const PATTERN_SENSE_GITHUB_APP = {
+/** The Progressive Overflow GitHub App; its sign-in routes are served by the Worker at `WORKER_API_URL` (see
+ *  worker/README.md). Sign-in and "Save to GitHub" stay off while any value starts with `REPLACE_WITH_`. */
+export const GITHUB_APP = {
   clientId: 'Iv23liBo5xiEhlT4mPOg',
-  appSlug: 'pattern-sense-po',
+  appSlug: 'progressive-overflow',
 };
 
 /** The Tech Events feed, served by the Worker at `WORKER_API_URL`. */

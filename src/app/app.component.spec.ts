@@ -2,6 +2,9 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
+import { GITHUB_APP_CONFIG } from './core/pattern-sense/github-save';
+
+const DISABLED_APP = { clientId: 'REPLACE_WITH_CLIENT_ID', appSlug: 'REPLACE_WITH_APP_SLUG' };
 
 // A minimal routed target so clicking a real nav link (routerLink, not a
 // synthetic call) resolves instead of throwing NG04002 for an unmatched URL.
@@ -18,7 +21,11 @@ describe('AppComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [provideRouter([{ path: '**', component: BlankComponent }])],
+      providers: [
+        provideRouter([{ path: '**', component: BlankComponent }]),
+        // App off: the nav is the pre-sign-in nav (Progress link shown, no auth controls).
+        { provide: GITHUB_APP_CONFIG, useValue: DISABLED_APP },
+      ],
     });
     fixture = TestBed.createComponent(AppComponent);
   });

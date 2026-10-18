@@ -207,6 +207,16 @@
     color: var(--color-accent);
   }
 }
+.progress__own-repo {
+  @extend %muted-sm;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.progress__own-repo-select {
+  font: inherit;
+  font-family: var(--font-mono);
+}
 .progress__picker-row {
   margin: var(--space-sm) 0 var(--space-md);
 }

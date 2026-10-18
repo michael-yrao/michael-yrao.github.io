@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 
+import { AuthService } from '../../core/auth/auth.service';
 import {
   LoadStatus,
   RepoRef,
@@ -28,9 +29,12 @@ export function injectPracticeContract(): PracticeContractView {
   const route = inject(ActivatedRoute);
   const practice = inject(PracticeService);
 
-  const repoParam = toSignal(route.queryParamMap.pipe(map((params) => params.get('repo'))), {
+  const auth = inject(AuthService);
+
+  const queryRepo = toSignal(route.queryParamMap.pipe(map((params) => params.get('repo'))), {
     initialValue: route.snapshot.queryParamMap.get('repo'),
   });
+  const repoParam = computed(() => auth.resolveRepo(queryRepo()));
   const ref = computed(() => parseRepoSlug(repoParam()));
   const invalidSlug = computed(() => (ref() ? null : invalidSlugMessage(repoParam())));
   // The root-scoped service may still hold another ref's state (the Progress page shares it)

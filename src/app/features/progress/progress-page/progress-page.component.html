@@ -122,6 +122,26 @@
 <section class="progress">
   <header class="progress__head">
     <div class="progress__head-right">
+      @if (ownRepos(); as repos) {
+        @if (repos.length > 1) {
+          <label class="progress__own-repo">
+            Your repo
+            <select
+              class="progress__own-repo-select"
+              [value]="auth.selectedRepo() ?? ''"
+              (change)="onOwnRepoChange($any($event.target).value)"
+            >
+              @for (slug of repos; track slug) {
+                <option [value]="slug" [selected]="slug === auth.selectedRepo()">{{ slug }}</option>
+              }
+            </select>
+          </label>
+        } @else if (repos.length === 0) {
+          <a class="progress__own-repo" [href]="installUrl" target="_blank" rel="noopener"
+            >Give Progressive Overflow permission on a repo to see your progress</a
+          >
+        }
+      }
       @if (repoSlug()) {
         <a
           class="progress__repo"

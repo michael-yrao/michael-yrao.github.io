@@ -70,10 +70,11 @@ gets a 503 when a binding is missing.
 
 ## Pattern Sense sign-in
 
-`src/pattern-sense/` serves two routes for the Pattern Sense quiz's GitHub sign-in:
+`src/auth/` serves two routes and `src/pattern-sense/` one, for the site's GitHub sign-in:
 
-- `POST /pattern-sense/token` swaps GitHub's one-time login code for a token and returns your GitHub login.
-- `POST /pattern-sense/save` writes `dashboard/pattern_sense_results/<YYYYMMDD>.json` to a repo you own.
+- `src/auth/`: `POST /auth/token` swaps GitHub's one-time login code for a token and returns your GitHub login.
+- `src/auth/`: `POST /auth/refresh` swaps a refresh token for a new token.
+- `src/pattern-sense/`: `POST /pattern-sense/save` writes `dashboard/pattern_sense_results/<YYYYMMDD>.json` to a repo you own.
 
 Only the origins in `ALLOWED_ORIGINS` (a `[vars]` entry in `wrangler.toml`) are served.
 
@@ -82,7 +83,7 @@ Setup:
 1. Register a GitHub App (Settings → Developer settings → GitHub Apps → New GitHub App):
    - Visibility: public, so other cse-coach users can give it permission on their own repos.
    - Repository permissions: Contents → Read and write; every other permission off.
-   - Callback URL: `https://progressiveoverflow.com/quiz/pattern-sense`
+   - Callback URL: `https://progressiveoverflow.com/auth/callback` (plus `http://localhost:4200/auth/callback` for local dev)
    - "Request user authorization (OAuth) during installation": off.
    - "Expire user authorization tokens": on.
    - Webhook: off.

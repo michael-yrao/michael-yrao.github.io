@@ -1,11 +1,19 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { routes } from './app.routes';
+import { GITHUB_APP_CONFIG } from './core/pattern-sense/github-save';
 
 describe('app routes', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes)],
+      // App off: the guard lets `/` through, as before sign-in existed.
+      providers: [
+        provideRouter(routes),
+        {
+          provide: GITHUB_APP_CONFIG,
+          useValue: { clientId: 'REPLACE_WITH_CLIENT_ID', appSlug: 'REPLACE_WITH_APP_SLUG' },
+        },
+      ],
     });
   });
 

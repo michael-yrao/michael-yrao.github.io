@@ -11,6 +11,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 
+import { AuthService } from '../../../core/auth/auth.service';
 import { CheatSheetService, FamilyGroup } from '../../../core/services/cheat-sheet.service';
 import { DecisionTreeNode, SignalRow } from '../../../core/models/cheat-sheet.model';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -56,6 +57,7 @@ interface FamilySection {
 })
 export class LearnListComponent {
   private readonly cheatSheets = inject(CheatSheetService);
+  private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly isTreeEnabled = inject(LEARN_DECISION_TREE_ENABLED);
@@ -108,11 +110,11 @@ export class LearnListComponent {
   );
 
   constructor() {
-    this.cheatSheets.load();
+    this.cheatSheets.load(this.auth.resolveRepo(null));
   }
 
   retry(): void {
-    this.cheatSheets.load();
+    this.cheatSheets.load(this.auth.resolveRepo(null));
   }
 
   /** Selects a view via the URL — `queryParamsHandling: 'merge'` so a bare `view: null`

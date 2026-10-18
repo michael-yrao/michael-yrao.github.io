@@ -5,6 +5,19 @@
       <span class="po-nav__wordmark">progressive<em>overflow</em></span>
     </a>
 
+    @if (auth.isEnabled) {
+      <div class="po-nav__auth">
+        @if (auth.isSignedIn()) {
+          <span>{{ auth.login() }}</span>
+          <button type="button" class="po-nav__auth-button" (click)="signOut()">Sign out</button>
+        } @else {
+          <button type="button" class="po-nav__auth-button" (click)="signIn()">
+            Sign in with GitHub
+          </button>
+        }
+      </div>
+    }
+
     <button
       class="po-nav__hamburger"
       [attr.aria-expanded]="isDrawerOpen()"
@@ -19,19 +32,21 @@
     @if (isDrawerOpen()) {
       <div class="po-nav__drawer" id="po-nav-menu">
         <div class="po-nav__drawer-section">
-          <a
-            class="po-nav__drawer-link"
-            routerLink="/"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{
-              paths: 'exact',
-              queryParams: 'ignored',
-              matrixParams: 'ignored',
-              fragment: 'ignored',
-            }"
-            (click)="closeAll()"
-            >Progress</a
-          >
+          @if (hasProgressLink()) {
+            <a
+              class="po-nav__drawer-link"
+              routerLink="/"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{
+                paths: 'exact',
+                queryParams: 'ignored',
+                matrixParams: 'ignored',
+                fragment: 'ignored',
+              }"
+              (click)="closeAll()"
+              >Progress</a
+            >
+          }
           <a
             class="po-nav__drawer-link"
             routerLink="/practice"

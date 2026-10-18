@@ -9,7 +9,7 @@ import { WORKER_API_URL } from '../../../core/data/site-links';
 import { PatternSenseData } from '../../../core/models/pattern-sense.model';
 import { GITHUB_APP_CONFIG } from '../../../core/pattern-sense/github-save';
 import { RepoRef } from '../../../core/services/github-file.service';
-import { AUTH_KEY, PENDING_KEY } from '../../../core/services/github-save.service';
+import { SESSION_KEY } from '../../../core/auth/auth.service';
 import { PatternSenseService } from '../../../core/services/pattern-sense.service';
 import { PatternSenseComponent } from './pattern-sense.component';
 
@@ -19,9 +19,7 @@ const WEEK = '2026-11-30';
 const CODE = `PS1 ${WEEK} abc123 1004:+/+`;
 const SAVE_BUTTON = 'Save to GitHub';
 const FAILED_TEXT = 'Save failed — copy the code instead';
-const INSTALL_TEXT = 'Allow Pattern Sense to save to this repo';
-const SIGN_IN_STATE = 'state-1';
-const SIGN_IN_FAILED_TEXT ='Sign-in failed — try again';
+const INSTALL_TEXT = 'Allow Progressive Overflow to save to this repo';
 const REPO: RepoRef = { owner: 'someone', repo: 'their-repo', branch: 'dev' };
 
 const DECK: PatternSenseData = {
@@ -50,8 +48,6 @@ interface Row {
   readonly reply: { status: number; body: object } | null;
   readonly expectText: string | null;
   readonly expectInstallHref: string | null;
-  /** Returning from GitHub with a code whose Worker exchange fails. */
-  readonly signInFailure?: boolean;
 }
 
 const ROWS: readonly Row[] = [
@@ -87,15 +83,6 @@ const ROWS: readonly Row[] = [
     expectText: FAILED_TEXT,
     expectInstallHref: null,
   },
-  {
-    name: 'token exchange fails after the GitHub return: the sign-in failure line',
-    login: '',
-    isAuthorFallback: false,
-    reply: { status: 502, body: { error: 'exchange-failed' } },
-    expectText: SIGN_IN_FAILED_TEXT,
-    expectInstallHref: null,
-    signInFailure: true,
-  },
 ];
 
 function buttonByText(root: HTMLElement, text: string): HTMLButtonElement | undefined {
@@ -105,14 +92,16 @@ function buttonByText(root: HTMLElement, text: string): HTMLButtonElement | unde
 async function render(
   row: Row,
 ): Promise<{ fixture: ComponentFixture<PatternSenseComponent>; httpMock: HttpTestingController }> {
-  if (row.signInFailure) {
-    sessionStorage.setItem(
-      PENDING_KEY,
-      JSON.stringify({ state: SIGN_IN_STATE, repo: 'someone/their-repo@dev', week: WEEK }),
-    );
-  } else {
-    sessionStorage.setItem(AUTH_KEY, JSON.stringify({ token: 'ghu_secret', login: row.login }));
-  }
+  localStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({
+      token: 'ghu_secret',
+      login: row.login,
+      expiresAt: null,
+      refreshToken: null,
+      refreshExpiresAt: null,
+    }),
+  );
   localStorage.setItem(`po-pattern-sense-week-${WEEK}`, CODE);
   const patternSense = {
     status: signal('ready'),
@@ -135,9 +124,7 @@ async function render(
         provide: ActivatedRoute,
         useValue: {
           snapshot: {
-            queryParamMap: convertToParamMap(
-              row.signInFailure ? { deck: 'week', code: 'c', state: SIGN_IN_STATE } : { deck: 'week' },
-            ),
+            queryParamMap: convertToParamMap({ deck: 'week' }),
           },
         },
       },
@@ -189,16 +176,11 @@ describe('PatternSenseComponent save to GitHub', () => {
       return;
     }
 
-    if (row.signInFailure) {
-      httpMock
-        .expectOne(`${ROUTES_URL}token`)
-        .flush(row.reply.body, { status: row.reply.status, statusText: 'x' });
-    } else {
-      save?.click();
-      httpMock
-        .expectOne(`${ROUTES_URL}save`)
-        .flush(row.reply.body, { status: row.reply.status, statusText: 'x' });
-    }
+    save?.click();
+    await new Promise((resolve) => setTimeout(resolve)); // the token arrives before the request
+    httpMock
+      .expectOne(`${ROUTES_URL}save`)
+      .flush(row.reply.body, { status: row.reply.status, statusText: 'x' });
     await fixture.whenStable();
     fixture.detectChanges();
 

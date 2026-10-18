@@ -194,18 +194,4 @@ describe('pattern-sense handler', () => {
       `${JSON.stringify(RESULTS, null, 2)}\n`,
     );
   });
-
-  it('/token without a code is refused before any fetch', async () => {
-    const { fetchImpl, calls } = stubFetch({});
-    const request = new Request('https://worker.example/pattern-sense/token', {
-      method: 'POST',
-      headers: { Origin: ORIGIN },
-      body: JSON.stringify({}),
-    });
-    const response = await handle(request, ENV, fetchImpl);
-
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'missing-code' });
-    expect(calls).toHaveLength(0);
-  });
 });

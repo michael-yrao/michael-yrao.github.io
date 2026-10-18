@@ -14,15 +14,14 @@ export interface PatternSenseEnv {
   readonly ALLOWED_ORIGINS: string;
 }
 
-type FetchImpl = typeof fetch;
-type HeaderMap = Record<string, string>;
+export type FetchImpl = typeof fetch;
+export type HeaderMap = Record<string, string>;
 
-const EXCHANGE_URL = 'https://github.com/login/oauth/access_token';
 const API_BASE = 'https://api.github.com';
 const API_VERSION = '2022-11-28';
 const USER_AGENT = 'pattern-sense-github-auth';
 const CORS_MAX_AGE_SECONDS = '86400';
-const HTTP_OK = 200;
+export const HTTP_OK = 200;
 const HTTP_CREATED = 201;
 const HTTP_NOT_FOUND = 404;
 const HTTP_UNAUTHORIZED = 401;
@@ -37,14 +36,14 @@ function allowedOrigins(env: PatternSenseEnv): readonly string[] {
   return env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim());
 }
 
-function jsonResponse(status: number, body: unknown, cors: HeaderMap): Response {
+export function jsonResponse(status: number, body: unknown, cors: HeaderMap): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json', ...cors },
   });
 }
 
-function failure(status: number, error: string, cors: HeaderMap): Response {
+export function failure(status: number, error: string, cors: HeaderMap): Response {
   return jsonResponse(status, { error }, cors);
 }
 
@@ -52,7 +51,16 @@ function corsHeaders(origin: string): HeaderMap {
   return { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' };
 }
 
-function preflight(cors: HeaderMap): Response {
+/** The CORS headers for an allowed origin, or the 403 refusing the request. */
+export function gateOrigin(request: Request, env: PatternSenseEnv): HeaderMap | Response {
+  const origin = request.headers.get('Origin');
+  if (origin === null || !allowedOrigins(env).includes(origin)) {
+    return failure(403, 'origin-not-allowed', {});
+  }
+  return corsHeaders(origin);
+}
+
+export function preflight(cors: HeaderMap): Response {
   return new Response(null, {
     status: 204,
     headers: {
@@ -80,7 +88,7 @@ function bearerToken(request: Request): string | null {
   return token === '' ? null : token;
 }
 
-async function readJson(response: Response): Promise<unknown> {
+export async function readJson(response: Response): Promise<unknown> {
   try {
     return await response.json();
   } catch {
@@ -88,41 +96,13 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-async function handleToken(
-  request: Request,
-  env: PatternSenseEnv,
-  fetchImpl: FetchImpl,
-  cors: HeaderMap,
-): Promise<Response> {
-  const body: unknown = await request.json().catch(() => null);
-  const code = isRecord(body) ? body['code'] : undefined;
-  if (typeof code !== 'string' || code === '') return failure(400, 'missing-code', cors);
-
-  const exchange = await fetchImpl(EXCHANGE_URL, {
-    method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      client_id: env.GITHUB_CLIENT_ID,
-      client_secret: env.GITHUB_CLIENT_SECRET,
-      code,
-    }),
-  });
-  const exchanged = exchange.status === HTTP_OK ? await readJson(exchange) : null;
-  const token = isRecord(exchanged) ? exchanged['access_token'] : undefined;
-  if (typeof token !== 'string') return failure(502, 'exchange-failed', cors);
-
-  const user = await fetchUser(fetchImpl, token);
-  if (user.kind !== 'ok') return failure(502, 'exchange-failed', cors);
-  return jsonResponse(200, { token, login: user.login }, cors);
 }
 
 type UserResult = { kind: 'ok'; login: string } | { kind: 'bad-token' } | { kind: 'error' };
 
-async function fetchUser(fetchImpl: FetchImpl, token: string): Promise<UserResult> {
+export async function fetchUser(fetchImpl: FetchImpl, token: string): Promise<UserResult> {
   const response = await fetchImpl(`${API_BASE}/user`, { headers: apiHeaders(token) });
   if (response.status === HTTP_UNAUTHORIZED || response.status === HTTP_FORBIDDEN)
     return { kind: 'bad-token' };
@@ -239,17 +219,13 @@ export async function handle(
   env: PatternSenseEnv,
   fetchImpl: FetchImpl,
 ): Promise<Response> {
-  const origin = request.headers.get('Origin');
-  if (origin === null || !allowedOrigins(env).includes(origin)) {
-    return failure(403, 'origin-not-allowed', {});
-  }
-  const cors = corsHeaders(origin);
+  const cors = gateOrigin(request, env);
+  if (cors instanceof Response) return cors;
 
   if (request.method === 'OPTIONS') return preflight(cors);
   if (request.method !== 'POST') return failure(405, 'method-not-allowed', cors);
 
   const { pathname } = new URL(request.url);
-  if (pathname === `${ROUTE_PREFIX}token`) return handleToken(request, env, fetchImpl, cors);
   if (pathname === `${ROUTE_PREFIX}save`) return handleSave(request, fetchImpl, cors);
   return failure(404, 'not-found', cors);
 }

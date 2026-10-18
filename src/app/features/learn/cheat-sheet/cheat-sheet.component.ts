@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 
+import { AuthService } from '../../../core/auth/auth.service';
 import { CheatSheetService, ProblemLink } from '../../../core/services/cheat-sheet.service';
 import { NotWhen, Technique } from '../../../core/models/cheat-sheet.model';
 import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
@@ -33,6 +34,7 @@ interface KeyProblemView {
 })
 export class CheatSheetComponent {
   private readonly cheatSheets = inject(CheatSheetService);
+  private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -89,7 +91,7 @@ export class CheatSheetComponent {
   readonly nextTechnique = computed<Technique | null>(() => this.sibling(1));
 
   constructor() {
-    this.cheatSheets.load();
+    this.cheatSheets.load(this.auth.resolveRepo(null));
 
     // Redirect to /learn only once data has actually loaded and the id is absent — a
     // pending load or a load error must never bounce (an error renders its own message).
@@ -101,7 +103,7 @@ export class CheatSheetComponent {
   }
 
   retry(): void {
-    this.cheatSheets.load();
+    this.cheatSheets.load(this.auth.resolveRepo(null));
   }
 
   private sibling(offset: number): Technique | null {

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
+import { AuthService } from '../../../core/auth/auth.service';
 import { ShowcaseEntry } from '../../../core/models/showcase.model';
 import { ShowcaseService } from '../../../core/services/showcase.service';
 import { DisplayRow } from '../../../core/showcase/display';
@@ -48,11 +49,12 @@ export class GroundedCodePanelComponent {
   // The page's viewer ref, derived from `?repo=` as `injectPracticeContract` does (without its
   // `practice.load` effect). No param parses to the author's own repo.
   private readonly route = inject(ActivatedRoute);
-  private readonly repoParam = toSignal(
+  private readonly auth = inject(AuthService);
+  private readonly queryRepo = toSignal(
     this.route.queryParamMap.pipe(map((params) => params.get('repo'))),
     { initialValue: this.route.snapshot.queryParamMap.get('repo') },
   );
-  private readonly viewerRef = computed(() => parseRepoSlug(this.repoParam()));
+  private readonly viewerRef = computed(() => parseRepoSlug(this.auth.resolveRepo(this.queryRepo())));
   /** The code shown is the author's while the page's viewer is someone else. */
   readonly isViewerNotAuthor = computed(() => {
     const viewerRef = this.viewerRef();
