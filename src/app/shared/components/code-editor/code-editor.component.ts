@@ -13,7 +13,7 @@ import { indentUnit, syntaxHighlighting } from '@codemirror/language';
 import { python } from '@codemirror/lang-python';
 import { EditorState, Extension, StateEffect, StateField } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, KeyBinding, keymap, lineNumbers } from '@codemirror/view';
-import { darkHighlightStyle } from './editor-highlight';
+import { pythonHighlighter } from '../../syntax/python-highlighter';
 
 const INDENT = '    ';
 const TAB_SIZE = INDENT.length;
@@ -114,7 +114,7 @@ export class CodeEditorComponent implements AfterViewInit, OnDestroy {
           indentUnit.of(INDENT),
           EditorState.tabSize.of(TAB_SIZE),
           python(),
-          syntaxHighlighting(darkHighlightStyle),
+          syntaxHighlighting(pythonHighlighter),
           editorTheme,
           errorLineField,
           // Cursor scrolling keeps the padding's worth of space below the typed line.

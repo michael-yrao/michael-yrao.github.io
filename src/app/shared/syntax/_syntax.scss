@@ -1,0 +1,32 @@
+// The one palette for Python syntax colour (One Dark). Global on purpose: CodeMirror's DOM and
+// [innerHTML] content carry no Angular encapsulation attributes. Class names come from
+// python-highlighter.ts.
+:root {
+  --syntax-keyword: #c678dd;
+  --syntax-literal: #d19a66;
+  --syntax-string: #98c379;
+  --syntax-comment: #5c6370;
+  --syntax-function: #61afef;
+  --syntax-definition: #61afef;
+  --syntax-class-name: #e5c07b;
+  --syntax-variable-name: #e06c75;
+  --syntax-property: #e06c75;
+  --syntax-operator: #56b6c2;
+  --syntax-punctuation: #abb2bf;
+  --syntax-meta: #e5c07b;
+  --syntax-invalid: #e06c75;
+}
+
+.tok-keyword { color: var(--syntax-keyword); }
+.tok-literal { color: var(--syntax-literal); }
+.tok-string { color: var(--syntax-string); }
+.tok-comment { color: var(--syntax-comment); font-style: italic; }
+.tok-function { color: var(--syntax-function); }
+.tok-definition { color: var(--syntax-definition); font-weight: bold; }
+.tok-className { color: var(--syntax-class-name); }
+.tok-variableName { color: var(--syntax-variable-name); }
+.tok-property { color: var(--syntax-property); }
+.tok-operator { color: var(--syntax-operator); }
+.tok-punctuation { color: var(--syntax-punctuation); }
+.tok-meta { color: var(--syntax-meta); }
+.tok-invalid { color: #fff; background: var(--syntax-invalid); }
