@@ -4,7 +4,8 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { AlgorithmMeta, GraphState, GridState } from '../../../core/models/algorithm.model';
 import { PracticeProblem } from '../../../core/models/practice.model';
 import { figureStateFor } from '../../../core/practice/example-figure';
-import { TextRun, splitInlineCode } from '../../../core/practice/inline-code';
+import { splitInlineCode } from '../../../core/practice/inline-code';
+import { MathRun, splitMath } from '../../../core/practice/math-text';
 import { reflowProse } from '../../../core/practice/reflow';
 import { splitStatement } from '../../../core/practice/statement-segments';
 import { HintCardComponent } from '../hint-card/hint-card.component';
@@ -20,13 +21,25 @@ export interface ExampleFigure {
   readonly hasHighlight: boolean;
 }
 
+/** One stretch of a statement line as drawn: literal inline code, or plain text, a subscript or a superscript. */
+export interface DisplayRun {
+  readonly text: string;
+  readonly kind: 'code' | MathRun['kind'];
+}
+
+function displayRuns(text: string): readonly DisplayRun[] {
+  return splitInlineCode(text).flatMap((run): readonly DisplayRun[] =>
+    run.isCode ? [{ text: run.text, kind: 'code' }] : splitMath(run.text),
+  );
+}
+
 /** One block of the statement card, in reading order: a segment's text with the diagram drawn
  *  right under it when the segment is that diagram's example, or (text null) a diagram whose
  *  `Example N:` the statement never names, captioned since no text names it. */
 export interface StatementBlock {
   readonly text: string | null;
-  /** The text split into plain and inline-code runs; empty when there is no text. */
-  readonly runs: readonly TextRun[];
+  /** The text split into code, plain, subscript and superscript runs; empty when there is no text. */
+  readonly runs: readonly DisplayRun[];
   readonly figure: ExampleFigure | null;
   readonly isCaptioned: boolean;
 }
@@ -75,7 +88,7 @@ export class PracticeDescriptionComponent {
       const text = reflowProse(s.text);
       return {
         text,
-        runs: splitInlineCode(text),
+        runs: displayRuns(text),
         figure: placements.find((p) => p.index === i)?.figure ?? null,
         isCaptioned: false,
       };
