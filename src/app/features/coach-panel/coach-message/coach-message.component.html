@@ -1,0 +1,35 @@
+<div class="coach-msg">
+  <p class="coach-msg__user">{{ turn().userText }}</p>
+
+  @if (turn().tools.length > 0) {
+    @if (isStreaming()) {
+      <div class="coach-msg__tools">
+        @for (tool of turn().tools; track tool.id) {
+          <app-coach-tool-row [tool]="tool" />
+        }
+      </div>
+    } @else {
+      <details class="coach-msg__tools">
+        <summary>
+          <span class="coach-msg__tools-mark" [class.coach-msg__tools-mark--failed]="hasFailedTool()">{{
+            hasFailedTool() ? '✗' : '✓'
+          }}</span>
+          {{ turn().tools.length }} tools
+        </summary>
+        @for (tool of turn().tools; track tool.id) {
+          <app-coach-tool-row [tool]="tool" />
+        }
+      </details>
+    }
+  }
+
+  @if (turn().text !== '') {
+    <div class="coach-msg__reply" [innerHTML]="replyHtml()"></div>
+  }
+
+  @if (endMark(); as mark) {
+    <span class="coach-msg__end" [attr.aria-label]="turn().errorCode ?? turn().status"
+      >{{ mark }} @if (turn().errorCode) { {{ turn().errorCode }} }</span
+    >
+  }
+</div>

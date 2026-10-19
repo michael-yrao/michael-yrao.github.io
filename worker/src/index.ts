@@ -11,9 +11,17 @@ import { handle as handleAuth, ROUTE_PREFIX as AUTH_PREFIX } from './auth/handle
 import {
   handle as handlePatternSense,
   ROUTE_PREFIX as PATTERN_SENSE_PREFIX,
-  type PatternSenseEnv,
 } from './pattern-sense/handler';
 import { handle as handlePractice, ROUTE_PREFIX as PRACTICE_PREFIX } from './practice/handler';
+import { CoachContainer, getCoachStub } from './coach/container';
+import {
+  handle as handleCoach,
+  ROUTE_PREFIX as COACH_PREFIX,
+  type CoachEnv,
+} from './coach/handler';
+
+// Wrangler finds the Durable Object class on the main module's exports.
+export { CoachContainer };
 
 // How long a built feed is served from the in-memory memo before the next request rebuilds it.
 const MEMO_TTL_MS = 5 * 60 * 1000;
@@ -80,10 +88,24 @@ interface RateLimiter {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
-export interface Env extends PatternSenseEnv {
+export interface Env extends CoachEnv {
   INTERVIEWS: KVNamespace;
   INTERVIEW_READS?: RateLimiter;
   INTERVIEW_WRITES?: RateLimiter;
+  COACH: DurableObjectNamespace<CoachContainer>;
+  COACH_REQUESTS?: RateLimiter;
+}
+
+/** The coach routes for one request, wired to this request's container binding and limiter. */
+function coachDepsFor(env: Env) {
+  return {
+    stub: getCoachStub(env.COACH),
+    limit: async (key: string) => {
+      // Fail closed, like the interview limiters: no binding means no request.
+      if (!env.COACH_REQUESTS) throw new LimiterUnavailableError();
+      return (await env.COACH_REQUESTS.limit({ key })).success;
+    },
+  };
 }
 
 /** The interview directory for one request, wired to this request's bindings. */
@@ -117,6 +139,9 @@ export default {
     }
     if (pathname.startsWith(PRACTICE_PREFIX)) {
       return handlePractice(request, env, (input, init) => fetch(input, init));
+    }
+    if (pathname.startsWith(COACH_PREFIX)) {
+      return handleCoach(request, env, (input, init) => fetch(input, init), coachDepsFor(env));
     }
     return pathname.startsWith(ROUTE_PREFIX)
       ? interviewHandlerFor(env).handle(request)

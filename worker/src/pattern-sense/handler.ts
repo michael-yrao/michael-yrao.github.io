@@ -46,12 +46,12 @@ export function gateOrigin(request: Request, env: PatternSenseEnv): HeaderMap | 
   return corsHeaders(origin);
 }
 
-export function preflight(cors: HeaderMap): Response {
+export function preflight(cors: HeaderMap, methods = 'POST, OPTIONS'): Response {
   return new Response(null, {
     status: 204,
     headers: {
       ...cors,
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': methods,
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': CORS_MAX_AGE_SECONDS,
     },

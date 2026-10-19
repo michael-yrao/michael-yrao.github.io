@@ -10,6 +10,15 @@ export const SITE_LINKS = {
   venmo: 'https://venmo.com/code?user_id=2215602794004480866&created=1790224797',
 } as const;
 
+/** The one GitHub login the site coach serves; the Worker's `OWNER_LOGIN` is the same value. */
+export const COACH_OWNER_LOGIN = 'michael-yrao';
+
+/** GitHub logins are case-insensitive, and so is the Worker's owner check. */
+export function isCoachOwner(login: string | null | undefined): boolean {
+  if (!login) return false;
+  return login.toLowerCase() === COACH_OWNER_LOGIN.toLowerCase();
+}
+
 /** cse-coach is invite-only while it settles; flip to true when the repo goes public. */
 export const COACH_REPO_IS_PUBLIC = false;
 

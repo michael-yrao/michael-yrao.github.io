@@ -8,6 +8,8 @@ const LEADING_BLOCK_COMMENT = /^(?:\s*(?:\/\*[\s\S]*?\*\/|\/\/[^\n]*))+\s*/;
 const PAIRS = [
   ['worker/src/contract.ts', 'src/app/core/models/events.model.ts'],
   ['worker/src/interviews/contract.ts', 'src/app/features/interview/directory/directory-contract.ts'],
+  ['worker/src/coach/contract.ts', 'src/app/core/models/coach.model.ts'],
+  ['worker/coach/src/contract.ts', 'src/app/core/models/coach.model.ts'],
 ];
 
 function readBody(relativePath) {

@@ -294,4 +294,34 @@ describe('GitHubFileService', () => {
       check(dataUrls, manifestCount);
     });
   });
+
+  describe('manifestHashFor', () => {
+    const HASH = 'b'.repeat(64);
+    const MANIFEST = {
+      schemaVersion: 1,
+      generatedAt: '2026-10-06',
+      files: { 'practice.json': { sha256: HASH, bytes: 1 } },
+    };
+    const rows = [
+      { name: 'file listed in a loaded manifest: its hash', isLoaded: true, file: 'dashboard/practice.json', expected: HASH },
+      { name: 'file absent from the loaded manifest: null', isLoaded: true, file: 'dashboard/other.json', expected: null },
+      { name: 'no manifest loaded for the ref: null, no request', isLoaded: false, file: 'dashboard/practice.json', expected: null },
+    ];
+
+    it.each(rows)('$name', async ({ isLoaded, file, expected }) => {
+      let requests = 0;
+      const http = {
+        get: () => {
+          requests++;
+          return of(MANIFEST);
+        },
+      };
+      const service = new GitHubFileService(http as unknown as HttpClient);
+      if (isLoaded) await firstValueFrom(service.fetch$(GOLD_STANDARD_REPO, 'dashboard/practice.json', false));
+      const requestsBefore = requests;
+
+      expect(await service.manifestHashFor(GOLD_STANDARD_REPO, file)).toBe(expected);
+      expect(requests).toBe(requestsBefore);
+    });
+  });
 });

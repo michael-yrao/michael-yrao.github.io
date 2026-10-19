@@ -1,0 +1,51 @@
+<header class="head">
+  <span class="dot" [class.dot--awake]="isAwake()" [class.dot--waking]="isWaking() && !isAwake()" [attr.aria-label]="awakeLabel()"></span>
+  <span class="meter" aria-label="Session cost">{{ cost() }}</span>
+  <span class="session" aria-label="Session">{{ sessionMark() }}</span>
+  <span class="spacer"></span>
+  @if (isStreaming()) {
+    <button type="button" class="btn btn--stop" aria-label="Stop" (click)="stop()">■</button>
+  }
+  <button type="button" class="btn" aria-label="New session" (click)="startNewSession()">⟳ New</button>
+  <button type="button" class="btn" aria-label="Close coach" (click)="ui.toggle()">✕</button>
+</header>
+
+<div class="transcript" #scroller>
+  @if (transcript().turns.length === 0) {
+    <app-coach-status-card [status]="status()" [isWaking]="isWaking()" />
+  } @else {
+    <details class="legend">
+      <summary aria-label="Legend">?</summary>
+      <ul>
+        <li><span class="dot dot--awake"></span>awake</li>
+        <li><span class="key">$</span>session cost</li>
+        <li><span class="key">⋯</span>running</li>
+        <li><span class="key key--ok">✓</span>done</li>
+        <li><span class="key key--bad">✗</span>failed</li>
+        <li><span class="key">■</span>stopped</li>
+      </ul>
+    </details>
+  }
+  @for (turn of transcript().turns; track $index) {
+    <app-coach-message [turn]="turn" />
+  }
+</div>
+
+<div class="chips">
+  @for (chip of quickActions; track chip) {
+    <button type="button" class="chip" [disabled]="isStreaming()" (click)="send(chip)">{{ chip }}</button>
+  }
+</div>
+
+<form class="composer" (submit)="$event.preventDefault(); send(draft())">
+  <textarea
+    class="input"
+    rows="2"
+    placeholder="Message"
+    aria-label="Message"
+    [value]="draft()"
+    (input)="onDraftInput($event)"
+    (keydown)="onComposerKey($event)"
+  ></textarea>
+  <button type="submit" class="btn btn--send" aria-label="Send" [disabled]="!canSend()">↑</button>
+</form>

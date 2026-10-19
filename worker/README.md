@@ -95,6 +95,26 @@ Setup:
 3. In `worker/`: put the Client ID in `wrangler.toml` as `GITHUB_CLIENT_ID`, run `npx wrangler secret put GITHUB_CLIENT_SECRET` and paste the client secret, then run `npx wrangler deploy`.
 4. Fill `PATTERN_SENSE_GITHUB_APP` in `src/app/core/data/site-links.ts` with the `clientId` and `appSlug`. The Sign in and Save buttons stay hidden until both are real values.
 
+## Coach
+
+`src/coach/` serves four routes for the owner's study coach, and `coach/` is the container image they forward to:
+
+- `POST /coach/message`: streams one coached turn as server-sent events.
+- `POST /coach/interrupt`: stops the running turn.
+- `POST /coach/wake`: starts the container before the first message.
+- `GET /coach/status`: reports whether the container is awake, and never starts it.
+
+Only the GitHub login in `OWNER_LOGIN` (a `[vars]` entry in `wrangler.toml`) is served.
+
+One-time steps for the owner:
+
+1. Upgrade the Cloudflare account to Workers Paid, which Containers require.
+2. In `worker/`, run `npx wrangler secret put ANTHROPIC_API_KEY` and paste the key.
+
+The container keeps the owner's GitHub token in a 0600 credential file. The agent's Bash could read it; that is acceptable for an owner-only service.
+
+Local dev uses Podman, not Docker. One time, run `podman machine init`. Then run `podman machine start`. Before `npx wrangler dev`, set `WRANGLER_DOCKER_BIN` to `<repo>\worker\scripts\podman-for-wrangler.cmd`. The wrapper drops build flags Podman does not support. Also set `DOCKER_HOST` to the machine's socket. Read it from `podman machine inspect`, under `ConnectionInfo.PodmanPipe` or `ConnectionInfo.PodmanSocket`.
+
 ## Source list
 
 `src/sources.ts` is the one curated list of feeds; the Angular app never duplicates it — it

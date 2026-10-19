@@ -1,0 +1,26 @@
+:host {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.mark {
+  flex: none;
+  width: 1em;
+  text-align: center;
+
+  &--ok {
+    color: var(--color-found);
+  }
+
+  &--failed {
+    color: var(--color-hard);
+  }
+}
+
+.label {
+  overflow-wrap: anywhere;
+}

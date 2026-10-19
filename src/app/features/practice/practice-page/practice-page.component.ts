@@ -12,6 +12,8 @@ import {
 import { Subscription } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { CoachContextService, CoachPracticeSnapshot } from '../../../core/coach/coach-context.service';
+import { isCoachOwner } from '../../../core/data/site-links';
 import { AttemptMeta, AttemptRating, RATING_OPTIONS, parseAttemptFile } from '../../../core/practice/practice-attempt';
 import { PracticeSaveService } from '../../../core/services/practice-save.service';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
@@ -63,6 +65,7 @@ export class PracticePageComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
   private readonly saver = inject(PracticeSaveService);
+  private readonly coachContext = inject(CoachContextService);
 
   // A decorator query, not viewChild(): the signal-query helper is another runtime symbol
   // that would land in the initial bundle.
@@ -185,6 +188,13 @@ export class PracticePageComponent {
     return tally !== null && isFullRun && tally.passed === tally.total && isSameCode && this.saveStatus().state !== 'saving';
   });
 
+  /** The finished run the coach sees: the tally plus each case's raw verdict; null until a run has finished. */
+  private readonly coachRun = computed<CoachPracticeSnapshot['run']>(() => {
+    const tally = this.latestTally();
+    if (!tally) return null;
+    return { ...tally, verdicts: this.runState()?.results.map((result) => result.verdict) ?? [] };
+  });
+
   private runSubscription: Subscription | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
@@ -196,6 +206,15 @@ export class PracticePageComponent {
       if (!this.canSave() || !ref || number === undefined) return;
       untracked(() => void this.loadRemote(ref, number));
     });
+    effect(() => {
+      const problem = this.problem();
+      if (!isCoachOwner(this.auth.login()) || !problem) {
+        untracked(() => this.coachContext.clear());
+        return;
+      }
+      this.coachContext.publish({ number: problem.number, title: problem.title, code: this.text(), run: this.coachRun() });
+    });
+    this.destroyRef.onDestroy(() => this.coachContext.clear());
     this.destroyRef.onDestroy(() => this.flushPendingSave());
     this.destroyRef.onDestroy(() => {
       if (this.copyTimer) clearTimeout(this.copyTimer);

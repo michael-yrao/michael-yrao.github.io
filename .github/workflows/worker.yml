@@ -14,6 +14,15 @@ on:
       - 'worker/**'
       - '.github/workflows/worker.yml'
       - 'src/app/core/models/events.model.ts'
+      - 'src/app/core/models/coach.model.ts'
+      - 'src/app/features/interview/directory/directory-contract.ts'
+      - 'scripts/check-contract-mirror.mjs'
+  pull_request:
+    paths:
+      - 'worker/**'
+      - '.github/workflows/worker.yml'
+      - 'src/app/core/models/events.model.ts'
+      - 'src/app/core/models/coach.model.ts'
       - 'src/app/features/interview/directory/directory-contract.ts'
       - 'scripts/check-contract-mirror.mjs'
   workflow_dispatch:
@@ -34,7 +43,9 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: worker/package-lock.json
+          cache-dependency-path: |
+            worker/package-lock.json
+            worker/coach/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -49,17 +60,42 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Coach runtime
+        working-directory: worker/coach
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+
+      - name: Podman wrapper test
+        run: bash worker/scripts/podman-for-wrangler.test.sh
+        working-directory: .
+
+      # The image is also built by `wrangler deploy`; building it first fails the run before any deploy step.
+      # Podman is preinstalled on ubuntu-latest.
+      - name: Build coach image
+        run: podman build worker/coach
+        working-directory: .
+
       - name: Check Cloudflare secrets
         id: secrets
+        if: github.event_name != 'pull_request'
         env:
           TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [ -n "$TOKEN" ] && [ -n "$ACCOUNT" ]; then echo "configured=true" >> "$GITHUB_OUTPUT"; else echo "configured=false" >> "$GITHUB_OUTPUT"; echo "::notice::Cloudflare secrets not set — typecheck/tests ran, deploy skipped (see worker/README.md)"; fi
 
+      - name: Make the Podman wrapper executable
+        if: github.event_name != 'pull_request' && steps.secrets.outputs.configured == 'true'
+        run: chmod +x worker/scripts/podman-for-wrangler.sh
+        working-directory: .
+
       - name: Deploy to Cloudflare Workers
-        if: steps.secrets.outputs.configured == 'true'
+        if: github.event_name != 'pull_request' && steps.secrets.outputs.configured == 'true'
         uses: cloudflare/wrangler-action@v3
+        env:
+          WRANGLER_DOCKER_BIN: ${{ github.workspace }}/worker/scripts/podman-for-wrangler.sh
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

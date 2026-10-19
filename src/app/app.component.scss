@@ -1,3 +1,42 @@
+// Coach drawer width; the docked layout reserves exactly this much beside the page.
+:host {
+  --po-coach-width: 26rem;
+}
+
+.po-shell {
+  &--coach-docked {
+    margin-right: var(--po-coach-width);
+  }
+}
+
+.po-coach {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 110;
+  width: var(--po-coach-width);
+  max-width: 100vw;
+  border-left: 1px solid var(--color-border);
+  box-shadow: var(--shadow-strong);
+  visibility: hidden;
+  transform: translateX(100%);
+  transition:
+    transform 160ms ease,
+    visibility 160ms;
+
+  &--open {
+    visibility: visible;
+    transform: translateX(0);
+  }
+
+  // Full-screen below the tablet breakpoint.
+  @media (max-width: 767.98px) {
+    width: 100vw;
+    border-left: 0;
+  }
+}
+
 .po-nav {
   position: sticky;
   top: 0;
@@ -61,6 +100,27 @@
   }
 
   // ── Hamburger: opens the menu drawer, always visible (no breakpoint) ──
+  // Coach toggle: owner only, sits beside the hamburger.
+  &__coach {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: var(--space-sm);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+
+    &--on {
+      color: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+  }
+
   &__hamburger {
     display: flex;
     align-items: center;

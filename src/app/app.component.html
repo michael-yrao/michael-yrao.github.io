@@ -1,3 +1,4 @@
+<div class="po-shell" [class.po-shell--coach-docked]="isCoachDocked()">
 <nav class="po-nav">
   <div class="po-nav__inner">
     <a class="po-nav__brand" routerLink="/" aria-label="Progressive Overflow — home">
@@ -16,6 +17,20 @@
           </button>
         }
       </div>
+    }
+
+    @if (isCoachOwner()) {
+      <button
+        type="button"
+        class="po-nav__coach"
+        [class.po-nav__coach--on]="coachUi.isOpen()"
+        [attr.aria-expanded]="coachUi.isOpen()"
+        [attr.aria-label]="coachUi.isOpen() ? 'Close coach' : 'Open coach'"
+        aria-controls="po-coach"
+        (click)="coachUi.toggle()"
+      >
+        ◨
+      </button>
     }
 
     <button
@@ -98,3 +113,19 @@
     <span class="po-footer__copy">© {{ year }}</span>
   </div>
 </footer>
+</div>
+
+<!-- Coach drawer: mounted on first open, then only hidden, so the transcript survives closing -->
+@if (isCoachOwner() && coachUi.everOpened()) {
+  <aside
+    id="po-coach"
+    class="po-coach"
+    [class.po-coach--open]="coachUi.isOpen()"
+    [attr.aria-hidden]="!coachUi.isOpen()"
+    aria-label="Coach"
+  >
+    @defer {
+      <app-coach-panel />
+    }
+  </aside>
+}

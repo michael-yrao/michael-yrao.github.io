@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, catchError, from, map, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
+import { Observable, catchError, firstValueFrom, from, map, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
 
 import { contractCache, contractKey, contractKeyPrefix } from './contract-cache';
 import { ContractManifest, MANIFEST_FILE, manifestHash, parseManifest } from './contract-manifest';
@@ -198,6 +198,14 @@ export class GitHubFileService {
             ),
       ),
     );
+  }
+
+  /** The hash the repo's already-loaded manifest lists for `file`, awaiting a bust still in flight.
+   *  Null when no manifest was loaded for the ref or the file is unlisted; never starts a request. */
+  async manifestHashFor(ref: RepoRef, file: string): Promise<string | null> {
+    const memo = this.manifests.get(`${ref.owner}/${ref.repo}@${ref.branch}`);
+    if (!memo) return null;
+    return manifestHash(await firstValueFrom(memo), file);
   }
 
   /** GET a named file from the repo; keyed by the manifest's hash when it lists the file. */
