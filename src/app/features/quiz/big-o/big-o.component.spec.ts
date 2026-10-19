@@ -55,7 +55,7 @@ function makePool(count: number, difficulties: readonly Difficulty[] = ['Easy', 
 }
 
 function makeData(entries: BigOEntry[]): BigOData {
-  return { schemaVersion: 1, generatedAt: '2026-09-24', entries };
+  return { schemaVersion: 1, generatedAt: '2026-09-24', pool: ['O(1)'], entries };
 }
 
 function makeBigOServiceStub(data: BigOData | null, status: LoadStatus = 'ready') {

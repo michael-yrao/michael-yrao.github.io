@@ -1,10 +1,18 @@
 import { isRecord } from '../contracts/is-record';
 import { Codec, CompareMode, EntryKind, PracticeCase, PracticeProblem } from '../models/practice.model';
+import { isAnyOf } from './compare';
 
-export const COMPARE_MODES: readonly CompareMode[] = ['exact', 'unordered', 'unordered-nested'];
+export const COMPARE_MODES: readonly CompareMode[] = [
+  'exact',
+  'unordered',
+  'unordered-nested',
+  'unordered-inner',
+];
 const ENTRY_KINDS: readonly EntryKind[] = ['method', 'ops', 'round-trip'];
 const CODECS: readonly Codec[] = [
   'list-node',
+  'list-node-list',
+  'list-node-ref',
   'list-node-cycle',
   'random-list',
   'tree-node',
@@ -13,7 +21,11 @@ const CODECS: readonly Codec[] = [
   'number-inf',
 ];
 /** Codecs that only decode a result; they can't build an argument. */
-const RESULT_ONLY_CODECS: readonly Codec[] = ['number-inf'];
+const RESULT_ONLY_CODECS: readonly Codec[] = ['number-inf', 'list-node-ref'];
+/** Codecs that only build an argument; they can't decode a result. */
+const ARG_ONLY_CODECS: readonly Codec[] = ['list-node-list'];
+/** The judge APIs a case may bind (the driver's registry). */
+const JUDGE_NAMES: readonly string[] = ['isBadVersion'];
 
 /** A well-formed entry: names, a known kind when present, and for 'round-trip' the two
  *  method names it chains. */
@@ -34,10 +46,30 @@ function hasOpsShape(value: Record<string, unknown>): boolean {
   return Array.isArray(args) && args.length === ops.length && args.every(Array.isArray);
 }
 
+/** A mapping of known judge API names to integers. */
+function isValidJudge(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (!isRecord(value)) return false;
+  return Object.entries(value).every(([name, bound]) => JUDGE_NAMES.includes(name) && Number.isInteger(bound));
+}
+
+/** A mapping with an `anyOf` key must be exactly `{anyOf: [non-empty list]}`. */
+function isWellFormedAnyOf(value: unknown): boolean {
+  return !isRecord(value) || !('anyOf' in value) || isAnyOf(value);
+}
+
+/** An expected value may be an anyOf mapping, or (an ops case) a list holding some. */
+function isValidExpected(value: unknown): boolean {
+  if (Array.isArray(value)) return value.every(isWellFormedAnyOf);
+  return isWellFormedAnyOf(value);
+}
+
 export function isPracticeCase(value: unknown, isOps: boolean): value is PracticeCase {
   if (!isRecord(value)) return false;
   if (!Array.isArray(value['args'])) return false;
   if (!('expected' in value)) return false; // null is a legal expected value
+  if (!isValidExpected(value['expected'])) return false;
+  if (!isValidJudge(value['judge'])) return false;
   if (isOps && !hasOpsShape(value)) return false;
   return typeof value['example'] === 'boolean';
 }
@@ -111,13 +143,17 @@ function isArgCodecOrNull(value: unknown): boolean {
   return isCodecOrNull(value) && !RESULT_ONLY_CODECS.includes(value as Codec);
 }
 
+function isResultCodecOrNull(value: unknown): boolean {
+  return isCodecOrNull(value) && !ARG_ONLY_CODECS.includes(value as Codec);
+}
+
 /** An absent or null `types` is valid (plain JSON); a present one has an `args` array of known
  *  codecs or nulls and a known-codec-or-null `result`. */
 export function isValidTypes(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (!isRecord(value)) return false;
   const args = value['args'];
-  return Array.isArray(args) && args.every(isArgCodecOrNull) && isCodecOrNull(value['result']);
+  return Array.isArray(args) && args.every(isArgCodecOrNull) && isResultCodecOrNull(value['result']);
 }
 
 /** Structural guard for one practice problem: number, title, nullable url, nullable statement,

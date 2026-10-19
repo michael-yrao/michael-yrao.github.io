@@ -62,6 +62,33 @@ describe('toResultRow', () => {
     expect(row.got).toBe('[null,null,1]');
   });
 
+  it('draws an anyOf expected as its alternatives joined by a pipe', () => {
+    const testCase: PracticeCase = { args: [2], expected: { anyOf: ['01', '10'] }, example: true };
+    const result: CaseResult = {
+      index: 0,
+      verdict: 'fail',
+      outcome: { status: 'ok', hasJson: true, gotJson: '00', gotRepr: '', stdout: '' },
+    };
+
+    const row = toResultRow(result, [testCase]);
+
+    expect(row.expected).toBe('"01" | "10"');
+    expect(row.got).toBe('"00"');
+  });
+
+  it('draws a per-op anyOf inside an ops expected list element by element', () => {
+    const testCase: PracticeCase = { args: [[], [1]], ops: ['A', 'b'], expected: [null, { anyOf: [1, 2, 3] }], example: true };
+    const result: CaseResult = {
+      index: 0,
+      verdict: 'fail',
+      outcome: { status: 'ok', hasJson: true, gotJson: [null, 4], gotRepr: '', stdout: '' },
+    };
+
+    const row = toResultRow(result, [testCase]);
+
+    expect(row.expected).toBe('[null,1 | 2 | 3]');
+  });
+
   it("draws a 'number-inf' result with Python's inf spelling, unquoted, nested lists included", () => {
     const testCase: PracticeCase = { args: [3], expected: ['-Infinity', 2, 'Infinity'], example: true };
     const result: CaseResult = {

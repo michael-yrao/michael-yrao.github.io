@@ -6,6 +6,7 @@ export type RunEntry = PracticeEntry;
 export interface RunCase {
   readonly args: readonly unknown[];
   readonly ops?: readonly string[];
+  readonly judge?: Readonly<Record<string, number>>;
 }
 
 /** What one case did inside the worker. `hasJson` is false only when the return value cannot be
@@ -61,6 +62,7 @@ export function buildCaseSpec(request: RunRequest, testCase: RunCase): string {
     ...request.entry,
     args: testCase.args,
     ops: testCase.ops,
+    judge: testCase.judge,
     result: request.result,
     types: request.types,
   });

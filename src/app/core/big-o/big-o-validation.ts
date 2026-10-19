@@ -23,6 +23,11 @@ const ENTRY_NULLABLE_STRING_FIELDS: readonly (keyof BigOEntry)[] = [
   'whySpace',
 ];
 
+/** The label pool: a non-empty array of strings. */
+export function isBigOPool(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.length > 0 && value.every((label) => typeof label === 'string');
+}
+
 function isStringOrNull(v: unknown): boolean {
   return v === null || typeof v === 'string';
 }

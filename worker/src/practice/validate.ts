@@ -15,7 +15,16 @@ const HEADER_PREFIX = '# po-attempt: ';
 const PATH_PATTERN = /^dsa\/attempts\/(\d{8})\/(\d+)_[a-z0-9_]+\.py$/;
 const TESTS_PATTERN = /^(\d+)\/(\d+)$/;
 const RATINGS: readonly unknown[] = ['clean', 'shaky', 'blank'];
-const HEADER_KEYS: readonly string[] = ['complete', 'rating', 'tests', 'savedAt'];
+const HEADER_KEYS: readonly string[] = ['complete', 'rating', 'tests', 'complexity', 'savedAt'];
+const MAX_LABEL_CHARS = 200;
+const MAX_WHY_CHARS = 500;
+const COMPLEXITY_LIMITS: readonly (readonly [string, number])[] = [
+  ['time', MAX_LABEL_CHARS],
+  ['space', MAX_LABEL_CHARS],
+  ['whyTime', MAX_WHY_CHARS],
+  ['whySpace', MAX_WHY_CHARS],
+];
+const COMPLEXITY_KEYS: readonly string[] = COMPLEXITY_LIMITS.map(([key]) => key);
 
 export interface AttemptFile {
   readonly owner: string;
@@ -83,19 +92,29 @@ function isValidTests(tests: unknown): boolean {
   return match !== null && Number(match[1]) <= Number(match[2]);
 }
 
-function hasExactHeaderKeys(header: Record<string, unknown>): boolean {
-  const keys = Object.keys(header);
-  return keys.length === HEADER_KEYS.length && HEADER_KEYS.every((key) => keys.includes(key));
+function hasExactKeys(record: Record<string, unknown>, expected: readonly string[]): boolean {
+  const keys = Object.keys(record);
+  return keys.length === expected.length && expected.every((key) => keys.includes(key));
+}
+
+function isBoundedText(value: unknown, maxChars: number): boolean {
+  return typeof value === 'string' && value.trim().length >= 1 && value.length <= maxChars;
+}
+
+function isCompleteComplexity(complexity: unknown): boolean {
+  if (!isRecord(complexity) || !hasExactKeys(complexity, COMPLEXITY_KEYS)) return false;
+  return COMPLEXITY_LIMITS.every(([key, maxChars]) => isBoundedText(complexity[key], maxChars));
 }
 
 function isValidHeader(header: Record<string, unknown>): boolean {
-  if (!hasExactHeaderKeys(header)) return false;
-  const { complete, rating, tests, savedAt } = header;
+  if (!hasExactKeys(header, HEADER_KEYS)) return false;
+  const { complete, rating, tests, complexity, savedAt } = header;
   if (typeof complete !== 'boolean') return false;
   if (typeof savedAt !== 'string' || !isValidTimestamp(savedAt)) return false;
   if (rating !== null && !RATINGS.includes(rating)) return false;
   if (!isValidTests(tests)) return false;
-  return complete ? rating !== null && isCompleteTests(tests) : rating === null;
+  if (!complete) return rating === null && complexity === null;
+  return rating !== null && isCompleteTests(tests) && isCompleteComplexity(complexity);
 }
 
 function commitMessageFor(path: string, isComplete: boolean): string {

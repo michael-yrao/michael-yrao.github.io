@@ -102,7 +102,7 @@ function buildRequest(id: number, code: string, problem: PracticeProblem): RunRe
     entry: problem.entry,
     result: problem.result,
     types: problem.types,
-    cases: problem.cases.map((testCase) => ({ args: testCase.args, ops: testCase.ops })),
+    cases: problem.cases.map((testCase) => ({ args: testCase.args, ops: testCase.ops, judge: testCase.judge })),
   };
 }
 

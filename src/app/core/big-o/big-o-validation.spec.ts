@@ -1,4 +1,4 @@
-import { isBigOEntry } from './big-o-validation';
+import { isBigOEntry, isBigOPool } from './big-o-validation';
 import { BigOEntry } from '../models/big-o.model';
 
 function validEntry(): BigOEntry {
@@ -117,5 +117,16 @@ describe('isBigOEntry', () => {
     const entry = validEntry();
     const badSegment = { ...entry.segments[0], kind: 'bogus' };
     expect(isBigOEntry({ ...entry, segments: [badSegment] })).toBe(false);
+  });
+});
+
+describe('isBigOPool', () => {
+  it.each([
+    { name: 'missing', pool: undefined, isValid: false },
+    { name: 'empty', pool: [], isValid: false },
+    { name: 'a non-string label', pool: ['O(1)', 2], isValid: false },
+    { name: 'labels in order', pool: ['O(1)', 'O(n)'], isValid: true },
+  ])('a pool that is $name: valid is $isValid', ({ pool, isValid }) => {
+    expect(isBigOPool(pool)).toBe(isValid);
   });
 });

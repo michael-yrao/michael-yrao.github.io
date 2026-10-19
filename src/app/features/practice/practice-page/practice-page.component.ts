@@ -12,7 +12,8 @@ import {
 import { Subscription } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
-import { AttemptMeta, AttemptRating, RATING_OPTIONS, parseAttemptFile } from '../../../core/practice/practice-attempt';
+import { AttemptMeta, RATING_OPTIONS, parseAttemptFile } from '../../../core/practice/practice-attempt';
+import { BigOService } from '../../../core/services/big-o.service';
 import { PracticeSaveService } from '../../../core/services/practice-save.service';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
 import type { PracticeProblem } from '../../../core/models/practice.model';
@@ -23,6 +24,7 @@ import { CaseResultsComponent } from '../../../shared/components/case-results/ca
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
 import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
+import { CompleteRepDialogComponent, CompletedRep, ReferenceBounds } from '../complete-rep-dialog/complete-rep-dialog.component';
 import { injectPracticeProblem } from '../practice-problem';
 import { MAX_SOLUTION_TABS, SolutionTabs, loadDraftStamp, loadTabs, saveTabs } from '../practice-tabs';
 import { activeCaseIndex, countPassed, errorLine, toResultRow } from '../../../shared/utils/practice-results';
@@ -54,7 +56,13 @@ const closeConfirm = (position: number): string => `Close Solution ${position}? 
   templateUrl: './practice-page.component.html',
   styleUrls: ['./practice-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CaseResultsComponent, CodeEditorComponent, PracticeDescriptionComponent, PracticeHeaderComponent],
+  imports: [
+    CaseResultsComponent,
+    CodeEditorComponent,
+    CompleteRepDialogComponent,
+    PracticeDescriptionComponent,
+    PracticeHeaderComponent,
+  ],
   // Host metadata rather than @HostListener: another runtime symbol would land in the initial bundle.
   host: { '(document:keydown)': 'onShortcut($event)' },
 })
@@ -63,6 +71,7 @@ export class PracticePageComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
   private readonly saver = inject(PracticeSaveService);
+  protected readonly bigO = inject(BigOService);
 
   // A decorator query, not viewChild(): the signal-query helper is another runtime symbol
   // that would land in the initial bundle.
@@ -165,8 +174,9 @@ export class PracticePageComponent {
 
   readonly saveStatus = computed(() => this.saver.statusFor(this.number() ?? 0));
   readonly installUrl = `https://github.com/apps/${this.auth.appSlug}/installations/new`;
-  readonly ratingOptions = RATING_OPTIONS;
-  readonly isRating = signal(false);
+  readonly isCompleting = signal(false);
+  /** The rep each problem was last marked complete with, for the marks beside the status. */
+  private readonly completedReps = signal<Readonly<Record<number, CompletedRep>>>({});
 
   /** The latest Run on this problem, once finished: how many cases it ran and passed. */
   private readonly latestTally = computed(() => {
@@ -185,6 +195,25 @@ export class PracticePageComponent {
     return tally !== null && isFullRun && tally.passed === tally.total && isSameCode && this.saveStatus().state !== 'saving';
   });
 
+  /** Mark Complete needs the Big-O reference loaded as well, since the dialog judges against it. */
+  readonly canCompleteRep = computed(() => this.canMarkComplete() && this.bigO.status() === 'ready');
+
+  /** This problem's reference bounds from big-o.json; null when it has no entry. */
+  readonly reference = computed<ReferenceBounds | null>(() => {
+    const entry = this.bigO.entryFor(this.number() ?? 0);
+    return entry === null
+      ? null
+      : { time: entry.time, space: entry.space, whyTime: entry.whyTime, whySpace: entry.whySpace };
+  });
+
+  /** `<comfort emoji> · <time> / <space>` once this problem was marked complete from this page. */
+  readonly completedMarks = computed(() => {
+    const rep = this.completedReps()[this.number() ?? 0];
+    const label = rep === undefined ? undefined : RATING_OPTIONS.find((option) => option.rating === rep.rating)?.label;
+    if (rep === undefined || label === undefined) return '';
+    return ` · ${Array.from(label)[0]} · ${rep.complexity.time} / ${rep.complexity.space}`;
+  });
+
   private runSubscription: Subscription | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
@@ -192,6 +221,7 @@ export class PracticePageComponent {
   constructor() {
     effect(() => {
       const ref = this.ref();
+      if (ref) untracked(() => this.bigO.load(ref));
       const number = this.problem()?.number;
       if (!this.canSave() || !ref || number === undefined) return;
       untracked(() => void this.loadRemote(ref, number));
@@ -246,7 +276,7 @@ export class PracticePageComponent {
     if (this.isBusy()) return;
     this.runSubscription?.unsubscribe();
     this.selectedCase.set(null);
-    this.isRating.set(false);
+    this.isCompleting.set(false);
     this.lastRun.set({ number: problem.number, code: this.text() });
     this.runCaseCount.set(cases.length);
     this.isOutputOpen.set(true);
@@ -337,16 +367,18 @@ export class PracticePageComponent {
   }
 
   saveToGithub(): void {
-    this.saveAttempt({ complete: false, rating: null, tests: this.testsLabel() });
+    this.saveAttempt({ complete: false, rating: null, tests: this.testsLabel(), complexity: null });
   }
 
-  startRating(): void {
-    if (this.canMarkComplete()) this.isRating.set(true);
+  openCompleteDialog(): void {
+    if (this.canCompleteRep()) this.isCompleting.set(true);
   }
 
-  rate(rating: AttemptRating): void {
-    this.isRating.set(false);
-    this.saveAttempt({ complete: true, rating, tests: this.testsLabel() });
+  completeRep(rep: CompletedRep): void {
+    this.isCompleting.set(false);
+    const number = this.number();
+    if (number !== null) this.completedReps.update((all) => ({ ...all, [number]: rep }));
+    this.saveAttempt({ complete: true, rating: rep.rating, tests: this.testsLabel(), complexity: rep.complexity });
   }
 
   private testsLabel(): string | null {

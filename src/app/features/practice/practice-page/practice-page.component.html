@@ -94,16 +94,19 @@
             }
             @if (canSave()) {
               <button type="button" class="practice__btn" [disabled]="saveStatus().state === 'saving'" (click)="saveToGithub()">Save to GitHub</button>
-              <button type="button" class="practice__btn" [disabled]="!canMarkComplete()" (click)="startRating()">Mark Complete</button>
-              @if (isRating() && canMarkComplete()) {
-                <span class="practice__status">Rate this rep</span>
-                @for (option of ratingOptions; track option.rating) {
-                  <button type="button" class="practice__btn" (click)="rate(option.rating)">{{ option.label }}</button>
-                }
+              <button type="button" class="practice__btn" [disabled]="!canCompleteRep()" (click)="openCompleteDialog()">Mark Complete</button>
+              @if (isCompleting() && canCompleteRep()) {
+                <app-complete-rep-dialog
+                  [isOpen]="true"
+                  [pool]="bigO.pool()"
+                  [reference]="reference()"
+                  (saved)="completeRep($event)"
+                  (closed)="isCompleting.set(false)"
+                />
               }
               @switch (saveStatus().state) {
                 @case ('saved') {
-                  <span class="practice__status">{{ saveStatus().isComplete ? 'Marked complete' : 'Saved' }}</span>
+                  <span class="practice__status">{{ saveStatus().isComplete ? 'Marked complete' + completedMarks() : 'Saved' }}</span>
                 }
                 @case ('failed') {
                   <span class="practice__status">Save failed — copy the code instead</span>

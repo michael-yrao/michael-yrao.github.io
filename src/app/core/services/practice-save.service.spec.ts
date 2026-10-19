@@ -17,16 +17,18 @@ const CODE = 'class Solution:\n    pass\n';
 const NOW = new Date(2026, 9, 18, 23, 30);
 const PATH = 'dsa/attempts/20261018/261_graph_valid_tree.py';
 
+const COMPLEXITY = { time: 'O(n)', space: 'O(1)', whyTime: 'one pass', whySpace: 'two counters' };
+
 const ROWS: readonly { readonly name: string; readonly meta: AttemptMeta; readonly header: object }[] = [
   {
     name: 'an incomplete save',
-    meta: { complete: false, rating: null, tests: null },
-    header: { complete: false, rating: null, tests: null, savedAt: NOW.toISOString() },
+    meta: { complete: false, rating: null, tests: null, complexity: null },
+    header: { complete: false, rating: null, tests: null, complexity: null, savedAt: NOW.toISOString() },
   },
   {
     name: 'a complete save',
-    meta: { complete: true, rating: 'shaky', tests: '5/5' },
-    header: { complete: true, rating: 'shaky', tests: '5/5', savedAt: NOW.toISOString() },
+    meta: { complete: true, rating: 'shaky', tests: '5/5', complexity: COMPLEXITY },
+    header: { complete: true, rating: 'shaky', tests: '5/5', complexity: COMPLEXITY, savedAt: NOW.toISOString() },
   },
 ];
 

@@ -7,11 +7,20 @@ const EDGE_UNDERSCORES = /^_+|_+$/g;
 
 export type AttemptRating = 'clean' | 'shaky' | 'blank';
 
+/** The learner's stated bounds with a why for each; null on an in-progress save. */
+export interface AttemptComplexity {
+  readonly time: string;
+  readonly space: string;
+  readonly whyTime: string;
+  readonly whySpace: string;
+}
+
 /** What a saved attempt records beside the code. `tests` is `"<passed>/<total>"` or null. */
 export interface AttemptMeta {
   readonly complete: boolean;
   readonly rating: AttemptRating | null;
   readonly tests: string | null;
+  readonly complexity: AttemptComplexity | null;
 }
 
 /** A remote attempt read back: when it was saved and the code without its header line. */
@@ -44,6 +53,7 @@ export function buildAttemptFile(meta: AttemptMeta, savedAt: Date, code: string)
     complete: meta.complete,
     rating: meta.rating,
     tests: meta.tests,
+    complexity: meta.complexity,
     savedAt: savedAt.toISOString(),
   });
   return `${HEADER_PREFIX}${header}\n${code}`;

@@ -1,7 +1,7 @@
 export const PRACTICE_SCHEMA_VERSION = 1;
 
 /** How a returned value is compared with the expected one (set per problem by cse-progress). */
-export type CompareMode = 'exact' | 'unordered' | 'unordered-nested';
+export type CompareMode = 'exact' | 'unordered' | 'unordered-nested' | 'unordered-inner';
 
 /** How a case drives the class: one method call, an operation sequence on a design class, or
  *  decode(encode(...)) on two methods. Absent means 'method'. */
@@ -26,6 +26,8 @@ export type ResultSpec =
 /** How a JSON value maps to the node structure a method takes or returns. */
 export type Codec =
   | 'list-node'
+  | 'list-node-list'
+  | 'list-node-ref'
   | 'list-node-cycle'
   | 'random-list'
   | 'tree-node'
@@ -45,7 +47,9 @@ export interface PracticeCase {
   readonly args: readonly unknown[];
   /** Operation names for an 'ops' entry; the first constructs the class. */
   readonly ops?: readonly string[];
-  /** Any JSON value, including null. */
+  /** Judge APIs bound as globals of the learner's code for this case (name to integer). */
+  readonly judge?: Readonly<Record<string, number>>;
+  /** Any JSON value, including null; `{anyOf: [...]}` matches any one alternative. */
   readonly expected: unknown;
   readonly example: boolean;
 }
