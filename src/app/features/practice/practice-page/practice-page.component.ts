@@ -24,7 +24,7 @@ import { CaseResultsComponent } from '../../../shared/components/case-results/ca
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
 import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
-import { CompleteRepDialogComponent, CompletedRep, ReferenceBounds } from '../complete-rep-dialog/complete-rep-dialog.component';
+import { CompleteRepPanelComponent, CompletedRep, ReferenceBounds } from '../complete-rep-panel/complete-rep-panel.component';
 import { injectPracticeProblem } from '../practice-problem';
 import { MAX_SOLUTION_TABS, SolutionTabs, loadDraftStamp, loadTabs, saveTabs } from '../practice-tabs';
 import { activeCaseIndex, countPassed, errorLine, toResultRow } from '../../../shared/utils/practice-results';
@@ -59,7 +59,7 @@ const closeConfirm = (position: number): string => `Close Solution ${position}? 
   imports: [
     CaseResultsComponent,
     CodeEditorComponent,
-    CompleteRepDialogComponent,
+    CompleteRepPanelComponent,
     PracticeDescriptionComponent,
     PracticeHeaderComponent,
   ],
@@ -370,8 +370,14 @@ export class PracticePageComponent {
     this.saveAttempt({ complete: false, rating: null, tests: this.testsLabel(), complexity: null });
   }
 
-  openCompleteDialog(): void {
-    if (this.canCompleteRep()) this.isCompleting.set(true);
+  toggleCompleteRep(): void {
+    if (this.isCompleting()) {
+      this.isCompleting.set(false);
+      return;
+    }
+    if (!this.canCompleteRep()) return;
+    this.isCompleting.set(true);
+    this.isOutputOpen.set(true);
   }
 
   completeRep(rep: CompletedRep): void {

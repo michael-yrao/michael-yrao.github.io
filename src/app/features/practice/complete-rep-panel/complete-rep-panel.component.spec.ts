@@ -1,18 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { CompleteRepDialogComponent, CompletedRep, ReferenceBounds } from './complete-rep-dialog.component';
+import { CompleteRepPanelComponent, CompletedRep, ReferenceBounds } from './complete-rep-panel.component';
 
 const POOL = ['O(1)', 'O(n)', 'O(n log n)'];
 const REFERENCE: ReferenceBounds = { time: 'O(n)', space: 'O(1)', whyTime: 'one pass', whySpace: 'two counters' };
 const WHY = '  one pass  ';
 
 function render(reference: ReferenceBounds | null): {
-  fixture: ComponentFixture<CompleteRepDialogComponent>;
+  fixture: ComponentFixture<CompleteRepPanelComponent>;
   root: HTMLElement;
   emitted: CompletedRep[];
 } {
-  const fixture = TestBed.createComponent(CompleteRepDialogComponent);
-  fixture.componentRef.setInput('isOpen', true);
+  const fixture = TestBed.createComponent(CompleteRepPanelComponent);
   fixture.componentRef.setInput('pool', POOL);
   fixture.componentRef.setInput('reference', reference);
   const emitted: CompletedRep[] = [];
@@ -45,7 +44,24 @@ function fill(fixture: ComponentFixture<unknown>, time: string | null, space: st
   fixture.detectChanges();
 }
 
-describe('CompleteRepDialogComponent', () => {
+describe('CompleteRepPanelComponent', () => {
+  it.each([
+    { name: 'Close button click', fire: (root: HTMLElement) => (root.querySelector('.rep__close') as HTMLButtonElement).click() },
+    {
+      name: 'Escape keydown on the .rep section',
+      fire: (root: HTMLElement) =>
+        root.querySelector('.rep')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+    },
+  ])('$name emits closed once', ({ fire }) => {
+    const { fixture, root } = render(REFERENCE);
+    const closedSpy = vi.fn();
+    fixture.componentInstance.closed.subscribe(closedSpy);
+
+    fire(root);
+
+    expect(closedSpy).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     { name: 'nothing set', time: null, space: null, whys: ['', ''] as [string, string], isEnabled: false },
     { name: 'a blank why', time: 'O(n)', space: 'O(1)', whys: ['x', '   '] as [string, string], isEnabled: false },

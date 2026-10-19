@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 
 import { AttemptComplexity, AttemptRating, RATING_OPTIONS } from '../../../core/practice/practice-attempt';
-import { ModalComponent } from '../../../shared/components/modal/modal.component';
 
 type BoundKey = 'time' | 'space';
 
@@ -39,16 +38,15 @@ const MISS_MARK = '✗';
 const BOUND_NAMES: Readonly<Record<BoundKey, string>> = { time: 'Time', space: 'Space' };
 const BOUND_KEYS: readonly BoundKey[] = ['time', 'space'];
 
-/** The complexity-first completion dialog: state both bounds with a why, Check, then rate and save. */
+/** The complexity-first completion panel, shown in the Output pane: state both bounds with a why, Check, then rate and save. */
 @Component({
-  selector: 'app-complete-rep-dialog',
-  templateUrl: './complete-rep-dialog.component.html',
-  styleUrl: './complete-rep-dialog.component.scss',
+  selector: 'app-complete-rep-panel',
+  templateUrl: './complete-rep-panel.component.html',
+  styleUrl: './complete-rep-panel.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ModalComponent],
 })
-export class CompleteRepDialogComponent {
-  readonly isOpen = input(false);
+export class CompleteRepPanelComponent {
+  protected readonly headingId = 'rep-heading';
   readonly pool = input.required<readonly string[]>();
   readonly reference = input<ReferenceBounds | null>(null);
   readonly saved = output<CompletedRep>();

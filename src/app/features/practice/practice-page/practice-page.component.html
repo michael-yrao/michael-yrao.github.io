@@ -94,16 +94,7 @@
             }
             @if (canSave()) {
               <button type="button" class="practice__btn" [disabled]="saveStatus().state === 'saving'" (click)="saveToGithub()">Save to GitHub</button>
-              <button type="button" class="practice__btn" [disabled]="!canCompleteRep()" (click)="openCompleteDialog()">Mark Complete</button>
-              @if (isCompleting() && canCompleteRep()) {
-                <app-complete-rep-dialog
-                  [isOpen]="true"
-                  [pool]="bigO.pool()"
-                  [reference]="reference()"
-                  (saved)="completeRep($event)"
-                  (closed)="isCompleting.set(false)"
-                />
-              }
+              <button type="button" class="practice__btn" [disabled]="!canCompleteRep()" [attr.aria-pressed]="isCompleting()" (click)="toggleCompleteRep()">Mark Complete</button>
               @switch (saveStatus().state) {
                 @case ('saved') {
                   <span class="practice__status">{{ saveStatus().isComplete ? 'Marked complete' + completedMarks() : 'Saved' }}</span>
@@ -175,8 +166,12 @@
               </svg>
             </button>
 
-            @if (isOutputOpen() && runState(); as state) {
-              <app-case-results id="practice-output-body" class="practice__output-body" [runState]="state" [cases]="p.cases" [resultCodec]="p.types?.result ?? null" [selected]="selectedCase()" (selectedChange)="selectCase($event)" />
+            @if (isOutputOpen()) {
+              @if (isCompleting()) {
+                <app-complete-rep-panel id="practice-output-body" class="practice__output-body" [pool]="bigO.pool()" [reference]="reference()" (saved)="completeRep($event)" (closed)="isCompleting.set(false)" />
+              } @else if (runState(); as state) {
+                <app-case-results id="practice-output-body" class="practice__output-body" [runState]="state" [cases]="p.cases" [resultCodec]="p.types?.result ?? null" [selected]="selectedCase()" (selectedChange)="selectCase($event)" />
+              }
             }
           </section>
         </div>

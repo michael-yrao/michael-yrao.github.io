@@ -1,4 +1,12 @@
-<app-modal heading="Complete this rep" [isOpen]="isOpen()" (closed)="closed.emit()">
+<section class="rep" tabindex="-1" [attr.aria-labelledby]="headingId" (keydown.escape)="closed.emit()">
+  <div class="rep__head">
+    <h2 class="rep__heading" [id]="headingId">Complete this rep</h2>
+    <button type="button" class="rep__close" aria-label="Close" title="Close" (click)="closed.emit()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M6 6l12 12M18 6L6 18" />
+      </svg>
+    </button>
+  </div>
   @for (row of rows(); track row.key) {
     <section class="rep__row">
       <h3 class="rep__name">{{ row.name }}</h3>
@@ -56,4 +64,4 @@
   </fieldset>
 
   <button type="button" class="rep__btn rep__btn--primary" [disabled]="rating() === null" (click)="save()">Save rep</button>
-</app-modal>
+</section>
