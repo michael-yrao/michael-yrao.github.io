@@ -53,6 +53,15 @@ function isValidJudge(value: unknown): boolean {
   return Object.entries(value).every(([name, bound]) => JUDGE_NAMES.includes(name) && Number.isInteger(bound));
 }
 
+/** Absent, or a list of [row, column] integer pairs. */
+function isValidFigureCells(value: unknown): boolean {
+  if (value === undefined) return true;
+  return (
+    Array.isArray(value) &&
+    value.every((pair) => Array.isArray(pair) && pair.length === 2 && pair.every(Number.isInteger))
+  );
+}
+
 /** A mapping with an `anyOf` key must be exactly `{anyOf: [non-empty list]}`. */
 function isWellFormedAnyOf(value: unknown): boolean {
   return !isRecord(value) || !('anyOf' in value) || isAnyOf(value);
@@ -70,6 +79,7 @@ export function isPracticeCase(value: unknown, isOps: boolean): value is Practic
   if (!('expected' in value)) return false; // null is a legal expected value
   if (!isValidExpected(value['expected'])) return false;
   if (!isValidJudge(value['judge'])) return false;
+  if (!isValidFigureCells(value['figureCells'])) return false;
   if (isOps && !hasOpsShape(value)) return false;
   return typeof value['example'] === 'boolean';
 }

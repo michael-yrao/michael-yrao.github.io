@@ -49,6 +49,8 @@ export interface PracticeCase {
   readonly ops?: readonly string[];
   /** Judge APIs bound as globals of the learner's code for this case (name to integer). */
   readonly judge?: Readonly<Record<string, number>>;
+  /** [row, column] cells an example case's grid figure draws as found (its answer path). */
+  readonly figureCells?: readonly (readonly [number, number])[];
   /** Any JSON value, including null; `{anyOf: [...]}` matches any one alternative. */
   readonly expected: unknown;
   readonly example: boolean;

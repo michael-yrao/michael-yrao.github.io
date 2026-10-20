@@ -17,7 +17,7 @@ export interface ExampleFigure {
   readonly number: number;
   readonly caption: string;
   readonly state: GraphState | GridState;
-  /** True when at least one edge is drawn as found, so the figure carries the Output key. */
+  /** True when at least one edge or grid cell is drawn as found, so the figure carries the Output key. */
   readonly hasHighlight: boolean;
 }
 
@@ -69,9 +69,12 @@ export class PracticeDescriptionComponent {
     if (!problem || !figure) return [];
     const examples = problem.cases.filter((c) => c.example);
     return examples.flatMap((c, i) => {
-      const state = figureStateFor(figure, c.args, c.expected);
+      const state = figureStateFor(figure, c.args, c.expected, c.figureCells);
       if (!state) return [];
-      const hasHighlight = state.type === 'graph' && state.edges.some((e) => e.state === 'found');
+      const hasHighlight =
+        state.type === 'graph'
+          ? state.edges.some((e) => e.state === 'found')
+          : state.grid.some((row) => row.some((cell) => cell.state === 'found'));
       return [{ number: i + 1, caption: `Example ${i + 1}`, state, hasHighlight }];
     });
   });

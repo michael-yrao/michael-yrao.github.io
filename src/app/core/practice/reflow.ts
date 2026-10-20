@@ -4,6 +4,9 @@ const JOINER = ' ';
 /** A line drawn as written: an empty one, or one that starts with whitespace. */
 const isVerbatim = (line: string): boolean => line === '' || /^\s/.test(line);
 
+/** A statement example label: it starts its own line, never joined onto the line above. */
+const EXAMPLE_LABEL = /^(Input|Output|Explanation):/;
+
 /**
  * Joins hard-wrapped prose so the browser wraps it to the pane's width: a line that is not
  * verbatim and directly follows another such line is appended to it after a single space. Every
@@ -15,7 +18,7 @@ export function reflowProse(text: string): string {
     .reduce<{ out: readonly string[]; previousWasProse: boolean }>(
       ({ out, previousWasProse }, line) => {
         const isProse = !isVerbatim(line);
-        if (isProse && previousWasProse) {
+        if (isProse && previousWasProse && !EXAMPLE_LABEL.test(line)) {
           const joined = `${out[out.length - 1].trimEnd()}${JOINER}${line}`;
           return { out: [...out.slice(0, -1), joined], previousWasProse: true };
         }

@@ -242,7 +242,11 @@ function isCellValue(value: unknown): value is string | number {
   return typeof value === 'string' || typeof value === 'number';
 }
 
-function gridStateFor(figure: GridFigure, args: readonly unknown[]): GridState | null {
+function gridStateFor(
+  figure: GridFigure,
+  args: readonly unknown[],
+  figureCells: readonly (readonly [number, number])[],
+): GridState | null {
   const matrix = args[figure.gridArg];
   if (!Array.isArray(matrix) || matrix.length === 0) return null;
   const width = Array.isArray(matrix[0]) ? matrix[0].length : 0;
@@ -250,20 +254,26 @@ function gridStateFor(figure: GridFigure, args: readonly unknown[]): GridState |
     (row) => Array.isArray(row) && row.length === width && row.every(isCellValue),
   );
   if (width === 0 || !isRectangular) return null;
-  const grid = (matrix as (string | number)[][]).map((row) =>
-    row.map((value) => ({ state: 'empty' as const, label: String(value) })),
+  const found = new Set(figureCells.map(([row, column]) => `${row},${column}`));
+  const grid = (matrix as (string | number)[][]).map((row, r) =>
+    row.map((value, c) => ({
+      state: found.has(`${r},${c}`) ? ('found' as const) : ('empty' as const),
+      label: String(value),
+    })),
   );
   return { type: 'grid', grid };
 }
 
 /** The picture of one example case's input, or null when its arguments do not fit the figure.
- *  Pure: `args` and `expected` are only read; `expected` marks edges when the figure highlights it. */
+ *  Pure: `args` and `expected` are only read; `expected` marks edges when the figure highlights it,
+ *  and `figureCells` marks grid cells as found. */
 export function figureStateFor(
   figure: PracticeFigure,
   args: readonly unknown[],
   expected: unknown,
+  figureCells: readonly (readonly [number, number])[] = [],
 ): GraphState | GridState | null {
   return figure.kind === 'graph'
     ? graphStateFor(figure, args, expected)
-    : gridStateFor(figure, args);
+    : gridStateFor(figure, args, figureCells);
 }
