@@ -1759,3 +1759,24 @@ describe('TodayBoardComponent setup CTA', () => {
     expect(link !== null).toBe(hasLink);
   });
 });
+
+describe('TodayBoardComponent hold control', () => {
+  it.each<{ name: string; isOwnRepo: boolean; count: number }>([
+    { name: 'owner sees it on the undone row only', isOwnRepo: true, count: 1 },
+    { name: 'non-owner sees none', isOwnRepo: false, count: 0 },
+  ])('$name', ({ isOwnRepo, count }) => {
+    TestBed.configureTestingModule({
+      imports: [TodayBoardComponent],
+      providers: [
+        provideRouter([]),
+        { provide: EngineService, useValue: { status$: () => of(NO_ENGINE_RUN), versions: async () => null } },
+        { provide: ProgressService, useValue: { refresh: () => undefined } },
+      ],
+    });
+    const fixture = TestBed.createComponent(TodayBoardComponent);
+    fixture.componentRef.setInput('schedule', makeSchedule());
+    fixture.componentRef.setInput('isOwnRepo', isOwnRepo);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('app-hold-control').length).toBe(count);
+  });
+});

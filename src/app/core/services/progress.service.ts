@@ -135,6 +135,8 @@ export class ProgressService {
 
   readonly details = signal<ProblemProgress[] | null>(null);
   readonly detailsStatus = signal<LoadStatus>('idle');
+  /** The repo `details` were loaded from; null until a load succeeds. */
+  readonly detailsSource = signal<RepoRef | null>(null);
   readonly detailsError = signal<string | null>(null);
   readonly detailsRefreshing = signal(false);
 
@@ -347,10 +349,11 @@ export class ProgressService {
   loadDetails(force = false): void {
     const ref = this.source();
     if (!ref) return;
-    if (!force && this.detailsStatus() === 'ready') return;
+    const isReadyForRef = this.detailsStatus() === 'ready' && sameRef(this.detailsSource(), ref);
+    if (!force && isReadyForRef) return;
 
     const mine = ++this.detailsSeq;
-    const wasReady = this.detailsStatus() === 'ready';
+    const wasReady = isReadyForRef;
     if (force && wasReady) {
       this.detailsRefreshing.set(true);
     } else {
@@ -375,6 +378,7 @@ export class ProgressService {
           return;
         }
         this.details.set(result.problems);
+        this.detailsSource.set(ref);
         this.detailsStatus.set('ready');
       });
   }

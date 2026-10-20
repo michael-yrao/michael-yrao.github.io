@@ -97,6 +97,15 @@
           <a [href]="ext" target="_blank" rel="noopener" aria-label="External" title="External">↗</a>
         }
       </span>
+      @if (isOwnRepo() && item.lcNumber && !item.done) {
+        <app-hold-control
+          [problem]="problemFor(item)"
+          [itemTitle]="item.title"
+          [lcNumber]="item.lcNumber"
+          [repoRef]="repoRef()"
+          [todayISO]="todayISO()"
+        />
+      }
       @if (item.lcNumber) {
         <button type="button" class="today-board__trend-btn" title="Comfort history"
           [attr.aria-label]="trendAriaLabel(item)"

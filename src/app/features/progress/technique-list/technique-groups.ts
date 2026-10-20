@@ -1,5 +1,5 @@
 // Pure derivation for the technique list: tier/family grouping, the board's scope-filter-sort-column pipeline, judge labels.
-import { Technique, TechniqueTier } from '../../../core/models/progress.model';
+import { TECHNIQUE_TIER_ORDER, Technique, TechniqueTier } from '../../../core/models/progress.model';
 import {
   columnFor,
   compareTechniques,
@@ -25,10 +25,6 @@ export interface BoardColumn {
   readonly items: Technique[];
 }
 
-// Fixed order (not alphabetical — alphabetical would put 'core' after 'dp'), matching the
-// intermediate/advanced line: core (started) is always first; dp/tier1 are above the line;
-// tier2/tier3 are below it.
-const TIER_ORDER: TechniqueTier[] = ['core', 'dp', 'tier1', 'tier2', 'tier3'];
 const TIER_LABEL: Record<TechniqueTier, string> = {
   core: 'Core',
   dp: 'DP framework — not started',
@@ -75,7 +71,7 @@ function groupBy<T, K>(items: readonly T[], keyOf: (item: T) => K): Map<K, T[]> 
  *  tier (A-Z), name within each family (A-Z). */
 export function groupByTier(techniques: readonly Technique[]): TierGroup[] {
   const byTier = groupBy(techniques, (t) => t.tier);
-  return TIER_ORDER.filter((tier) => byTier.has(tier)).map((tier) => {
+  return TECHNIQUE_TIER_ORDER.filter((tier) => byTier.has(tier)).map((tier) => {
     const families: FamilyGroup[] = [...groupBy(byTier.get(tier) ?? [], (t) => t.family).entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([family, items]) => ({

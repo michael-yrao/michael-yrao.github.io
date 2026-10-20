@@ -28,6 +28,16 @@
     color: var(--color-text-muted);
   }
 
+  &__versions {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+  }
+
+  &__skipped ul {
+    margin: var(--space-xs) 0 0;
+    padding-left: var(--space-md);
+  }
+
   &__button {
     appearance: none;
     padding: 2px var(--space-sm);

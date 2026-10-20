@@ -16,6 +16,8 @@ const PATH_PATTERN = /^dsa\/attempts\/(\d{8})\/(\d+)_[a-z0-9_]+\.py$/;
 const TESTS_PATTERN = /^(\d+)\/(\d+)$/;
 const RATINGS: readonly unknown[] = ['clean', 'shaky', 'blank'];
 const HEADER_KEYS: readonly string[] = ['complete', 'rating', 'tests', 'complexity', 'savedAt'];
+const OPTIONAL_HEADER_KEYS: readonly string[] = ['recognition'];
+const RECOGNITION_KEYS: readonly string[] = ['picked', 'at'];
 const MAX_LABEL_CHARS = 200;
 const MAX_WHY_CHARS = 500;
 const COMPLEXITY_LIMITS: readonly (readonly [string, number])[] = [
@@ -92,9 +94,16 @@ function isValidTests(tests: unknown): boolean {
   return match !== null && Number(match[1]) <= Number(match[2]);
 }
 
-function hasExactKeys(record: Record<string, unknown>, expected: readonly string[]): boolean {
+function hasKeys(
+  record: Record<string, unknown>,
+  required: readonly string[],
+  optional: readonly string[],
+): boolean {
   const keys = Object.keys(record);
-  return keys.length === expected.length && expected.every((key) => keys.includes(key));
+  return (
+    required.every((key) => keys.includes(key)) &&
+    keys.every((key) => required.includes(key) || optional.includes(key))
+  );
 }
 
 function isBoundedText(value: unknown, maxChars: number): boolean {
@@ -102,12 +111,19 @@ function isBoundedText(value: unknown, maxChars: number): boolean {
 }
 
 function isCompleteComplexity(complexity: unknown): boolean {
-  if (!isRecord(complexity) || !hasExactKeys(complexity, COMPLEXITY_KEYS)) return false;
+  if (!isRecord(complexity) || !hasKeys(complexity, COMPLEXITY_KEYS, [])) return false;
   return COMPLEXITY_LIMITS.every(([key, maxChars]) => isBoundedText(complexity[key], maxChars));
 }
 
+function isValidRecognition(recognition: unknown): boolean {
+  if (!isRecord(recognition) || !hasKeys(recognition, RECOGNITION_KEYS, [])) return false;
+  const { picked, at } = recognition;
+  return isBoundedText(picked, MAX_LABEL_CHARS) && typeof at === 'string' && isValidTimestamp(at);
+}
+
 function isValidHeader(header: Record<string, unknown>): boolean {
-  if (!hasExactKeys(header, HEADER_KEYS)) return false;
+  if (!hasKeys(header, HEADER_KEYS, OPTIONAL_HEADER_KEYS)) return false;
+  if ('recognition' in header && !isValidRecognition(header['recognition'])) return false;
   const { complete, rating, tests, complexity, savedAt } = header;
   if (typeof complete !== 'boolean') return false;
   if (typeof savedAt !== 'string' || !isValidTimestamp(savedAt)) return false;

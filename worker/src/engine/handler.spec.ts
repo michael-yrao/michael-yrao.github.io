@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import type { PatternSenseEnv } from '../pattern-sense/handler';
+import type { OnboardEnv } from '../onboard/handler';
 import { handle } from './handler';
 
 const ORIGIN = 'https://progressiveoverflow.com';
-const ENV: PatternSenseEnv = {
+const ENV: OnboardEnv = {
   GITHUB_CLIENT_ID: 'client-id',
   GITHUB_CLIENT_SECRET: 'client-secret',
   ALLOWED_ORIGINS: ORIGIN,
+  TEMPLATE_OWNER: 'michael-yrao',
+  TEMPLATE_REPO: 'cse-coach',
 };
 const NO_CONTENT = 204;
 const API = 'https://api.github.com';

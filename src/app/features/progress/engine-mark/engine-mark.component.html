@@ -24,6 +24,32 @@
       </button>
     }
   </span>
+  @if (segments().length > 0) {
+    <span class="engine-mark__row engine-mark__versions">
+      @for (segment of segments(); track segment.text) {
+        @if (!$first) {
+          <span class="engine-mark__sep">·</span>
+        }
+        @if (segment.paths; as paths) {
+          <details class="engine-mark__skipped">
+            <summary>{{ segment.text }}</summary>
+            <ul>
+              @for (path of paths; track path) {
+                <li>{{ path }}</li>
+              }
+            </ul>
+          </details>
+        } @else {
+          <span>{{ segment.text }}</span>
+        }
+      }
+      @if (isUpdateAvailable()) {
+        <button type="button" class="engine-mark__button" [disabled]="isUpdating()" (click)="updateEngine()">
+          Update engine
+        </button>
+      }
+    </span>
+  }
   @if (isRefused()) {
     <p class="engine-mark__refused">
       Progressive Overflow needs one new permission to run your weekly build. Sign out, sign in

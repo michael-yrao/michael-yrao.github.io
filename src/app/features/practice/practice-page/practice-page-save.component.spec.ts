@@ -15,6 +15,7 @@ import { RunState } from '../../../core/runner/runner.model';
 import { GOLD_STANDARD_REPO } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { BigOService } from '../../../core/services/big-o.service';
+import { ProgressService } from '../../../core/services/progress.service';
 import { ShowcaseService } from '../../../core/services/showcase.service';
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { PracticePageComponent } from './practice-page.component';
@@ -77,7 +78,25 @@ function signIn(login: string): void {
   );
 }
 
-function render(): { fixture: ComponentFixture<PracticePageComponent>; httpMock: HttpTestingController } {
+const TECHNIQUE = 'Backtracking';
+const PICK_KEY = `po-practice-pick:${OWNER}/${GOLD_STANDARD_REPO.repo}/90`;
+const PICK_HEADER_MARK = `◆ ${TECHNIQUE}`;
+
+/** A progress stub whose summary lists one technique; the problem counts as done unless `isDone` is false. */
+function progressStub(isDone: boolean): unknown {
+  return {
+    status: signal('ready'),
+    data: signal({ techniques: [{ name: TECHNIQUE, family: 'arrays_and_hash', tier: 'core' }] }),
+    source: signal(GOLD_STANDARD_REPO),
+    details: signal(isDone ? [{ lcNumber: PROBLEM.number }] : []),
+    detailsStatus: signal('ready'),
+    detailsSource: signal(GOLD_STANDARD_REPO),
+    loadSummary: vi.fn(),
+    loadDetails: vi.fn(),
+  };
+}
+
+function render(isDone = true): { fixture: ComponentFixture<PracticePageComponent>; httpMock: HttpTestingController } {
   const params = convertToParamMap({ number: '90' });
   const query = convertToParamMap({});
   const data: PracticeData = { schemaVersion: 1, generatedAt: '2026-10-01', problems: [PROBLEM] };
@@ -103,6 +122,7 @@ function render(): { fixture: ComponentFixture<PracticePageComponent>; httpMock:
         provide: BigOService,
         useValue: { status: signal('ready'), load: vi.fn(), pool: () => POOL, entryFor: () => REFERENCE_ENTRY },
       },
+      { provide: ProgressService, useValue: progressStub(isDone) },
       { provide: PythonRunnerService, useValue: { run: runSpy } },
       {
         provide: ActivatedRoute,
@@ -233,6 +253,63 @@ describe('PracticePageComponent save to GitHub', () => {
     const headerLine = (req.request.body.content as string).split('\n', 1)[0];
     expect(JSON.parse(headerLine.replace('# po-attempt: ', ''))).toMatchObject(expected);
     if (isComplete) expect(root.textContent).toContain('Marked complete · 🟢 · O(n) / O(1)');
+  });
+
+  function choose(fixture: ComponentFixture<PracticePageComponent>, name: string): void {
+    const select = (fixture.nativeElement as HTMLElement).querySelector<HTMLSelectElement>('app-recognition-gate select')!;
+    select.value = name;
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+  }
+
+  it('recognition gate: an undone problem has no editor until a technique is picked, then the pick is shown and stored', () => {
+    signIn(OWNER);
+    const { fixture } = render(false);
+    const root: HTMLElement = fixture.nativeElement;
+
+    expect(root.querySelector('app-code-editor')).toBeNull();
+    expect(root.querySelector('app-recognition-gate select')).not.toBeNull();
+
+    choose(fixture, TECHNIQUE);
+
+    expect(root.querySelector('app-code-editor')).not.toBeNull();
+    expect(root.querySelector('.practice__pick')?.textContent).toContain(PICK_HEADER_MARK);
+    expect(JSON.parse(localStorage.getItem(PICK_KEY)!)).toMatchObject({ picked: TECHNIQUE });
+  });
+
+  it('recognition gate: Save to GitHub carries the pick in the attempt header', async () => {
+    signIn(OWNER);
+    const { fixture, httpMock } = render(false);
+    const root: HTMLElement = fixture.nativeElement;
+    await tick();
+    httpMock.expectOne(`${WORKER_API_URL}practice/latest`).flush({}, { status: 404, statusText: 'none' });
+    choose(fixture, TECHNIQUE);
+
+    buttonByText(root, SAVE_BUTTON)!.click();
+    await tick();
+    const req = httpMock.expectOne(`${WORKER_API_URL}practice/save`);
+    req.flush({ ok: true });
+
+    const headerLine = (req.request.body.content as string).split('\n', 1)[0];
+    const { recognition } = JSON.parse(headerLine.replace('# po-attempt: ', ''));
+    expect(recognition.picked).toBe(TECHNIQUE);
+    expect(typeof recognition.at).toBe('string');
+  });
+
+  it('recognition gate: a remote attempt that carries a pick opens the gate without a pick being made', async () => {
+    signIn(OWNER);
+    const { fixture, httpMock } = render(false);
+    const root: HTMLElement = fixture.nativeElement;
+    const at = '2026-10-10T11:00:00.000Z';
+    const file = `# po-attempt: {"complete":false,"rating":null,"tests":null,"complexity":null,"savedAt":"${REMOTE_SAVED_AT}","recognition":{"picked":"${TECHNIQUE}","at":"${at}"}}\n${REMOTE_CODE}`;
+
+    await tick();
+    httpMock.expectOne(`${WORKER_API_URL}practice/latest`).flush({ path: 'p.py', content: file });
+    await tick();
+    fixture.detectChanges();
+
+    expect(root.querySelector('app-code-editor')).not.toBeNull();
+    expect(root.querySelector('.practice__pick')?.textContent).toContain(PICK_HEADER_MARK);
   });
 
   it.each([

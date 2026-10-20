@@ -73,7 +73,7 @@ export function canonicalTimezone(value: string): string | null {
   }
 }
 
-function dayNumber(isoDate: string): number | null {
+export function dayNumber(isoDate: string): number | null {
   const match = ISO_DATE_PATTERN.exec(isoDate);
   if (match === null) return null;
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];

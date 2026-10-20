@@ -14,9 +14,12 @@ import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { CoachContextService, CoachPracticeSnapshot } from '../../../core/coach/coach-context.service';
 import { isCoachOwner } from '../../../core/data/site-links';
-import { AttemptMeta, RATING_OPTIONS, parseAttemptFile } from '../../../core/practice/practice-attempt';
+import { AttemptMeta, AttemptRecognition, RATING_OPTIONS, parseAttemptFile } from '../../../core/practice/practice-attempt';
+import { gateState, recognitionChoices } from '../../../core/practice/recognition-gate';
 import { BigOService } from '../../../core/services/big-o.service';
 import { PracticeSaveService } from '../../../core/services/practice-save.service';
+import { ProgressService } from '../../../core/services/progress.service';
+import { todayLocalISO } from '../../../core/utils/local-date';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
 import type { PracticeProblem } from '../../../core/models/practice.model';
 import type { RepoRef } from '../../../core/services/github-file.service';
@@ -28,6 +31,8 @@ import { PracticeDescriptionComponent } from '../../../shared/components/practic
 import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
 import { CompleteRepPanelComponent, CompletedRep, ReferenceBounds } from '../complete-rep-panel/complete-rep-panel.component';
 import { injectPracticeProblem } from '../practice-problem';
+import { loadPick, savePick } from '../practice-pick';
+import { RECOGNITION_MARKS, RecognitionGateComponent } from '../recognition-gate/recognition-gate.component';
 import { MAX_SOLUTION_TABS, SolutionTabs, loadDraftStamp, loadTabs, saveTabs } from '../practice-tabs';
 import { activeCaseIndex, countPassed, errorLine, toResultRow } from '../../../shared/utils/practice-results';
 import { SAMPLE_CASE_COUNT, shortcutFor } from '../../../shared/utils/practice-shortcuts';
@@ -64,6 +69,7 @@ const closeConfirm = (position: number): string => `Close Solution ${position}? 
     CompleteRepPanelComponent,
     PracticeDescriptionComponent,
     PracticeHeaderComponent,
+    RecognitionGateComponent,
   ],
   // Host metadata rather than @HostListener: another runtime symbol would land in the initial bundle.
   host: { '(document:keydown)': 'onShortcut($event)' },
@@ -75,6 +81,7 @@ export class PracticePageComponent {
   private readonly saver = inject(PracticeSaveService);
   private readonly coachContext = inject(CoachContextService);
   protected readonly bigO = inject(BigOService);
+  private readonly progress = inject(ProgressService);
 
   // A decorator query, not viewChild(): the signal-query helper is another runtime symbol
   // that would land in the initial bundle.
@@ -175,6 +182,48 @@ export class PracticePageComponent {
     return ref.owner.toLowerCase() === login.toLowerCase();
   });
 
+  /** The progress the gate reads is for this page's repo (owner and repo, case-insensitive). */
+  private readonly isProgressForRepo = computed(() => this.isThisRepo(this.progress.source()));
+
+  /** The details the gate reads were loaded from this page's repo. */
+  private readonly isDetailsForRepo = computed(() => this.isThisRepo(this.progress.detailsSource()));
+
+  /** The problems already done in this repo; null until known, which keeps the gate shut. */
+  private readonly doneNumbers = computed<ReadonlySet<number> | null>(() => {
+    const details = this.progress.details();
+    if (!this.isDetailsForRepo() || this.progress.detailsStatus() !== 'ready' || details === null) return null;
+    return new Set(details.map((p) => p.lcNumber));
+  });
+
+  protected readonly choices = computed(() =>
+    this.isProgressForRepo() ? recognitionChoices(this.progress.data()?.techniques ?? []) : [],
+  );
+
+  /** With nothing to pick from (the summary failed, is empty, or lists no technique) the gate stays open. */
+  private readonly hasNothingToPick = computed(() => {
+    if (!this.isProgressForRepo()) return false;
+    const status = this.progress.status();
+    return status === 'error' || status === 'empty' || (status === 'ready' && this.choices().length === 0);
+  });
+
+  /** The technique picked for this problem: made on this page, else the one stored today. */
+  private readonly madePick = signal<{ number: number; pick: AttemptRecognition } | null>(null);
+  protected readonly pick = computed<AttemptRecognition | null>(() => {
+    const ref = this.ref();
+    const number = this.problem()?.number;
+    if (!ref || number === undefined) return null;
+    const made = this.madePick();
+    return made?.number === number ? made.pick : loadPick(ref, number, todayLocalISO());
+  });
+
+  protected readonly isLocked = computed(() => {
+    const number = this.problem()?.number;
+    if (number === undefined || this.hasNothingToPick()) return false;
+    return gateState({ canSave: this.canSave(), number, doneNumbers: this.doneNumbers(), pick: this.pick() }) === 'locked';
+  });
+
+  protected readonly marks = RECOGNITION_MARKS;
+
   readonly saveStatus = computed(() => this.saver.statusFor(this.number() ?? 0));
   readonly installUrl = `https://github.com/apps/${this.auth.appSlug}/installations/new`;
   readonly isCompleting = signal(false);
@@ -234,7 +283,11 @@ export class PracticePageComponent {
       if (ref) untracked(() => this.bigO.load(ref));
       const number = this.problem()?.number;
       if (!this.canSave() || !ref || number === undefined) return;
-      untracked(() => void this.loadRemote(ref, number));
+      untracked(() => {
+        this.progress.loadSummary(`${ref.owner}/${ref.repo}@${ref.branch}`);
+        this.progress.loadDetails();
+        void this.loadRemote(ref, number);
+      });
     });
     effect(() => {
       const problem = this.problem();
@@ -252,6 +305,12 @@ export class PracticePageComponent {
     });
   }
 
+  /** Owner and repo match this page's repo, case-insensitive. */
+  private isThisRepo(other: RepoRef | null): boolean {
+    const ref = this.ref();
+    return ref !== null && other !== null && `${other.owner}/${other.repo}`.toLowerCase() === `${ref.owner}/${ref.repo}`.toLowerCase();
+  }
+
   onTextChange(text: string): void {
     const problem = this.problem();
     if (!problem || text === this.text()) return;
@@ -262,11 +321,25 @@ export class PracticePageComponent {
   }
 
   onShortcut(event: KeyboardEvent): void {
+    if (this.isLocked()) return;
     const shortcut = shortcutFor(event);
     if (shortcut === null) return;
     event.preventDefault();
     if (shortcut === 'all') this.run();
     else this.runSample();
+  }
+
+  /** The gate's choice: final for the day, so a pick that exists is never replaced. */
+  protected onPick(name: string): void {
+    const ref = this.ref();
+    const number = this.problem()?.number;
+    if (!ref || number === undefined || this.pick() !== null) return;
+    this.setPick(ref, number, { picked: name, at: new Date().toISOString() });
+  }
+
+  private setPick(ref: RepoRef, number: number, pick: AttemptRecognition): void {
+    this.madePick.set({ number, pick });
+    savePick(ref, number, pick, todayLocalISO());
   }
 
   toggleProblem(): void {
@@ -415,7 +488,7 @@ export class PracticePageComponent {
     const ref = this.ref();
     const problem = this.problem();
     if (!this.canSave() || !ref || !problem) return;
-    void this.saver.save(ref, problem, this.text(), meta);
+    void this.saver.save(ref, problem, this.text(), { ...meta, recognition: this.pick() });
   }
 
   /** Loads the newest GitHub copy into the open tab when it is newer than the local draft. A legacy
@@ -423,7 +496,9 @@ export class PracticePageComponent {
   private async loadRemote(ref: RepoRef, number: number): Promise<void> {
     const content = await this.saver.latest(ref, number);
     const remote = content === null ? null : parseAttemptFile(content);
-    if (remote === null || this.problem()?.number !== number || this.edited()?.number === number) return;
+    if (remote === null || this.problem()?.number !== number) return;
+    if (remote.recognition !== null && this.pick() === null) this.setPick(ref, number, remote.recognition);
+    if (this.edited()?.number === number) return;
     const draft = loadDraftStamp(ref, number);
     if (draft.exists && (draft.savedAt === null || draft.savedAt >= remote.savedAt)) return;
     const { texts, active } = this.tabs();

@@ -136,6 +136,20 @@ describe('ProgressService', () => {
       expect(http.calls.length).toBe(0);
     });
 
+    it('fetches details again for a new repo instead of keeping the previous repo as ready', () => {
+      service.loadSummary('alice/a');
+      service.loadDetails();
+      expect(service.detailsSource()?.owner).toBe('alice');
+      const before = http.calls.length;
+
+      service.loadSummary('bob/b');
+      service.loadDetails();
+
+      expect(http.calls.length).toBe(before + 2); // summary + details for bob/b
+      expect(http.calls[http.calls.length - 1].url).toContain('/repos/bob/b/contents/dashboard/progress.json');
+      expect(service.detailsSource()?.owner).toBe('bob');
+    });
+
     it('refetches details on refresh once they have been opened', () => {
       service.loadSummary(null);
       service.loadDetails();

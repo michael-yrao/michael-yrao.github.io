@@ -216,6 +216,11 @@ export class ProgressPageComponent {
         this.progress.loadSummary(repo);
       });
     });
+    // The owner's board needs problems[] for the hold mark and the exact tracker title.
+    effect(() => {
+      if (!this.isOwnRepo()) return;
+      untracked(() => this.progress.loadDetails());
+    });
     // Look up the viewer's own repos once per sign-in.
     effect(() => {
       if (!this.auth.isSignedIn()) return;

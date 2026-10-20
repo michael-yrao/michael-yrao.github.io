@@ -6,8 +6,18 @@ import { AuthService } from '../auth/auth.service';
 import { WORKER_API_URL } from '../data/site-links';
 import { RepoRef } from '../services/github-file.service';
 import { EngineStatus, NO_ENGINE_RUN, engineStatus } from './engine-status';
+import { EngineUpdate, EngineVersions, engineUpdate, engineVersions } from './engine-update';
 
 export type BuildResult = 'dispatched' | 'refused' | 'failed';
+
+export type HoldResult = 'held' | 'released' | 'unchanged' | 'no-row' | 'owned' | 'failed';
+
+export interface HoldRequest {
+  readonly number: number;
+  readonly title: string;
+  readonly until: string | null;
+  readonly today: string;
+}
 
 export const ENGINE_STATUS_TTL_MS = 60_000;
 
@@ -20,8 +30,28 @@ export const ENGINE_DELAY = new InjectionToken<(ms: number) => Promise<void>>('E
 const RUNS_URL_BASE = 'https://api.github.com/repos/';
 const RUNS_URL_TAIL = '/actions/runs?per_page=1';
 const BUILD_ROUTE = 'engine/weekly-build';
+const UPDATE_ROUTE = 'engine/update';
+const HOLD_ROUTE = 'engine/hold';
 const HTTP_FORBIDDEN = 403;
+const HTTP_NOT_FOUND = 404;
+const HTTP_CONFLICT = 409;
 const REFUSED_CODE = 'integration-refused';
+const NO_ROW_CODE = 'no-row';
+const OWNED_CODE = 'hold-owned-by-decision';
+
+const HOLD_STATUS_RESULTS: Readonly<Record<string, HoldResult>> = {
+  held: 'held',
+  released: 'released',
+  unchanged: 'unchanged',
+};
+
+function holdFailure(err: unknown): HoldResult {
+  if (!(err instanceof HttpErrorResponse)) return 'failed';
+  const code = (err.error as { error?: unknown } | null)?.error;
+  if (err.status === HTTP_NOT_FOUND && code === NO_ROW_CODE) return 'no-row';
+  if (err.status === HTTP_CONFLICT && code === OWNED_CODE) return 'owned';
+  return 'failed';
+}
 
 interface CachedStatus {
   readonly at: number;
@@ -76,6 +106,58 @@ export class EngineService {
       return 'dispatched';
     } catch (err) {
       return isRefused(err) ? 'refused' : 'failed';
+    }
+  }
+
+  /** Sets (`until` a date) or releases (`until` null) the site's hold on one tracker row. */
+  async hold(ref: RepoRef, req: HoldRequest): Promise<HoldResult> {
+    const token = await this.auth.getToken();
+    if (token === null) return 'failed';
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    try {
+      const body = await firstValueFrom(
+        this.http.post<{ status?: unknown }>(
+          `${WORKER_API_URL}${HOLD_ROUTE}`,
+          { owner: ref.owner, repo: ref.repo, ...req },
+          { headers },
+        ),
+      );
+      const status = String(body?.status);
+      return Object.hasOwn(HOLD_STATUS_RESULTS, status) ? HOLD_STATUS_RESULTS[status] : 'failed';
+    } catch (err) {
+      return holdFailure(err);
+    }
+  }
+
+  /** Asks the Worker to update (or, on a dry run, to plan updating) the repo's engine files; null on any failure. */
+  async update(ref: RepoRef, opts: { readonly dryRun: boolean }): Promise<EngineUpdate | null> {
+    return this.postUpdate(ref, { dryRun: opts.dryRun }, engineUpdate);
+  }
+
+  /** The repo's and the template's engine versions only (a cheap Worker answer); null on any failure. */
+  async versions(ref: RepoRef): Promise<EngineVersions | null> {
+    return this.postUpdate(ref, { versionsOnly: true }, engineVersions);
+  }
+
+  private async postUpdate<T>(
+    ref: RepoRef,
+    extra: Readonly<Record<string, boolean>>,
+    parse: (payload: unknown) => T | null,
+  ): Promise<T | null> {
+    const token = await this.auth.getToken();
+    if (token === null) return null;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    try {
+      const body = await firstValueFrom(
+        this.http.post<unknown>(
+          `${WORKER_API_URL}${UPDATE_ROUTE}`,
+          { owner: ref.owner, repo: ref.repo, ...extra },
+          { headers },
+        ),
+      );
+      return parse(body);
+    } catch {
+      return null;
     }
   }
 }

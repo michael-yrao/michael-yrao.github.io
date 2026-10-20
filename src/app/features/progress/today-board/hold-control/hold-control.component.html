@@ -1,0 +1,32 @@
+<span class="hold-control">
+  @if (mark(); as text) {
+    <span class="hold-control__mark">{{ text }}</span>
+    <button type="button" class="hold-control__button" [disabled]="isBusy()" (click)="release()">
+      Release
+    </button>
+  }
+  <button
+    type="button"
+    class="hold-control__button"
+    aria-label="⏸ hold until"
+    [attr.aria-expanded]="isPickerOpen()"
+    [disabled]="isBusy()"
+    (click)="togglePicker()"
+  >
+    ⏸ hold until
+  </button>
+  @if (isPickerOpen()) {
+    <input
+      type="date"
+      class="hold-control__date"
+      aria-label="⏸ hold until"
+      [min]="minDate()"
+      [max]="maxDate()"
+      [disabled]="isBusy()"
+      (change)="onDateChange($event)"
+    />
+  }
+  @if (refusal(); as message) {
+    <span class="hold-control__refusal">{{ message }}</span>
+  }
+</span>

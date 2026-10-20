@@ -12,6 +12,8 @@ export const HTTP_OK = 200;
 const HTTP_CREATED = 201;
 export const HTTP_NOT_FOUND = 404;
 const HTTP_UNAUTHORIZED = 401;
+const HTTP_CONFLICT = 409;
+const HTTP_UNPROCESSABLE = 422;
 export const HTTP_FORBIDDEN = 403;
 const BEARER_PREFIX = 'Bearer ';
 
@@ -131,25 +133,76 @@ export function contentsUrl(target: RepoTarget, path: string): string {
 
 type ShaResult = { kind: 'ok'; sha: string | undefined } | { kind: 'refused'; response: Response };
 
+type Refused = { kind: 'refused'; response: Response };
+type ContentsLookup =
+  | { kind: 'found'; file: Record<string, unknown> }
+  | { kind: 'missing' }
+  | Refused;
+
+function refusedGithubError(cors: HeaderMap): Refused {
+  return { kind: 'refused', response: failure(502, 'github-error', cors) };
+}
+
+function refusedNotInstalled(cors: HeaderMap): Refused {
+  return { kind: 'refused', response: failure(409, 'not-installed', cors) };
+}
+
+async function getContents(
+  fetchImpl: FetchImpl,
+  token: string,
+  target: FileTarget,
+  cors: HeaderMap,
+): Promise<ContentsLookup> {
+  const url = `${contentsUrl(target, target.path)}?ref=${encodeURIComponent(target.branch)}`;
+  const response = await fetchImpl(url, { headers: apiHeaders(token) });
+  if (response.status === HTTP_NOT_FOUND) return { kind: 'missing' };
+  if (response.status === HTTP_FORBIDDEN) return refusedNotInstalled(cors);
+  if (response.status !== HTTP_OK) return refusedGithubError(cors);
+
+  const file = await readJson(response);
+  return isRecord(file) ? { kind: 'found', file } : refusedGithubError(cors);
+}
+
 async function findExistingSha(
   fetchImpl: FetchImpl,
   token: string,
   target: FileTarget,
   cors: HeaderMap,
 ): Promise<ShaResult> {
-  const url = `${contentsUrl(target, target.path)}?ref=${encodeURIComponent(target.branch)}`;
-  const response = await fetchImpl(url, { headers: apiHeaders(token) });
-  if (response.status === HTTP_NOT_FOUND) return { kind: 'ok', sha: undefined };
-  if (response.status === HTTP_FORBIDDEN)
-    return { kind: 'refused', response: failure(409, 'not-installed', cors) };
-  if (response.status !== HTTP_OK)
-    return { kind: 'refused', response: failure(502, 'github-error', cors) };
+  const lookup = await getContents(fetchImpl, token, target, cors);
+  if (lookup.kind === 'missing') return { kind: 'ok', sha: undefined };
+  if (lookup.kind === 'refused') return lookup;
+  const sha = lookup.file['sha'];
+  return typeof sha === 'string' ? { kind: 'ok', sha } : refusedGithubError(cors);
+}
 
-  const file = await readJson(response);
-  const sha = isRecord(file) ? file['sha'] : undefined;
-  if (typeof sha !== 'string')
-    return { kind: 'refused', response: failure(502, 'github-error', cors) };
-  return { kind: 'ok', sha };
+export type ReadFileResult =
+  | { kind: 'found'; text: string; sha: string }
+  | { kind: 'missing' }
+  | Refused;
+
+function decodeBase64Utf8(base64: string): string {
+  const binary = atob(base64.replace(/\s/g, ''));
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+/** The file's text and blob sha, for a read-modify-write; the file may not exist yet. */
+export async function readFileWithSha(
+  fetchImpl: FetchImpl,
+  token: string,
+  target: FileTarget,
+  cors: HeaderMap,
+): Promise<ReadFileResult> {
+  const lookup = await getContents(fetchImpl, token, target, cors);
+  if (lookup.kind !== 'found') return lookup;
+  const { sha, content } = lookup.file;
+  if (typeof sha !== 'string' || typeof content !== 'string') return refusedGithubError(cors);
+  try {
+    return { kind: 'found', text: decodeBase64Utf8(content), sha };
+  } catch {
+    return refusedGithubError(cors);
+  }
 }
 
 export function encodeBase64Utf8(text: string): string {
@@ -197,13 +250,29 @@ export async function writeFile(
   const existing = await findExistingSha(fetchImpl, token, target, cors);
   if (existing.kind === 'refused') return existing;
 
+  const put = await putFile(fetchImpl, token, target, commit, existing.sha, cors);
+  return put.kind === 'conflict' ? refusedGithubError(cors) : put;
+}
+
+export type PutResult = { kind: 'written' } | { kind: 'conflict' } | Refused;
+
+/** The contents PUT. A conflict (stale sha, or the file appeared) is the caller's to re-read and retry. */
+export async function putFile(
+  fetchImpl: FetchImpl,
+  token: string,
+  target: FileTarget,
+  commit: FileCommit,
+  sha: string | undefined,
+  cors: HeaderMap,
+): Promise<PutResult> {
   const put = await fetchImpl(contentsUrl(target, target.path), {
     method: 'PUT',
     headers: { ...apiHeaders(token), 'Content-Type': 'application/json' },
-    body: commitBody(target, commit, existing.sha),
+    body: commitBody(target, commit, sha),
   });
   if (put.status === HTTP_OK || put.status === HTTP_CREATED) return { kind: 'written' };
+  if (put.status === HTTP_CONFLICT || put.status === HTTP_UNPROCESSABLE) return { kind: 'conflict' };
   if (put.status === HTTP_FORBIDDEN || put.status === HTTP_NOT_FOUND)
-    return { kind: 'refused', response: failure(409, 'not-installed', cors) };
-  return { kind: 'refused', response: failure(502, 'github-error', cors) };
+    return refusedNotInstalled(cors);
+  return refusedGithubError(cors);
 }

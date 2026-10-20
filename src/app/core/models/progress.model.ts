@@ -29,6 +29,8 @@ export interface ProblemProgress {
   file?: string | null;
   repDates: string[];
   timeline: TimelinePoint[];
+  /** holds.yml `until` for this row; absent = no hold; may be past. */
+  heldUntil?: string;
 }
 
 export interface RetiredProblem {
@@ -92,6 +94,11 @@ export interface Badge {
  *  line (still shows up in hard interviews); 'tier2'/'tier3' = BELOW the line —
  *  competitive-programming horizon only. See cse-progress's study_guide.md. */
 export type TechniqueTier = 'core' | 'dp' | 'tier1' | 'tier2' | 'tier3';
+
+// Fixed order (not alphabetical — alphabetical would put 'core' after 'dp'), matching the
+// intermediate/advanced line: core (started) is always first; dp/tier1 are above the line;
+// tier2/tier3 are below it.
+export const TECHNIQUE_TIER_ORDER: readonly TechniqueTier[] = ['core', 'dp', 'tier1', 'tier2', 'tier3'];
 
 /** One problem declared under a technique in techniques.yml with no tracker row yet — the
  *  site's "what's planned" view (cse-progress gamify.py's `planned_for()`). A number moves off
