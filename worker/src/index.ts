@@ -13,6 +13,7 @@ import {
   ROUTE_PREFIX as PATTERN_SENSE_PREFIX,
 } from './pattern-sense/handler';
 import { handle as handlePractice, ROUTE_PREFIX as PRACTICE_PREFIX } from './practice/handler';
+import { handle as handleEngine, ROUTE_PREFIX as ENGINE_PREFIX } from './engine/handler';
 import {
   handle as handleOnboard,
   ROUTE_PREFIX as ONBOARD_PREFIX,
@@ -121,6 +122,9 @@ export default {
     }
     if (pathname.startsWith(PRACTICE_PREFIX)) {
       return handlePractice(request, env, (input, init) => fetch(input, init));
+    }
+    if (pathname.startsWith(ENGINE_PREFIX)) {
+      return handleEngine(request, env, (input, init) => fetch(input, init));
     }
     if (pathname.startsWith(ONBOARD_PREFIX)) {
       return handleOnboard(request, env, (input, init) => fetch(input, init));

@@ -59,4 +59,6 @@ worker po-api (public event feeds, KV interview records) --(HTTP, CORS)--> Event
 
 ## Added 2026-10-19 (onboarding)
 - Worker route `POST /onboard/dsa` (`worker/src/onboard/`): creates the signed-in user's `cse-progress` repo from the template named by `TEMPLATE_OWNER`/`TEMPLATE_REPO` in `worker/wrangler.toml`, or adopts an existing one.
+- Worker route `POST /onboard/intake` (`worker/src/onboard/intake.ts`): validates `{name, target, timezone, startDate}` and writes `intake.yml` to the signed-in user's `cse-progress` repo; refuses with 409 `already-onboarded` once `cse.config.yml` exists.
+- Worker route `POST /engine/weekly-build` (`worker/src/engine/handler.ts`): enables then dispatches the `weekly-build.yml` workflow on `main` in a repo the caller owns.
 - Site route `/start` (`src/app/features/onboarding/`, `src/app/core/onboarding/`): track picker; only DSA is enabled. Not in the sitemap.

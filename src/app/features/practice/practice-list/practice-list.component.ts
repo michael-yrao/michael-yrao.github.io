@@ -44,6 +44,7 @@ export class PracticeListComponent {
   readonly tagsPerRow = TAGS_PER_ROW;
   readonly externalJudgeUrlFor = externalJudgeUrlFor;
 
+  readonly isAuthorFallback = this.practice.isAuthorFallback;
   readonly invalidSlug = this.contract.invalidSlug;
   readonly status = this.contract.status;
   readonly error = this.contract.error;

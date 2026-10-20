@@ -1191,7 +1191,7 @@ describe('ProgressPageComponent', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Your repo is ready, with no reps yet.');
+    expect(fixture.nativeElement.textContent).toContain('Your repo is ready. Answer four questions');
     expect(fixture.nativeElement.querySelector('.progress__error')).toBeFalsy();
   });
 

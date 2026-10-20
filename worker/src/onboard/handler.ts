@@ -14,6 +14,7 @@ import {
   type HeaderMap,
 } from '../github/write-file';
 import { gateOrigin, preflight, type PatternSenseEnv } from '../pattern-sense/handler';
+import { handleIntake, INTAKE_PATH } from './intake';
 import { isCoachRepo, isExpectedName, LEARNER_REPO, MARKER_PATHS } from './validate';
 
 export const ROUTE_PREFIX = '/onboard/';
@@ -182,5 +183,6 @@ export async function handle(
 
   const { pathname } = new URL(request.url);
   if (pathname === DSA_PATH) return handleDsa(request, env, fetchImpl, sleep, cors);
+  if (pathname === INTAKE_PATH) return handleIntake(request, fetchImpl, cors);
   return failure(HTTP_NOT_FOUND, 'not-found', cors);
 }

@@ -21,6 +21,7 @@ import { LoadStatus } from '../../../core/services/progress.service';
 import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { shortMonthDay } from '../../../core/utils/local-date';
+import { EngineMarkComponent } from '../engine-mark/engine-mark.component';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
 import { PRACTICE_GLYPH } from '../practice-link';
@@ -86,7 +87,7 @@ const NO_PENDING: ReadonlySet<number> = new Set();
   templateUrl: './today-board.component.html',
   styleUrls: ['./today-board.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgTemplateOutlet, ProblemTimelineComponent],
+  imports: [RouterLink, NgTemplateOutlet, ProblemTimelineComponent, EngineMarkComponent],
 })
 export class TodayBoardComponent {
   readonly schedule = input<Schedule | null | undefined>();
@@ -113,6 +114,8 @@ export class TodayBoardComponent {
    *  relative to it, so the status badge's GitHub link is built from it, never from the gold
    *  standard. */
   readonly repoRef = input<RepoRef | null>(null);
+  /** The viewer is signed in as the repo's owner: only then the engine mark and the setup CTA show. */
+  readonly isOwnRepo = input(false);
 
   /** LeetCode numbers with a practice contract entry — only these rows get the Run link. */
   readonly practiceNumbers = input<ReadonlySet<number>>(new Set());
@@ -167,6 +170,8 @@ export class TodayBoardComponent {
   readonly canGoNext = this.weekNav.canGoNext;
 
   readonly days = computed(() => this.weekNav.displayedSchedule().days);
+  /** An owner whose repo has no schedule yet gets the setup link instead of an empty strip. */
+  readonly needsSetup = computed(() => this.isOwnRepo() && !this.schedule());
 
   readonly effectiveDate = computed<string | null>(() => {
     const list = this.days();

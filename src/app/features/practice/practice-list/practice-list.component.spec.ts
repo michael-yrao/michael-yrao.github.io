@@ -28,7 +28,12 @@ function problem(number: number, title: string): PracticeProblem {
   };
 }
 
-function setUp(status: LoadStatus, error: string | null, problems: readonly PracticeProblem[]) {
+function setUp(
+  status: LoadStatus,
+  error: string | null,
+  problems: readonly PracticeProblem[],
+  isAuthorFallback = false,
+) {
   const data: PracticeData = { schemaVersion: 1, generatedAt: '2026-10-01', problems };
   const query = convertToParamMap({});
   TestBed.configureTestingModule({
@@ -42,6 +47,7 @@ function setUp(status: LoadStatus, error: string | null, problems: readonly Prac
           error: signal(error),
           data: signal<PracticeData | null>(status === 'ready' ? data : null),
           ref: signal(GOLD_STANDARD_REPO),
+          isAuthorFallback: signal(isAuthorFallback),
           load: vi.fn(),
         },
       },
@@ -96,6 +102,14 @@ describe('PracticeListComponent', () => {
     expect(contractOnly.querySelector('.difficulty-badge')).toBeNull();
 
     expect(text(rowFor(root, STATIC_ONLY_NUMBER))).not.toContain(RUN_MARK);
+  });
+
+  it.each([
+    { isAuthorFallback: true, isShown: true },
+    { isAuthorFallback: false, isShown: false },
+  ])('author-fallback $isAuthorFallback shows the key mark: $isShown', ({ isAuthorFallback, isShown }) => {
+    const root = setUp('ready', null, [], isAuthorFallback).nativeElement as HTMLElement;
+    expect(text(root).includes("author's problem set")).toBe(isShown);
   });
 
   it('shows category and tags only after Tags is pressed', () => {

@@ -94,6 +94,54 @@ $mark-size: 14px;
     color: var(--color-accent);
   }
 
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    max-width: 60ch;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  &__label {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+
+  &__input {
+    padding: var(--space-sm);
+    font: inherit;
+    color: var(--color-text);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+
+  &__toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  &__toggle {
+    padding: var(--space-sm) var(--space-md);
+    font: inherit;
+    color: var(--color-text);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+
+    &[aria-pressed='true'] {
+      background: var(--color-accent-dim);
+      border-color: var(--color-accent);
+    }
+  }
+
   &__steps {
     display: flex;
     flex-direction: column;

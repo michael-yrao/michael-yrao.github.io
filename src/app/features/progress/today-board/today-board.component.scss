@@ -451,6 +451,8 @@ $workload-planned-opacity: 0.35;
   margin: 0;
 }
 
+.today-board__setup a { margin-left: var(--space-sm); color: var(--color-accent); }
+
 // The trend panel — full row width, same idea as the Problems tab's `.problem__chart`.
 .today-board__trend { flex: 1 1 100%; margin-top: var(--space-sm); }
 

@@ -6,7 +6,10 @@ import { endNoteMeaning } from './board-rows';
 import { SOLUTION_LINK_MODE_STORAGE_KEY } from '../solution-link-mode';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemProgress, Schedule, ScheduleItem, WorkloadDay } from '../../../core/models/progress.model';
-import { LoadStatus } from '../../../core/services/progress.service';
+import { LoadStatus, ProgressService } from '../../../core/services/progress.service';
+import { EngineService } from '../../../core/engine/engine.service';
+import { NO_ENGINE_RUN } from '../../../core/engine/engine-status';
+import { of } from 'rxjs';
 import { addDaysISO, currentWeekStart, shortMonthDay, todayLocalISO, weekdayShort } from '../../../core/utils/local-date';
 
 // Every fixture below reads the persisted link mode on construction — clear it after each
@@ -1732,5 +1735,27 @@ describe('endNoteMeaning', () => {
     // answers to `toString`/`constructor`/`__proto__`, which a naive lookup would return.
     expect(endNoteMeaning('toString')).toBeNull();
     expect(endNoteMeaning('constructor')).toBeNull();
+  });
+});
+
+describe('TodayBoardComponent setup CTA', () => {
+  it.each<{ name: string; isOwnRepo: boolean; hasLink: boolean }>([
+    { name: 'own repo with no schedule links to /start', isOwnRepo: true, hasLink: true },
+    { name: "someone else's repo with no schedule has no CTA", isOwnRepo: false, hasLink: false },
+  ])('$name', ({ isOwnRepo, hasLink }) => {
+    TestBed.configureTestingModule({
+      imports: [TodayBoardComponent],
+      providers: [
+        provideRouter([]),
+        { provide: EngineService, useValue: { status$: () => of(NO_ENGINE_RUN) } },
+        { provide: ProgressService, useValue: { refresh: () => undefined } },
+      ],
+    });
+    const fixture = TestBed.createComponent(TodayBoardComponent);
+    fixture.componentRef.setInput('schedule', null);
+    fixture.componentRef.setInput('isOwnRepo', isOwnRepo);
+    fixture.detectChanges();
+    const link = fixture.nativeElement.querySelector('a[href="/start"]');
+    expect(link !== null).toBe(hasLink);
   });
 });

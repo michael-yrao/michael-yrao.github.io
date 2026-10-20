@@ -158,6 +158,13 @@ export class ProgressPageComponent {
   protected readonly auth = inject(AuthService);
   /** The repos the App is installed on for the signed-in viewer; null until looked up. */
   protected readonly ownRepos = signal<readonly string[] | null>(null);
+  /** Signed in as the owner of the repo on screen: the engine mark and setup link show only then. */
+  protected readonly isOwnRepo = computed(() => {
+    const ref = this.repoRef();
+    const login = this.auth.login();
+    if (!this.auth.isSignedIn() || ref === null || login === null) return false;
+    return ref.owner.toLowerCase() === login.toLowerCase();
+  });
 
   // Which rows get a Run link — PracticeNumbers also owns the practice-index load effect.
   protected readonly practiceGlyph = PRACTICE_GLYPH;

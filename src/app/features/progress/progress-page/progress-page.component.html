@@ -227,8 +227,8 @@
     @case ('empty') {
       <div class="card po-card">
         <p>
-          Your repo is ready, with no reps yet. Solve your first problem on the Practice page, or
-          clone the repo and run /cse-init in Claude Code.
+          Your repo is ready. Answer four questions to build your first week.
+          <a routerLink="/start">Set up my track</a>
         </p>
       </div>
     }
@@ -310,6 +310,7 @@
                   [detailsStatus]="detailsStatus()"
                   [detailsError]="detailsError()"
                   [repoRef]="repoRef()"
+                  [isOwnRepo]="isOwnRepo()"
                   [history]="history()"
                   [historyStatus]="historyStatus()"
                   [practiceNumbers]="practiceNumbers()"
