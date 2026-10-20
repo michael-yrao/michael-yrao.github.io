@@ -1780,3 +1780,24 @@ describe('TodayBoardComponent hold control', () => {
     expect(fixture.nativeElement.querySelectorAll('app-hold-control').length).toBe(count);
   });
 });
+
+describe('TodayBoardComponent engine gear', () => {
+  it.each<{ name: string; isOwnRepo: boolean; count: number }>([
+    { name: 'owner has the gear inside the week navigation', isOwnRepo: true, count: 1 },
+    { name: 'visitor has no gear', isOwnRepo: false, count: 0 },
+  ])('$name', ({ isOwnRepo, count }) => {
+    TestBed.configureTestingModule({
+      imports: [TodayBoardComponent],
+      providers: [
+        provideRouter([]),
+        { provide: EngineService, useValue: { status$: () => of(NO_ENGINE_RUN), versions: async () => null } },
+        { provide: ProgressService, useValue: { refresh: () => undefined } },
+      ],
+    });
+    const fixture = TestBed.createComponent(TodayBoardComponent);
+    fixture.componentRef.setInput('schedule', makeSchedule());
+    fixture.componentRef.setInput('isOwnRepo', isOwnRepo);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.today-board__week-nav app-engine-mark').length).toBe(count);
+  });
+});

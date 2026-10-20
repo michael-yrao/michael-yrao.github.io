@@ -188,9 +188,6 @@
         >
       }
     }
-    @if (isOwnRepo()) {
-      <app-engine-mark [repoRef]="repoRef()" [canBuild]="!!schedule()" />
-    }
     <div class="today-board__week-nav">
       <button
         type="button"
@@ -207,6 +204,9 @@
         [disabled]="!canGoNext()"
         (click)="nextWeek()"
       >▶</button>
+      @if (isOwnRepo()) {
+        <app-engine-mark [repoRef]="repoRef()" [canBuild]="!!schedule()" />
+      }
     </div>
   </div>
 

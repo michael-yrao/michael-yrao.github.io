@@ -1,28 +1,27 @@
 <div class="engine-mark">
   <details class="engine" [open]="open()" (toggle)="onToggle($event)">
-    <summary class="engine__summary">
-      <span class="engine__caret" [class.engine__caret--open]="open()">▸</span>
-      @if (glyph() !== '') {
-        @if (glyphUrl(); as url) {
-          <a
-            class="engine-mark__glyph"
-            [attr.data-state]="glyphState()"
-            [href]="url"
-            target="_blank"
-            rel="noopener"
-            [attr.aria-label]="label()"
-            >{{ glyph() }}</a
-          >
-        } @else {
-          <span class="engine-mark__glyph" [attr.data-state]="glyphState()" [attr.aria-label]="label()">{{
-            glyph()
-          }}</span>
-        }
-      }
-      <span>Engine</span>
+    <summary class="engine__gear" [class.engine__gear--build-day]="isTodayBuildDay()" [attr.aria-label]="label()">
+      ⚙<span class="engine__dot" [attr.data-state]="glyphState()"></span>
     </summary>
-    <div class="engine__body">
+    <div class="engine__panel">
       <span class="engine-mark__row">
+        @if (glyph() !== '') {
+          @if (glyphUrl(); as url) {
+            <a
+              class="engine-mark__glyph"
+              [attr.data-state]="glyphState()"
+              [href]="url"
+              target="_blank"
+              rel="noopener"
+              [attr.aria-label]="label()"
+              >{{ glyph() }}</a
+            >
+          } @else {
+            <span class="engine-mark__glyph" [attr.data-state]="glyphState()" [attr.aria-label]="label()">{{
+              glyph()
+            }}</span>
+          }
+        }
         <span class="engine-mark__key">{{ keyLine() }}</span>
       </span>
       @if (segments().length > 0) {

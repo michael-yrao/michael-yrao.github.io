@@ -3,6 +3,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  HostListener,
   computed,
   inject,
   input,
@@ -38,7 +40,7 @@ const LABELS: Readonly<Record<EngineState, string>> = {
 
 const OFF_KEY_LINE = '⏻ weekly build is off in cse.config.yml';
 const NO_CONFIG_KEY_LINE = '✗ no cse.config.yml yet';
-const RUN_KEY_LINE = '⟳ engine running · ✓ last run ok · ✗ last run failed';
+const RUN_KEY_LINE = `⟳ engine running · ✓ last run ok · ✗ last run failed · ${OFF_KEY_LINE}`;
 const OFF_GLYPH = '⏻';
 const NO_CONFIG_GLYPH = '✗';
 
@@ -65,6 +67,7 @@ export class EngineMarkComponent {
   private readonly progress = inject(ProgressService);
   private readonly delay = inject(ENGINE_DELAY);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private isDestroyed = false;
 
   protected readonly status = signal<EngineStatus>(NO_ENGINE_RUN);
@@ -74,15 +77,12 @@ export class EngineMarkComponent {
   protected readonly isConfirming = signal(false);
   /** null = the user has not toggled the details by hand, so the auto rule decides. */
   protected readonly isOpen = signal<boolean | null>(null);
+  /** A refusal the user just caused opens the panel so its key line is seen; the dot carries the rest. */
   protected readonly open = computed(
-    () =>
-      this.isOpen() ??
-      (isBuildDay(todayLocalISO()) ||
-        this.status().state === 'running' ||
-        this.status().state === 'failed' ||
-        this.lastBuild() === 'off' ||
-        this.lastBuild() === 'no-config'),
+    () => this.isOpen() ?? (this.lastBuild() === 'off' || this.lastBuild() === 'no-config'),
   );
+  /** Today is the weekly build day: the gear wears a ring. */
+  protected readonly isTodayBuildDay = computed(() => isBuildDay(todayLocalISO()));
   protected readonly glyph = computed(() => {
     if (this.lastBuild() === 'off') return OFF_GLYPH;
     if (this.lastBuild() === 'no-config') return NO_CONFIG_GLYPH;
@@ -142,6 +142,18 @@ export class EngineMarkComponent {
   protected onToggle(event: Event): void {
     const isNowOpen = (event.target as HTMLDetailsElement).open;
     if (isNowOpen !== this.open()) this.isOpen.set(isNowOpen);
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeOnEscape(): void {
+    if (this.open()) this.isOpen.set(false);
+  }
+
+  @HostListener('document:click', ['$event.target'])
+  protected closeOnOutsideClick(target: EventTarget | null): void {
+    if (!this.open()) return;
+    if (target instanceof Node && this.host.nativeElement.contains(target)) return;
+    this.isOpen.set(false);
   }
 
   protected confirmBuild(): void {

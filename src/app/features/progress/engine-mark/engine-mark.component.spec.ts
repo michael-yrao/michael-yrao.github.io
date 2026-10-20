@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 
@@ -169,6 +169,14 @@ async function mountMark(status: EngineStatus, buildNextWeek = vi.fn(async () =>
   return { fixture, el, details: el.querySelector('details.engine') as HTMLDetailsElement, buildNextWeek };
 }
 
+/** What a gear click does: the browser opens the details and fires `toggle`. */
+function openByHand(fixture: ComponentFixture<EngineMarkComponent>): void {
+  const details = (fixture.nativeElement as HTMLElement).querySelector('details.engine') as HTMLDetailsElement;
+  details.open = true;
+  details.dispatchEvent(new Event('toggle'));
+  fixture.detectChanges();
+}
+
 function pressButton(el: HTMLElement, label: string): void {
   Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.trim() === label)?.click();
 }
@@ -178,20 +186,63 @@ describe('EngineMarkComponent disclosure', () => {
   afterEach(() => vi.useRealTimers());
 
   it.each([
-    { name: 'a Wednesday with no run stays closed', now: WEDNESDAY_NOON, status: NO_ENGINE_RUN, isClosedByHand: false, expected: false },
-    { name: 'a Sunday opens', now: SUNDAY_NOON, status: NO_ENGINE_RUN, isClosedByHand: false, expected: true },
-    { name: 'a running run opens it on a Wednesday', now: WEDNESDAY_NOON, status: RUNNING, isClosedByHand: false, expected: true },
-    { name: 'a failed run opens it on a Wednesday', now: WEDNESDAY_NOON, status: FAILED, isClosedByHand: false, expected: true },
-    { name: 'a hand close on a Sunday sticks', now: SUNDAY_NOON, status: NO_ENGINE_RUN, isClosedByHand: true, expected: false },
-  ])('$name', async ({ now, status, isClosedByHand, expected }) => {
+    { name: 'no run reads none', status: NO_ENGINE_RUN, dot: 'none' },
+    { name: 'a running run reads running', status: RUNNING, dot: 'running' },
+    { name: 'a finished run reads ok', status: NEW_OK, dot: 'ok' },
+    { name: 'a failed run reads failed', status: FAILED, dot: 'failed' },
+  ])('the dot: $name', async ({ status, dot }) => {
+    vi.setSystemTime(WEDNESDAY_NOON);
+    const { el } = await mountMark(status);
+    expect(el.querySelector('.engine__dot')?.getAttribute('data-state')).toBe(dot);
+  });
+
+  it.each<{
+    name: string;
+    now: Date;
+    act: (fixture: ComponentFixture<EngineMarkComponent>) => void;
+    isOpen: boolean;
+    isBuildDay: boolean;
+  }>([
+    { name: 'a Wednesday starts closed with no ring', now: WEDNESDAY_NOON, act: () => undefined, isOpen: false, isBuildDay: false },
+    { name: 'clicking the gear opens the panel', now: WEDNESDAY_NOON, act: openByHand, isOpen: true, isBuildDay: false },
+    {
+      name: 'Escape closes it',
+      now: WEDNESDAY_NOON,
+      act: (fixture) => {
+        openByHand(fixture);
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      },
+      isOpen: false,
+      isBuildDay: false,
+    },
+    {
+      name: 'a click outside closes it',
+      now: WEDNESDAY_NOON,
+      act: (fixture) => {
+        openByHand(fixture);
+        document.body.click();
+      },
+      isOpen: false,
+      isBuildDay: false,
+    },
+    {
+      name: 'a click inside the panel keeps it open',
+      now: WEDNESDAY_NOON,
+      act: (fixture) => {
+        openByHand(fixture);
+        ((fixture.nativeElement as HTMLElement).querySelector('.engine__panel') as HTMLElement).click();
+      },
+      isOpen: true,
+      isBuildDay: false,
+    },
+    { name: 'a Sunday rings the gear and stays closed', now: SUNDAY_NOON, act: () => undefined, isOpen: false, isBuildDay: true },
+  ])('$name', async ({ now, act, isOpen, isBuildDay }) => {
     vi.setSystemTime(now);
-    const { fixture, details } = await mountMark(status);
-    if (isClosedByHand) {
-      details.open = false;
-      details.dispatchEvent(new Event('toggle'));
-      fixture.detectChanges();
-    }
-    expect(details.open).toBe(expected);
+    const { fixture, el, details } = await mountMark(NO_ENGINE_RUN);
+    act(fixture);
+    fixture.detectChanges();
+    expect(details.open).toBe(isOpen);
+    expect(el.querySelector('.engine__gear')?.classList.contains('engine__gear--build-day')).toBe(isBuildDay);
   });
 
   it.each([
@@ -210,7 +261,7 @@ describe('EngineMarkComponent disclosure', () => {
     expect(buildNextWeek).toHaveBeenCalledTimes(calls);
   });
 
-  it('a build refused as off shows the off key line and opens the details', async () => {
+  it('a build refused as off shows the off key line, opens the panel and sets the dot to off', async () => {
     vi.setSystemTime(WEDNESDAY_NOON);
     const { fixture, el, details } = await mountMark(NO_ENGINE_RUN, vi.fn(async () => 'off'));
     expect(details.open).toBe(false);
@@ -221,6 +272,7 @@ describe('EngineMarkComponent disclosure', () => {
     fixture.detectChanges();
     expect(el.querySelector('.engine-mark__key')?.textContent?.trim()).toBe(OFF_KEY_LINE);
     expect(details.open).toBe(true);
+    expect(el.querySelector('.engine__dot')?.getAttribute('data-state')).toBe('off');
     const glyph = el.querySelector('.engine-mark__glyph');
     expect(glyph?.getAttribute('data-state')).toBe('off');
     expect(glyph?.getAttribute('href')).toBeNull();
