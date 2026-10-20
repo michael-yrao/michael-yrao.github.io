@@ -179,6 +179,9 @@
         >
       }
     }
+    @if (isOwnRepo()) {
+      <app-engine-mark [repoRef]="repoRef()" [canBuild]="!!schedule()" />
+    }
     <div class="today-board__week-nav">
       <button
         type="button"
@@ -198,7 +201,12 @@
     </div>
   </div>
 
-  @if (isLoadingWeek()) {
+  @if (needsSetup()) {
+    <p class="today-board__hint today-board__setup">
+      No week built yet.
+      <a routerLink="/start">Set up my track</a>
+    </p>
+  } @else if (isLoadingWeek()) {
     <p class="today-board__hint">Loading history…</p>
   } @else if (isHistoryError()) {
     <p class="today-board__hint">Couldn't load past weeks.</p>

@@ -104,7 +104,17 @@ export async function checkOwner(
   const user = await fetchUser(fetchImpl, token);
   if (user.kind === 'bad-token') return failure(401, 'bad-token', cors);
   if (user.kind === 'error') return failure(502, 'github-error', cors);
+  return checkRepoOwner(fetchImpl, token, target, user.login, cors);
+}
 
+/** The repo half of the owner check, for a caller that already knows the token's login. */
+export async function checkRepoOwner(
+  fetchImpl: FetchImpl,
+  token: string,
+  target: RepoTarget,
+  login: string,
+  cors: HeaderMap,
+): Promise<Response | null> {
   const repoResponse = await fetchImpl(`${API_BASE}/repos/${target.owner}/${target.repo}`, {
     headers: apiHeaders(token),
   });
@@ -112,7 +122,7 @@ export async function checkOwner(
   if (repoResponse.status !== HTTP_OK) return failure(502, 'github-error', cors);
 
   const repo = await readJson(repoResponse);
-  return isRepoOwnedBy(repo, target.owner, user.login) ? null : failure(403, 'not-owner', cors);
+  return isRepoOwnedBy(repo, target.owner, login) ? null : failure(403, 'not-owner', cors);
 }
 
 export function contentsUrl(target: RepoTarget, path: string): string {
@@ -170,17 +180,30 @@ export async function writeOwnedFile(
   const refusal = await checkOwner(fetchImpl, token, target, cors);
   if (refusal !== null) return refusal;
 
+  const written = await writeFile(fetchImpl, token, target, commit, cors);
+  return written.kind === 'refused' ? written.response : jsonResponse(200, { ok: true }, cors);
+}
+
+type WriteResult = { kind: 'written' } | { kind: 'refused'; response: Response };
+
+/** Sha lookup, then PUT, with no owner check; the caller has already done it. */
+export async function writeFile(
+  fetchImpl: FetchImpl,
+  token: string,
+  target: FileTarget,
+  commit: FileCommit,
+  cors: HeaderMap,
+): Promise<WriteResult> {
   const existing = await findExistingSha(fetchImpl, token, target, cors);
-  if (existing.kind === 'refused') return existing.response;
+  if (existing.kind === 'refused') return existing;
 
   const put = await fetchImpl(contentsUrl(target, target.path), {
     method: 'PUT',
     headers: { ...apiHeaders(token), 'Content-Type': 'application/json' },
     body: commitBody(target, commit, existing.sha),
   });
-  if (put.status === HTTP_OK || put.status === HTTP_CREATED)
-    return jsonResponse(200, { ok: true }, cors);
+  if (put.status === HTTP_OK || put.status === HTTP_CREATED) return { kind: 'written' };
   if (put.status === HTTP_FORBIDDEN || put.status === HTTP_NOT_FOUND)
-    return failure(409, 'not-installed', cors);
-  return failure(502, 'github-error', cors);
+    return { kind: 'refused', response: failure(409, 'not-installed', cors) };
+  return { kind: 'refused', response: failure(502, 'github-error', cors) };
 }

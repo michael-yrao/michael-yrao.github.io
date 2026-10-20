@@ -70,7 +70,7 @@ gets a 503 when a binding is missing.
 
 ## GitHub sign-in
 
-`src/auth/` serves two routes, `src/pattern-sense/` one, `src/practice/` two and `src/onboard/` one, for the site's GitHub sign-in and saves:
+`src/auth/` serves two routes, `src/pattern-sense/` one, `src/practice/` two, `src/onboard/` two and `src/engine/` one, for the site's GitHub sign-in and saves:
 
 - `src/auth/`: `POST /auth/token` swaps GitHub's one-time login code for a token and returns your GitHub login.
 - `src/auth/`: `POST /auth/refresh` swaps a refresh token for a new token.
@@ -78,6 +78,8 @@ gets a 503 when a binding is missing.
 - `src/practice/`: `POST /practice/save` writes an attempt to `dsa/attempts/<YYYYMMDD>/` in a repo you own.
 - `src/practice/`: `POST /practice/latest` returns your newest saved attempt for a problem.
 - `src/onboard/`: `POST /onboard/dsa` creates your `cse-progress` repo from the cse-coach template, or adopts the one you already have.
+- `src/onboard/`: `POST /onboard/intake` takes `{name, target, timezone, startDate}` and writes `intake.yml` to your `cse-progress` repo; it answers 409 `already-onboarded` once `cse.config.yml` exists.
+- `src/engine/`: `POST /engine/weekly-build` takes `{owner, repo}`, enables the repo's `weekly-build.yml` workflow and dispatches it on `main` (202 `{status: 'dispatched'}`).
 
 Only the origins in `ALLOWED_ORIGINS` (a `[vars]` entry in `wrangler.toml`) are served.
 
@@ -85,7 +87,7 @@ Setup:
 
 1. Register a GitHub App (Settings → Developer settings → GitHub Apps → New GitHub App):
    - Visibility: public, so other cse-coach users can give it permission on their own repos.
-   - Repository permissions: Contents → Read and write. Other permissions: Repository creation. Every other permission off.
+   - Repository permissions: Contents → Read and write; Actions → Read and write (needed by `/engine/weekly-build`). Add Workflows → Read and write only if creating a repo from a template that contains workflow files is refused. Other permissions: Repository creation. Every other permission off.
    - Callback URL: `https://progressiveoverflow.com/auth/callback` (plus `http://localhost:4200/auth/callback` for local dev)
    - Setup URL: `https://progressiveoverflow.com/start?resume=1`, with "Redirect on update" on.
    - "Request user authorization (OAuth) during installation": off.

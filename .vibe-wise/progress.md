@@ -67,3 +67,8 @@ Status: implemented 2026-10-19 (reflow.ts EXAMPLE_LABEL; figureCells through exp
 - `/start` is a track picker; DSA is the only enabled track.
 - A fresh repo with no `practice.json` falls back to the author's (author-fallback).
 - A repo with no progress files shows an empty state instead of an error.
+
+## 2026-10-19 · No-clone study track: intake and the engine mark
+- Intake is a file commit (`intake.yml`) into the learner's own repo, not an API call that builds anything.
+- GitHub Actions in the learner's repo are the engine's compute (onboard, fold, weekly build); the Worker stays a thin write path.
+- The board's engine mark reads the public Actions runs API unauthenticated, cached 60 s, and only on the learner's own repo.

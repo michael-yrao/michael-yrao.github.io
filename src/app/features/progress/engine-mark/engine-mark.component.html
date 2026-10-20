@@ -1,0 +1,33 @@
+<div class="engine-mark">
+  <span class="engine-mark__row">
+    @if (status().state !== 'none') {
+      @if (status().htmlUrl; as url) {
+        <a
+          class="engine-mark__glyph"
+          [attr.data-state]="status().state"
+          [href]="url"
+          target="_blank"
+          rel="noopener"
+          [attr.aria-label]="label()"
+          >{{ glyph() }}</a
+        >
+      } @else {
+        <span class="engine-mark__glyph" [attr.data-state]="status().state" [attr.aria-label]="label()">{{
+          glyph()
+        }}</span>
+      }
+    }
+    <span class="engine-mark__key">⟳ engine running · ✓ last run ok · ✗ last run failed</span>
+    @if (canBuild()) {
+      <button type="button" class="engine-mark__button" [disabled]="isBuilding()" (click)="build()">
+        Build next week now
+      </button>
+    }
+  </span>
+  @if (isRefused()) {
+    <p class="engine-mark__refused">
+      Progressive Overflow needs one new permission to run your weekly build. Sign out, sign in
+      again, and accept the update on GitHub.
+    </p>
+  }
+</div>
