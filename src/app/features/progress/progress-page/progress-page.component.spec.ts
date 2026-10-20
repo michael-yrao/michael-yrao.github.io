@@ -172,7 +172,7 @@ function makeSummary(): ProgressSummary {
 // parseRepo is a pure method (it never touches the HttpClient the service is constructed
 // with), so a real instance built with a throwaway HttpClient is safe to call just for that
 // method — the stub below delegates to it instead of reimplementing its parsing rule.
-const realProgressService = new ProgressService({} as never);
+const realProgressService = new ProgressService({} as never, {} as never);
 
 function makeProgressServiceStub() {
   return {
@@ -182,6 +182,7 @@ function makeProgressServiceStub() {
     repoSlug: signal<string | null>('michael-yrao/cse-progress'),
     repoRef: signal<RepoRef | null>(GOLD_STANDARD_REPO),
     refreshing: signal(false),
+    pending: signal<ReadonlySet<number>>(new Set()),
     refreshError: signal<string | null>(null),
 
     detailsStatus: signal<'idle' | 'loading' | 'ready' | 'error'>('idle'),
@@ -1387,10 +1388,10 @@ const CALL_CAP = 5;
 const PRACTICE_FILE = 'dashboard/practice.json';
 const PRACTICE_INDEX_FILE = 'dashboard/practice-index.json';
 const MANIFEST_FILE = 'dashboard/manifest.json';
+const SUMMARY_FILE = 'dashboard/progress-summary.json';
 
-/** The summary fetch under test: not the manifest, nor the practice index/contract riding along. */
-const isSummaryUrl = (url: string) =>
-  ![MANIFEST_FILE, PRACTICE_INDEX_FILE, PRACTICE_FILE].some((file) => url.includes(file));
+/** The summary fetch under test, by its path; the manifest, practice files and the attempt-folder listing ride along. */
+const isSummaryUrl = (url: string) => url.includes(SUMMARY_FILE);
 
 function makeCountingHttp() {
   const calls: string[] = [];

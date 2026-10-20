@@ -27,6 +27,7 @@ import { PRACTICE_GLYPH } from '../practice-link';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProgressViewStateService } from '../progress-view-state.service';
 import {
+  BOARD_KEY,
   BoardRow,
   COMPLEXITY_GATE_TITLE,
   RowCounts,
@@ -46,7 +47,9 @@ import {
   outcomeAriaLabel,
   outcomeBubbleId,
   outcomeKey,
+  plainAriaLabel,
   rowKey,
+  rowStateGlyph,
   statusAriaLabel,
   statusGlyph,
   sumRowCounts,
@@ -54,6 +57,8 @@ import {
   trendPanelId,
 } from './board-rows';
 import { WeekNavigation } from './week-navigation';
+
+const NO_PENDING: ReadonlySet<number> = new Set();
 
 /**
  * The Overview tab's one schedule card: a 7-day selector strip over the week's
@@ -111,6 +116,10 @@ export class TodayBoardComponent {
 
   /** LeetCode numbers with a practice contract entry — only these rows get the Run link. */
   readonly practiceNumbers = input<ReadonlySet<number>>(new Set());
+
+  /** LeetCode numbers whose complete rep is saved today but not yet folded into the summary
+   *  (`ProgressService.pending`) — those rows show the "saved, folding" state. */
+  readonly pending = input<ReadonlySet<number>>(NO_PENDING);
 
   /** The archived weeks (`ProgressService.history`) — `null` until the board has asked for
    *  them (see `prevWeek()`), an array (possibly empty) once that fetch has resolved. */
@@ -307,6 +316,18 @@ export class TodayBoardComponent {
     return file && ref ? fileUrl(ref, file) : null;
   }
 
+  /** True for an open row whose rep is saved but not yet folded. Only TODAY's day qualifies:
+   *  the pending set comes from today's attempt folder, so a same-numbered row on another day
+   *  must not light up. */
+  isPendingItem(item: ScheduleItem, date: string): boolean {
+    return (
+      !item.done &&
+      item.lcNumber !== null &&
+      date === this.todayISO() &&
+      this.pending().has(item.lcNumber)
+    );
+  }
+
   /** Rows for one day, used by both the collapsed (selected-day) and expanded (7-day) views. */
   rowsFor(day: ScheduleDay): BoardRow[] {
     return this.boardRowsByDate().get(day.date) ?? [];
@@ -334,6 +355,9 @@ export class TodayBoardComponent {
   protected readonly githubAriaLabel = githubAriaLabel;
   protected readonly movedAriaLabel = movedAriaLabel;
   protected readonly statusGlyph = statusGlyph;
+  protected readonly plainAriaLabel = plainAriaLabel;
+  protected readonly rowStateGlyph = rowStateGlyph;
+  protected readonly boardKey = BOARD_KEY;
   protected readonly walkthroughGlyph = WALKTHROUGH_GLYPH;
   protected readonly practiceGlyph = PRACTICE_GLYPH;
   protected readonly gateTitle = COMPLEXITY_GATE_TITLE;

@@ -97,6 +97,8 @@ export class ProgressPageComponent {
   readonly detailsError = this.progress.detailsError;
   readonly detailsRefreshing = this.progress.detailsRefreshing;
   readonly details = this.progress.details;
+  // LeetCode numbers saved today but not yet folded into the summary — the board's third state.
+  readonly pending = this.progress.pending;
 
   // The Overview board's archived weeks — opt-in, fetched only once the board steps back
   // past the week the summary already carries (see WeekNavigation.prevWeek()).

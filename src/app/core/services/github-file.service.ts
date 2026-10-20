@@ -39,6 +39,17 @@ const TOO_MANY_REQUESTS_STATUS = 429;
 const SERVER_ERROR_STATUS = 500;
 const OFFLINE_STATUS = 0;
 
+/** One entry of a directory listing: its file name and `file` / `dir` kind. */
+export interface DirEntry {
+  readonly name: string;
+  readonly type: string;
+}
+
+function isDirEntry(entry: unknown): entry is DirEntry {
+  const candidate = entry as { name?: unknown; type?: unknown } | null;
+  return typeof candidate?.name === 'string' && typeof candidate?.type === 'string';
+}
+
 /** Encodes each `/`-separated branch segment, keeping the slashes literal for the raw host. */
 function encodeBranchPath(branch: string): string {
   return branch.split('/').map(encodeURIComponent).join('/');
@@ -198,6 +209,42 @@ export class GitHubFileService {
             ),
       ),
     );
+  }
+
+  /** Both reads below always bust: an attempt file can be overwritten, and a 60 s cached copy
+   *  would hide a just-completed rep. */
+  private rawApiHeaders(): HttpHeaders {
+    return new HttpHeaders({ Accept: 'application/vnd.github.raw' });
+  }
+
+  /** The entries of a repo directory; `[]` on a 404 or a body that is not a listing. No raw
+   *  fallback (raw.githubusercontent cannot list a directory) and no manifest path. */
+  listDir$(ref: RepoRef, dir: string): Observable<readonly DirEntry[]> {
+    return this.http
+      .get<unknown>(this.apiUrl(ref, dir, null, true), {
+        headers: this.rawApiHeaders(),
+        responseType: 'json',
+      })
+      .pipe(
+        map((body) => (Array.isArray(body) ? body.filter(isDirEntry) : [])),
+        catchError((err) => (err?.status === NOT_FOUND_STATUS ? of([]) : throwError(() => err))),
+      );
+  }
+
+  /** A text file's body (not JSON), API-first with a raw fallback on a 403. */
+  fetchText$(ref: RepoRef, file: string): Observable<string> {
+    return this.http
+      .get(this.apiUrl(ref, file, null, true), {
+        headers: this.rawApiHeaders(),
+        responseType: 'text',
+      })
+      .pipe(
+        catchError((err) =>
+          err?.status === RATE_LIMIT_STATUS
+            ? this.http.get(this.rawUrl(ref, file), { responseType: 'text' })
+            : throwError(() => err),
+        ),
+      );
   }
 
   /** GET a named file from the repo; keyed by the manifest's hash when it lists the file. */

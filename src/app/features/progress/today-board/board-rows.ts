@@ -39,6 +39,12 @@ const PULLED_IN_ARIA_SUFFIX = ', pulled in';
 // `</` reads to the HTML parser as a closing tag before Angular's interpolation is tokenized —
 // so the walkthrough badge's own glyph lives here instead and the template references it.
 export const WALKTHROUGH_GLYPH = '</>';
+const DONE_GLYPH = '✓';
+const PENDING_GLYPH = '◐';
+const OPEN_GLYPH = '○';
+const PENDING_LABEL = 'saved, folding';
+/** The board's key line, rendered once at the bottom of the board. */
+export const BOARD_KEY = `${DONE_GLYPH} done · ${PENDING_GLYPH} ${PENDING_LABEL} · ${OPEN_GLYPH} open`;
 const RE_ASK_SUFFIX = 're-asks';
 const MAX_PCT = 100;
 // Monday-first, matching gamify.py's `day_date.strftime('%A')` — used only to label a
@@ -304,16 +310,35 @@ function pulledInSuffix(item: ScheduleItem): string {
 /** The status badge's aria-label when it's the walkthrough link: "Solution walkthrough for
  *  #N, done|not done". A moved row's badge carries no walkthrough/done meaning, so
  *  `movedAriaLabel` takes over instead. */
-export function statusAriaLabel(item: ScheduleItem, date: string): string {
+export function statusAriaLabel(item: ScheduleItem, date: string, isPending = false): string {
   if (isMovedItem(item)) return movedAriaLabel(item, date);
-  return `Solution walkthrough for #${item.lcNumber}, ${item.done ? 'done' : 'not done'}${pulledInSuffix(item)}`;
+  return `Solution walkthrough for #${item.lcNumber}, ${doneLabel(item, isPending)}${pulledInSuffix(item)}`;
+}
+
+/** The done-ness phrase a badge's aria-label carries: a saved rep still folding into the
+ *  summary reads as such rather than as "not done". */
+function doneLabel(item: ScheduleItem, isPending: boolean): string {
+  if (isPending) return PENDING_LABEL;
+  return item.done ? 'done' : 'not done';
+}
+
+/** The plain-span badge's aria-label: moved first, then the row's done/pending/open state. */
+export function plainAriaLabel(item: ScheduleItem, date: string, isPending: boolean): string {
+  if (isMovedItem(item)) return movedAriaLabel(item, date);
+  return doneLabel(item, isPending);
+}
+
+/** The badge glyph for a row with no walkthrough route: done / saved-and-folding / open. */
+export function rowStateGlyph(item: ScheduleItem, isPending: boolean): string {
+  if (item.done) return DONE_GLYPH;
+  return isPending ? PENDING_GLYPH : OPEN_GLYPH;
 }
 
 /** The status badge's aria-label when it's the GitHub solution-file link — mirrors
  *  `statusAriaLabel`, done-ness (or moved-ness) in place of the walkthrough's. */
-export function githubAriaLabel(item: ScheduleItem, date: string): string {
+export function githubAriaLabel(item: ScheduleItem, date: string, isPending = false): string {
   if (isMovedItem(item)) return movedAriaLabel(item, date);
-  return `Solution source for #${item.lcNumber} on GitHub, ${item.done ? 'done' : 'not done'}${pulledInSuffix(item)}`;
+  return `Solution source for #${item.lcNumber} on GitHub, ${doneLabel(item, isPending)}${pulledInSuffix(item)}`;
 }
 
 /** The status badge's glyph — `↶` when the row was pulled to an earlier date than its own day

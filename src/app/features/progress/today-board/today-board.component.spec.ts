@@ -142,6 +142,33 @@ describe('TodayBoardComponent', () => {
     expect(doneRows[0].textContent).toContain('Same Tree');
   });
 
+  it.each([
+    // 9001-9003 are unregistered, so the row takes the plain-span badge (no walkthrough route).
+    { state: 'done', lcNumber: 9001, done: true, isPending: false, glyph: '✓' },
+    { state: 'pending', lcNumber: 9002, done: false, isPending: true, glyph: '◐' },
+    { state: 'open', lcNumber: 9003, done: false, isPending: false, glyph: '○' },
+  ])('draws a $state row with glyph $glyph and its state class', ({ lcNumber, done, isPending, glyph }) => {
+    const schedule = makeSchedule({
+      days: [
+        {
+          date: todayLocalISO(),
+          weekday: 'Today',
+          label: null,
+          units: 1,
+          items: [{ lcNumber, title: 'Row', technique: 'Arrays', startComfort: null, difficulty: null, done }],
+        },
+      ],
+    });
+    const fixture = createFixture(schedule);
+    fixture.componentRef.setInput('pending', new Set([9002]));
+    fixture.detectChanges();
+
+    const row: HTMLElement = fixture.nativeElement.querySelector('.today-board__row');
+    expect(row.classList.contains('today-board__row--done')).toBe(done);
+    expect(row.classList.contains('today-board__row--pending')).toBe(isPending);
+    expect(row.querySelector('.today-board__status')?.textContent?.trim()).toBe(glyph);
+  });
+
   // ── The technique-naming day label is dropped from the board (recognition-gate spoiler) ─
   it('renders no day-label element or text in the collapsed view, even though the fixture carries one', () => {
     const fixture = createFixture(makeSchedule());
