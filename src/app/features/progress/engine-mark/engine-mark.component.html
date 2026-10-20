@@ -1,8 +1,12 @@
 <div class="engine-mark">
   <details class="engine" [open]="open()" (toggle)="onToggle($event)">
-    <summary class="engine__gear" [class.engine__gear--build-day]="isTodayBuildDay()" [attr.aria-label]="label()">
-      ⚙<span class="engine__dot" [attr.data-state]="glyphState()"></span>
-    </summary>
+    <summary
+      class="engine__gear"
+      [class.engine__gear--build-day]="isTodayBuildDay()"
+      [attr.data-state]="glyphState()"
+      [attr.aria-label]="label()"
+      >⚙</summary
+    >
     <div class="engine__panel">
       <span class="engine-mark__row">
         @if (glyph() !== '') {

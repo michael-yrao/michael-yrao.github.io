@@ -193,7 +193,7 @@ describe('EngineMarkComponent disclosure', () => {
   ])('the dot: $name', async ({ status, dot }) => {
     vi.setSystemTime(WEDNESDAY_NOON);
     const { el } = await mountMark(status);
-    expect(el.querySelector('.engine__dot')?.getAttribute('data-state')).toBe(dot);
+    expect(el.querySelector('.engine__gear')?.getAttribute('data-state')).toBe(dot);
   });
 
   it.each<{
@@ -272,7 +272,7 @@ describe('EngineMarkComponent disclosure', () => {
     fixture.detectChanges();
     expect(el.querySelector('.engine-mark__key')?.textContent?.trim()).toBe(OFF_KEY_LINE);
     expect(details.open).toBe(true);
-    expect(el.querySelector('.engine__dot')?.getAttribute('data-state')).toBe('off');
+    expect(el.querySelector('.engine__gear')?.getAttribute('data-state')).toBe('off');
     const glyph = el.querySelector('.engine-mark__glyph');
     expect(glyph?.getAttribute('data-state')).toBe('off');
     expect(glyph?.getAttribute('href')).toBeNull();

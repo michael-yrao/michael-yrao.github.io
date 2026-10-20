@@ -67,9 +67,6 @@
   }
 }
 
-$gear-size: 2rem;
-$dot-size: 0.5rem;
-$dot-inset: 0.2rem;
 $panel-min-width: 18rem;
 $panel-gap: 0.25rem;
 $panel-z-index: 20;
@@ -78,15 +75,14 @@ $page-gutter: 2rem;
 .engine {
   position: relative;
 
+  // Same box as .today-board__week-nav-btn; the glyph's colour is the engine's state.
   &__gear {
-    position: relative;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: $gear-size;
-    height: $gear-size;
-    box-sizing: border-box;
-    font-size: 0.95rem;
+    padding: 2px 8px;
+    font-size: 0.78rem;
+    line-height: inherit;
     color: var(--color-text-muted);
     background: var(--color-bg-raised);
     border: 1px solid var(--color-border);
@@ -101,38 +97,27 @@ $page-gutter: 2rem;
     &:hover,
     &:focus-visible {
       border-color: var(--color-accent);
-      color: var(--color-text);
       outline: none;
     }
 
     &--build-day {
       box-shadow: 0 0 0 1px var(--color-accent);
     }
-  }
-
-  &__dot {
-    position: absolute;
-    top: $dot-inset;
-    right: $dot-inset;
-    width: $dot-size;
-    height: $dot-size;
-    border-radius: 50%;
-    background: var(--color-text-muted);
 
     &[data-state='running'] {
-      background: var(--color-accent);
+      color: var(--color-accent);
     }
 
     &[data-state='ok'] {
-      background: var(--color-easy);
+      color: var(--color-easy);
     }
 
     &[data-state='failed'] {
-      background: var(--color-hard);
+      color: var(--color-hard);
     }
 
     &[data-state='off'] {
-      background: var(--color-medium);
+      color: var(--color-medium);
     }
   }
 
