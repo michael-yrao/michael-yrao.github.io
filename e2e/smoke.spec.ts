@@ -44,6 +44,12 @@ test('the coach toggle opens the panel with its four chips', async ({ page }) =>
     key: SESSION_KEY,
     value: OWNER_SESSION,
   });
+  // The free deploy answers enabled:false and hides the toggle; the smoke stubs an enabled coach.
+  await page.route('**/coach/status', (route) =>
+    route.fulfill({
+      json: { enabled: true, awake: false, busy: false, sessionId: null, repoHead: null, dirty: false, sessionCostUsd: 0 },
+    }),
+  );
   await page.goto('/practice/1');
   await page.getByRole('button', { name: 'Open coach' }).click();
   const panel = page.locator('#po-coach');
