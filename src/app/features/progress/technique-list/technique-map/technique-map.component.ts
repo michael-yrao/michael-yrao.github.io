@@ -3,8 +3,10 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 import { ProblemProgress, Technique } from '../../../../core/models/progress.model';
 import {
   coverageTitle,
+  DetailsIndex,
   deriveTechniqueStats,
   doneOf,
+  indexDetails,
   isMastered,
   plannedTotalOf,
   shortName as shortNameFor,
@@ -76,14 +78,11 @@ export class TechniqueMapComponent {
 
   readonly hasSelection = computed(() => this.expandedName() !== null);
 
-  private readonly detailsByNumber = computed<ReadonlyMap<number, ProblemProgress>>(() => {
-    const list = this.details();
-    return list ? new Map(list.map((p) => [p.lcNumber, p])) : new Map();
-  });
+  private readonly detailsIndex = computed<DetailsIndex>(() => indexDetails(this.details() ?? []));
 
   private readonly statsByName = computed<ReadonlyMap<string, TechniqueStats>>(() => {
-    const byNumber = this.detailsByNumber();
-    return new Map(this.techniques().map((t) => [t.name, deriveTechniqueStats(t, byNumber)]));
+    const index = this.detailsIndex();
+    return new Map(this.techniques().map((t) => [t.name, deriveTechniqueStats(t, index)]));
   });
 
   techniqueFor(name: string): Technique {

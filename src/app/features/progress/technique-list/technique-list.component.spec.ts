@@ -252,6 +252,31 @@ describe('TechniqueListComponent', () => {
     expect(link?.getAttribute('aria-label')).toBe('External');
   });
 
+  it('renders both method variants of one LC number when rows names both', () => {
+    const recursion = 'Reverse Linked List (Recursion)';
+    const iterative = 'Reverse Linked List (Iterative)';
+    const fixture = createFixture(
+      [
+        makeTechnique({
+          problems: [206],
+          rows: [
+            { lcNumber: 206, title: recursion },
+            { lcNumber: 206, title: iterative },
+          ],
+        }),
+      ],
+      [makeProblem({ lcNumber: 206, title: recursion }), makeProblem({ lcNumber: 206, title: iterative })],
+    );
+
+    (fixture.nativeElement.querySelector('.tech-row__toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const rows = Array.from(fixture.nativeElement.querySelectorAll('.tech-row__problem')) as HTMLElement[];
+    expect(rows.length).toBe(2);
+    expect(rows[0].textContent).toContain(recursion);
+    expect(rows[1].textContent).toContain(iterative);
+  });
+
   // #9999 is deliberately unregistered — same convention as today-board.component.spec.ts's
   // makeSchedule() — so vizRoute(9999) is null and the GitHub-fallback branch is exercised.
   it('renders a GitHub fallback link for a problem with no walkthrough route but a `file`, when a repo ref is set', () => {

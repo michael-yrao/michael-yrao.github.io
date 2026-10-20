@@ -172,6 +172,18 @@ export interface Technique {
    *  cse-progress gamify.py's own tally, the reason `minProblems` can sit above
    *  `coverageFloor`. See `coverageFloor`. */
   uncleanCount?: number;
+  /** The tracker rows this technique credits, by LC number and title — names each method
+   *  variant of a number separately (e.g. 206 Recursion vs 206 Iterative), which `problems`
+   *  (numbers only) cannot. `graduatedCount` counts how many of these rows have reached 🎓 or
+   *  better, plus retired numbers. Optional, additive: an older contract predating it joins
+   *  `problems` to `details` by LC number alone — see `creditedProblems` in technique-view.ts. */
+  rows?: TechniqueRow[];
+}
+
+/** One tracker row a technique credits — joined to `ProblemProgress` by `${lcNumber}-${title}`. */
+export interface TechniqueRow {
+  lcNumber: number;
+  title: string;
 }
 
 /** One row of the current week's Daily Schedule table (cse-progress gamify.py's
