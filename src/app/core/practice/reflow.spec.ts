@@ -17,6 +17,8 @@ describe('reflowProse', () => {
         'Note:\n  - x\n  - y\nz',
       ],
       ['trailing spaces before a join are trimmed', 'a b  \nc', 'a b c'],
+      ['an example label never joins onto the line above', 'Input: x\nOutput: y', 'Input: x\nOutput: y'],
+      ['a continuation joins onto a label line', 'Explanation: a\nb', 'Explanation: a b'],
       ['empty string', '', ''],
     ];
     for (const [label, input, expected] of rows) {

@@ -40,5 +40,7 @@ export interface BigOEntry {
 export interface BigOData {
   readonly schemaVersion: number;
   readonly generatedAt: string;
+  /** The complexity-label pool, in order: every label a stated bound may take. */
+  readonly pool: readonly string[];
   readonly entries: readonly BigOEntry[];
 }

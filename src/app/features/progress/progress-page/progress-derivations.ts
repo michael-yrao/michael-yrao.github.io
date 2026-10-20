@@ -62,7 +62,7 @@ export function generatedAtLabel(generatedAt: string | undefined): string {
 
 /** lcNumber + title identifies a row uniquely even when a number carries several method
  *  variants (e.g. 21 Recursion vs Iterative) — same key the funnel/timeline `track` uses. */
-export function problemRowKey(p: ProblemProgress): string {
+export function problemRowKey(p: Pick<ProblemProgress, 'lcNumber' | 'title'>): string {
   return `${p.lcNumber}-${p.title}`;
 }
 

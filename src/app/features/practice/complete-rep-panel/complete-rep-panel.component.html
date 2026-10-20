@@ -1,0 +1,67 @@
+<section class="rep" tabindex="-1" [attr.aria-labelledby]="headingId" (keydown.escape)="closed.emit()">
+  <div class="rep__head">
+    <h2 class="rep__heading" [id]="headingId">Complete this rep</h2>
+    <button type="button" class="rep__close" aria-label="Close" title="Close" (click)="closed.emit()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M6 6l12 12M18 6L6 18" />
+      </svg>
+    </button>
+  </div>
+  @for (row of rows(); track row.key) {
+    <section class="rep__row">
+      <h3 class="rep__name">{{ row.name }}</h3>
+      <div class="rep__chips">
+        @for (label of pool(); track label) {
+          <button
+            type="button"
+            class="rep__chip"
+            [class.rep__chip--on]="row.label === label"
+            [attr.aria-pressed]="row.label === label"
+            [disabled]="isChecked()"
+            (click)="pick(row.key, label)"
+          >{{ label }}</button>
+        }
+      </div>
+      <label class="rep__why">
+        <span class="rep__why-name">Why</span>
+        <input
+          type="text"
+          class="rep__why-input"
+          placeholder="name each contributor"
+          [value]="row.why"
+          [disabled]="isChecked()"
+          (input)="onWhy(row.key, $event)"
+        />
+      </label>
+      @if (row.reveal; as reveal) {
+        <p class="rep__mark" [class.rep__mark--miss]="!reveal.isMatch">{{ reveal.mark }}</p>
+        @if (reveal.why) {
+          <p class="rep__ref-why">{{ reveal.why }}</p>
+        }
+      }
+    </section>
+  }
+  @if (isChecked() && reference() === null) {
+    <p class="rep__key">no reference bound</p>
+  }
+  <button type="button" class="rep__btn" [disabled]="!canCheck()" (click)="check()">Check</button>
+
+  <fieldset class="rep__comfort">
+    <legend class="rep__name">Comfort</legend>
+    @for (option of ratingOptions; track option.rating) {
+      <label class="rep__option">
+        <input
+          type="radio"
+          name="rep-comfort"
+          [value]="option.rating"
+          [disabled]="!isChecked()"
+          [checked]="rating() === option.rating"
+          (change)="rating.set(option.rating)"
+        />
+        <span>{{ option.label }}</span>
+      </label>
+    }
+  </fieldset>
+
+  <button type="button" class="rep__btn rep__btn--primary" [disabled]="rating() === null" (click)="save()">Save rep</button>
+</section>

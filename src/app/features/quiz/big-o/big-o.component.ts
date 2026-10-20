@@ -1,12 +1,13 @@
 import { Component, ChangeDetectionStrategy, computed, effect, inject, signal, untracked } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
+import { AuthService } from '../../../core/auth/auth.service';
 import { BigOEntry } from '../../../core/models/big-o.model';
 import { BigOService } from '../../../core/services/big-o.service';
 import { buildDisplay } from '../../../core/showcase/display';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
-import { GOLD_STANDARD_REPO, blobUrl } from '../../../core/services/github-file.service';
+import { GOLD_STANDARD_REPO, blobUrl, parseRepoSlug } from '../../../core/services/github-file.service';
 import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 import {
@@ -38,6 +39,8 @@ const BREADCRUMB: BreadcrumbEntry[] = [
 })
 export class BigOComponent {
   private readonly bigO = inject(BigOService);
+  private readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly breadcrumb = BREADCRUMB;
   readonly difficultyFilters = DIFFICULTY_FILTERS;
@@ -99,7 +102,8 @@ export class BigOComponent {
   readonly isAuthorFallback = this.bigO.isAuthorFallback;
 
   constructor() {
-    this.bigO.load();
+    const queryRepo = this.route.snapshot.queryParamMap.get('repo');
+    this.bigO.load(parseRepoSlug(this.auth.resolveRepo(queryRepo)) ?? GOLD_STANDARD_REPO);
 
     // Deals the first run once the contract is ready. `untracked` keeps this effect
     // dependent on `status()` alone — `startRun()` itself reads `pool()` (which depends on

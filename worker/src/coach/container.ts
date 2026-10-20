@@ -1,8 +1,8 @@
 import { Container, getContainer } from '@cloudflare/containers';
 import type { CoachVars } from './handler';
 
-// Imports `cloudflare:workers` through @cloudflare/containers, so only index.ts may import this
-// file. Specs inject a fake stub through the handler's deps instead.
+// Imports `cloudflare:workers` through @cloudflare/containers, so only index.coach.ts may
+// import this file. Specs inject a fake stub through the handler's deps instead.
 
 const CONTAINER_PORT = 8080;
 const IDLE_SLEEP_AFTER = '30m';

@@ -148,12 +148,15 @@ describe('AuthService', () => {
     interface Row {
       readonly name: string;
       readonly stored: string | null;
-      readonly expected: string;
+      readonly expected: string | null;
+      readonly listed?: readonly string[];
     }
     const ROWS: readonly Row[] = [
       { name: 'nothing stored: the first is selected and stored', stored: null, expected: 'a/one' },
       { name: 'stored repo still listed: kept', stored: 'b/two', expected: 'b/two' },
       { name: 'stored repo gone: replaced by the first', stored: 'z/gone', expected: 'a/one' },
+      { name: 'own learner repo not listed yet: kept', stored: 'Someone/cse-progress', expected: 'Someone/cse-progress' },
+      { name: 'no repos listed: selection unchanged', stored: 'z/gone', expected: 'z/gone', listed: [] },
     ];
 
     it.each(ROWS)('$name', async (row) => {
@@ -166,7 +169,7 @@ describe('AuthService', () => {
       await tick();
       httpMock
         .expectOne(`${GITHUB_API}/user/installations/7/repositories?per_page=100`)
-        .flush({ repositories: [{ full_name: 'a/one' }, { full_name: 'b/two' }] });
+        .flush({ repositories: (row.listed ?? ['a/one', 'b/two']).map((full_name) => ({ full_name })) });
       await listing;
 
       expect(service.selectedRepo()).toBe(row.expected);

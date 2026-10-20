@@ -1,4 +1,5 @@
 import { Comfort, ProblemProgress, Technique } from '../../../core/models/progress.model';
+import { problemRowKey } from '../progress-page/progress-derivations';
 
 /** The Mastery tab's technique-breadth drill: a flat list of rows grouped tier -> family, or a
  *  status board (four coverage columns, sortable/filterable). Persisted per viewer so a reload
@@ -65,15 +66,35 @@ const EMPTY_STATS: TechniqueStats = {
   weakestComfort: null,
 };
 
-/** Derives a technique's detail-panel stats by joining its problems[] (LC numbers) against
- *  the fetched details (byNumber) — pure, never mutates either input. Mirrors
- *  TechniqueListComponent.problemsFor's join, folded into summary numbers instead of a full
- *  problem list. */
-export function deriveTechniqueStats(
-  t: Technique,
-  byNumber: ReadonlyMap<number, ProblemProgress>,
-): TechniqueStats {
-  const matched = t.problems.map((n) => byNumber.get(n)).filter((p): p is ProblemProgress => !!p);
+/** The fetched details indexed two ways, built once per details() change: by row key (the exact
+ *  tracker row, for a technique that names its `rows`) and by LC number (the legacy join, one
+ *  row per number, last wins). */
+export interface DetailsIndex {
+  readonly byRowKey: ReadonlyMap<string, ProblemProgress>;
+  readonly byNumber: ReadonlyMap<number, ProblemProgress>;
+}
+
+export function indexDetails(details: readonly ProblemProgress[]): DetailsIndex {
+  return {
+    byRowKey: new Map(details.map((p) => [problemRowKey(p), p])),
+    byNumber: new Map(details.map((p) => [p.lcNumber, p])),
+  };
+}
+
+/** The detail rows a technique credits. With `t.rows`, each row joins by row key, so two method
+ *  variants of one number both appear; without it (an older contract), `t.problems` joins by LC
+ *  number alone. Either way an entry with no matching detail is skipped. Pure. */
+export function creditedProblems(t: Technique, index: DetailsIndex): ProblemProgress[] {
+  const found = t.rows
+    ? t.rows.map((r) => index.byRowKey.get(problemRowKey(r)))
+    : t.problems.map((n) => index.byNumber.get(n));
+  return found.filter((p): p is ProblemProgress => !!p);
+}
+
+/** Derives a technique's detail-panel stats from the problems it credits (`creditedProblems`)
+ *  — pure, never mutates either input, folded into summary numbers instead of a full list. */
+export function deriveTechniqueStats(t: Technique, index: DetailsIndex): TechniqueStats {
+  const matched = creditedProblems(t, index);
   if (matched.length === 0) return EMPTY_STATS;
 
   const repDates = matched.flatMap((p) => p.repDates);

@@ -6,7 +6,10 @@ import { endNoteMeaning } from './board-rows';
 import { SOLUTION_LINK_MODE_STORAGE_KEY } from '../solution-link-mode';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemProgress, Schedule, ScheduleItem, WorkloadDay } from '../../../core/models/progress.model';
-import { LoadStatus } from '../../../core/services/progress.service';
+import { LoadStatus, ProgressService } from '../../../core/services/progress.service';
+import { EngineService } from '../../../core/engine/engine.service';
+import { NO_ENGINE_RUN } from '../../../core/engine/engine-status';
+import { of } from 'rxjs';
 import { addDaysISO, currentWeekStart, shortMonthDay, todayLocalISO, weekdayShort } from '../../../core/utils/local-date';
 
 // Every fixture below reads the persisted link mode on construction — clear it after each
@@ -140,6 +143,33 @@ describe('TodayBoardComponent', () => {
     const doneRows = fixture.nativeElement.querySelectorAll('.today-board__row--done');
     expect(doneRows.length).toBe(1);
     expect(doneRows[0].textContent).toContain('Same Tree');
+  });
+
+  it.each([
+    // 9001-9003 are unregistered, so the row takes the plain-span badge (no walkthrough route).
+    { state: 'done', lcNumber: 9001, done: true, isPending: false, glyph: '✓' },
+    { state: 'pending', lcNumber: 9002, done: false, isPending: true, glyph: '◐' },
+    { state: 'open', lcNumber: 9003, done: false, isPending: false, glyph: '○' },
+  ])('draws a $state row with glyph $glyph and its state class', ({ lcNumber, done, isPending, glyph }) => {
+    const schedule = makeSchedule({
+      days: [
+        {
+          date: todayLocalISO(),
+          weekday: 'Today',
+          label: null,
+          units: 1,
+          items: [{ lcNumber, title: 'Row', technique: 'Arrays', startComfort: null, difficulty: null, done }],
+        },
+      ],
+    });
+    const fixture = createFixture(schedule);
+    fixture.componentRef.setInput('pending', new Set([9002]));
+    fixture.detectChanges();
+
+    const row: HTMLElement = fixture.nativeElement.querySelector('.today-board__row');
+    expect(row.classList.contains('today-board__row--done')).toBe(done);
+    expect(row.classList.contains('today-board__row--pending')).toBe(isPending);
+    expect(row.querySelector('.today-board__status')?.textContent?.trim()).toBe(glyph);
   });
 
   // ── The technique-naming day label is dropped from the board (recognition-gate spoiler) ─
@@ -1705,5 +1735,27 @@ describe('endNoteMeaning', () => {
     // answers to `toString`/`constructor`/`__proto__`, which a naive lookup would return.
     expect(endNoteMeaning('toString')).toBeNull();
     expect(endNoteMeaning('constructor')).toBeNull();
+  });
+});
+
+describe('TodayBoardComponent setup CTA', () => {
+  it.each<{ name: string; isOwnRepo: boolean; hasLink: boolean }>([
+    { name: 'own repo with no schedule links to /start', isOwnRepo: true, hasLink: true },
+    { name: "someone else's repo with no schedule has no CTA", isOwnRepo: false, hasLink: false },
+  ])('$name', ({ isOwnRepo, hasLink }) => {
+    TestBed.configureTestingModule({
+      imports: [TodayBoardComponent],
+      providers: [
+        provideRouter([]),
+        { provide: EngineService, useValue: { status$: () => of(NO_ENGINE_RUN) } },
+        { provide: ProgressService, useValue: { refresh: () => undefined } },
+      ],
+    });
+    const fixture = TestBed.createComponent(TodayBoardComponent);
+    fixture.componentRef.setInput('schedule', null);
+    fixture.componentRef.setInput('isOwnRepo', isOwnRepo);
+    fixture.detectChanges();
+    const link = fixture.nativeElement.querySelector('a[href="/start"]');
+    expect(link !== null).toBe(hasLink);
   });
 });

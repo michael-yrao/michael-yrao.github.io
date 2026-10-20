@@ -11,6 +11,7 @@ import { PythonRunnerService } from '../../../core/runner/python-runner.service'
 import { RunState } from '../../../core/runner/runner.model';
 import { GOLD_STANDARD_REPO, LoadStatus } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
+import { BigOService } from '../../../core/services/big-o.service';
 import { ShowcaseService } from '../../../core/services/showcase.service';
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { SAMPLE_CASE_COUNT } from '../../../shared/utils/practice-shortcuts';
@@ -100,6 +101,7 @@ function setUp(
       provideRouter([]),
       { provide: PracticeService, useValue: makePracticeStub(problems, status, error) },
       { provide: ShowcaseService, useValue: { data: signal(null), load: vi.fn(), entryFor: () => null } },
+      { provide: BigOService, useValue: { status: signal('idle'), load: vi.fn(), pool: () => [], entryFor: () => null } },
       { provide: PythonRunnerService, useValue: { run: runSpy } },
       {
         provide: ActivatedRoute,

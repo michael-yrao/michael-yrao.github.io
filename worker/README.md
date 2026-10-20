@@ -68,15 +68,18 @@ expire 180 days after the last save.
 Rate limiting is on: the two `[[ratelimits]]` blocks in `wrangler.toml` are required, and a request
 gets a 503 when a binding is missing.
 
-## Pattern Sense sign-in
+## GitHub sign-in
 
-`src/auth/` serves two routes, `src/pattern-sense/` one and `src/practice/` two, for the site's GitHub sign-in and saves:
+`src/auth/` serves two routes, `src/pattern-sense/` one, `src/practice/` two, `src/onboard/` two and `src/engine/` one, for the site's GitHub sign-in and saves:
 
 - `src/auth/`: `POST /auth/token` swaps GitHub's one-time login code for a token and returns your GitHub login.
 - `src/auth/`: `POST /auth/refresh` swaps a refresh token for a new token.
 - `src/pattern-sense/`: `POST /pattern-sense/save` writes `dashboard/pattern_sense_results/<YYYYMMDD>.json` to a repo you own.
 - `src/practice/`: `POST /practice/save` writes an attempt to `dsa/attempts/<YYYYMMDD>/` in a repo you own.
 - `src/practice/`: `POST /practice/latest` returns your newest saved attempt for a problem.
+- `src/onboard/`: `POST /onboard/dsa` creates your `cse-progress` repo from the cse-coach template, or adopts the one you already have.
+- `src/onboard/`: `POST /onboard/intake` takes `{name, target, timezone, startDate}` and writes `intake.yml` to your `cse-progress` repo; it answers 409 `already-onboarded` once `cse.config.yml` exists.
+- `src/engine/`: `POST /engine/weekly-build` takes `{owner, repo}`, enables the repo's `weekly-build.yml` workflow and dispatches it on `main` (202 `{status: 'dispatched'}`).
 
 Only the origins in `ALLOWED_ORIGINS` (a `[vars]` entry in `wrangler.toml`) are served.
 
@@ -84,8 +87,9 @@ Setup:
 
 1. Register a GitHub App (Settings → Developer settings → GitHub Apps → New GitHub App):
    - Visibility: public, so other cse-coach users can give it permission on their own repos.
-   - Repository permissions: Contents → Read and write; every other permission off.
+   - Repository permissions: Contents → Read and write; Actions → Read and write (needed by `/engine/weekly-build`). Add Workflows → Read and write only if creating a repo from a template that contains workflow files is refused. Other permissions: Repository creation. Every other permission off.
    - Callback URL: `https://progressiveoverflow.com/auth/callback` (plus `http://localhost:4200/auth/callback` for local dev)
+   - Setup URL: `https://progressiveoverflow.com/start?resume=1`, with "Redirect on update" on.
    - "Request user authorization (OAuth) during installation": off.
    - "Expire user authorization tokens": on.
    - Webhook: off.
@@ -94,6 +98,8 @@ Setup:
 2. Give the app permission on your own `cse-progress` repo only: on the app's page, choose "Only select repositories" and pick it.
 3. In `worker/`: put the Client ID in `wrangler.toml` as `GITHUB_CLIENT_ID`, run `npx wrangler secret put GITHUB_CLIENT_SECRET` and paste the client secret, then run `npx wrangler deploy`.
 4. Fill `PATTERN_SENSE_GITHUB_APP` in `src/app/core/data/site-links.ts` with the `clientId` and `appSlug`. The Sign in and Save buttons stay hidden until both are real values.
+
+The `TEMPLATE_OWNER` and `TEMPLATE_REPO` entries in `[vars]` name the template repo for `/onboard/dsa`. Mark that repo as a template on GitHub. While it is private, only its collaborators can create a repo from it.
 
 ## Coach
 
@@ -104,16 +110,19 @@ Setup:
 - `POST /coach/wake`: starts the container before the first message.
 - `GET /coach/status`: reports whether the container is awake, and never starts it.
 
-Only the GitHub login in `OWNER_LOGIN` (a `[vars]` entry in `wrangler.toml`) is served.
+Only the GitHub login in `OWNER_LOGIN` (a `[vars]` entry in `wrangler.coach.toml`) is served.
 
 One-time steps for the owner:
 
 1. Upgrade the Cloudflare account to Workers Paid, which Containers require.
 2. In `worker/`, run `npx wrangler secret put ANTHROPIC_API_KEY` and paste the key.
+3. Set the `COACH_ENABLED` repository variable to `true`, then run the `coach-deploy.yml` workflow.
+
+**One-way door.** Once a `coach-deploy.yml` run registers the `CoachContainer` Durable Object migration, a deploy of the base `wrangler.toml` would drop the class. From then on `worker.yml` must deploy the coach config: keep the `COACH_ENABLED` repository variable set to `true`.
 
 The container keeps the owner's GitHub token in a 0600 credential file. The agent's Bash could read it; that is acceptable for an owner-only service.
 
-Local dev uses Podman, not Docker. One time, run `podman machine init`. Then run `podman machine start`. Before `npx wrangler dev`, set `WRANGLER_DOCKER_BIN` to `<repo>\worker\scripts\podman-for-wrangler.cmd`. The wrapper drops build flags Podman does not support. Also set `DOCKER_HOST` to the machine's socket. Read it from `podman machine inspect`, under `ConnectionInfo.PodmanPipe` or `ConnectionInfo.PodmanSocket`.
+Local dev uses Podman, not Docker. One time, run `podman machine init`. Then run `podman machine start`. Before `npx wrangler dev --config wrangler.coach.toml`, set `WRANGLER_DOCKER_BIN` to `<repo>\worker\scripts\podman-for-wrangler.cmd`. The wrapper drops build flags Podman does not support. Also set `DOCKER_HOST` to the machine's socket. Read it from `podman machine inspect`, under `ConnectionInfo.PodmanPipe` or `ConnectionInfo.PodmanSocket`.
 
 ## Source list
 

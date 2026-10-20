@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { FetchImpl } from './aggregate';
-import worker, { createWorker, type Env } from './index';
+import worker from './index';
 import { SOURCES } from './sources';
+import { buildFetch, createWorker, type Env } from './worker';
 
 // createWorker's memo builds one feed by fetching every configured source; the memo tests
 // below assert the fetch fan-out multiplies by this count, not a hardcoded "1".
@@ -121,6 +122,24 @@ describe('default export routing', () => {
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: 'not-found' });
     expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+});
+
+describe('coach routes without wiring', () => {
+  const ORIGIN = 'https://progressiveoverflow.com';
+  const env = { ALLOWED_ORIGINS: ORIGIN } as unknown as Env;
+  const fetchWithoutCoach = buildFetch(null);
+
+  it.each([
+    { method: 'GET', path: '/coach/status', status: 200, body: { awake: false, enabled: false } },
+    { method: 'POST', path: '/coach/message', status: 503, body: { error: 'coach-disabled' } },
+    { method: 'POST', path: '/coach/interrupt', status: 503, body: { error: 'coach-disabled' } },
+    { method: 'POST', path: '/coach/wake', status: 503, body: { error: 'coach-disabled' } },
+  ])('$method $path answers $status', async ({ method, path, status, body }) => {
+    const request = new Request(`https://x.example${path}`, { method, headers: { Origin: ORIGIN } });
+    const response = await fetchWithoutCoach(request, env);
+    expect(response.status).toBe(status);
+    expect(await response.json()).toMatchObject(body);
   });
 });
 

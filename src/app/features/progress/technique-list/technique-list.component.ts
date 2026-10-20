@@ -29,8 +29,11 @@ import { SolutionLinkModeService } from '../solution-link-mode.service';
 import {
   CoverageBox,
   coverageBoxes,
+  creditedProblems,
+  DetailsIndex,
   deriveTechniqueStats,
   doneOf,
+  indexDetails,
   plannedTotalOf,
   ratioDenominatorOf,
   readStoredView,
@@ -165,16 +168,17 @@ export class TechniqueListComponent {
 
   readonly groups = computed<TierGroup[]>(() => groupByTier(this.techniques()));
 
-  /** All fetched problem details, keyed by LC number — the one join both problemsFor() and
-   *  statsFor() read, so it's built once per details() change rather than once per call. */
-  readonly detailsByNumber = computed<ReadonlyMap<number, ProblemProgress> | null>(() => {
+  /** All fetched problem details, indexed by row key and by LC number — the one join both
+   *  problemsFor() and statsFor() read, so it's built once per details() change rather than
+   *  once per call. */
+  readonly detailsIndex = computed<DetailsIndex | null>(() => {
     const list = this.details();
-    return list ? new Map(list.map((p) => [p.lcNumber, p])) : null;
+    return list ? indexDetails(list) : null;
   });
 
   private readonly stats = computed<ReadonlyMap<string, TechniqueStats>>(() => {
-    const byNumber = this.detailsByNumber() ?? new Map<number, ProblemProgress>();
-    return new Map(this.techniques().map((t) => [t.name, deriveTechniqueStats(t, byNumber)]));
+    const index = this.detailsIndex() ?? indexDetails([]);
+    return new Map(this.techniques().map((t) => [t.name, deriveTechniqueStats(t, index)]));
   });
 
   /** stats() always covers every technique currently in techniques() — built by mapping over
@@ -286,9 +290,8 @@ export class TechniqueListComponent {
 
   /** null = details not loaded yet (show a loading hint); [] = loaded but nothing matched. */
   problemsFor(t: Technique): ProblemProgress[] | null {
-    const byNumber = this.detailsByNumber();
-    if (!byNumber) return null;
-    return t.problems.map((n) => byNumber.get(n)).filter((p): p is ProblemProgress => !!p);
+    const index = this.detailsIndex();
+    return index ? creditedProblems(t, index) : null;
   }
 
   /** Empty array when the technique carries no `planned` key at all (an older contract) —

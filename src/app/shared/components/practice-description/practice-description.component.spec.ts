@@ -109,6 +109,15 @@ describe('PracticeDescriptionComponent', () => {
     expect(root.querySelector('.practice-description__statement')?.textContent).not.toContain('`');
   });
 
+  it('draws prose from_i as a subscript and keeps a backticked from_i literal', () => {
+    const problem: PracticeProblem = { ...PROBLEM, statement: 'Edge from_i and `from_i`.' };
+    const root = setUp(problem);
+
+    expect(root.querySelector('sub')?.textContent).toBe('i');
+    expect(root.querySelectorAll('sub').length).toBe(1);
+    expect(root.querySelector('code.practice-description__code')?.textContent).toBe('from_i');
+  });
+
   it('joins a hard-wrapped paragraph with a space and keeps an indented example line', () => {
     const statement = 'Given an array\nof numbers, sum it.\n\nExample 1:\n    Input: n = 2';
     const problem: PracticeProblem = { ...PROBLEM, statement };

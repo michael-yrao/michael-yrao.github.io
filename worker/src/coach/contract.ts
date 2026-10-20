@@ -25,4 +25,5 @@ export type CoachEvent =
       readonly dirty: boolean; readonly stopReason: CoachStopReason }
   | { readonly type: 'error'; readonly code: CoachErrorCode };
 export interface CoachStatus { readonly awake: boolean; readonly busy: boolean; readonly sessionId: string | null;
-  readonly repoHead: string | null; readonly dirty: boolean; readonly sessionCostUsd: number }
+  readonly repoHead: string | null; readonly dirty: boolean; readonly sessionCostUsd: number;
+  readonly enabled?: boolean }   // absent = true; the Worker sends false when the coach runtime is not deployed

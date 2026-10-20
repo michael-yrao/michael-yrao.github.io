@@ -19,7 +19,9 @@ export function isCoachOwner(login: string | null | undefined): boolean {
   return login.toLowerCase() === COACH_OWNER_LOGIN.toLowerCase();
 }
 
-/** cse-coach is invite-only while it settles; flip to true when the repo goes public. */
+/** cse-coach is invite-only while it settles; flip to true when the repo goes public. `/start` onboarding (the
+ *  Worker's `/onboard/dsa`) also depends on the template's visibility: while it is private, only collaborators can
+ *  create a repo from it. */
 export const COACH_REPO_IS_PUBLIC = false;
 
 /** The Cloudflare Worker in `worker/`: the Tech Events feed at its root and the interview directory under

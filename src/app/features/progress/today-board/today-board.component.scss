@@ -291,7 +291,9 @@ $workload-planned-opacity: 0.35;
 
 // Dim everything except the status badge and the earned outcome — a done row should still
 // read as "here's what I earned", not fade the reward along with the rest of the row.
-.today-board__row--done {
+// A saved-but-folding row dims and strikes the title exactly like a done one.
+.today-board__row--done,
+.today-board__row--pending {
   .today-board__num, .today-board__title, .tag, .today-board__links, .today-board__comfort, .today-board__gate-sub, .today-board__gate-progress { opacity: 0.6; }
 
   .today-board__title { text-decoration: line-through; }
@@ -316,6 +318,15 @@ $workload-planned-opacity: 0.35;
 .today-board__row--done .today-board__status {
   border-color: var(--color-easy);
   color: var(--color-easy);
+}
+.today-board__row--pending .today-board__status {
+  border-color: var(--color-medium);
+  color: var(--color-medium);
+}
+.today-board__key {
+  margin: var(--space-sm) 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
 }
 // Moved carries through to the badge the same way done does — it's not in the row--moved dim
 // list above, so it stays full-strength, coloured to flag the row as moved-off-day rather than
@@ -439,6 +450,8 @@ $workload-planned-opacity: 0.35;
   font-size: 0.9rem;
   margin: 0;
 }
+
+.today-board__setup a { margin-left: var(--space-sm); color: var(--color-accent); }
 
 // The trend panel — full row width, same idea as the Problems tab's `.problem__chart`.
 .today-board__trend { flex: 1 1 100%; margin-top: var(--space-sm); }

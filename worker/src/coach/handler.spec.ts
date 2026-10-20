@@ -1,24 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { LimiterUnavailableError } from '../interviews/handler';
 import { COACH_TOKEN_HEADER } from './contract';
-import { handle, type CoachDeps, type CoachEnv, type CoachStub } from './handler';
+import { handle, type CoachStub, type CoachWiring } from './handler';
 
 const ORIGIN = 'https://progressiveoverflow.com';
-const ENV: CoachEnv = {
+const OWNER_LOGIN = 'michael-yrao';
+const ENV = {
   GITHUB_CLIENT_ID: 'client-id',
   GITHUB_CLIENT_SECRET: 'client-secret',
   ALLOWED_ORIGINS: ORIGIN,
-  OWNER_LOGIN: 'michael-yrao',
-  COACH_GIT_NAME: 'n',
-  COACH_GIT_EMAIL: 'e@example.com',
-  COACH_TZ: 'America/New_York',
-  ANTHROPIC_API_KEY: 'key-test',
 };
 const SSE_BODY = 'event: text\ndata: {"type":"text","delta":"Hi"}\n\n';
 const MESSAGE = { sessionId: null, message: 'hi', context: { route: '/practice/1', repo: 'cse-progress' } };
 
 interface Rig {
-  readonly deps: CoachDeps;
+  readonly deps: CoachWiring;
   readonly stubFetches: Request[];
   readonly githubCalls: string[];
   readonly fetchImpl: typeof fetch;
@@ -38,7 +34,12 @@ function rig(options: { login?: string; state?: string; limit?: () => Promise<bo
     githubCalls.push(String(input));
     return new Response(JSON.stringify({ login: options.login ?? 'michael-yrao' }), { status: 200 });
   }) as typeof fetch;
-  return { deps: { stub, limit: options.limit ?? (async () => true) }, stubFetches, githubCalls, fetchImpl };
+  return {
+    deps: { stub, limit: options.limit ?? (async () => true), ownerLogin: OWNER_LOGIN },
+    stubFetches,
+    githubCalls,
+    fetchImpl,
+  };
 }
 
 function req(path: string, init: { method?: string; origin?: string | null; bearer?: boolean; body?: unknown } = {}): Request {

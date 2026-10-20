@@ -9,8 +9,10 @@ import {
   coverageBoxes,
   coverageState,
   coverageTitle,
+  creditedProblems,
   deriveTechniqueStats,
   doneOf,
+  indexDetails,
   isMastered,
   isThresholdBeyondPlan,
   parseStoredView,
@@ -117,10 +119,36 @@ describe('comfortRank', () => {
   });
 });
 
+/** Index a number-keyed fixture map the way the components do (one pass over the details). */
+function asIndex(byNumber: ReadonlyMap<number, ProblemProgress>) {
+  return indexDetails([...byNumber.values()]);
+}
+
+describe('creditedProblems', () => {
+  const recursion = makeProblem({ lcNumber: 206, title: 'Reverse Linked List (Recursion)' });
+  const iterative = makeProblem({ lcNumber: 206, title: 'Reverse Linked List (Iterative)' });
+  const index = indexDetails([recursion, iterative]);
+  const bothRows = [
+    { lcNumber: 206, title: recursion.title },
+    { lcNumber: 206, title: iterative.title },
+  ];
+
+  const cases: [string, Partial<Technique>, ProblemProgress[]][] = [
+    ['rows naming both variants of one number credits both', { problems: [206], rows: bothRows }, [recursion, iterative]],
+    ['rows naming one variant credits only it', { problems: [206], rows: [bothRows[0]] }, [recursion]],
+    ['rows entry with no matching detail is skipped', { problems: [206], rows: [{ lcNumber: 9, title: 'Gone' }] }, []],
+    ['no rows falls back to the number join (one row per number)', { problems: [206] }, [iterative]],
+  ];
+
+  it.each(cases)('%s', (_label, overrides, expected) => {
+    expect(creditedProblems(makeTechnique(overrides), index)).toEqual(expected);
+  });
+});
+
 describe('deriveTechniqueStats', () => {
   it('returns empty stats when no problem in the technique matches byNumber', () => {
     const t = makeTechnique({ problems: [11] });
-    expect(deriveTechniqueStats(t, new Map())).toEqual({
+    expect(deriveTechniqueStats(t, asIndex(new Map()))).toEqual({
       lastTouched: null,
       greenCount: 0,
       graduatedCount: 0,
@@ -131,7 +159,7 @@ describe('deriveTechniqueStats', () => {
   it('returns empty stats for a not-started technique with no problems', () => {
     const t = makeTechnique({ problems: [] });
     const byNumber = new Map([[11, makeProblem({ lcNumber: 11 })]]);
-    expect(deriveTechniqueStats(t, byNumber)).toEqual({
+    expect(deriveTechniqueStats(t, asIndex(byNumber))).toEqual({
       lastTouched: null,
       greenCount: 0,
       graduatedCount: 0,
@@ -146,7 +174,7 @@ describe('deriveTechniqueStats', () => {
       [2, makeProblem({ lcNumber: 2, comfort: '🟢' })],
       [3, makeProblem({ lcNumber: 3, comfort: '🎓' })],
     ]);
-    expect(deriveTechniqueStats(t, byNumber).greenCount).toBe(2);
+    expect(deriveTechniqueStats(t, asIndex(byNumber)).greenCount).toBe(2);
   });
 
   it('counts only matched problems at 🎓 or better toward graduatedCount', () => {
@@ -156,7 +184,7 @@ describe('deriveTechniqueStats', () => {
       [2, makeProblem({ lcNumber: 2, comfort: '🎓' })],
       [3, makeProblem({ lcNumber: 3, comfort: '🏆' })],
     ]);
-    expect(deriveTechniqueStats(t, byNumber).graduatedCount).toBe(2);
+    expect(deriveTechniqueStats(t, asIndex(byNumber)).graduatedCount).toBe(2);
   });
 
   it('lastTouched is the max repDate across all matched problems, by ISO string compare', () => {
@@ -165,13 +193,13 @@ describe('deriveTechniqueStats', () => {
       [1, makeProblem({ lcNumber: 1, repDates: ['2026-01-01', '2026-03-15'] })],
       [2, makeProblem({ lcNumber: 2, repDates: ['2026-02-10'] })],
     ]);
-    expect(deriveTechniqueStats(t, byNumber).lastTouched).toBe('2026-03-15');
+    expect(deriveTechniqueStats(t, asIndex(byNumber)).lastTouched).toBe('2026-03-15');
   });
 
   it('lastTouched is null when matched problems carry no repDates', () => {
     const t = makeTechnique({ problems: [1] });
     const byNumber = new Map([[1, makeProblem({ lcNumber: 1, repDates: [] })]]);
-    expect(deriveTechniqueStats(t, byNumber).lastTouched).toBeNull();
+    expect(deriveTechniqueStats(t, asIndex(byNumber)).lastTouched).toBeNull();
   });
 
   it('weakestComfort is the least-mastered comfort among matched problems', () => {
@@ -181,7 +209,7 @@ describe('deriveTechniqueStats', () => {
       [2, makeProblem({ lcNumber: 2, comfort: '🟡' })],
       [3, makeProblem({ lcNumber: 3, comfort: '🟢' })],
     ]);
-    expect(deriveTechniqueStats(t, byNumber).weakestComfort).toBe('🟡');
+    expect(deriveTechniqueStats(t, asIndex(byNumber)).weakestComfort).toBe('🟡');
   });
 
   it('never mutates the technique or the byNumber map', () => {
@@ -190,7 +218,7 @@ describe('deriveTechniqueStats', () => {
     const byNumber = new Map([[1, problem]]);
     const frozenProblems = [...t.problems];
 
-    deriveTechniqueStats(t, byNumber);
+    deriveTechniqueStats(t, asIndex(byNumber));
 
     expect(t.problems).toEqual(frozenProblems);
     expect(byNumber.get(1)).toBe(problem);

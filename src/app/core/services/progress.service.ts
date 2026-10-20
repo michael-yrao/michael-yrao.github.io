@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, Signal, computed, signal } from '@angular/core';
 import { Observable, catchError, map, of, throwError } from 'rxjs';
 
 import {
@@ -24,6 +24,8 @@ import {
   httpErrorMessage,
   invalidSlugMessage,
 } from './github-file.service';
+import { PendingAttemptsService } from './pending-attempts.service';
+import { todayLocalISO } from '../utils/local-date';
 
 // The dashboard renders any repo that follows the cse-coach schema. This is the default
 // when no ?repo= is given; ?repo=owner/name overrides it for any PUBLIC repo. Re-exported
@@ -53,8 +55,23 @@ const HISTORY_FILE = 'dashboard/schedule-history.json';
 
 const NOT_FOUND_STATUS = 404;
 
+// While a saved attempt waits for its fold, re-fetch the summary this often, this many times.
+const PENDING_POLL_MS = 90_000;
+const PENDING_POLL_MAX = 8;
+
 // What a fetch failure is fetching, for httpErrorMessage()'s wording.
 const PROGRESS_WHAT = 'progress';
+
+/** `'empty'`: a fresh repo with no contract files yet (both the summary and the details 404). */
+export type ProgressStatus = LoadStatus | 'empty';
+
+// Marker the summary fetch emits when both contract files 404 on a non-forced load.
+const FRESH_REPO = Symbol('fresh-repo');
+
+/** A double 404 on a non-forced load is a fresh repo, not an error; a forced refresh keeps `refreshError`. */
+function isFreshRepo(err: { status?: number } | null, isForced: boolean): boolean {
+  return !isForced && err?.status === NOT_FOUND_STATUS;
+}
 
 /** Derive the lightweight summary from a full contract — the client-side mirror of
  *  cse-progress's `gamify.py::summary_of()`. Used when `progress-summary.json` 404s (an
@@ -107,7 +124,7 @@ function summaryFromFull(full: ProgressData): ProgressSummary {
  */
 @Injectable({ providedIn: 'root' })
 export class ProgressService {
-  readonly status = signal<LoadStatus>('idle');
+  readonly status = signal<ProgressStatus>('idle');
   readonly error = signal<string | null>(null);
   readonly data = signal<ProgressSummary | null>(null);
   readonly source = signal<RepoRef | null>(null);
@@ -135,6 +152,13 @@ export class ProgressService {
   private detailsSeq = 0;
   private historySeq = 0;
 
+  // The pending-mark poll: at most one timer, and a budget a user-triggered load refills.
+  private pollTimer: ReturnType<typeof setTimeout> | null = null;
+  private pollsLeft = PENDING_POLL_MAX;
+
+  /** Today's open rows that already have a complete attempt file saved (not yet folded). */
+  readonly pending: Signal<ReadonlySet<number>>;
+
   readonly repoSlug = computed(() => {
     const s = this.source();
     return s ? `${s.owner}/${s.repo}` : null;
@@ -145,7 +169,12 @@ export class ProgressService {
    *  never to the gold standard. Null until a slug has been parsed. */
   readonly repoRef = this.source.asReadonly();
 
-  constructor(private readonly github: GitHubFileService) {}
+  constructor(
+    private readonly github: GitHubFileService,
+    private readonly pendingAttempts: PendingAttemptsService,
+  ) {
+    this.pending = pendingAttempts.pending;
+  }
 
   /** Parse "owner/name" or "owner/name@branch"; empty/missing input falls back to the
    *  default repo, but a malformed slug (not exactly owner/name[@branch], every part
@@ -183,6 +212,11 @@ export class ProgressService {
   /** Load the lightweight aggregate summary (progress-summary.json). This is what the
    *  landing renders and what the effect calls on every ?repo change. */
   loadSummary(raw: string | null | undefined, force = false): void {
+    this.runSummaryLoad(raw, force, false);
+  }
+
+  /** `isPoll` marks the pending-mark re-fetch: it keeps the poll budget a user load would reset. */
+  private runSummaryLoad(raw: string | null | undefined, force: boolean, isPoll: boolean): void {
     const ref = this.parseRepo(raw);
     if (!ref) {
       this.failInvalidSlug(raw);
@@ -196,6 +230,7 @@ export class ProgressService {
     }
 
     const mine = ++this.seq;
+    if (!isPoll) this.resetPoll();
     // Idempotent write: only replace `source` when the repo actually changed. `parseRepo`
     // builds a NEW RepoRef object on every call, so an unconditional `source.set(ref)` here
     // would look like a change to anything tracking `source` (e.g. an effect calling this
@@ -224,13 +259,22 @@ export class ProgressService {
           // below names the right problem (version, or no valid data).
           return this.fetchFile$<unknown>(ref, DETAILS_FILE, LEGACY_DETAILS_FILE, force).pipe(
             map((full) => (isProgressFull(full) ? summaryFromFull(full) : full)),
-            catchError((fallbackErr) => of(this.toError(fallbackErr))),
+            catchError((fallbackErr) =>
+              of(isFreshRepo(fallbackErr, force) ? FRESH_REPO : this.toError(fallbackErr)),
+            ),
           );
         }),
       )
       .subscribe((result) => {
         if (mine !== this.seq) return; // a newer loadSummary() superseded this response
         this.refreshing.set(false);
+
+        if (result === FRESH_REPO) {
+          this.status.set('empty');
+          this.error.set(null);
+          this.data.set(null);
+          return;
+        }
 
         if (result instanceof Error) {
           if (force) {
@@ -256,7 +300,45 @@ export class ProgressService {
         }
         this.data.set(result as ProgressSummary);
         this.status.set('ready');
+        this.trackPending(ref, mine);
       });
+  }
+
+  /** Looks up today's saved-but-unfolded attempts, then keeps polling the summary while any remain. */
+  private trackPending(ref: RepoRef, requestId: number): void {
+    const today = todayLocalISO();
+    void this.pendingAttempts
+      .load(ref, today, this.openNumbersFor(today))
+      .then((pending) => this.schedulePoll(ref, requestId, pending));
+  }
+
+  /** Lc numbers of the day's rows that are not yet done. */
+  private openNumbersFor(isoDate: string): ReadonlySet<number> {
+    const day = this.data()?.schedule?.days.find((d) => d.date === isoDate);
+    const open = (day?.items ?? []).filter((item) => !item.done && item.lcNumber !== null);
+    return new Set(open.map((item) => item.lcNumber as number));
+  }
+
+  private schedulePoll(ref: RepoRef, requestId: number, pending: ReadonlySet<number>): void {
+    if (requestId !== this.seq || pending.size === 0 || this.pollsLeft <= 0) return;
+    this.clearPollTimer();
+    this.pollTimer = setTimeout(() => {
+      this.pollTimer = null;
+      this.pollsLeft--;
+      this.runSummaryLoad(`${ref.owner}/${ref.repo}@${ref.branch}`, true, true);
+    }, PENDING_POLL_MS);
+  }
+
+  /** A user-triggered load starts the poll over: full budget, no timer outstanding. */
+  private resetPoll(): void {
+    this.pollsLeft = PENDING_POLL_MAX;
+    this.clearPollTimer();
+  }
+
+  private clearPollTimer(): void {
+    if (this.pollTimer === null) return;
+    clearTimeout(this.pollTimer);
+    this.pollTimer = null;
   }
 
   /** Load the full contract's `problems[]` (progress.json) for the repo currently shown.
@@ -339,6 +421,7 @@ export class ProgressService {
    *  previous, still-valid repo's slug next to a message that no longer describes it. */
   private failInvalidSlug(raw: string | null | undefined): void {
     this.seq++; // invalidate any in-flight fetch from a previously valid repo
+    this.clearPollTimer();
     this.source.set(null);
     this.status.set('error');
     this.error.set(invalidSlugMessage(raw));

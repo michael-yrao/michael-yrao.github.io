@@ -22,7 +22,7 @@
   <div class="practice-description__statement">
     @for (block of statementBlocks(); track $index) {
       @if (block.text !== null) {
-        <div class="practice-description__segment">@for (run of block.runs; track $index) {@if (run.isCode) {<code class="practice-description__code">{{ run.text }}</code>} @else {{{ run.text }}}}</div>
+        <div class="practice-description__segment">@for (run of block.runs; track $index) {@switch (run.kind) {@case ('code') {<code class="practice-description__code">{{ run.text }}</code>}@case ('sub') {<sub>{{ run.text }}</sub>}@case ('sup') {<sup>{{ run.text }}</sup>}@default {{{ run.text }}}}}</div>
       }
       @if (block.figure; as figure) {
         <ng-container

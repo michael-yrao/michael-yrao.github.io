@@ -19,7 +19,7 @@
       </div>
     }
 
-    @if (isCoachOwner()) {
+    @if (hasCoach()) {
       <button
         type="button"
         class="po-nav__coach"
@@ -60,6 +60,15 @@
               }"
               (click)="closeAll()"
               >Progress</a
+            >
+          }
+          @if (auth.isSignedIn()) {
+            <a
+              class="po-nav__drawer-link"
+              routerLink="/start"
+              routerLinkActive="active"
+              (click)="closeAll()"
+              >Study track</a
             >
           }
           <a
@@ -116,7 +125,7 @@
 </div>
 
 <!-- Coach drawer: mounted on first open, then only hidden, so the transcript survives closing -->
-@if (isCoachOwner() && coachUi.everOpened()) {
+@if (hasCoach() && coachUi.everOpened()) {
   <aside
     id="po-coach"
     class="po-coach"

@@ -1,0 +1,65 @@
+name: Deploy coach worker
+
+# Deploys the Worker with the coach runtime (worker/wrangler.coach.toml): a container behind a
+# Durable Object, which needs the Workers Paid plan and the ANTHROPIC_API_KEY Worker secret.
+# Run it by hand once, or set the COACH_ENABLED repository variable to true and worker.yml calls
+# it after every worker deploy. See the "One-way door" note in worker/README.md.
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+defaults:
+  run:
+    working-directory: worker
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Podman wrapper test
+        run: bash worker/scripts/podman-for-wrangler.test.sh
+        working-directory: .
+
+      # The image is also built by `wrangler deploy`; building it first fails the run before any deploy step.
+      # Podman is preinstalled on ubuntu-latest.
+      - name: Build coach image
+        run: podman build worker/coach
+        working-directory: .
+
+      - name: Check Cloudflare secrets
+        id: secrets
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$ACCOUNT" ]; then echo "configured=true" >> "$GITHUB_OUTPUT"; else echo "configured=false" >> "$GITHUB_OUTPUT"; echo "::notice::Cloudflare secrets not set — coach deploy skipped (see worker/README.md)"; fi
+
+      - name: Make the Podman wrapper executable
+        if: steps.secrets.outputs.configured == 'true'
+        run: chmod +x worker/scripts/podman-for-wrangler.sh
+        working-directory: .
+
+      - name: Deploy to Cloudflare Workers
+        if: steps.secrets.outputs.configured == 'true'
+        uses: cloudflare/wrangler-action@v3
+        env:
+          WRANGLER_DOCKER_BIN: ${{ github.workspace }}/worker/scripts/podman-for-wrangler.sh
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: deploy --config wrangler.coach.toml

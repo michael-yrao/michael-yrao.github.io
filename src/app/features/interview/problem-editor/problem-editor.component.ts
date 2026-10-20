@@ -34,7 +34,6 @@ interface LocalFields {
 }
 
 const NO_LOCAL_FIELDS: LocalFields = { base: null, texts: {}, invalid: [] };
-const UNORDERED_NESTED: CompareMode = 'unordered-nested';
 const BASE_COMPARE_MODES: readonly CompareMode[] = ['exact', 'unordered'];
 const EMPTY_JSON_ARRAY = '[]';
 const NULL_JSON = 'null';
@@ -136,9 +135,10 @@ export class ProblemEditorComponent {
   /** The cases' field texts; a keystroke elsewhere keeps the same `cases`, so nothing is stringified again. */
   protected readonly rows = computed(() => this.cases().map(toRow));
 
-  protected readonly compareModes = computed<readonly CompareMode[]>(() =>
-    this.problem().compare === UNORDERED_NESTED ? [...BASE_COMPARE_MODES, UNORDERED_NESTED] : BASE_COMPARE_MODES,
-  );
+  protected readonly compareModes = computed<readonly CompareMode[]>(() => {
+    const mode = this.problem().compare;
+    return BASE_COMPARE_MODES.includes(mode) ? BASE_COMPARE_MODES : [...BASE_COMPARE_MODES, mode];
+  });
   protected readonly isOps = computed(() => this.problem().entry?.kind === 'ops');
   protected readonly isAtCasesMax = computed(() => this.cases().length >= CASES_MAX);
   protected readonly isStarterTooLong = computed(() => this.problem().starter.length > STARTER_MAX_LENGTH);

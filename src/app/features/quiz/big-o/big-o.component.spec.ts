@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 
 import { BigOComponent } from './big-o.component';
+import { AuthService } from '../../../core/auth/auth.service';
 import { BigOService } from '../../../core/services/big-o.service';
 import { BigOEntry, BigOData } from '../../../core/models/big-o.model';
 import { Difficulty } from '../../../core/models/algorithm.model';
@@ -55,7 +56,7 @@ function makePool(count: number, difficulties: readonly Difficulty[] = ['Easy', 
 }
 
 function makeData(entries: BigOEntry[]): BigOData {
-  return { schemaVersion: 1, generatedAt: '2026-09-24', entries };
+  return { schemaVersion: 1, generatedAt: '2026-09-24', pool: ['O(1)'], entries };
 }
 
 function makeBigOServiceStub(data: BigOData | null, status: LoadStatus = 'ready') {
@@ -70,10 +71,17 @@ function makeBigOServiceStub(data: BigOData | null, status: LoadStatus = 'ready'
   };
 }
 
-function createFixture(stub: ReturnType<typeof makeBigOServiceStub>): ComponentFixture<BigOComponent> {
+function createFixture(
+  stub: ReturnType<typeof makeBigOServiceStub>,
+  selectedRepo: string | null = null,
+): ComponentFixture<BigOComponent> {
   TestBed.configureTestingModule({
     imports: [BigOComponent],
-    providers: [provideRouter([]), { provide: BigOService, useValue: stub }],
+    providers: [
+      provideRouter([]),
+      { provide: BigOService, useValue: stub },
+      { provide: AuthService, useValue: { resolveRepo: () => selectedRepo } },
+    ],
   });
   const fixture = TestBed.createComponent(BigOComponent);
   fixture.detectChanges();
@@ -87,6 +95,14 @@ describe('BigOComponent', () => {
     } catch {
       // ignore — not every test environment exposes localStorage
     }
+  });
+
+  it("loads the signed-in viewer's selected repo", () => {
+    const stub = makeBigOServiceStub(null, 'loading');
+    createFixture(stub, 'learner/cse-progress');
+    expect(stub.load).toHaveBeenCalledWith(
+      expect.objectContaining({ owner: 'learner', repo: 'cse-progress' }),
+    );
   });
 
   it('shows a loading state while the contract is in flight', () => {

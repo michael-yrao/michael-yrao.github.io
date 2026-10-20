@@ -30,6 +30,13 @@ describe('figureStateFor', () => {
     const grid = figureStateFor(GRID, [[[1, 0, 1], ['a', 2, 3]]], null) as GridState;
     expect(grid.grid.map((row) => row.map((cell) => cell.label))).toEqual([['1', '0', '1'], ['a', '2', '3']]);
     expect(grid.grid[0][0].state).toBe('empty');
+    expect(grid.grid.flat().every((cell) => cell.state === 'empty')).toBe(true);
+
+    const marked = figureStateFor(GRID, [[[1, 0, 1], ['a', 2, 3]]], null, [[0, 2], [1, 0]]) as GridState;
+    expect(marked.grid.map((row) => row.map((cell) => cell.state))).toEqual([
+      ['empty', 'empty', 'found'],
+      ['found', 'empty', 'empty'],
+    ]);
 
     const misfits: [string, PracticeFigure, unknown[]][] = [
       ['edge list not an array', GRAPH, [3, 'x']],

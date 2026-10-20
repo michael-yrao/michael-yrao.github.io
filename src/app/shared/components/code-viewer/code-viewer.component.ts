@@ -2,12 +2,9 @@ import {
   Component, input, computed, effect, AfterViewInit, AfterViewChecked,
   ElementRef, ViewChild, ChangeDetectionStrategy,
 } from '@angular/core';
-import hljs from 'highlight.js/lib/core';
-import python from 'highlight.js/lib/languages/python';
 import { DisplayRow } from '../../../core/showcase/display';
 import { RowRange } from '../../../core/showcase/anchor-resolver';
-
-hljs.registerLanguage('python', python);
+import { highlightPythonLines } from '../../syntax/highlight-lines';
 
 interface CodeLine {
   readonly html: string;
@@ -31,10 +28,11 @@ function rangesEqual(a: RowRange | null, b: RowRange | null): boolean {
 }
 
 /**
- * Renders code with highlight.js. Two ways to supply it: `rows` (content anchored to real
- * source lines, gap rows for skipped source, paired with `activeRange` — the resolved active
- * step) for the grounded solution panel, or a plain `code` string (no active range) for a
- * static snippet with no step-through, such as the Big-O trainer or the cheat sheet.
+ * Renders Python code through the shared Lezer highlighter (`shared/syntax`), parsing the whole
+ * snippet once so multi-line strings keep their colour. Two ways to supply it: `rows` (content
+ * anchored to real source lines, gap rows for skipped source, paired with `activeRange` — the
+ * resolved active step) for the grounded solution panel, or a plain `code` string (no active
+ * range) for a static snippet with no step-through, such as the Big-O trainer or the cheat sheet.
  * Row markup inside <pre> must stay whitespace-free between tags — Angular never trims
  * whitespace inside <pre>; each stray newline renders as a blank row (fixed 2026-09-23).
  */
@@ -53,7 +51,13 @@ export class CodeViewerComponent implements AfterViewInit, AfterViewChecked {
 
   readonly lines = computed<CodeLine[]>(() => {
     const displayRows = this.rows() ?? rowsFromCode(this.code());
-    return displayRows.map((row) => this.toCodeLine(row));
+    const text = displayRows.map((row) => (row.kind === 'gap' ? '' : row.text)).join('\n');
+    const html = highlightPythonLines(text);
+    return displayRows.map((row, i) =>
+      row.kind === 'gap'
+        ? { html: GAP_MARKER, sourceLine: null, isGap: true }
+        : { html: html[i], sourceLine: row.sourceLine, isGap: false },
+    );
   });
   private readonly effectiveRange = computed(() => this.activeRange() ?? null, { equal: rangesEqual });
   // Set when `effectiveRange` changes; consumed (and cleared) in ngAfterViewChecked, which
@@ -90,12 +94,6 @@ export class CodeViewerComponent implements AfterViewInit, AfterViewChecked {
   isRangeEnd(index: number): boolean {
     const r = this.effectiveRange();
     return r !== null && index === r.end;
-  }
-
-  private toCodeLine(row: DisplayRow): CodeLine {
-    if (row.kind === 'gap') return { html: GAP_MARKER, sourceLine: null, isGap: true };
-    const highlighted = hljs.highlight(row.text || ' ', { language: 'python' });
-    return { html: highlighted.value, sourceLine: row.sourceLine, isGap: false };
   }
 
   /** jsdom (unit tests) has no `scrollIntoView` — guarded so tests don't throw. */

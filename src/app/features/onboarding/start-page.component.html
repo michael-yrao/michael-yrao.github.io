@@ -1,0 +1,150 @@
+<section class="start">
+  <h1 class="start__title">What do you want to study?</h1>
+  <p class="start__lede">
+    Pick a track. We'll make a practice repo on your GitHub account and load it on every page. The
+    repo is public, like a GitHub portfolio.
+  </p>
+
+  @if (!auth.isSignedIn()) {
+    <button type="button" class="start__button" (click)="signIn()">
+      Sign in with GitHub to pick a track.
+    </button>
+  } @else {
+    <div class="start__cards">
+      <article class="start__card">
+        <h2 class="start__card-title">Data Structures &amp; Algorithms</h2>
+        <p class="start__card-text">
+          LeetCode-style problems with spaced-repetition reviews.
+        </p>
+        <button type="button" class="start__button" [disabled]="isBusy()" (click)="startDsa()">
+          Start DSA
+        </button>
+      </article>
+      <article class="start__card start__card--muted">
+        <h2 class="start__card-title">System Design</h2>
+        <button type="button" class="start__button" aria-disabled="true">Coming soon</button>
+      </article>
+      <article class="start__card start__card--muted">
+        <h2 class="start__card-title">AI Engineering</h2>
+        <button type="button" class="start__button" aria-disabled="true">Coming soon</button>
+      </article>
+    </div>
+
+    @if (onboarding.isAdopted()) {
+      @if (onboarding.hasConfig()) {
+        <p class="start__line">
+          You already have {{ onboarding.repoSlug() }} with a schedule. We'll use that one.
+        </p>
+      } @else {
+        <p class="start__line">You already have {{ onboarding.repoSlug() }}. We'll use that one.</p>
+      }
+    }
+
+    @if (progress().length > 0) {
+      <ol class="start__steps">
+        @for (item of progress(); track item.label) {
+          <li class="start__step" [attr.data-mark]="item.mark">
+            <span class="start__mark" aria-hidden="true"></span>
+            {{ item.label }}
+          </li>
+        }
+      </ol>
+    }
+
+    @switch (onboarding.step()) {
+      @case ('needs-install') {
+        <p class="start__line">
+          One more step: let Progressive Overflow see {{ onboarding.repoSlug() }} so it can save your
+          work.
+        </p>
+        <div class="start__actions">
+          <a class="start__button" [href]="installUrl">Give access on GitHub</a>
+          <button type="button" class="start__button" (click)="checkInstall()">
+            I've given access, check again
+          </button>
+          <a class="start__link" [href]="nextUrl" (click)="goNext($event)"
+            >Skip for now and see my progress</a
+          >
+        </div>
+      }
+      @case ('intake') {
+        <form class="start__form" (submit)="submitIntake($event)">
+          <h2 class="start__card-title">Four quick questions</h2>
+          <p class="start__lede">
+            We write these into your repo and build your first week. You can change them later.
+          </p>
+          <label class="start__field" for="intake-name">
+            <span class="start__label">Your name</span>
+            <input
+              id="intake-name"
+              class="start__input"
+              type="text"
+              [value]="name()"
+              (input)="setName($event)"
+            />
+          </label>
+          <div class="start__field" role="group" aria-labelledby="intake-target">
+            <span class="start__label" id="intake-target">What are you training for?</span>
+            <div class="start__toggles">
+              @for (option of targets; track option.value) {
+                <button
+                  type="button"
+                  class="start__toggle"
+                  [attr.aria-pressed]="target() === option.value"
+                  (click)="setTarget(option.value)"
+                >
+                  {{ option.label }}
+                </button>
+              }
+            </div>
+          </div>
+          <label class="start__field" for="intake-timezone">
+            <span class="start__label">Your timezone</span>
+            <select id="intake-timezone" class="start__input" (change)="setTimezone($event)">
+              @for (zone of timezones(); track zone) {
+                <option [value]="zone" [selected]="zone === timezone()">{{ zone }}</option>
+              }
+            </select>
+          </label>
+          <label class="start__field" for="intake-start-date">
+            <span class="start__label">Start date</span>
+            <input
+              id="intake-start-date"
+              class="start__input"
+              type="date"
+              [value]="startDate()"
+              [min]="minStartDate"
+              [max]="maxStartDate"
+              (input)="setStartDate($event)"
+            />
+          </label>
+          <button type="submit" class="start__button" [disabled]="!canSubmit()">
+            Build my first week
+          </button>
+        </form>
+      }
+      @case ('build-timeout') {
+        <p class="start__line">
+          Still building. GitHub Actions can take a few minutes the first time.
+        </p>
+        <div class="start__actions">
+          <button type="button" class="start__button" (click)="checkAgain()">Check again</button>
+          <a class="start__link" [href]="runUrl()" target="_blank" rel="noopener"
+            >Open the run on GitHub</a
+          >
+        </div>
+      }
+      @case ('done') {
+        <p class="start__line">
+          Your repo is {{ onboarding.repoSlug() }} and your first week is on the board.
+        </p>
+        <div class="start__actions">
+          <button type="button" class="start__button" (click)="goHome()">Go to my board</button>
+        </div>
+      }
+      @case ('failed') {
+        <p class="start__line">{{ failureText() }}</p>
+      }
+    }
+  }
+</section>

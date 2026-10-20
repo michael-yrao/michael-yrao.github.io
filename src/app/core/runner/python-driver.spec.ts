@@ -272,6 +272,82 @@ class MinStack:
     expected: [null, null, null, 1, null, 3],
   },
   {
+    name: 'list-node-list: each inner array becomes a linked list',
+    code: `${LIST_NODE_CLASS}
+class Solution:
+    def mergeKLists(self, lists):
+        values = sorted(node.val for head in lists for node in self.walk(head))
+        dummy = tail = ListNode()
+        for value in values:
+            tail.next = ListNode(value)
+            tail = tail.next
+        return dummy.next
+
+    def walk(self, head):
+        while head:
+            yield head
+            head = head.next
+`,
+    entry: { className: 'Solution', method: 'mergeKLists' },
+    types: { args: ['list-node-list'], result: 'list-node' },
+    testCase: { args: [[[1, 4, 5], [1, 3, 4], [2, 6]]] },
+    expected: [1, 1, 2, 3, 4, 4, 5, 6],
+  },
+  ...[
+    { name: 'list-node-ref: the cycle entry node decodes to its index', pos: 1, expected: 1 },
+    { name: 'list-node-ref: no cycle decodes None to null', pos: -1, expected: null },
+  ].map(({ name, pos, expected }) => ({
+    name,
+    code: `${LIST_NODE_CLASS}
+class Solution:
+    def detectCycle(self, head):
+        seen = set()
+        while head:
+            if head in seen:
+                return head
+            seen.add(head)
+            head = head.next
+        return None
+`,
+    entry: { className: 'Solution', method: 'detectCycle' },
+    types: { args: ['list-node-cycle'], result: 'list-node-ref' } as TypeSpec,
+    testCase: { args: [pos === 1 ? [[3, 2, 0, -4], 1] : [[1, 2], -1]] },
+    expected,
+  })),
+  {
+    name: 'judge: isBadVersion is bound for the case from the registry',
+    code: `
+class Solution:
+    def firstBadVersion(self, n):
+        low, high = 1, n
+        while low < high:
+            mid = (low + high) // 2
+            if isBadVersion(mid):
+                high = mid
+            else:
+                low = mid + 1
+        return low
+`,
+    entry: { className: 'Solution', method: 'firstBadVersion' },
+    testCase: { args: [5], judge: { isBadVersion: 4 } },
+    expected: 4,
+  },
+  {
+    name: 'ops types: the constructor argument goes through types.args, method args stay raw',
+    code: `${LIST_NODE_CLASS}
+class Solution:
+    def __init__(self, head):
+        self.head = head
+
+    def getRandom(self):
+        return self.head.val
+`,
+    entry: { className: 'Solution', method: 'getRandom', kind: 'ops' },
+    types: { args: ['list-node'], result: null },
+    testCase: { ops: ['Solution', 'getRandom'], args: [[[1, 2, 3]], []] },
+    expected: [null, 1],
+  },
+  {
     name: 'round-trip: decode(encode(...)), through dated method names and tree codecs',
     code: `${TREE_NODE_CLASS}
 class Codec:

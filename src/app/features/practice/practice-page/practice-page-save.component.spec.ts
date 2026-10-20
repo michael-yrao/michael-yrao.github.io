@@ -14,6 +14,7 @@ import { PythonRunnerService } from '../../../core/runner/python-runner.service'
 import { RunState } from '../../../core/runner/runner.model';
 import { GOLD_STANDARD_REPO } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
+import { BigOService } from '../../../core/services/big-o.service';
 import { ShowcaseService } from '../../../core/services/showcase.service';
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { PracticePageComponent } from './practice-page.component';
@@ -24,7 +25,10 @@ const SAVE_BUTTON = 'Save to GitHub';
 const MARK_COMPLETE = 'Mark Complete';
 const REMOTE_SAVED_AT = '2026-10-10T12:00:00.000Z';
 const REMOTE_CODE = 'remote code\n';
-const REMOTE_FILE = `# po-attempt: {"complete":false,"rating":null,"tests":null,"savedAt":"${REMOTE_SAVED_AT}"}\n${REMOTE_CODE}`;
+const REMOTE_FILE = `# po-attempt: {"complete":false,"rating":null,"tests":null,"complexity":null,"savedAt":"${REMOTE_SAVED_AT}"}\n${REMOTE_CODE}`;
+const POOL = ['O(1)', 'O(n)', 'O(n log n)'];
+const REFERENCE_ENTRY = { time: 'O(n)', space: 'O(1)', whyTime: 'one pass', whySpace: 'two counters' };
+const WHY = 'one pass over the input';
 
 const PROBLEM: PracticeProblem = {
   number: 90,
@@ -95,6 +99,10 @@ function render(): { fixture: ComponentFixture<PracticePageComponent>; httpMock:
         },
       },
       { provide: ShowcaseService, useValue: { data: signal(null), load: vi.fn(), entryFor: () => null } },
+      {
+        provide: BigOService,
+        useValue: { status: signal('ready'), load: vi.fn(), pool: () => POOL, entryFor: () => REFERENCE_ENTRY },
+      },
       { provide: PythonRunnerService, useValue: { run: runSpy } },
       {
         provide: ActivatedRoute,
@@ -173,6 +181,58 @@ describe('PracticePageComponent save to GitHub', () => {
 
     expect(buttonByText(root, SAVE_BUTTON)).toBeDefined();
     expect(buttonByText(root, MARK_COMPLETE)!.disabled).toBe(!isEnabled);
+  });
+
+  it.each([
+    {
+      name: 'Mark Complete, dialog, Check, rating, Save rep',
+      isComplete: true,
+      expected: {
+        complete: true,
+        rating: 'clean',
+        complexity: { time: 'O(n)', space: 'O(1)', whyTime: WHY, whySpace: WHY },
+      },
+    },
+    { name: 'Save to GitHub', isComplete: false, expected: { complete: false, rating: null, complexity: null } },
+  ])('$name posts a header with the expected complexity and rating', async ({ isComplete, expected }) => {
+    signIn(OWNER);
+    runSpy.mockReturnValue(of(runOf(['pass', 'pass', 'pass'])));
+    const { fixture, httpMock } = render();
+    const root: HTMLElement = fixture.nativeElement;
+    await tick();
+    httpMock.expectOne(`${WORKER_API_URL}practice/latest`).flush({}, { status: 404, statusText: 'none' });
+    clickRun(fixture, false);
+
+    if (isComplete) {
+      buttonByText(root, MARK_COMPLETE)!.click();
+      fixture.detectChanges();
+      const rows = Array.from(root.querySelectorAll('.rep__row'));
+      const chipIn = (row: Element, label: string): HTMLButtonElement =>
+        Array.from(row.querySelectorAll<HTMLButtonElement>('.rep__chip')).find((b) => b.textContent?.trim() === label)!;
+      chipIn(rows[0], 'O(n)').click();
+      chipIn(rows[1], 'O(1)').click();
+      for (const input of Array.from(root.querySelectorAll<HTMLInputElement>('.rep__why-input'))) {
+        input.value = WHY;
+        input.dispatchEvent(new Event('input'));
+      }
+      fixture.detectChanges();
+      buttonByText(root, 'Check')!.click();
+      fixture.detectChanges();
+      root.querySelector<HTMLInputElement>('input[type="radio"]')!.click();
+      fixture.detectChanges();
+      buttonByText(root, 'Save rep')!.click();
+    } else {
+      buttonByText(root, SAVE_BUTTON)!.click();
+    }
+    await tick(); // the token arrives before the request
+    const req = httpMock.expectOne(`${WORKER_API_URL}practice/save`);
+    req.flush({ ok: true });
+    await tick();
+    fixture.detectChanges();
+
+    const headerLine = (req.request.body.content as string).split('\n', 1)[0];
+    expect(JSON.parse(headerLine.replace('# po-attempt: ', ''))).toMatchObject(expected);
+    if (isComplete) expect(root.textContent).toContain('Marked complete · 🟢 · O(n) / O(1)');
   });
 
   it.each([

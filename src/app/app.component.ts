@@ -10,6 +10,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { AuthService } from './core/auth/auth.service';
+import { CoachAvailabilityService } from './core/coach/coach-availability.service';
 import { CoachUiService } from './core/coach/coach-ui.service';
 import { SITE_LINKS, isCoachOwner } from './core/data/site-links';
 import { CoachPanelComponent } from './features/coach-panel/coach-panel.component';
@@ -35,7 +36,9 @@ export class AppComponent {
   private readonly router = inject(Router);
   readonly auth = inject(AuthService);
   readonly coachUi = inject(CoachUiService);
-  readonly isCoachOwner = computed(() => isCoachOwner(this.auth.login()));
+  private readonly coachAvailability = inject(CoachAvailabilityService);
+  /** The owner, on a deploy whose Worker serves a coach; everyone else never sees the toggle or the panel. */
+  readonly hasCoach = computed(() => isCoachOwner(this.auth.login()) && this.coachAvailability.available());
 
   private readonly url = toSignal(
     this.router.events.pipe(
@@ -47,7 +50,7 @@ export class AppComponent {
   private readonly isWide = signal(false);
   /** Open on a practice problem with room to spare: the page shrinks and the coach sits beside it. */
   readonly isCoachDocked = computed(
-    () => this.coachUi.isOpen() && this.isWide() && PRACTICE_PROBLEM_URL.test(this.url()),
+    () => this.hasCoach() && this.coachUi.isOpen() && this.isWide() && PRACTICE_PROBLEM_URL.test(this.url()),
   );
 
   constructor() {

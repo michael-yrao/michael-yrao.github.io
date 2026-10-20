@@ -1,4 +1,5 @@
 import { Codec, PracticeCase } from '../../core/models/practice.model';
+import { isAnyOf } from '../../core/practice/compare';
 import { LEARNER_FILE } from '../../core/runner/python-driver';
 import { CaseResult, CaseVerdict } from '../../core/runner/runner.model';
 
@@ -68,13 +69,29 @@ function errorText(result: CaseResult): string | null {
   return outcome.message;
 }
 
+const ANY_OF_SEPARATOR = ' | ';
+const LIST_SEPARATOR = ',';
+
+/**
+ * An anyOf expected reads as its alternatives joined by ` | `; a list holding an anyOf element (an ops
+ * case's per-op alternatives) reads element by element; any other value as `format` has it.
+ */
+function formatExpected(value: unknown, format: (value: unknown) => string): string {
+  if (isAnyOf(value)) return value.anyOf.map((alternative) => format(alternative)).join(ANY_OF_SEPARATOR);
+  if (Array.isArray(value) && value.some(isAnyOf)) {
+    return `[${value.map((element) => formatExpected(element, format)).join(LIST_SEPARATOR)}]`;
+  }
+  return format(value);
+}
+
 export function toResultRow(
   result: CaseResult,
   cases: readonly PracticeCase[],
   resultCodec: Codec | null = null,
 ): ResultRow {
   const testCase = cases[result.index];
-  const format = resultCodec === 'number-inf' ? toInfJson : toJson;
+  const formatValue = resultCodec === 'number-inf' ? toInfJson : toJson;
+  const format = (value: unknown): string => formatExpected(value, formatValue);
   const isPass = result.verdict === 'pass';
   return {
     index: result.index,

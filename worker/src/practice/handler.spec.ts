@@ -49,11 +49,19 @@ function ownerScript(login: string, extra: Script = {}): Script {
   };
 }
 
+const COMPLEXITY = {
+  time: 'O(n)',
+  space: 'O(1)',
+  whyTime: 'one pass over the input',
+  whySpace: 'a few counters',
+};
+
 function header(fields: Record<string, unknown> = {}): string {
   return `# po-attempt: ${JSON.stringify({
     complete: false,
     rating: null,
     tests: '3/9',
+    complexity: null,
     savedAt: SAVED_AT,
     ...fields,
   })}`;
@@ -101,14 +109,40 @@ describe('practice /save', () => {
         name: 'complete with 7/9',
         request: saveRequest(
           PATH,
-          `${header({ complete: true, rating: 'clean', tests: '7/9' })}\npass\n`,
+          `${header({ complete: true, rating: 'clean', tests: '7/9', complexity: COMPLEXITY })}\npass\n`,
         ),
         status: 400,
         error: 'invalid-attempt-header',
       },
       {
         name: 'complete with null rating',
-        request: saveRequest(PATH, `${header({ complete: true, tests: '9/9' })}\npass\n`),
+        request: saveRequest(
+          PATH,
+          `${header({ complete: true, tests: '9/9', complexity: COMPLEXITY })}\npass\n`,
+        ),
+        status: 400,
+        error: 'invalid-attempt-header',
+      },
+      {
+        name: 'complete without complexity',
+        request: saveRequest(
+          PATH,
+          `${header({ complete: true, rating: 'clean', tests: '9/9' })}\npass\n`,
+        ),
+        status: 400,
+        error: 'invalid-attempt-header',
+      },
+      {
+        name: 'complete with an empty why',
+        request: saveRequest(
+          PATH,
+          `${header({
+            complete: true,
+            rating: 'clean',
+            tests: '9/9',
+            complexity: { ...COMPLEXITY, whyTime: '   ' },
+          })}\npass\n`,
+        ),
         status: 400,
         error: 'invalid-attempt-header',
       },
@@ -146,7 +180,7 @@ describe('practice /save', () => {
   });
 
   it('writes the attempt with the commit message, branch and base64 UTF-8 content', async () => {
-    const content = `${header({ complete: true, rating: 'clean', tests: '9/9' })}\n# naïve ✓\n`;
+    const content = `${header({ complete: true, rating: 'clean', tests: '9/9', complexity: COMPLEXITY })}\n# naïve ✓\n`;
     const script = ownerScript('alice', {
       [`GET ${CONTENTS_URL}?ref=main`]: { status: 200, body: { sha: 'abc123' } },
     });

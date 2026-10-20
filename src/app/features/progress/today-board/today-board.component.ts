@@ -21,12 +21,14 @@ import { LoadStatus } from '../../../core/services/progress.service';
 import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { shortMonthDay } from '../../../core/utils/local-date';
+import { EngineMarkComponent } from '../engine-mark/engine-mark.component';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
 import { PRACTICE_GLYPH } from '../practice-link';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProgressViewStateService } from '../progress-view-state.service';
 import {
+  BOARD_KEY,
   BoardRow,
   COMPLEXITY_GATE_TITLE,
   RowCounts,
@@ -46,7 +48,9 @@ import {
   outcomeAriaLabel,
   outcomeBubbleId,
   outcomeKey,
+  plainAriaLabel,
   rowKey,
+  rowStateGlyph,
   statusAriaLabel,
   statusGlyph,
   sumRowCounts,
@@ -54,6 +58,8 @@ import {
   trendPanelId,
 } from './board-rows';
 import { WeekNavigation } from './week-navigation';
+
+const NO_PENDING: ReadonlySet<number> = new Set();
 
 /**
  * The Overview tab's one schedule card: a 7-day selector strip over the week's
@@ -81,7 +87,7 @@ import { WeekNavigation } from './week-navigation';
   templateUrl: './today-board.component.html',
   styleUrls: ['./today-board.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgTemplateOutlet, ProblemTimelineComponent],
+  imports: [RouterLink, NgTemplateOutlet, ProblemTimelineComponent, EngineMarkComponent],
 })
 export class TodayBoardComponent {
   readonly schedule = input<Schedule | null | undefined>();
@@ -108,9 +114,15 @@ export class TodayBoardComponent {
    *  relative to it, so the status badge's GitHub link is built from it, never from the gold
    *  standard. */
   readonly repoRef = input<RepoRef | null>(null);
+  /** The viewer is signed in as the repo's owner: only then the engine mark and the setup CTA show. */
+  readonly isOwnRepo = input(false);
 
   /** LeetCode numbers with a practice contract entry — only these rows get the Run link. */
   readonly practiceNumbers = input<ReadonlySet<number>>(new Set());
+
+  /** LeetCode numbers whose complete rep is saved today but not yet folded into the summary
+   *  (`ProgressService.pending`) — those rows show the "saved, folding" state. */
+  readonly pending = input<ReadonlySet<number>>(NO_PENDING);
 
   /** The archived weeks (`ProgressService.history`) — `null` until the board has asked for
    *  them (see `prevWeek()`), an array (possibly empty) once that fetch has resolved. */
@@ -158,6 +170,8 @@ export class TodayBoardComponent {
   readonly canGoNext = this.weekNav.canGoNext;
 
   readonly days = computed(() => this.weekNav.displayedSchedule().days);
+  /** An owner whose repo has no schedule yet gets the setup link instead of an empty strip. */
+  readonly needsSetup = computed(() => this.isOwnRepo() && !this.schedule());
 
   readonly effectiveDate = computed<string | null>(() => {
     const list = this.days();
@@ -307,6 +321,18 @@ export class TodayBoardComponent {
     return file && ref ? fileUrl(ref, file) : null;
   }
 
+  /** True for an open row whose rep is saved but not yet folded. Only TODAY's day qualifies:
+   *  the pending set comes from today's attempt folder, so a same-numbered row on another day
+   *  must not light up. */
+  isPendingItem(item: ScheduleItem, date: string): boolean {
+    return (
+      !item.done &&
+      item.lcNumber !== null &&
+      date === this.todayISO() &&
+      this.pending().has(item.lcNumber)
+    );
+  }
+
   /** Rows for one day, used by both the collapsed (selected-day) and expanded (7-day) views. */
   rowsFor(day: ScheduleDay): BoardRow[] {
     return this.boardRowsByDate().get(day.date) ?? [];
@@ -334,6 +360,9 @@ export class TodayBoardComponent {
   protected readonly githubAriaLabel = githubAriaLabel;
   protected readonly movedAriaLabel = movedAriaLabel;
   protected readonly statusGlyph = statusGlyph;
+  protected readonly plainAriaLabel = plainAriaLabel;
+  protected readonly rowStateGlyph = rowStateGlyph;
+  protected readonly boardKey = BOARD_KEY;
   protected readonly walkthroughGlyph = WALKTHROUGH_GLYPH;
   protected readonly practiceGlyph = PRACTICE_GLYPH;
   protected readonly gateTitle = COMPLEXITY_GATE_TITLE;

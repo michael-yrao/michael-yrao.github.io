@@ -1,0 +1,71 @@
+# The coach deploy: wrangler.toml plus the coach runtime. Wrangler has no config inheritance, so this
+# is a full copy and must stay a superset of wrangler.toml (src/wrangler-config.spec.ts checks it).
+# Deployed by .github/workflows/coach-deploy.yml; needs the Workers Paid plan and the secret set with
+#   npx wrangler secret put ANTHROPIC_API_KEY
+name = "po-api"
+main = "src/index.coach.ts"
+compatibility_date = "2026-09-23"
+workers_dev = true
+
+# Uncomment and point at your own zone to serve this from a custom domain instead of
+# (or in addition to) the *.workers.dev URL. DNS for that hostname must be on Cloudflare.
+# [[routes]]
+# pattern = "events-api.progressiveoverflow.com/*"
+# zone_name = "progressiveoverflow.com"
+
+# Pattern Sense GitHub sign-in. The client secret is not stored here:
+#   npx wrangler secret put GITHUB_CLIENT_SECRET
+[vars]
+GITHUB_CLIENT_ID = "Iv23liBo5xiEhlT4mPOg"
+ALLOWED_ORIGINS = "https://progressiveoverflow.com,http://localhost:4200"
+# The template the /onboard route generates learner repos from.
+TEMPLATE_OWNER = "michael-yrao"
+TEMPLATE_REPO = "cse-coach"
+OWNER_LOGIN = "michael-yrao"
+COACH_GIT_NAME = "michael-yrao"
+COACH_GIT_EMAIL = "yao.michael.rao@gmail.com"
+COACH_TZ = "America/New_York"
+
+# The id comes from `npx wrangler kv namespace create INTERVIEWS`.
+[[kv_namespaces]]
+binding = "INTERVIEWS"
+id = "0594d82515de4698b07ae8fbb5bb5b56"
+
+# Rate limits are on, and the worker refuses requests (503) when a binding is missing. If the
+# free plan rejects them at deploy time, re-comment these two blocks by hand.
+[[ratelimits]]
+name = "INTERVIEW_READS"
+namespace_id = "1001"
+  [ratelimits.simple]
+  limit = 60
+  period = 60
+
+[[ratelimits]]
+name = "INTERVIEW_WRITES"
+namespace_id = "1002"
+  [ratelimits.simple]
+  limit = 6
+  period = 60
+
+[[ratelimits]]
+name = "COACH_REQUESTS"
+namespace_id = "1003"
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+
+# The coach runtime: one container behind a Durable Object. Needs the Workers Paid plan and the
+# secret set with `npx wrangler secret put ANTHROPIC_API_KEY`. See worker/README.md.
+[[containers]]
+class_name = "CoachContainer"
+image = "./coach/Dockerfile"
+instance_type = "standard-1"   # 1/2 vCPU, 4 GiB memory, 8 GB disk
+max_instances = 1
+
+[[durable_objects.bindings]]
+name = "COACH"
+class_name = "CoachContainer"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["CoachContainer"]

@@ -137,8 +137,8 @@
             </select>
           </label>
         } @else if (repos.length === 0) {
-          <a class="progress__own-repo" [href]="installUrl" target="_blank" rel="noopener"
-            >Give Progressive Overflow permission on a repo to see your progress</a
+          <a class="progress__own-repo" routerLink="/start"
+            >Choose what to study to get your own repo</a
           >
         }
       }
@@ -224,6 +224,14 @@
         />
       </div>
     }
+    @case ('empty') {
+      <div class="card po-card">
+        <p>
+          Your repo is ready. Answer four questions to build your first week.
+          <a routerLink="/start">Set up my track</a>
+        </p>
+      </div>
+    }
     @case ('ready') {
       @if (data(); as d) {
         <!-- Streak hero — compact identity/motivator, always visible above the tabs. -->
@@ -302,9 +310,11 @@
                   [detailsStatus]="detailsStatus()"
                   [detailsError]="detailsError()"
                   [repoRef]="repoRef()"
+                  [isOwnRepo]="isOwnRepo()"
                   [history]="history()"
                   [historyStatus]="historyStatus()"
                   [practiceNumbers]="practiceNumbers()"
+                  [pending]="pending()"
                   (trend)="onTrendExpand($event)"
                   (historyRequest)="loadHistory()"
                 />

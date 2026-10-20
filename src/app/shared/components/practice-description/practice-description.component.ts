@@ -4,7 +4,8 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { AlgorithmMeta, GraphState, GridState } from '../../../core/models/algorithm.model';
 import { PracticeProblem } from '../../../core/models/practice.model';
 import { figureStateFor } from '../../../core/practice/example-figure';
-import { TextRun, splitInlineCode } from '../../../core/practice/inline-code';
+import { splitInlineCode } from '../../../core/practice/inline-code';
+import { MathRun, splitMath } from '../../../core/practice/math-text';
 import { reflowProse } from '../../../core/practice/reflow';
 import { splitStatement } from '../../../core/practice/statement-segments';
 import { HintCardComponent } from '../hint-card/hint-card.component';
@@ -16,8 +17,20 @@ export interface ExampleFigure {
   readonly number: number;
   readonly caption: string;
   readonly state: GraphState | GridState;
-  /** True when at least one edge is drawn as found, so the figure carries the Output key. */
+  /** True when at least one edge or grid cell is drawn as found, so the figure carries the Output key. */
   readonly hasHighlight: boolean;
+}
+
+/** One stretch of a statement line as drawn: literal inline code, or plain text, a subscript or a superscript. */
+export interface DisplayRun {
+  readonly text: string;
+  readonly kind: 'code' | MathRun['kind'];
+}
+
+function displayRuns(text: string): readonly DisplayRun[] {
+  return splitInlineCode(text).flatMap((run): readonly DisplayRun[] =>
+    run.isCode ? [{ text: run.text, kind: 'code' }] : splitMath(run.text),
+  );
 }
 
 /** One block of the statement card, in reading order: a segment's text with the diagram drawn
@@ -25,8 +38,8 @@ export interface ExampleFigure {
  *  `Example N:` the statement never names, captioned since no text names it. */
 export interface StatementBlock {
   readonly text: string | null;
-  /** The text split into plain and inline-code runs; empty when there is no text. */
-  readonly runs: readonly TextRun[];
+  /** The text split into code, plain, subscript and superscript runs; empty when there is no text. */
+  readonly runs: readonly DisplayRun[];
   readonly figure: ExampleFigure | null;
   readonly isCaptioned: boolean;
 }
@@ -56,9 +69,12 @@ export class PracticeDescriptionComponent {
     if (!problem || !figure) return [];
     const examples = problem.cases.filter((c) => c.example);
     return examples.flatMap((c, i) => {
-      const state = figureStateFor(figure, c.args, c.expected);
+      const state = figureStateFor(figure, c.args, c.expected, c.figureCells);
       if (!state) return [];
-      const hasHighlight = state.type === 'graph' && state.edges.some((e) => e.state === 'found');
+      const hasHighlight =
+        state.type === 'graph'
+          ? state.edges.some((e) => e.state === 'found')
+          : state.grid.some((row) => row.some((cell) => cell.state === 'found'));
       return [{ number: i + 1, caption: `Example ${i + 1}`, state, hasHighlight }];
     });
   });
@@ -75,7 +91,7 @@ export class PracticeDescriptionComponent {
       const text = reflowProse(s.text);
       return {
         text,
-        runs: splitInlineCode(text),
+        runs: displayRuns(text),
         figure: placements.find((p) => p.index === i)?.figure ?? null,
         isCaptioned: false,
       };

@@ -172,16 +172,17 @@ function makeSummary(): ProgressSummary {
 // parseRepo is a pure method (it never touches the HttpClient the service is constructed
 // with), so a real instance built with a throwaway HttpClient is safe to call just for that
 // method — the stub below delegates to it instead of reimplementing its parsing rule.
-const realProgressService = new ProgressService({} as never);
+const realProgressService = new ProgressService({} as never, {} as never);
 
 function makeProgressServiceStub() {
   return {
-    status: signal<'idle' | 'loading' | 'ready' | 'error'>('ready'),
+    status: signal<'idle' | 'loading' | 'ready' | 'error' | 'empty'>('ready'),
     error: signal<string | null>(null),
     data: signal<ProgressSummary | null>(makeSummary()),
     repoSlug: signal<string | null>('michael-yrao/cse-progress'),
     repoRef: signal<RepoRef | null>(GOLD_STANDARD_REPO),
     refreshing: signal(false),
+    pending: signal<ReadonlySet<number>>(new Set()),
     refreshError: signal<string | null>(null),
 
     detailsStatus: signal<'idle' | 'loading' | 'ready' | 'error'>('idle'),
@@ -1183,6 +1184,17 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.skeleton__card').length).toBe(1);
   });
 
+  it('renders the empty-state card, not the error panel, when the repo is fresh', () => {
+    progress.status.set('empty');
+    progress.data.set(null);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Your repo is ready. Answer four questions');
+    expect(fixture.nativeElement.querySelector('.progress__error')).toBeFalsy();
+  });
+
   // ── Round 5: the generated-at line moved into the Refresh button ───────────────────
   it('removes the standalone "Generated" line; generatedAt appears in the Refresh button instead', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
@@ -1376,10 +1388,10 @@ const CALL_CAP = 5;
 const PRACTICE_FILE = 'dashboard/practice.json';
 const PRACTICE_INDEX_FILE = 'dashboard/practice-index.json';
 const MANIFEST_FILE = 'dashboard/manifest.json';
+const SUMMARY_FILE = 'dashboard/progress-summary.json';
 
-/** The summary fetch under test: not the manifest, nor the practice index/contract riding along. */
-const isSummaryUrl = (url: string) =>
-  ![MANIFEST_FILE, PRACTICE_INDEX_FILE, PRACTICE_FILE].some((file) => url.includes(file));
+/** The summary fetch under test, by its path; the manifest, practice files and the attempt-folder listing ride along. */
+const isSummaryUrl = (url: string) => url.includes(SUMMARY_FILE);
 
 function makeCountingHttp() {
   const calls: string[] = [];

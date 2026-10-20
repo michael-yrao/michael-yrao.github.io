@@ -37,3 +37,38 @@ Found (live probes): the World Tour is published only on snowflake.com, which ex
 Source evaluation: zero-code feeds exist (NYC Systems Luma calendar `cal-Dq7vVCs9HWPhLk4`, 1 upcoming; Meetup groups NYC Python / NY Kubernetes / Data Council NYC, 0 upcoming; Papers We Love returns "Invalid feed signature"); CNCF and GDG Bevy sites have no NYC chapter and would need the `/new-york/` constant in `bevy.ts` made per-source; confs.tech GitHub JSON (31 category files, fields name/url/startDate/endDate/city/country/online) is the only conference feed and would need a new adapter kind; Gary's Guide and AI Tinkerers NYC are HTML only; vendor roadshows (Snowflake, AWS Summit, DASH, Cloud Next, Databricks) have no feed; Eventbrite needs a token; MongoDB user groups and Microsoft Reactor NYC are dead ends.
 Learner decision: "remove events page for now", refined to "hide the page and not allow the page to be fetched" → unlink only (route, drawer link, title description, sitemap path), feature code and worker kept.
 Status: implemented 2026-10-09 (8 files, 7+/24-); two specs updated (drawer lists five links; `/events` redirects to `/`); sitemap regenerated (9 static paths); lint 0 errors, build green, full suite 1528 passed; uncommitted. Open for whenever the page returns: the dead Meetup Snowflake row, the `other`-area comment drift, and which of the evaluated sources earn a row.
+
+## Practice statements: math formatting (2026-10-19)
+Requirement: spec statements read as ASCII (`tickets[i] = [from_i, to_i]`, `1 <= n <= 10^4`); the learner wanted them to read like math.
+Scope chosen by the learner: the site's statement renderer, so every spec benefits and the YAML stays ASCII (over hand-editing 332 with Unicode, or adding KaTeX).
+Learner decision: math formatting applies to every line except code spans, verbatim (indented) lines included, so indented constraints (787) and examples (202 `8^2`) read as math too. No reasoning given yet; worth probing: why a one-character suffix (`from_i`) is a subscript but `start_node` is a name.
+Status: implemented 2026-10-19 (`core/practice/math-text.ts` `splitMath`; `DisplayRun` in practice-description; `<sub>`/`<sup>` at line-height 0); one table-driven spec + one component case; full suite 1668 passed, lint 0 errors, build green; not checked in a browser; uncommitted.
+
+## 2026-10-19 · Syntax highlighting: one engine for both surfaces
+Learner decision (plan approved 2026-10-19): the practice/interview editor looked flat because CodeMirror's default style names only ~12 tags while the Lezer Python grammar emits many more (plain variables, attributes, operators) that fell through uncoloured. Fix: drop highlight.js; one `tagHighlighter` (`src/app/shared/syntax/python-highlighter.ts`) emits stable `tok-*` classes for both the CodeMirror editor and `app-code-viewer`; the palette lives once in `src/app/shared/syntax/_syntax.scss`. Side effect fixed: the viewer used to call hljs per line, so a docstring lost its colour after its first line; the viewer now parses the whole snippet once (`highlightPythonLines`).
+
+## 2026-10-19 · Complete-rep form moves out of the modal
+Learner observation: the Big-O question covered the editor and the problem; they re-read their code while naming
+contributors. Design chosen by the learner from three placements (Output pane / docked drawer / backdrop-less
+modal): the form replaces the case results in the Output pane while completing, so the editor stays in view and
+the existing row divider sizes it. `CompleteRepDialogComponent` → `CompleteRepPanelComponent`; the shared
+`app-modal` is unchanged (still used by the interview saved-problems card). Focus is not moved into the panel.
+
+## 79 practice page: example line breaks + grid answer path (2026-10-19)
+Learner observation (doing 79): Input and Output render on one line; the grid figure does not mark the word.
+Found: `reflowProse` joins unindented lines, and 22 specs keep examples unindented because their Input lines exceed the 64-char verbatim cap; grid figures never set a cell state, and 79's answer is a bool so the path is not in the data.
+Learner decisions: (1) fix in the renderer: `Input:` / `Output:` / `Explanation:` lines start their own line (over editing 22 specs); (2) the spec stores the path: optional case field `figureCells` on example cases of a grid figure (over a site-side DFS, or no highlight).
+Status: implemented 2026-10-19 (reflow.ts EXAMPLE_LABEL; figureCells through export_practice.py validation, practice.schema.json, practice-validation.ts, example-figure.ts, hasHighlight for grids; 79 paths checked); pytest 12 passed, site suite 1675 passed, lint 0 errors, build green; uncommitted. Old site builds ignore the new field, so either repo can ship first. cse-coach's exporter copy not updated.
+
+## 2026-10-19 · Data funnel (station 2): a repo of your own
+- The Worker creates the learner's repo from the cse-coach template with the user's own App token (GitHub's template `generate`).
+- The repo is public and named `cse-progress`; if the user already has one, it is adopted instead of created.
+- cse-coach stays private for now, so only its collaborators can onboard; everyone else gets the invite-only message.
+- `/start` is a track picker; DSA is the only enabled track.
+- A fresh repo with no `practice.json` falls back to the author's (author-fallback).
+- A repo with no progress files shows an empty state instead of an error.
+
+## 2026-10-19 · No-clone study track: intake and the engine mark
+- Intake is a file commit (`intake.yml`) into the learner's own repo, not an API call that builds anything.
+- GitHub Actions in the learner's repo are the engine's compute (onboard, fold, weekly build); the Worker stays a thin write path.
+- The board's engine mark reads the public Actions runs API unauthenticated, cached 60 s, and only on the learner's own repo.

@@ -2,8 +2,8 @@ import { Injectable, computed, signal } from '@angular/core';
 import { catchError, of } from 'rxjs';
 
 import { contractVersionProblem } from '../contracts/contract-version';
-import { BigOData, BIG_O_SCHEMA_VERSION } from '../models/big-o.model';
-import { isBigOEntry } from '../big-o/big-o-validation';
+import { BigOData, BigOEntry, BIG_O_SCHEMA_VERSION } from '../models/big-o.model';
+import { isBigOEntry, isBigOPool } from '../big-o/big-o-validation';
 import { ContractSource, fetchWithAuthorFallback$, isAuthorFallbackOf } from './author-fallback';
 import {
   GOLD_STANDARD_REPO,
@@ -21,7 +21,7 @@ const MALFORMED_CONTRACT_MESSAGE =
 
 /** Unvalidated JSON as it comes off the wire — everything is checked in `invalidReason`
  *  before anything downstream trusts it as a `BigOData`. */
-type RawBigOPayload = { schemaVersion?: unknown; entries?: unknown } | null;
+type RawBigOPayload = { schemaVersion?: unknown; pool?: unknown; entries?: unknown } | null;
 
 /**
  * Fetches a repo's Big-O trainer contract (`dashboard/big-o.json`), same shape and same
@@ -38,6 +38,9 @@ export class BigOService {
   readonly source = signal<ContractSource | null>(null);
   /** The repo `data` actually came from; null until a load lands. */
   readonly sourceRef = signal<RepoRef | null>(null);
+
+  /** The complexity-label pool, in order; empty until a load lands. */
+  readonly pool = computed(() => this.data()?.pool ?? []);
 
   private readonly requestedRef = signal<RepoRef>(GOLD_STANDARD_REPO);
   /** The viewer asked for another repo's code and is looking at the author's. */
@@ -82,6 +85,11 @@ export class BigOService {
       });
   }
 
+  /** The entry for a problem number, else null (no reference bound). */
+  entryFor(lcNumber: number): BigOEntry | null {
+    return this.data()?.entries.find((entry) => entry.lcNumber === lcNumber) ?? null;
+  }
+
   /** Re-fetches the ref last requested, bypassing caches (the Retry button). */
   reload(): void {
     this.load(this.requestedRef(), true);
@@ -100,7 +108,7 @@ export class BigOService {
     if (!result || typeof result !== 'object') return MALFORMED_CONTRACT_MESSAGE;
     const versionProblem = contractVersionProblem(result, BIG_O_SCHEMA_VERSION, BIG_O_WHAT);
     if (versionProblem) return versionProblem;
-    if (!Array.isArray(result.entries)) return MALFORMED_CONTRACT_MESSAGE;
+    if (!Array.isArray(result.entries) || !isBigOPool(result.pool)) return MALFORMED_CONTRACT_MESSAGE;
 
     const badEntryIndex = result.entries.findIndex((entry) => !isBigOEntry(entry));
     if (badEntryIndex !== -1)

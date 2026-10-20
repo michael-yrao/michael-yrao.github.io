@@ -23,19 +23,20 @@ export interface CoachVars {
   readonly ANTHROPIC_API_KEY: string;
 }
 
-export interface CoachEnv extends PatternSenseEnv, CoachVars {}
-
-/** What the handler needs of the Container stub; the real stub is injected from index.ts. */
+/** What the handler needs of the Container stub; the real stub is injected from index.coach.ts. */
 export interface CoachStub {
   fetch(request: Request): Promise<Response>;
   /** Reads the stored container state without starting the container. */
   getState(): Promise<{ readonly status: string }>;
 }
 
-export interface CoachDeps {
+/** Everything the live coach needs; the handler gets null instead when the coach runtime is not deployed. */
+export interface CoachWiring {
   readonly stub: CoachStub;
   /** True when the request may proceed; throws LimiterUnavailableError when the binding is missing. */
   readonly limit: (key: string) => Promise<boolean>;
+  /** The one GitHub login the coach serves. */
+  readonly ownerLogin: string;
 }
 
 interface RouteSpec {
@@ -66,9 +67,11 @@ const ASLEEP_STATUS: CoachStatus = {
   sessionCostUsd: 0,
 };
 
+const DISABLED_STATUS: CoachStatus = { ...ASLEEP_STATUS, enabled: false };
+
 async function limitRequest(
   request: Request,
-  deps: CoachDeps,
+  deps: CoachWiring,
   cors: HeaderMap,
 ): Promise<Response | null> {
   const key = request.headers.get('CF-Connecting-IP') ?? UNKNOWN_CLIENT_KEY;
@@ -95,6 +98,12 @@ function asleepResponse(cors: HeaderMap): Response {
   return jsonResponse(200, ASLEEP_STATUS, { ...cors, 'Cache-Control': 'no-store' });
 }
 
+/** The answer when no coach runtime is deployed: a status read says so, every other route is refused. */
+function disabledResponse(route: CoachRoute, cors: HeaderMap): Response {
+  if (route === 'status') return jsonResponse(200, DISABLED_STATUS, { ...cors, 'Cache-Control': 'no-store' });
+  return failure(HTTP_SERVICE_UNAVAILABLE, 'coach-disabled', cors);
+}
+
 async function forward(
   stub: CoachStub,
   upstream: Request,
@@ -108,7 +117,7 @@ async function forward(
   }
 }
 
-async function handleStatus(token: string, deps: CoachDeps, cors: HeaderMap): Promise<Response> {
+async function handleStatus(token: string, deps: CoachWiring, cors: HeaderMap): Promise<Response> {
   // Asleep or unknown means asleep: the container is never started, or even fetched, for a status read.
   if (!(await isAwake(deps.stub))) return asleepResponse(cors);
   const response = await forward(deps.stub, upstreamRequest('status', token, null), cors);
@@ -118,7 +127,7 @@ async function handleStatus(token: string, deps: CoachDeps, cors: HeaderMap): Pr
 async function handleMessage(
   request: Request,
   token: string,
-  deps: CoachDeps,
+  deps: CoachWiring,
   cors: HeaderMap,
 ): Promise<Response> {
   const parsed = parseCoachRequest(await request.text());
@@ -129,9 +138,9 @@ async function handleMessage(
 
 export async function handle(
   request: Request,
-  env: CoachEnv,
+  env: PatternSenseEnv,
   fetchImpl: FetchImpl,
-  deps: CoachDeps,
+  deps: CoachWiring | null,
 ): Promise<Response> {
   const cors = gateOrigin(request, env);
   if (cors instanceof Response) return cors;
@@ -141,6 +150,7 @@ export async function handle(
   const target = ROUTES[new URL(request.url).pathname];
   if (target === undefined) return failure(404, 'not-found', cors);
   if (request.method !== target.method) return failure(405, 'method-not-allowed', cors);
+  if (deps === null) return disabledResponse(target.route, cors);
 
   const token = bearerToken(request);
   if (token === null) return failure(401, 'bad-token', cors);
@@ -148,7 +158,7 @@ export async function handle(
   const limited = await limitRequest(request, deps, cors);
   if (limited !== null) return limited;
 
-  const refusal = await checkCoachOwner(fetchImpl, token, env.OWNER_LOGIN, cors);
+  const refusal = await checkCoachOwner(fetchImpl, token, deps.ownerLogin, cors);
   if (refusal !== null) return refusal;
 
   switch (target.route) {

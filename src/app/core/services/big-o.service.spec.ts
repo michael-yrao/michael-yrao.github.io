@@ -11,7 +11,7 @@ import { BigOData } from '../models/big-o.model';
 // A recording HttpClient stub, matching the pattern in showcase.service.spec.ts.
 function makeHttp() {
   const calls: { url: string; opts: any }[] = [];
-  const payload: BigOData = { schemaVersion: 1, generatedAt: '2026-09-24', entries: [] };
+  const payload: BigOData = { schemaVersion: 1, generatedAt: '2026-09-24', pool: ['O(1)'], entries: [] };
   const http = {
     calls,
     get: (url: string, opts: any) => {
@@ -24,7 +24,7 @@ function makeHttp() {
 }
 
 function makeBigOData(overrides: Partial<BigOData> = {}): BigOData {
-  return { schemaVersion: 1, generatedAt: '2026-09-24', entries: [], ...overrides };
+  return { schemaVersion: 1, generatedAt: '2026-09-24', pool: ['O(1)'], entries: [], ...overrides };
 }
 
 function validRawEntry() {

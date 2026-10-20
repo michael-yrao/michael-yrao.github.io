@@ -97,6 +97,8 @@ export class ProgressPageComponent {
   readonly detailsError = this.progress.detailsError;
   readonly detailsRefreshing = this.progress.detailsRefreshing;
   readonly details = this.progress.details;
+  // LeetCode numbers saved today but not yet folded into the summary — the board's third state.
+  readonly pending = this.progress.pending;
 
   // The Overview board's archived weeks — opt-in, fetched only once the board steps back
   // past the week the summary already carries (see WeekNavigation.prevWeek()).
@@ -156,7 +158,13 @@ export class ProgressPageComponent {
   protected readonly auth = inject(AuthService);
   /** The repos the App is installed on for the signed-in viewer; null until looked up. */
   protected readonly ownRepos = signal<readonly string[] | null>(null);
-  protected readonly installUrl = `https://github.com/apps/${this.auth.appSlug}/installations/new`;
+  /** Signed in as the owner of the repo on screen: the engine mark and setup link show only then. */
+  protected readonly isOwnRepo = computed(() => {
+    const ref = this.repoRef();
+    const login = this.auth.login();
+    if (!this.auth.isSignedIn() || ref === null || login === null) return false;
+    return ref.owner.toLowerCase() === login.toLowerCase();
+  });
 
   // Which rows get a Run link — PracticeNumbers also owns the practice-index load effect.
   protected readonly practiceGlyph = PRACTICE_GLYPH;

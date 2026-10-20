@@ -48,6 +48,10 @@ $swatch-height: 3px;
   font: inherit;
 }
 
+// A subscript or superscript adds no line height, so a line holding one keeps its height.
+.practice-description__segment sub,
+.practice-description__segment sup { line-height: 0; }
+
 // An example's input drawn inside the statement card, under its own example's text. The art
 // box caps the drawing so a small graph is not blown up to the pane's width.
 .practice-description__figure {

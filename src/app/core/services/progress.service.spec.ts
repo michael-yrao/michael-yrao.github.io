@@ -240,6 +240,25 @@ describe('ProgressService — missing progress-summary.json', () => {
     expect(calls.some((c) => c.url.includes('/contents/dashboard/progress.json'))).toBe(false);
   });
 
+  const DOUBLE_404_ROWS = [
+    { name: 'a fresh load is the empty state, not an error', isForced: false },
+    { name: 'a forced refresh keeps the refreshError path', isForced: true },
+  ];
+
+  it.each(DOUBLE_404_ROWS)('summary and details both 404: $name', (row) => {
+    const http = { get: () => throwError(() => ({ status: 404 })) };
+    TestBed.configureTestingModule({
+      providers: [ProgressService, { provide: HttpClient, useValue: http }],
+    });
+    const service = TestBed.inject(ProgressService);
+
+    service.loadSummary(null, row.isForced);
+
+    expect(service.status()).toBe(row.isForced ? 'idle' : 'empty');
+    expect(service.error()).toBeNull();
+    expect(service.refreshError() !== null).toBe(row.isForced);
+  });
+
   it('a version-1 summary body missing totals surfaces the no-valid-data error', () => {
     const { totals: _omitted, ...withoutTotals } = MINIMAL_SUMMARY_BODY;
     const http = { get: () => of(withoutTotals) };

@@ -24,6 +24,9 @@ import traceback
 
 _LEARNER_FILE = "${LEARNER_FILE}"
 _solution = {}
+# The dict the learner's code ran in: the methods' __globals__, where a judge API is bound.
+_learner_globals = {}
+JUDGE_APIS = {"isBadVersion": lambda bad: (lambda v: v >= bad)}
 _DEFAULT_RECURSION_LIMIT = sys.getrecursionlimit()
 
 _PRELUDE_SOURCE = """
@@ -108,6 +111,8 @@ def define_solution(code):
         return _format_error(error)
     _solution.clear()
     _solution.update(namespace)
+    _learner_globals.clear()
+    _learner_globals["namespace"] = namespace
     return ""
 
 
@@ -169,6 +174,11 @@ def _encode_list_node(values):
     _expect("list-node", isinstance(values, list), "a JSON array", values)
     nodes = _link_list(values)
     return nodes[0] if nodes else None
+
+
+def _encode_list_node_list(lists):
+    _expect("list-node-list", isinstance(lists, list), "a JSON array of arrays", lists)
+    return [_encode_list_node(values) for values in lists]
 
 
 def _encode_list_node_cycle(spec):
@@ -311,7 +321,29 @@ def _decode_graph_node(root):
 
 
 def _decode_unsupported(value):
-    raise CodecError("list-node-cycle: this codec only builds arguments and cannot decode a result")
+    raise CodecError("this codec only builds arguments and cannot decode a result")
+
+
+_LIST_HEAD_CODECS = ("list-node", "list-node-cycle")
+
+
+def _decode_list_node_ref(returned, args, codecs):
+    # The index of the returned node among the nodes reachable from the first list argument.
+    if returned is None:
+        return None
+    head_index = next((i for i, codec in enumerate(codecs) if codec in _LIST_HEAD_CODECS), None)
+    _expect("list-node-ref", head_index is not None, "a list-node or list-node-cycle argument", returned)
+    nodes = []
+    seen = set()
+    node = args[head_index]
+    while node is not None and id(node) not in seen:
+        seen.add(id(node))
+        nodes.append(node)
+        node = node.next
+    for index, candidate in enumerate(nodes):
+        if candidate is returned:
+            return index
+    raise CodecError("list-node-ref: the returned node is not in the argument list")
 
 
 _POSITIVE_INFINITY = float("inf")
@@ -329,6 +361,7 @@ def _decode_number_inf(value):
 
 _ENCODERS = {
     "list-node": _encode_list_node,
+    "list-node-list": _encode_list_node_list,
     "list-node-cycle": _encode_list_node_cycle,
     "random-list": _encode_random_list,
     "tree-node": _encode_tree_node,
@@ -337,6 +370,7 @@ _ENCODERS = {
 
 _DECODERS = {
     "list-node": _decode_list_node,
+    "list-node-list": _decode_unsupported,
     "list-node-cycle": _decode_unsupported,
     "random-list": _decode_random_list,
     "tree-node": _decode_tree_node,
@@ -398,7 +432,8 @@ def _invoke(spec, args):
 
 def _run_ops(spec):
     names, arg_lists = spec["ops"], spec["args"]
-    instance = _class_named(names[0])(*arg_lists[0])
+    constructor_args = _encode_args(arg_lists[0], _arg_codecs(spec.get("types"), len(arg_lists[0])))
+    instance = _class_named(names[0])(*constructor_args)
     outputs = [None]
     for name, call_args in zip(names[1:], arg_lists[1:]):
         outputs.append(_bound_method(instance, name)(*call_args))
@@ -415,13 +450,46 @@ def _prefix_length(returned):
 def _select_result(result, types, args, returned):
     kind = (result or {}).get("kind", "return")
     if kind == "return":
-        return _decode((types or {}).get("result"), returned)
+        codec = (types or {}).get("result")
+        if codec == "list-node-ref":
+            return _decode_list_node_ref(returned, args, _arg_codecs(types, len(args)))
+        return _decode(codec, returned)
     index = result["index"]
     value = _decode(_arg_codecs(types, len(args))[index], args[index])
     return value if kind == "arg" else value[: _prefix_length(returned)]
 
 
+@contextlib.contextmanager
+def _bound_judge(judge):
+    # Binds each judge API as a global of the learner's code for one case, then restores it.
+    names = list((judge or {}).keys())
+    if not names:
+        yield
+        return
+    namespace = _learner_globals["namespace"]
+    missing = object()
+    for name in names:
+        if name not in JUDGE_APIS:
+            raise CodecError("unknown judge API " + name)
+    previous = {name: namespace.get(name, missing) for name in names}
+    for name in names:
+        namespace[name] = JUDGE_APIS[name](judge[name])
+    try:
+        yield
+    finally:
+        for name, old in previous.items():
+            if old is missing:
+                namespace.pop(name, None)
+            else:
+                namespace[name] = old
+
+
 def _comparable(spec):
+    with _bound_judge(spec.get("judge")):
+        return _comparable_unbound(spec)
+
+
+def _comparable_unbound(spec):
     if spec.get("kind") == "ops":
         return _run_ops(spec)
     types = spec.get("types")

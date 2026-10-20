@@ -86,13 +86,25 @@ describe('CodeViewerComponent', () => {
   it('renders no whitespace text nodes between rows inside <pre>', () => {
     const fixture = createFixture({ rows: makeRows() });
 
-    const code = fixture.nativeElement.querySelector('code.hljs') as HTMLElement;
+    const code = fixture.nativeElement.querySelector('code.code-viewer__code') as HTMLElement;
     expect(Array.from(code.childNodes).some((n: Node) => n.nodeType === Node.TEXT_NODE)).toBe(
       false,
     );
     expect(fixture.nativeElement.querySelector('pre').textContent).toBe(
       '39class Solution:⋯41    def floodFill(self, image):42        return image',
     );
+  });
+
+  it('highlights across rows, so a multi-line string keeps its colour on every row', () => {
+    const rows: DisplayRow[] = [
+      { text: '"""a', sourceLine: 1, kind: 'code' },
+      { text: 'b"""', sourceLine: 2, kind: 'code' },
+    ];
+    const fixture = createFixture({ rows });
+
+    const contents = fixture.nativeElement.querySelectorAll('.code-line__content');
+    expect(contents[0].querySelector('.tok-string')).not.toBeNull();
+    expect(contents[1].querySelector('.tok-string')).not.toBeNull();
   });
 
   it('scrolls the newly active row into view once the view has re-rendered it', () => {
