@@ -8,7 +8,7 @@ import { RepoRef } from '../services/github-file.service';
 import { EngineStatus, NO_ENGINE_RUN, engineStatus } from './engine-status';
 import { EngineUpdate, EngineVersions, engineUpdate, engineVersions } from './engine-update';
 
-export type BuildResult = 'dispatched' | 'refused' | 'failed';
+export type BuildResult = 'dispatched' | 'refused' | 'off' | 'no-config' | 'failed';
 
 export type HoldResult = 'held' | 'released' | 'unchanged' | 'no-row' | 'owned' | 'failed';
 
@@ -36,6 +36,8 @@ const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
 const REFUSED_CODE = 'integration-refused';
+const BUILD_OFF_CODE = 'build-off';
+const NO_CONFIG_CODE = 'no-config';
 const NO_ROW_CODE = 'no-row';
 const OWNED_CODE = 'hold-owned-by-decision';
 
@@ -62,10 +64,13 @@ function slugOf(ref: RepoRef): string {
   return `${ref.owner}/${ref.repo}`.toLowerCase();
 }
 
-function isRefused(err: unknown): boolean {
-  if (!(err instanceof HttpErrorResponse) || err.status !== HTTP_FORBIDDEN) return false;
-  const body = err.error as { error?: unknown } | null;
-  return body?.error === REFUSED_CODE;
+function buildFailure(err: unknown): BuildResult {
+  if (!(err instanceof HttpErrorResponse)) return 'failed';
+  const code = (err.error as { error?: unknown } | null)?.error;
+  if (err.status === HTTP_FORBIDDEN && code === REFUSED_CODE) return 'refused';
+  if (err.status === HTTP_CONFLICT && code === BUILD_OFF_CODE) return 'off';
+  if (err.status === HTTP_CONFLICT && code === NO_CONFIG_CODE) return 'no-config';
+  return 'failed';
 }
 
 /** Reads a repo's latest Actions run (public, unauthenticated) and asks the Worker to dispatch the weekly build. */
@@ -105,7 +110,7 @@ export class EngineService {
       );
       return 'dispatched';
     } catch (err) {
-      return isRefused(err) ? 'refused' : 'failed';
+      return buildFailure(err);
     }
   }
 

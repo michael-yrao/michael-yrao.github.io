@@ -10,11 +10,14 @@ import {
 } from '@angular/core';
 import { firstValueFrom, from, of, switchMap } from 'rxjs';
 
-import { ENGINE_DELAY, EngineService } from '../../../core/engine/engine.service';
+import { isBuildDay } from '../../../core/engine/build-day';
+import { BuildResult, ENGINE_DELAY, EngineService } from '../../../core/engine/engine.service';
 import { EngineState, EngineStatus, NO_ENGINE_RUN } from '../../../core/engine/engine-status';
 import { EngineUpdate, EngineVersions, isNewerVersion } from '../../../core/engine/engine-update';
 import { RepoRef } from '../../../core/services/github-file.service';
 import { ProgressService } from '../../../core/services/progress.service';
+import { todayLocalISO } from '../../../core/utils/local-date';
+import { ModalComponent } from '../../../shared/components/modal/modal.component';
 
 export const ENGINE_POLL_MS = 10_000;
 export const ENGINE_POLL_MAX = 24;
@@ -33,6 +36,12 @@ const LABELS: Readonly<Record<EngineState, string>> = {
   none: '',
 };
 
+const OFF_KEY_LINE = '⏻ weekly build is off in cse.config.yml';
+const NO_CONFIG_KEY_LINE = '✗ no cse.config.yml yet';
+const RUN_KEY_LINE = '⟳ engine running · ✓ last run ok · ✗ last run failed';
+const OFF_GLYPH = '⏻';
+const NO_CONFIG_GLYPH = '✗';
+
 interface MarkSegment {
   readonly text: string;
   /** Present on the "kept" segment: the skipped paths its details body lists. */
@@ -44,6 +53,7 @@ interface MarkSegment {
   selector: 'app-engine-mark',
   templateUrl: './engine-mark.component.html',
   styleUrl: './engine-mark.component.scss',
+  imports: [ModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EngineMarkComponent {
@@ -60,8 +70,43 @@ export class EngineMarkComponent {
   protected readonly status = signal<EngineStatus>(NO_ENGINE_RUN);
   protected readonly isBuilding = signal(false);
   protected readonly isRefused = signal(false);
-  protected readonly glyph = computed(() => GLYPHS[this.status().state]);
-  protected readonly label = computed(() => LABELS[this.status().state]);
+  protected readonly lastBuild = signal<BuildResult | null>(null);
+  protected readonly isConfirming = signal(false);
+  /** null = the user has not toggled the details by hand, so the auto rule decides. */
+  protected readonly isOpen = signal<boolean | null>(null);
+  protected readonly open = computed(
+    () =>
+      this.isOpen() ??
+      (isBuildDay(todayLocalISO()) ||
+        this.status().state === 'running' ||
+        this.status().state === 'failed' ||
+        this.lastBuild() === 'off' ||
+        this.lastBuild() === 'no-config'),
+  );
+  protected readonly glyph = computed(() => {
+    if (this.lastBuild() === 'off') return OFF_GLYPH;
+    if (this.lastBuild() === 'no-config') return NO_CONFIG_GLYPH;
+    return GLYPHS[this.status().state];
+  });
+  /** The summary glyph's state: a refusal is never painted with the last run's colour or link. */
+  protected readonly glyphState = computed(() => {
+    if (this.lastBuild() === 'off') return 'off';
+    if (this.lastBuild() === 'no-config') return 'failed';
+    return this.status().state;
+  });
+  protected readonly glyphUrl = computed(() => {
+    const last = this.lastBuild();
+    return last === 'off' || last === 'no-config' ? null : this.status().htmlUrl;
+  });
+  protected readonly keyLine = computed(() => {
+    if (this.lastBuild() === 'off') return OFF_KEY_LINE;
+    if (this.lastBuild() === 'no-config') return NO_CONFIG_KEY_LINE;
+    return RUN_KEY_LINE;
+  });
+  protected readonly label = computed(() => {
+    const last = this.lastBuild();
+    return last === 'off' || last === 'no-config' ? this.keyLine() : LABELS[this.status().state];
+  });
 
   protected readonly versions = signal<EngineVersions | null>(null);
   protected readonly result = signal<EngineUpdate | null>(null);
@@ -93,13 +138,26 @@ export class EngineMarkComponent {
       .subscribe((status) => this.status.set(status));
   }
 
+  /** Records a hand toggle only; the toggle event also fires when `[open]` is set from code. */
+  protected onToggle(event: Event): void {
+    const isNowOpen = (event.target as HTMLDetailsElement).open;
+    if (isNowOpen !== this.open()) this.isOpen.set(isNowOpen);
+  }
+
+  protected confirmBuild(): void {
+    this.isConfirming.set(false);
+    void this.build();
+  }
+
   protected async build(): Promise<void> {
     const ref = this.repoRef();
     if (ref === null || this.isBuilding()) return;
     this.isBuilding.set(true);
     this.isRefused.set(false);
+    this.lastBuild.set(null);
     const previousRunId = this.status().runId;
     const result = await this.engine.buildNextWeek(ref);
+    this.lastBuild.set(result);
     if (result === 'refused') this.isRefused.set(true);
     if (result === 'dispatched') {
       this.status.set({ state: 'running', runId: previousRunId, htmlUrl: null });

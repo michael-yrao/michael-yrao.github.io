@@ -145,3 +145,84 @@ describe('EngineMarkComponent version marks', () => {
     expect(findButton() !== undefined).toBe(hasButton);
   });
 });
+
+const WEDNESDAY_NOON = new Date(2026, 9, 21, 12);
+const SUNDAY_NOON = new Date(2026, 9, 18, 12);
+const RUNNING: EngineStatus = { state: 'running', runId: 3, htmlUrl: null };
+const FAILED: EngineStatus = { state: 'failed', runId: 3, htmlUrl: null };
+const OFF_KEY_LINE = '⏻ weekly build is off in cse.config.yml';
+
+async function mountMark(status: EngineStatus, buildNextWeek = vi.fn(async () => 'dispatched')) {
+  TestBed.configureTestingModule({
+    providers: [
+      { provide: EngineService, useValue: { status$: () => of(status), buildNextWeek, versions: async () => null } },
+      { provide: ProgressService, useValue: { refresh: vi.fn() } },
+      { provide: ENGINE_DELAY, useValue: async () => undefined },
+    ],
+  });
+  const fixture = TestBed.createComponent(EngineMarkComponent);
+  fixture.componentRef.setInput('repoRef', REF);
+  fixture.detectChanges();
+  await fixture.whenStable();
+  fixture.detectChanges();
+  const el = fixture.nativeElement as HTMLElement;
+  return { fixture, el, details: el.querySelector('details.engine') as HTMLDetailsElement, buildNextWeek };
+}
+
+function pressButton(el: HTMLElement, label: string): void {
+  Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.trim() === label)?.click();
+}
+
+describe('EngineMarkComponent disclosure', () => {
+  beforeEach(() => vi.useFakeTimers({ toFake: ['Date'] }));
+  afterEach(() => vi.useRealTimers());
+
+  it.each([
+    { name: 'a Wednesday with no run stays closed', now: WEDNESDAY_NOON, status: NO_ENGINE_RUN, isClosedByHand: false, expected: false },
+    { name: 'a Sunday opens', now: SUNDAY_NOON, status: NO_ENGINE_RUN, isClosedByHand: false, expected: true },
+    { name: 'a running run opens it on a Wednesday', now: WEDNESDAY_NOON, status: RUNNING, isClosedByHand: false, expected: true },
+    { name: 'a failed run opens it on a Wednesday', now: WEDNESDAY_NOON, status: FAILED, isClosedByHand: false, expected: true },
+    { name: 'a hand close on a Sunday sticks', now: SUNDAY_NOON, status: NO_ENGINE_RUN, isClosedByHand: true, expected: false },
+  ])('$name', async ({ now, status, isClosedByHand, expected }) => {
+    vi.setSystemTime(now);
+    const { fixture, details } = await mountMark(status);
+    if (isClosedByHand) {
+      details.open = false;
+      details.dispatchEvent(new Event('toggle'));
+      fixture.detectChanges();
+    }
+    expect(details.open).toBe(expected);
+  });
+
+  it.each([
+    { name: 'pressing Build next week now asks first', presses: ['Build next week now'], isModalOpen: true, calls: 0 },
+    { name: 'Cancel closes it without building', presses: ['Build next week now', 'Cancel'], isModalOpen: false, calls: 0 },
+    { name: 'Build closes it and builds once', presses: ['Build next week now', 'Build'], isModalOpen: false, calls: 1 },
+  ])('$name', async ({ presses, isModalOpen, calls }) => {
+    vi.setSystemTime(SUNDAY_NOON);
+    const { fixture, el, buildNextWeek } = await mountMark(NO_ENGINE_RUN);
+    for (const label of presses) {
+      pressButton(el, label);
+      fixture.detectChanges();
+    }
+    await fixture.whenStable();
+    expect((el.querySelector('dialog') as HTMLDialogElement).open).toBe(isModalOpen);
+    expect(buildNextWeek).toHaveBeenCalledTimes(calls);
+  });
+
+  it('a build refused as off shows the off key line and opens the details', async () => {
+    vi.setSystemTime(WEDNESDAY_NOON);
+    const { fixture, el, details } = await mountMark(NO_ENGINE_RUN, vi.fn(async () => 'off'));
+    expect(details.open).toBe(false);
+    pressButton(el, 'Build next week now');
+    fixture.detectChanges();
+    pressButton(el, 'Build');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('.engine-mark__key')?.textContent?.trim()).toBe(OFF_KEY_LINE);
+    expect(details.open).toBe(true);
+    const glyph = el.querySelector('.engine-mark__glyph');
+    expect(glyph?.getAttribute('data-state')).toBe('off');
+    expect(glyph?.getAttribute('href')).toBeNull();
+  });
+});

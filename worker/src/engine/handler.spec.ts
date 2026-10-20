@@ -16,6 +16,11 @@ const REPO_URL = `${API}/repos/alice/cse-progress`;
 const ENABLE_URL = `${REPO_URL}/actions/workflows/weekly-build.yml/enable`;
 const DISPATCH_URL = `${REPO_URL}/actions/workflows/weekly-build.yml/dispatches`;
 const ALICE_REPO = { owner: { login: 'alice', type: 'User' } };
+const CONFIG_URL = `${REPO_URL}/contents/cse.config.yml?ref=main`;
+
+function configAnswer(text: string): { status: number; body: unknown } {
+  return { status: 200, body: { sha: 'cfg-sha', content: btoa(text) } };
+}
 
 interface Call {
   readonly method: string;
@@ -42,6 +47,7 @@ function script(extra: Script = {}): Script {
   return {
     [`GET ${API}/user`]: { status: 200, body: { login: 'alice' } },
     [`GET ${REPO_URL}`]: { status: 200, body: ALICE_REPO },
+    [`GET ${CONFIG_URL}`]: configAnswer('automation:\n  weekly_build: true\n'),
     [`PUT ${ENABLE_URL}`]: { status: 204 },
     [`POST ${DISPATCH_URL}`]: { status: 204 },
     ...extra,
@@ -70,6 +76,20 @@ describe('POST /engine/weekly-build', () => {
       status: 202,
       body: { status: 'dispatched' },
       github: [`PUT ${ENABLE_URL}`, `POST ${DISPATCH_URL}`],
+    },
+    {
+      label: 'repo has no config',
+      script: script({ [`GET ${CONFIG_URL}`]: { status: 404 } }),
+      status: 409,
+      body: { error: 'no-config' },
+      github: [],
+    },
+    {
+      label: 'weekly build switched off',
+      script: script({ [`GET ${CONFIG_URL}`]: configAnswer('automation:\n  weekly_build: false\n') }),
+      status: 409,
+      body: { error: 'build-off' },
+      github: [],
     },
     {
       label: 'enable refused',
