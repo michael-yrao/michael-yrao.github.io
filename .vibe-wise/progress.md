@@ -59,3 +59,11 @@ Learner observation (doing 79): Input and Output render on one line; the grid fi
 Found: `reflowProse` joins unindented lines, and 22 specs keep examples unindented because their Input lines exceed the 64-char verbatim cap; grid figures never set a cell state, and 79's answer is a bool so the path is not in the data.
 Learner decisions: (1) fix in the renderer: `Input:` / `Output:` / `Explanation:` lines start their own line (over editing 22 specs); (2) the spec stores the path: optional case field `figureCells` on example cases of a grid figure (over a site-side DFS, or no highlight).
 Status: implemented 2026-10-19 (reflow.ts EXAMPLE_LABEL; figureCells through export_practice.py validation, practice.schema.json, practice-validation.ts, example-figure.ts, hasHighlight for grids; 79 paths checked); pytest 12 passed, site suite 1675 passed, lint 0 errors, build green; uncommitted. Old site builds ignore the new field, so either repo can ship first. cse-coach's exporter copy not updated.
+
+## 2026-10-19 · Data funnel (station 2): a repo of your own
+- The Worker creates the learner's repo from the cse-coach template with the user's own App token (GitHub's template `generate`).
+- The repo is public and named `cse-progress`; if the user already has one, it is adopted instead of created.
+- cse-coach stays private for now, so only its collaborators can onboard; everyone else gets the invite-only message.
+- `/start` is a track picker; DSA is the only enabled track.
+- A fresh repo with no `practice.json` falls back to the author's (author-fallback).
+- A repo with no progress files shows an empty state instead of an error.

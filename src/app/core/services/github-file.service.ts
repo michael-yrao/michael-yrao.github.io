@@ -98,7 +98,7 @@ export function httpErrorMessage(
     return `No ${what} data found on that repo/branch. It must be a public cse-coach repo that has generated one.`;
   }
   if (status === RATE_LIMIT_STATUS || status === TOO_MANY_REQUESTS_STATUS) {
-    return 'GitHub rate limit reached for anonymous requests. Sign in (coming soon) or try again shortly.';
+    return 'GitHub rate limit reached. Sign in with GitHub or try again shortly.';
   }
   if (status === OFFLINE_STATUS) {
     return 'Could not reach GitHub — check your connection.';

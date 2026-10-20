@@ -98,7 +98,7 @@ describe('blobUrl', () => {
 
 describe('httpErrorMessage', () => {
   const RATE_LIMIT_COPY =
-    'GitHub rate limit reached for anonymous requests. Sign in (coming soon) or try again shortly.';
+    'GitHub rate limit reached. Sign in with GitHub or try again shortly.';
   const cases: { name: string; err: { status: number } | null; what: string; expected: string }[] = [
     {
       name: '404 names the missing progress data',

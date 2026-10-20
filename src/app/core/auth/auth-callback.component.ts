@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from './auth.service';
 
 const HOME_PATH = '/';
+const START_PATH = '/start';
 
 /** The page GitHub sends the viewer back to: trades the code for a session, then returns to where sign-in began. */
 @Component({
@@ -41,6 +42,11 @@ export class AuthCallbackComponent {
       this.hasFailed.set(true);
       return;
     }
-    await this.router.navigateByUrl(returnUrl, { replaceUrl: true });
+    await this.auth.repos();
+    const needsOnboarding = this.auth.selectedRepo() === null && !returnUrl.startsWith(START_PATH);
+    const target = needsOnboarding
+      ? `${START_PATH}?next=${encodeURIComponent(returnUrl)}`
+      : returnUrl;
+    await this.router.navigateByUrl(target, { replaceUrl: true });
   }
 }

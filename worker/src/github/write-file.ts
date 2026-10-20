@@ -85,7 +85,7 @@ export async function fetchUser(fetchImpl: FetchImpl, token: string): Promise<Us
   return typeof user?.login === 'string' ? { kind: 'ok', login: user.login } : { kind: 'error' };
 }
 
-function isRepoOwnedBy(repo: unknown, owner: string, login: string): boolean {
+export function isRepoOwnedBy(repo: unknown, owner: string, login: string): boolean {
   if (!isRecord(repo) || !isRecord(repo['owner'])) return false;
   const repoOwner = repo['owner'];
   const repoLogin = repoOwner['login'];

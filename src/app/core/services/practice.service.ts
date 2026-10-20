@@ -4,7 +4,15 @@ import { catchError, map, of } from 'rxjs';
 import { contractVersionProblem } from '../contracts/contract-version';
 import { PRACTICE_SCHEMA_VERSION, PracticeData, PracticeProblem } from '../models/practice.model';
 import { isPracticeProblem } from '../practice/practice-validation';
-import { GitHubFileService, LoadStatus, RepoRef, httpErrorMessage, sameRef } from './github-file.service';
+import { ContractSource, fetchWithAuthorFallback$, isAuthorFallbackOf } from './author-fallback';
+import {
+  GOLD_STANDARD_REPO,
+  GitHubFileService,
+  LoadStatus,
+  RepoRef,
+  httpErrorMessage,
+  sameRef,
+} from './github-file.service';
 
 const PRACTICE_FILE = 'dashboard/practice.json';
 const PRACTICE_INDEX_FILE = 'dashboard/practice-index.json';
@@ -41,6 +49,13 @@ export class PracticeService {
   /** The ref of the current/last load. */
   readonly ref = this.currentRef.asReadonly();
 
+  /** Whose repo `data` came from; null until a load lands. */
+  readonly source = signal<ContractSource | null>(null);
+  /** The viewer asked for another repo's practice contract and is looking at the author's. */
+  readonly isAuthorFallback = computed(() =>
+    isAuthorFallbackOf(this.source(), this.currentRef() ?? GOLD_STANDARD_REPO),
+  );
+
   private readonly problems = computed(() => {
     const current = this.data();
     if (!current) return null;
@@ -65,8 +80,9 @@ export class PracticeService {
     this.status.set('loading');
     this.error.set(null);
 
-    this.github
-      .fetch$<RawPracticePayload>(ref, PRACTICE_FILE, force)
+    this.source.set(null);
+
+    fetchWithAuthorFallback$<RawPracticePayload>(this.github, ref, PRACTICE_FILE, force)
       .pipe(catchError((err) => of(new Error(httpErrorMessage(err, PRACTICE_WHAT)))))
       .subscribe((result) => {
         if (mine !== this.seq) return; // a newer load() superseded this response
@@ -76,13 +92,14 @@ export class PracticeService {
           return;
         }
 
-        const invalid = this.invalidReason(result);
+        const invalid = this.invalidReason(result.body);
         if (invalid) {
           this.fail(invalid);
           return;
         }
 
-        this.data.set(result as PracticeData);
+        this.data.set(result.body as PracticeData);
+        this.source.set(result.source);
         this.status.set('ready');
       });
   }

@@ -137,8 +137,8 @@
             </select>
           </label>
         } @else if (repos.length === 0) {
-          <a class="progress__own-repo" [href]="installUrl" target="_blank" rel="noopener"
-            >Give Progressive Overflow permission on a repo to see your progress</a
+          <a class="progress__own-repo" routerLink="/start"
+            >Choose what to study to get your own repo</a
           >
         }
       }
@@ -222,6 +222,14 @@
           [ngTemplateOutlet]="repoPickerTpl"
           [ngTemplateOutletContext]="{ showInvalidHint: false }"
         />
+      </div>
+    }
+    @case ('empty') {
+      <div class="card po-card">
+        <p>
+          Your repo is ready, with no reps yet. Solve your first problem on the Practice page, or
+          clone the repo and run /cse-init in Claude Code.
+        </p>
       </div>
     }
     @case ('ready') {

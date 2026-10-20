@@ -156,7 +156,6 @@ export class ProgressPageComponent {
   protected readonly auth = inject(AuthService);
   /** The repos the App is installed on for the signed-in viewer; null until looked up. */
   protected readonly ownRepos = signal<readonly string[] | null>(null);
-  protected readonly installUrl = `https://github.com/apps/${this.auth.appSlug}/installations/new`;
 
   // Which rows get a Run link — PracticeNumbers also owns the practice-index load effect.
   protected readonly practiceGlyph = PRACTICE_GLYPH;

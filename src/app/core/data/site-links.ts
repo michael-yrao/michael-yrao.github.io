@@ -10,7 +10,9 @@ export const SITE_LINKS = {
   venmo: 'https://venmo.com/code?user_id=2215602794004480866&created=1790224797',
 } as const;
 
-/** cse-coach is invite-only while it settles; flip to true when the repo goes public. */
+/** cse-coach is invite-only while it settles; flip to true when the repo goes public. `/start` onboarding (the
+ *  Worker's `/onboard/dsa`) also depends on the template's visibility: while it is private, only collaborators can
+ *  create a repo from it. */
 export const COACH_REPO_IS_PUBLIC = false;
 
 /** The Cloudflare Worker in `worker/`: the Tech Events feed at its root and the interview directory under

@@ -176,7 +176,7 @@ const realProgressService = new ProgressService({} as never);
 
 function makeProgressServiceStub() {
   return {
-    status: signal<'idle' | 'loading' | 'ready' | 'error'>('ready'),
+    status: signal<'idle' | 'loading' | 'ready' | 'error' | 'empty'>('ready'),
     error: signal<string | null>(null),
     data: signal<ProgressSummary | null>(makeSummary()),
     repoSlug: signal<string | null>('michael-yrao/cse-progress'),
@@ -1181,6 +1181,17 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Loading progress…');
     expect(fixture.nativeElement.querySelectorAll('.skeleton__tile').length).toBe(2);
     expect(fixture.nativeElement.querySelectorAll('.skeleton__card').length).toBe(1);
+  });
+
+  it('renders the empty-state card, not the error panel, when the repo is fresh', () => {
+    progress.status.set('empty');
+    progress.data.set(null);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Your repo is ready, with no reps yet.');
+    expect(fixture.nativeElement.querySelector('.progress__error')).toBeFalsy();
   });
 
   // ── Round 5: the generated-at line moved into the Refresh button ───────────────────

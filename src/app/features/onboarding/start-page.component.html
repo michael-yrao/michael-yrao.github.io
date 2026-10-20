@@ -1,0 +1,78 @@
+<section class="start">
+  <h1 class="start__title">What do you want to study?</h1>
+  <p class="start__lede">
+    Pick a track. We'll make a practice repo on your GitHub account and load it on every page. The
+    repo is public, like a GitHub portfolio.
+  </p>
+
+  @if (!auth.isSignedIn()) {
+    <button type="button" class="start__button" (click)="signIn()">
+      Sign in with GitHub to pick a track.
+    </button>
+  } @else {
+    <div class="start__cards">
+      <article class="start__card">
+        <h2 class="start__card-title">Data Structures &amp; Algorithms</h2>
+        <p class="start__card-text">
+          LeetCode-style problems with spaced-repetition reviews.
+        </p>
+        <button type="button" class="start__button" [disabled]="isBusy()" (click)="startDsa()">
+          Start DSA
+        </button>
+      </article>
+      <article class="start__card start__card--muted">
+        <h2 class="start__card-title">System Design</h2>
+        <button type="button" class="start__button" aria-disabled="true">Coming soon</button>
+      </article>
+      <article class="start__card start__card--muted">
+        <h2 class="start__card-title">AI Engineering</h2>
+        <button type="button" class="start__button" aria-disabled="true">Coming soon</button>
+      </article>
+    </div>
+
+    @if (onboarding.isAdopted()) {
+      <p class="start__line">You already have {{ onboarding.repoSlug() }}. We'll use that one.</p>
+    }
+
+    @if (progress().length > 0) {
+      <ol class="start__steps">
+        @for (item of progress(); track item.label) {
+          <li class="start__step" [attr.data-mark]="item.mark">
+            <span class="start__mark" aria-hidden="true"></span>
+            {{ item.label }}
+          </li>
+        }
+      </ol>
+    }
+
+    @switch (onboarding.step()) {
+      @case ('needs-install') {
+        <p class="start__line">
+          One more step: let Progressive Overflow see {{ onboarding.repoSlug() }} so it can save your
+          work.
+        </p>
+        <div class="start__actions">
+          <a class="start__button" [href]="installUrl">Give access on GitHub</a>
+          <button type="button" class="start__button" (click)="checkInstall()">
+            I've given access, check again
+          </button>
+          <a class="start__link" [href]="nextUrl" (click)="goNext($event)"
+            >Skip for now and see my progress</a
+          >
+        </div>
+      }
+      @case ('done') {
+        <p class="start__line">
+          Your repo is {{ onboarding.repoSlug() }}. Next: clone it and run /cse-init in Claude Code to
+          set your goals.
+        </p>
+        <div class="start__actions">
+          <button type="button" class="start__button" (click)="goNext()">Go to my progress</button>
+        </div>
+      }
+      @case ('failed') {
+        <p class="start__line">{{ failureText() }}</p>
+      }
+    }
+  }
+</section>

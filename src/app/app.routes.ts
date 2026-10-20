@@ -136,6 +136,12 @@ export const routes: Routes = [
     redirectTo: '',
   },
   {
+    path: 'start',
+    title: 'Start',
+    loadComponent: () =>
+      import('./features/onboarding/start-page.component').then((m) => m.StartPageComponent),
+  },
+  {
     path: '**',
     redirectTo: '',
   },

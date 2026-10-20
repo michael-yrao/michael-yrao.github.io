@@ -11,9 +11,13 @@ import { handle as handleAuth, ROUTE_PREFIX as AUTH_PREFIX } from './auth/handle
 import {
   handle as handlePatternSense,
   ROUTE_PREFIX as PATTERN_SENSE_PREFIX,
-  type PatternSenseEnv,
 } from './pattern-sense/handler';
 import { handle as handlePractice, ROUTE_PREFIX as PRACTICE_PREFIX } from './practice/handler';
+import {
+  handle as handleOnboard,
+  ROUTE_PREFIX as ONBOARD_PREFIX,
+  type OnboardEnv,
+} from './onboard/handler';
 
 // How long a built feed is served from the in-memory memo before the next request rebuilds it.
 const MEMO_TTL_MS = 5 * 60 * 1000;
@@ -80,7 +84,7 @@ interface RateLimiter {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
-export interface Env extends PatternSenseEnv {
+export interface Env extends OnboardEnv {
   INTERVIEWS: KVNamespace;
   INTERVIEW_READS?: RateLimiter;
   INTERVIEW_WRITES?: RateLimiter;
@@ -117,6 +121,9 @@ export default {
     }
     if (pathname.startsWith(PRACTICE_PREFIX)) {
       return handlePractice(request, env, (input, init) => fetch(input, init));
+    }
+    if (pathname.startsWith(ONBOARD_PREFIX)) {
+      return handleOnboard(request, env, (input, init) => fetch(input, init));
     }
     return pathname.startsWith(ROUTE_PREFIX)
       ? interviewHandlerFor(env).handle(request)

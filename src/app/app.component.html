@@ -47,6 +47,15 @@
               >Progress</a
             >
           }
+          @if (auth.isSignedIn()) {
+            <a
+              class="po-nav__drawer-link"
+              routerLink="/start"
+              routerLinkActive="active"
+              (click)="closeAll()"
+              >Study track</a
+            >
+          }
           <a
             class="po-nav__drawer-link"
             routerLink="/practice"

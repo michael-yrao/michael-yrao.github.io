@@ -20,6 +20,7 @@ const PAGE_SIZE_QUERY = 'per_page=100';
 const GITHUB_ACCEPT = 'application/vnd.github+json';
 const STATE_BYTES = 16;
 const HOME_PATH = '/';
+const LEARNER_REPO_NAME = 'cse-progress';
 /** A token this close to expiry is refreshed before use. */
 export const REFRESH_MARGIN_MS = 60_000;
 
@@ -243,13 +244,20 @@ export class AuthService {
         ),
       );
       const slugs = lists.flatMap((list) => (list.repositories ?? []).map((r) => r.full_name));
-      const stored = this.selectedRepo();
-      const hasValidSelection = stored !== null && slugs.includes(stored);
-      if (slugs.length > 0 && !hasValidSelection) this.selectRepo(slugs[0]);
+      if (slugs.length > 0 && !this.isSelectionKept(slugs)) this.selectRepo(slugs[0]);
       return slugs;
     } catch {
       return []; // GitHub unreachable or the token was refused: no repos to offer
     }
+  }
+
+  /** The stored selection stays when listed, or when it is the viewer's own learner repo (its App install may still be pending). */
+  private isSelectionKept(slugs: readonly string[]): boolean {
+    const stored = this.selectedRepo();
+    if (stored === null) return false;
+    if (slugs.includes(stored)) return true;
+    const login = this.login();
+    return login !== null && stored.toLowerCase() === `${login}/${LEARNER_REPO_NAME}`.toLowerCase();
   }
 
   /** `?repo=` wins; else the signed-in viewer's own repo; null keeps the author-default behaviour. */

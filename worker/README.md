@@ -68,15 +68,16 @@ expire 180 days after the last save.
 Rate limiting is on: the two `[[ratelimits]]` blocks in `wrangler.toml` are required, and a request
 gets a 503 when a binding is missing.
 
-## Pattern Sense sign-in
+## GitHub sign-in
 
-`src/auth/` serves two routes, `src/pattern-sense/` one and `src/practice/` two, for the site's GitHub sign-in and saves:
+`src/auth/` serves two routes, `src/pattern-sense/` one, `src/practice/` two and `src/onboard/` one, for the site's GitHub sign-in and saves:
 
 - `src/auth/`: `POST /auth/token` swaps GitHub's one-time login code for a token and returns your GitHub login.
 - `src/auth/`: `POST /auth/refresh` swaps a refresh token for a new token.
 - `src/pattern-sense/`: `POST /pattern-sense/save` writes `dashboard/pattern_sense_results/<YYYYMMDD>.json` to a repo you own.
 - `src/practice/`: `POST /practice/save` writes an attempt to `dsa/attempts/<YYYYMMDD>/` in a repo you own.
 - `src/practice/`: `POST /practice/latest` returns your newest saved attempt for a problem.
+- `src/onboard/`: `POST /onboard/dsa` creates your `cse-progress` repo from the cse-coach template, or adopts the one you already have.
 
 Only the origins in `ALLOWED_ORIGINS` (a `[vars]` entry in `wrangler.toml`) are served.
 
@@ -84,8 +85,9 @@ Setup:
 
 1. Register a GitHub App (Settings → Developer settings → GitHub Apps → New GitHub App):
    - Visibility: public, so other cse-coach users can give it permission on their own repos.
-   - Repository permissions: Contents → Read and write; every other permission off.
+   - Repository permissions: Contents → Read and write. Other permissions: Repository creation. Every other permission off.
    - Callback URL: `https://progressiveoverflow.com/auth/callback` (plus `http://localhost:4200/auth/callback` for local dev)
+   - Setup URL: `https://progressiveoverflow.com/start?resume=1`, with "Redirect on update" on.
    - "Request user authorization (OAuth) during installation": off.
    - "Expire user authorization tokens": on.
    - Webhook: off.
@@ -94,6 +96,8 @@ Setup:
 2. Give the app permission on your own `cse-progress` repo only: on the app's page, choose "Only select repositories" and pick it.
 3. In `worker/`: put the Client ID in `wrangler.toml` as `GITHUB_CLIENT_ID`, run `npx wrangler secret put GITHUB_CLIENT_SECRET` and paste the client secret, then run `npx wrangler deploy`.
 4. Fill `PATTERN_SENSE_GITHUB_APP` in `src/app/core/data/site-links.ts` with the `clientId` and `appSlug`. The Sign in and Save buttons stay hidden until both are real values.
+
+The `TEMPLATE_OWNER` and `TEMPLATE_REPO` entries in `[vars]` name the template repo for `/onboard/dsa`. Mark that repo as a template on GitHub. While it is private, only its collaborators can create a repo from it.
 
 ## Source list
 

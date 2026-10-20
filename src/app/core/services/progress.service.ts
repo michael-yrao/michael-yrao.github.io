@@ -56,6 +56,17 @@ const NOT_FOUND_STATUS = 404;
 // What a fetch failure is fetching, for httpErrorMessage()'s wording.
 const PROGRESS_WHAT = 'progress';
 
+/** `'empty'`: a fresh repo with no contract files yet (both the summary and the details 404). */
+export type ProgressStatus = LoadStatus | 'empty';
+
+// Marker the summary fetch emits when both contract files 404 on a non-forced load.
+const FRESH_REPO = Symbol('fresh-repo');
+
+/** A double 404 on a non-forced load is a fresh repo, not an error; a forced refresh keeps `refreshError`. */
+function isFreshRepo(err: { status?: number } | null, isForced: boolean): boolean {
+  return !isForced && err?.status === NOT_FOUND_STATUS;
+}
+
 /** Derive the lightweight summary from a full contract — the client-side mirror of
  *  cse-progress's `gamify.py::summary_of()`. Used when `progress-summary.json` 404s (an
  *  adopter on an older gamify.py that only emits progress.json, or the transient window
@@ -107,7 +118,7 @@ function summaryFromFull(full: ProgressData): ProgressSummary {
  */
 @Injectable({ providedIn: 'root' })
 export class ProgressService {
-  readonly status = signal<LoadStatus>('idle');
+  readonly status = signal<ProgressStatus>('idle');
   readonly error = signal<string | null>(null);
   readonly data = signal<ProgressSummary | null>(null);
   readonly source = signal<RepoRef | null>(null);
@@ -224,13 +235,22 @@ export class ProgressService {
           // below names the right problem (version, or no valid data).
           return this.fetchFile$<unknown>(ref, DETAILS_FILE, LEGACY_DETAILS_FILE, force).pipe(
             map((full) => (isProgressFull(full) ? summaryFromFull(full) : full)),
-            catchError((fallbackErr) => of(this.toError(fallbackErr))),
+            catchError((fallbackErr) =>
+              of(isFreshRepo(fallbackErr, force) ? FRESH_REPO : this.toError(fallbackErr)),
+            ),
           );
         }),
       )
       .subscribe((result) => {
         if (mine !== this.seq) return; // a newer loadSummary() superseded this response
         this.refreshing.set(false);
+
+        if (result === FRESH_REPO) {
+          this.status.set('empty');
+          this.error.set(null);
+          this.data.set(null);
+          return;
+        }
 
         if (result instanceof Error) {
           if (force) {

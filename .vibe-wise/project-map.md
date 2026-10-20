@@ -56,3 +56,7 @@ worker po-api (public event feeds, KV interview records) --(HTTP, CORS)--> Event
 - `groundedness.yml`: daily cron + `repository_dispatch` + manual; curls live showcase.json and runs `check:groundedness`; publishes nothing.
 - `/coach` links `SITE_LINKS.coachRepo` (github.com/michael-yrao/cse-coach); CTA reads "Request access" while `COACH_REPO_IS_PUBLIC` is false.
 - Auth: none in the site; the interview directory uses a bearer write token derived from the interviewer code (PBKDF2), stored server-side only as a SHA-256 hash.
+
+## Added 2026-10-19 (onboarding)
+- Worker route `POST /onboard/dsa` (`worker/src/onboard/`): creates the signed-in user's `cse-progress` repo from the template named by `TEMPLATE_OWNER`/`TEMPLATE_REPO` in `worker/wrangler.toml`, or adopts an existing one.
+- Site route `/start` (`src/app/features/onboarding/`, `src/app/core/onboarding/`): track picker; only DSA is enabled. Not in the sitemap.
