@@ -16,13 +16,19 @@ $step-min-width: 200px;
 
   &__eyebrow {
     margin: 0;
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     color: var(--color-accent);
-    font-size: var(--text-sm);
+    font-weight: 600;
   }
 
   &__title {
     margin: 0;
-    font-size: var(--text-2xl);
+    font-size: var(--text-3xl);
+    font-family: var(--font-brand);
+    line-height: 1.1;
+    max-width: 22ch;
   }
 
   &__lede {
@@ -39,17 +45,18 @@ $step-min-width: 200px;
   }
 
   &__button {
-    padding: var(--space-sm) var(--space-md);
+    padding: 0.65rem 1.1rem;
     font: inherit;
-    color: var(--color-text);
-    background: var(--color-accent-dim);
-    border: 1px solid var(--color-accent);
+    font-weight: 600;
+    color: var(--color-bg);
+    background: var(--color-accent);
+    border: 0;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: background var(--transition-fast);
+    transition: filter var(--transition-fast);
 
     &:hover {
-      background: var(--hover-tint-strong);
+      filter: brightness(1.08);
     }
   }
 
@@ -112,8 +119,16 @@ $step-min-width: 200px;
 
     &::before {
       content: counter(step);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      align-self: flex-start;
+      background: var(--color-accent-dim);
       color: var(--color-accent);
-      font-size: var(--text-lg);
+      font-size: var(--text-sm);
+      font-weight: 700;
     }
   }
 

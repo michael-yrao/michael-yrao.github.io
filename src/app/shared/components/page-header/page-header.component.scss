@@ -43,15 +43,20 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--color-accent);
-    font-family: var(--font-mono);
+    font-weight: 600;
     margin: 0 0 var(--space-sm);
   }
 
   &__title {
+    font-family: var(--font-brand);
     font-size: var(--text-2xl);
     font-weight: 700;
     letter-spacing: -0.02em;
     margin: 0;
+
+    @media (min-width: 768px) {
+      font-size: var(--text-3xl);
+    }
   }
 
   &__meta {

@@ -8,4 +8,4 @@ subsets served by Google Fonts.
 | --- | --- | --- |
 | Inter | Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter) | `inter-latin.woff2` |
 | JetBrains Mono | Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono) | `jetbrains-mono-latin.woff2` |
-| Space Grotesk | Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk) | `space-grotesk-latin.woff2` |
+| Manrope | Copyright 2019 The Manrope Project Authors (https://github.com/sharanda/manrope) | `manrope-latin.woff2` |
