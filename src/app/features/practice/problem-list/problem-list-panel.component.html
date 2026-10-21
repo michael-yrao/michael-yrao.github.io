@@ -1,0 +1,46 @@
+<dialog
+  #dialog
+  class="problem-list"
+  tabindex="-1"
+  (click)="onDialogClick($event)"
+  (keydown)="onRowKey($event)"
+  (cancel)="onCancel($event)"
+>
+  @if (isOpen()) {
+    <input
+      type="search"
+      class="problem-list__search"
+      placeholder="Search by number or title"
+      aria-label="Search by number or title"
+      autocomplete="off"
+      [value]="query()"
+      (input)="onQueryInput($event)"
+      (keydown.enter)="openFirstResult()"
+      (keydown.arrowdown)="focusFirstRow($event)"
+    />
+    <div class="problem-list__rows">
+      @for (entry of results(); track entry.number) {
+        @let comfort = comforts().get(entry.number);
+        <a
+          class="problem-list__row"
+          [class.problem-list__row--current]="entry.number === currentNumber()"
+          [attr.aria-current]="entry.number === currentNumber() ? 'page' : null"
+          [routerLink]="['/practice', entry.number]"
+          queryParamsHandling="preserve"
+          (click)="closed.emit()"
+        >
+          <span class="problem-list__num">#{{ entry.number }}</span>
+          <span class="problem-list__title">{{ entry.title }}</span>
+          <span class="problem-list__level">
+            @if (entry.difficulty; as level) {
+              <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
+            }
+          </span>
+          <span class="problem-list__comfort" [attr.title]="comfort ? 'Comfort: ' + comfort : null">{{ comfort }}</span>
+        </a>
+      } @empty {
+        <p class="problem-list__empty">No matches</p>
+      }
+    </div>
+  }
+</dialog>

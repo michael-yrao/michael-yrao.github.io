@@ -1,9 +1,11 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Difficulty } from '../../../core/models/algorithm.model';
-import { CatalogueNeighbors } from '../practice-catalogue';
+import type { RepoRef } from '../../../core/services/github-file.service';
+import { CatalogueEntry, CatalogueNeighbors } from '../practice-catalogue';
+import { ProblemListPanelComponent } from '../problem-list/problem-list-panel.component';
 
 export type PracticeHeaderTab = 'description' | 'solution';
 
@@ -15,7 +17,7 @@ export type PracticeHeaderTab = 'description' | 'solution';
   templateUrl: './practice-header.component.html',
   styleUrls: ['./practice-header.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass, RouterLink],
+  imports: [NgClass, ProblemListPanelComponent, RouterLink],
 })
 export class PracticeHeaderComponent {
   readonly number = input.required<number | null>();
@@ -25,6 +27,10 @@ export class PracticeHeaderComponent {
   readonly neighbors = input.required<CatalogueNeighbors>();
   readonly activeTab = input.required<PracticeHeaderTab>();
   readonly hasSolution = input.required<boolean>();
+  readonly catalogue = input.required<readonly CatalogueEntry[]>();
+  readonly repo = input.required<RepoRef | null>();
+
+  protected readonly isListOpen = signal(false);
 
   /** Prev / next stay on the current tab: a problem's solution page links to the next solution page. */
   protected readonly neighborCommands = computed(() => {

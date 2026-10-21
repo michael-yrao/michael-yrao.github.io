@@ -78,6 +78,23 @@ export function filterCatalogue(
   return entries.filter((entry) => matchesFilters(entry, filters));
 }
 
+/** The entries whose number starts with `query` (a leading `#` is dropped) or whose title contains
+ *  it, case-insensitive. An exact number match comes first; the rest keep their order. An empty
+ *  query returns every entry. */
+export function searchCatalogue(
+  entries: readonly CatalogueEntry[],
+  query: string,
+): readonly CatalogueEntry[] {
+  const trimmed = query.trim();
+  const needle = (trimmed.startsWith('#') ? trimmed.slice(1) : trimmed).toLowerCase();
+  if (needle === '') return entries;
+  const matches = entries.filter(
+    (entry) => String(entry.number).startsWith(needle) || entry.title.toLowerCase().includes(needle),
+  );
+  const exact = matches.filter((entry) => String(entry.number) === needle);
+  return [...exact, ...matches.filter((entry) => String(entry.number) !== needle)];
+}
+
 /** The entries either side of `number` in an ascending catalogue; null at an end or when absent. */
 export function neighborsOf(
   entries: readonly CatalogueEntry[],

@@ -15,7 +15,7 @@ import { GOLD_STANDARD_REPO, LoadStatus, RepoRef } from '../../core/services/git
 import { PracticeService } from '../../core/services/practice.service';
 import { ShowcaseService } from '../../core/services/showcase.service';
 import { showcaseKey } from '../../core/showcase/showcase-key';
-import { CatalogueNeighbors, buildCatalogue, neighborsOf } from './practice-catalogue';
+import { CatalogueEntry, CatalogueNeighbors, buildCatalogue, neighborsOf } from './practice-catalogue';
 import { injectPracticeContract } from '../../shared/utils/practice-contract';
 
 const POSITIVE_INTEGER = /^[1-9]\d*$/;
@@ -51,6 +51,8 @@ export interface PracticeProblemView {
   readonly title: Signal<string>;
   /** The contract's URL, else the showcase entry's for the first variant, else the number's. */
   readonly titleUrl: Signal<string | null>;
+  /** Every problem either source has, ascending by number. */
+  readonly catalogue: Signal<readonly CatalogueEntry[]>;
   readonly neighbors: Signal<CatalogueNeighbors>;
 }
 
@@ -109,11 +111,14 @@ export function injectPracticeProblem(): PracticeProblemView {
     leetCodeUrlFor(problem()?.url ?? firstVariantEntryUrl(), entry()?.lcNumber),
   );
 
+  const catalogue = computed(() => {
+    const problems = contract.status() === 'ready' ? (practice.data()?.problems ?? []) : [];
+    return buildCatalogue(ALGORITHM_INDEX, problems);
+  });
   const neighbors = computed(() => {
     const value = number();
-    const problems = contract.status() === 'ready' ? (practice.data()?.problems ?? []) : [];
     if (value === null) return NO_NEIGHBORS;
-    return neighborsOf(buildCatalogue(ALGORITHM_INDEX, problems), value);
+    return neighborsOf(catalogue(), value);
   });
 
   return {
@@ -130,6 +135,7 @@ export function injectPracticeProblem(): PracticeProblemView {
     hasProblem,
     title,
     titleUrl,
+    catalogue,
     neighbors,
   };
 }

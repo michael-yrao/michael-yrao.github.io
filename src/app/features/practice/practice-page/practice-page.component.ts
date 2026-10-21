@@ -102,6 +102,7 @@ export class PracticePageComponent {
   readonly title = this.view.title;
   readonly titleUrl = this.view.titleUrl;
   readonly neighbors = this.view.neighbors;
+  readonly catalogue = this.view.catalogue;
 
   /** The header's Solution tab: hidden while a live candidate lock names this problem. Re-reads
    *  storage whenever the problem number changes. */

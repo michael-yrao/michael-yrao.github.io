@@ -42,6 +42,7 @@ export class SolutionPageComponent {
   readonly title = this.view.title;
   readonly titleUrl = this.view.titleUrl;
   readonly neighbors = this.view.neighbors;
+  readonly catalogue = this.view.catalogue;
 
   readonly hasBothPanels = computed(
     () => this.walkthrough.isVizShown() && this.walkthrough.isCodeShown(),

@@ -1,7 +1,7 @@
 import type { AlgorithmIndexEntry } from '../../core/data/algorithms.data';
 import { Category, Difficulty } from '../../core/models/algorithm.model';
 import { PracticeProblem } from '../../core/models/practice.model';
-import { CatalogueEntry, buildCatalogue, filterCatalogue } from './practice-catalogue';
+import { CatalogueEntry, buildCatalogue, filterCatalogue, searchCatalogue } from './practice-catalogue';
 
 function algorithm(
   lcNumber: number,
@@ -130,5 +130,28 @@ describe('filterCatalogue', () => {
 
   it.each(cases)('$name', ({ filters, numbers }) => {
     expect(filterCatalogue(entries, filters).map((e) => e.number)).toEqual(numbers);
+  });
+});
+
+describe('searchCatalogue', () => {
+  const entries = [
+    entry({ number: 6, title: 'Zigzag' }),
+    entry({ number: 64, title: 'Minimum Path Sum' }),
+    entry({ number: 640, title: 'Solve the Equation' }),
+    entry({ number: 648, title: 'Replace Words' }),
+    entry({ number: 649, title: 'Dota2 Senate' }),
+  ];
+
+  const cases: ReadonlyArray<{ name: string; query: string; numbers: number[] }> = [
+    { name: 'empty returns all', query: '', numbers: [6, 64, 640, 648, 649] },
+    { name: 'whitespace returns all', query: '   ', numbers: [6, 64, 640, 648, 649] },
+    { name: 'exact number first, then prefix matches in order', query: '64', numbers: [64, 640, 648, 649] },
+    { name: 'a leading # is dropped', query: '#648', numbers: [648] },
+    { name: 'title match is case-insensitive', query: 'REPLACE', numbers: [648] },
+    { name: 'no match is empty', query: 'zzz', numbers: [] },
+  ];
+
+  it.each(cases)('$name', ({ query, numbers }) => {
+    expect(searchCatalogue(entries, query).map((e) => e.number)).toEqual(numbers);
   });
 });
