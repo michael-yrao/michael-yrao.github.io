@@ -13,6 +13,11 @@ $row-mark-width: 28px;
 
 .practice-list__message { margin: 0; }
 
+.practice-list__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
 .practice-list__fallback { margin-left: var(--space-sm); }
 
 .practice-list__count {

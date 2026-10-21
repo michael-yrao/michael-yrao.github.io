@@ -1,6 +1,7 @@
 // Pure helpers for the progress page: tab and filter types, problem filtering, on-schedule counts, segment and label builders.
 import { Comfort, OnSchedule, Pipeline, ProblemProgress, ProgressSummary } from '../../../core/models/progress.model';
 import { daysBetweenISO } from '../../../core/utils/local-date';
+import { matchesNumberOrTitle } from '../../../shared/utils/text-search';
 import { SegmentedBarSegment } from '../segmented-bar/segmented-bar.component';
 
 export type ComfortFilter = 'all' | Comfort;
@@ -71,11 +72,19 @@ export function toggledKeys(keys: ReadonlySet<string>, key: string): ReadonlySet
   return keys.has(key) ? new Set([...keys].filter((k) => k !== key)) : new Set([...keys, key]);
 }
 
-/** The Explore list after the facet filter; no facet shows everything. */
-export function filterProblems(list: readonly ProblemProgress[], facet: ListFacet | null): ProblemProgress[] {
-  if (!facet) return [...list];
-  if (facet.kind === 'comfort') return list.filter((p) => p.comfort === facet.value);
-  return list.filter((p) => p.difficulty === facet.value);
+function matchesFacet(p: ProblemProgress, facet: ListFacet | null): boolean {
+  if (!facet) return true;
+  return facet.kind === 'comfort' ? p.comfort === facet.value : p.difficulty === facet.value;
+}
+
+/** The Explore list after the facet filter and the search `needle` (already normalised); no
+ *  facet and a blank needle show everything. */
+export function filterProblems(
+  list: readonly ProblemProgress[],
+  facet: ListFacet | null,
+  needle = '',
+): ProblemProgress[] {
+  return list.filter((p) => matchesFacet(p, facet) && matchesNumberOrTitle(p.lcNumber, p.title, needle));
 }
 
 /** Overdue or due-today as of `today` — the On-schedule gauge's inline "Needs attention"

@@ -7,16 +7,11 @@
   (cancel)="onCancel($event)"
 >
   @if (isOpen()) {
-    <input
-      type="search"
-      class="problem-list__search"
+    <app-search-box
+      [(value)]="query"
       placeholder="Search by number or title"
-      aria-label="Search by number or title"
-      autocomplete="off"
-      [value]="query()"
-      (input)="onQueryInput($event)"
-      (keydown.enter)="openFirstResult()"
-      (keydown.arrowdown)="focusFirstRow($event)"
+      (submitted)="openFirstResult()"
+      (arrowDown)="focusFirstRow()"
     />
     <div class="problem-list__rows">
       @for (entry of results(); track entry.number) {

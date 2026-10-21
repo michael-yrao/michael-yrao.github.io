@@ -3,6 +3,7 @@ import { Signal, computed, signal } from '@angular/core';
 
 import { ProblemProgress } from '../../../core/models/progress.model';
 import { todayLocalISO } from '../../../core/utils/local-date';
+import { normaliseQuery } from '../../../shared/utils/text-search';
 import {
   ComfortFilter,
   ListFacet,
@@ -24,6 +25,9 @@ export class ProblemExplorer {
   // (or null for the "All" chip); the pipeline/difficulty headline drills set the rest.
   readonly listFilter = signal<ListFacet | null>(null);
 
+  // The Explore list's text search (number prefix / title substring), raw as typed.
+  readonly query = signal('');
+
   // The On-schedule gauge's "Needs attention" disclosure — expands in place under the gauge;
   // opening it fires the same idempotent loadDetails() the old Problems-tab drill did.
   readonly attentionOpen = signal(false);
@@ -34,7 +38,7 @@ export class ProblemExplorer {
 
   readonly visibleProblems = computed<ProblemProgress[]>(() => {
     const list = this.deps.details();
-    return list ? filterProblems(list, this.listFilter()) : [];
+    return list ? filterProblems(list, this.listFilter(), normaliseQuery(this.query())) : [];
   });
 
   readonly attentionProblems = computed<ProblemProgress[]>(() =>
@@ -76,9 +80,10 @@ export class ProblemExplorer {
     return this.expandedKeys().has(problemRowKey(p));
   }
 
-  /** A repo swap starts from a clean slate: no facet, nothing expanded, attention closed. */
+  /** A repo swap starts from a clean slate: no facet, no search, nothing expanded, attention closed. */
   reset(): void {
     this.listFilter.set(null);
+    this.query.set('');
     this.collapseAllRows();
     this.attentionOpen.set(false);
   }

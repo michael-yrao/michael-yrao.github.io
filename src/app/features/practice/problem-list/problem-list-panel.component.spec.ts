@@ -87,7 +87,7 @@ describe('ProblemListPanelComponent', () => {
 
   it('Enter in the search box opens the first result with query params kept, and closes', () => {
     const { fixture, host, navigate } = setUp(null);
-    const input: HTMLInputElement = fixture.nativeElement.querySelector('.problem-list__search');
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('app-search-box input');
     input.value = 'two';
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -96,5 +96,19 @@ describe('ProblemListPanelComponent', () => {
 
     expect(navigate).toHaveBeenCalledWith(['/practice', 1], { queryParamsHandling: 'preserve' });
     expect(host.closeCount).toBe(1);
+  });
+
+  it('Escape with text in the search box clears it and does not close', () => {
+    const { fixture, host } = setUp(null);
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('app-search-box input');
+    input.value = 'two';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(input.value).toBe('');
+    expect(host.closeCount).toBe(0);
   });
 });

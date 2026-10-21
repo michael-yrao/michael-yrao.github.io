@@ -128,6 +128,34 @@ describe('PracticeListComponent', () => {
     expect(root.querySelector('.practice-list__tag')).not.toBeNull();
   });
 
+  it('search narrows the chip-filtered rows by title, and says No matches for an unknown number', () => {
+    const fixture = setUp('ready', null, []);
+    const root = fixture.nativeElement as HTMLElement;
+    const hardButton = Array.from(root.querySelectorAll('button')).find(
+      (b) => text(b) === 'Hard',
+    ) as HTMLButtonElement;
+    hardButton.click();
+    fixture.detectChanges();
+
+    const input = root.querySelector('app-search-box input') as HTMLInputElement;
+    input.value = 'water';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(rows(root).map((r) => text(r.querySelector('.practice-list__title') as Element))).toEqual([
+      'Trapping Rain Water',
+      'Swim in Rising Water',
+    ]);
+    expect(rows(root).every((r) => r.querySelector('.badge-hard') !== null)).toBe(true);
+
+    input.value = '99999';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(rows(root)).toHaveLength(0);
+    expect(root.querySelector('.practice-list__empty')?.textContent?.trim()).toBe('No matches');
+  });
+
   it('still lists the static rows, plus the message, when the contract failed', () => {
     const root = setUp('error', 'The practice contract is invalid.', []).nativeElement as HTMLElement;
 

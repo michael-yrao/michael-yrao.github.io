@@ -69,8 +69,6 @@ export class AppComponent {
     this.isWide.set(query.matches);
     query.addEventListener('change', (e) => this.isWide.set(e.matches));
   }
-  /** The Progress link is for signed-in viewers; with the app off the site shows it as before. */
-  readonly hasProgressLink = computed(() => !this.auth.isEnabled || this.auth.isSignedIn());
 
   /** Which bar link's group the current page belongs to; matched on the whole first path segment. */
   readonly activeGroup = computed<NavGroup | null>(() => {

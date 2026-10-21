@@ -22,6 +22,13 @@
       </div>
     }
     @case ('ready') {
+      <app-search-box
+        class="ll-search"
+        [(value)]="query"
+        placeholder="Search techniques and signals"
+        [shortcut]="true"
+      />
+
       @if (decisionTree()) {
         <div class="ll-viewbar" role="tablist" aria-label="Learn view">
           @for (view of viewOrder; track view; let i = $index) {
@@ -51,7 +58,7 @@
           @if (decisionTree(); as tree) {
             <app-decision-tree [tree]="tree" />
           }
-        } @else {
+        } @else if (signalRows().length) {
           <div class="ll-table-scroll">
             <table class="ll-table">
               <thead>
@@ -96,6 +103,10 @@
             }
           </div>
         </section>
+      }
+
+      @if (!familySections().length && (activeView() === 'tree' || !signalRows().length)) {
+        <p class="ll-empty">No matches</p>
       }
 
       @if (sourceFooter(); as footer) {

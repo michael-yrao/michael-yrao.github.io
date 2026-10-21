@@ -1,0 +1,17 @@
+<span class="search-box__glyph" aria-hidden="true">⌕</span>
+<input
+  #input
+  type="search"
+  class="search-box__input"
+  autocomplete="off"
+  [attr.aria-label]="ariaLabel()"
+  [placeholder]="placeholder()"
+  [value]="value()"
+  (input)="value.set($any($event.target).value)"
+  (keydown.enter)="submitted.emit()"
+  (keydown.arrowdown)="arrowDown.emit(); $event.preventDefault()"
+  (keydown.escape)="onEscape($event)"
+/>
+@if (shortcut() && value() === '') {
+  <kbd class="search-box__kbd">/</kbd>
+}

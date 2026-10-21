@@ -22,12 +22,12 @@ import { AuthService } from '../../../core/auth/auth.service';
 import type { Comfort } from '../../../core/models/progress.model';
 import { RepoRef, sameRef } from '../../../core/services/github-file.service';
 import { ProgressService } from '../../../core/services/progress.service';
+import { SearchBoxComponent } from '../../../shared/components/search-box/search-box.component';
 import { CatalogueEntry, searchCatalogue } from '../practice-catalogue';
 import { comfortByNumber } from './problem-list';
 
 const NO_COMFORTS: ReadonlyMap<number, Comfort> = new Map();
 const ROW_SELECTOR = '.problem-list__row';
-const INPUT_SELECTOR = '.problem-list__search';
 const CURRENT_SELECTOR = '[aria-current="page"]';
 
 /** A left-anchored dialog listing every problem with a search box, so the learner can jump to one.
@@ -38,7 +38,7 @@ const CURRENT_SELECTOR = '[aria-current="page"]';
   templateUrl: './problem-list-panel.component.html',
   styleUrls: ['./problem-list-panel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass, RouterLink],
+  imports: [NgClass, RouterLink, SearchBoxComponent],
 })
 export class ProblemListPanelComponent {
   readonly isOpen = input.required<boolean>();
@@ -55,6 +55,9 @@ export class ProblemListPanelComponent {
   // A decorator query, not viewChild(): the signal-query helper is another runtime symbol in the
   // practice chunk's shared bundle.
   @ViewChild('dialog', { static: true }) private readonly dialog!: ElementRef<HTMLDialogElement>;
+
+  // Not static: the box sits under @if (isOpen()), so it resolves after the first render with the dialog open.
+  @ViewChild(SearchBoxComponent) private readonly searchBox?: SearchBoxComponent;
 
   protected readonly query = signal('');
   protected readonly results = computed(() => searchCatalogue(this.catalogue(), this.query()));
@@ -117,15 +120,11 @@ export class ProblemListPanelComponent {
     dialog.showModal();
     afterNextRender(
       () => {
-        dialog.querySelector<HTMLInputElement>(INPUT_SELECTOR)?.focus();
+        this.searchBox?.focus();
         dialog.querySelector<HTMLElement>(CURRENT_SELECTOR)?.scrollIntoView?.({ block: 'center' });
       },
       { injector: this.injector },
     );
-  }
-
-  protected onQueryInput(event: Event): void {
-    this.query.set((event.target as HTMLInputElement).value);
   }
 
   /** Escape: the dialog stays open until the parent closes it, so `closed` emits once. */
@@ -146,8 +145,7 @@ export class ProblemListPanelComponent {
     this.closed.emit();
   }
 
-  protected focusFirstRow(event: Event): void {
-    event.preventDefault();
+  protected focusFirstRow(): void {
     this.dialog.nativeElement.querySelector<HTMLElement>(ROW_SELECTOR)?.focus();
   }
 
@@ -161,7 +159,7 @@ export class ProblemListPanelComponent {
     if (index === -1) return;
     event.preventDefault();
     if (index + step < 0) {
-      dialog.querySelector<HTMLInputElement>(INPUT_SELECTOR)?.focus();
+      this.searchBox?.focus();
       return;
     }
     rows[index + step]?.focus();

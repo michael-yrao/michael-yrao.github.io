@@ -403,6 +403,7 @@
                         (click)="setComfortFilter(f)"
                       >{{ f === 'all' ? 'All' : f }}</button>
                     }
+                    <app-search-box [(value)]="query" placeholder="Search by number or title" />
                   </div>
                 }
               </div>
@@ -430,6 +431,8 @@
                   <div class="problems">
                     @for (p of visibleProblems(); track p.lcNumber + '-' + p.title) {
                       <ng-container *ngTemplateOutlet="problemRowTpl; context: { $implicit: p }" />
+                    } @empty {
+                      <p class="problems__empty">No matches</p>
                     }
                   </div>
                 }

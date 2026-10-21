@@ -1,6 +1,7 @@
 import type { AlgorithmIndexEntry } from '../../core/data/algorithms.data';
 import { Category, Difficulty } from '../../core/models/algorithm.model';
 import { PracticeProblem } from '../../core/models/practice.model';
+import { matchesNumberOrTitle, normaliseQuery } from '../../shared/utils/text-search';
 
 /** One row of the merged problem list: a static algorithm, a contract problem, or both. */
 export interface CatalogueEntry {
@@ -85,12 +86,9 @@ export function searchCatalogue(
   entries: readonly CatalogueEntry[],
   query: string,
 ): readonly CatalogueEntry[] {
-  const trimmed = query.trim();
-  const needle = (trimmed.startsWith('#') ? trimmed.slice(1) : trimmed).toLowerCase();
+  const needle = normaliseQuery(query);
   if (needle === '') return entries;
-  const matches = entries.filter(
-    (entry) => String(entry.number).startsWith(needle) || entry.title.toLowerCase().includes(needle),
-  );
+  const matches = entries.filter((entry) => matchesNumberOrTitle(entry.number, entry.title, needle));
   const exact = matches.filter((entry) => String(entry.number) === needle);
   return [...exact, ...matches.filter((entry) => String(entry.number) !== needle)];
 }

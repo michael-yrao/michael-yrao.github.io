@@ -13,6 +13,7 @@ import {
 } from '../../../shared/components/page-header/page-header.component';
 import { GroundednessMeterComponent } from '../../../shared/components/groundedness-meter/groundedness-meter.component';
 import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
+import { SearchBoxComponent } from '../../../shared/components/search-box/search-box.component';
 import { PRACTICE_GLYPH } from '../../progress/practice-link';
 import { injectPracticeContract } from '../../../shared/utils/practice-contract';
 import {
@@ -20,6 +21,7 @@ import {
   CatalogueFilters,
   buildCatalogue,
   filterCatalogue,
+  searchCatalogue,
 } from '../practice-catalogue';
 
 /** Tags shown on a row when the Tags filter is on. */
@@ -30,7 +32,7 @@ const TAGS_PER_ROW = 2;
   templateUrl: './practice-list.component.html',
   styleUrls: ['./practice-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgClass, PageHeaderComponent, LibrarySubnavComponent, GroundednessMeterComponent],
+  imports: [RouterLink, NgClass, PageHeaderComponent, LibrarySubnavComponent, GroundednessMeterComponent, SearchBoxComponent],
 })
 export class PracticeListComponent {
   private readonly practice = inject(PracticeService);
@@ -70,7 +72,12 @@ export class PracticeListComponent {
     category: this.category(),
   }));
 
-  readonly rows = computed(() => filterCatalogue(this.catalogue(), this.filters()));
+  protected readonly query = signal('');
+
+  /** Chips narrow first, then the search ranks what is left, so an exact number match stays first. */
+  readonly rows = computed(() =>
+    searchCatalogue(filterCatalogue(this.catalogue(), this.filters()), this.query()),
+  );
 
   /** The contract's own message (bad slug or failed load), shown above the list. */
   readonly message = computed(() => {

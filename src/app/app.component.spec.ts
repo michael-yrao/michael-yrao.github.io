@@ -24,7 +24,7 @@ describe('AppComponent', () => {
       imports: [AppComponent],
       providers: [
         provideRouter([{ path: '**', component: BlankComponent }]),
-        // App off: the nav is the pre-sign-in nav (Progress link shown, no auth controls).
+        // App off: the nav is the pre-sign-in nav (no auth controls).
         { provide: GITHUB_APP_CONFIG, useValue: DISABLED_APP },
       ],
     });
@@ -147,12 +147,12 @@ const menuItems = (root: HTMLElement, scope = HAMBURGER): HTMLElement[] =>
 
 describe('Bar links and account chip', () => {
   it.each<{ name: string; auth: AuthStub | null; links: string[]; chip: string | null }>([
-    { name: 'app off', auth: null, links: ['Practice', 'Learn', 'Progress'], chip: null },
+    { name: 'app off', auth: null, links: ['Practice', 'Learn'], chip: null },
     { name: 'signed out', auth: makeAuthStub(), links: ['Practice', 'Learn'], chip: 'Sign in' },
     {
       name: 'signed in',
       auth: makeAuthStub(SIGNED_IN),
-      links: ['Practice', 'Learn', 'Progress'],
+      links: ['Practice', 'Learn'],
       chip: 'ada',
     },
   ])('$name shows its links and chip', ({ auth, links, chip }) => {
@@ -191,8 +191,8 @@ describe('Site menu', () => {
     {
       name: 'app off',
       auth: null,
-      labels: ['Progress', 'Practice', 'Learn'],
-      hrefs: ['/', '/practice', '/learn'],
+      labels: ['Practice', 'Learn'],
+      hrefs: ['/practice', '/learn'],
       account: null,
     },
     {
@@ -205,8 +205,8 @@ describe('Site menu', () => {
     {
       name: 'signed in',
       auth: makeAuthStub(SIGNED_IN),
-      labels: ['Progress', 'Practice', 'Learn', 'Sign out'],
-      hrefs: ['/', '/practice', '/learn', null],
+      labels: ['Practice', 'Learn', 'Sign out'],
+      hrefs: ['/practice', '/learn', null],
       account: 'adaada/cse-progress',
     },
   ])('$name lists its items in order', ({ auth, labels, hrefs, account }) => {

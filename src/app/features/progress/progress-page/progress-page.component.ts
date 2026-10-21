@@ -49,6 +49,7 @@ import {
   isDueToday,
   nextTabIndex,
 } from './progress-derivations';
+import { SearchBoxComponent } from '../../../shared/components/search-box/search-box.component';
 import { PracticeNumbers } from './practice-numbers';
 import { ProblemExplorer } from './problem-explorer';
 import { RepoPicker } from './repo-picker';
@@ -73,6 +74,7 @@ import { SummaryView } from './summary-view';
     WorkloadChartComponent,
     GrowthAreasComponent,
     SettingsMenuComponent,
+    SearchBoxComponent,
   ],
 })
 export class ProgressPageComponent {
@@ -126,6 +128,7 @@ export class ProgressPageComponent {
     loadDetails: () => this.progress.loadDetails(),
   });
   readonly listFilter = this.explorer.listFilter;
+  readonly query = this.explorer.query;
   readonly attentionOpen = this.explorer.attentionOpen;
   readonly visibleProblems = this.explorer.visibleProblems;
   readonly attentionProblems = this.explorer.attentionProblems;

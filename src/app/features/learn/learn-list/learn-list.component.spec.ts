@@ -50,6 +50,27 @@ describe('LearnListComponent', () => {
     expect(rows.length).toBe(23);
   });
 
+  it('typing a signal phrase hides the families that do not match and keeps the one that does', () => {
+    const fixture = createFixture();
+    const technique = cheatSheetsAsset.techniques[0];
+    const allTitles = fixture.nativeElement.querySelectorAll('.ll-family__title').length;
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('app-search-box input');
+
+    input.value = technique.signals[0];
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const titles = [...fixture.nativeElement.querySelectorAll('.ll-family__title')].map(
+      (el) => (el as HTMLElement).textContent?.trim(),
+    );
+    expect(allTitles).toBeGreaterThan(titles.length);
+    expect(titles.length).toBeGreaterThan(0);
+    const cards = [...fixture.nativeElement.querySelectorAll('.ll-card__title')].map(
+      (el) => (el as HTMLElement).textContent?.trim(),
+    );
+    expect(cards).toContain(technique.name);
+  });
+
   it('shows a "Generated <date> from <repo>" footer on a successful repo fetch', () => {
     const fixture = createFixture();
 

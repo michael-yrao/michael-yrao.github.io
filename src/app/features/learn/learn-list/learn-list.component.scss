@@ -192,6 +192,16 @@
   .ll-grid { grid-template-columns: 1fr; }
 }
 
+// ── Search ──────────────────────────────────────────────────────
+.ll-search {
+  margin-bottom: var(--space-lg);
+}
+
+.ll-empty {
+  color: var(--color-text-muted);
+  margin: var(--space-lg) 0;
+}
+
 // ── Source footer ───────────────────────────────────────────────
 .ll-source-footer {
   font-size: 0.78rem;

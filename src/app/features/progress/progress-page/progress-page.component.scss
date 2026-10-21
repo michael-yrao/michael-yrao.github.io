@@ -380,7 +380,17 @@ $skeleton-card-height: 12rem;
 
 // ── Problems ─────────────────────────────────────────────────────────────────
 .problems__head { justify-content: space-between; align-items: center; }
-.filters { display: flex; gap: var(--space-xs); }
+.filters {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-xs);
+
+  app-search-box { flex: 1 1 12rem; min-width: 12rem; }
+}
+.problems__empty { color: var(--color-text-muted); margin: var(--space-md) 0; }
 .filters__btn {
   @extend %field-btn;
   @extend %pill-hover;

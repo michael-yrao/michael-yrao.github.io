@@ -20,17 +20,9 @@ $num-slot: 3.5rem;
   &[open] { display: flex; flex-direction: column; }
 }
 
-.problem-list__search {
+app-search-box {
   flex: 0 0 auto;
   margin: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text);
-  font: inherit;
-
-  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 }
 
 .problem-list__rows {

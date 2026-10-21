@@ -9,20 +9,6 @@
     <div class="po-nav__links">
       <a class="po-nav__link" routerLink="/practice" [class.active]="activeGroup() === 'practice'">Practice</a>
       <a class="po-nav__link" routerLink="/learn" [class.active]="activeGroup() === 'learn'">Learn</a>
-      @if (hasProgressLink()) {
-        <a
-          class="po-nav__link"
-          routerLink="/"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{
-            paths: 'exact',
-            queryParams: 'ignored',
-            matrixParams: 'ignored',
-            fragment: 'ignored',
-          }"
-          >Progress</a
-        >
-      }
     </div>
 
     <div class="po-nav__end">
@@ -71,21 +57,6 @@
           }
         </div>
         <div class="menu__separator" role="separator"></div>
-      }
-      @if (hasProgressLink()) {
-        <a
-          role="menuitem"
-          class="menu__item"
-          routerLink="/"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{
-            paths: 'exact',
-            queryParams: 'ignored',
-            matrixParams: 'ignored',
-            fragment: 'ignored',
-          }"
-          >Progress</a
-        >
       }
       <a role="menuitem" class="menu__item" routerLink="/practice" routerLinkActive="active"
         >Practice</a

@@ -5,6 +5,7 @@ import {
   InjectionToken,
   computed,
   inject,
+  signal,
   viewChildren,
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -16,7 +17,10 @@ import { CheatSheetService, FamilyGroup } from '../../../core/services/cheat-she
 import { DecisionTreeNode, SignalRow } from '../../../core/models/cheat-sheet.model';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
+import { SearchBoxComponent } from '../../../shared/components/search-box/search-box.component';
+import { matchesAnyText, normaliseQuery } from '../../../shared/utils/text-search';
 import { DecisionTreeComponent } from '../decision-tree/decision-tree.component';
+import { filterTechniques, humanise } from '../learn-search';
 
 const NOTICE =
   'Best read after a rep, not during one — the signals table spoils recognition practice.';
@@ -53,7 +57,13 @@ interface FamilySection {
   templateUrl: './learn-list.component.html',
   styleUrls: ['./learn-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, PageHeaderComponent, LibrarySubnavComponent, DecisionTreeComponent],
+  imports: [
+    RouterLink,
+    PageHeaderComponent,
+    LibrarySubnavComponent,
+    DecisionTreeComponent,
+    SearchBoxComponent,
+  ],
 })
 export class LearnListComponent {
   private readonly cheatSheets = inject(CheatSheetService);
@@ -88,10 +98,14 @@ export class LearnListComponent {
     this.viewParam() === 'tree' && this.decisionTree() ? 'tree' : 'table',
   );
 
+  protected readonly query = signal('');
+  private readonly needle = computed(() => normaliseQuery(this.query()));
+
   readonly signalRows = computed<SignalRowView[]>(() => {
     const data = this.cheatSheets.data();
     if (!data) return [];
-    return data.signals.map((row) => {
+    const needle = this.needle();
+    return data.signals.filter((row) => matchesAnyText([row.see, row.reach, row.note], needle)).map((row) => {
       const technique = row.page === false ? undefined : this.cheatSheets.techniqueById(row.reach);
       return {
         ...row,
@@ -102,7 +116,7 @@ export class LearnListComponent {
   });
 
   readonly familySections = computed<FamilySection[]>(() =>
-    this.cheatSheets.techniquesByFamily().map((group) => ({
+    filterTechniques(this.cheatSheets.techniquesByFamily(), this.needle()).map((group) => ({
       family: group.family,
       label: humanise(group.family),
       techniques: group.techniques,
@@ -144,10 +158,4 @@ export class LearnListComponent {
     this.setView(VIEW_ORDER[next]);
     this.viewTabs()[next]?.nativeElement.focus();
   }
-}
-
-/** "arrays_and_hash" -> "Arrays and hash". */
-function humanise(familyKey: string): string {
-  const spaced = familyKey.replace(/_/g, ' ').toLowerCase();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }

@@ -12,6 +12,8 @@
     <p class="practice-list__message">{{ text }}</p>
   }
 
+  <app-search-box [(value)]="query" placeholder="Search by number or title" [shortcut]="true" />
+
   <div class="filters">
     @for (d of difficulties; track d) {
       <button
@@ -94,4 +96,7 @@
       </li>
     }
   </ul>
+  @if (rows().length === 0) {
+    <p class="practice-list__empty">No matches</p>
+  }
 </section>
