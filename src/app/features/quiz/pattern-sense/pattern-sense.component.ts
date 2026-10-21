@@ -40,6 +40,7 @@ import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
+  { label: 'Learn', link: '/learn' },
   { label: 'Quiz', link: '/quiz' },
   { label: 'Pattern Sense' },
 ];

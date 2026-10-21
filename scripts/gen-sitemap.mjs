@@ -11,7 +11,6 @@ const ORIGIN = 'https://progressiveoverflow.com';
 const CHECK_FLAG = '--check';
 const STATIC_PATHS = [
   '/',
-  '/library',
   '/coach',
   '/about',
   '/games',

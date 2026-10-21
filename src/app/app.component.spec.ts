@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
 import { AuthService } from './core/auth/auth.service';
 import { GITHUB_APP_CONFIG } from './core/pattern-sense/github-save';
@@ -54,20 +54,40 @@ describe('AppComponent', () => {
     const children = Array.from(inner.children);
     expect(children[0]?.classList.contains('po-nav__brand')).toBe(true);
     expect(children.findIndex((el) => el.classList.contains('po-nav__brand'))).toBeLessThan(
-      children.findIndex((el) => el.matches('app-menu.po-nav__menu')),
+      children.findIndex((el) => el.querySelector('app-menu.po-nav__menu') !== null),
     );
   });
 
-  it('renders the footer with exactly the human line and copyright, and no anchors', () => {
+  it('renders the footer links in column order, the external one in a new tab', () => {
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    const footer = compiled.querySelector('.po-footer') as HTMLElement;
-    expect(footer.textContent?.trim()).toBe(
-      `Built by a human, with Claude in the loop.© ${new Date().getFullYear()}`,
+    const links = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('.po-footer a'),
     );
-    expect(footer.querySelectorAll('a').length).toBe(0);
+    expect(links.map((a) => [a.textContent?.trim(), a.getAttribute('href'), a.getAttribute('target')])).toEqual([
+      ['Problems', '/practice', null],
+      ['Interview', '/interview', null],
+      ['Patterns', '/learn', null],
+      ['Quiz', '/quiz', null],
+      ['Games', '/games', null],
+      ['Coach', '/coach', null],
+      ['About', '/about', null],
+      ['GitHub ↗', 'https://github.com/michael-yrao/michael-yrao.github.io', '_blank'],
+    ]);
   });
 
+  it.each<{ url: string; active: string | null }>([
+    { url: '/interview', active: 'Practice' },
+    { url: '/quiz/big-o', active: 'Learn' },
+    { url: '/practices', active: null },
+  ])('on $url the active bar link is $active', async ({ url, active }) => {
+    fixture.detectChanges();
+    await TestBed.inject(Router).navigateByUrl(url);
+    fixture.detectChanges();
+    const lit = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('.po-nav__links a.active'),
+    ).map((a) => a.textContent?.trim());
+    expect(lit).toEqual(active === null ? [] : [active]);
+  });
 });
 
 interface AuthStub {
@@ -95,8 +115,11 @@ const SIGNED_IN = {
   selectedRepo: () => 'ada/cse-progress',
 };
 
-/** Mounts the app with the given auth stub (or the real service with the app off) and opens the site menu. */
-function mountMenu(auth: AuthStub | null): { root: HTMLElement; auth: AuthStub | null } {
+const HAMBURGER = '.po-nav__menu';
+const CHIP = '.po-nav__account-chip';
+
+/** Mounts the app with the given auth stub (or the real service with the app off). */
+function mount(auth: AuthStub | null): { fixture: ComponentFixture<AppComponent>; root: HTMLElement } {
   TestBed.configureTestingModule({
     imports: [AppComponent],
     providers: [
@@ -108,14 +131,54 @@ function mountMenu(auth: AuthStub | null): { root: HTMLElement; auth: AuthStub |
   });
   const fixture = TestBed.createComponent(AppComponent);
   fixture.detectChanges();
-  const root = fixture.nativeElement as HTMLElement;
-  (root.querySelector('app-menu.po-nav__menu .menu__trigger') as HTMLButtonElement).click();
-  fixture.detectChanges();
-  return { root, auth };
+  return { fixture, root: fixture.nativeElement as HTMLElement };
 }
 
-const menuItems = (root: HTMLElement): HTMLElement[] =>
-  Array.from(root.querySelectorAll<HTMLElement>('.menu__panel [role="menuitem"]'));
+/** Mounts the app and opens the menu under `scope` (the ☰ or the account chip). */
+function mountMenu(auth: AuthStub | null, scope = HAMBURGER): { root: HTMLElement } {
+  const { fixture, root } = mount(auth);
+  (root.querySelector(`${scope} .menu__trigger`) as HTMLButtonElement).click();
+  fixture.detectChanges();
+  return { root };
+}
+
+const menuItems = (root: HTMLElement, scope = HAMBURGER): HTMLElement[] =>
+  Array.from(root.querySelectorAll<HTMLElement>(`${scope} .menu__panel [role="menuitem"]`));
+
+describe('Bar links and account chip', () => {
+  it.each<{ name: string; auth: AuthStub | null; links: string[]; chip: string | null }>([
+    { name: 'app off', auth: null, links: ['Practice', 'Learn', 'Progress'], chip: null },
+    { name: 'signed out', auth: makeAuthStub(), links: ['Practice', 'Learn'], chip: 'Sign in' },
+    {
+      name: 'signed in',
+      auth: makeAuthStub(SIGNED_IN),
+      links: ['Practice', 'Learn', 'Progress'],
+      chip: 'ada',
+    },
+  ])('$name shows its links and chip', ({ auth, links, chip }) => {
+    const { root } = mount(auth);
+    const labels = Array.from(root.querySelectorAll('.po-nav__links a')).map((a) => a.textContent?.trim());
+    expect(labels).toEqual(links);
+    const control = root.querySelector(`${CHIP} .menu__trigger-text, ${CHIP} .po-nav__auth-button`);
+    expect(control?.textContent?.trim() ?? null).toBe(chip);
+  });
+
+  it('signed out: Sign in calls signIn once', () => {
+    const auth = makeAuthStub();
+    const { root } = mount(auth);
+    (root.querySelector('.po-nav__auth-button') as HTMLButtonElement).click();
+    expect(auth.signIn).toHaveBeenCalledTimes(1);
+  });
+
+  it('signed in: the chip menu lists Study track and Sign out, and Sign out calls signOut once', () => {
+    const auth = makeAuthStub(SIGNED_IN);
+    const { root } = mountMenu(auth, CHIP);
+    const items = menuItems(root, CHIP);
+    expect(items.map((el) => el.textContent?.trim())).toEqual(['Study track', 'Sign out']);
+    items[1].click();
+    expect(auth.signOut).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('Site menu', () => {
   it.each<{
@@ -128,22 +191,22 @@ describe('Site menu', () => {
     {
       name: 'app off',
       auth: null,
-      labels: ['Progress', 'Practice', 'Library', 'Coach', 'About'],
-      hrefs: ['/', '/practice', '/library', '/coach', '/about'],
+      labels: ['Progress', 'Practice', 'Learn'],
+      hrefs: ['/', '/practice', '/learn'],
       account: null,
     },
     {
       name: 'signed out',
       auth: makeAuthStub(),
-      labels: ['Practice', 'Library', 'Coach', 'About', 'Sign in with GitHub'],
-      hrefs: ['/practice', '/library', '/coach', '/about', null],
+      labels: ['Practice', 'Learn', 'Sign in with GitHub'],
+      hrefs: ['/practice', '/learn', null],
       account: null,
     },
     {
       name: 'signed in',
       auth: makeAuthStub(SIGNED_IN),
-      labels: ['Progress', 'Study track', 'Practice', 'Library', 'Coach', 'About', 'Sign out'],
-      hrefs: ['/', '/start', '/practice', '/library', '/coach', '/about', null],
+      labels: ['Progress', 'Practice', 'Learn', 'Sign out'],
+      hrefs: ['/', '/practice', '/learn', null],
       account: 'adaada/cse-progress',
     },
   ])('$name lists its items in order', ({ auth, labels, hrefs, account }) => {
@@ -151,7 +214,7 @@ describe('Site menu', () => {
     const items = menuItems(root);
     expect(items.map((el) => el.textContent?.trim())).toEqual(labels);
     expect(items.map((el) => el.getAttribute('href'))).toEqual(hrefs);
-    expect(root.querySelector('.po-nav__account')?.textContent?.replace(/\s+/g, '') ?? null).toBe(
+    expect(root.querySelector(`${HAMBURGER} .po-nav__account`)?.textContent?.replace(/\s+/g, '') ?? null).toBe(
       account,
     );
   });

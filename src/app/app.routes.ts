@@ -1,18 +1,24 @@
 import { Routes } from '@angular/router';
 
-import { authGuard, signedOutGuard } from './core/auth/auth.guard';
+import { progressMatch } from './core/auth/progress-match';
 import { interviewSolutionGuard } from './features/interview/session/interview-solution.guard';
 import { problemTitleResolver, solutionTitleResolver } from './problem-title.resolver';
 
 export const routes: Routes = [
   {
-    // Progress is the landing page, and the only route that loads PROGRESS_ROUTES —
+    // Two '' routes split on progressMatch: the board for a signed-in viewer (or a ?repo= link),
+    // the landing page otherwise. This is the only route that loads PROGRESS_ROUTES —
     // '/progress' below redirects here instead of loading the same chunk a second time.
     path: '',
     title: 'Progress',
-    canActivate: [authGuard],
+    canMatch: [progressMatch],
     loadChildren: () =>
       import('./features/progress/progress.routes').then((m) => m.PROGRESS_ROUTES),
+  },
+  {
+    path: '',
+    loadComponent: () =>
+      import('./features/landing/landing-page.component').then((m) => m.LandingPageComponent),
   },
   {
     path: 'auth/callback',
@@ -21,13 +27,11 @@ export const routes: Routes = [
   },
   {
     path: 'library',
-    title: 'Library',
-    loadComponent: () =>
-      import('./features/library/library-hub.component').then((m) => m.LibraryHubComponent),
+    redirectTo: 'learn',
   },
   {
     path: 'explore',
-    redirectTo: 'library',
+    redirectTo: 'learn',
   },
   {
     path: 'coach',
@@ -143,10 +147,7 @@ export const routes: Routes = [
   },
   {
     path: 'signin',
-    title: 'Sign in',
-    canActivate: [signedOutGuard],
-    loadComponent: () =>
-      import('./features/sign-in/sign-in-page.component').then((m) => m.SignInPageComponent),
+    redirectTo: '',
   },
   {
     path: '**',

@@ -44,8 +44,8 @@
 
   <section class="coach-section coach-section--cta">
     <p class="coach-see-live">
-      This site's default page — <a routerLink="/">Progress</a> — is the coach's own output.
-      <a routerLink="/" class="coach-see-live__link">See it live →</a>
+      This site's default page — <a routerLink="/" [queryParams]="{ repo: 'michael-yrao/cse-progress' }">Progress</a> — is the coach's own output.
+      <a routerLink="/" [queryParams]="{ repo: 'michael-yrao/cse-progress' }" class="coach-see-live__link">See it live →</a>
     </p>
 
     @if (isRepoPublic) {

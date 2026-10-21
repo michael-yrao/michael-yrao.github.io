@@ -4,23 +4,29 @@
   class="menu__trigger"
   [attr.data-size]="size()"
   [attr.data-icon]="icon()"
-  [attr.aria-label]="label()"
+  [attr.data-text]="text() ? '' : null"
+  [attr.aria-label]="text() ? null : label()"
   aria-haspopup="menu"
   [attr.aria-expanded]="isOpen()"
   [attr.aria-controls]="isOpen() ? panelId : null"
   (click)="toggle()"
 >
-  <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-    @if (icon() === 'bars') {
-      <rect x="2" y="3" width="12" height="1.5" rx="0.75" />
-      <rect x="2" y="7.25" width="12" height="1.5" rx="0.75" />
-      <rect x="2" y="11.5" width="12" height="1.5" rx="0.75" />
-    } @else {
-      <circle cx="3" cy="8" r="1" />
-      <circle cx="8" cy="8" r="1" />
-      <circle cx="13" cy="8" r="1" />
-    }
-  </svg>
+  @if (text(); as triggerText) {
+    <span class="menu__trigger-text">{{ triggerText }}</span>
+    <span class="menu__chevron" aria-hidden="true">▾</span>
+  } @else {
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      @if (icon() === 'bars') {
+        <rect x="2" y="3" width="12" height="1.5" rx="0.75" />
+        <rect x="2" y="7.25" width="12" height="1.5" rx="0.75" />
+        <rect x="2" y="11.5" width="12" height="1.5" rx="0.75" />
+      } @else {
+        <circle cx="3" cy="8" r="1" />
+        <circle cx="8" cy="8" r="1" />
+        <circle cx="13" cy="8" r="1" />
+      }
+    </svg>
+  }
   @if (dotState() !== 'none') {
     <span class="menu__dot" [attr.data-state]="dotState()"></span>
   }

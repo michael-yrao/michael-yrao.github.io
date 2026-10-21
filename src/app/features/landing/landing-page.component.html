@@ -1,0 +1,89 @@
+<div class="landing">
+  <section class="landing__hero">
+    <p class="landing__eyebrow">Spaced-repetition interview prep</p>
+    <h1 class="landing__title">Practice that comes back for you.</h1>
+    <p class="landing__lede">
+      Solve a problem, rate how it felt, and it returns on the day you would otherwise forget it.
+      Built around naming the pattern before writing the code.
+    </p>
+    <div class="landing__actions">
+      <button type="button" class="landing__button landing__hero-signin" (click)="signIn()">
+        Sign in with GitHub
+      </button>
+      <a
+        class="landing__link"
+        routerLink="/"
+        [queryParams]="{ repo: 'michael-yrao/cse-progress' }"
+      >See a live board →</a>
+    </div>
+  </section>
+
+  <section class="landing__cards" aria-label="Pillars">
+    <a routerLink="/practice" class="landing__pillar po-card po-card--link landing__practice-card">
+      <h2 class="landing__card-title">Practice</h2>
+      <p class="landing__card-desc">
+        {{ counts.totalSolved }} problems, {{ counts.totalVisualized }} with step-by-step
+        visualizations. Run them in the browser, or as a live interview with a partner.
+      </p>
+      <span class="landing__cta">Try a problem →</span>
+    </a>
+    <a routerLink="/learn" class="landing__pillar po-card po-card--link">
+      <h2 class="landing__card-title">Learn</h2>
+      <p class="landing__card-desc">
+        {{ counts.cheatSheetCount }} pattern cheat sheets, {{ counts.totalQuizzes }} quick-fire
+        quizzes, {{ counts.totalGames }} games wired to the algorithm each one uses.
+      </p>
+      <span class="landing__cta">Browse patterns →</span>
+    </a>
+    <div class="landing__pillar po-card">
+      <h2 class="landing__card-title">Progress</h2>
+      <p class="landing__card-desc">
+        What is due today, what is mastered, how the week is going. Yours after a GitHub sign-in.
+      </p>
+      <button type="button" class="landing__cta landing__card-signin" (click)="signIn()">
+        Sign in with GitHub
+      </button>
+    </div>
+  </section>
+
+  <section class="landing__steps-section" aria-label="How a rep works">
+    <ol class="landing__steps">
+      <li class="landing__step">
+        <h3 class="landing__step-title">Recognise</h3>
+        <p class="landing__step-desc">Name the pattern before you code.</p>
+      </li>
+      <li class="landing__step">
+        <h3 class="landing__step-title">Solve</h3>
+        <p class="landing__step-desc">Here in the browser, or in your own editor.</p>
+      </li>
+      <li class="landing__step">
+        <h3 class="landing__step-title">Rate</h3>
+        <p class="landing__step-desc">Green, yellow or red: how it felt, not whether it passed.</p>
+      </li>
+      <li class="landing__step">
+        <h3 class="landing__step-title">Return</h3>
+        <p class="landing__step-desc">It comes back on the day the rating says.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="landing__info">
+    <div class="landing__info-card">
+      <h2 class="landing__card-title">With a GitHub sign-in</h2>
+      <ul class="landing__list">
+        <li>Your own progress board and review schedule</li>
+        <li>A study track that creates your practice repo</li>
+        <li>Attempts saved to your repo</li>
+        <li>The weekly pattern-sense deck</li>
+      </ul>
+    </div>
+    <div class="landing__info-card">
+      <h2 class="landing__card-title">Without signing in</h2>
+      <ul class="landing__list">
+        <li><a class="landing__list-link" routerLink="/practice">Practice problems and solutions</a></li>
+        <li><a class="landing__list-link" routerLink="/learn">Patterns, quizzes and games</a></li>
+        <li><a class="landing__list-link" routerLink="/interview">Interview mode</a></li>
+      </ul>
+    </div>
+  </section>
+</div>

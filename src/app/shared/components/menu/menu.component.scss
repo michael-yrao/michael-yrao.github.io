@@ -49,6 +49,14 @@ $pulse-min-opacity: 0.35;
       height: $trigger-size-lg;
     }
 
+    &[data-text] {
+      width: auto;
+      padding: 0 $item-gap;
+      gap: 4px;
+      font: inherit;
+      font-size: $item-font-size;
+    }
+
     &:hover,
     &:focus-visible,
     &[aria-expanded='true'] {

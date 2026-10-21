@@ -4,7 +4,11 @@ import { RouterLink } from '@angular/router';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../shared/components/page-header/page-header.component';
 import { LibrarySubnavComponent } from '../../shared/components/library-subnav/library-subnav.component';
 
-const BREADCRUMB: BreadcrumbEntry[] = [{ label: 'Home', link: '/' }, { label: 'Quiz' }];
+const BREADCRUMB: BreadcrumbEntry[] = [
+  { label: 'Home', link: '/' },
+  { label: 'Learn', link: '/learn' },
+  { label: 'Quiz' },
+];
 
 @Component({
     selector: 'app-quiz',

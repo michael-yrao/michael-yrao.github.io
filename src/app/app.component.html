@@ -6,6 +6,26 @@
       <span class="po-nav__wordmark">progressive<em>overflow</em></span>
     </a>
 
+    <div class="po-nav__links">
+      <a class="po-nav__link" routerLink="/practice" [class.active]="activeGroup() === 'practice'">Practice</a>
+      <a class="po-nav__link" routerLink="/learn" [class.active]="activeGroup() === 'learn'">Learn</a>
+      @if (hasProgressLink()) {
+        <a
+          class="po-nav__link"
+          routerLink="/"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{
+            paths: 'exact',
+            queryParams: 'ignored',
+            matrixParams: 'ignored',
+            fragment: 'ignored',
+          }"
+          >Progress</a
+        >
+      }
+    </div>
+
+    <div class="po-nav__end">
     @if (hasCoach()) {
       <button
         type="button"
@@ -20,7 +40,28 @@
       </button>
     }
 
-    <!-- Site menu: account · pages · sign in/out -->
+    @if (auth.isEnabled) {
+      <div class="po-nav__account-chip">
+        @if (auth.isSignedIn()) {
+          <app-menu label="Account" [text]="auth.login()" size="md">
+            @if (auth.selectedRepo(); as repo) {
+              <div class="menu__row po-nav__chip-repo">{{ repo }}</div>
+            }
+            <a role="menuitem" class="menu__item" routerLink="/start" routerLinkActive="active"
+              >Study track</a
+            >
+            <div class="menu__separator" role="separator"></div>
+            <button type="button" role="menuitem" class="menu__item" (click)="signOut()">
+              Sign out
+            </button>
+          </app-menu>
+        } @else {
+          <button type="button" class="po-nav__auth-button" (click)="signIn()">Sign in</button>
+        }
+      </div>
+    }
+
+    <!-- Site menu (narrow screens): account · pages · sign in/out -->
     <app-menu class="po-nav__menu" label="Menu" icon="bars" size="lg">
       @if (auth.isEnabled && auth.isSignedIn()) {
         <div class="menu__row po-nav__account">
@@ -46,27 +87,11 @@
           >Progress</a
         >
       }
-      @if (auth.isSignedIn()) {
-        <a role="menuitem" class="menu__item" routerLink="/start" routerLinkActive="active"
-          >Study track</a
-        >
-      }
       <a role="menuitem" class="menu__item" routerLink="/practice" routerLinkActive="active"
         >Practice</a
       >
-      <a role="menuitem" class="menu__item" routerLink="/library" routerLinkActive="active"
-        >Library</a
-      >
-      <div class="menu__separator" role="separator"></div>
-      <a
-        role="menuitem"
-        class="menu__item"
-        [routerLink]="SITE_LINKS.coach"
-        routerLinkActive="active"
-        >Coach</a
-      >
-      <a role="menuitem" class="menu__item" routerLink="/about" routerLinkActive="active"
-        >About</a
+      <a role="menuitem" class="menu__item" routerLink="/learn" routerLinkActive="active"
+        >Learn</a
       >
       @if (auth.isEnabled) {
         <div class="menu__separator" role="separator"></div>
@@ -81,6 +106,7 @@
         }
       }
     </app-menu>
+    </div>
   </div>
 </nav>
 
@@ -89,6 +115,20 @@
 </main>
 
 <footer class="po-footer">
+  <div class="po-footer__columns">
+    @for (column of footerColumns; track column.heading) {
+      <nav class="po-footer__column" [attr.aria-label]="column.heading">
+        <span class="po-footer__heading">{{ column.heading }}</span>
+        @for (link of column.links; track link.label) {
+          @if ('href' in link) {
+            <a class="po-footer__link" [href]="link.href" target="_blank" rel="noopener">{{ link.label }}</a>
+          } @else {
+            <a class="po-footer__link" [routerLink]="link.path">{{ link.label }}</a>
+          }
+        }
+      </nav>
+    }
+  </div>
   <div class="po-footer__inner">
     <span class="po-footer__line">Built by a human, with Claude in the loop.</span>
     <span class="po-footer__copy">© {{ year }}</span>

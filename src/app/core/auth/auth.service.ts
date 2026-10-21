@@ -7,7 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { WORKER_API_URL } from '../data/site-links';
 import { GITHUB_APP_CONFIG, isGithubAppEnabled } from '../pattern-sense/github-save';
 import { parseRepoSlug } from '../services/github-file.service';
-import { SIGNED_OUT_LANDING, authGuard } from './auth.guard';
+import { SIGNED_OUT_LANDING, progressMatch } from './progress-match';
 
 export const SESSION_KEY = 'po-auth-session';
 export const REPO_KEY = 'po-auth-repo';
@@ -119,10 +119,10 @@ function readStoredRepo(): string | null {
   }
 }
 
-/** True when the route or any ancestor of it is behind `authGuard`. */
+/** True when the route or any ancestor of it is matched by `progressMatch`. */
 function isGuardedByAuth(route: ActivatedRouteSnapshot | null): boolean {
   for (let node = route; node !== null; node = node.firstChild) {
-    if (node.routeConfig?.canActivate?.includes(authGuard)) return true;
+    if (node.routeConfig?.canMatch?.includes(progressMatch)) return true;
   }
   return false;
 }
@@ -209,7 +209,7 @@ export class AuthService {
     this.selectedRepo.set(null);
     this.signInFailed.set(false);
     if (isGuardedByAuth(this.router.routerState.snapshot.root)) {
-      void this.router.navigateByUrl(SIGNED_OUT_LANDING);
+      void this.router.navigateByUrl(SIGNED_OUT_LANDING, { onSameUrlNavigation: 'reload' });
     }
   }
 

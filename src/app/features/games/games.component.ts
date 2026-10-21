@@ -13,7 +13,11 @@ interface GameSection {
 
 const CATEGORY_ORDER: GameCategory[] = ['graph-traversal', 'optimization'];
 
-const BREADCRUMB: BreadcrumbEntry[] = [{ label: 'Home', link: '/' }, { label: 'Games' }];
+const BREADCRUMB: BreadcrumbEntry[] = [
+  { label: 'Home', link: '/' },
+  { label: 'Learn', link: '/learn' },
+  { label: 'Games' },
+];
 
 @Component({
     selector: 'app-games',

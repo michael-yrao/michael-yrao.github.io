@@ -4,6 +4,7 @@ import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
+  { label: 'Learn', link: '/learn' },
   { label: 'Games', link: '/games' },
   { label: 'Maze Generator & Solver' },
 ];

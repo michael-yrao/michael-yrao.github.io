@@ -11,6 +11,7 @@ import {
   BreadcrumbEntry,
   PageHeaderComponent,
 } from '../../../shared/components/page-header/page-header.component';
+import { GroundednessMeterComponent } from '../../../shared/components/groundedness-meter/groundedness-meter.component';
 import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
 import { PRACTICE_GLYPH } from '../../progress/practice-link';
 import { injectPracticeContract } from '../../../shared/utils/practice-contract';
@@ -29,7 +30,7 @@ const TAGS_PER_ROW = 2;
   templateUrl: './practice-list.component.html',
   styleUrls: ['./practice-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgClass, PageHeaderComponent, LibrarySubnavComponent],
+  imports: [RouterLink, NgClass, PageHeaderComponent, LibrarySubnavComponent, GroundednessMeterComponent],
 })
 export class PracticeListComponent {
   private readonly practice = inject(PracticeService);

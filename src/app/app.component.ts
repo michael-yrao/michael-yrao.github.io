@@ -11,7 +11,8 @@ import { filter, map } from 'rxjs';
 import { AuthService } from './core/auth/auth.service';
 import { CoachAvailabilityService } from './core/coach/coach-availability.service';
 import { CoachUiService } from './core/coach/coach-ui.service';
-import { SITE_LINKS, isCoachOwner } from './core/data/site-links';
+import { isCoachOwner } from './core/data/site-links';
+import { FOOTER_COLUMNS } from './core/data/site-sections';
 import { CoachPanelComponent } from './features/coach-panel/coach-panel.component';
 import { LogoMarkComponent } from './shared/components/logo-mark/logo-mark.component';
 import { MenuComponent } from './shared/components/menu/menu.component';
@@ -20,6 +21,15 @@ import { MenuComponent } from './shared/components/menu/menu.component';
 export const COACH_DOCK_MIN_PX = 1024;
 const COACH_DOCK_QUERY = `(min-width: ${COACH_DOCK_MIN_PX}px)`;
 const PRACTICE_PROBLEM_URL = /^\/practice\/\d+/;
+
+type NavGroup = 'practice' | 'learn';
+const NAV_GROUP_BY_SEGMENT: ReadonlyMap<string, NavGroup> = new Map<string, NavGroup>([
+  ['practice', 'practice'],
+  ['interview', 'practice'],
+  ['learn', 'learn'],
+  ['quiz', 'learn'],
+  ['games', 'learn'],
+]);
 
 @Component({
   selector: 'app-root',
@@ -30,7 +40,7 @@ const PRACTICE_PROBLEM_URL = /^\/practice\/\d+/;
   imports: [RouterOutlet, RouterLink, RouterLinkActive, LogoMarkComponent, MenuComponent, CoachPanelComponent],
 })
 export class AppComponent {
-  readonly SITE_LINKS = SITE_LINKS;
+  readonly footerColumns = FOOTER_COLUMNS;
   readonly year = new Date().getFullYear();
 
   private readonly router = inject(Router);
@@ -61,6 +71,12 @@ export class AppComponent {
   }
   /** The Progress link is for signed-in viewers; with the app off the site shows it as before. */
   readonly hasProgressLink = computed(() => !this.auth.isEnabled || this.auth.isSignedIn());
+
+  /** Which bar link's group the current page belongs to; matched on the whole first path segment. */
+  readonly activeGroup = computed<NavGroup | null>(() => {
+    const [segment] = this.url().split(/[?#]/)[0].split('/').filter(Boolean);
+    return NAV_GROUP_BY_SEGMENT.get(segment ?? '') ?? null;
+  });
 
   signIn(): void {
     this.auth.signIn(this.router.url);

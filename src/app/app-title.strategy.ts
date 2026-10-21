@@ -9,9 +9,9 @@ const DESCRIPTION_SELECTOR = 'name="description"';
 /** One sentence per top-level section, keyed by the first URL segment. A section without an entry keeps the index.html description. */
 export const PAGE_DESCRIPTIONS: Readonly<Record<string, string>> = {
   '':
-    'Follow a spaced-repetition practice log: which problems are solved, which are due for review, and how the week is going.',
-  library:
-    'Browse the algorithm visualizations, pattern cheat sheets, games and quizzes in one place.',
+    'Spaced-repetition interview prep: practice problems with step-by-step visualizations, pattern cheat sheets, drills, and a review board that brings each problem back on the day you would forget it.',
+  about: 'Who builds Progressive Overflow, and why.',
+  start: 'Pick a study track and get a practice repo on your GitHub account.',
   coach:
     'See how the spaced-repetition coach schedules reviews and keeps each problem honest, all from a conversation in Claude Code.',
   games: 'Play interactive games that build intuition for the algorithm each one uses.',

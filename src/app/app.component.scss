@@ -1,3 +1,7 @@
+// Viewport width from which the bar shows its links and account chip instead of the ☰.
+$nav-collapse: 768px;
+$nav-font-size: 13px;
+
 // Coach drawer width; the docked layout reserves exactly this much beside the page.
 :host {
   --po-coach-width: 26rem;
@@ -78,9 +82,79 @@
     }
   }
 
-  // ── Site menu: the ☰ at the bar's right edge ──
-  &__menu {
+  // ── Bar links: wide screens only ──
+  &__links {
+    display: none;
+    align-items: center;
+    gap: var(--space-lg);
+    margin-left: var(--space-xl);
+  }
+
+  &__link {
+    color: var(--color-text-muted);
+    font-size: $nav-font-size;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--color-text);
+      text-decoration: none;
+    }
+
+    &.active {
+      color: var(--color-text);
+    }
+  }
+
+  // Right-hand group: coach toggle, account chip, ☰.
+  &__end {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
     margin-left: auto;
+  }
+
+  // ── Account chip: wide screens only ──
+  &__account-chip {
+    display: none;
+    align-items: center;
+  }
+
+  &__auth-button {
+    padding: 0 var(--space-sm);
+    background: transparent;
+    border: 0;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: $nav-font-size;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--color-text);
+    }
+  }
+
+  &__chip-repo {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  // ── Site menu: the ☰, narrow screens only ──
+  &__menu {
+    display: inline-flex;
+  }
+
+  @media (min-width: $nav-collapse) {
+    &__links {
+      display: flex;
+    }
+
+    &__account-chip {
+      display: flex;
+    }
+
+    &__menu {
+      display: none;
+    }
   }
 
   // ── Account header inside the menu: login over repo slug ──
@@ -100,13 +174,11 @@
     color: var(--color-text-muted);
   }
 
-  // Coach toggle: owner only, sits left of the menu.
+  // Coach toggle: owner only, first in the right-hand group.
   &__coach {
     display: flex;
-    margin-left: auto;
     align-items: center;
     justify-content: center;
-    margin-right: var(--space-sm);
     background: transparent;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
@@ -121,11 +193,6 @@
       border-color: var(--color-accent);
     }
   }
-
-  // The coach toggle already took the free space; the menu follows it directly.
-  &__coach + &__menu {
-    margin-left: 0;
-  }
 }
 
 .po-main {
@@ -135,6 +202,39 @@
 // ── Footer ─────────────────────────────────────────────────────────────────
 .po-footer {
   border-top: 1px solid var(--color-border);
+
+  &__columns {
+    padding: var(--space-xl) var(--page-gutter) 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xl) var(--space-2xl);
+  }
+
+  &__column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 8rem;
+    font-size: var(--text-sm);
+  }
+
+  &__heading {
+    color: var(--color-text);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  &__link {
+    color: var(--color-text-muted);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--color-text);
+      text-decoration: none;
+    }
+  }
 
   &__inner {
     padding: var(--space-lg) var(--page-gutter);

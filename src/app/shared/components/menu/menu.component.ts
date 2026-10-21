@@ -54,6 +54,8 @@ export class MenuComponent {
   readonly label = input.required<string>();
   readonly size = input<MenuSize>('md');
   readonly icon = input<MenuIcon>('dots');
+  /** A text trigger (with a chevron) in place of the icon. */
+  readonly text = input<string | null>(null);
   readonly dotState = input<MenuDotState>('none');
   readonly align = input<MenuAlign>('end');
   readonly opened = output<void>();

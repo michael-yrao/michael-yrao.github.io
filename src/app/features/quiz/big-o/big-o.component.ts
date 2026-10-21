@@ -26,6 +26,7 @@ type Mode = 'quiz' | 'revealed' | 'finished';
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
+  { label: 'Learn', link: '/learn' },
   { label: 'Quiz', link: '/quiz' },
   { label: 'Big-O Trainer' },
 ];

@@ -7,7 +7,7 @@ import { vi } from 'vitest';
 
 import { WORKER_API_URL } from '../data/site-links';
 import { GITHUB_APP_CONFIG } from '../pattern-sense/github-save';
-import { authGuard } from './auth.guard';
+import { progressMatch } from './progress-match';
 import { AuthService, AuthSession, PENDING_KEY, REPO_KEY, SESSION_KEY, safeReturnUrl } from './auth.service';
 
 const TEST_CONFIG = { clientId: 'Iv1.test', appSlug: 'progressive-overflow' };
@@ -198,22 +198,26 @@ describe('AuthService', () => {
     interface Row {
       readonly name: string;
       readonly isGuarded: boolean;
-      readonly expectedCalls: readonly string[];
+      readonly expectedCalls: readonly unknown[][];
     }
     const ROWS: readonly Row[] = [
-      { name: 'on a guarded route: goes to /signin', isGuarded: true, expectedCalls: ['/signin'] },
+      {
+        name: 'on the progress route: reloads / so it re-matches to the landing',
+        isGuarded: true,
+        expectedCalls: [['/', { onSameUrlNavigation: 'reload' }]],
+      },
       { name: 'on /practice/1: stays', isGuarded: false, expectedCalls: [] },
     ];
 
     it.each(ROWS)('$name', (row) => {
       const navigateByUrl = vi.fn().mockResolvedValue(true);
-      const leaf = { routeConfig: { canActivate: row.isGuarded ? [authGuard] : [] }, firstChild: null };
+      const leaf = { routeConfig: { canMatch: row.isGuarded ? [progressMatch] : [] }, firstChild: null };
       const router = { routerState: { snapshot: { root: { routeConfig: null, firstChild: leaf } } }, navigateByUrl };
       const { service } = setup(sessionExpiringIn(HOUR_MS), [{ provide: Router, useValue: router }]);
 
       service.signOut();
 
-      expect(navigateByUrl.mock.calls.map((call) => call[0])).toEqual(row.expectedCalls);
+      expect(navigateByUrl.mock.calls).toEqual(row.expectedCalls);
     });
   });
 

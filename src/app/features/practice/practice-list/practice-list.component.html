@@ -1,6 +1,7 @@
 <section class="practice-list">
   <app-page-header [breadcrumb]="breadcrumb" heading="Practice">
     <span po-meta class="practice-list__count">{{ rows().length }} problems</span>
+    <app-groundedness-meter po-meta></app-groundedness-meter>
     @if (isAuthorFallback()) {
       <span po-meta class="practice-list__count practice-list__fallback">author's problem set</span>
     }

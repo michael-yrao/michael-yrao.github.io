@@ -6,7 +6,7 @@ import { MenuComponent, MenuDotState, MenuIcon } from './menu.component';
 @Component({
   imports: [MenuComponent],
   template: `
-    <app-menu label="More" [dotState]="dot()" [icon]="icon()">
+    <app-menu label="More" [dotState]="dot()" [icon]="icon()" [text]="text()">
       <button type="button" role="menuitem" class="menu__item first">One</button>
       <button type="button" role="menuitem" class="menu__item second">Two</button>
       <button type="button" role="menuitem" class="menu__item last">Three</button>
@@ -17,6 +17,7 @@ import { MenuComponent, MenuDotState, MenuIcon } from './menu.component';
 class HostComponent {
   readonly dot = signal<MenuDotState>('none');
   readonly icon = signal<MenuIcon>('dots');
+  readonly text = signal<string | null>(null);
 }
 
 function mount(): { fixture: ComponentFixture<HostComponent>; el: HTMLElement } {
@@ -108,6 +109,19 @@ describe('MenuComponent icon', () => {
     fixture.detectChanges();
     expect(trigger(el).getAttribute('data-icon')).toBe(icon);
     expect(trigger(el).querySelectorAll(`svg ${shape}`).length).toBe(3);
+  });
+});
+
+describe('MenuComponent text', () => {
+  it.each<{ text: string | null; hasSvg: boolean; label: string | null }>([
+    { text: 'ada', hasSvg: false, label: 'ada' },
+    { text: null, hasSvg: true, label: null },
+  ])('text $text: svg present is $hasSvg', ({ text, hasSvg, label }) => {
+    const { fixture, el } = mount();
+    fixture.componentInstance.text.set(text);
+    fixture.detectChanges();
+    expect(trigger(el).querySelector('svg') !== null).toBe(hasSvg);
+    expect(trigger(el).querySelector('.menu__trigger-text')?.textContent ?? null).toBe(label);
   });
 });
 

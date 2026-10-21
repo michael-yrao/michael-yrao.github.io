@@ -34,6 +34,17 @@ describe('app routes', () => {
     expect(router.url).toBe('/');
   });
 
+  it.each([
+    { from: '/library', to: '/learn' },
+    { from: '/explore', to: '/learn' },
+  ])('redirects $from to $to', async ({ from, to }) => {
+    const router = TestBed.inject(Router);
+
+    await router.navigateByUrl(from);
+
+    expect(router.url).toBe(to);
+  });
+
   it('redirects /games/pattern-sense to /quiz/pattern-sense', async () => {
     const router = TestBed.inject(Router);
 
@@ -101,11 +112,23 @@ describe('app routes, signed out', () => {
     });
   });
 
-  it('sends / to the sign-in page', async () => {
+  const matchedRoute = (router: Router) => router.routerState.snapshot.root.firstChild?.routeConfig;
+
+  it('keeps / on the landing page, which has no title', async () => {
     const router = TestBed.inject(Router);
 
     await router.navigateByUrl('/');
 
-    expect(router.url).toBe('/signin');
+    expect(router.url).toBe('/');
+    expect(matchedRoute(router)?.title).toBeUndefined();
+  });
+
+  it('shows the Progress board at /?repo= to a signed-out viewer', async () => {
+    const router = TestBed.inject(Router);
+
+    await router.navigateByUrl('/?repo=a/b');
+
+    expect(router.url).toBe('/?repo=a%2Fb');
+    expect(matchedRoute(router)?.title).toBe('Progress');
   });
 });
