@@ -295,15 +295,6 @@
         </div>
       }
     }
-    <p class="today-board__key">
-      {{ boardKey }}
-      @if (isOwnRepo()) {
-        <span class="today-board__key-dots">
-          · <span class="today-board__key-dot" data-state="running"></span> running ·
-          <span class="today-board__key-dot" data-state="failed"></span> failed ·
-          <span class="today-board__key-dot" data-state="off"></span> build off
-        </span>
-      }
-    </p>
+    <p class="today-board__key">{{ boardKey }}</p>
   }
 </div>

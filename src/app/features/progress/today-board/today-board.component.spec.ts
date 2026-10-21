@@ -1787,7 +1787,7 @@ describe('TodayBoardComponent held mark', () => {
 
 describe('TodayBoardComponent engine menu', () => {
   it.each<{ name: string; isOwnRepo: boolean; count: number }>([
-    { name: 'owner has the menu inside the week navigation and the footer key dots', isOwnRepo: true, count: 1 },
+    { name: 'owner has the menu inside the week navigation', isOwnRepo: true, count: 1 },
     { name: 'visitor has neither', isOwnRepo: false, count: 0 },
   ])('$name', ({ isOwnRepo, count }) => {
     TestBed.configureTestingModule({
@@ -1803,6 +1803,5 @@ describe('TodayBoardComponent engine menu', () => {
     fixture.componentRef.setInput('isOwnRepo', isOwnRepo);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelectorAll('.today-board__week-nav app-engine-menu').length).toBe(count);
-    expect(fixture.nativeElement.querySelectorAll('.today-board__key-dot').length).toBe(count * 3);
   });
 });

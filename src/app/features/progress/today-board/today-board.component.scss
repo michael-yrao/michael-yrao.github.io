@@ -333,17 +333,6 @@ $workload-planned-opacity: 0.35;
   font-size: 0.75rem;
   color: var(--color-text-muted);
 }
-// The legend for the engine menu's trigger dot: same three colours as the menu's dot.
-.today-board__key-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-
-  &[data-state='running'] { background: var(--color-accent); }
-  &[data-state='failed'] { background: var(--color-hard); }
-  &[data-state='off'] { background: var(--color-medium); }
-}
 // Moved carries through to the badge the same way done does — it's not in the row--moved dim
 // list above, so it stays full-strength, coloured to flag the row as moved-off-day rather than
 // earned.
