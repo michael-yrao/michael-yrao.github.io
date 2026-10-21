@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { authGuard } from './core/auth/auth.guard';
+import { authGuard, signedOutGuard } from './core/auth/auth.guard';
 import { interviewSolutionGuard } from './features/interview/session/interview-solution.guard';
 import { problemTitleResolver, solutionTitleResolver } from './problem-title.resolver';
 
@@ -140,6 +140,13 @@ export const routes: Routes = [
     title: 'Start',
     loadComponent: () =>
       import('./features/onboarding/start-page.component').then((m) => m.StartPageComponent),
+  },
+  {
+    path: 'signin',
+    title: 'Sign in',
+    canActivate: [signedOutGuard],
+    loadComponent: () =>
+      import('./features/sign-in/sign-in-page.component').then((m) => m.SignInPageComponent),
   },
   {
     path: '**',

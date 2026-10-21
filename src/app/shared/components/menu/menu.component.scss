@@ -1,6 +1,7 @@
 $hover-bg: rgba(255, 255, 255, 0.06);
 $trigger-size-sm: 24px;
 $trigger-size-md: 28px;
+$trigger-size-lg: 32px;
 $dot-size: 6px;
 $dot-inset: 4px;
 $panel-gap: 4px;
@@ -9,6 +10,7 @@ $panel-min-width: 17rem;
 $panel-z-index: 20;
 $page-gutter: 2rem;
 $item-font-size: 13px;
+$item-font-size-lg: 15px;
 $item-padding: 6px 10px;
 $item-gap: 8px;
 $meta-font-size: 11px;
@@ -40,6 +42,11 @@ $pulse-min-opacity: 0.35;
     &[data-size='sm'] {
       width: $trigger-size-sm;
       height: $trigger-size-sm;
+    }
+
+    &[data-size='lg'] {
+      width: $trigger-size-lg;
+      height: $trigger-size-lg;
     }
 
     &:hover,
@@ -99,6 +106,12 @@ $pulse-min-opacity: 0.35;
       right: auto;
       left: 0;
     }
+
+    &[data-size='lg'] .menu__item,
+    &[data-size='lg'] .menu__row {
+      padding: var(--space-sm) var(--space-md);
+      font-size: $item-font-size-lg;
+    }
   }
 
   &__item,
@@ -132,6 +145,11 @@ $pulse-min-opacity: 0.35;
     &:disabled {
       cursor: not-allowed;
       opacity: 0.5;
+    }
+
+    &.active {
+      color: var(--color-text);
+      background: $hover-bg;
     }
   }
 

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { routes } from './app.routes';
+import { AuthService } from './core/auth/auth.service';
 import { GITHUB_APP_CONFIG } from './core/pattern-sense/github-save';
 
 describe('app routes', () => {
@@ -23,6 +24,14 @@ describe('app routes', () => {
     await router.navigateByUrl('/progress?repo=a/b');
 
     expect(router.url).toBe('/?repo=a%2Fb');
+  });
+
+  it('redirects /signin to the root route when the app is off', async () => {
+    const router = TestBed.inject(Router);
+
+    await router.navigateByUrl('/signin');
+
+    expect(router.url).toBe('/');
   });
 
   it('redirects /games/pattern-sense to /quiz/pattern-sense', async () => {
@@ -79,5 +88,24 @@ describe('app routes', () => {
     await router.navigateByUrl('/practice/custom?host=x');
 
     expect(router.url).toBe('/interview?host=x');
+  });
+});
+
+describe('app routes, signed out', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter(routes),
+        { provide: AuthService, useValue: { isEnabled: true, isSignedIn: () => false } },
+      ],
+    });
+  });
+
+  it('sends / to the sign-in page', async () => {
+    const router = TestBed.inject(Router);
+
+    await router.navigateByUrl('/');
+
+    expect(router.url).toBe('/signin');
   });
 });

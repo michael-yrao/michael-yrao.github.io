@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
+import { AuthService } from './core/auth/auth.service';
 import { GITHUB_APP_CONFIG } from './core/pattern-sense/github-save';
 
 const DISABLED_APP = { clientId: 'REPLACE_WITH_CLIENT_ID', appSlug: 'REPLACE_WITH_APP_SLUG' };
@@ -47,13 +48,13 @@ describe('AppComponent', () => {
     expect(compiled.querySelector('.po-nav__brand app-logo-mark svg')).toBeTruthy();
   });
 
-  it('renders the brand as the first child of the nav bar, before the hamburger', () => {
+  it('renders the brand as the first child of the nav bar, before the menu', () => {
     fixture.detectChanges();
     const inner = fixture.nativeElement.querySelector('.po-nav__inner') as HTMLElement;
     const children = Array.from(inner.children);
     expect(children[0]?.classList.contains('po-nav__brand')).toBe(true);
     expect(children.findIndex((el) => el.classList.contains('po-nav__brand'))).toBeLessThan(
-      children.findIndex((el) => el.classList.contains('po-nav__hamburger')),
+      children.findIndex((el) => el.matches('app-menu.po-nav__menu')),
     );
   });
 
@@ -67,93 +68,102 @@ describe('AppComponent', () => {
     expect(footer.querySelectorAll('a').length).toBe(0);
   });
 
-  describe('Menu drawer', () => {
-    it('opens on hamburger click, flipping aria-expanded and aria-label, and closes again on a second click', () => {
-      fixture.detectChanges();
-      const hamburger = fixture.nativeElement.querySelector(
-        '.po-nav__hamburger',
-      ) as HTMLButtonElement;
+});
 
-      expect(hamburger.getAttribute('aria-expanded')).toBe('false');
-      expect(hamburger.getAttribute('aria-label')).toBe('Open menu');
+interface AuthStub {
+  isEnabled: boolean;
+  isSignedIn: () => boolean;
+  login: () => string | null;
+  selectedRepo: () => string | null;
+  signIn: ReturnType<typeof vi.fn>;
+  signOut: ReturnType<typeof vi.fn>;
+}
 
-      hamburger.click();
-      fixture.detectChanges();
-      expect(hamburger.getAttribute('aria-expanded')).toBe('true');
-      expect(hamburger.getAttribute('aria-label')).toBe('Close menu');
-      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeTruthy();
+const makeAuthStub = (overrides: Partial<AuthStub> = {}): AuthStub => ({
+  isEnabled: true,
+  isSignedIn: () => false,
+  login: () => null,
+  selectedRepo: () => null,
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+  ...overrides,
+});
 
-      hamburger.click();
-      fixture.detectChanges();
-      expect(hamburger.getAttribute('aria-expanded')).toBe('false');
-      expect(hamburger.getAttribute('aria-label')).toBe('Open menu');
-      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
-    });
+const SIGNED_IN = {
+  isSignedIn: () => true,
+  login: () => 'ada',
+  selectedRepo: () => 'ada/cse-progress',
+};
 
-    it('lists exactly Progress, Practice, Library, Coach, Human in order with the right routerLinks', () => {
-      fixture.detectChanges();
-      const hamburger = fixture.nativeElement.querySelector(
-        '.po-nav__hamburger',
-      ) as HTMLButtonElement;
-      hamburger.click();
-      fixture.detectChanges();
+/** Mounts the app with the given auth stub (or the real service with the app off) and opens the site menu. */
+function mountMenu(auth: AuthStub | null): { root: HTMLElement; auth: AuthStub | null } {
+  TestBed.configureTestingModule({
+    imports: [AppComponent],
+    providers: [
+      provideRouter([{ path: '**', component: BlankComponent }]),
+      auth === null
+        ? { provide: GITHUB_APP_CONFIG, useValue: DISABLED_APP }
+        : { provide: AuthService, useValue: auth },
+    ],
+  });
+  const fixture = TestBed.createComponent(AppComponent);
+  fixture.detectChanges();
+  const root = fixture.nativeElement as HTMLElement;
+  (root.querySelector('app-menu.po-nav__menu .menu__trigger') as HTMLButtonElement).click();
+  fixture.detectChanges();
+  return { root, auth };
+}
 
-      const drawer = fixture.nativeElement.querySelector('.po-nav__drawer') as HTMLElement;
-      const links = Array.from(drawer.querySelectorAll<HTMLAnchorElement>('a.po-nav__drawer-link'));
+const menuItems = (root: HTMLElement): HTMLElement[] =>
+  Array.from(root.querySelectorAll<HTMLElement>('.menu__panel [role="menuitem"]'));
 
-      expect(links.map((a) => a.textContent?.trim())).toEqual([
-        'Progress',
-        'Practice',
-        'Library',
-        'Coach',
-        'Human',
-      ]);
-      expect(links.map((a) => a.getAttribute('href'))).toEqual([
-        '/',
-        '/practice',
-        '/library',
-        '/coach',
-        '/about',
-      ]);
+describe('Site menu', () => {
+  it.each<{
+    name: string;
+    auth: AuthStub | null;
+    labels: string[];
+    hrefs: (string | null)[];
+    account: string | null;
+  }>([
+    {
+      name: 'app off',
+      auth: null,
+      labels: ['Progress', 'Practice', 'Library', 'Coach', 'About'],
+      hrefs: ['/', '/practice', '/library', '/coach', '/about'],
+      account: null,
+    },
+    {
+      name: 'signed out',
+      auth: makeAuthStub(),
+      labels: ['Practice', 'Library', 'Coach', 'About', 'Sign in with GitHub'],
+      hrefs: ['/practice', '/library', '/coach', '/about', null],
+      account: null,
+    },
+    {
+      name: 'signed in',
+      auth: makeAuthStub(SIGNED_IN),
+      labels: ['Progress', 'Study track', 'Practice', 'Library', 'Coach', 'About', 'Sign out'],
+      hrefs: ['/', '/start', '/practice', '/library', '/coach', '/about', null],
+      account: 'adaada/cse-progress',
+    },
+  ])('$name lists its items in order', ({ auth, labels, hrefs, account }) => {
+    const { root } = mountMenu(auth);
+    const items = menuItems(root);
+    expect(items.map((el) => el.textContent?.trim())).toEqual(labels);
+    expect(items.map((el) => el.getAttribute('href'))).toEqual(hrefs);
+    expect(root.querySelector('.po-nav__account')?.textContent?.replace(/\s+/g, '') ?? null).toBe(
+      account,
+    );
+  });
 
-      const secondary = drawer.querySelector('.po-nav__drawer-secondary') as HTMLElement;
-      const [progressLink, , libraryLink, coachLink, humanLink] = links;
-      expect(secondary.contains(coachLink)).toBe(true);
-      expect(secondary.contains(humanLink)).toBe(true);
-      expect(secondary.contains(progressLink)).toBe(false);
-      expect(secondary.contains(libraryLink)).toBe(false);
-
-      expect(links.every((a) => !(a.getAttribute('href') ?? '').startsWith('http'))).toBe(true);
-    });
-
-    it('closes on a link click, on Escape, and on the backdrop', () => {
-      fixture.detectChanges();
-      const hamburger = fixture.nativeElement.querySelector(
-        '.po-nav__hamburger',
-      ) as HTMLButtonElement;
-
-      hamburger.click();
-      fixture.detectChanges();
-      const humanLink = Array.from(
-        fixture.nativeElement.querySelectorAll('.po-nav__drawer a'),
-      ).find((a) => (a as HTMLElement).textContent?.trim() === 'Human') as HTMLElement;
-      humanLink.click();
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
-
-      hamburger.click();
-      fixture.detectChanges();
-      fixture.componentInstance.onEscape();
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
-
-      hamburger.click();
-      fixture.detectChanges();
-      const backdrop = fixture.nativeElement.querySelector('.po-nav__backdrop') as HTMLElement;
-      expect(backdrop).toBeTruthy();
-      backdrop.click();
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.po-nav__drawer')).toBeFalsy();
-    });
+  it.each<{ name: string; overrides: Partial<AuthStub>; label: string; called: 'signIn' | 'signOut' }>([
+    { name: 'signed in', overrides: SIGNED_IN, label: 'Sign out', called: 'signOut' },
+    { name: 'signed out', overrides: {}, label: 'Sign in with GitHub', called: 'signIn' },
+  ])('$name: clicking $label calls $called once', ({ overrides, label, called }) => {
+    const auth = makeAuthStub(overrides);
+    const { root } = mountMenu(auth);
+    const button = menuItems(root).find((el) => el.textContent?.trim() === label) as HTMLElement;
+    button.click();
+    expect(auth[called]).toHaveBeenCalledTimes(1);
   });
 });

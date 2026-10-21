@@ -1,0 +1,24 @@
+<section class="signin">
+  <h1 class="signin__title">Sign in</h1>
+  <button type="button" class="signin__button" (click)="signIn()">Sign in with GitHub</button>
+  <div class="signin__cards">
+    <div class="signin__card">
+      <h2 class="signin__card-title">With a GitHub sign-in</h2>
+      <ul class="signin__list">
+        <li>Your own progress board and review schedule</li>
+        <li>A study track that creates your practice repo</li>
+        <li>Attempts saved to your repo</li>
+        <li>The weekly pattern-sense deck</li>
+      </ul>
+    </div>
+    <div class="signin__card">
+      <h2 class="signin__card-title">Without signing in</h2>
+      <ul class="signin__list">
+        <li><a class="signin__link" routerLink="/practice">Practice problems and solutions</a></li>
+        <li><a class="signin__link" routerLink="/library">Library</a></li>
+        <li><a class="signin__link" routerLink="/quiz">Quizzes and games</a></li>
+        <li><a class="signin__link" routerLink="/interview">Interview mode</a></li>
+      </ul>
+    </div>
+  </div>
+</section>

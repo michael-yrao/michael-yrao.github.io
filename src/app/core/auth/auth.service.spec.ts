@@ -201,7 +201,7 @@ describe('AuthService', () => {
       readonly expectedCalls: readonly string[];
     }
     const ROWS: readonly Row[] = [
-      { name: 'on a guarded route: goes to /practice', isGuarded: true, expectedCalls: ['/practice'] },
+      { name: 'on a guarded route: goes to /signin', isGuarded: true, expectedCalls: ['/signin'] },
       { name: 'on /practice/1: stays', isGuarded: false, expectedCalls: [] },
     ];
 

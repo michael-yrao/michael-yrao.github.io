@@ -6,19 +6,6 @@
       <span class="po-nav__wordmark">progressive<em>overflow</em></span>
     </a>
 
-    @if (auth.isEnabled) {
-      <div class="po-nav__auth">
-        @if (auth.isSignedIn()) {
-          <span>{{ auth.login() }}</span>
-          <button type="button" class="po-nav__auth-button" (click)="signOut()">Sign out</button>
-        } @else {
-          <button type="button" class="po-nav__auth-button" (click)="signIn()">
-            Sign in with GitHub
-          </button>
-        }
-      </div>
-    }
-
     @if (hasCoach()) {
       <button
         type="button"
@@ -33,84 +20,69 @@
       </button>
     }
 
-    <button
-      class="po-nav__hamburger"
-      [attr.aria-expanded]="isDrawerOpen()"
-      [attr.aria-label]="isDrawerOpen() ? 'Close menu' : 'Open menu'"
-      aria-controls="po-nav-menu"
-      (click)="toggleDrawer($event)"
-    >
-      ☰
-    </button>
-
-    <!-- Menu drawer: two sections — primary (Progress, Practice, Library), secondary (Coach, Human) -->
-    @if (isDrawerOpen()) {
-      <div class="po-nav__drawer" id="po-nav-menu">
-        <div class="po-nav__drawer-section">
-          @if (hasProgressLink()) {
-            <a
-              class="po-nav__drawer-link"
-              routerLink="/"
-              routerLinkActive="active"
-              [routerLinkActiveOptions]="{
-                paths: 'exact',
-                queryParams: 'ignored',
-                matrixParams: 'ignored',
-                fragment: 'ignored',
-              }"
-              (click)="closeAll()"
-              >Progress</a
-            >
+    <!-- Site menu: account · pages · sign in/out -->
+    <app-menu class="po-nav__menu" label="Menu" icon="bars" size="lg">
+      @if (auth.isEnabled && auth.isSignedIn()) {
+        <div class="menu__row po-nav__account">
+          <span class="po-nav__account-login">{{ auth.login() }}</span>
+          @if (auth.selectedRepo(); as repo) {
+            <span class="po-nav__account-repo">{{ repo }}</span>
           }
-          @if (auth.isSignedIn()) {
-            <a
-              class="po-nav__drawer-link"
-              routerLink="/start"
-              routerLinkActive="active"
-              (click)="closeAll()"
-              >Study track</a
-            >
-          }
-          <a
-            class="po-nav__drawer-link"
-            routerLink="/practice"
-            routerLinkActive="active"
-            (click)="closeAll()"
-            >Practice</a
-          >
-          <a
-            class="po-nav__drawer-link"
-            routerLink="/library"
-            routerLinkActive="active"
-            (click)="closeAll()"
-            >Library</a
-          >
         </div>
-        <div class="po-nav__drawer-section po-nav__drawer-secondary">
-          <a
-            class="po-nav__drawer-link po-nav__drawer-link--secondary"
-            [routerLink]="SITE_LINKS.coach"
-            routerLinkActive="active"
-            (click)="closeAll()"
-            >Coach</a
-          >
-          <a
-            class="po-nav__drawer-link po-nav__drawer-link--secondary"
-            routerLink="/about"
-            routerLinkActive="active"
-            (click)="closeAll()"
-            >Human</a
-          >
-        </div>
-      </div>
-    }
+        <div class="menu__separator" role="separator"></div>
+      }
+      @if (hasProgressLink()) {
+        <a
+          role="menuitem"
+          class="menu__item"
+          routerLink="/"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{
+            paths: 'exact',
+            queryParams: 'ignored',
+            matrixParams: 'ignored',
+            fragment: 'ignored',
+          }"
+          >Progress</a
+        >
+      }
+      @if (auth.isSignedIn()) {
+        <a role="menuitem" class="menu__item" routerLink="/start" routerLinkActive="active"
+          >Study track</a
+        >
+      }
+      <a role="menuitem" class="menu__item" routerLink="/practice" routerLinkActive="active"
+        >Practice</a
+      >
+      <a role="menuitem" class="menu__item" routerLink="/library" routerLinkActive="active"
+        >Library</a
+      >
+      <div class="menu__separator" role="separator"></div>
+      <a
+        role="menuitem"
+        class="menu__item"
+        [routerLink]="SITE_LINKS.coach"
+        routerLinkActive="active"
+        >Coach</a
+      >
+      <a role="menuitem" class="menu__item" routerLink="/about" routerLinkActive="active"
+        >About</a
+      >
+      @if (auth.isEnabled) {
+        <div class="menu__separator" role="separator"></div>
+        @if (auth.isSignedIn()) {
+          <button type="button" role="menuitem" class="menu__item" (click)="signOut()">
+            Sign out
+          </button>
+        } @else {
+          <button type="button" role="menuitem" class="menu__item" (click)="signIn()">
+            Sign in with GitHub
+          </button>
+        }
+      }
+    </app-menu>
   </div>
 </nav>
-
-<!-- Backdrop: closes the drawer on outside click -->
-@if (isDrawerOpen()) {
-  <div class="po-nav__backdrop" aria-hidden="true" (click)="closeAll()"></div>
-}
 
 <main class="po-main">
   <router-outlet></router-outlet>

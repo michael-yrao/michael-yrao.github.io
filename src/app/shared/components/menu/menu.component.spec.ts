@@ -1,12 +1,12 @@
 import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { MenuComponent, MenuDotState } from './menu.component';
+import { MenuComponent, MenuDotState, MenuIcon } from './menu.component';
 
 @Component({
   imports: [MenuComponent],
   template: `
-    <app-menu label="More" [dotState]="dot()">
+    <app-menu label="More" [dotState]="dot()" [icon]="icon()">
       <button type="button" role="menuitem" class="menu__item first">One</button>
       <button type="button" role="menuitem" class="menu__item second">Two</button>
       <button type="button" role="menuitem" class="menu__item last">Three</button>
@@ -16,6 +16,7 @@ import { MenuComponent, MenuDotState } from './menu.component';
 })
 class HostComponent {
   readonly dot = signal<MenuDotState>('none');
+  readonly icon = signal<MenuIcon>('dots');
 }
 
 function mount(): { fixture: ComponentFixture<HostComponent>; el: HTMLElement } {
@@ -94,6 +95,19 @@ describe('MenuComponent keyboard', () => {
     origin.focus();
     origin.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
     expect(document.activeElement).toBe(pick(el, `.${focused}`));
+  });
+});
+
+describe('MenuComponent icon', () => {
+  it.each<{ icon: MenuIcon; shape: string }>([
+    { icon: 'dots', shape: 'circle' },
+    { icon: 'bars', shape: 'rect' },
+  ])('$icon draws three $shape', ({ icon, shape }) => {
+    const { fixture, el } = mount();
+    fixture.componentInstance.icon.set(icon);
+    fixture.detectChanges();
+    expect(trigger(el).getAttribute('data-icon')).toBe(icon);
+    expect(trigger(el).querySelectorAll(`svg ${shape}`).length).toBe(3);
   });
 });
 

@@ -17,7 +17,8 @@ import { NavigationStart, Router } from '@angular/router';
 import { filter } from 'rxjs';
 
 export type MenuDotState = 'none' | 'running' | 'failed' | 'off';
-export type MenuSize = 'sm' | 'md';
+export type MenuSize = 'sm' | 'md' | 'lg';
+export type MenuIcon = 'dots' | 'bars';
 export type MenuAlign = 'end' | 'start';
 
 const ITEM_SELECTOR = '[role="menuitem"]:not(:disabled):not([aria-disabled="true"])';
@@ -52,6 +53,7 @@ export class MenuComponent {
   /** The trigger's accessible name. */
   readonly label = input.required<string>();
   readonly size = input<MenuSize>('md');
+  readonly icon = input<MenuIcon>('dots');
   readonly dotState = input<MenuDotState>('none');
   readonly align = input<MenuAlign>('end');
   readonly opened = output<void>();

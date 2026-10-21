@@ -1,7 +1,6 @@
 import {
   Component,
   ChangeDetectionStrategy,
-  HostListener,
   computed,
   inject,
   signal,
@@ -15,6 +14,7 @@ import { CoachUiService } from './core/coach/coach-ui.service';
 import { SITE_LINKS, isCoachOwner } from './core/data/site-links';
 import { CoachPanelComponent } from './features/coach-panel/coach-panel.component';
 import { LogoMarkComponent } from './shared/components/logo-mark/logo-mark.component';
+import { MenuComponent } from './shared/components/menu/menu.component';
 
 /** The coach docks beside the page (instead of overlaying it) from this viewport width up. */
 export const COACH_DOCK_MIN_PX = 1024;
@@ -27,7 +27,7 @@ const PRACTICE_PROBLEM_URL = /^\/practice\/\d+/;
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // CoachPanelComponent is used only inside `@defer`, so its chunk (marked, DOMPurify, highlight.js) loads on first open.
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, LogoMarkComponent, CoachPanelComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LogoMarkComponent, MenuComponent, CoachPanelComponent],
 })
 export class AppComponent {
   readonly SITE_LINKS = SITE_LINKS;
@@ -68,21 +68,5 @@ export class AppComponent {
 
   signOut(): void {
     this.auth.signOut();
-  }
-
-  readonly isDrawerOpen = signal(false);
-
-  toggleDrawer(event: MouseEvent): void {
-    event.stopPropagation();
-    this.isDrawerOpen.update((open) => !open);
-  }
-
-  closeAll(): void {
-    this.isDrawerOpen.set(false);
-  }
-
-  @HostListener('document:keydown.escape')
-  onEscape(): void {
-    this.closeAll();
   }
 }
