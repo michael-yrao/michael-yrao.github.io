@@ -6,8 +6,8 @@ const DEFAULT_LABEL = 'Progressive Overflow';
 /**
  * The 64×64 Progressive Overflow mark, drawn as inline SVG from the site's own
  * theme tokens (`--color-text`, `--color-bg`, `--color-accent`) rather than a
- * static asset. This reproduces `mark-on-dark.svg` (see
- * `src/assets/brand/README.md` for the source kit).
+ * static asset. This mirrors the on-dark geometry of
+ * `src/assets/brand/mark.svg` (see `src/assets/brand/README.md` for the source kit).
  *
  * `label` doubles as the a11y toggle: the default announces the wordmark for a
  * bare mark (e.g. a favicon-style use), while an empty string means the mark is
