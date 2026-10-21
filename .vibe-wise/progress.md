@@ -72,3 +72,6 @@ Status: implemented 2026-10-19 (reflow.ts EXAMPLE_LABEL; figureCells through exp
 - Intake is a file commit (`intake.yml`) into the learner's own repo, not an API call that builds anything.
 - GitHub Actions in the learner's repo are the engine's compute (onboard, fold, weekly build); the Worker stays a thin write path.
 - The board's engine mark reads the public Actions runs API unauthenticated, cached 60 s, and only on the learner's own repo.
+
+## 2026-10-21 · Paused
+Paused by the learner for feature work ('skip learning for this', after 'always opus/fable plan, engineer do' on 10-14); the walkthrough stations above stand for when learning resumes.
