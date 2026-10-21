@@ -328,11 +328,6 @@ $workload-planned-opacity: 0.35;
   border-color: var(--color-medium);
   color: var(--color-medium);
 }
-.today-board__key {
-  margin: var(--space-sm) 0 0;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
 // Moved carries through to the badge the same way done does — it's not in the row--moved dim
 // list above, so it stays full-strength, coloured to flag the row as moved-off-day rather than
 // earned.

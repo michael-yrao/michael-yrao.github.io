@@ -28,7 +28,6 @@ import { PRACTICE_GLYPH } from '../practice-link';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProgressViewStateService } from '../progress-view-state.service';
 import {
-  BOARD_KEY,
   BoardRow,
   COMPLEXITY_GATE_TITLE,
   RowCounts,
@@ -372,7 +371,6 @@ export class TodayBoardComponent {
   protected readonly statusGlyph = statusGlyph;
   protected readonly plainAriaLabel = plainAriaLabel;
   protected readonly rowStateGlyph = rowStateGlyph;
-  protected readonly boardKey = BOARD_KEY;
   protected readonly walkthroughGlyph = WALKTHROUGH_GLYPH;
   protected readonly practiceGlyph = PRACTICE_GLYPH;
   protected readonly gateTitle = COMPLEXITY_GATE_TITLE;

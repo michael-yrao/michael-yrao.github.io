@@ -44,8 +44,6 @@ const PENDING_GLYPH = '◐';
 const OPEN_GLYPH = '○';
 const HELD_GLYPH = '⏸';
 const PENDING_LABEL = 'saved, folding';
-/** The board's key line, rendered once at the bottom of the board. */
-export const BOARD_KEY = `${DONE_GLYPH} done · ${PENDING_GLYPH} ${PENDING_LABEL} · ${OPEN_GLYPH} open · ${HELD_GLYPH} held`;
 const HELD_MONTH_SLICE_START = 5;
 const HELD_MONTH_SLICE_END = 7;
 const HELD_DAY_SLICE_START = 8;
