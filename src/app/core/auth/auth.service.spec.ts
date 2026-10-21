@@ -144,6 +144,23 @@ describe('AuthService', () => {
     expect(localStorage.getItem(REPO_KEY)).toBe('someone/their-repo');
   });
 
+  it('repos leaves out template repositories', async () => {
+    const { service, httpMock } = setup(sessionExpiringIn(HOUR_MS));
+
+    const listing = service.repos();
+    await tick();
+    httpMock.expectOne(`${GITHUB_API}/user/installations?per_page=100`).flush({ installations: [{ id: 7 }] });
+    await tick();
+    httpMock.expectOne(`${GITHUB_API}/user/installations/7/repositories?per_page=100`).flush({
+      repositories: [
+        { full_name: 'someone/cse-coach', is_template: true },
+        { full_name: 'someone/cse-progress', is_template: false },
+      ],
+    });
+
+    expect(await listing).toEqual(['someone/cse-progress']);
+  });
+
   describe('repos selection with several repos', () => {
     interface Row {
       readonly name: string;

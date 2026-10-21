@@ -42,9 +42,21 @@ export const WALKTHROUGH_GLYPH = '</>';
 const DONE_GLYPH = '✓';
 const PENDING_GLYPH = '◐';
 const OPEN_GLYPH = '○';
+const HELD_GLYPH = '⏸';
 const PENDING_LABEL = 'saved, folding';
 /** The board's key line, rendered once at the bottom of the board. */
-export const BOARD_KEY = `${DONE_GLYPH} done · ${PENDING_GLYPH} ${PENDING_LABEL} · ${OPEN_GLYPH} open`;
+export const BOARD_KEY = `${DONE_GLYPH} done · ${PENDING_GLYPH} ${PENDING_LABEL} · ${OPEN_GLYPH} open · ${HELD_GLYPH} held`;
+const HELD_MONTH_SLICE_START = 5;
+const HELD_MONTH_SLICE_END = 7;
+const HELD_DAY_SLICE_START = 8;
+const HELD_DAY_SLICE_END = 10;
+
+/** The read-only hold mark `⏸ MM/DD` while `heldUntil` is today or later; null otherwise. */
+export function heldMark(problem: ProblemProgress | null, todayISO: string): string | null {
+  const until = problem?.heldUntil;
+  if (!until || until < todayISO) return null;
+  return `${HELD_GLYPH} ${until.slice(HELD_MONTH_SLICE_START, HELD_MONTH_SLICE_END)}/${until.slice(HELD_DAY_SLICE_START, HELD_DAY_SLICE_END)}`;
+}
 const RE_ASK_SUFFIX = 're-asks';
 const MAX_PCT = 100;
 // Monday-first, matching gamify.py's `day_date.strftime('%A')` — used only to label a

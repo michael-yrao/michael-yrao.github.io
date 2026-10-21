@@ -18,7 +18,6 @@ import {
 import type { OnboardEnv } from '../onboard/handler';
 import { gateOrigin, preflight } from '../pattern-sense/handler';
 import { readWeeklyBuildSwitch } from './config-switch';
-import { handleHold, HOLD_PATH } from './hold-route';
 import { handleEngineUpdate, UPDATE_PATH } from './update-route';
 import { OWNER_PATTERN, REPO_PATTERN } from '../pattern-sense/validate';
 
@@ -133,7 +132,6 @@ export async function handle(
 
   const { pathname } = new URL(request.url);
   if (pathname === WEEKLY_BUILD_PATH) return handleWeeklyBuild(request, fetchImpl, cors);
-  if (pathname === HOLD_PATH) return handleHold(request, fetchImpl, cors);
   if (pathname === UPDATE_PATH) return handleEngineUpdate(request, env, fetchImpl, cors);
   return failure(404, 'not-found', cors);
 }

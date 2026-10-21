@@ -97,14 +97,8 @@
           <a [href]="ext" target="_blank" rel="noopener" aria-label="External" title="External">↗</a>
         }
       </span>
-      @if (isOwnRepo() && item.lcNumber && !item.done) {
-        <app-row-menu
-          [problem]="problemFor(item)"
-          [itemTitle]="item.title"
-          [lcNumber]="item.lcNumber"
-          [repoRef]="repoRef()"
-          [todayISO]="todayISO()"
-        />
+      @if (item.lcNumber && !item.done && heldMarkFor(item); as held) {
+        <span class="today-board__held">{{ held }}</span>
       }
       @if (item.lcNumber) {
         <button type="button" class="today-board__trend-btn" title="Comfort history"

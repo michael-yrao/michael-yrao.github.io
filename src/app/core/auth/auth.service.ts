@@ -236,14 +236,16 @@ export class AuthService {
       const lists = await Promise.all(
         (installs.installations ?? []).map((installation) =>
           firstValueFrom(
-            this.http.get<{ repositories?: { full_name: string }[] }>(
+            this.http.get<{ repositories?: { full_name: string; is_template?: boolean }[] }>(
               `${GITHUB_API}/user/installations/${installation.id}/repositories?${PAGE_SIZE_QUERY}`,
               { headers },
             ),
           ),
         ),
       );
-      const slugs = lists.flatMap((list) => (list.repositories ?? []).map((r) => r.full_name));
+      const slugs = lists.flatMap((list) =>
+        (list.repositories ?? []).filter((r) => r.is_template !== true).map((r) => r.full_name),
+      );
       if (slugs.length > 0 && !this.isSelectionKept(slugs)) this.selectRepo(slugs[0]);
       return slugs;
     } catch {

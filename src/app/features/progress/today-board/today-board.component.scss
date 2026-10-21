@@ -44,17 +44,9 @@ $workload-planned-opacity: 0.35;
   &:disabled { opacity: 0.4; cursor: default; }
 }
 
-// A row's "more" trigger shows on hover / focus (always under touch, or while its menu is open).
-// The trigger lives in the shared menu component, hence ::ng-deep.
-.today-board__row ::ng-deep .menu__trigger {
-  opacity: 0;
-
-  &[aria-expanded='true'] { opacity: 1; }
-}
-.today-board__row:hover ::ng-deep .menu__trigger,
-.today-board__row:focus-within ::ng-deep .menu__trigger { opacity: 1; }
-@media (hover: none) {
-  .today-board__row ::ng-deep .menu__trigger { opacity: 1; }
+.today-board__held {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
 }
 
 .today-board__week-label {

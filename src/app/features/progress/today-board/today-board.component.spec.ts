@@ -1760,24 +1760,28 @@ describe('TodayBoardComponent setup CTA', () => {
   });
 });
 
-describe('TodayBoardComponent row menu', () => {
-  it.each<{ name: string; isOwnRepo: boolean; count: number }>([
-    { name: 'owner sees it on the undone row only', isOwnRepo: true, count: 1 },
-    { name: 'non-owner sees none', isOwnRepo: false, count: 0 },
-  ])('$name', ({ isOwnRepo, count }) => {
-    TestBed.configureTestingModule({
-      imports: [TodayBoardComponent],
-      providers: [
-        provideRouter([]),
-        { provide: EngineService, useValue: { status$: () => of(NO_ENGINE_RUN), versions: async () => null } },
-        { provide: ProgressService, useValue: { refresh: () => undefined } },
-      ],
-    });
-    const fixture = TestBed.createComponent(TodayBoardComponent);
-    fixture.componentRef.setInput('schedule', makeSchedule());
-    fixture.componentRef.setInput('isOwnRepo', isOwnRepo);
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelectorAll('app-row-menu').length).toBe(count);
+describe('TodayBoardComponent held mark', () => {
+  const today = todayLocalISO();
+  it.each<{ name: string; heldUntil?: string; mark: string | null }>([
+    { name: 'no heldUntil shows no mark', mark: null },
+    { name: 'a past heldUntil shows no mark', heldUntil: addDaysISO(today, -1), mark: null },
+    { name: 'heldUntil today shows the mark', heldUntil: today, mark: `⏸ ${today.slice(5, 7)}/${today.slice(8, 10)}` },
+    {
+      name: 'a future heldUntil shows the mark',
+      heldUntil: addDaysISO(today, 14),
+      mark: `⏸ ${addDaysISO(today, 14).slice(5, 7)}/${addDaysISO(today, 14).slice(8, 10)}`,
+    },
+  ])('$name', ({ heldUntil, mark }) => {
+    const details = [
+      makeProblemProgress({
+        lcNumber: 9999,
+        title: 'Unvisualized Problem',
+        ...(heldUntil === undefined ? {} : { heldUntil }),
+      }),
+    ];
+    const fixture = createFixture(makeSchedule(), undefined, undefined, details);
+    const shown = fixture.nativeElement.querySelector('.today-board__held')?.textContent?.trim() ?? null;
+    expect(shown).toBe(mark);
   });
 });
 

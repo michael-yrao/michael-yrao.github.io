@@ -23,7 +23,6 @@ import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { shortMonthDay } from '../../../core/utils/local-date';
 import { EngineMenuComponent } from '../engine-menu/engine-menu.component';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
-import { RowMenuComponent } from './row-menu/row-menu.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
 import { PRACTICE_GLYPH } from '../practice-link';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
@@ -40,6 +39,7 @@ import {
   dayButtonLabel,
   endNoteMeaning,
   findProblemFor,
+  heldMark,
   githubAriaLabel,
   groupComplexityItems,
   isGateRow,
@@ -93,7 +93,6 @@ const NO_PENDING: ReadonlySet<number> = new Set();
     NgTemplateOutlet,
     ProblemTimelineComponent,
     EngineMenuComponent,
-    RowMenuComponent,
   ],
 })
 export class TodayBoardComponent {
@@ -279,6 +278,10 @@ export class TodayBoardComponent {
 
   problemFor(item: ScheduleItem): ProblemProgress | null {
     return findProblemFor(item, this.details());
+  }
+
+  heldMarkFor(item: ScheduleItem): string | null {
+    return heldMark(this.problemFor(item), this.todayISO());
   }
 
   selectDay(date: string): void {
