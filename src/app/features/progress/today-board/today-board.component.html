@@ -98,7 +98,7 @@
         }
       </span>
       @if (isOwnRepo() && item.lcNumber && !item.done) {
-        <app-hold-control
+        <app-row-menu
           [problem]="problemFor(item)"
           [itemTitle]="item.title"
           [lcNumber]="item.lcNumber"
@@ -205,7 +205,7 @@
         (click)="nextWeek()"
       >▶</button>
       @if (isOwnRepo()) {
-        <app-engine-mark [repoRef]="repoRef()" [canBuild]="!!schedule()" />
+        <app-engine-menu [repoRef]="repoRef()" [canBuild]="!!schedule()" />
       }
     </div>
   </div>
@@ -301,6 +301,15 @@
         </div>
       }
     }
-    <p class="today-board__key">{{ boardKey }}</p>
+    <p class="today-board__key">
+      {{ boardKey }}
+      @if (isOwnRepo()) {
+        <span class="today-board__key-dots">
+          · <span class="today-board__key-dot" data-state="running"></span> running ·
+          <span class="today-board__key-dot" data-state="failed"></span> failed ·
+          <span class="today-board__key-dot" data-state="off"></span> build off
+        </span>
+      }
+    </p>
   }
 </div>

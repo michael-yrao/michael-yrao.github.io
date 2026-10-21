@@ -21,9 +21,9 @@ import { LoadStatus } from '../../../core/services/progress.service';
 import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { shortMonthDay } from '../../../core/utils/local-date';
-import { EngineMarkComponent } from '../engine-mark/engine-mark.component';
+import { EngineMenuComponent } from '../engine-menu/engine-menu.component';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
-import { HoldControlComponent } from './hold-control/hold-control.component';
+import { RowMenuComponent } from './row-menu/row-menu.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
 import { PRACTICE_GLYPH } from '../practice-link';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
@@ -92,8 +92,8 @@ const NO_PENDING: ReadonlySet<number> = new Set();
     RouterLink,
     NgTemplateOutlet,
     ProblemTimelineComponent,
-    EngineMarkComponent,
-    HoldControlComponent,
+    EngineMenuComponent,
+    RowMenuComponent,
   ],
 })
 export class TodayBoardComponent {

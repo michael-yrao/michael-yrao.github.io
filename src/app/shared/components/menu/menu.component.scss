@@ -1,0 +1,175 @@
+$hover-bg: rgba(255, 255, 255, 0.06);
+$trigger-size-sm: 24px;
+$trigger-size-md: 28px;
+$dot-size: 6px;
+$dot-inset: 4px;
+$panel-gap: 4px;
+$panel-padding: 4px;
+$panel-min-width: 17rem;
+$panel-z-index: 20;
+$page-gutter: 2rem;
+$item-font-size: 13px;
+$item-padding: 6px 10px;
+$item-gap: 8px;
+$meta-font-size: 11px;
+$separator-margin: 4px;
+$enter-offset: 2px;
+$enter-ms: 120ms;
+$pulse-ms: 1.2s;
+$pulse-min-opacity: 0.35;
+
+// Encapsulation is off so the projected items (owned by the consumer) are styled too.
+.menu {
+  position: relative;
+  display: inline-flex;
+
+  &__trigger {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: $trigger-size-md;
+    height: $trigger-size-md;
+    padding: 0;
+    color: var(--color-text-muted);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+
+    &[data-size='sm'] {
+      width: $trigger-size-sm;
+      height: $trigger-size-sm;
+    }
+
+    &:hover,
+    &:focus-visible,
+    &[aria-expanded='true'] {
+      color: var(--color-text);
+      background: var(--color-bg-raised);
+      outline: none;
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+  }
+
+  &__dot {
+    position: absolute;
+    top: $dot-inset;
+    right: $dot-inset;
+    width: $dot-size;
+    height: $dot-size;
+    border-radius: 50%;
+
+    &[data-state='running'] {
+      background: var(--color-accent);
+      animation: menu-pulse $pulse-ms ease-in-out infinite;
+    }
+
+    &[data-state='failed'] {
+      background: var(--color-hard);
+    }
+
+    &[data-state='off'] {
+      background: var(--color-medium);
+    }
+  }
+
+  &__panel {
+    position: absolute;
+    top: calc(100% + #{$panel-gap});
+    right: 0;
+    z-index: $panel-z-index;
+    display: flex;
+    flex-direction: column;
+    min-width: $panel-min-width;
+    max-width: calc(100vw - #{$page-gutter});
+    padding: $panel-padding;
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-strong);
+    animation: menu-enter $enter-ms ease-out;
+
+    &[data-align='start'] {
+      right: auto;
+      left: 0;
+    }
+  }
+
+  &__item,
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: $item-gap;
+    padding: $item-padding;
+    font: inherit;
+    font-size: $item-font-size;
+    text-align: left;
+    white-space: nowrap;
+    border-radius: var(--radius-sm);
+  }
+
+  &__item {
+    appearance: none;
+    width: 100%;
+    color: var(--color-text);
+    text-decoration: none;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      background: $hover-bg;
+      outline: none;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  &__row {
+    color: var(--color-text-muted);
+  }
+
+  &__meta {
+    margin-left: auto;
+    padding-left: $item-gap;
+    font-family: var(--font-mono);
+    font-size: $meta-font-size;
+    color: var(--color-text-muted);
+  }
+
+  &__separator {
+    height: 1px;
+    margin: $separator-margin 0;
+    background: var(--color-border);
+  }
+}
+
+@keyframes menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-#{$enter-offset});
+  }
+}
+
+@keyframes menu-pulse {
+  50% {
+    opacity: $pulse-min-opacity;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu__panel,
+  .menu__dot {
+    animation: none;
+  }
+}

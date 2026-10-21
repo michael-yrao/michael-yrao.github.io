@@ -1760,7 +1760,7 @@ describe('TodayBoardComponent setup CTA', () => {
   });
 });
 
-describe('TodayBoardComponent hold control', () => {
+describe('TodayBoardComponent row menu', () => {
   it.each<{ name: string; isOwnRepo: boolean; count: number }>([
     { name: 'owner sees it on the undone row only', isOwnRepo: true, count: 1 },
     { name: 'non-owner sees none', isOwnRepo: false, count: 0 },
@@ -1777,14 +1777,14 @@ describe('TodayBoardComponent hold control', () => {
     fixture.componentRef.setInput('schedule', makeSchedule());
     fixture.componentRef.setInput('isOwnRepo', isOwnRepo);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelectorAll('app-hold-control').length).toBe(count);
+    expect(fixture.nativeElement.querySelectorAll('app-row-menu').length).toBe(count);
   });
 });
 
-describe('TodayBoardComponent engine gear', () => {
+describe('TodayBoardComponent engine menu', () => {
   it.each<{ name: string; isOwnRepo: boolean; count: number }>([
-    { name: 'owner has the gear inside the week navigation', isOwnRepo: true, count: 1 },
-    { name: 'visitor has no gear', isOwnRepo: false, count: 0 },
+    { name: 'owner has the menu inside the week navigation and the footer key dots', isOwnRepo: true, count: 1 },
+    { name: 'visitor has neither', isOwnRepo: false, count: 0 },
   ])('$name', ({ isOwnRepo, count }) => {
     TestBed.configureTestingModule({
       imports: [TodayBoardComponent],
@@ -1798,6 +1798,7 @@ describe('TodayBoardComponent engine gear', () => {
     fixture.componentRef.setInput('schedule', makeSchedule());
     fixture.componentRef.setInput('isOwnRepo', isOwnRepo);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelectorAll('.today-board__week-nav app-engine-mark').length).toBe(count);
+    expect(fixture.nativeElement.querySelectorAll('.today-board__week-nav app-engine-menu').length).toBe(count);
+    expect(fixture.nativeElement.querySelectorAll('.today-board__key-dot').length).toBe(count * 3);
   });
 });

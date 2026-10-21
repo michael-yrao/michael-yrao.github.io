@@ -1,0 +1,82 @@
+<app-menu label="Engine" size="md" [dotState]="dotState()">
+  <button
+    type="button"
+    role="menuitem"
+    class="menu__item"
+    [disabled]="!canBuild() || isBuilding()"
+    (click)="isConfirming.set(true)"
+  >
+    Build next week…
+    <span class="menu__meta">{{ buildMeta() }}</span>
+  </button>
+  <button
+    type="button"
+    role="menuitem"
+    class="menu__item"
+    data-keeps-open
+    [disabled]="!isUpdateAvailable() || isUpdating()"
+    (click)="updateEngine()"
+  >
+    Update engine
+    <span class="menu__meta">{{ updateMeta() }}</span>
+  </button>
+  @let row = statusRow();
+  @if (row !== null || resultSegments().length > 0 || isRefused()) {
+    <div class="menu__separator" role="separator"></div>
+  }
+  @if (row !== null) {
+    <div class="menu__row engine-menu__status">
+      <span>{{ row.text }}</span>
+      @if (row.url; as url) {
+        <a
+          class="menu__item engine-menu__run"
+          role="menuitem"
+          data-keeps-open
+          [href]="url"
+          target="_blank"
+          rel="noopener"
+          aria-label="Open the run on GitHub"
+          >↗</a
+        >
+      }
+    </div>
+  }
+  @if (resultSegments().length > 0) {
+    <div class="menu__row engine-menu__result">
+      @for (segment of resultSegments(); track segment.text) {
+        @if (!$first) {
+          <span>·</span>
+        }
+        @if (segment.paths; as paths) {
+          <details class="engine-menu__skipped">
+            <summary>{{ segment.text }}</summary>
+            <ul>
+              @for (path of paths; track path) {
+                <li>{{ path }}</li>
+              }
+            </ul>
+          </details>
+        } @else {
+          <span>{{ segment.text }}</span>
+        }
+      }
+    </div>
+  }
+  @if (isRefused()) {
+    <div class="menu__row engine-menu__refused">
+      Progressive Overflow needs one new permission to run your weekly build. Sign out, sign in again, and accept
+      the update on GitHub.
+    </div>
+  }
+</app-menu>
+<app-modal heading="Build next week now?" [isOpen]="isConfirming()" (closed)="isConfirming.set(false)">
+  <ul class="engine-menu__confirm">
+    <li>Archives this week</li>
+    <li>Re-seats what is left into next week</li>
+    <li>Runs in your repo as a commit</li>
+  </ul>
+  <span class="engine-menu__actions">
+    <button type="button" class="engine-menu__button" (click)="confirmBuild()">Build</button>
+    <button type="button" class="engine-menu__button" (click)="isConfirming.set(false)">Cancel</button>
+  </span>
+</app-modal>

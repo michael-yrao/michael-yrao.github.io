@@ -1,0 +1,30 @@
+.row-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+
+  &__mark {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+  }
+
+  &__picker {
+    padding: 0;
+  }
+
+  &__date {
+    font: inherit;
+    color: var(--color-text-muted);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+
+  &__cancel {
+    width: auto;
+  }
+
+  &__refusal {
+    max-width: 16rem;
+  }
+}

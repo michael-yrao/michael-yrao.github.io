@@ -32,16 +32,29 @@ $workload-planned-opacity: 0.35;
 
 .today-board__week-nav-btn {
   appearance: none;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-raised);
+  border: 0;
+  background: transparent;
   color: var(--color-text-muted);
   border-radius: var(--radius-sm);
   padding: 2px 8px;
   font-size: 0.78rem;
   cursor: pointer;
 
-  &:hover:not(:disabled), &:focus-visible:not(:disabled) { border-color: var(--color-accent); color: var(--color-text); outline: none; }
+  &:hover:not(:disabled), &:focus-visible:not(:disabled) { background: var(--color-bg-raised); color: var(--color-text); outline: none; }
   &:disabled { opacity: 0.4; cursor: default; }
+}
+
+// A row's "more" trigger shows on hover / focus (always under touch, or while its menu is open).
+// The trigger lives in the shared menu component, hence ::ng-deep.
+.today-board__row ::ng-deep .menu__trigger {
+  opacity: 0;
+
+  &[aria-expanded='true'] { opacity: 1; }
+}
+.today-board__row:hover ::ng-deep .menu__trigger,
+.today-board__row:focus-within ::ng-deep .menu__trigger { opacity: 1; }
+@media (hover: none) {
+  .today-board__row ::ng-deep .menu__trigger { opacity: 1; }
 }
 
 .today-board__week-label {
@@ -327,6 +340,17 @@ $workload-planned-opacity: 0.35;
   margin: var(--space-sm) 0 0;
   font-size: 0.75rem;
   color: var(--color-text-muted);
+}
+// The legend for the engine menu's trigger dot: same three colours as the menu's dot.
+.today-board__key-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+
+  &[data-state='running'] { background: var(--color-accent); }
+  &[data-state='failed'] { background: var(--color-hard); }
+  &[data-state='off'] { background: var(--color-medium); }
 }
 // Moved carries through to the badge the same way done does — it's not in the row--moved dim
 // list above, so it stays full-strength, coloured to flag the row as moved-off-day rather than

@@ -1,9 +1,21 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  computed,
+  inject,
+  input,
+  signal,
+  viewChild,
+} from '@angular/core';
 
 import { EngineService, HoldResult } from '../../../../core/engine/engine.service';
 import { ProblemProgress } from '../../../../core/models/progress.model';
 import { RepoRef } from '../../../../core/services/github-file.service';
 import { addDaysISO } from '../../../../core/utils/local-date';
+import { MenuComponent } from '../../../../shared/components/menu/menu.component';
 
 const MAX_HOLD_DAYS = 90; // mirrors worker/src/engine/hold.ts MAX_HOLD_DAYS (the Worker enforces it)
 const MONTH_SLICE_START = 5;
@@ -24,14 +36,15 @@ function holdMark(iso: string): string {
   return `⏸ ${iso.slice(MONTH_SLICE_START, MONTH_SLICE_END)}/${iso.slice(DAY_SLICE_START, DAY_SLICE_END)}`;
 }
 
-/** One board row's hold: the mark while a hold is live, a date picker to set one, and Release. */
+/** One board row's menu: the hold mark while a hold is live, and a "more" menu to set or release one. */
 @Component({
-  selector: 'app-hold-control',
-  templateUrl: './hold-control.component.html',
-  styleUrl: './hold-control.component.scss',
+  selector: 'app-row-menu',
+  templateUrl: './row-menu.component.html',
+  styleUrl: './row-menu.component.scss',
+  imports: [MenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HoldControlComponent {
+export class RowMenuComponent {
   readonly problem = input<ProblemProgress | null>(null);
   readonly itemTitle = input('');
   readonly lcNumber = input(0);
@@ -39,6 +52,9 @@ export class HoldControlComponent {
   readonly todayISO = input('');
 
   private readonly engine = inject(EngineService);
+  private readonly injector = inject(Injector);
+  private readonly menu = viewChild.required(MenuComponent);
+  private readonly dateInput = viewChild<ElementRef<HTMLInputElement>>('dateInput');
 
   /** Set after a successful call (the repo's progress.json only updates after the regenerate
    *  Action runs): a date, null for released, undefined while the summary's value stands. */
@@ -48,6 +64,7 @@ export class HoldControlComponent {
   protected readonly isBusy = signal(false);
   protected readonly refusal = signal<string | null>(null);
 
+  protected readonly title = computed(() => this.problem()?.title ?? this.itemTitle());
   protected readonly minDate = computed(() => addDaysISO(this.todayISO(), 1));
   protected readonly maxDate = computed(() => addDaysISO(this.todayISO(), MAX_HOLD_DAYS));
 
@@ -59,6 +76,9 @@ export class HoldControlComponent {
 
   protected togglePicker(): void {
     this.isPickerOpen.update((isOpen) => !isOpen);
+    if (this.isPickerOpen()) {
+      afterNextRender(() => this.dateInput()?.nativeElement.focus(), { injector: this.injector });
+    }
   }
 
   protected onDateChange(event: Event): void {
@@ -77,19 +97,21 @@ export class HoldControlComponent {
     this.refusal.set(null);
     const result = await this.engine.hold(ref, {
       number: this.lcNumber(),
-      title: this.problem()?.title ?? this.itemTitle(),
+      title: this.title(),
       until,
       today: this.todayISO(),
     });
-    this.settle(result, until);
     this.isBusy.set(false);
+    this.settle(result, until);
   }
 
+  /** A success closes the picker and the menu; a refusal keeps both open so its row is seen. */
   private settle(result: HoldResult, until: string | null): void {
     this.refusal.set(REFUSAL_MESSAGES[result] ?? null);
     if (result === 'held' || result === 'released' || result === 'unchanged') {
       this.override.set(until);
       this.isPickerOpen.set(false);
+      this.menu().close();
     }
   }
 }
