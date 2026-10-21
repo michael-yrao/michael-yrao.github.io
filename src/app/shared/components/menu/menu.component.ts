@@ -89,8 +89,12 @@ export class MenuComponent {
     else this.open();
   }
 
+  /** A click on a projected item closes the menu unless the item asks to keep it open (activation is the item's own). */
+  @HostListener('click', ['$event'])
   protected onPanelClick(event: MouseEvent): void {
-    const item = (event.target as Element).closest(ANY_ITEM_SELECTOR);
+    const panel = this.panel()?.nativeElement;
+    if (panel === undefined || !(event.target instanceof Element) || !panel.contains(event.target)) return;
+    const item = event.target.closest(ANY_ITEM_SELECTOR);
     if (item !== null && item.closest(KEEPS_OPEN_SELECTOR) === null) this.close();
   }
 
