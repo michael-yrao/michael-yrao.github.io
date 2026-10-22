@@ -1,0 +1,41 @@
+// Height of the nav bar (`.po-nav__inner` in app.component.scss); the bar sits on its bottom border.
+$nav-height: 56px;
+
+.route-progress {
+  position: fixed;
+  top: $nav-height;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 101;
+  pointer-events: none;
+  background: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+
+  &--on {
+    opacity: 1;
+    animation: route-progress-sweep 1.2s ease-out forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &--on {
+      animation: none;
+      transform: scaleX(1);
+    }
+  }
+}
+
+@keyframes route-progress-sweep {
+  from {
+    transform: scaleX(0);
+  }
+  70% {
+    transform: scaleX(0.8);
+  }
+  to {
+    transform: scaleX(0.95);
+  }
+}

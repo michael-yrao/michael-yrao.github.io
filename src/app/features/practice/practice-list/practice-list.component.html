@@ -80,7 +80,12 @@
         <a class="practice-list__link" [routerLink]="['/practice', row.number]" queryParamsHandling="preserve">
           <span class="practice-list__num">#{{ row.number }}</span>&ngsp;
           <span class="practice-list__title-area">
-            <span class="practice-list__title">{{ row.title }}</span>
+            <span class="practice-list__headline">
+              <span class="practice-list__title">{{ row.title }}</span>
+              @if (row.difficulty; as level) {
+                <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
+              }
+            </span>
             @if (areTagsShown() && row.category) {
               <span class="practice-list__meta">
                 <span class="practice-list__cat">{{ categoryLabels[row.category] }}</span>
@@ -88,11 +93,6 @@
                   <span class="practice-list__tag">{{ tag }}</span>
                 }
               </span>
-            }
-          </span>
-          <span class="practice-list__diff">
-            @if (row.difficulty; as level) {
-              <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
             }
           </span>
           @if (progress; as p) {

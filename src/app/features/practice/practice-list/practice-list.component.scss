@@ -67,7 +67,6 @@ $row-mark-width: 28px;
 
   .practice-list__num { flex: none; width: $row-num-width; }
   .practice-list__title-area { flex: 1 1 auto; }
-  .practice-list__diff { flex: none; }
 }
 
 .practice-list__num {
@@ -80,6 +79,13 @@ $row-mark-width: 28px;
   display: flex;
   flex-direction: column;
   gap: 1px;
+  min-width: 0;
+}
+
+.practice-list__headline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
   min-width: 0;
 }
 
@@ -112,8 +118,6 @@ $row-mark-width: 28px;
   color: var(--color-text-muted);
   white-space: nowrap;
 }
-
-.practice-list__diff { white-space: nowrap; }
 
 .practice-list__reps,
 .practice-list__due {

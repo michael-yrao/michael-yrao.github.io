@@ -17,6 +17,7 @@ import { CoachPanelComponent } from './features/coach-panel/coach-panel.componen
 import { IconComponent } from './shared/components/icon/icon.component';
 import { LogoMarkComponent } from './shared/components/logo-mark/logo-mark.component';
 import { MenuComponent } from './shared/components/menu/menu.component';
+import { RouteProgressComponent } from './shared/components/route-progress/route-progress.component';
 
 /** The coach docks beside the page (instead of overlaying it) from this viewport width up. */
 export const COACH_DOCK_MIN_PX = 1024;
@@ -38,7 +39,7 @@ const NAV_GROUP_BY_SEGMENT: ReadonlyMap<string, NavGroup> = new Map<string, NavG
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // CoachPanelComponent is used only inside `@defer`, so its chunk (marked, DOMPurify, highlight.js) loads on first open.
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, LogoMarkComponent, MenuComponent, CoachPanelComponent, IconComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LogoMarkComponent, MenuComponent, CoachPanelComponent, IconComponent, RouteProgressComponent],
 })
 export class AppComponent {
   readonly footerColumns = FOOTER_COLUMNS;
