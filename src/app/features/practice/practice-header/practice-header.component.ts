@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Difficulty } from '../../../core/models/algorithm.model';
@@ -30,8 +30,6 @@ export class PracticeHeaderComponent {
   readonly hasSolution = input.required<boolean>();
   readonly catalogue = input.required<readonly CatalogueEntry[]>();
   readonly repo = input.required<RepoRef | null>();
-
-  protected readonly isListOpen = signal(false);
 
   /** Prev / next stay on the current tab: a problem's solution page links to the next solution page. */
   protected readonly neighborCommands = computed(() => {

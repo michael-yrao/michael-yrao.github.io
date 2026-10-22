@@ -1,43 +1,63 @@
-<dialog
-  #dialog
-  class="problem-list"
-  tabindex="-1"
-  (click)="onDialogClick($event)"
-  (keydown)="onRowKey($event)"
-  (cancel)="onCancel($event)"
->
-  @if (isOpen()) {
+<button
+  #trigger
+  type="button"
+  class="po-btn po-btn--sm po-btn--outline"
+  aria-haspopup="listbox"
+  [attr.aria-expanded]="isOpen()"
+  [attr.aria-controls]="popoverId"
+  [attr.title]="'Problems (' + keyHint + ')'"
+  [attr.aria-keyshortcuts]="isApple ? 'Meta+K' : 'Control+K'"
+  (click)="toggle()"
+>Problems</button>
+@if (isOpen()) {
+  <div class="problem-list__pop" role="dialog" aria-label="Problems" [id]="popoverId" [style.--pop-top.px]="popTop()">
     <app-search-box
-      [(value)]="query"
+      [value]="query()"
+      (valueChange)="onQuery($event)"
       placeholder="Search by number or title"
-      (submitted)="openFirstResult()"
-      (arrowDown)="focusFirstRow()"
+      [activeDescendant]="activeId()"
+      (submitted)="openActive()"
+      (arrowDown)="move(1)"
+      (arrowUp)="move(-1)"
     />
-    <div class="problem-list__rows">
-      @for (entry of results(); track entry.number) {
-        @let comfort = comforts().get(entry.number);
-        <a
-          class="problem-list__row"
-          [class.problem-list__row--current]="entry.number === currentNumber()"
-          [attr.aria-current]="entry.number === currentNumber() ? 'page' : null"
-          [routerLink]="['/practice', entry.number]"
-          queryParamsHandling="preserve"
-          (click)="closed.emit()"
-        >
-          <span class="problem-list__num">#{{ entry.number }}</span>
-          <span class="problem-list__title">{{ entry.title }}</span>
-          <span class="problem-list__level">
-            @if (entry.difficulty; as level) {
-              <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
+    <ul class="problem-list__rows" role="listbox" aria-label="Problems">
+      @for (entry of rows(); track entry.number; let i = $index) {
+        @let row = progressRows().get(entry.number);
+        <li role="presentation">
+          <a
+            class="problem-list__row"
+            role="option"
+            [id]="rowId(entry.number)"
+            [class.problem-list__row--current]="entry.number === currentNumber()"
+            [attr.aria-selected]="i === active()"
+            [attr.aria-current]="entry.number === currentNumber() ? 'page' : null"
+            [routerLink]="['/practice', entry.number]"
+            queryParamsHandling="preserve"
+            tabindex="-1"
+            (mouseenter)="active.set(i)"
+            (click)="close()"
+          >
+            <span class="problem-list__num">#{{ entry.number }}</span>
+            <span class="problem-list__title">{{ entry.title }}</span>
+            <span class="problem-list__level">
+              @if (entry.difficulty; as level) {
+                <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
+              }
+            </span>
+            @if (row) {
+              <app-comfort-mark class="problem-list__comfort" [comfort]="row.comfort" [streak]="row.streak" />
             }
-          </span>
-          @if (comfort) {
-            <app-comfort-mark class="problem-list__comfort" [comfort]="comfort" />
-          }
-        </a>
+          </a>
+        </li>
       } @empty {
-        <p class="problem-list__empty">No matches</p>
+        <li class="problem-list__empty" role="presentation">No matches</li>
       }
+    </ul>
+    <div class="problem-list__keys" aria-hidden="true">
+      <span><kbd>↑↓</kbd> Move</span>
+      <span><kbd>↵</kbd> Open</span>
+      <span><kbd>Esc</kbd> Close</span>
+      <span><kbd>{{ keyHint }}</kbd> Toggle</span>
     </div>
-  }
-</dialog>
+  </div>
+}

@@ -9,6 +9,8 @@
   [value]="value()"
   (input)="value.set($any($event.target).value)"
   (keydown.enter)="submitted.emit()"
+  [attr.aria-activedescendant]="activeDescendant()"
   (keydown.arrowdown)="arrowDown.emit(); $event.preventDefault()"
+  (keydown.arrowup)="arrowUp.emit(); $event.preventDefault()"
   (keydown.escape)="onEscape($event)"
 />

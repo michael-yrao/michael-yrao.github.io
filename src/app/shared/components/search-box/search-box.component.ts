@@ -30,6 +30,9 @@ export class SearchBoxComponent {
 
   readonly submitted = output<void>();
   readonly arrowDown = output<void>();
+  readonly arrowUp = output<void>();
+  /** The id of the option a combobox owner marks active (focus stays in the field). */
+  readonly activeDescendant = input<string | null>(null);
 
   protected readonly ariaLabel = computed(() => this.label() ?? this.placeholder());
 

@@ -1,12 +1,6 @@
 <header class="practice-header">
   <div class="practice-header__title-row">
-    <button
-      type="button"
-      class="po-btn po-btn--sm po-btn--outline"
-      aria-haspopup="dialog"
-      [attr.aria-expanded]="isListOpen()"
-      (click)="isListOpen.set(true)"
-    >Problems</button>
+    <app-problem-list-panel [catalogue]="catalogue()" [currentNumber]="number()" [repo]="repo()" />
     <h1 class="practice-header__heading">
       <span class="practice-header__num">#{{ number() }}</span>
       @if (titleUrl(); as url) {
@@ -38,14 +32,6 @@
     }
   </div>
 </header>
-
-<app-problem-list-panel
-  [isOpen]="isListOpen()"
-  [catalogue]="catalogue()"
-  [currentNumber]="number()"
-  [repo]="repo()"
-  (closed)="isListOpen.set(false)"
-/>
 
 <div class="practice-header__tabs">
   <a

@@ -11,29 +11,25 @@ import { ProblemListPanelComponent } from './problem-list-panel.component';
 
 const REPO: RepoRef = { owner: 'Owner', repo: 'cse-progress', branch: 'main' };
 const CURRENT_NUMBER = 2;
+const MATCH_COUNT = 9;
+const POPOVER = '.problem-list__pop';
 
 function entry(number: number, title: string): CatalogueEntry {
   return { number, title, difficulty: 'Easy', category: null, tags: [], isRunnable: true, url: null, isVisualized: false, hasSolution: true };
 }
 
+const DEFAULT_CATALOGUE = [entry(1, 'Two Sum'), entry(CURRENT_NUMBER, 'Add Two Numbers'), entry(3, 'Longest Substring')];
+
 @Component({
   imports: [ProblemListPanelComponent],
-  template: `<app-problem-list-panel
-    [isOpen]="isOpen()"
-    [catalogue]="catalogue"
-    [currentNumber]="2"
-    [repo]="repo"
-    (closed)="closeCount = closeCount + 1"
-  />`,
+  template: `<app-problem-list-panel [catalogue]="catalogue" [currentNumber]="2" [repo]="repo" />`,
 })
 class HostComponent {
-  readonly isOpen = signal(false);
-  readonly catalogue = [entry(1, 'Two Sum'), entry(CURRENT_NUMBER, 'Add Two Numbers'), entry(3, 'Longest Substring')];
+  catalogue: readonly CatalogueEntry[] = DEFAULT_CATALOGUE;
   readonly repo = REPO;
-  closeCount = 0;
 }
 
-function setUp(login: string | null) {
+function setUp(login: string | null, catalogue: readonly CatalogueEntry[] = DEFAULT_CATALOGUE) {
   const progress = {
     details: signal(null),
     detailsSource: signal<RepoRef | null>(null),
@@ -50,27 +46,34 @@ function setUp(login: string | null) {
   const router = TestBed.inject(Router);
   const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
   const fixture = TestBed.createComponent(HostComponent);
+  fixture.componentInstance.catalogue = catalogue;
   fixture.detectChanges();
-  fixture.componentInstance.isOpen.set(true);
+  return { fixture, progress, navigate };
+}
+
+function openPopover(fixture: ReturnType<typeof setUp>['fixture']): void {
+  fixture.nativeElement.querySelector('button').click();
   fixture.detectChanges();
-  return { fixture, host: fixture.componentInstance, progress, navigate };
+}
+
+function type(fixture: ReturnType<typeof setUp>['fixture'], text: string): HTMLInputElement {
+  const input: HTMLInputElement = fixture.nativeElement.querySelector('app-search-box input');
+  input.value = text;
+  input.dispatchEvent(new Event('input'));
+  fixture.detectChanges();
+  return input;
 }
 
 describe('ProblemListPanelComponent', () => {
-  beforeEach(() => {
-    // jsdom has no dialog modality or layout.
-    HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) { this.setAttribute('open', ''); };
-    HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) { this.removeAttribute('open'); };
-  });
-
-  const LOAD_CASES: ReadonlyArray<{ name: string; login: string | null; isLoaded: boolean }> = [
+  const LOAD_CASES: readonly { name: string; login: string | null; isLoaded: boolean }[] = [
     { name: 'the repo owner (case-insensitive) loads progress', login: 'owner', isLoaded: true },
     { name: 'signed out does not', login: null, isLoaded: false },
     { name: 'another login does not', login: 'visitor', isLoaded: false },
   ];
 
   it.each(LOAD_CASES)('$name', ({ login, isLoaded }) => {
-    const { progress } = setUp(login);
+    const { fixture, progress } = setUp(login);
+    openPopover(fixture);
 
     expect(progress.loadSummary.mock.calls).toEqual(isLoaded ? [['Owner/cse-progress@main']] : []);
     expect(progress.loadDetails).toHaveBeenCalledTimes(isLoaded ? 1 : 0);
@@ -78,37 +81,57 @@ describe('ProblemListPanelComponent', () => {
 
   it("marks the current problem's row as the current page", () => {
     const { fixture } = setUp(null);
+    openPopover(fixture);
 
-    const rows: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.problem-list__row'));
+    const rows: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('[role="option"]'));
     expect(rows.filter((row) => row.getAttribute('aria-current') === 'page').map((row) => row.textContent)).toEqual([
       expect.stringContaining(`#${CURRENT_NUMBER}`),
     ]);
   });
 
-  it('Enter in the search box opens the first result with query params kept, and closes', () => {
-    const { fixture, host, navigate } = setUp(null);
-    const input: HTMLInputElement = fixture.nativeElement.querySelector('app-search-box input');
-    input.value = 'two';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+  it('Enter opens the active result with query params kept, and closes', () => {
+    const { fixture, navigate } = setUp(null);
+    openPopover(fixture);
+    const input = type(fixture, 'two');
 
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    fixture.detectChanges();
 
     expect(navigate).toHaveBeenCalledWith(['/practice', 1], { queryParamsHandling: 'preserve' });
-    expect(host.closeCount).toBe(1);
+    expect(fixture.nativeElement.querySelector(POPOVER)).toBeNull();
   });
 
-  it('Escape with text in the search box clears it and does not close', () => {
-    const { fixture, host } = setUp(null);
-    const input: HTMLInputElement = fixture.nativeElement.querySelector('app-search-box input');
-    input.value = 'two';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+  it('Escape with text clears and does not close; a second Escape closes', () => {
+    const { fixture } = setUp(null);
+    openPopover(fixture);
+    const input = type(fixture, 'two');
 
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     fixture.detectChanges();
-
     expect(input.value).toBe('');
-    expect(host.closeCount).toBe(0);
+    expect(fixture.nativeElement.querySelector(POPOVER)).not.toBeNull();
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(POPOVER)).toBeNull();
+  });
+
+  it('lists every match', () => {
+    const catalogue = Array.from({ length: MATCH_COUNT }, (_, i) => entry(i + 1, `Alpha ${i + 1}`));
+    const { fixture } = setUp(null, catalogue);
+    openPopover(fixture);
+    type(fixture, 'a');
+
+    expect(fixture.nativeElement.querySelectorAll('[role="option"]')).toHaveLength(MATCH_COUNT);
+    expect(fixture.nativeElement.textContent).not.toMatch(/more…/);
+  });
+
+  it('Ctrl+K opens the popover', () => {
+    const { fixture } = setUp(null);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector(POPOVER)).not.toBeNull();
   });
 });

@@ -40,12 +40,12 @@ function entry(overrides: Partial<CatalogueEntry> & Pick<CatalogueEntry, 'number
 }
 
 describe('buildCatalogue', () => {
-  const cases: ReadonlyArray<{
+  const cases: readonly {
     name: string;
     algorithms: AlgorithmIndexEntry[];
     problems: PracticeProblem[];
     expected: CatalogueEntry[];
-  }> = [
+  }[] = [
     {
       name: 'static only: a solution, no editor',
       algorithms: [algorithm(1, 'Two Sum', 'Easy', 'arrays-hash', true)],
@@ -125,11 +125,11 @@ describe('filterCatalogue', () => {
     category: null,
   } as const;
 
-  const cases: ReadonlyArray<{
+  const cases: readonly {
     name: string;
     filters: Parameters<typeof filterCatalogue>[1];
     numbers: number[];
-  }> = [
+  }[] = [
     { name: 'no filters keeps every entry', filters: none, numbers: [1, 2, 3, 9001] },
     { name: 'a difficulty excludes contract-only rows', filters: { ...none, difficulty: 'Easy' }, numbers: [1, 3] },
     { name: 'runnable', filters: { ...none, isRunnableOnly: true }, numbers: [1, 3, 9001] },
@@ -156,7 +156,7 @@ describe('searchCatalogue', () => {
     entry({ number: 649, title: 'Dota2 Senate' }),
   ];
 
-  const cases: ReadonlyArray<{ name: string; query: string; numbers: number[] }> = [
+  const cases: readonly { name: string; query: string; numbers: number[] }[] = [
     { name: 'empty returns all', query: '', numbers: [6, 64, 640, 648, 649] },
     { name: 'whitespace returns all', query: '   ', numbers: [6, 64, 640, 648, 649] },
     { name: 'exact number first, then prefix matches in order', query: '64', numbers: [64, 640, 648, 649] },

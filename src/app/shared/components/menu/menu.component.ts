@@ -1,4 +1,3 @@
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -13,10 +12,9 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { NavigationStart, Router } from '@angular/router';
-import { filter } from 'rxjs';
 
 import { IconComponent } from '../icon/icon.component';
+import { bindPopoverDismiss } from './popover-dismiss';
 
 export type MenuDotState = 'none' | 'running' | 'failed' | 'off';
 export type MenuSize = 'sm' | 'md' | 'lg';
@@ -72,12 +70,11 @@ export class MenuComponent {
   private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
 
   constructor() {
-    inject(Router)
-      .events.pipe(
-        filter((event) => event instanceof NavigationStart),
-        takeUntilDestroyed(),
-      )
-      .subscribe(() => this.dismiss(false));
+    bindPopoverDismiss({
+      host: this.host,
+      isOpen: () => this.isOpen(),
+      dismiss: (shouldRefocus) => this.dismiss(shouldRefocus),
+    });
   }
 
   open(): void {
@@ -103,17 +100,6 @@ export class MenuComponent {
     if (panel === undefined || !(event.target instanceof Element) || !panel.contains(event.target)) return;
     const item = event.target.closest(ANY_ITEM_SELECTOR);
     if (item !== null && item.closest(KEEPS_OPEN_SELECTOR) === null) this.close();
-  }
-
-  @HostListener('document:keydown.escape')
-  protected closeOnEscape(): void {
-    if (this.isOpen()) this.close();
-  }
-
-  @HostListener('document:click', ['$event'])
-  protected closeOnOutsideClick(event: MouseEvent): void {
-    // composedPath is fixed at dispatch, so a click on an item the menu has since removed still counts as inside.
-    if (this.isOpen() && !event.composedPath().includes(this.host.nativeElement)) this.dismiss(false);
   }
 
   @HostListener('keydown', ['$event'])
