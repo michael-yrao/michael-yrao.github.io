@@ -45,6 +45,8 @@ export type GridCellState = 'water' | 'land' | 'visited' | 'queued' | 'rotten' |
 export interface GridState {
   type: 'grid';
   grid: { state: GridCellState; label?: string }[][];
+  /** Draws heavier rules every this many cells. */
+  boxSize?: number;
   counters?: { label: string; value: number | string }[];
   legend?: { state: GridCellState; label: string }[];
 }

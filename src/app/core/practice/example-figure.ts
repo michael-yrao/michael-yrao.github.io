@@ -258,10 +258,10 @@ function gridStateFor(
   const grid = (matrix as (string | number)[][]).map((row, r) =>
     row.map((value, c) => ({
       state: found.has(`${r},${c}`) ? ('found' as const) : ('empty' as const),
-      label: String(value),
+      label: String(value) === figure.blank ? '' : String(value),
     })),
   );
-  return { type: 'grid', grid };
+  return { type: 'grid', grid, ...(figure.boxSize === undefined ? {} : { boxSize: figure.boxSize }) };
 }
 
 /** The picture of one example case's input, or null when its arguments do not fit the figure.

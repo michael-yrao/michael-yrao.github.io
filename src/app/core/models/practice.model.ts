@@ -95,6 +95,10 @@ export type GraphFigure = EdgeListFigure | MatrixFigure | AdjacencyFigure;
 export interface GridFigure {
   readonly kind: 'grid';
   readonly gridArg: number;
+  /** Heavier rules every this many cells (a sudoku's 3x3 boxes). */
+  readonly boxSize?: number;
+  /** A cell equal to this string is drawn empty. */
+  readonly blank?: string;
 }
 
 export type PracticeFigure = GraphFigure | GridFigure;

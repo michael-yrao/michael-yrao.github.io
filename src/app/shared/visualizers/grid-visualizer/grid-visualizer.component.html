@@ -1,17 +1,17 @@
 <div class="gv po-card">
-  <div class="gv__grid">
+  <div class="gv__grid" [class.gv__grid--boxed]="!!state().boxSize">
     @for (row of state().grid; track row; let r = $index) {
       <div class="gv__row">
         @for (cell of row; track cell; let c = $index) {
           <div
             class="gv__cell"
-            [ngClass]="'gv__cell--' + cell.state"
+            [ngClass]="cellClasses(cell.state, r, c)"
             [title]="cell.state + ' (' + r + ',' + c + ')'"
             >
             @if (!cell.label && cell.state === 'rotten') {
               <app-icon name="x" [size]="18" />
             } @else {
-              {{ cell.label || cellLabel(cell.state) }}
+              {{ cell.label ?? cellLabel(cell.state) }}
             }
           </div>
         }

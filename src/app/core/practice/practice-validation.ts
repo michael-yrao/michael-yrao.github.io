@@ -8,6 +8,8 @@ export const COMPARE_MODES: readonly CompareMode[] = [
   'unordered-nested',
   'unordered-inner',
 ];
+/** A grid figure's `boxSize` below this draws no box. */
+const MIN_BOX_SIZE = 2;
 const ENTRY_KINDS: readonly EntryKind[] = ['method', 'ops', 'round-trip'];
 const CODECS: readonly Codec[] = [
   'list-node',
@@ -126,12 +128,22 @@ function isValidGraphFigure(value: Record<string, unknown>): boolean {
   );
 }
 
+/** `boxSize` is absent or an integer of at least `MIN_BOX_SIZE`; `blank` is absent or a
+ *  non-empty string. */
+function hasValidGridOptions(value: Record<string, unknown>): boolean {
+  const { boxSize, blank } = value;
+  const isBoxSizeValid =
+    boxSize === undefined || (typeof boxSize === 'number' && Number.isInteger(boxSize) && boxSize >= MIN_BOX_SIZE);
+  const isBlankValid = blank === undefined || (typeof blank === 'string' && blank.length > 0);
+  return isBoxSizeValid && isBlankValid;
+}
+
 /** An absent or null `figure` is valid (no diagram); a present one must be a well-formed
- *  graph (see `isValidGraphFigure`) or grid (integer `gridArg`). */
+ *  graph (see `isValidGraphFigure`) or grid (integer `gridArg`, optional `boxSize` and `blank`). */
 export function isValidFigure(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (!isRecord(value)) return false;
-  if (value['kind'] === 'grid') return isArgIndex(value['gridArg']);
+  if (value['kind'] === 'grid') return isArgIndex(value['gridArg']) && hasValidGridOptions(value);
   return value['kind'] === 'graph' && isValidGraphFigure(value);
 }
 

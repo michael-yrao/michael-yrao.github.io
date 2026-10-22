@@ -38,6 +38,11 @@ describe('figureStateFor', () => {
       ['found', 'empty', 'empty'],
     ]);
 
+    const boxed = figureStateFor({ ...GRID, boxSize: 2, blank: '.' } as PracticeFigure, [[['5', '.'], ['.', '3']]], null) as GridState;
+    expect(boxed.boxSize).toBe(2);
+    expect(boxed.grid.map((row) => row.map((cell) => cell.label))).toEqual([['5', ''], ['', '3']]);
+    expect(grid.boxSize).toBeUndefined();
+
     const misfits: [string, PracticeFigure, unknown[]][] = [
       ['edge list not an array', GRAPH, [3, 'x']],
       ['edge with a non-integer endpoint', GRAPH, [3, [[0, 1.5]]]],

@@ -78,6 +78,47 @@
     }
   }
 
+  // Newspaper-sudoku ruling: hairlines between cells, heavier rules every boxSize cells.
+  &__grid--boxed {
+    gap: 0;
+    border: 2px solid var(--color-text-muted);
+
+    .gv__row {
+      gap: 0;
+    }
+
+    .gv__cell {
+      border: 0;
+      border-right: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+      border-radius: 0;
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-weight: 500;
+    }
+
+    .gv__cell--box-right {
+      border-right: 2px solid var(--color-text-muted);
+    }
+
+    .gv__cell--box-bottom {
+      border-bottom: 2px solid var(--color-text-muted);
+    }
+
+    .gv__cell--found {
+      background: var(--color-found);
+      color: var(--color-bg);
+    }
+
+    .gv__cell:last-child {
+      border-right: 0;
+    }
+
+    .gv__row:last-child .gv__cell {
+      border-bottom: 0;
+    }
+  }
+
   &__legend {
     display: flex;
     gap: var(--space-md);
