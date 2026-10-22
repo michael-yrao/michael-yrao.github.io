@@ -21,6 +21,7 @@ import { PracticeService } from '../../../core/services/practice.service';
 import { ComfortKey, comfortName } from '../../../core/models/comfort';
 import { ProblemProgress, ScheduleItem, Technique } from '../../../core/models/progress.model';
 import { todayLocalISO } from '../../../core/utils/local-date';
+import { DEMO_REPO_SLUG } from '../../../core/data/site-links';
 import { walkthroughRouteFor } from '../solution-link-mode';
 import { PRACTICE_ICON } from '../practice-link';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
@@ -163,6 +164,8 @@ export class ProgressPageComponent {
     if (!this.auth.isSignedIn() || ref === null || login === null) return false;
     return ref.owner.toLowerCase() === login.toLowerCase();
   });
+
+  protected readonly demoRepoSlug = DEMO_REPO_SLUG;
 
   // Which rows get a Run link — PracticeNumbers also owns the practice-index load effect.
   protected readonly practiceIcon = PRACTICE_ICON;

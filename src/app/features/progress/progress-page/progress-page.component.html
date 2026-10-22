@@ -225,12 +225,21 @@
       </div>
     }
     @case ('empty') {
-      <div class="card po-card">
-        <p>
-          Your repo is ready. Answer four questions to build your first week.
-          <a routerLink="/start">Set up my track</a>
-        </p>
-      </div>
+      @if (isOwnRepo()) {
+        <div class="card po-card">
+          <p>
+            Your repo is ready. Answer four questions to build your first week.
+            <a routerLink="/start">Set up my track</a>
+          </p>
+        </div>
+      } @else {
+        <div class="card po-card">
+          <p>
+            This board is private or doesn't exist.
+            <a routerLink="/" [queryParams]="{ repo: demoRepoSlug }">See the demo board →</a>
+          </p>
+        </div>
+      }
     }
     @case ('ready') {
       @if (data(); as d) {

@@ -8,6 +8,7 @@ import { vi } from 'vitest';
 import { ProgressPageComponent } from './progress-page.component';
 import { ProgressTab } from './progress-derivations';
 import { By } from '@angular/platform-browser';
+import { AuthService } from '../../../core/auth/auth.service';
 import { ProgressService } from '../../../core/services/progress.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { TodayBoardComponent } from '../today-board/today-board.component';
@@ -1112,7 +1113,14 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.skeleton__card').length).toBe(1);
   });
 
-  it('renders the empty-state card, not the error panel, when the repo is fresh', () => {
+  it('owner: renders the empty-state card, not the error panel, when the repo is fresh', () => {
+    TestBed.inject(AuthService).session.set({
+      token: 't',
+      login: DEMO_REPO.owner,
+      expiresAt: null,
+      refreshToken: null,
+      refreshExpiresAt: null,
+    });
     progress.status.set('empty');
     progress.data.set(null);
 
@@ -1121,6 +1129,17 @@ describe('ProgressPageComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Your repo is ready. Answer four questions');
     expect(fixture.nativeElement.querySelector('.progress__error')).toBeFalsy();
+  });
+
+  it("signed out: an empty repo reads as private or missing, with no setup link", () => {
+    progress.status.set('empty');
+    progress.data.set(null);
+
+    const fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("This board is private or doesn't exist.");
+    expect(fixture.nativeElement.textContent).not.toContain('Set up my track');
   });
 
   // ── Round 5: the generated-at line moved into the Refresh button ───────────────────
