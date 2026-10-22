@@ -46,6 +46,12 @@
     color: var(--color-text-muted);
   }
 
+  &__colophon {
+    margin: var(--space-md) 0 0;
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+  }
+
   @media (max-width: 560px) {
     flex-direction: column;
     align-items: center;

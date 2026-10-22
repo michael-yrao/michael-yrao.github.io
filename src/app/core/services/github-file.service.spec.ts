@@ -113,7 +113,7 @@ describe('httpErrorMessage', () => {
       err: { status: 404 },
       what: 'progress',
       expected:
-        'No progress data found on that repo/branch. It must be a public cse-coach repo that has generated one.',
+        'No progress data found on that repo/branch. It must be a cse-coach repo that has generated one, and either public or installed on the site\'s GitHub App.',
     },
     { name: '403 is the rate-limit copy', err: { status: 403 }, what: 'progress', expected: RATE_LIMIT_COPY },
     { name: '429 is the rate-limit copy', err: { status: 429 }, what: 'progress', expected: RATE_LIMIT_COPY },

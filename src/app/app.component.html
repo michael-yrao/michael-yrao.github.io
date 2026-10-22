@@ -88,6 +88,8 @@
 
 <footer class="po-footer">
   <div class="po-footer__inner">
+    <span class="po-footer__brand">progressive<em>overflow</em></span>
+    <span class="po-footer__sep" aria-hidden="true">·</span>
     <nav class="po-footer__links" aria-label="Site">
       @for (column of footerColumns; track column.heading) {
         @if (!$first) {
@@ -102,10 +104,8 @@
         }
       }
     </nav>
-    <span class="po-footer__meta">
-      <span class="po-footer__line">Built by a human, with Claude in the loop.</span>
-      <span class="po-footer__copy">© {{ year }}</span>
-    </span>
+    <span class="po-footer__sep" aria-hidden="true">·</span>
+    <span class="po-footer__copy">© {{ year }}</span>
   </div>
 </footer>
 </div>

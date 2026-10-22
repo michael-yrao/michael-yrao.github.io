@@ -104,7 +104,7 @@ describe('ShowcaseService', () => {
 
     expect(svc.status()).toBe('error');
     expect(svc.error()).toBe(
-      'No solution code data found on that repo/branch. It must be a public cse-coach repo that has generated one.',
+      'No solution code data found on that repo/branch. It must be a cse-coach repo that has generated one, and either public or installed on the site\'s GitHub App.',
     );
   });
 

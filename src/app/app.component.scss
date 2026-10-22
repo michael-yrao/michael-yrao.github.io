@@ -7,6 +7,18 @@ $nav-font-size: 14px;
   --po-coach-width: 26rem;
 }
 
+// Brand wordmark ("progressive" + accented "overflow"), shared by the nav and the footer.
+%po-wordmark {
+  font-family: var(--font-brand);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+
+  em {
+    font-style: normal;
+    color: var(--color-accent);
+  }
+}
+
 .po-shell {
   &--coach-docked {
     margin-right: var(--po-coach-width);
@@ -70,15 +82,8 @@ $nav-font-size: 14px;
   }
 
   &__wordmark {
-    font-family: var(--font-brand);
-    font-weight: 600;
+    @extend %po-wordmark;
     font-size: 1.05rem;
-    letter-spacing: -0.03em;
-
-    em {
-      font-style: normal;
-      color: var(--color-accent);
-    }
   }
 
   // ── Bar links: wide screens only ──
@@ -178,32 +183,47 @@ $nav-font-size: 14px;
   border-top: 1px solid var(--color-border);
 
   &__inner {
-    padding: var(--space-sm) var(--page-gutter);
+    padding: var(--space-md) var(--page-gutter);
     display: flex;
+    flex-direction: column;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-sm) var(--space-md);
-    font-size: var(--text-sm);
+    justify-content: center;
+    gap: var(--space-xs);
+    font-size: var(--text-xs);
+
+    @media (min-width: $nav-collapse) {
+      flex-direction: row;
+      gap: var(--space-xs) var(--space-md);
+    }
   }
 
   &__links {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-sm) var(--space-md);
+    justify-content: center;
+    gap: var(--space-xs) var(--space-md);
   }
 
-  &__sep {
-    color: var(--color-border);
-  }
-
-  &__meta {
-    margin-left: auto;
-    display: flex;
-    gap: var(--space-md);
+  &__brand {
+    @extend %po-wordmark;
+    font-size: var(--text-sm);
     color: var(--color-text-muted);
-    font-size: var(--text-xs);
-    white-space: nowrap;
+  }
+
+  // Separators only read in the single wide row; the narrow layout stacks without them.
+  &__sep {
+    display: none;
+    color: var(--color-border);
+
+    @media (min-width: $nav-collapse) {
+      display: inline;
+    }
+  }
+
+  &__copy {
+    color: var(--color-text-muted);
   }
 
   &__link {

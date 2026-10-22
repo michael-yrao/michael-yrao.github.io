@@ -111,7 +111,7 @@ export function httpErrorMessage(
 ): string {
   const status = err?.status;
   if (status === NOT_FOUND_STATUS) {
-    return `No ${what} data found on that repo/branch. It must be a public cse-coach repo that has generated one.`;
+    return `No ${what} data found on that repo/branch. It must be a cse-coach repo that has generated one, and either public or installed on the site's GitHub App.`;
   }
   if (status === RATE_LIMIT_STATUS || status === TOO_MANY_REQUESTS_STATUS) {
     return 'GitHub rate limit reached. Sign in with GitHub or try again shortly.';
