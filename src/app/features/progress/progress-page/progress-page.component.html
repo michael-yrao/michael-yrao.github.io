@@ -22,8 +22,8 @@
   }
 </ng-template>
 
-<!-- A single Problems-tab row — shared by the Explore list and the On-schedule gauge's
-     inline "Needs attention" list (`showDue`, default falsy, adds the due/overdue label). -->
+<!-- A single problem row — the On-schedule gauge's inline "Needs attention" list renders
+     through it (`showDue`, default falsy, adds the due/overdue label). -->
 <ng-template #problemRowTpl let-p let-showDue="showDue">
   <div class="problem">
     <div
@@ -68,7 +68,7 @@
       @if (p.difficulty) {
         <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
       }
-      <span class="problem__comfort">{{ p.comfort }}</span>
+      <span class="problem__comfort"><app-comfort-mark [comfort]="p.comfort" [streak]="p.streak" /></span>
       <span class="problem__meta">{{ p.repDates.length }} reps</span>
       @if (showDue) {
         <span
@@ -89,7 +89,7 @@
               (click)="$event.stopPropagation()"
               (keydown.enter)="$event.stopPropagation()"
               (keydown.space)="$event.stopPropagation()"
-              >{{ practiceGlyph }}</a
+              ><app-icon [name]="practiceIcon" [size]="14" /></a
             >
           }
         </span>
@@ -237,7 +237,7 @@
         <!-- Streak hero — compact identity/motivator, always visible above the tabs. -->
         <div class="hero po-card">
           <div class="hero__streak">
-            <span class="hero__flame">🔥</span>
+            <span class="hero__flame"><app-icon name="flame" [size]="28" /></span>
             <span class="hero__num">{{ d.streak.current }}</span>
             <span class="hero__label"
               >day streak
@@ -252,7 +252,7 @@
                 [attr.aria-label]="(d.streak.freezesLeft ?? 0) + ' of ' + d.streak.freezeMax + ' streak freezes left'"
               >
                 @for (isFilled of freezeSlots(); track $index) {
-                  <span class="hero__freeze" [class.hero__freeze--empty]="!isFilled">🧊</span>
+                  <span class="hero__freeze" [class.hero__freeze--empty]="!isFilled"><app-icon name="snowflake" [size]="20" /></span>
                 }
               </span>
             }
@@ -333,7 +333,7 @@
           <div class="tabpanel" role="tabpanel" id="panel-mastery" aria-labelledby="tab-mastery">
             <div class="card po-card">
               <h2>Mastery pipeline</h2>
-              <p class="card__sub">Problems maturing 🔴 → 🟡 → 🟢 → 🎓 → 🏆. This, not a row count, is progress. Click a tier to see which problems.</p>
+              <p class="card__sub">Problems maturing @for (s of maturityStages; track $index) {@if (!$first) { → }<span class="card__sub-stage"><app-comfort-mark [comfort]="s.comfort" [streak]="s.streak" label="" [size]="14" /></span>}. This, not a row count, is progress. Click a tier to see which problems.</p>
               <app-segmented-bar
                 [segments]="pipelineSegments()"
                 [clickable]="true"
@@ -371,73 +371,6 @@
                 />
               </div>
             }
-          </div>
-        }
-
-        <!-- Recognition — the Probe log (cold, label-stripped, disposable reps). Entirely
-             summary-derived; no fetch, ever. -->
-        @if (isTabActive('recognition')) {
-          <div class="tabpanel" role="tabpanel" id="panel-recognition" aria-labelledby="tab-recognition">
-            <div class="card po-card">
-              <h2>Recognition</h2>
-              <p class="card__sub">Does the practiced pool still teach recognition? The free diagnostic.</p>
-              <app-recognition-panel [probes]="d.probes" [practiceNumbers]="practiceNumbers()" [repoRef]="repoRef()" />
-            </div>
-          </div>
-        }
-
-        <!-- Problems — the Explore list. Opt-in: no per-problem component mounts until this
-             tab is entered, and a chart mounts only for a row the learner expands. -->
-        @if (isTabActive('problems')) {
-          <div class="tabpanel" role="tabpanel" id="panel-problems" aria-labelledby="tab-problems">
-            <div class="card po-card">
-              <div class="problems__head">
-                <h2>Per-problem progression</h2>
-                @if (detailsStatus() === 'ready') {
-                  <div class="filters">
-                    @for (f of comfortFilters; track f) {
-                      <button
-                        type="button"
-                        class="filters__btn"
-                        [class.active]="isComfortFilterActive(f)"
-                        (click)="setComfortFilter(f)"
-                      >{{ f === 'all' ? 'All' : f }}</button>
-                    }
-                    <app-search-box [(value)]="query" placeholder="Search by number or title" />
-                  </div>
-                }
-              </div>
-
-              @switch (detailsStatus()) {
-                @case ('idle') {
-                  <p class="card__sub">
-                    Per-problem detail (comfort history, rep counts, timeline charts) is not
-                    fetched until you open this tab — this keeps the landing instant.
-                  </p>
-                  <button type="button" class="progress__explore" (click)="exploreProblems()">
-                    Explore problems
-                  </button>
-                }
-                @case ('loading') {
-                  <p class="progress__msg">Loading problems…</p>
-                }
-                @case ('error') {
-                  <div class="progress__error">
-                    <p>{{ detailsError() }}</p>
-                    <button type="button" (click)="exploreProblems()">Retry</button>
-                  </div>
-                }
-                @case ('ready') {
-                  <div class="problems">
-                    @for (p of visibleProblems(); track p.lcNumber + '-' + p.title) {
-                      <ng-container *ngTemplateOutlet="problemRowTpl; context: { $implicit: p }" />
-                    } @empty {
-                      <p class="problems__empty">No matches</p>
-                    }
-                  </div>
-                }
-              }
-            </div>
           </div>
         }
 
@@ -485,7 +418,8 @@
                     [attr.aria-expanded]="attentionOpen()"
                     aria-controls="attention-list"
                   >
-                    Needs attention ({{ os.overdue + os.dueToday }}) {{ attentionOpen() ? '▾' : '▸' }}
+                    Needs attention ({{ os.overdue + os.dueToday }})
+                    <app-icon [name]="attentionOpen() ? 'chevron-down' : 'chevron-right'" [size]="12" />
                   </button>
                   @if (attentionOpen()) {
                     <div class="gauge__attention" id="attention-list">

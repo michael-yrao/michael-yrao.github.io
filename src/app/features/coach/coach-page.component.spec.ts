@@ -42,6 +42,14 @@ describe('CoachPageComponent (repo private)', () => {
     expect(el.textContent).toContain('cse-coach is invite-only while it settles; ask on GitHub.');
   });
 
+  it('links "See it live" to the demo repo', () => {
+    const href =
+      (fixture.nativeElement as HTMLElement).querySelector('.coach-see-live__link')?.getAttribute('href') ?? '';
+    expect(new URL(href, 'http://localhost').searchParams.get('repo')).toBe(
+      'michael-yrao/progressive-overflow-demo',
+    );
+  });
+
   it('renders the three-moves table and the breadcrumb', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('.coach-moves')?.textContent).toContain('Clean / Shaky / Blank');

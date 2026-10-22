@@ -68,49 +68,13 @@
   }
 }
 
+// The look comes from `po-btn--icon` / `po-btn`; only the square play size is local.
 .btn-ctrl {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text);
-  font-size: 0.78rem;
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
   user-select: none;
-
-  &:hover:not(:disabled) {
-    background: var(--color-bg-raised);
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-  }
-
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
 
   &--play {
     width: 34px;
     height: 34px;
-    font-size: 0.9rem;
-    background: var(--color-accent);
-    border-color: var(--color-accent);
-    color: var(--color-bg);
-
-    &:hover:not(:disabled) {
-      background: var(--color-accent);
-      filter: brightness(1.1);
-      color: var(--color-bg);
-    }
-  }
-
-  &--reset {
-    font-size: 1.1rem;
-    color: var(--color-text-muted);
+    padding: 0;
   }
 }

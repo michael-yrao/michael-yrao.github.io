@@ -11,7 +11,7 @@ import { leetCodeUrlFor } from '../../core/data/lc-url';
 import { loadMetaOrNull } from '../../core/data/load-meta';
 import { AlgorithmMeta } from '../../core/models/algorithm.model';
 import { PracticeProblem } from '../../core/models/practice.model';
-import { GOLD_STANDARD_REPO, LoadStatus, RepoRef } from '../../core/services/github-file.service';
+import { CONTENT_REPO, LoadStatus, RepoRef } from '../../core/services/github-file.service';
 import { PracticeService } from '../../core/services/practice.service';
 import { ShowcaseService } from '../../core/services/showcase.service';
 import { showcaseKey } from '../../core/showcase/showcase-key';
@@ -67,7 +67,7 @@ export function injectPracticeProblem(): PracticeProblemView {
   const contract = injectPracticeContract();
 
   // Always the author's: the walkthrough's step anchors trace the author's attempt.
-  showcase.load(GOLD_STANDARD_REPO);
+  showcase.load(CONTENT_REPO);
 
   const params = toSignal(route.paramMap, { initialValue: route.snapshot.paramMap });
   const numberParam = computed(() => params().get('number'));

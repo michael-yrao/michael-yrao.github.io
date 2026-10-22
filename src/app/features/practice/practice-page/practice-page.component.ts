@@ -32,7 +32,9 @@ import { PracticeHeaderComponent } from '../practice-header/practice-header.comp
 import { CompleteRepPanelComponent, CompletedRep, ReferenceBounds } from '../complete-rep-panel/complete-rep-panel.component';
 import { injectPracticeProblem } from '../practice-problem';
 import { loadPick, savePick } from '../practice-pick';
-import { RECOGNITION_MARKS, RecognitionGateComponent } from '../recognition-gate/recognition-gate.component';
+import { RECOGNITION_ICONS, RecognitionGateComponent } from '../recognition-gate/recognition-gate.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
+import type { IconName } from '../../../shared/components/icon/icon-paths';
 import { MAX_SOLUTION_TABS, SolutionTabs, loadDraftStamp, loadTabs, saveTabs } from '../practice-tabs';
 import { activeCaseIndex, countPassed, errorLine, toResultRow } from '../../../shared/utils/practice-results';
 import { SAMPLE_CASE_COUNT, shortcutFor } from '../../../shared/utils/practice-shortcuts';
@@ -52,8 +54,10 @@ import {
 
 const DRAFT_SAVE_DELAY_MS = 500;
 const COPY_FEEDBACK_MS = 1500;
-const COPY_OK_MARK = '✓';
-const COPY_FAIL_MARK = '✗';
+const COPY_OK_ICON: IconName = 'check';
+const COPY_FAIL_ICON: IconName = 'x';
+const COPY_ICON_SIZE_PX = 14;
+const RECOGNITION_ICON_SIZE_PX = 14;
 const PERCENT = 100;
 const RESET_CONFIRM = 'Reset this solution to the starter code?';
 const closeConfirm = (position: number): string => `Close Solution ${position}? Its code will be deleted.`;
@@ -67,6 +71,7 @@ const closeConfirm = (position: number): string => `Close Solution ${position}? 
     CaseResultsComponent,
     CodeEditorComponent,
     CompleteRepPanelComponent,
+    IconComponent,
     PracticeDescriptionComponent,
     PracticeHeaderComponent,
     RecognitionGateComponent,
@@ -146,7 +151,7 @@ export class PracticePageComponent {
   readonly passedCount = computed(() => countPassed(this.runState()?.results ?? []));
   /** The tab the learner clicked; null until they click, so the default follows the first failure. */
   readonly selectedCase = signal<number | null>(null);
-  readonly copyMark = signal<string | null>(null);
+  readonly copyMark = signal<IconName | null>(null);
   /** How many cases the last run was asked to run (all of them, or the sample). */
   readonly runCaseCount = signal(0);
 
@@ -223,7 +228,11 @@ export class PracticePageComponent {
     return gateState({ canSave: this.canSave(), number, doneNumbers: this.doneNumbers(), pick: this.pick() }) === 'locked';
   });
 
-  protected readonly marks = RECOGNITION_MARKS;
+  protected readonly recognitionIcons = RECOGNITION_ICONS;
+  protected readonly recognitionIconSize = RECOGNITION_ICON_SIZE_PX;
+  protected readonly copyIconSize = COPY_ICON_SIZE_PX;
+  protected readonly copyOkIcon = COPY_OK_ICON;
+  protected readonly copyFailIcon = COPY_FAIL_ICON;
 
   readonly saveStatus = computed(() => this.saver.statusFor(this.number() ?? 0));
   readonly installUrl = `https://github.com/apps/${this.auth.appSlug}/installations/new`;
@@ -269,9 +278,9 @@ export class PracticePageComponent {
   /** `<comfort emoji> · <time> / <space>` once this problem was marked complete from this page. */
   readonly completedMarks = computed(() => {
     const rep = this.completedReps()[this.number() ?? 0];
-    const label = rep === undefined ? undefined : RATING_OPTIONS.find((option) => option.rating === rep.rating)?.label;
-    if (rep === undefined || label === undefined) return '';
-    return ` · ${Array.from(label)[0]} · ${rep.complexity.time} / ${rep.complexity.space}`;
+    const comfort = rep === undefined ? undefined : RATING_OPTIONS.find((option) => option.rating === rep.rating)?.comfort;
+    if (rep === undefined || comfort === undefined) return '';
+    return ` · ${comfort} · ${rep.complexity.time} / ${rep.complexity.space}`;
   });
 
   private runSubscription: Subscription | null = null;
@@ -509,14 +518,14 @@ export class PracticePageComponent {
   copy(): void {
     const failCopy = (err: unknown): void => {
       console.error('Practice copy: clipboard write failed', err);
-      this.showCopyMark(COPY_FAIL_MARK);
+      this.showCopyMark(COPY_FAIL_ICON);
     };
     // `navigator.clipboard` is undefined in an insecure context or an unsupported browser.
     if (!navigator.clipboard) {
       failCopy(new Error('navigator.clipboard is unavailable'));
       return;
     }
-    navigator.clipboard.writeText(this.text()).then(() => this.showCopyMark(COPY_OK_MARK), failCopy);
+    navigator.clipboard.writeText(this.text()).then(() => this.showCopyMark(COPY_OK_ICON), failCopy);
   }
 
   startDrag(event: PointerEvent): void {
@@ -587,7 +596,7 @@ export class PracticePageComponent {
     saveShare(next);
   }
 
-  private showCopyMark(mark: string): void {
+  private showCopyMark(mark: IconName): void {
     this.copyMark.set(mark);
     if (this.copyTimer) clearTimeout(this.copyTimer);
     this.copyTimer = setTimeout(() => this.copyMark.set(null), COPY_FEEDBACK_MS);

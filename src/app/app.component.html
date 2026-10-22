@@ -15,14 +15,14 @@
     @if (hasCoach()) {
       <button
         type="button"
-        class="po-nav__coach"
+        class="po-btn po-btn--ghost po-btn--icon po-nav__coach"
         [class.po-nav__coach--on]="coachUi.isOpen()"
         [attr.aria-expanded]="coachUi.isOpen()"
         [attr.aria-label]="coachUi.isOpen() ? 'Close coach' : 'Open coach'"
         aria-controls="po-coach"
         (click)="coachUi.toggle()"
       >
-        ◨
+        <app-icon name="sidebar" />
       </button>
     }
 
@@ -42,7 +42,7 @@
             </button>
           </app-menu>
         } @else {
-          <button type="button" class="po-nav__auth-button" (click)="signIn()">Sign in</button>
+          <button type="button" class="po-btn po-btn--ghost po-btn--sm po-nav__auth-button" (click)="signIn()">Sign in</button>
         }
       </div>
     }
@@ -92,7 +92,7 @@
         <span class="po-footer__heading">{{ column.heading }}</span>
         @for (link of column.links; track link.label) {
           @if ('href' in link) {
-            <a class="po-footer__link" [href]="link.href" target="_blank" rel="noopener">{{ link.label }}</a>
+            <a class="po-footer__link" [href]="link.href" target="_blank" rel="noopener">{{ link.label }}<app-icon name="external" [size]="12" /></a>
           } @else {
             <a class="po-footer__link" [routerLink]="link.path">{{ link.label }}</a>
           }

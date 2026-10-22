@@ -6,7 +6,7 @@
     role="img"
     [attr.aria-label]="'Comfort progression for problem ' + problem().lcNumber"
   >
-    <!-- comfort gridlines (🔴 baseline up to 🎓/🏆) -->
+    <!-- comfort gridlines (blank baseline up to graduated/retired) -->
     @for (g of [0, 1, 2, 3, 4]; track g) {
       <line
         class="grid"
@@ -31,7 +31,7 @@
         stroke-width="1.5"
         [class.unknown]="!p.known"
       >
-        <title>{{ p.date }}{{ p.comfort ? ' · ' + p.comfort : ' · (pre-archive rep)' }}</title>
+        <title>{{ p.date }}{{ p.comfort ? ' · ' + comfortName(p.comfort) : ' · (pre-archive rep)' }}</title>
       </circle>
     }
 

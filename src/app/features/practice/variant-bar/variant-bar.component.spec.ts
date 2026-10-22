@@ -21,13 +21,15 @@ describe('VariantBarComponent', () => {
     fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
     const bounds = () =>
-      Array.from(root.querySelectorAll('.complexity')).map((span) => span.textContent?.trim());
+      Array.from(root.querySelectorAll('.complexity')).map(
+        (span) => `${span.querySelector('app-icon svg')?.getAttribute('data-name')} ${span.textContent?.trim()}`,
+      );
 
-    expect(bounds()).toEqual(['⏱ O(n^2)', '💾 O(1)']);
+    expect(bounds()).toEqual(['clock O(n^2)', 'memory O(1)']);
 
-    root.querySelectorAll<HTMLButtonElement>('.solution-tab')[1].click();
+    root.querySelectorAll<HTMLButtonElement>('[role="tab"]')[1].click();
     fixture.detectChanges();
 
-    expect(bounds()).toEqual(['⏱ O(n)', '💾 O(n)']);
+    expect(bounds()).toEqual(['clock O(n)', 'memory O(n)']);
   });
 });

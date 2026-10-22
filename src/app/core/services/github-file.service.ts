@@ -1,7 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, catchError, firstValueFrom, from, map, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
 
+import { AuthService } from '../auth/auth.service';
+import { CONTENT_REPO_SLUG, DEMO_REPO_SLUG } from '../data/site-links';
 import { contractCache, contractKey, contractKeyPrefix } from './contract-cache';
 import { ContractManifest, MANIFEST_FILE, manifestHash, parseManifest } from './contract-manifest';
 
@@ -11,20 +13,25 @@ export interface RepoRef {
   branch: string;
 }
 
-/** The one place `michael-yrao/cse-progress@main` is spelled out. Both the progress
- *  dashboard's default repo and the showcase's hardcoded gold standard derive from this. */
-export const GOLD_STANDARD_REPO: RepoRef = {
-  owner: 'michael-yrao',
-  repo: 'cse-progress',
-  branch: 'main',
-};
+export const DEFAULT_BRANCH = 'main';
 
-export const DEFAULT_BRANCH = GOLD_STANDARD_REPO.branch;
-/** `owner/repo`, no branch — the "grounded in …" slug shown on the problem page badge, the
- *  groundedness meter, and (via `DEFAULT_REPO`) the progress dashboard's default. One spelling
- *  so the three never drift from each other or from `GOLD_STANDARD_REPO`. */
-export const GOLD_STANDARD_SLUG = `${GOLD_STANDARD_REPO.owner}/${GOLD_STANDARD_REPO.repo}`;
-export const DEFAULT_REPO = GOLD_STANDARD_SLUG;
+function refOfSlug(slug: string): RepoRef {
+  const [owner, repo] = slug.split('/');
+  return { owner, repo, branch: DEFAULT_BRANCH };
+}
+
+/** The public content repo every signed-out content surface reads (solutions, practice, showcase, big-o,
+ *  cheat sheets, pattern-sense deck). Its slug is spelled once, in `CONTENT_REPO_SLUG`. */
+export const CONTENT_REPO: RepoRef = refOfSlug(CONTENT_REPO_SLUG);
+
+/** The public demo repo the signed-out board (progress summary, progress, schedule history) reads. Its slug is
+ *  spelled once, in `DEMO_REPO_SLUG`. */
+export const DEMO_REPO: RepoRef = refOfSlug(DEMO_REPO_SLUG);
+
+/** `owner/repo`, no branch — the "grounded in …" slug shown on the problem page badge and the groundedness meter. */
+export const CONTENT_SLUG = `${CONTENT_REPO.owner}/${CONTENT_REPO.repo}`;
+/** `owner/repo` of the board's default repo: what the progress dashboard reads with no `?repo=`. */
+export const DEFAULT_REPO = `${DEMO_REPO.owner}/${DEMO_REPO.repo}`;
 
 export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -55,16 +62,12 @@ function encodeBranchPath(branch: string): string {
   return branch.split('/').map(encodeURIComponent).join('/');
 }
 
-function splitSlug(slug: string, branch: string): RepoRef {
-  const [owner, repo] = slug.split('/');
-  return { owner, repo, branch };
-}
-
-/** Parse "owner/name" or "owner/name@branch"; empty/missing input falls back to the default
- *  repo, but a malformed slug (not exactly owner/name[@branch], every part non-empty) returns
- *  `null` instead of silently substituting the default — the caller decides how to surface that. */
-export function parseRepoSlug(raw: string | null | undefined): RepoRef | null {
-  if (!raw) return splitSlug(DEFAULT_REPO, DEFAULT_BRANCH);
+/** Parse "owner/name" or "owner/name@branch"; empty/missing input returns `fallback` (the content repo unless
+ *  the caller is the board, which passes `DEMO_REPO`), but a malformed slug (not exactly owner/name[@branch],
+ *  every part non-empty) returns `null` instead of silently substituting the fallback — the caller decides how
+ *  to surface that. */
+export function parseRepoSlug(raw: string | null | undefined, fallback: RepoRef = CONTENT_REPO): RepoRef | null {
+  if (!raw) return fallback;
   const atParts = raw.split('@');
   if (atParts.length > MAX_SLUG_AT_PARTS) return null;
   const [slug, branch] = atParts;
@@ -131,6 +134,8 @@ export function httpErrorMessage(
  */
 @Injectable({ providedIn: 'root' })
 export class GitHubFileService {
+  private readonly auth = inject(AuthService);
+
   constructor(private readonly http: HttpClient) {}
 
   // Per `owner/repo@branch`, replaced (never mutated) when a bust re-fetches the manifest.
@@ -177,23 +182,45 @@ export class GitHubFileService {
     this.settledManifests = new Set(this.settledManifests).add(refKey);
   }
 
-  /** API-first with a raw fallback on the API's rate-limit (403). */
+  /** The Contents-API headers; a token adds `Authorization: Bearer`. */
+  private apiHeaders(token: string | null): HttpHeaders {
+    const headers = new HttpHeaders({ Accept: 'application/vnd.github.raw' });
+    return token ? headers.set('Authorization', `Bearer ${token}`) : headers;
+  }
+
+  /** Signed out: `anonymous$` exactly as before, issued synchronously on subscribe. Signed in: the
+   *  token is resolved once and `authed$` runs with it (no raw fallback); a null token is signed out. */
+  private withAuth$<T>(
+    anonymous$: () => Observable<T>,
+    authed$: (token: string) => Observable<T>,
+  ): Observable<T> {
+    if (!this.auth.isSignedIn()) return anonymous$();
+    return from(this.auth.getToken()).pipe(
+      switchMap((token) => (token ? authed$(token) : anonymous$())),
+    );
+  }
+
+  /** API-first with a raw fallback on the API's rate-limit (403); signed in, authenticated with no fallback. */
   private network$<T>(
     ref: RepoRef,
     file: string,
     hash: string | null,
     bust: boolean,
   ): Observable<T> {
-    const apiHeaders = new HttpHeaders({ Accept: 'application/vnd.github.raw' });
-    return this.http
-      .get<T>(this.apiUrl(ref, file, hash, bust), { headers: apiHeaders, responseType: 'json' })
-      .pipe(
-        catchError((err) =>
-          err?.status === RATE_LIMIT_STATUS
-            ? this.http.get<T>(this.rawUrl(ref, file), { responseType: 'json' })
-            : throwError(() => err),
-        ),
-      );
+    const url = this.apiUrl(ref, file, hash, bust);
+    return this.withAuth$<T>(
+      () =>
+        this.http
+          .get<T>(url, { headers: this.apiHeaders(null), responseType: 'json' })
+          .pipe(
+            catchError((err) =>
+              err?.status === RATE_LIMIT_STATUS
+                ? this.http.get<T>(this.rawUrl(ref, file), { responseType: 'json' })
+                : throwError(() => err),
+            ),
+          ),
+      (token) => this.http.get<T>(url, { headers: this.apiHeaders(token), responseType: 'json' }),
+    );
   }
 
   /** A body already cached under its hash is served with no request; a miss fetches, then caches. */
@@ -219,40 +246,34 @@ export class GitHubFileService {
     return manifestHash(await firstValueFrom(memo), file);
   }
 
-  /** Both reads below always bust: an attempt file can be overwritten, and a 60 s cached copy
-   *  would hide a just-completed rep. */
-  private rawApiHeaders(): HttpHeaders {
-    return new HttpHeaders({ Accept: 'application/vnd.github.raw' });
-  }
-
+  // Both reads below always bust: an attempt file can be overwritten, and a 60 s cached copy
+  // would hide a just-completed rep.
   /** The entries of a repo directory; `[]` on a 404 or a body that is not a listing. No raw
    *  fallback (raw.githubusercontent cannot list a directory) and no manifest path. */
   listDir$(ref: RepoRef, dir: string): Observable<readonly DirEntry[]> {
-    return this.http
-      .get<unknown>(this.apiUrl(ref, dir, null, true), {
-        headers: this.rawApiHeaders(),
-        responseType: 'json',
-      })
-      .pipe(
+    const url = this.apiUrl(ref, dir, null, true);
+    const list$ = (token: string | null): Observable<readonly DirEntry[]> =>
+      this.http.get<unknown>(url, { headers: this.apiHeaders(token), responseType: 'json' }).pipe(
         map((body) => (Array.isArray(body) ? body.filter(isDirEntry) : [])),
         catchError((err) => (err?.status === NOT_FOUND_STATUS ? of([]) : throwError(() => err))),
       );
+    return this.withAuth$(() => list$(null), list$);
   }
 
-  /** A text file's body (not JSON), API-first with a raw fallback on a 403. */
+  /** A text file's body (not JSON), API-first with a raw fallback on a 403 (signed out only). */
   fetchText$(ref: RepoRef, file: string): Observable<string> {
-    return this.http
-      .get(this.apiUrl(ref, file, null, true), {
-        headers: this.rawApiHeaders(),
-        responseType: 'text',
-      })
-      .pipe(
-        catchError((err) =>
-          err?.status === RATE_LIMIT_STATUS
-            ? this.http.get(this.rawUrl(ref, file), { responseType: 'text' })
-            : throwError(() => err),
+    const url = this.apiUrl(ref, file, null, true);
+    return this.withAuth$<string>(
+      () =>
+        this.http.get(url, { headers: this.apiHeaders(null), responseType: 'text' }).pipe(
+          catchError((err) =>
+            err?.status === RATE_LIMIT_STATUS
+              ? this.http.get(this.rawUrl(ref, file), { responseType: 'text' })
+              : throwError(() => err),
+          ),
         ),
-      );
+      (token) => this.http.get(url, { headers: this.apiHeaders(token), responseType: 'text' }),
+    );
   }
 
   /** GET a named file from the repo; keyed by the manifest's hash when it lists the file. */

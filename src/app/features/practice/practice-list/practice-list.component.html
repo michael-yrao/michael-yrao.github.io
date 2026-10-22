@@ -24,23 +24,40 @@
       >{{ d }}</button>
     }
     <button
-      class="filter-btn filter-btn--viz"
+      class="filter-btn"
       [class.filter-btn--active]="isRunnableOnly()"
       [attr.aria-pressed]="isRunnableOnly()"
       (click)="isRunnableOnly.set(!isRunnableOnly())"
-    >{{ practiceGlyph }} Runnable</button>
+    ><app-icon [name]="practiceIcon" [size]="14" /> Runnable</button>
     <button
-      class="filter-btn filter-btn--viz"
+      class="filter-btn"
       [class.filter-btn--active]="isVisualizedOnly()"
       [attr.aria-pressed]="isVisualizedOnly()"
       (click)="isVisualizedOnly.set(!isVisualizedOnly())"
-    >⬡ Visualized</button>
+    ><app-icon name="hexagon" [size]="14" /> Visualized</button>
     <button
       class="filter-btn"
       [class.filter-btn--active]="areTagsShown()"
       [attr.aria-pressed]="areTagsShown()"
       (click)="toggleTags()"
     >Tags</button>
+    @if (hasProgress()) {
+      @for (f of comfortFilters; track f) {
+        <button
+          class="filter-btn"
+          [class.filter-btn--active]="comfortFilter() === f"
+          [attr.aria-pressed]="comfortFilter() === f"
+          (click)="comfortFilter.set(f)"
+        >
+          @if (f === 'all') {
+            All
+          } @else {
+            <app-comfort-mark [comfort]="f" label="" />
+            <span class="visually-hidden">{{ comfortName(f) }}</span>
+          }
+        </button>
+      }
+    }
   </div>
 
   @if (areTagsShown()) {
@@ -58,6 +75,7 @@
 
   <ul class="practice-list__rows">
     @for (row of rows(); track row.number) {
+      @let progress = progressByNumber().get(row.number);
       <li class="practice-list__row">
         <a class="practice-list__link" [routerLink]="['/practice', row.number]" queryParamsHandling="preserve">
           <span class="practice-list__num">#{{ row.number }}</span>&ngsp;
@@ -77,22 +95,49 @@
               <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
             }
           </span>
+          @if (progress; as p) {
+            <app-comfort-mark [comfort]="p.comfort" [streak]="p.streak" />
+            <span class="practice-list__reps">{{ p.repDates.length }} reps</span>
+            @if (dueText(p); as due) {
+              <span class="practice-list__due">{{ due }}</span>
+            }
+          }
         </a>
         <span class="practice-list__mark practice-list__mark--run">
           @if (row.isRunnable) {
-            <span title="Run code">{{ practiceGlyph }}</span>
+            <app-icon [name]="practiceIcon" [size]="14" label="Runnable" />
           }
         </span>
         <span class="practice-list__mark">
           @if (row.isVisualized) {
-            <span title="Visualization available">⬡</span>
+            <app-icon name="hexagon" [size]="14" label="Visualized" />
           }
         </span>
         <span class="practice-list__mark">
           @if (externalJudgeUrlFor(row.url, row.number); as ext) {
-            <a [href]="ext" target="_blank" rel="noopener" aria-label="External" title="External">↗</a>
+            <a [href]="ext" target="_blank" rel="noopener" aria-label="External" title="External"><app-icon name="external" [size]="14" /></a>
           }
         </span>
+        <span class="practice-list__mark">
+          @if (progress) {
+            <button
+              type="button"
+              class="practice-list__toggle"
+              [attr.aria-expanded]="isExpanded(row.number)"
+              [attr.aria-label]="'Progress timeline for #' + row.number + ' ' + row.title"
+              (click)="toggleExpanded(row.number)"
+            >
+              <app-icon [name]="isExpanded(row.number) ? 'chevron-down' : 'chevron-right'" [size]="14" />
+            </button>
+          }
+        </span>
+        @if (progress; as p) {
+          @if (isExpanded(row.number)) {
+            <div class="practice-list__timeline">
+              <app-problem-timeline [problem]="p" />
+            </div>
+          }
+        }
       </li>
     }
   </ul>

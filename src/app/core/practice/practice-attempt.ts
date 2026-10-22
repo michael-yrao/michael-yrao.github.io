@@ -1,3 +1,5 @@
+import type { Comfort } from '../models/progress.model';
+
 const ATTEMPTS_DIR = 'dsa/attempts';
 const HEADER_PREFIX = '# po-attempt: ';
 const DATE_PAD = 2;
@@ -43,10 +45,14 @@ export interface RemoteAttempt {
 }
 
 /** The rating choices, in the order they are offered. */
-export const RATING_OPTIONS: readonly { readonly rating: AttemptRating; readonly label: string }[] = [
-  { rating: 'clean', label: '🟢 Clean — no hints, from a blank page' },
-  { rating: 'shaky', label: '🟡 Shaky — needed a nudge or peeked' },
-  { rating: 'blank', label: '🔴 Blank — had to look it up' },
+export const RATING_OPTIONS: readonly {
+  readonly rating: AttemptRating;
+  readonly comfort: Comfort;
+  readonly label: string;
+}[] = [
+  { rating: 'clean', comfort: '🟢', label: 'Clean — no hints, from a blank page' },
+  { rating: 'shaky', comfort: '🟡', label: 'Shaky — needed a nudge or peeked' },
+  { rating: 'blank', comfort: '🔴', label: 'Blank — had to look it up' },
 ];
 
 const RATINGS: readonly AttemptRating[] = RATING_OPTIONS.map((option) => option.rating);

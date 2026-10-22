@@ -24,9 +24,9 @@
   }
 
   &__name {
-    font-size: clamp(2.4rem, 5vw, 3.6rem);
-    font-weight: 800;
-    letter-spacing: -0.03em;
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
     color: var(--color-text);
     margin: 0 0 var(--space-xl);
     line-height: 1.1;

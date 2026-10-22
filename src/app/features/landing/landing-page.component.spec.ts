@@ -27,6 +27,16 @@ describe('LandingPageComponent', () => {
     expect(signIn).toHaveBeenCalledWith('/');
   });
 
+  it('links "See a live board" to the demo repo', () => {
+    const { root } = setup();
+
+    const href = root.querySelector<HTMLAnchorElement>('.landing__link')?.getAttribute('href') ?? '';
+
+    expect(new URL(href, 'http://localhost').searchParams.get('repo')).toBe(
+      'michael-yrao/progressive-overflow-demo',
+    );
+  });
+
   it('shows the live problem and visualization counts on the Practice card', () => {
     const { root } = setup();
 

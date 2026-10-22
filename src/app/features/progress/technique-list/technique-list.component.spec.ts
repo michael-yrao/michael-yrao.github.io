@@ -179,7 +179,7 @@ describe('TechniqueListComponent', () => {
     const rows: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.tech-row__problems li'));
     const [practiced, external] = rows;
     const run = practiced.querySelector('a[title="Run code"]');
-    expect(run?.textContent?.trim()).toBe('>_');
+    expect(run?.querySelector('app-icon svg[data-name="terminal"]')).not.toBeNull();
     expect(run?.getAttribute('href')).toBe('/practice/11');
     expect(practiced.querySelector('a[title="External"]')).toBeTruthy();
     expect(external.querySelector('a[title="External"]')).toBeTruthy();
@@ -239,7 +239,9 @@ describe('TechniqueListComponent', () => {
     const row = fixture.nativeElement.querySelector('.tech-row__problem');
     expect(row?.textContent).toContain('Container With Most Water');
     expect(row?.textContent).toContain('#11');
-    expect(row?.textContent).toContain('🟡');
+    expect(row?.querySelector('app-comfort-mark svg')?.getAttribute('aria-label')).toBe(
+      'Comfort: shaky',
+    );
     expect(fixture.nativeElement.querySelector('.tag--medium')?.textContent).toContain('Medium');
 
     // #11 (Container With Most Water) has a visualizer route, so the leading slot is the

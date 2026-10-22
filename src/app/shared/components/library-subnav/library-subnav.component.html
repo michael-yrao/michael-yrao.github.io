@@ -1,5 +1,5 @@
-<nav class="lib-subnav" [attr.aria-label]="ariaLabel()">
+<nav class="po-tabs lib-subnav" [attr.aria-label]="ariaLabel()">
   @for (link of sections(); track link.path) {
-    <a [routerLink]="link.path" routerLinkActive="active">{{ link.label }}</a>
+    <a class="po-tab" [routerLink]="link.path" routerLinkActive="active">{{ link.label }}</a>
   }
 </nav>

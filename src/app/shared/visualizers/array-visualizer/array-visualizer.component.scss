@@ -2,10 +2,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  padding: var(--space-xl);
-  background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
 
   &__array-wrap {
     display: flex;
@@ -57,9 +53,10 @@
     transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base);
 
     &--active {
-      background: rgba(6, 182, 212, 0.2);
+      background: var(--color-accent-dim);
       border-color: var(--color-accent);
       color: var(--color-accent);
+      box-shadow: var(--color-accent-glow);
     }
 
     &--visited {
@@ -69,25 +66,25 @@
     }
 
     &--found {
-      background: rgba(74, 222, 128, 0.2);
+      background: var(--color-easy-dim);
       border-color: var(--color-found);
       color: var(--color-found);
     }
 
     &--eliminated {
       background: var(--color-bg);
-      border-color: #1e293b;
-      color: #334155;
+      border-color: var(--color-eliminated);
+      color: var(--color-visited);
       text-decoration: line-through;
     }
 
     &--window {
-      background: rgba(6, 182, 212, 0.1);
-      border-color: rgba(6, 182, 212, 0.4);
+      background: var(--color-accent-dim);
+      border-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
     }
 
     &--min-ptr {
-      background: rgba(251, 146, 60, 0.15);
+      background: var(--color-medium-dim);
       border-color: var(--color-medium);
       color: var(--color-medium);
     }
@@ -96,7 +93,7 @@
   &__index {
     font-family: var(--font-mono);
     font-size: 0.65rem;
-    color: #475569;
+    color: var(--color-text-muted);
     user-select: none;
   }
 

@@ -67,7 +67,7 @@ describe('PracticeService', () => {
   });
 
   describe('viewer repo failures', () => {
-    const GOLD_PATH = 'michael-yrao/cse-progress';
+    const GOLD_PATH = 'michael-yrao/progressive-overflow-content';
     const ROWS = [
       { name: '404 falls back to the gold body', status: 404, isFallback: true },
       { name: '403 is an error with no gold request', status: 403, isFallback: false },

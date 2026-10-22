@@ -12,7 +12,7 @@ import { createMemoryStorage } from '../../../core/memory-storage.testing';
 import { PracticeData, PracticeProblem } from '../../../core/models/practice.model';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
 import { RunState } from '../../../core/runner/runner.model';
-import { GOLD_STANDARD_REPO } from '../../../core/services/github-file.service';
+import { CONTENT_REPO } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { BigOService } from '../../../core/services/big-o.service';
 import { ProgressService } from '../../../core/services/progress.service';
@@ -20,8 +20,8 @@ import { ShowcaseService } from '../../../core/services/showcase.service';
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { PracticePageComponent } from './practice-page.component';
 
-const OWNER = GOLD_STANDARD_REPO.owner;
-const TABS_KEY = `po-practice-tabs:${OWNER}/${GOLD_STANDARD_REPO.repo}:90`;
+const OWNER = CONTENT_REPO.owner;
+const TABS_KEY = `po-practice-tabs:${OWNER}/${CONTENT_REPO.repo}:90`;
 const SAVE_BUTTON = 'Save to GitHub';
 const MARK_COMPLETE = 'Mark Complete';
 const REMOTE_SAVED_AT = '2026-10-10T12:00:00.000Z';
@@ -79,18 +79,18 @@ function signIn(login: string): void {
 }
 
 const TECHNIQUE = 'Backtracking';
-const PICK_KEY = `po-practice-pick:${OWNER}/${GOLD_STANDARD_REPO.repo}/90`;
-const PICK_HEADER_MARK = `◆ ${TECHNIQUE}`;
+const PICK_KEY = `po-practice-pick:${OWNER}/${CONTENT_REPO.repo}/90`;
+const PICK_HEADER_ICON = 'app-icon svg[data-name="check"]';
 
 /** A progress stub whose summary lists one technique; the problem counts as done unless `isDone` is false. */
 function progressStub(isDone: boolean): unknown {
   return {
     status: signal('ready'),
     data: signal({ techniques: [{ name: TECHNIQUE, family: 'arrays_and_hash', tier: 'core' }] }),
-    source: signal(GOLD_STANDARD_REPO),
+    source: signal(CONTENT_REPO),
     details: signal(isDone ? [{ lcNumber: PROBLEM.number }] : []),
     detailsStatus: signal('ready'),
-    detailsSource: signal(GOLD_STANDARD_REPO),
+    detailsSource: signal(CONTENT_REPO),
     loadSummary: vi.fn(),
     loadDetails: vi.fn(),
   };
@@ -112,7 +112,7 @@ function render(isDone = true): { fixture: ComponentFixture<PracticePageComponen
           status: signal('ready'),
           error: signal(null),
           data: signal(data),
-          ref: signal(GOLD_STANDARD_REPO),
+          ref: signal(CONTENT_REPO),
           load: vi.fn(),
           problemFor: () => PROBLEM,
         },
@@ -273,7 +273,8 @@ describe('PracticePageComponent save to GitHub', () => {
     choose(fixture, TECHNIQUE);
 
     expect(root.querySelector('app-code-editor')).not.toBeNull();
-    expect(root.querySelector('.practice__pick')?.textContent).toContain(PICK_HEADER_MARK);
+    expect(root.querySelector(`.practice__pick ${PICK_HEADER_ICON}`)).not.toBeNull();
+    expect(root.querySelector('.practice__pick')?.textContent).toContain(TECHNIQUE);
     expect(JSON.parse(localStorage.getItem(PICK_KEY)!)).toMatchObject({ picked: TECHNIQUE });
   });
 
@@ -309,7 +310,8 @@ describe('PracticePageComponent save to GitHub', () => {
     fixture.detectChanges();
 
     expect(root.querySelector('app-code-editor')).not.toBeNull();
-    expect(root.querySelector('.practice__pick')?.textContent).toContain(PICK_HEADER_MARK);
+    expect(root.querySelector(`.practice__pick ${PICK_HEADER_ICON}`)).not.toBeNull();
+    expect(root.querySelector('.practice__pick')?.textContent).toContain(TECHNIQUE);
   });
 
   it.each([

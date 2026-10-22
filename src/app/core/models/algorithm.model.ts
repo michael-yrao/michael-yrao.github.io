@@ -180,19 +180,3 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   'dynamic-programming': 'Dynamic Programming',
   'backtracking': 'Backtracking',
 };
-
-export const CATEGORY_ICONS: Record<Category, string> = {
-  'arrays-hash': '▦',
-  'two-pointers': '◀▶',
-  'sliding-window': '▬',
-  'binary-search': '⟨⟩',
-  'linked-list': '⬤—⬤',
-  'trees': '⧖',
-  'graphs': '⬡',
-  'stack': '⬒',
-  'greedy': '⚡',
-  'heap': '△',
-  'trie': '⋔',
-  'dynamic-programming': '⊞',
-  'backtracking': '⤴',
-};

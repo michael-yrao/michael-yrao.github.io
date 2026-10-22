@@ -13,6 +13,13 @@ export const SITE_LINKS = {
 /** The one GitHub login the site coach serves; the Worker's `OWNER_LOGIN` is the same value. */
 export const COACH_OWNER_LOGIN = 'michael-yrao';
 
+/** The public content repo (`owner/name`): a mirror of the solution files and the content JSON (practice, showcase,
+ *  big-o, cheat sheets, pattern-sense deck). */
+export const CONTENT_REPO_SLUG = 'michael-yrao/progressive-overflow-content';
+
+/** The public demo repo (`owner/name`): the synthetic board (progress summary, progress, schedule history). */
+export const DEMO_REPO_SLUG = 'michael-yrao/progressive-overflow-demo';
+
 /** GitHub logins are case-insensitive, and so is the Worker's owner check. */
 export function isCoachOwner(login: string | null | undefined): boolean {
   if (!login) return false;

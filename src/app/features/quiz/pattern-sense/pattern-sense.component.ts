@@ -29,13 +29,14 @@ import {
 import { AuthService } from '../../../core/auth/auth.service';
 import { GithubSaveService } from '../../../core/services/github-save.service';
 import {
-  GOLD_STANDARD_REPO,
+  CONTENT_REPO,
   RepoRef,
   parseRepoSlug,
 } from '../../../core/services/github-file.service';
 import { PatternSenseService } from '../../../core/services/pattern-sense.service';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgClass } from '@angular/common';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 
 const BREADCRUMB: BreadcrumbEntry[] = [
@@ -55,7 +56,7 @@ type CopyState = 'idle' | 'copied' | 'failed';
 
 /** The `?repo=` ref; a malformed slug falls back to the author's repo. */
 function refFromSlug(slug: string | null): RepoRef {
-  return parseRepoSlug(slug) ?? GOLD_STANDARD_REPO;
+  return parseRepoSlug(slug) ?? CONTENT_REPO;
 }
 
 interface WeekChip {
@@ -126,7 +127,7 @@ interface CategoryOption {
     templateUrl: './pattern-sense.component.html',
     styleUrls: ['./pattern-sense.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink, NgClass, PageHeaderComponent]
+    imports: [RouterLink, NgClass, PageHeaderComponent, IconComponent]
 })
 export class PatternSenseComponent {
   readonly breadcrumb = BREADCRUMB;

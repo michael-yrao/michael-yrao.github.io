@@ -1,0 +1,42 @@
+@if (isShown()) {
+  <div class="po-card--compact">
+    <div class="po-eyebrow">Compare approaches</div>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>Time</th>
+          <th>Space</th>
+          <th>Steps</th>
+          <th>Grounded</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track $index; let i = $index) {
+          <tr>
+            <td>
+              <button
+                type="button"
+                class="po-chip"
+                [class.active]="i === state.activeSolutionIndex()"
+                (click)="state.selectVariant(i)"
+              >
+                {{ row.label }}
+              </button>
+            </td>
+            <td class="mono">{{ row.timeComplexity }}</td>
+            <td class="mono">{{ row.spaceComplexity }}</td>
+            <td class="mono">{{ row.stepCount }}</td>
+            <td>
+              @if (row.isGrounded) {
+                <span class="grounded" role="img" aria-label="Grounded"><app-icon name="check" [size]="14" /></span>
+              } @else {
+                <span class="muted">–</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

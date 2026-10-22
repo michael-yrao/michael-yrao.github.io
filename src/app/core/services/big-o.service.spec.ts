@@ -5,7 +5,7 @@ import { of, throwError } from 'rxjs';
 
 import { FALLBACK_ROWS, settleRequests } from './author-fallback.testing';
 import { BigOService } from './big-o.service';
-import { GOLD_STANDARD_REPO } from './github-file.service';
+import { CONTENT_REPO } from './github-file.service';
 import { BigOData } from '../models/big-o.model';
 
 // A recording HttpClient stub, matching the pattern in showcase.service.spec.ts.
@@ -68,7 +68,7 @@ describe('BigOService', () => {
 
     const call = http.calls[0];
     expect(call.url).toContain(
-      'api.github.com/repos/michael-yrao/cse-progress/contents/dashboard/big-o.json',
+      'api.github.com/repos/michael-yrao/progressive-overflow-content/contents/dashboard/big-o.json',
     );
     expect(call.url).toContain('ref=main');
     expect(call.opts.headers.get('Accept')).toBe('application/vnd.github.raw');
@@ -84,7 +84,7 @@ describe('BigOService', () => {
 
   it('force reloads even when already ready, with a cache-buster', () => {
     service.load();
-    service.load(GOLD_STANDARD_REPO, true);
+    service.load(CONTENT_REPO, true);
 
     expect(http.calls.length).toBe(2);
     expect(http.calls[1].url).toContain('_=');

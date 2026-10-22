@@ -7,8 +7,9 @@ import { BigOService } from '../../../core/services/big-o.service';
 import { buildDisplay } from '../../../core/showcase/display';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
-import { GOLD_STANDARD_REPO, blobUrl, parseRepoSlug } from '../../../core/services/github-file.service';
+import { CONTENT_REPO, blobUrl, parseRepoSlug } from '../../../core/services/github-file.service';
 import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 import {
   DEFAULT_FILTER,
@@ -36,7 +37,7 @@ const BREADCRUMB: BreadcrumbEntry[] = [
   templateUrl: './big-o.component.html',
   styleUrls: ['./big-o.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, CodeViewerComponent, PageHeaderComponent],
+  imports: [RouterLink, CodeViewerComponent, PageHeaderComponent, IconComponent],
 })
 export class BigOComponent {
   private readonly bigO = inject(BigOService);
@@ -94,7 +95,7 @@ export class BigOComponent {
     const attempt = entry?.segments.find((s) => s.kind === 'attempt');
     if (!entry || !attempt) return null;
     return blobUrl(
-      this.bigO.sourceRef() ?? GOLD_STANDARD_REPO,
+      this.bigO.sourceRef() ?? CONTENT_REPO,
       entry.file,
       attempt.startLine,
       attempt.endLine,
@@ -104,7 +105,7 @@ export class BigOComponent {
 
   constructor() {
     const queryRepo = this.route.snapshot.queryParamMap.get('repo');
-    this.bigO.load(parseRepoSlug(this.auth.resolveRepo(queryRepo)) ?? GOLD_STANDARD_REPO);
+    this.bigO.load(parseRepoSlug(this.auth.resolveRepo(queryRepo)) ?? CONTENT_REPO);
 
     // Deals the first run once the contract is ready. `untracked` keeps this effect
     // dependent on `status()` alone — `startRun()` itself reads `pool()` (which depends on

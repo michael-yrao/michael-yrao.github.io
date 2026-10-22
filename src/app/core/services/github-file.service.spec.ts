@@ -2,9 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, of, throwError } from 'rxjs';
 
+import { AuthService } from '../auth/auth.service';
 import {
   GitHubFileService,
-  GOLD_STANDARD_REPO,
+  CONTENT_REPO,
+  DEMO_REPO,
   DEFAULT_REPO,
   DEFAULT_BRANCH,
   parseRepoSlug,
@@ -14,23 +16,29 @@ import {
   httpErrorMessage,
 } from './github-file.service';
 
-describe('GOLD_STANDARD_REPO / DEFAULT_REPO / DEFAULT_BRANCH', () => {
-  it('DEFAULT_REPO and DEFAULT_BRANCH derive from the single GOLD_STANDARD_REPO constant', () => {
-    expect(GOLD_STANDARD_REPO).toEqual({
+describe('CONTENT_REPO / DEMO_REPO / DEFAULT_REPO / DEFAULT_BRANCH', () => {
+  it('derive from the two repo slugs in site-links', () => {
+    expect(CONTENT_REPO).toEqual({
       owner: 'michael-yrao',
-      repo: 'cse-progress',
+      repo: 'progressive-overflow-content',
       branch: 'main',
     });
-    expect(DEFAULT_REPO).toBe('michael-yrao/cse-progress');
+    expect(DEMO_REPO).toEqual({
+      owner: 'michael-yrao',
+      repo: 'progressive-overflow-demo',
+      branch: 'main',
+    });
+    expect(DEFAULT_REPO).toBe('michael-yrao/progressive-overflow-demo');
     expect(DEFAULT_BRANCH).toBe('main');
   });
 });
 
 describe('parseRepoSlug', () => {
-  it('defaults to the gold-standard repo when no slug is given', () => {
-    expect(parseRepoSlug(null)).toEqual(GOLD_STANDARD_REPO);
-    expect(parseRepoSlug(undefined)).toEqual(GOLD_STANDARD_REPO);
-    expect(parseRepoSlug('')).toEqual(GOLD_STANDARD_REPO);
+  it('returns the fallback (the content repo by default) when no slug is given', () => {
+    expect(parseRepoSlug(null)).toEqual(CONTENT_REPO);
+    expect(parseRepoSlug(undefined)).toEqual(CONTENT_REPO);
+    expect(parseRepoSlug('')).toEqual(CONTENT_REPO);
+    expect(parseRepoSlug('', DEMO_REPO)).toEqual(DEMO_REPO);
   });
 
   it('parses owner/name and owner/name@branch', () => {
@@ -82,16 +90,16 @@ describe('fileUrl', () => {
 
 describe('blobUrl', () => {
   it('builds a GitHub blob URL with a line range', () => {
-    const url = blobUrl(GOLD_STANDARD_REPO, 'dsa/leetcode/graphs/733_flood_fill.py', 41, 70);
+    const url = blobUrl(CONTENT_REPO, 'dsa/leetcode/graphs/733_flood_fill.py', 41, 70);
     expect(url).toBe(
-      'https://github.com/michael-yrao/cse-progress/blob/main/dsa/leetcode/graphs/733_flood_fill.py#L41-L70',
+      'https://github.com/michael-yrao/progressive-overflow-content/blob/main/dsa/leetcode/graphs/733_flood_fill.py#L41-L70',
     );
   });
 
   it('is fileUrl plus the line-range fragment — one spelling of blob/<branch>/', () => {
     const file = 'dsa/leetcode/graphs/733_flood_fill.py';
-    expect(blobUrl(GOLD_STANDARD_REPO, file, 41, 70)).toBe(
-      `${fileUrl(GOLD_STANDARD_REPO, file)}#L41-L70`,
+    expect(blobUrl(CONTENT_REPO, file, 41, 70)).toBe(
+      `${fileUrl(CONTENT_REPO, file)}#L41-L70`,
     );
   });
 });
@@ -146,6 +154,15 @@ describe('httpErrorMessage', () => {
   });
 });
 
+const CONTENT_REPO_PATH = 'michael-yrao/progressive-overflow-content';
+const SIGNED_OUT_AUTH = { isSignedIn: () => false, getToken: () => Promise.resolve(null) };
+
+function makeSignedOutService(http: unknown): GitHubFileService {
+  TestBed.resetTestingModule();
+  TestBed.configureTestingModule({ providers: [{ provide: AuthService, useValue: SIGNED_OUT_AUTH }] });
+  return TestBed.runInInjectionContext(() => new GitHubFileService(http as HttpClient));
+}
+
 describe('GitHubFileService', () => {
   // The manifest GET answers 404 (an older repo) and is not recorded, so the data-file
   // assertions below see only the data requests.
@@ -165,14 +182,18 @@ describe('GitHubFileService', () => {
   it('hits the Contents API with the raw Accept header', () => {
     const http = makeHttp();
     TestBed.configureTestingModule({
-      providers: [GitHubFileService, { provide: HttpClient, useValue: http }],
+      providers: [
+        GitHubFileService,
+        { provide: HttpClient, useValue: http },
+        { provide: AuthService, useValue: SIGNED_OUT_AUTH },
+      ],
     });
     const service = TestBed.inject(GitHubFileService);
 
-    service.fetch$(GOLD_STANDARD_REPO, 'dashboard/showcase.json', false).subscribe();
+    service.fetch$(CONTENT_REPO, 'dashboard/showcase.json', false).subscribe();
 
     expect(http.calls[0].url).toBe(
-      'https://api.github.com/repos/michael-yrao/cse-progress/contents/dashboard/showcase.json?ref=main',
+      `https://api.github.com/repos/${CONTENT_REPO_PATH}/contents/dashboard/showcase.json?ref=main`,
     );
     expect(http.calls[0].opts.headers.get('Accept')).toBe('application/vnd.github.raw');
   });
@@ -189,15 +210,52 @@ describe('GitHubFileService', () => {
       },
     };
     TestBed.configureTestingModule({
-      providers: [GitHubFileService, { provide: HttpClient, useValue: http }],
+      providers: [
+        GitHubFileService,
+        { provide: HttpClient, useValue: http },
+        { provide: AuthService, useValue: SIGNED_OUT_AUTH },
+      ],
     });
     const service = TestBed.inject(GitHubFileService);
 
-    service.fetch$(GOLD_STANDARD_REPO, 'dashboard/showcase.json', false).subscribe();
+    service.fetch$(CONTENT_REPO, 'dashboard/showcase.json', false).subscribe();
 
     expect(calls[1]).toBe(
-      'https://raw.githubusercontent.com/michael-yrao/cse-progress/main/dashboard/showcase.json',
+      `https://raw.githubusercontent.com/${CONTENT_REPO_PATH}/main/dashboard/showcase.json`,
     );
+  });
+
+  // Every Contents-API read resolves the token once; signed in it is sent and a 403 is an error.
+  it.each([
+    { name: 'signed in', isSignedIn: true, authHeader: 'Bearer tok', hasRawRetry: false },
+    { name: 'signed out', isSignedIn: false, authHeader: null, hasRawRetry: true },
+  ])('$name: Authorization header and 403 handling', async ({ isSignedIn, authHeader, hasRawRetry }) => {
+    const calls: { url: string; auth: string | null }[] = [];
+    const http = {
+      get: (url: string, opts: any) => {
+        if (url.includes('manifest.json')) return throwError(() => ({ status: 404 }));
+        calls.push({ url, auth: opts?.headers?.get('Authorization') ?? null });
+        return url.includes('api.github.com') ? throwError(() => ({ status: 403 })) : of({ ok: true });
+      },
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        GitHubFileService,
+        { provide: HttpClient, useValue: http },
+        {
+          provide: AuthService,
+          useValue: { isSignedIn: () => isSignedIn, getToken: () => Promise.resolve(isSignedIn ? 'tok' : null) },
+        },
+      ],
+    });
+    const service = TestBed.inject(GitHubFileService);
+
+    await firstValueFrom(service.fetch$(CONTENT_REPO, 'dashboard/showcase.json', false)).catch(
+      () => undefined,
+    );
+
+    expect(calls[0].auth).toBe(authHeader);
+    expect(calls.some((call) => call.url.includes('raw.githubusercontent.com'))).toBe(hasRawRetry);
   });
 
   it('encodes the branch in both URLs, keeping slashes literal on the raw host', () => {
@@ -218,12 +276,16 @@ describe('GitHubFileService', () => {
       };
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
-        providers: [GitHubFileService, { provide: HttpClient, useValue: http }],
+        providers: [
+          GitHubFileService,
+          { provide: HttpClient, useValue: http },
+          { provide: AuthService, useValue: SIGNED_OUT_AUTH },
+        ],
       });
       const service = TestBed.inject(GitHubFileService);
 
       service
-        .fetch$({ ...GOLD_STANDARD_REPO, branch: row.branch }, 'dashboard/showcase.json', false)
+        .fetch$({ ...CONTENT_REPO, branch: row.branch }, 'dashboard/showcase.json', false)
         .subscribe();
 
       expect(calls[0].endsWith(row.apiSuffix)).toBe(true);
@@ -285,11 +347,11 @@ describe('GitHubFileService', () => {
             : of({ ok: true });
         },
       };
-      const service = new GitHubFileService(http as unknown as HttpClient);
+      const service = makeSignedOutService(http);
 
       // A hashed fetch reads the (async) cache first, so each fetch is awaited.
-      await firstValueFrom(service.fetch$(GOLD_STANDARD_REPO, FILE, false));
-      if (bustSecond) await firstValueFrom(service.fetch$(GOLD_STANDARD_REPO, FILE, true));
+      await firstValueFrom(service.fetch$(CONTENT_REPO, FILE, false));
+      if (bustSecond) await firstValueFrom(service.fetch$(CONTENT_REPO, FILE, true));
 
       check(dataUrls, manifestCount);
     });
@@ -316,11 +378,11 @@ describe('GitHubFileService', () => {
           return of(MANIFEST);
         },
       };
-      const service = new GitHubFileService(http as unknown as HttpClient);
-      if (isLoaded) await firstValueFrom(service.fetch$(GOLD_STANDARD_REPO, 'dashboard/practice.json', false));
+      const service = makeSignedOutService(http);
+      if (isLoaded) await firstValueFrom(service.fetch$(CONTENT_REPO, 'dashboard/practice.json', false));
       const requestsBefore = requests;
 
-      expect(await service.manifestHashFor(GOLD_STANDARD_REPO, file)).toBe(expected);
+      expect(await service.manifestHashFor(CONTENT_REPO, file)).toBe(expected);
       expect(requests).toBe(requestsBefore);
     });
   });

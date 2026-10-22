@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
-import { FloodFillComponent, COLORS } from './flood-fill.component';
+import { FloodFillComponent, BOARD_COLOR_TOKENS } from './flood-fill.component';
 
 // The wave animation schedules recursive setTimeouts. These tests assert the
 // synchronous state changes (movesLeft is decremented in pickColor before any
@@ -32,7 +32,7 @@ describe('FloodFillComponent', () => {
   });
 
   it('initializes all cells with valid color indices', () => {
-    expect(component.cells.every(c => c >= 0 && c < COLORS.length)).toBe(true);
+    expect(component.cells.every(c => c >= 0 && c < BOARD_COLOR_TOKENS.length)).toBe(true);
   });
 
   it('starts with max moves and playing state', () => {
@@ -53,14 +53,14 @@ describe('FloodFillComponent', () => {
   it('decrements movesLeft on a valid color pick', () => {
     stubAnimation(component);
     const before = component.movesLeft;
-    const differentColor = (component.currentColor + 1) % COLORS.length;
+    const differentColor = (component.currentColor + 1) % BOARD_COLOR_TOKENS.length;
     component.pickColor(differentColor);
     expect(component.movesLeft).toBe(before - 1);
   });
 
   it('resets game state on initGame', () => {
     stubAnimation(component);
-    const differentColor = (component.currentColor + 1) % COLORS.length;
+    const differentColor = (component.currentColor + 1) % BOARD_COLOR_TOKENS.length;
     component.pickColor(differentColor);
     component.initGame();
     expect(component.movesLeft).toBe(component.maxMoves);

@@ -13,7 +13,7 @@ import { PracticeService } from '../../../core/services/practice.service';
 import { TodayBoardComponent } from '../today-board/today-board.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
 import { RoadmapCoverageComponent } from '../roadmap-coverage/roadmap-coverage.component';
-import { GOLD_STANDARD_REPO, RepoRef } from '../../../core/services/github-file.service';
+import { DEMO_REPO, RepoRef } from '../../../core/services/github-file.service';
 import { ProgressSummary, ProblemProgress, Comfort, Schedule } from '../../../core/models/progress.model';
 import { addDaysISO, currentWeekStart, todayLocalISO } from '../../../core/utils/local-date';
 import { SOLUTION_LINK_MODE_STORAGE_KEY } from '../solution-link-mode';
@@ -180,7 +180,7 @@ function makeProgressServiceStub() {
     error: signal<string | null>(null),
     data: signal<ProgressSummary | null>(makeSummary()),
     repoSlug: signal<string | null>('michael-yrao/cse-progress'),
-    repoRef: signal<RepoRef | null>(GOLD_STANDARD_REPO),
+    repoRef: signal<RepoRef | null>(DEMO_REPO),
     refreshing: signal(false),
     pending: signal<ReadonlySet<number>>(new Set()),
     refreshError: signal<string | null>(null),
@@ -226,6 +226,15 @@ function clickTab(
 ): void {
   const btn: HTMLButtonElement = fixture.nativeElement.querySelector(`#tab-${tab}`)!;
   btn.click();
+  fixture.detectChanges();
+}
+
+// The shared `#problemRowTpl` now renders only in Activity's "Needs attention" list: open it.
+// The caller sets `details` (rows due on or before today) and `detailsStatus: 'ready'` first.
+function openAttentionRows(fixture: { nativeElement: HTMLElement; detectChanges: () => void }): void {
+  clickTab(fixture, 'activity');
+  const drill: HTMLButtonElement = fixture.nativeElement.querySelector('.gauge__drill')!;
+  drill.click();
   fixture.detectChanges();
 }
 
@@ -313,13 +322,12 @@ describe('ProgressPageComponent', () => {
     expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
-  it('shows only the Overview tab content by default — pipeline/gauges/difficulty/Explore live elsewhere', () => {
+  it('shows only the Overview tab content by default — pipeline/gauges/difficulty live elsewhere', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.gauge')).toBeFalsy();
-    expect(fixture.nativeElement.querySelector('.progress__explore')).toBeFalsy();
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
 
     const overviewTab: HTMLButtonElement = fixture.nativeElement.querySelector('#tab-overview');
@@ -367,7 +375,7 @@ describe('ProgressPageComponent', () => {
     expect(h2s.some((h) => h.textContent === 'Difficulty mix')).toBe(false);
   });
 
-  it('Mastery (with the technique list folded in), Activity, and Problems tabs reveal their content on selection', () => {
+  it('Mastery (with the technique list folded in) and Activity tabs reveal their content on selection', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
@@ -379,9 +387,6 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelector('app-streak-calendar')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('.gauge')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('app-badge-grid')).toBeTruthy();
-
-    clickTab(fixture, 'problems');
-    expect(fixture.nativeElement.querySelector('.progress__explore')).toBeTruthy();
   });
 
   it('orders the Activity tab as calendar, gauge, then Achievements', () => {
@@ -442,27 +447,11 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelector('app-workload-chart')).toBeFalsy();
   });
 
-  it.each(['problems', 'activity'] as const)(
-    'switching to the %s tab fetches details automatically',
-    (tab) => {
-      const fixture = TestBed.createComponent(ProgressPageComponent);
-      fixture.detectChanges();
-
-      clickTab(fixture, tab);
-
-      expect(progress.loadDetails).toHaveBeenCalled();
-    },
-  );
-
-  it('the manual "Explore problems" button also fetches (idle-state fallback)', () => {
+  it('switching to the Activity tab fetches details automatically', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'problems');
-    progress.loadDetails.mockClear();
 
-    const exploreBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.progress__explore');
-    expect(exploreBtn).toBeTruthy();
-    exploreBtn.click();
+    clickTab(fixture, 'activity');
 
     expect(progress.loadDetails).toHaveBeenCalled();
   });
@@ -486,7 +475,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'problems');
+    openAttentionRows(fixture);
 
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
 
@@ -495,43 +484,6 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(1);
-  });
-
-  it('changing the comfort filter leaves no expanded row, even when the expanded row still matches the new filter', () => {
-    const problem: ProblemProgress = {
-      lcNumber: 206,
-      title: 'Reverse Linked List',
-      url: 'https://leetcode.com/problems/reverse-linked-list/',
-      difficulty: 'Easy',
-      category: 'linked-list',
-      comfort: '🎓',
-      level: 3,
-      streak: 3,
-      nextReview: '2026-10-01',
-      repDates: ['2026-09-01'],
-      timeline: [{ date: '2026-09-01', comfort: '🎓', level: 3 }],
-    };
-    progress.detailsStatus.set('ready');
-    progress.details.set([problem]);
-
-    const fixture = TestBed.createComponent(ProgressPageComponent);
-    fixture.detectChanges();
-    clickTab(fixture, 'problems');
-
-    const row: HTMLButtonElement = fixture.nativeElement.querySelector('.problem__row');
-    row.click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(1);
-
-    const chips = Array.from(fixture.nativeElement.querySelectorAll('.filters__btn')) as HTMLButtonElement[];
-    const gradChip = chips.find((b) => b.textContent?.trim() === '🎓')!;
-    gradChip.click();
-    fixture.detectChanges();
-
-    // The same row still matches the new filter (comfort 🎓) — its timeline disappearing
-    // proves the row's OWN expansion was reset, not just that it got filtered out.
-    expect(fixture.nativeElement.querySelector('.problem__row')).toBeTruthy();
-    expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
   });
 
   // ── Round 5: .problem__row is a role="button" div (an <a> can't nest inside a real
@@ -556,7 +508,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'problems');
+    openAttentionRows(fixture);
 
     const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
@@ -591,7 +543,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'problems');
+    openAttentionRows(fixture);
 
     const glyph: HTMLAnchorElement = fixture.nativeElement.querySelector('.problem__status--link');
     expect(glyph).toBeTruthy();
@@ -622,7 +574,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'problems');
+    openAttentionRows(fixture);
 
     const glyph: HTMLAnchorElement = fixture.nativeElement.querySelector('.problem__status--link');
     expect(glyph).toBeTruthy();
@@ -651,7 +603,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'problems');
+    openAttentionRows(fixture);
 
     const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
     expect(row.textContent).not.toContain('linked-list');
@@ -676,7 +628,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'problems');
+    openAttentionRows(fixture);
 
     const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
     expect(row.querySelector('.problem__num')!.textContent).toContain('#206');
@@ -701,7 +653,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'problems');
+    openAttentionRows(fixture);
 
     const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
     const link: HTMLAnchorElement = row.querySelector('.problem__links a')!;
@@ -743,7 +695,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'problems');
+    openAttentionRows(fixture);
 
     const rows = Array.from(fixture.nativeElement.querySelectorAll('.problem__row')) as HTMLElement[];
     const row39 = rows.find((r) => r.querySelector('.problem__num')?.textContent?.trim() === '#39')!;
@@ -780,7 +732,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'problems');
+    openAttentionRows(fixture);
 
     expect(fixture.nativeElement.querySelectorAll('.problem__row').length).toBe(2);
     expect(fixture.nativeElement.querySelectorAll('.problem__status--github').length).toBe(0);
@@ -801,7 +753,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'problems');
+    openAttentionRows(fixture);
 
     const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
     const badge: HTMLAnchorElement = row.querySelector('.problem__status--link')!;
@@ -822,7 +774,7 @@ describe('ProgressPageComponent', () => {
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
-    clickTab(fixture, 'problems');
+    openAttentionRows(fixture);
 
     const settingsBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.settings-menu__btn');
     settingsBtn.click();
@@ -938,10 +890,11 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('app-streak-calendar').length).toBe(1);
   });
 
-  // ── The three heavy drills (pipeline / on-schedule / difficulty) now switch to the
-  // Problems tab instead of scrolling to an in-page anchor. ──────────────────────────
-  it('clicking a pipeline tier fetches details, sets the comfort facet, and switches to Problems', () => {
+  // ── The heavy drills (pipeline / difficulty) open the Practice list; the on-schedule drill
+  // expands inline. ───────────────────────────────────────────────────────────────────
+  it("clicking a pipeline tier opens the Practice list on the viewer's own rows, keeping ?repo=", () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
@@ -950,10 +903,10 @@ describe('ProgressPageComponent', () => {
     seg.click();
     fixture.detectChanges();
 
-    expect(progress.loadDetails).toHaveBeenCalled();
-    expect(fixture.componentInstance.listFilter()).toEqual({ kind: 'comfort', value: '🎓' });
-    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe(
-      'true',
+    expect(navigate).toHaveBeenCalledWith(
+      ['/practice'],
+      expect.objectContaining({ queryParams: { difficulty: null, comfort: 'graduated', mine: 1 },
+        queryParamsHandling: 'merge' }),
     );
   });
 
@@ -1026,8 +979,9 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelector('.gauge__drill')).toBeFalsy();
   });
 
-  it('clicking a difficulty count fetches details, sets the difficulty facet, and switches to Problems', () => {
+  it('clicking a difficulty count opens the Practice list on the viewer\'s rows of that difficulty', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
@@ -1038,11 +992,10 @@ describe('ProgressPageComponent', () => {
     diffBtn.click();
     fixture.detectChanges();
 
-    expect(progress.loadDetails).toHaveBeenCalled();
-    const facet = fixture.componentInstance.listFilter();
-    expect(facet?.kind).toBe('difficulty');
-    expect(fixture.nativeElement.querySelector('#tab-problems').getAttribute('aria-selected')).toBe(
-      'true',
+    expect(navigate).toHaveBeenCalledWith(
+      ['/practice'],
+      expect.objectContaining({ queryParams: { difficulty: 'Easy', comfort: null, mine: 1 },
+        queryParamsHandling: 'merge' }),
     );
   });
 
@@ -1050,7 +1003,7 @@ describe('ProgressPageComponent', () => {
   // entirely), so it must not drill into a comfort facet. The Trophy Case it used to jump
   // to was removed Sep 26, 2026, so clicking Retired is now a plain no-op — no fetch, no
   // facet, no tab switch. ─────────────────────────────────────────────────────────────
-  it('clicking the 🏆 Retired segment does NOT set a facet or fetch details, and stays on Mastery', () => {
+  it('clicking the 🏆 Retired segment does NOT navigate or fetch details, and stays on Mastery', () => {
     const withRetired: ProgressSummary = {
       ...makeSummary(),
       pipeline: { ...makeSummary().pipeline, retired: 1 },
@@ -1058,6 +1011,7 @@ describe('ProgressPageComponent', () => {
     progress.data.set(withRetired);
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
@@ -1069,7 +1023,7 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
 
     expect(progress.loadDetails).not.toHaveBeenCalled();
-    expect(fixture.componentInstance.listFilter()).toBeNull();
+    expect(navigate).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('#tab-mastery').getAttribute('aria-selected')).toBe(
       'true',
     );
@@ -1102,43 +1056,17 @@ describe('ProgressPageComponent', () => {
     );
   });
 
-  // ── Round 5: exactly 5 tabs — Techniques folded into Mastery ────────────────────────
-  it('renders exactly 5 tabs in a fixed order, Recognition hidden until selected', () => {
+  // ── Exactly 3 tabs — Techniques folded into Mastery; Problems and Recognition re-homed ──
+  it('renders exactly 3 tabs in a fixed order', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
 
     const tabs = fixture.nativeElement.querySelectorAll('[role="tab"]');
-    expect(tabs.length).toBe(5);
-    const ids = Array.from(tabs).map((t) => (t as HTMLElement).id);
-    expect(ids).toEqual([
+    expect(Array.from(tabs).map((t) => (t as HTMLElement).id)).toEqual([
       'tab-overview',
       'tab-mastery',
-      'tab-recognition',
-      'tab-problems',
       'tab-activity',
     ]);
-
-    const recognitionTab: HTMLButtonElement =
-      fixture.nativeElement.querySelector('#tab-recognition');
-    expect(recognitionTab).toBeTruthy();
-    expect(recognitionTab.textContent).toContain('Recognition');
-    expect(recognitionTab.getAttribute('aria-selected')).toBe('false');
-    expect(fixture.nativeElement.querySelector('app-recognition-panel')).toBeFalsy();
-
-    expect(fixture.nativeElement.querySelector('#tab-techniques')).toBeFalsy();
-  });
-
-  it("switching to Recognition renders app-recognition-panel wired to the summary's probes, no fetch", () => {
-    const fixture = TestBed.createComponent(ProgressPageComponent);
-    fixture.detectChanges();
-
-    clickTab(fixture, 'recognition');
-
-    const panel = fixture.nativeElement.querySelector('app-recognition-panel');
-    expect(panel).toBeTruthy();
-    expect(panel!.textContent).toContain('8 probes');
-    expect(panel!.textContent).toContain('50% clean cold');
-    expect(progress.loadDetails).not.toHaveBeenCalled();
   });
 
   // ── Round 3: technique minProblems + click-to-expand-problems wiring (round 5: now on

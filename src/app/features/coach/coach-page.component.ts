@@ -1,7 +1,9 @@
 import { Component, ChangeDetectionStrategy, InjectionToken, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../shared/components/page-header/page-header.component';
-import { SITE_LINKS, COACH_REPO_IS_PUBLIC } from '../../core/data/site-links';
+import { CLEAN_COMFORT } from '../../core/models/comfort';
+import { ComfortMarkComponent } from '../../shared/components/comfort-mark/comfort-mark.component';
+import { SITE_LINKS, COACH_REPO_IS_PUBLIC, DEMO_REPO_SLUG } from '../../core/data/site-links';
 
 /**
  * DI seam for the repo-public flag. COACH_REPO_IS_PUBLIC in site-links.ts stays
@@ -46,10 +48,12 @@ const COACH_MOVES: CoachMove[] = [
   templateUrl: './coach-page.component.html',
   styleUrls: ['./coach-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, PageHeaderComponent],
+  imports: [RouterLink, PageHeaderComponent, ComfortMarkComponent],
 })
 export class CoachPageComponent {
+  readonly cleanComfort = CLEAN_COMFORT;
   readonly SITE_LINKS = SITE_LINKS;
+  protected readonly demoRepoSlug = DEMO_REPO_SLUG;
   readonly breadcrumb = BREADCRUMB;
   readonly moves = COACH_MOVES;
   readonly isRepoPublic = inject(COACH_REPO_PUBLIC);

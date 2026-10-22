@@ -3,8 +3,9 @@ import { isAnyOf } from '../../core/practice/compare';
 import { LEARNER_FILE } from '../../core/runner/python-driver';
 import { CaseResult, CaseVerdict } from '../../core/runner/runner.model';
 
-export const PASS_MARK = '✓';
-export const FAIL_MARK = '✗';
+/** A row's mark is a word: the screen draws it as an icon and reads the word aloud. */
+export const PASS_MARK = 'pass';
+export const FAIL_MARK = 'fail';
 
 /** The word beside a run that hit the time limit. */
 export const TIME_LIMIT_WORD = 'Time limit';

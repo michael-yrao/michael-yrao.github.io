@@ -13,7 +13,7 @@
 >
   @if (text(); as triggerText) {
     <span class="menu__trigger-text">{{ triggerText }}</span>
-    <span class="menu__chevron" aria-hidden="true">▾</span>
+    <app-icon class="menu__chevron" name="chevron-down" [size]="12" />
   } @else {
     <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
       @if (icon() === 'bars') {

@@ -7,7 +7,7 @@ import { COPY_FEEDBACK_MS, copyText, type CopyMark } from '../copy-text';
   selector: 'app-copy-button',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <button type="button" class="copy-button" [attr.aria-label]="label()" [title]="label()" [disabled]="text() === null" (click)="copy()">
+    <button type="button" class="po-btn po-btn--ghost po-btn--icon copy-button" [attr.aria-label]="label()" [title]="label()" [disabled]="text() === null" (click)="copy()">
       @switch (mark()) {
         @case ('ok') {
           <svg class="copy-button__icon--ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -28,25 +28,8 @@ import { COPY_FEEDBACK_MS, copyText, type CopyMark } from '../copy-text';
       }
     </button>
   `,
-  // The few `practice__btn practice__btn--icon` rules, inlined: the practice stylesheet also holds the practice page's layout.
   styles: `
     $icon-size: 1.1rem;
-    .copy-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: var(--space-xs);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      background: var(--color-bg-raised);
-      color: var(--color-text);
-      font: inherit;
-      cursor: pointer;
-      transition: border-color var(--transition-fast), background var(--transition-fast);
-    }
-    .copy-button:hover:not(:disabled) { border-color: var(--color-accent); }
-    .copy-button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-    .copy-button:disabled { opacity: 0.5; cursor: not-allowed; }
     .copy-button svg { width: $icon-size; height: $icon-size; }
     .copy-button__icon--ok { color: var(--color-found); }
     .copy-button__icon--fail { color: var(--color-hard); }

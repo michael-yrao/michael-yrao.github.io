@@ -77,7 +77,7 @@ describe('LearnListComponent', () => {
     const footer = fixture.nativeElement.querySelector('.ll-source-footer');
 
     expect(footer?.textContent).toBe(
-      `Generated ${cheatSheetsAsset.generatedAt} from michael-yrao/cse-progress`,
+      `Generated ${cheatSheetsAsset.generatedAt} from michael-yrao/progressive-overflow-content`,
     );
   });
 

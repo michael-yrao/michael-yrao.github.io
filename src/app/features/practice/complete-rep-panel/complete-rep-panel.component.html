@@ -34,7 +34,7 @@
         />
       </label>
       @if (row.reveal; as reveal) {
-        <p class="rep__mark" [class.rep__mark--miss]="!reveal.isMatch">{{ reveal.mark }}</p>
+        <p class="rep__mark" [class.rep__mark--miss]="!reveal.isMatch"><app-icon [name]="reveal.isMatch ? 'check' : 'x'" [size]="14" [label]="reveal.mark" />@if (reveal.expected) { {{ reveal.expected }}}</p>
         @if (reveal.why) {
           <p class="rep__ref-why">{{ reveal.why }}</p>
         }
@@ -44,7 +44,7 @@
   @if (isChecked() && reference() === null) {
     <p class="rep__key">no reference bound</p>
   }
-  <button type="button" class="rep__btn" [disabled]="!canCheck()" (click)="check()">Check</button>
+  <button type="button" class="rep__btn po-btn po-btn--sm po-btn--outline" [disabled]="!canCheck()" (click)="check()">Check</button>
 
   <fieldset class="rep__comfort">
     <legend class="rep__name">Comfort</legend>
@@ -58,10 +58,11 @@
           [checked]="rating() === option.rating"
           (change)="rating.set(option.rating)"
         />
+        <app-comfort-mark [comfort]="option.comfort" label="" />
         <span>{{ option.label }}</span>
       </label>
     }
   </fieldset>
 
-  <button type="button" class="rep__btn rep__btn--primary" [disabled]="rating() === null" (click)="save()">Save rep</button>
+  <button type="button" class="rep__btn po-btn po-btn--sm" [disabled]="rating() === null" (click)="save()">Save rep</button>
 </section>

@@ -7,6 +7,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { CheatSheetService, ProblemLink } from '../../../core/services/cheat-sheet.service';
 import { NotWhen, Technique } from '../../../core/models/cheat-sheet.model';
 import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 
 const NOTICE =
@@ -30,7 +31,7 @@ interface KeyProblemView {
   templateUrl: './cheat-sheet.component.html',
   styleUrls: ['./cheat-sheet.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, CodeViewerComponent, PageHeaderComponent],
+  imports: [RouterLink, CodeViewerComponent, PageHeaderComponent, IconComponent],
 })
 export class CheatSheetComponent {
   private readonly cheatSheets = inject(CheatSheetService);

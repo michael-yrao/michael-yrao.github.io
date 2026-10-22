@@ -4,10 +4,10 @@
   <span class="session" aria-label="Session">{{ sessionMark() }}</span>
   <span class="spacer"></span>
   @if (isStreaming()) {
-    <button type="button" class="btn btn--stop" aria-label="Stop" (click)="stop()">■</button>
+    <button type="button" class="btn po-btn po-btn--ghost po-btn--sm po-btn--icon btn--stop" aria-label="Stop" (click)="stop()"><app-icon name="square" [size]="14" /></button>
   }
-  <button type="button" class="btn" aria-label="New session" (click)="startNewSession()">⟳ New</button>
-  <button type="button" class="btn" aria-label="Close coach" (click)="ui.toggle()">✕</button>
+  <button type="button" class="btn po-btn po-btn--ghost po-btn--sm" aria-label="New session" (click)="startNewSession()"><app-icon name="reset" [size]="14" />New</button>
+  <button type="button" class="btn po-btn po-btn--ghost po-btn--sm po-btn--icon" aria-label="Close coach" (click)="ui.toggle()"><app-icon name="x" [size]="14" /></button>
 </header>
 
 <div class="transcript" #scroller>
@@ -19,10 +19,10 @@
       <ul>
         <li><span class="dot dot--awake"></span>awake</li>
         <li><span class="key">$</span>session cost</li>
-        <li><span class="key">⋯</span>running</li>
-        <li><span class="key key--ok">✓</span>done</li>
-        <li><span class="key key--bad">✗</span>failed</li>
-        <li><span class="key">■</span>stopped</li>
+        <li><span class="key"><app-icon name="circle" [size]="12" /></span>running</li>
+        <li><span class="key key--ok"><app-icon name="check" [size]="12" /></span>done</li>
+        <li><span class="key key--bad"><app-icon name="x" [size]="12" /></span>failed</li>
+        <li><span class="key"><app-icon name="square" [size]="12" /></span>stopped</li>
       </ul>
     </details>
   }
@@ -33,13 +33,13 @@
 
 <div class="chips">
   @for (chip of quickActions; track chip) {
-    <button type="button" class="chip" [disabled]="isStreaming()" (click)="send(chip)">{{ chip }}</button>
+    <button type="button" class="chip po-chip" [disabled]="isStreaming()" (click)="send(chip)">{{ chip }}</button>
   }
 </div>
 
 <form class="composer" (submit)="$event.preventDefault(); send(draft())">
   <textarea
-    class="input"
+    class="input po-input"
     rows="2"
     placeholder="Message"
     aria-label="Message"
@@ -47,5 +47,5 @@
     (input)="onDraftInput($event)"
     (keydown)="onComposerKey($event)"
   ></textarea>
-  <button type="submit" class="btn btn--send" aria-label="Send" [disabled]="!canSend()">↑</button>
+  <button type="submit" class="btn btn--send po-btn po-btn--sm" aria-label="Send" [disabled]="!canSend()"><app-icon name="arrow-up" [size]="14" /></button>
 </form>

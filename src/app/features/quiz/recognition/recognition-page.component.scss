@@ -1,0 +1,10 @@
+.rec-page {
+  padding: var(--space-xl) var(--page-gutter) var(--space-2xl);
+}
+
+.rec-state {
+  text-align: center;
+  color: var(--color-text-muted);
+
+  p { margin: 0 0 var(--space-md); }
+}

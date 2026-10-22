@@ -13,7 +13,7 @@ import { HttpClient } from '@angular/common/http';
 import { loadAllAlgorithms } from '../../../core/data/algorithms.data';
 import { AlgorithmMeta } from '../../../core/models/algorithm.model';
 import { GroundednessReport, computeGroundedness } from '../../../core/showcase/groundedness';
-import { GOLD_STANDARD_SLUG } from '../../../core/services/github-file.service';
+import { CONTENT_SLUG } from '../../../core/services/github-file.service';
 import { ShowcaseService } from '../../../core/services/showcase.service';
 
 const RATIO_TO_PERCENT = 100;
@@ -95,7 +95,7 @@ export class GroundednessMeterComponent {
     return algorithms ? computeGroundedness(algorithms, data) : null;
   });
 
-  readonly repoSlug = GOLD_STANDARD_SLUG;
+  readonly repoSlug = CONTENT_SLUG;
 
   readonly explanation = GROUNDED_EXPLANATION;
 

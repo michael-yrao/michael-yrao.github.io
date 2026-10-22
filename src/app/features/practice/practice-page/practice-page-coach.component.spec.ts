@@ -12,7 +12,7 @@ import { COACH_OWNER_LOGIN } from '../../../core/data/site-links';
 import { createMemoryStorage } from '../../../core/memory-storage.testing';
 import { PracticeData, PracticeProblem } from '../../../core/models/practice.model';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
-import { GOLD_STANDARD_REPO } from '../../../core/services/github-file.service';
+import { CONTENT_REPO } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { ShowcaseService } from '../../../core/services/showcase.service';
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
@@ -61,7 +61,7 @@ function render(coach: { publish: ReturnType<typeof vi.fn>; clear: ReturnType<ty
           status: signal('ready'),
           error: signal(null),
           data: signal(data),
-          ref: signal(GOLD_STANDARD_REPO),
+          ref: signal(CONTENT_REPO),
           load: vi.fn(),
           problemFor: () => PROBLEM,
         },

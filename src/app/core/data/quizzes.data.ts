@@ -21,4 +21,13 @@ export const QUIZZES: QuizMeta[] = [
     status: 'available',
     route: '/quiz/big-o',
   },
+  {
+    id: 'recognition',
+    title: 'Recognition',
+    description: 'Your cold-rep probe log: did the practiced pool still teach recognition?',
+    algorithmNote: '',
+    algorithms: [],
+    status: 'available',
+    route: '/quiz/recognition',
+  },
 ];

@@ -1,7 +1,7 @@
 import { Observable, catchError, map, throwError } from 'rxjs';
 
 import {
-  GOLD_STANDARD_REPO,
+  CONTENT_REPO,
   GitHubFileService,
   NOT_FOUND_STATUS,
   RepoRef,
@@ -20,7 +20,7 @@ export interface SourcedBody<T> {
 
 /** True when `sourceRef`'s code is the author's while the viewer asked for a different repo. */
 export function isAuthorFallbackOf(source: ContractSource | null, requested: RepoRef): boolean {
-  return source === 'gold-standard' && !sameRef(requested, GOLD_STANDARD_REPO);
+  return source === 'gold-standard' && !sameRef(requested, CONTENT_REPO);
 }
 
 /**
@@ -35,14 +35,14 @@ export function fetchWithAuthorFallback$<T>(
   bust: boolean,
 ): Observable<SourcedBody<T>> {
   const fromGold$ = (): Observable<SourcedBody<T>> =>
-    github.fetch$<T>(GOLD_STANDARD_REPO, file, bust).pipe(
+    github.fetch$<T>(CONTENT_REPO, file, bust).pipe(
       map((body): SourcedBody<T> => ({
         body,
         source: 'gold-standard',
-        sourceRef: GOLD_STANDARD_REPO,
+        sourceRef: CONTENT_REPO,
       })),
     );
-  if (sameRef(ref, GOLD_STANDARD_REPO)) return fromGold$();
+  if (sameRef(ref, CONTENT_REPO)) return fromGold$();
 
   return github.fetch$<T>(ref, file, bust).pipe(
     map((body): SourcedBody<T> => ({ body, source: 'viewer', sourceRef: ref })),

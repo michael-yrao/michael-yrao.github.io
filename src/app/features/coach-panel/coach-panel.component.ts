@@ -15,9 +15,11 @@ import { AuthService } from '../../core/auth/auth.service';
 import { CoachContextService } from '../../core/coach/coach-context.service';
 import { CoachUiService } from '../../core/coach/coach-ui.service';
 import type { CoachStatus } from '../../core/models/coach.model';
-import { GOLD_STANDARD_REPO, GitHubFileService } from '../../core/services/github-file.service';
+import { DEMO_REPO_SLUG } from '../../core/data/site-links';
+import { GitHubFileService } from '../../core/services/github-file.service';
 import { PracticeService } from '../../core/services/practice.service';
 import { ProgressService } from '../../core/services/progress.service';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 import { CoachClientService } from './coach-client.service';
 import { CoachMessageComponent } from './coach-message/coach-message.component';
 import { refreshAfterTurn } from './coach-refresh';
@@ -39,7 +41,7 @@ const NO_SESSION_MARK = '—';
   templateUrl: './coach-panel.component.html',
   styleUrls: ['./coach-panel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CoachMessageComponent, CoachStatusCardComponent],
+  imports: [CoachMessageComponent, CoachStatusCardComponent, IconComponent],
   providers: [CoachClientService],
   // One delegated click handler for in-message links (the transcript has no other links).
   host: { '(click)': 'onLinkClick($event)' },
@@ -146,7 +148,7 @@ export class CoachPanelComponent {
   }
 
   private repoSlug(): string {
-    return this.auth.selectedRepo() ?? `${GOLD_STANDARD_REPO.owner}/${GOLD_STANDARD_REPO.repo}`;
+    return this.auth.selectedRepo() ?? DEMO_REPO_SLUG;
   }
 
   private async refreshStatus(): Promise<void> {

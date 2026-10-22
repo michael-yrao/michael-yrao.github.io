@@ -2,10 +2,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  padding: var(--space-xl);
-  background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
 
   // ── SVG canvas ────────────────────────────────────────────────
   &__svg {
@@ -23,7 +19,7 @@
 
     &--default  { stroke: var(--color-border); }
     &--active   { stroke: var(--color-accent); stroke-width: 3.5; }
-    &--visited  { stroke: #334155; }
+    &--visited  { stroke: var(--color-visited); }
     &--found    { stroke: var(--color-found); }
   }
 
@@ -31,7 +27,7 @@
   &__arrow {
     &--default  { fill: var(--color-border); }
     &--active   { fill: var(--color-accent); }
-    &--visited  { fill: #334155; }
+    &--visited  { fill: var(--color-visited); }
     &--found    { fill: var(--color-found); }
   }
 
@@ -59,16 +55,16 @@
       stroke: var(--color-border);
     }
     &--active {
-      fill: rgba(6, 182, 212, 0.18);
+      fill: var(--color-accent-dim);
       stroke: var(--color-accent);
       stroke-width: 3;
     }
     &--visited {
       fill: var(--color-bg-raised);
-      stroke: #475569;
+      stroke: var(--color-text-muted);
     }
     &--found {
-      fill: rgba(74, 222, 128, 0.18);
+      fill: var(--color-easy-dim);
       stroke: var(--color-found);
     }
   }

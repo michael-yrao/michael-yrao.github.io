@@ -1,48 +1,49 @@
-// Pure helpers for the progress page: tab and filter types, problem filtering, on-schedule counts, segment and label builders.
+// Pure helpers for the progress page: tab types, on-schedule counts, segment and label builders.
+import { CLEAN_COMFORT, COMFORT_ORDER } from '../../../core/models/comfort';
 import { Comfort, OnSchedule, Pipeline, ProblemProgress, ProgressSummary } from '../../../core/models/progress.model';
-import { daysBetweenISO } from '../../../core/utils/local-date';
-import { matchesNumberOrTitle } from '../../../shared/utils/text-search';
 import { SegmentedBarSegment } from '../segmented-bar/segmented-bar.component';
-
-export type ComfortFilter = 'all' | Comfort;
-export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
 // Segmented tabs (replaces round-1's single "Full breakdown" toggle — round-2 learner
 // feedback: the toggle "doesn't connect the top and bottom"). Overview is the default —
 // streak hero + Today's board, the at-a-glance landing. Everything else has a home tab;
-// all existing drill behavior keeps working inside them, just re-homed. Techniques (round 5)
-// folded into Mastery — the honest denominator and the technique list belong next to the
-// pipeline they both describe.
-export type ProgressTab = 'overview' | 'mastery' | 'recognition' | 'problems' | 'activity';
-export const TAB_ORDER: readonly ProgressTab[] = ['overview', 'mastery', 'recognition', 'problems', 'activity'];
+// the per-problem list lives on the Practice list and the probe log on the Quiz hub.
+// Techniques (round 5) folded into Mastery — the honest denominator and the technique list
+// belong next to the pipeline they both describe.
+export type ProgressTab = 'overview' | 'mastery' | 'activity';
+export const TAB_ORDER: readonly ProgressTab[] = ['overview', 'mastery', 'activity'];
 export const TAB_LABEL: Readonly<Record<ProgressTab, string>> = {
   overview: 'Overview',
   mastery: 'Mastery',
-  recognition: 'Recognition',
-  problems: 'Problems',
   activity: 'Activity',
 };
-
-// The Explore list's unified filter facet. `null` = show everything. Each drill button on
-// the landing (a pipeline tier, a difficulty count) sets one of these and triggers
-// loadDetails() + switches to the Problems tab. The On-schedule gauge's "Needs attention"
-// list is not one of these drills — it expands inline in the gauge card instead, so this
-// facet only ever carries comfort or difficulty.
-export type ListFacet = { kind: 'comfort'; value: Comfort } | { kind: 'difficulty'; value: Difficulty };
-
-export const COMFORT_FILTERS: readonly ComfortFilter[] = ['all', '🔴', '🟡', '🟢', '🎓'];
 
 const MISSING_GENERATED_AT = '—';
 const FULL_PCT = 100;
 
 // The pipeline segment KEY -> comfort glyph it drills into.
 const PIPELINE_COMFORT: Readonly<Record<string, Comfort>> = {
-  blank: '🔴',
-  shaky: '🟡',
-  clean: '🟢',
-  grad: '🎓',
-  retired: '🏆',
+  blank: COMFORT_ORDER[0],
+  shaky: COMFORT_ORDER[1],
+  clean: COMFORT_ORDER[2],
+  grad: COMFORT_ORDER[3],
+  retired: COMFORT_ORDER[4],
 };
+
+export interface MaturityStage {
+  readonly comfort: Comfort;
+  readonly streak: number | null;
+}
+
+/** The seven visible comfort stages, weakest to strongest, for the Mastery subtitle key. */
+export const MATURITY_STAGES: readonly MaturityStage[] = [
+  { comfort: COMFORT_ORDER[0], streak: null },
+  { comfort: COMFORT_ORDER[1], streak: null },
+  { comfort: CLEAN_COMFORT, streak: 0 },
+  { comfort: CLEAN_COMFORT, streak: 1 },
+  { comfort: CLEAN_COMFORT, streak: 2 },
+  { comfort: COMFORT_ORDER[3], streak: null },
+  { comfort: COMFORT_ORDER[4], streak: null },
+];
 
 /** The comfort tier a pipeline segment key drills into, or null for an unknown key. */
 export function comfortForPipelineKey(key: string): Comfort | null {
@@ -72,34 +73,6 @@ export function toggledKeys(keys: ReadonlySet<string>, key: string): ReadonlySet
   return keys.has(key) ? new Set([...keys].filter((k) => k !== key)) : new Set([...keys, key]);
 }
 
-function matchesFacet(p: ProblemProgress, facet: ListFacet | null): boolean {
-  if (!facet) return true;
-  return facet.kind === 'comfort' ? p.comfort === facet.value : p.difficulty === facet.value;
-}
-
-/** The Explore list after the facet filter and the search `needle` (already normalised); no
- *  facet and a blank needle show everything. */
-export function filterProblems(
-  list: readonly ProblemProgress[],
-  facet: ListFacet | null,
-  needle = '',
-): ProblemProgress[] {
-  return list.filter((p) => matchesFacet(p, facet) && matchesNumberOrTitle(p.lcNumber, p.title, needle));
-}
-
-/** Overdue or due-today as of `today` — the On-schedule gauge's inline "Needs attention"
- *  list. A problem with no `nextReview` yet (never reviewed) is never in this state. */
-function isDueOrOverdue(p: ProblemProgress, today: string): boolean {
-  return !!p.nextReview && p.nextReview <= today;
-}
-
-/** The attention list: due or overdue rows, oldest `nextReview` first (ties by LC number). */
-export function attentionProblems(problems: readonly ProblemProgress[], today: string): ProblemProgress[] {
-  return problems
-    .filter((p) => isDueOrOverdue(p, today))
-    .sort((a, b) => (a.nextReview ?? '').localeCompare(b.nextReview ?? '') || a.lcNumber - b.lcNumber);
-}
-
 /** The On-schedule gauge's counts recomputed client-side from the loaded problem rows —
  *  the same arithmetic as cse-progress gamify.py's `on_schedule()`, but against the
  *  viewer's `today` rather than the exporter's session date. */
@@ -120,15 +93,8 @@ export function isDueToday(p: ProblemProgress, today: string): boolean {
   return p.nextReview === today;
 }
 
-/** The attention row's due label: "due today", or "Nd overdue" for a past nextReview. */
-export function dueLabel(p: ProblemProgress, today: string): string {
-  const nextReview = p.nextReview ?? today;
-  if (nextReview === today) return 'due today';
-  return `${daysBetweenISO(nextReview, today)}d overdue`;
-}
-
-/** Pipeline as ordered segments for the shared segmented bar — each a drill into the Problems
- *  tab filtered to that comfort tier. Zero-value tiers are dropped. */
+/** Pipeline as ordered segments for the shared segmented bar — each a drill into the Practice
+ *  list filtered to that comfort tier. Zero-value tiers are dropped. */
 export function pipelineSegments(p: Pipeline): SegmentedBarSegment[] {
   return (
     [

@@ -20,11 +20,14 @@ import {
 import { LoadStatus } from '../../../core/services/progress.service';
 import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
+import { streakFromNote } from '../../../core/models/comfort';
 import { shortMonthDay } from '../../../core/utils/local-date';
 import { EngineMenuComponent } from '../engine-menu/engine-menu.component';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
+import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
-import { PRACTICE_GLYPH } from '../practice-link';
+import { PRACTICE_ICON } from '../practice-link';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProgressViewStateService } from '../progress-view-state.service';
 import {
@@ -32,6 +35,9 @@ import {
   COMPLEXITY_GATE_TITLE,
   RowCounts,
   WALKTHROUGH_GLYPH,
+  DONE_ICON,
+  HELD_ICON,
+  OPEN_ICON,
   WorkloadBar,
   buildWorkloadBar,
   countRows,
@@ -50,9 +56,9 @@ import {
   outcomeKey,
   plainAriaLabel,
   rowKey,
-  rowStateGlyph,
+  rowStateIcon,
   statusAriaLabel,
-  statusGlyph,
+  statusIcon,
   sumRowCounts,
   trendAriaLabel,
   trendPanelId,
@@ -92,6 +98,8 @@ const NO_PENDING: ReadonlySet<number> = new Set();
     NgTemplateOutlet,
     ProblemTimelineComponent,
     EngineMenuComponent,
+    ComfortMarkComponent,
+    IconComponent,
   ],
 })
 export class TodayBoardComponent {
@@ -355,6 +363,7 @@ export class TodayBoardComponent {
   protected readonly externalJudgeUrlFor = externalJudgeUrlFor;
   protected readonly shortMonthDay = shortMonthDay;
   protected readonly endNoteMeaning = endNoteMeaning;
+  protected readonly streakFromNote = streakFromNote;
   protected readonly isGateRow = isGateRow;
   protected readonly isMovedItem = isMovedItem;
   protected readonly isMissedItem = isMissedItem;
@@ -368,10 +377,13 @@ export class TodayBoardComponent {
   protected readonly statusAriaLabel = statusAriaLabel;
   protected readonly githubAriaLabel = githubAriaLabel;
   protected readonly movedAriaLabel = movedAriaLabel;
-  protected readonly statusGlyph = statusGlyph;
+  protected readonly statusIcon = statusIcon;
   protected readonly plainAriaLabel = plainAriaLabel;
-  protected readonly rowStateGlyph = rowStateGlyph;
+  protected readonly rowStateIcon = rowStateIcon;
+  protected readonly doneIcon = DONE_ICON;
+  protected readonly openIcon = OPEN_ICON;
+  protected readonly heldIcon = HELD_ICON;
   protected readonly walkthroughGlyph = WALKTHROUGH_GLYPH;
-  protected readonly practiceGlyph = PRACTICE_GLYPH;
+  protected readonly practiceIcon = PRACTICE_ICON;
   protected readonly gateTitle = COMPLEXITY_GATE_TITLE;
 }

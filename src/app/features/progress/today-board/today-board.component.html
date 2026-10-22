@@ -1,5 +1,8 @@
 <ng-template #outcomeGlyphTpl let-item>
-  {{ item.startComfort ? item.startComfort + '→' + item.endComfort : item.endComfort }}
+  @if (item.startComfort) {
+    <app-comfort-mark [comfort]="item.startComfort" [streak]="streakFromNote(item.startNote)" label="" />→
+  }
+  <app-comfort-mark [comfort]="item.endComfort" [streak]="streakFromNote(item.endNote)" label="" />
 </ng-template>
 
 <ng-template #itemRowTpl let-item let-date="date">
@@ -17,7 +20,7 @@
         class="today-board__status today-board__status--link"
         title="Solution walkthrough"
         [attr.aria-label]="statusAriaLabel(item, date, isPendingItem(item, date))"
-        >{{ statusGlyph(item, walkthroughGlyph, date, todayISO()) }}</a
+        >@if (statusIcon(item, null, date, todayISO()); as icon) {<app-icon [name]="icon" [size]="14" />} @else {{{ walkthroughGlyph }}}</a
       >
     } @else if (solutionUrl(item.file); as src) {
       <a
@@ -27,13 +30,13 @@
         [attr.aria-label]="githubAriaLabel(item, date, isPendingItem(item, date))"
         target="_blank"
         rel="noopener"
-        >{{ statusGlyph(item, rowStateGlyph(item, isPendingItem(item, date)), date, todayISO()) }}</a
+        ><app-icon [name]="statusIcon(item, rowStateIcon(item, isPendingItem(item, date)), date, todayISO())!" [size]="14" /></a
       >
     } @else {
       <span
         class="today-board__status"
         [attr.aria-label]="plainAriaLabel(item, date, isPendingItem(item, date))"
-        >{{ statusGlyph(item, rowStateGlyph(item, isPendingItem(item, date)), date, todayISO()) }}</span
+        ><app-icon [name]="statusIcon(item, rowStateIcon(item, isPendingItem(item, date)), date, todayISO())!" [size]="14" /></span
       >
     }
     @if (item.lcNumber) {
@@ -84,21 +87,21 @@
         </span>
       }
     } @else if (item.startComfort) {
-      <span class="today-board__comfort">{{ item.startComfort }}</span>
+      <span class="today-board__comfort"><app-comfort-mark [comfort]="item.startComfort" [streak]="streakFromNote(item.startNote)" /></span>
     }
     <span class="today-board__links">
       <span class="today-board__slot">
         @if (item.lcNumber && practiceNumbers().has(item.lcNumber)) {
-          <a [routerLink]="['/practice', item.lcNumber]" queryParamsHandling="preserve" aria-label="Run code" title="Run code" class="practice-link">{{ practiceGlyph }}</a>
+          <a [routerLink]="['/practice', item.lcNumber]" queryParamsHandling="preserve" aria-label="Run code" title="Run code" class="practice-link"><app-icon [name]="practiceIcon" [size]="14" /></a>
         }
       </span>
       <span class="today-board__slot">
         @if (externalJudgeUrlFor(item.url, item.lcNumber); as ext) {
-          <a [href]="ext" target="_blank" rel="noopener" aria-label="External" title="External">↗</a>
+          <a [href]="ext" target="_blank" rel="noopener" aria-label="External" title="External"><app-icon name="external" [size]="14" /></a>
         }
       </span>
       @if (item.lcNumber && !item.done && heldMarkFor(item); as held) {
-        <span class="today-board__held">{{ held }}</span>
+        <span class="today-board__held" [attr.aria-label]="'Held until ' + held"><app-icon [name]="heldIcon" [size]="14" />{{ held }}</span>
       }
       @if (item.lcNumber) {
         <button type="button" class="today-board__trend-btn" title="Comfort history"
@@ -106,11 +109,7 @@
           [attr.aria-expanded]="isTrendOpen(item, date)"
           [attr.aria-controls]="trendPanelId(item, date)"
           (click)="toggleTrend(item, date)">
-          <svg viewBox="0 0 14 14" aria-hidden="true" focusable="false">
-            <rect x="1" y="8" width="3" height="5" rx="0.5" />
-            <rect x="5.5" y="4.5" width="3" height="8.5" rx="0.5" />
-            <rect x="10" y="1" width="3" height="12" rx="0.5" />
-          </svg>
+          <app-icon name="trend" [size]="14" />
         </button>
       }
     </span>
@@ -135,9 +134,8 @@
 
 <ng-template #gateRowTpl let-row>
   <li class="today-board__row today-board__row--gate" [class.today-board__row--done]="row.done">
-    <span class="today-board__status" [attr.aria-label]="row.done ? 'done' : 'not done'">{{
-      row.done ? '✓' : '○'
-    }}</span>
+    <span class="today-board__status" [attr.aria-label]="row.done ? 'done' : 'not done'"
+      ><app-icon [name]="row.done ? doneIcon : openIcon" [size]="14" /></span>
     <span class="today-board__title">{{ gateTitle }}</span>
     <span class="today-board__gate-sub">{{ row.subtitle }}</span>
     @if (row.doneCount > 0 && row.doneCount < row.totalCount) {
@@ -189,7 +187,7 @@
         aria-label="Previous week"
         [disabled]="!canGoPrev()"
         (click)="prevWeek()"
-      >◀</button>
+      ><app-icon name="chevron-left" [size]="14" /></button>
       <span class="today-board__week-label">Week of {{ shortMonthDay(displayedWeekOf()) }}</span>
       <button
         type="button"
@@ -197,7 +195,7 @@
         aria-label="Next week"
         [disabled]="!canGoNext()"
         (click)="nextWeek()"
-      >▶</button>
+      ><app-icon name="chevron-right" [size]="14" /></button>
       @if (isOwnRepo()) {
         <app-engine-menu [repoRef]="repoRef()" [canBuild]="!!schedule()" />
       }
@@ -266,7 +264,7 @@
                   aria-label="What are units?"
                   aria-describedby="today-board-units-info"
                   (click)="toggleInfo()"
-                >ⓘ</button>
+                ><app-icon name="info" [size]="14" /></button>
                 <span class="today-board__info-bubble" id="today-board-units-info" role="tooltip">
                   Units = a day's effort load; harder or less-familiar problems cost more. Bar = that day vs your daily ceiling.
                 </span>

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { WalkthroughStateService } from '../walkthrough-state.service';
 
 /** The variant chips with the selected variant's own time and space bound beside them. Sits at
@@ -8,6 +9,7 @@ import { WalkthroughStateService } from '../walkthrough-state.service';
   selector: 'app-variant-bar',
   templateUrl: './variant-bar.component.html',
   styleUrls: ['./variant-bar.component.scss'],
+  imports: [IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VariantBarComponent {

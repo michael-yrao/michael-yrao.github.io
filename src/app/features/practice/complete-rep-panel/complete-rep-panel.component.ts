@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 
 import { AttemptComplexity, AttemptRating, RATING_OPTIONS } from '../../../core/practice/practice-attempt';
+import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 type BoundKey = 'time' | 'space';
 
@@ -28,13 +30,18 @@ interface BoundRow {
   readonly name: string;
   readonly label: string | null;
   readonly why: string;
-  /** Set once checked against a reference: the mark and the reference's why, if it has one. */
-  readonly reveal: { readonly isMatch: boolean; readonly mark: string; readonly why: string | null } | null;
+  /** Set once checked against a reference: the mark word, the reference bound on a miss, and the reference's why, if it has one. */
+  readonly reveal: {
+    readonly isMatch: boolean;
+    readonly mark: string;
+    readonly expected: string | null;
+    readonly why: string | null;
+  } | null;
 }
 
 const EMPTY_DRAFT: BoundDraft = { label: null, why: '' };
-const MATCH_MARK = '✓';
-const MISS_MARK = '✗';
+const MATCH_MARK = 'pass';
+const MISS_MARK = 'fail';
 const BOUND_NAMES: Readonly<Record<BoundKey, string>> = { time: 'Time', space: 'Space' };
 const BOUND_KEYS: readonly BoundKey[] = ['time', 'space'];
 
@@ -44,6 +51,7 @@ const BOUND_KEYS: readonly BoundKey[] = ['time', 'space'];
   templateUrl: './complete-rep-panel.component.html',
   styleUrl: './complete-rep-panel.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ComfortMarkComponent, IconComponent],
 })
 export class CompleteRepPanelComponent {
   protected readonly headingId = 'rep-heading';
@@ -108,7 +116,8 @@ export class CompleteRepPanelComponent {
     const isMatch = this.drafts()[key].label === reference[key];
     return {
       isMatch,
-      mark: isMatch ? MATCH_MARK : `${MISS_MARK} ${reference[key]}`,
+      mark: isMatch ? MATCH_MARK : MISS_MARK,
+      expected: isMatch ? null : reference[key],
       why: key === 'time' ? reference.whyTime : reference.whySpace,
     };
   }

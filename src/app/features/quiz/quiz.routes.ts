@@ -13,4 +13,10 @@ export const QUIZ_ROUTES: Routes = [
     path: 'big-o',
     loadComponent: () => import('./big-o/big-o.component').then((m) => m.BigOComponent),
   },
+  {
+    path: 'recognition',
+    title: 'Recognition',
+    loadComponent: () =>
+      import('./recognition/recognition-page.component').then((m) => m.RecognitionPageComponent),
+  },
 ];

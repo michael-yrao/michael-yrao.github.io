@@ -96,14 +96,14 @@ describe('CheatSheetService', () => {
     service.load();
 
     expect(http.calls).toEqual([
-      'https://api.github.com/repos/michael-yrao/cse-progress/contents/dashboard/cheat-sheets.json?ref=main',
+      'https://api.github.com/repos/michael-yrao/progressive-overflow-content/contents/dashboard/cheat-sheets.json?ref=main',
     ]);
     expect(service.status()).toBe('ready');
     expect(service.error()).toBeNull();
     expect(service.data()?.techniques.length).toBe(3);
     expect(service.source()).toBe('repo');
-    expect(service.repoSlug()).toBe('michael-yrao/cse-progress');
-    expect(service.sourceFooter()).toBe(`Generated ${makePayload().generatedAt} from michael-yrao/cse-progress`);
+    expect(service.repoSlug()).toBe('michael-yrao/progressive-overflow-content');
+    expect(service.sourceFooter()).toBe(`Generated ${makePayload().generatedAt} from michael-yrao/progressive-overflow-content`);
   });
 
   it('falls back to the bundled asset when the repo fetch 404s, and sets source=bundled', () => {
@@ -116,7 +116,7 @@ describe('CheatSheetService', () => {
     service.load();
 
     expect(http.calls).toEqual([
-      'https://api.github.com/repos/michael-yrao/cse-progress/contents/dashboard/cheat-sheets.json?ref=main',
+      'https://api.github.com/repos/michael-yrao/progressive-overflow-content/contents/dashboard/cheat-sheets.json?ref=main',
       'assets/cheat-sheets.json',
     ]);
     expect(service.status()).toBe('ready');

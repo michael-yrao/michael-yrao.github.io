@@ -35,10 +35,6 @@ $mark-size: 14px;
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
-    padding: var(--space-lg);
-    background: var(--color-bg-card);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
 
     &--muted {
       opacity: 0.55;
@@ -65,29 +61,7 @@ $mark-size: 14px;
   }
 
   &__button {
-    display: inline-block;
     align-self: flex-start;
-    padding: var(--space-sm) var(--space-md);
-    font: inherit;
-    color: var(--color-text);
-    text-decoration: none;
-    background: var(--color-accent-dim);
-    border: 1px solid var(--color-accent);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: background var(--transition-fast);
-
-    &:hover:not(:disabled):not([aria-disabled='true']) {
-      background: var(--hover-tint-strong);
-    }
-
-    &:disabled,
-    &[aria-disabled='true'] {
-      color: var(--color-text-muted);
-      border-color: var(--color-border);
-      background: transparent;
-      cursor: not-allowed;
-    }
   }
 
   &__link {
@@ -112,34 +86,10 @@ $mark-size: 14px;
     font-size: var(--text-sm);
   }
 
-  &__input {
-    padding: var(--space-sm);
-    font: inherit;
-    color: var(--color-text);
-    background: var(--color-bg-card);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-  }
-
   &__toggles {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-sm);
-  }
-
-  &__toggle {
-    padding: var(--space-sm) var(--space-md);
-    font: inherit;
-    color: var(--color-text);
-    background: var(--color-bg-card);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-
-    &[aria-pressed='true'] {
-      background: var(--color-accent-dim);
-      border-color: var(--color-accent);
-    }
   }
 
   &__steps {

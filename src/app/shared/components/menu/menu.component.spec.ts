@@ -120,7 +120,7 @@ describe('MenuComponent text', () => {
     const { fixture, el } = mount();
     fixture.componentInstance.text.set(text);
     fixture.detectChanges();
-    expect(trigger(el).querySelector('svg') !== null).toBe(hasSvg);
+    expect(trigger(el).querySelector(':scope > svg') !== null).toBe(hasSvg);
     expect(trigger(el).querySelector('.menu__trigger-text')?.textContent ?? null).toBe(label);
   });
 });

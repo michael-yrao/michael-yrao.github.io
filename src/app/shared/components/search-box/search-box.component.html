@@ -1,4 +1,4 @@
-<span class="search-box__glyph" aria-hidden="true">⌕</span>
+<span class="search-box__glyph" aria-hidden="true"><app-icon name="search" [size]="14" /></span>
 <input
   #input
   type="search"
@@ -12,6 +12,3 @@
   (keydown.arrowdown)="arrowDown.emit(); $event.preventDefault()"
   (keydown.escape)="onEscape($event)"
 />
-@if (shortcut() && value() === '') {
-  <kbd class="search-box__kbd">/</kbd>
-}

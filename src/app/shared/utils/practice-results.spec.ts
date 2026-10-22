@@ -6,7 +6,7 @@ function rowOf(index: number, isPass: boolean): ResultRow {
   return {
     index,
     isPass,
-    mark: isPass ? '✓' : '✗',
+    mark: isPass ? 'pass' : 'fail',
     word: null,
     input: '',
     expected: '',

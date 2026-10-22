@@ -1,6 +1,6 @@
 import { HttpTestingController } from '@angular/common/http/testing';
 
-import { GOLD_STANDARD_REPO, RepoRef } from './github-file.service';
+import { CONTENT_REPO, CONTENT_SLUG, RepoRef } from './github-file.service';
 import { ContractSource } from './author-fallback';
 
 const NOT_FOUND = { status: 404, statusText: 'Not Found' };
@@ -8,7 +8,7 @@ const REPO_IN_URL = /repos\/([^/]+\/[^/]+)\//;
 
 const VIEWER_REPO: RepoRef = { owner: 'someone', repo: 'their-repo', branch: 'dev' };
 const VIEWER_SLUG = 'someone/their-repo';
-const GOLD_SLUG = `${GOLD_STANDARD_REPO.owner}/${GOLD_STANDARD_REPO.repo}`;
+const GOLD_SLUG = CONTENT_SLUG;
 
 /** One case of the author-fallback table both contract services share. */
 export interface FallbackRow {
@@ -39,16 +39,16 @@ export const FALLBACK_ROWS: readonly FallbackRow[] = [
     viewerHasFile: false,
     fileRequests: [VIEWER_SLUG, GOLD_SLUG],
     source: 'gold-standard',
-    sourceRef: GOLD_STANDARD_REPO,
+    sourceRef: CONTENT_REPO,
     isAuthorFallback: true,
   },
   {
     name: 'viewer is the author: exactly one request, not a fallback',
-    ref: GOLD_STANDARD_REPO,
+    ref: CONTENT_REPO,
     viewerHasFile: true,
     fileRequests: [GOLD_SLUG],
     source: 'gold-standard',
-    sourceRef: GOLD_STANDARD_REPO,
+    sourceRef: CONTENT_REPO,
     isAuthorFallback: false,
   },
 ];

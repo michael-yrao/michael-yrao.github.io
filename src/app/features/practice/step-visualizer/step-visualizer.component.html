@@ -1,10 +1,10 @@
 @if (state.hasVisualization()) {
   <section class="step-visualizer__section">
-    <div class="section-label">Visualization</div>
+    <div class="section-label po-eyebrow">Visualization</div>
     @if (!state.isStarted()) {
       <div class="viz-prompt">
-        <button class="viz-prompt__btn" (click)="state.startViz()">
-          ▶ Start Visualization
+        <button class="viz-prompt__btn po-btn" (click)="state.startViz()">
+          <app-icon name="play" [size]="16" /> Start Visualization
         </button>
         <p class="viz-prompt__sub">
           Step through the algorithm with plain-English explanations at every decision
@@ -84,7 +84,7 @@
   </section>
 } @else {
   <div class="no-viz">
-    <span>⬡</span>
+    <span><app-icon name="hexagon" [size]="32" /></span>
     <p>Visualization coming soon for this problem.</p>
   </div>
 }

@@ -208,12 +208,16 @@ export interface TechniqueRow {
  *  `endComfort`/`endNote`/`nextReview` (all optional, additive — an older contract predating
  *  them still renders identically) carry the rep's earned outcome once `done`: the E-column
  *  comfort and its short note (`s2`, `prov`, …), and the Next-rep date; `endNote` is only
- *  ever present alongside a non-null `endComfort` and never falls back to `startComfort`. */
+ *  ever present alongside a non-null `endComfort` and never falls back to `startComfort`.
+ *
+ *  `startNote` (optional — an older contract predating it still renders identically) is the S
+ *  cell's short note after its comfort glyph (`s0`, `s1`, `s2`, `prov`). */
 export interface ScheduleItem {
   lcNumber: number | null;
   title: string;
   technique: string | null;
   startComfort: Comfort | null;
+  startNote?: string | null;
   difficulty: 'Easy' | 'Medium' | 'Hard' | null;
   url?: string | null;
   done: boolean;

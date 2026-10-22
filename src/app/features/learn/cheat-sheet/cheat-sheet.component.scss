@@ -29,11 +29,6 @@
   margin-bottom: var(--space-2xl);
 
   &__title {
-    font-size: 0.72rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-    font-weight: 700;
     margin: 0 0 var(--space-md);
     padding-bottom: var(--space-sm);
     border-bottom: 1px solid var(--color-border);
@@ -74,10 +69,14 @@
   }
 }
 
-.cs-signal__dot {
-  color: var(--color-accent);
+.cs-signals li::before {
+  content: '';
+  align-self: center;
   flex-shrink: 0;
-  font-size: 0.75rem;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
 }
 
 // ── Picking feature ─────────────────────────────────────────────
@@ -190,9 +189,9 @@
 }
 
 .cs-pitfall__icon {
+  display: inline-flex;
   color: var(--color-medium);
   flex-shrink: 0;
-  font-size: 0.85rem;
 }
 
 // ── Key Problems ────────────────────────────────────────────────
@@ -254,24 +253,6 @@
   border-top: 1px solid var(--color-border);
   gap: var(--space-md);
   flex-wrap: wrap;
-}
-
-.cs-nav__btn {
-  padding: 10px 18px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-card);
-  color: var(--color-text);
-  font-size: 0.88rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
-
-  &:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-    text-decoration: none;
-  }
 }
 
 .cs-nav__all {

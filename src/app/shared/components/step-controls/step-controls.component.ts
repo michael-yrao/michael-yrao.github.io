@@ -3,10 +3,13 @@ import {
   ChangeDetectionStrategy, OnDestroy, HostListener,
 } from '@angular/core';
 
+import { IconComponent } from '../icon/icon.component';
+
 @Component({
     selector: 'app-step-controls',
     templateUrl: './step-controls.component.html',
     styleUrls: ['./step-controls.component.scss'],
+    imports: [IconComponent],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class StepControlsComponent implements OnDestroy {

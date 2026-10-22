@@ -40,7 +40,16 @@
 }
 
 .dirty {
-  color: var(--color-medium);
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-medium);
+}
+
+.head {
+  display: inline-flex;
+  align-items: center;
 }
 
 .cost {

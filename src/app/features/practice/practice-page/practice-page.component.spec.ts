@@ -9,7 +9,7 @@ import { createMemoryStorage } from '../../../core/memory-storage.testing';
 import { PracticeData, PracticeProblem } from '../../../core/models/practice.model';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
 import { RunState } from '../../../core/runner/runner.model';
-import { GOLD_STANDARD_REPO, LoadStatus } from '../../../core/services/github-file.service';
+import { CONTENT_REPO, LoadStatus } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { BigOService } from '../../../core/services/big-o.service';
 import { ShowcaseService } from '../../../core/services/showcase.service';
@@ -18,8 +18,8 @@ import { SAMPLE_CASE_COUNT } from '../../../shared/utils/practice-shortcuts';
 import { PracticePageComponent } from './practice-page.component';
 
 const STUB = 'class Solution:\n    pass\n';
-const DRAFT_KEY = 'po-practice-draft:michael-yrao/cse-progress:90';
-const TABS_KEY = 'po-practice-tabs:michael-yrao/cse-progress:90';
+const DRAFT_KEY = 'po-practice-draft:michael-yrao/progressive-overflow-content:90';
+const TABS_KEY = 'po-practice-tabs:michael-yrao/progressive-overflow-content:90';
 const SPLIT_KEY = 'po-practice-split';
 // The Output pane's case tabs and the Code pane's solution tabs are both role="tab".
 const CASE_TAB = '[aria-label="Cases"] [role="tab"]';
@@ -80,7 +80,7 @@ function makePracticeStub(
     status: signal<LoadStatus>(status),
     error: signal<string | null>(error),
     data: signal<PracticeData | null>(data),
-    ref: signal(GOLD_STANDARD_REPO),
+    ref: signal(CONTENT_REPO),
     load: vi.fn(),
     problemFor: (n: number) => problems.find((p) => p.number === n) ?? null,
   };
@@ -159,7 +159,7 @@ describe('PracticePageComponent', () => {
     const tabs = Array.from(root.querySelectorAll<HTMLElement>(CASE_TAB));
     const labelsOfPanel = () =>
       Array.from(root.querySelectorAll('[role="tabpanel"] .practice__label')).map((l) => l.textContent?.trim());
-    expect(tabs.map((tab) => tab.querySelector('.practice__mark')?.textContent?.trim())).toEqual(['✓', '✗']);
+    expect(tabs.map((tab) => tab.querySelector('.practice__mark app-icon svg')?.getAttribute('data-name'))).toEqual(['check', 'x']);
     expect(tabs[1].getAttribute('aria-selected')).toBe('true');
     expect(labelsOfPanel()).toEqual(['Input', 'Expected', 'Got']);
 
@@ -286,7 +286,7 @@ describe('PracticePageComponent', () => {
     const root: HTMLElement = fixture.nativeElement;
 
     expect(root.querySelector('.practice__message')?.textContent?.trim()).toBe(
-      'No practice cases for #91 in michael-yrao/cse-progress.',
+      'No practice cases for #91 in michael-yrao/progressive-overflow-content.',
     );
     expect(root.querySelector('app-code-editor')).toBeNull();
   });

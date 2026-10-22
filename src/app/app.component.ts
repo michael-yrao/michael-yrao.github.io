@@ -14,6 +14,7 @@ import { CoachUiService } from './core/coach/coach-ui.service';
 import { isCoachOwner } from './core/data/site-links';
 import { FOOTER_COLUMNS } from './core/data/site-sections';
 import { CoachPanelComponent } from './features/coach-panel/coach-panel.component';
+import { IconComponent } from './shared/components/icon/icon.component';
 import { LogoMarkComponent } from './shared/components/logo-mark/logo-mark.component';
 import { MenuComponent } from './shared/components/menu/menu.component';
 
@@ -37,7 +38,7 @@ const NAV_GROUP_BY_SEGMENT: ReadonlyMap<string, NavGroup> = new Map<string, NavG
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // CoachPanelComponent is used only inside `@defer`, so its chunk (marked, DOMPurify, highlight.js) loads on first open.
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, LogoMarkComponent, MenuComponent, CoachPanelComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LogoMarkComponent, MenuComponent, CoachPanelComponent, IconComponent],
 })
 export class AppComponent {
   readonly footerColumns = FOOTER_COLUMNS;

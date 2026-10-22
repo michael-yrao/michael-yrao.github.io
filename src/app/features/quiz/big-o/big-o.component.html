@@ -6,12 +6,12 @@
 
   @switch (status()) {
     @case ('loading') {
-      <div class="bo-state" role="status">Loading your solutions…</div>
+      <div class="bo-state po-card po-card--compact" role="status">Loading your solutions…</div>
     }
     @case ('error') {
-      <div class="bo-state bo-state--error">
+      <div class="bo-state bo-state--error po-card po-card--compact">
         <p>{{ error() }}</p>
-        <button type="button" class="bo-btn bo-btn--primary" (click)="retry()">Retry</button>
+        <button type="button" class="po-btn" (click)="retry()">Retry</button>
       </div>
     }
     @case ('ready') {
@@ -21,16 +21,14 @@
           @for (d of difficultyFilters; track d) {
             <button
               type="button"
-              class="bo-chip"
-              [class.bo-chip--selected]="filter().difficulty === d"
+              class="bo-chip po-chip"
               [attr.aria-pressed]="filter().difficulty === d"
               (click)="setDifficulty(d)"
             >{{ d }}</button>
           }
           <button
             type="button"
-            class="bo-chip bo-chip--toggle"
-            [class.bo-chip--selected]="filter().missesOnly"
+            class="bo-chip bo-chip--toggle po-chip"
             [attr.aria-pressed]="filter().missesOnly"
             (click)="toggleMisses()"
           >My complexity misses</button>
@@ -42,13 +40,13 @@
       </section>
 
       @if (pool().length === 0) {
-        <div class="bo-state bo-state--empty">
+        <div class="bo-state bo-state--empty po-card po-card--compact">
           <p>No problems match this filter yet.</p>
-          <button type="button" class="bo-btn bo-btn--primary" (click)="resetFilter()">Show all</button>
+          <button type="button" class="po-btn" (click)="resetFilter()">Show all</button>
         </div>
       } @else if (mode() === 'finished') {
         <!-- ── Finished summary ──────────────────────────────── -->
-        <div class="bo-summary">
+        <div class="bo-summary po-card po-card--compact">
           <h2 class="bo-summary__title">Done!</h2>
           <p class="bo-summary__score">
             {{ totalScore() }} / {{ maxScore() }} points
@@ -64,11 +62,11 @@
               <span class="breakdown-value">{{ spaceScore() }}/{{ deck().length }} correct</span>
             </div>
           </div>
-          <button class="bo-btn bo-btn--primary" (click)="startRun()">↺ Deal a new run</button>
+          <button class="po-btn" (click)="startRun()"><app-icon name="reset" [size]="16" /> Deal a new run</button>
         </div>
       } @else if (current(); as q) {
         <!-- ── Scoreboard ────────────────────────────────────── -->
-        <div class="bo-stats" aria-live="polite">
+        <div class="bo-stats po-card po-card--compact" aria-live="polite">
           <div class="stat">
             <span class="stat__value">{{ timeScore() }}/{{ deck().length }}</span>
             <span class="stat__label">time</span>
@@ -108,7 +106,7 @@
         <!-- ── Questions ─────────────────────────────────────── -->
         <div class="bo-questions">
           <!-- Time complexity -->
-          <div class="bo-q">
+          <div class="bo-q po-card po-card--compact">
             <p class="bo-q__label">
               <span class="bo-q__tag">T</span>
               Time complexity
@@ -116,15 +114,19 @@
                 <span class="bo-q__result"
                   [class.bo-q__result--correct]="timeCorrect()"
                   [class.bo-q__result--wrong]="!timeCorrect()">
-                  {{ timeCorrect() ? '✓' : '✗ ' + q.time }}
+                  @if (timeCorrect()) {
+                    <app-icon name="check" [size]="14" />
+                  } @else {
+                    <app-icon name="x" [size]="14" /> {{ q.time }}
+                  }
                 </span>
               }
             </p>
             <div class="bo-options">
               @for (opt of q.timeOptions; track opt) {
                 <button
-                  class="bo-chip"
-                  [class.bo-chip--selected]="selectedTime() === opt"
+                  class="bo-chip po-chip"
+                  [class.active]="selectedTime() === opt"
                   [class.bo-chip--correct]="mode() === 'revealed' && opt === q.time"
                   [class.bo-chip--wrong]="mode() === 'revealed' && selectedTime() === opt && opt !== q.time"
                   [disabled]="mode() === 'revealed'"
@@ -134,7 +136,7 @@
             </div>
           </div>
           <!-- Space complexity -->
-          <div class="bo-q">
+          <div class="bo-q po-card po-card--compact">
             <p class="bo-q__label">
               <span class="bo-q__tag">S</span>
               Space complexity
@@ -142,15 +144,19 @@
                 <span class="bo-q__result"
                   [class.bo-q__result--correct]="spaceCorrect()"
                   [class.bo-q__result--wrong]="!spaceCorrect()">
-                  {{ spaceCorrect() ? '✓' : '✗ ' + q.space }}
+                  @if (spaceCorrect()) {
+                    <app-icon name="check" [size]="14" />
+                  } @else {
+                    <app-icon name="x" [size]="14" /> {{ q.space }}
+                  }
                 </span>
               }
             </p>
             <div class="bo-options">
               @for (opt of q.spaceOptions; track opt) {
                 <button
-                  class="bo-chip"
-                  [class.bo-chip--selected]="selectedSpace() === opt"
+                  class="bo-chip po-chip"
+                  [class.active]="selectedSpace() === opt"
                   [class.bo-chip--correct]="mode() === 'revealed' && opt === q.space"
                   [class.bo-chip--wrong]="mode() === 'revealed' && selectedSpace() === opt && opt !== q.space"
                   [disabled]="mode() === 'revealed'"
@@ -164,7 +170,7 @@
         @if (mode() === 'quiz') {
           <div class="bo-actions">
             <button
-              class="bo-btn bo-btn--primary"
+              class="po-btn"
               [disabled]="!canCheck()"
               (click)="check()"
             >Check →</button>
@@ -172,7 +178,7 @@
         }
         <!-- ── Explanation panel ─────────────────────────────── -->
         @if (mode() === 'revealed') {
-          <section class="bo-reveal" aria-live="polite">
+          <section class="bo-reveal po-card po-card--compact" aria-live="polite">
             <div class="bo-reveal__row">
               <div class="bo-explain">
                 <p class="bo-explain__head">
@@ -210,7 +216,7 @@
                   <span class="bo-pill bo-pill--author">Author's code</span>
                 }
               }
-              <button class="bo-btn bo-btn--primary" (click)="next()">Next →</button>
+              <button class="po-btn" (click)="next()">Next →</button>
             </div>
           </section>
         }

@@ -102,10 +102,11 @@ describe('GroundedCodePanelComponent', () => {
     });
 
     const badge = fixture.nativeElement.querySelector('.groundedness-badge--grounded');
-    expect(badge.textContent).toContain('Grounded ✓');
-    expect(badge.textContent).toContain('michael-yrao/cse-progress');
+    expect(badge.textContent).toContain('Grounded');
+    expect(badge.querySelector('app-icon svg[data-name="check"]')).not.toBeNull();
+    expect(badge.textContent).toContain('michael-yrao/progressive-overflow-content');
     expect(badge.getAttribute('href')).toBe(
-      'https://github.com/michael-yrao/cse-progress/blob/main/dsa/leetcode/graphs/733_flood_fill.py#L41-L42',
+      'https://github.com/michael-yrao/progressive-overflow-content/blob/main/dsa/leetcode/graphs/733_flood_fill.py#L41-L42',
     );
     expect(fixture.nativeElement.textContent).toContain('BFS');
     expect(fixture.nativeElement.textContent).toContain('2026-07-29');

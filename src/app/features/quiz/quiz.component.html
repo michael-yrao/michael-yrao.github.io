@@ -12,6 +12,7 @@
     @for (game of quizzes; track game) {
       <a
         class="game-card po-card"
+        [class.po-card--link]="game.status === 'available'"
         [class.game-card--available]="game.status === 'available'"
         [class.game-card--soon]="game.status === 'coming-soon'"
         [routerLink]="game.status === 'available' ? game.route : null"
@@ -23,12 +24,16 @@
           </span>
         </div>
         <p class="game-card__desc">{{ game.description }}</p>
-        <p class="game-card__algo-note">{{ game.algorithmNote }}</p>
-        <div class="game-card__algos">
-          @for (algo of game.algorithms; track algo) {
-            <span class="algo-tag">{{ algo }}</span>
-          }
-        </div>
+        @if (game.algorithmNote) {
+          <p class="game-card__algo-note">{{ game.algorithmNote }}</p>
+        }
+        @if (game.algorithms.length) {
+          <div class="game-card__algos">
+            @for (algo of game.algorithms; track algo) {
+              <span class="algo-tag">{{ algo }}</span>
+            }
+          </div>
+        }
       </a>
     }
   </div>

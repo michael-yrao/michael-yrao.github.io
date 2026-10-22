@@ -22,6 +22,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import type { Comfort } from '../../../core/models/progress.model';
 import { RepoRef, sameRef } from '../../../core/services/github-file.service';
 import { ProgressService } from '../../../core/services/progress.service';
+import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
 import { SearchBoxComponent } from '../../../shared/components/search-box/search-box.component';
 import { CatalogueEntry, searchCatalogue } from '../practice-catalogue';
 import { comfortByNumber } from './problem-list';
@@ -38,7 +39,7 @@ const CURRENT_SELECTOR = '[aria-current="page"]';
   templateUrl: './problem-list-panel.component.html',
   styleUrls: ['./problem-list-panel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass, RouterLink, SearchBoxComponent],
+  imports: [ComfortMarkComponent, NgClass, RouterLink, SearchBoxComponent],
 })
 export class ProblemListPanelComponent {
   readonly isOpen = input.required<boolean>();

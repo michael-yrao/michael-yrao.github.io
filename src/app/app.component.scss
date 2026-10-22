@@ -120,20 +120,6 @@ $nav-font-size: 14px;
     align-items: center;
   }
 
-  &__auth-button {
-    padding: 0 var(--space-sm);
-    background: transparent;
-    border: 0;
-    color: var(--color-text-muted);
-    font: inherit;
-    font-size: $nav-font-size;
-    cursor: pointer;
-
-    &:hover {
-      color: var(--color-text);
-    }
-  }
-
   &__chip-repo {
     font-family: var(--font-mono);
     font-size: var(--text-xs);
@@ -177,21 +163,8 @@ $nav-font-size: 14px;
 
   // Coach toggle: owner only, first in the right-hand group.
   &__coach {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    color: var(--color-text-muted);
-    font-size: 1rem;
-    width: 32px;
-    height: 32px;
-    cursor: pointer;
-
     &--on {
       color: var(--color-accent);
-      border-color: var(--color-accent);
     }
   }
 }
@@ -205,10 +178,10 @@ $nav-font-size: 14px;
   border-top: 1px solid var(--color-border);
 
   &__columns {
-    padding: var(--space-xl) var(--page-gutter) 0;
+    padding: var(--space-md) var(--page-gutter) 0;
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-xl) var(--space-2xl);
+    gap: var(--space-lg) var(--space-xl);
   }
 
   &__column {
@@ -238,7 +211,7 @@ $nav-font-size: 14px;
   }
 
   &__inner {
-    padding: var(--space-lg) var(--page-gutter);
+    padding: var(--space-sm) var(--page-gutter) var(--space-md);
     display: flex;
     align-items: center;
     justify-content: flex-end;

@@ -3,7 +3,7 @@
     @for (sol of state.meta()?.solutions; track sol; let i = $index) {
       <button
         role="tab"
-        class="solution-tab"
+        class="po-chip"
         [class.active]="i === state.activeSolutionIndex()"
         [attr.aria-selected]="i === state.activeSolutionIndex()"
         (click)="state.selectVariant(i)"
@@ -14,6 +14,6 @@
   </div>
 }
 @if (state.activeSolution(); as variant) {
-  <span class="complexity">⏱ {{ variant.timeComplexity }}</span>
-  <span class="complexity">💾 {{ variant.spaceComplexity }}</span>
+  <span class="complexity"><app-icon name="clock" [size]="14" /> {{ variant.timeComplexity }}</span>
+  <span class="complexity"><app-icon name="memory" [size]="14" /> {{ variant.spaceComplexity }}</span>
 }

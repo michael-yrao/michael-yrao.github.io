@@ -17,18 +17,17 @@
 
         <!-- ── When to Use ─────────────────────────────────────────── -->
         <section class="cs-section">
-          <h2 class="cs-section__title">When to Use</h2>
+          <h2 class="cs-section__title po-eyebrow">When to Use</h2>
           <p class="cs-when">{{ sheet.whenToUse }}</p>
         </section>
 
         <!-- ── Recognition Signals ─────────────────────────────────── -->
         @if (sheet.signals.length > 0) {
           <section class="cs-section">
-            <h2 class="cs-section__title">Recognition Signals</h2>
+            <h2 class="cs-section__title po-eyebrow">Recognition Signals</h2>
             <ul class="cs-signals">
               @for (signal of sheet.signals; track $index) {
                 <li>
-                  <span class="cs-signal__dot">▸</span>
                   <span>{{ signal }}</span>
                 </li>
               }
@@ -38,7 +37,7 @@
 
         <!-- ── Picking Feature ───────────────────────────────────────── -->
         <section class="cs-section">
-          <h2 class="cs-section__title">Picking Feature</h2>
+          <h2 class="cs-section__title po-eyebrow">Picking Feature</h2>
           <p class="cs-feature">{{ sheet.picking.feature }}</p>
           @if (notWhen().length > 0) {
             <ul class="cs-not-when">
@@ -62,7 +61,7 @@
         <!-- ── Templates (one section per variant) ──────────────────── -->
         @for (variant of sheet.variants; track $index) {
           <section class="cs-section">
-            <h2 class="cs-section__title">Template: {{ variant.title }}</h2>
+            <h2 class="cs-section__title po-eyebrow">Template: {{ variant.title }}</h2>
             @if (variant.when) {
               <p class="cs-variant__when">When: {{ variant.when }}</p>
             }
@@ -78,11 +77,11 @@
         <!-- ── Common Pitfalls ─────────────────────────────────────── -->
         @if (sheet.pitfalls.length > 0) {
           <section class="cs-section">
-            <h2 class="cs-section__title">Common Pitfalls</h2>
+            <h2 class="cs-section__title po-eyebrow">Common Pitfalls</h2>
             <ul class="cs-pitfalls">
               @for (pitfall of sheet.pitfalls; track $index) {
                 <li>
-                  <span class="cs-pitfall__icon">⚠</span>
+                  <span class="cs-pitfall__icon"><app-icon name="alert" [size]="14" /></span>
                   <span>{{ pitfall }}</span>
                 </li>
               }
@@ -93,7 +92,7 @@
         <!-- ── Key Problems ────────────────────────────────────────── -->
         @if (keyProblems().length > 0) {
           <section class="cs-section">
-            <h2 class="cs-section__title">Key Problems</h2>
+            <h2 class="cs-section__title po-eyebrow">Key Problems</h2>
             <div class="cs-problems">
               @for (p of keyProblems(); track $index) {
                 @if (p.link.kind === 'internal') {
@@ -126,13 +125,13 @@
         <!-- ── Prev / Next navigation ──────────────────────────────── -->
         <nav class="cs-nav">
           @if (prevTechnique(); as prev) {
-            <a class="cs-nav__btn cs-nav__btn--prev" [routerLink]="['/learn', prev.id]">← {{ prev.name }}</a>
+            <a class="cs-nav__btn cs-nav__btn--prev po-btn po-btn--sm po-btn--outline" [routerLink]="['/learn', prev.id]">← {{ prev.name }}</a>
           } @else {
             <span></span>
           }
           <a class="cs-nav__all" routerLink="/learn">All patterns</a>
           @if (nextTechnique(); as next) {
-            <a class="cs-nav__btn cs-nav__btn--next" [routerLink]="['/learn', next.id]">{{ next.name }} →</a>
+            <a class="cs-nav__btn cs-nav__btn--next po-btn po-btn--sm po-btn--outline" [routerLink]="['/learn', next.id]">{{ next.name }} →</a>
           }
         </nav>
       </div>

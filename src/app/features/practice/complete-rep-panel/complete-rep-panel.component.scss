@@ -62,8 +62,7 @@ $close-icon-size: 1.1rem;
   gap: var(--space-xs);
 }
 
-.rep__chip,
-.rep__btn {
+.rep__chip {
   padding: var(--space-xs) var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -79,13 +78,6 @@ $close-icon-size: 1.1rem;
 .rep__chip--on {
   border-color: var(--color-accent);
   background: var(--color-accent-dim);
-}
-
-.rep__btn--primary {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: var(--color-seg-ink);
-  font-weight: 600;
 }
 
 .rep__btn { align-self: flex-start; }

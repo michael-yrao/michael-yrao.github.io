@@ -113,7 +113,7 @@
           <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
           @if (stats.greenCount > 0 || stats.lastTouched) {
             <span class="tech-board__detail-stats">
-              {{ stats.greenCount }} 🟢
+              {{ stats.greenCount }} <app-comfort-mark [comfort]="cleanComfort" />
               @if (stats.lastTouched) {
                 · {{ shortMonthDay(stats.lastTouched) }}
               }
@@ -216,11 +216,11 @@
             @if (p.difficulty) {
               <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
             }
-            <span class="tech-row__problem-comfort">{{ p.comfort }}</span>
+            <span class="tech-row__problem-comfort"><app-comfort-mark [comfort]="p.comfort" [streak]="p.streak" /></span>
             <span class="tech-row__problem-links">
               <span class="tech-row__problem-slot">
                 @if (practiceNumbers().has(p.lcNumber)) {
-                  <a [routerLink]="['/practice', p.lcNumber]" queryParamsHandling="preserve" aria-label="Run code" title="Run code" class="practice-link">{{ practiceGlyph }}</a>
+                  <a [routerLink]="['/practice', p.lcNumber]" queryParamsHandling="preserve" aria-label="Run code" title="Run code" class="practice-link"><app-icon [name]="practiceIcon" [size]="14" /></a>
                 }
               </span>
               <span class="tech-row__problem-slot">

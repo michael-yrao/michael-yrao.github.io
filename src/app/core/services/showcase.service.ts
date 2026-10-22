@@ -7,7 +7,7 @@ import { indexEntries } from '../showcase/showcase-key';
 import { isShowcaseEntry } from '../showcase/showcase-validation';
 import { ContractSource, fetchWithAuthorFallback$, isAuthorFallbackOf } from './author-fallback';
 import {
-  GOLD_STANDARD_REPO,
+  CONTENT_REPO,
   GitHubFileService,
   LoadStatus,
   RepoRef,
@@ -42,7 +42,7 @@ export class ShowcaseService {
   /** The repo `data` actually came from; null until a load lands. */
   readonly sourceRef = signal<RepoRef | null>(null);
 
-  private readonly requestedRef = signal<RepoRef>(GOLD_STANDARD_REPO);
+  private readonly requestedRef = signal<RepoRef>(CONTENT_REPO);
   /** The viewer asked for another repo's code and is looking at the author's. */
   readonly isAuthorFallback = computed(() => isAuthorFallbackOf(this.source(), this.requestedRef()));
 
@@ -56,7 +56,7 @@ export class ShowcaseService {
 
   constructor(private readonly github: GitHubFileService) {}
 
-  load(ref: RepoRef = GOLD_STANDARD_REPO, force = false): void {
+  load(ref: RepoRef = CONTENT_REPO, force = false): void {
     const isCurrent = sameRef(ref, this.requestedRef());
     if (!force && isCurrent && (this.status() === 'ready' || this.status() === 'loading')) return;
 

@@ -19,11 +19,11 @@ describe('QuizComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('renders Pattern Sense then Big-O Trainer, in that order', () => {
+  it('renders Pattern Sense, Big-O Trainer, then Recognition, in that order', () => {
     const titles = Array.from(fixture.nativeElement.querySelectorAll('.game-card__title')).map(
       (el) => (el as HTMLElement).textContent?.trim(),
     );
 
-    expect(titles).toEqual(['Pattern Sense', 'Big-O Trainer']);
+    expect(titles).toEqual(['Pattern Sense', 'Big-O Trainer', 'Recognition']);
   });
 });

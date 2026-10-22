@@ -1,4 +1,4 @@
-<div class="gv">
+<div class="gv po-card">
   <div class="gv__grid">
     @for (row of state().grid; track row; let r = $index) {
       <div class="gv__row">
@@ -8,7 +8,11 @@
             [ngClass]="'gv__cell--' + cell.state"
             [title]="cell.state + ' (' + r + ',' + c + ')'"
             >
-            {{ cell.label || cellLabel(cell.state) }}
+            @if (!cell.label && cell.state === 'rotten') {
+              <app-icon name="x" [size]="18" />
+            } @else {
+              {{ cell.label || cellLabel(cell.state) }}
+            }
           </div>
         }
       </div>

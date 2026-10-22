@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 
 import { Difficulty } from '../../../core/models/algorithm.model';
 import type { RepoRef } from '../../../core/services/github-file.service';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CatalogueEntry, CatalogueNeighbors } from '../practice-catalogue';
 import { ProblemListPanelComponent } from '../problem-list/problem-list-panel.component';
 
@@ -17,7 +18,7 @@ export type PracticeHeaderTab = 'description' | 'solution';
   templateUrl: './practice-header.component.html',
   styleUrls: ['./practice-header.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass, ProblemListPanelComponent, RouterLink],
+  imports: [NgClass, ProblemListPanelComponent, RouterLink, IconComponent],
 })
 export class PracticeHeaderComponent {
   readonly number = input.required<number | null>();

@@ -1,3 +1,4 @@
+import { COMFORT_ORDER } from '../../../core/models/comfort';
 import { Comfort, ProblemProgress, Technique } from '../../../core/models/progress.model';
 import { problemRowKey } from '../progress-page/progress-derivations';
 
@@ -32,10 +33,6 @@ export function writeStoredView(view: TechniqueView): void {
     // localStorage unavailable (private mode, blocked) — view stays in-memory only.
   }
 }
-
-/** Comfort tiers, weakest to strongest — the same progression the Mastery pipeline bar
- *  (segmented-bar.component.scss's .seg-* vocabulary) already encodes. */
-export const COMFORT_ORDER: readonly Comfort[] = ['🔴', '🟡', '🟢', '🎓', '🏆'];
 
 const GREEN_RANK = COMFORT_ORDER.indexOf('🟢');
 const GRAD_RANK = COMFORT_ORDER.indexOf('🎓');

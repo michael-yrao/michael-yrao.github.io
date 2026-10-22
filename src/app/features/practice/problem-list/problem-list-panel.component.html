@@ -31,7 +31,9 @@
               <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
             }
           </span>
-          <span class="problem-list__comfort" [attr.title]="comfort ? 'Comfort: ' + comfort : null">{{ comfort }}</span>
+          @if (comfort) {
+            <app-comfort-mark class="problem-list__comfort" [comfort]="comfort" />
+          }
         </a>
       } @empty {
         <p class="problem-list__empty">No matches</p>

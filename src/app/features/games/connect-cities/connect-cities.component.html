@@ -20,7 +20,7 @@
   <div class="game-layout">
     <div class="game-column">
       <div class="game-arena">
-        <div class="game-stats">
+        <div class="game-stats po-card po-card--compact">
           <div class="stat">
             <span class="stat__value">{{ playerCost }}</span>
             <span class="stat__label">your cost</span>
@@ -93,7 +93,7 @@
           @if (gameState === 'won') {
             <div class="game-overlay">
               <div class="game-overlay__content">
-                <div class="game-overlay__icon game-overlay__icon--win">✓</div>
+                <div class="game-overlay__icon game-overlay__icon--win"><app-icon name="check" [size]="28" /></div>
                 @if (isOptimal) {
                   <div class="game-overlay__title">Optimal!</div>
                   <div class="game-overlay__sub">Cost {{ playerCost }} — matches Prim's optimal</div>
@@ -101,7 +101,7 @@
                   <div class="game-overlay__title">Connected</div>
                   <div class="game-overlay__sub">+{{ overCost }} over optimal ({{ overPercent }}%)</div>
                 }
-                <button class="btn-play-again" (click)="newBoard()">New Board</button>
+                <button class="po-btn" (click)="newBoard()">New Board</button>
               </div>
             </div>
           }
@@ -113,31 +113,34 @@
 
         <div class="board-controls">
           <button
-            class="btn-secondary"
+            class="po-btn po-btn--outline po-btn--sm"
             (click)="undoLast()"
             [disabled]="isSolverActive || selectedEdges.length === 0"
           >Undo last edge</button>
-          <button class="btn-secondary" (click)="newBoard()" [disabled]="isSolverActive">New board</button>
+          <button class="po-btn po-btn--outline po-btn--sm" (click)="newBoard()" [disabled]="isSolverActive">New board</button>
 
           @if (solverRunning) {
             <div class="solver-running">
               <span class="solver-running__label">Prim's — edge {{ solverStepIdx }} / {{ edgesNeeded }}</span>
-              <button class="btn-solver-stop" (click)="stopSolver()">Stop</button>
+              <button class="po-btn po-btn--danger po-btn--sm" (click)="stopSolver()">Stop</button>
             </div>
           } @else if (solverFinished) {
             <div class="solver-running">
               <span class="solver-running__label">Prim's tree complete — cost {{ optimalCost }}</span>
-              <button class="btn-solver-stop" (click)="stopSolver()">Back to my board</button>
+              <button class="po-btn po-btn--danger po-btn--sm" (click)="stopSolver()">Back to my board</button>
             </div>
           } @else {
-            <button class="btn-solver" (click)="watchSolver()">▶ Watch Prim's solve this board</button>
+            <button class="po-btn po-btn--outline po-btn--sm" (click)="watchSolver()">
+              <app-icon name="play" [size]="14" />
+              Watch Prim's solve this board
+            </button>
           }
         </div>
       </div>
     </div>
 
     <aside class="algo-column">
-      <section class="algo-breakdown">
+      <section class="algo-breakdown po-card po-card--compact">
         <h2 class="algo-breakdown__title">How Prim's Algorithm Works</h2>
 
         <div class="algo-breakdown__body">
@@ -148,7 +151,7 @@
             <code>minCostConnectPoints</code> solution.
           </p>
 
-          <div class="mapping-table">
+          <div class="mapping-table po-card po-card--compact">
             <div class="mapping-row mapping-row--header">
               <span>Game mechanic</span>
               <span>Prim's / Union-Find concept</span>
@@ -175,7 +178,7 @@
             </div>
           </div>
 
-          <h3 class="algo-breakdown__step-title">Scoring</h3>
+          <h3 class="algo-breakdown__step-title po-eyebrow">Scoring</h3>
           <p class="algo-breakdown__intro">
             Your total edge cost is compared against Prim's optimal cost for the same board.
             Tie it exactly for an <strong>Optimal!</strong> win — every optimal win adds to your
@@ -183,7 +186,7 @@
           </p>
 
           <div class="algo-breakdown__links">
-            <span class="algo-breakdown__links-label">The problem behind this game</span>
+            <span class="algo-breakdown__links-label po-eyebrow">The problem behind this game</span>
             @if (vizRoute) {
               <a [routerLink]="vizRoute" queryParamsHandling="preserve" class="problem-link">
                 LC {{ lcNumber }} · Min Cost to Connect All Points

@@ -24,7 +24,7 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
     links: [
       { label: 'Coach', path: SITE_LINKS.coach },
       { label: 'About', path: '/about' },
-      { label: 'GitHub ↗', href: SITE_LINKS.siteRepo },
+      { label: 'GitHub', href: SITE_LINKS.siteRepo },
     ],
   },
 ];

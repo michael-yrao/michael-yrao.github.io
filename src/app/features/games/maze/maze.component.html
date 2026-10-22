@@ -8,17 +8,18 @@
   <div class="maze-layout">
     <div class="maze-column">
       <div class="maze-controls">
-        <button class="btn-maze" (click)="newMaze()" [disabled]="phase === 'generating'">
-          ⛏ New maze
+        <button class="btn-maze po-btn po-btn--outline po-btn--sm" (click)="newMaze()" [disabled]="phase === 'generating'">
+          <app-icon name="pick" [size]="14" />
+          New maze
         </button>
         <button
-          class="btn-maze btn-maze--bfs"
+          class="btn-maze btn-maze--bfs po-btn po-btn--outline po-btn--sm"
           [class.btn-maze--active]="activeSolver === 'bfs'"
           (click)="solve('bfs')"
           [disabled]="phase === 'generating' || phase === 'solving'"
         >Solve with BFS</button>
         <button
-          class="btn-maze btn-maze--dfs"
+          class="btn-maze btn-maze--dfs po-btn po-btn--outline po-btn--sm"
           [class.btn-maze--active]="activeSolver === 'dfs'"
           (click)="solve('dfs')"
           [disabled]="phase === 'generating' || phase === 'solving'"
@@ -71,7 +72,7 @@
 
       <!-- ── BFS vs DFS scoreboard ─────────────────────────────── -->
       @if (results.bfs || results.dfs) {
-        <div class="solve-stats">
+        <div class="solve-stats po-card po-card--compact">
           <div class="solve-stats__row solve-stats__row--header">
             <span>Solver</span><span>Cells explored</span><span>Path length</span><span>Shortest?</span>
           </div>
@@ -80,7 +81,7 @@
               <span class="solver-name solver-name--bfs">BFS</span>
               <span>{{ r.explored }}</span>
               <span>{{ r.pathLength }}</span>
-              <span>✓ guaranteed</span>
+              <span class="solve-stats__verdict"><app-icon name="check" [size]="14" /> guaranteed</span>
             </div>
           }
           @if (results.dfs; as r) {
@@ -88,7 +89,13 @@
               <span class="solver-name solver-name--dfs">DFS</span>
               <span>{{ r.explored }}</span>
               <span>{{ r.pathLength }}</span>
-              <span>{{ results.bfs && r.pathLength > results.bfs!.pathLength ? '✗ longer' : 'not guaranteed' }}</span>
+              <span class="solve-stats__verdict">
+                @if (results.bfs && r.pathLength > results.bfs!.pathLength) {
+                  <app-icon name="x" [size]="14" /> longer
+                } @else {
+                  not guaranteed
+                }
+              </span>
             </div>
           }
           @if (results.bfs && results.dfs) {
@@ -104,10 +111,10 @@
 
     <!-- ── Educational sidebar ─────────────────────────────────── -->
     <aside class="maze-aside">
-      <section class="maze-breakdown">
+      <section class="maze-breakdown po-card po-card--compact">
         <h2 class="maze-breakdown__title">How it works</h2>
 
-        <h3 class="maze-breakdown__step-title">Phase 1 — carving (randomized DFS)</h3>
+        <h3 class="maze-breakdown__step-title po-eyebrow">Phase 1 — carving (randomized DFS)</h3>
         <p class="maze-breakdown__text">
           Start at the top-left cell. Walk to a random unvisited neighbor and knock down the
           wall between you. Dead end? Backtrack to the last cell with an unvisited neighbor.
@@ -116,8 +123,8 @@
           shape as exploring an island in Max Area of Island.
         </p>
 
-        <h3 class="maze-breakdown__step-title">Phase 2 — solving (BFS vs DFS)</h3>
-        <div class="mapping-table">
+        <h3 class="maze-breakdown__step-title po-eyebrow">Phase 2 — solving (BFS vs DFS)</h3>
+        <div class="mapping-table po-card po-card--compact">
           <div class="mapping-row mapping-row--header">
             <span>Behavior</span><span>BFS</span><span>DFS</span>
           </div>
@@ -142,7 +149,7 @@
         </p>
 
         <div class="maze-why">
-          <h3 class="maze-breakdown__step-title">Why BFS is always shortest</h3>
+          <h3 class="maze-breakdown__step-title po-eyebrow">Why BFS is always shortest</h3>
           <p class="maze-breakdown__text">
             BFS expands in <strong>rings by distance</strong>. Ring&nbsp;1 is every cell
             one step from the start. Ring&nbsp;2 is every cell two steps away that wasn't
@@ -168,7 +175,7 @@
             <p class="maze-why__diagram-caption">Each ring is one step further from S. G is first touched at ring&nbsp;3 — that's the shortest path.</p>
           </div>
 
-          <h3 class="maze-breakdown__step-title">Why DFS can miss shorter paths</h3>
+          <h3 class="maze-breakdown__step-title po-eyebrow">Why DFS can miss shorter paths</h3>
           <p class="maze-breakdown__text">
             DFS picks one direction and follows it all the way to the end before
             backtracking. If the first corridor it chooses happens to be a long detour,
@@ -183,7 +190,7 @@
         </div>
 
         <div class="maze-breakdown__links">
-          <span class="maze-breakdown__links-label">The problems behind this game</span>
+          <span class="maze-breakdown__links-label po-eyebrow">The problems behind this game</span>
           <a routerLink="/practice/102/solution" queryParamsHandling="preserve" class="problem-link">LC 102 · Level Order Traversal (pure BFS)</a>
           <a routerLink="/practice/200/solution" queryParamsHandling="preserve" class="problem-link">LC 200 · Number of Islands (BFS &amp; DFS)</a>
           <a routerLink="/practice/695/solution" queryParamsHandling="preserve" class="problem-link">LC 695 · Max Area of Island (DFS)</a>

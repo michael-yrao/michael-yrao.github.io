@@ -29,13 +29,6 @@
     vertical-align: top;
   }
 
-  th {
-    color: var(--color-text-muted);
-    font-size: var(--text-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-
   td {
     color: var(--color-text);
   }
@@ -83,21 +76,6 @@
 }
 
 .coach-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-sm);
-  background: var(--color-accent);
-  color: var(--color-bg);
-  font-weight: 700;
-  padding: var(--space-sm) var(--space-xl);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: none;
-    opacity: 0.9;
-  }
-
   &__note {
     margin-top: var(--space-sm);
     font-size: var(--text-xs);

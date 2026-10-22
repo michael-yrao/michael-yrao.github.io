@@ -9,13 +9,14 @@ import { DisplayRow } from '../../../core/showcase/display';
 import { RowRange } from '../../../core/showcase/anchor-resolver';
 import { VariantGroundedness } from '../../../core/showcase/groundedness';
 import {
-  GOLD_STANDARD_REPO,
+  CONTENT_REPO,
   LoadStatus,
   blobUrl,
   parseRepoSlug,
   sameRef,
 } from '../../../core/services/github-file.service';
 import { CodeViewerComponent } from '../code-viewer/code-viewer.component';
+import { IconComponent } from '../icon/icon.component';
 
 const SKELETON_ROW_COUNT = 6;
 
@@ -30,7 +31,7 @@ const SKELETON_ROW_COUNT = 6;
   templateUrl: './grounded-code-panel.component.html',
   styleUrls: ['./grounded-code-panel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CodeViewerComponent],
+  imports: [CodeViewerComponent, IconComponent],
 })
 export class GroundedCodePanelComponent {
   readonly status = input.required<LoadStatus>();
@@ -58,11 +59,11 @@ export class GroundedCodePanelComponent {
   /** The code shown is the author's while the page's viewer is someone else. */
   readonly isViewerNotAuthor = computed(() => {
     const viewerRef = this.viewerRef();
-    return viewerRef !== null && !sameRef(viewerRef, GOLD_STANDARD_REPO);
+    return viewerRef !== null && !sameRef(viewerRef, CONTENT_REPO);
   });
 
   /** The repo the code came from (the author's until a load lands). */
-  private readonly sourceRef = computed(() => this.showcase.sourceRef() ?? GOLD_STANDARD_REPO);
+  private readonly sourceRef = computed(() => this.showcase.sourceRef() ?? CONTENT_REPO);
   /** `owner/repo` of that repo, shown on the "Grounded" badge. */
   readonly sourceSlug = computed(() => `${this.sourceRef().owner}/${this.sourceRef().repo}`);
 

@@ -40,19 +40,6 @@
 }
 
 .btn-maze {
-  padding: 9px 18px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-card);
-  color: var(--color-text);
-  font-weight: 600;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
-
-  &:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
-  &:disabled { opacity: 0.45; cursor: not-allowed; }
-
   &--bfs:hover:not(:disabled), &--bfs.btn-maze--active { border-color: var(--color-easy); color: var(--color-easy); }
   &--dfs:hover:not(:disabled), &--dfs.btn-maze--active { border-color: var(--color-medium); color: var(--color-medium); }
 }
@@ -80,8 +67,8 @@
 
   &--raw { background: var(--color-bg); }
   &--current { background: var(--color-accent); }
-  &--explored { background: rgba(74, 222, 128, 0.22); }
-  &--path { background: rgba(250, 204, 21, 0.55); }
+  &--explored { background: var(--color-easy-dim); }
+  &--path { background: color-mix(in srgb, var(--color-accent) 45%, transparent); }
   &--start { background: var(--color-accent) !important; }
   &--goal { background: var(--color-hard) !important; }
 
@@ -106,22 +93,24 @@
 .swatch {
   width: 13px;
   height: 13px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 
   &--start { background: var(--color-accent); }
   &--goal { background: var(--color-hard); }
-  &--explored { background: rgba(74, 222, 128, 0.4); }
-  &--path { background: rgba(250, 204, 21, 0.7); }
+  &--explored { background: var(--color-easy-dim); border: 1px solid var(--color-easy); }
+  &--path { background: color-mix(in srgb, var(--color-accent) 45%, transparent); }
 }
 
 // ── Stats ───────────────────────────────────────────────────────
 .solve-stats {
   margin-top: var(--space-lg);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-md) var(--space-lg);
   max-width: 740px;
+
+  &__verdict {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
 
   &__row {
     display: grid;
@@ -157,18 +146,9 @@
 
 // ── Sidebar ─────────────────────────────────────────────────────
 .maze-breakdown {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xl);
-
   &__title { margin: 0 0 var(--space-md); font-size: 1.1rem; }
 
   &__step-title {
-    font-size: 0.78rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-accent);
     margin: var(--space-lg) 0 var(--space-sm);
     &:first-of-type { margin-top: 0; }
   }
@@ -187,12 +167,6 @@
     margin-top: var(--space-lg);
   }
 
-  &__links-label {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--color-text-muted);
-  }
 }
 
 .problem-link { font-size: 0.85rem; font-weight: 600; }
@@ -229,7 +203,7 @@
 .ring {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -238,16 +212,15 @@
   font-family: var(--font-mono);
   flex-shrink: 0;
 
-  &--start  { background: rgba(99, 102, 241, 0.2); border: 1px solid #6366f1; color: #a5b4fc; }
-  &--1      { background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #86efac; }
-  &--2      { background: rgba(250, 204, 21, 0.15); border: 1px solid #facc15; color: #fde047; }
-  &--3      { background: rgba(251, 146, 60, 0.15); border: 1px solid #fb923c; color: #fdba74; }
-  &--goal   { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; }
+  &--start  { background: var(--color-trophy-dim); border: 1px solid var(--color-trophy); color: var(--color-trophy); }
+  &--1      { background: var(--color-easy-dim); border: 1px solid var(--color-easy); color: var(--color-easy); }
+  &--2      { background: var(--color-accent-dim); border: 1px solid var(--color-accent); color: var(--color-accent); }
+  &--3      { background: var(--color-medium-dim); border: 1px solid var(--color-medium); color: var(--color-medium); }
+  &--goal   { background: var(--color-hard-dim); border: 1px solid var(--color-hard); color: var(--color-hard); }
 }
 
 .mapping-table {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  padding: 0; // rows carry their own padding
   overflow: hidden;
   margin-bottom: var(--space-sm);
 }

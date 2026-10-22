@@ -45,6 +45,7 @@ $workload-planned-opacity: 0.35;
 }
 
 .today-board__held {
+  display: inline-flex; align-items: center; gap: 2px;
   font-size: 0.78rem;
   color: var(--color-text-muted);
 }
@@ -163,17 +164,13 @@ $workload-planned-opacity: 0.35;
 }
 .today-board__info {
   appearance: none;
-  border: 1px solid var(--color-border);
+  border: 0;
   background: none;
   color: var(--color-text-muted);
-  border-radius: 50%;
-  width: 15px;
-  height: 15px;
-  line-height: 1;
-  font-size: 0.65rem;
+  display: inline-flex;
   cursor: pointer;
   padding: 0;
-  &:hover, &:focus-visible { border-color: var(--color-accent); color: var(--color-accent); outline: none; }
+  &:hover, &:focus-visible { color: var(--color-accent); outline: none; }
 }
 // Shared popover-bubble chrome (position/size/surface/typography/reveal-transition) for both
 // the workload ⓘ popover and the outcome popover below — `@extend`ed so the two bubbles never
@@ -425,7 +422,6 @@ $workload-planned-opacity: 0.35;
   appearance: none; border: 0; background: none; padding: 0; cursor: pointer;
   display: inline-flex; align-items: center;
   color: var(--color-text-muted);
-  svg { width: 14px; height: 14px; fill: currentColor; }
   &:hover, &:focus-visible, &[aria-expanded='true'] { color: var(--color-accent); }
   &:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 }

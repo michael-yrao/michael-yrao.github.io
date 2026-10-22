@@ -16,7 +16,7 @@
   color: var(--color-accent);
   letter-spacing: 0.03em;
   text-decoration: none;
-  border-bottom: 1px solid rgba(6, 182, 212, 0.3);
+  border-bottom: 1px solid var(--color-accent-dim);
   padding-bottom: 2px;
   transition: border-color var(--transition-fast);
 
@@ -33,19 +33,6 @@
 }
 
 .btn-os {
-  padding: 9px 18px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-card);
-  color: var(--color-text);
-  font-weight: 600;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
-
-  &:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
-  &:disabled { opacity: 0.45; cursor: not-allowed; }
-
   &--solver:hover:not(:disabled), &--active {
     border-color: var(--color-found);
     color: var(--color-found);
@@ -63,10 +50,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-lg);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-md) var(--space-lg);
   margin-bottom: var(--space-lg);
   flex-wrap: wrap;
 }
@@ -103,10 +86,6 @@
 // ── Arena ───────────────────────────────────────────────────────
 .os-arena {
   position: relative;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
 }
 
 .os-svg {
@@ -158,7 +137,7 @@
   &:hover circle { stroke: var(--color-accent); }
 
   &--current circle {
-    fill: rgba(6, 182, 212, 0.18);
+    fill: var(--color-accent-dim);
     stroke: var(--color-accent);
     stroke-width: 3.5;
   }
@@ -214,13 +193,13 @@
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--color-accent);
-  background: rgba(6, 182, 212, 0.12);
+  background: var(--color-accent-dim);
   border: 1px solid var(--color-accent);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 
   &--popped {
     color: var(--color-found);
-    background: rgba(74, 222, 128, 0.12);
+    background: var(--color-easy-dim);
     border-color: var(--color-found);
   }
 }
@@ -259,7 +238,7 @@
 
   &--walked {
     color: var(--color-found);
-    background: rgba(74, 222, 128, 0.12);
+    background: var(--color-easy-dim);
     border-color: var(--color-found);
   }
 }
@@ -276,13 +255,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(var(--color-bg-rgb), 0.88);
+  backdrop-filter: blur(4px);
   border-radius: var(--radius-lg);
 
   &__content { text-align: center; }
 
   &__icon {
-    font-size: 2.4rem;
     color: var(--color-hard);
 
     &--win { color: var(--color-found); }
@@ -291,13 +270,13 @@
   &__title {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--color-text);
     margin-top: var(--space-xs);
   }
 
   &__sub {
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.75);
+    color: var(--color-text-muted);
     margin-top: 4px;
   }
 }
@@ -305,10 +284,6 @@
 // ── Explain panel ───────────────────────────────────────────────
 .os-explain {
   margin-top: var(--space-lg);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-md) var(--space-lg);
   font-size: 0.88rem;
   line-height: 1.6;
   color: var(--color-text-muted);

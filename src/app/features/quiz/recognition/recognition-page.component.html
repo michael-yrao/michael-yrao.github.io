@@ -1,0 +1,24 @@
+<div class="rec-page">
+  <app-page-header [breadcrumb]="breadcrumb" eyebrow="Cold reps" heading="Recognition" />
+
+  @if (repo()) {
+    @if (progress.status() === 'loading') {
+      <div class="rec-state po-card po-card--compact" role="status">Loading…</div>
+    } @else if (progress.status() === 'error') {
+      <div class="rec-state po-card po-card--compact" role="status">{{ progress.error() }}</div>
+    } @else if (isSummaryForRepo() && progress.data(); as summary) {
+      <app-recognition-panel
+        [probes]="summary.probes"
+        [practiceNumbers]="practiceNumbers()"
+        [repoRef]="repoRef()"
+      />
+    }
+  } @else {
+    <div class="rec-state po-card po-card--compact">
+      <p>Probes are logged by the coach in your repo.</p>
+      @if (auth.isEnabled) {
+        <button type="button" class="po-btn" (click)="signIn()">Sign in with GitHub</button>
+      }
+    </div>
+  }
+</div>

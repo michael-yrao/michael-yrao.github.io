@@ -103,7 +103,7 @@ export class CheatSheetService {
   });
 
   /** Fetch the cheat-sheet contract, repo first. `repoOverride` is the raw `?repo=` value
-   *  (owner/name[@branch]); omitted/null resolves to `DEFAULT_REPO`@`DEFAULT_BRANCH`, same as
+   *  (owner/name[@branch]); omitted/null resolves to `CONTENT_REPO`, same as
    *  `ProgressService.loadSummary`. Any remote failure — network error, non-404 or 404, bad
    *  JSON, a schema mismatch, missing `techniques[]`, or a malformed `repoOverride` — falls
    *  back to the bundled asset silently (a `console.warn` is the only trace); only a failure

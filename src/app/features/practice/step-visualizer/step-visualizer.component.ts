@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { ExplanationCardComponent } from '../../../shared/components/explanation-card/explanation-card.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { StepControlsComponent } from '../../../shared/components/step-controls/step-controls.component';
 import { ArrayVisualizerComponent } from '../../../shared/visualizers/array-visualizer/array-visualizer.component';
 import { GraphVisualizerComponent } from '../../../shared/visualizers/graph-visualizer/graph-visualizer.component';
@@ -24,6 +25,7 @@ import { WalkthroughStateService } from '../walkthrough-state.service';
     GraphVisualizerComponent,
     ExplanationCardComponent,
     StepControlsComponent,
+    IconComponent,
   ],
 })
 export class StepVisualizerComponent {

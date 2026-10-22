@@ -4,7 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { of, throwError } from 'rxjs';
 
 import { FALLBACK_ROWS, settleRequests } from './author-fallback.testing';
-import { GOLD_STANDARD_REPO } from './github-file.service';
+import { CONTENT_REPO } from './github-file.service';
 import { ShowcaseService } from './showcase.service';
 import { ShowcaseData } from '../models/showcase.model';
 
@@ -46,7 +46,7 @@ describe('ShowcaseService', () => {
 
     const call = http.calls[0];
     expect(call.url).toContain(
-      'api.github.com/repos/michael-yrao/cse-progress/contents/dashboard/showcase.json',
+      'api.github.com/repos/michael-yrao/progressive-overflow-content/contents/dashboard/showcase.json',
     );
     expect(call.url).toContain('ref=main');
     expect(call.opts.headers.get('Accept')).toBe('application/vnd.github.raw');
@@ -62,7 +62,7 @@ describe('ShowcaseService', () => {
 
   it('force reloads even when already ready, with a cache-buster', () => {
     service.load();
-    service.load(GOLD_STANDARD_REPO, true);
+    service.load(CONTENT_REPO, true);
 
     expect(http.calls.length).toBe(2);
     expect(http.calls[1].url).toContain('_=');

@@ -23,7 +23,7 @@
         <div class="solution__toggles">
           <button
             type="button"
-            class="panel-toggle"
+            class="po-chip"
             [class.active]="walkthrough.isVizShown()"
             [attr.aria-pressed]="walkthrough.isVizShown()"
             (click)="walkthrough.togglePanel('viz')"
@@ -32,7 +32,7 @@
           </button>
           <button
             type="button"
-            class="panel-toggle"
+            class="po-chip"
             [class.active]="walkthrough.isCodeShown()"
             [attr.aria-pressed]="walkthrough.isCodeShown()"
             (click)="walkthrough.togglePanel('code')"
@@ -41,6 +41,12 @@
           </button>
         </div>
       </div>
+
+      @if (meta(); as algorithm) {
+        @if (algorithm.solutions.length > 1) {
+          <app-approach-compare [meta]="algorithm" />
+        }
+      }
 
       @if (walkthrough.isVizShown() || walkthrough.isCodeShown()) {
         <div class="solution__panels" [class.solution__panels--both]="hasBothPanels()">

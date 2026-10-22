@@ -1,13 +1,14 @@
 import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { GridState } from '../../../core/models/algorithm.model';
 import { NgClass } from '@angular/common';
+import { IconComponent } from '../../components/icon/icon.component';
 
 @Component({
     selector: 'app-grid-visualizer',
     templateUrl: './grid-visualizer.component.html',
     styleUrls: ['./grid-visualizer.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [NgClass]
+    imports: [NgClass, IconComponent]
 })
 export class GridVisualizerComponent {
   readonly state = input.required<GridState>();
@@ -16,7 +17,7 @@ export class GridVisualizerComponent {
     const labels: Record<string, string> = {
       land: '1', water: '0', empty: '0',
       visited: '✓', queued: '?',
-      rotten: '☠', fresh: '◉',
+      fresh: '◉',
     };
     return labels[state] ?? '';
   }

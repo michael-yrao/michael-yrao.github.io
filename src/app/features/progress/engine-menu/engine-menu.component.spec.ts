@@ -276,7 +276,7 @@ describe('EngineMenuComponent', () => {
     item(el, 'Update engine')?.click();
     await settle();
     expect(update).toHaveBeenCalledWith(REF, { dryRun: false });
-    expect(rowTexts(el)).toEqual(['✓ 2 updated · ⚠ 1 kept']);
+    expect(rowTexts(el)).toEqual(['✓ 2 updated · △ 1 kept']);
     expect(el.querySelector('.menu__panel') !== null).toBe(true);
     expect(meta(item(el, 'Update engine'))).toBe('v0.12.0');
     expect(item(el, 'Update engine')?.disabled).toBe(true);

@@ -12,6 +12,18 @@ import { NO_ENGINE_RUN } from '../../../core/engine/engine-status';
 import { of } from 'rxjs';
 import { addDaysISO, currentWeekStart, shortMonthDay, todayLocalISO, weekdayShort } from '../../../core/utils/local-date';
 
+// Filled bars of each comfort mark inside `host`, read from the mark's `data-level`, in DOM order (🔴 → 1, 🟢 with s2 or no note → 5).
+function filledBars(host: Element): number[] {
+  return Array.from(host.querySelectorAll('app-comfort-mark')).map((mark) =>
+    Number(mark.querySelector('svg')?.getAttribute('data-level') ?? 0),
+  );
+}
+
+// The `data-name` of the first icon inside `host` (the status badge, a link), or null.
+function iconName(host: Element | null | undefined): string | null {
+  return host?.querySelector('app-icon svg')?.getAttribute('data-name') ?? null;
+}
+
 // Every fixture below reads the persisted link mode on construction — clear it after each
 // test so one test's GitHub-mode click never leaks into the next test's fixture.
 afterEach(() => localStorage.removeItem(SOLUTION_LINK_MODE_STORAGE_KEY));
@@ -147,10 +159,10 @@ describe('TodayBoardComponent', () => {
 
   it.each([
     // 9001-9003 are unregistered, so the row takes the plain-span badge (no walkthrough route).
-    { state: 'done', lcNumber: 9001, done: true, isPending: false, glyph: '✓' },
-    { state: 'pending', lcNumber: 9002, done: false, isPending: true, glyph: '◐' },
-    { state: 'open', lcNumber: 9003, done: false, isPending: false, glyph: '○' },
-  ])('draws a $state row with glyph $glyph and its state class', ({ lcNumber, done, isPending, glyph }) => {
+    { state: 'done', lcNumber: 9001, done: true, isPending: false, icon: 'check' },
+    { state: 'pending', lcNumber: 9002, done: false, isPending: true, icon: 'half' },
+    { state: 'open', lcNumber: 9003, done: false, isPending: false, icon: 'circle' },
+  ])('draws a $state row with icon $icon and its state class', ({ lcNumber, done, isPending, icon }) => {
     const schedule = makeSchedule({
       days: [
         {
@@ -169,7 +181,7 @@ describe('TodayBoardComponent', () => {
     const row: HTMLElement = fixture.nativeElement.querySelector('.today-board__row');
     expect(row.classList.contains('today-board__row--done')).toBe(done);
     expect(row.classList.contains('today-board__row--pending')).toBe(isPending);
-    expect(row.querySelector('.today-board__status')?.textContent?.trim()).toBe(glyph);
+    expect(iconName(row.querySelector('.today-board__status'))).toBe(icon);
   });
 
   // ── The technique-naming day label is dropped from the board (recognition-gate spoiler) ─
@@ -577,7 +589,7 @@ describe('TodayBoardComponent', () => {
     const links = row.querySelector('.today-board__links')!;
     expect(links.contains(badge)).toBe(false);
     const lcLink: HTMLAnchorElement = links.querySelector('a')!;
-    expect(lcLink.textContent?.trim()).toBe('↗');
+    expect(iconName(lcLink)).toBe('external');
     expect(lcLink.getAttribute('aria-label')).toBe('External');
   });
 
@@ -592,7 +604,7 @@ describe('TodayBoardComponent', () => {
 
     const badge: HTMLElement = fixture.nativeElement.querySelector('.today-board__status');
     expect(badge.tagName).toBe('SPAN');
-    expect(badge.textContent?.trim()).toBe('○');
+    expect(iconName(badge)).toBe('circle');
     expect(badge.getAttribute('aria-label')).toBe('not done');
     expect(fixture.nativeElement.querySelector('.today-board__status--link')).toBeFalsy();
   });
@@ -608,7 +620,7 @@ describe('TodayBoardComponent', () => {
 
     const badge: HTMLElement = fixture.nativeElement.querySelector('.today-board__status');
     expect(badge.tagName).toBe('SPAN');
-    expect(badge.textContent?.trim()).toBe('✓');
+    expect(iconName(badge)).toBe('check');
     expect(badge.getAttribute('aria-label')).toBe('done');
     expect(fixture.nativeElement.querySelector('.today-board__status--link')).toBeFalsy();
   });
@@ -630,7 +642,7 @@ describe('TodayBoardComponent', () => {
     const external = fixture.nativeElement.querySelector('a[title="External"]');
     expect(external).toBeTruthy();
     if (isPracticed) {
-      expect(run?.textContent?.trim()).toBe('>_');
+      expect(run?.querySelector('app-icon svg[data-name="terminal"]')).not.toBeNull();
       expect(run?.getAttribute('href')).toBe('/practice/39');
       return;
     }
@@ -654,7 +666,7 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.tag--easy, .tag--medium, .tag--hard')).toBeFalsy();
     expect(fixture.nativeElement.textContent).toContain('#39');
     const lcLink: HTMLAnchorElement = fixture.nativeElement.querySelector('.today-board__links a');
-    expect(lcLink.textContent?.trim()).toBe('↗');
+    expect(iconName(lcLink)).toBe('external');
     expect(lcLink.getAttribute('aria-label')).toBe('External');
   });
 
@@ -672,7 +684,7 @@ describe('TodayBoardComponent', () => {
     const badge: HTMLAnchorElement = fixture.nativeElement.querySelector('.today-board__status');
     expect(badge.tagName).toBe('A');
     expect(badge.classList.contains('today-board__status--github')).toBe(true);
-    expect(badge.textContent?.trim()).toBe('○');
+    expect(iconName(badge)).toBe('circle');
     expect(badge.getAttribute('href')).toBe(
       'https://github.com/someone/their-log/blob/dev/dsa/leetcode/backtracking/9999_unvisualized_problem.py',
     );
@@ -693,7 +705,7 @@ describe('TodayBoardComponent', () => {
 
     const badge: HTMLAnchorElement = fixture.nativeElement.querySelector('.today-board__status');
     expect(badge.tagName).toBe('A');
-    expect(badge.textContent?.trim()).toBe('✓');
+    expect(iconName(badge)).toBe('check');
     expect(badge.getAttribute('aria-label')).toBe('Solution source for #9999 on GitHub, done');
   });
 
@@ -841,7 +853,7 @@ describe('TodayBoardComponent', () => {
     expect(movedRow.classList.contains('today-board__row--done')).toBe(false);
 
     const badge = movedRow.querySelector('.today-board__status');
-    expect(badge?.textContent?.trim()).toBe('↷');
+    expect(iconName(badge)).toBe('redo');
     expect(badge?.getAttribute('aria-label')).toBe(`Moved to ${weekdayShort(tomorrow)} ${shortMonthDay(tomorrow)}`);
 
     expect(movedRow.querySelector('.today-board__moved')).toBeFalsy();
@@ -877,7 +889,7 @@ describe('TodayBoardComponent', () => {
 
     // Not all done -> the gate itself reads not-done.
     expect(gateRow.classList.contains('today-board__row--done')).toBe(false);
-    expect(gateRow.querySelector('.today-board__status')?.textContent).toBe('○');
+    expect(iconName(gateRow.querySelector('.today-board__status'))).toBe('circle');
 
     // The gate counts as ONE item toward both doneCount and totalCount.
     expect(fixture.nativeElement.querySelector('.today-board__count')?.textContent).toContain('0 of 1 done');
@@ -896,7 +908,7 @@ describe('TodayBoardComponent', () => {
 
     const gateRow = fixture.nativeElement.querySelector('.today-board__row--gate')!;
     expect(gateRow.classList.contains('today-board__row--done')).toBe(true);
-    expect(gateRow.querySelector('.today-board__status')?.textContent).toBe('✓');
+    expect(iconName(gateRow.querySelector('.today-board__status'))).toBe('check');
     expect(fixture.nativeElement.querySelector('.today-board__count')?.textContent).toContain('1 of 1 done');
   });
 
@@ -1020,7 +1032,7 @@ describe('TodayBoardComponent', () => {
   it('shows the earned outcome (start→end glyph pair only, no inline note) as a BUTTON, with the note code, its meaning, and the next-review date all moved into the popover bubble', () => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
-      { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🔴',
+      { lcNumber: 100, title: 'Same Tree', technique: 'Tree-DFS', startComfort: '🟢', startNote: 's0',
         difficulty: 'Easy', done: true, endComfort: '🟢', endNote: 's2', nextReview: '2026-10-21' },
     ];
 
@@ -1029,7 +1041,8 @@ describe('TodayBoardComponent', () => {
     const outcome: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__outcome');
     expect(outcome).toBeTruthy();
     expect(outcome.tagName).toBe('BUTTON');
-    expect(outcome.textContent).toContain('🔴→🟢');
+    expect(filledBars(outcome)).toEqual([3, 5]); // start 🟢 s0 → ring (3); without startNote it would read 5
+    expect(outcome.textContent).toContain('→');
     // The note code no longer sits inline on the row — only the popover bubble carries it.
     expect(outcome.textContent).not.toContain('s2');
     expect(fixture.nativeElement.querySelector('.today-board__comfort')).toBeFalsy();
@@ -1205,7 +1218,7 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.today-board__outcome')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.tag--next')).toBeFalsy();
     const doneRow = fixture.nativeElement.querySelector('.today-board__row--done');
-    expect(doneRow.querySelector('.today-board__comfort')?.textContent).toContain('🟢');
+    expect(doneRow.querySelector('.today-board__comfort svg')?.getAttribute('aria-label')).toBe('Comfort: clean');
 
     // The existing children-count assertion for the not-done row still holds unmodified.
     const row = fixture.nativeElement.querySelector('.today-board__row');
@@ -1228,7 +1241,8 @@ describe('TodayBoardComponent', () => {
 
     const outcome = fixture.nativeElement.querySelector('.today-board__outcome');
     expect(outcome).toBeTruthy();
-    expect(outcome.textContent).toContain('🔴→🟢');
+    expect(filledBars(outcome)).toEqual([1, 5]);
+    expect(outcome.textContent).toContain('→');
 
     const bubble = fixture.nativeElement.querySelector('.today-board__outcome-bubble');
     expect(bubble.querySelector('b')).toBeFalsy();
@@ -1765,11 +1779,11 @@ describe('TodayBoardComponent held mark', () => {
   it.each<{ name: string; heldUntil?: string; mark: string | null }>([
     { name: 'no heldUntil shows no mark', mark: null },
     { name: 'a past heldUntil shows no mark', heldUntil: addDaysISO(today, -1), mark: null },
-    { name: 'heldUntil today shows the mark', heldUntil: today, mark: `⏸ ${today.slice(5, 7)}/${today.slice(8, 10)}` },
+    { name: 'heldUntil today shows the mark', heldUntil: today, mark: `${today.slice(5, 7)}/${today.slice(8, 10)}` },
     {
       name: 'a future heldUntil shows the mark',
       heldUntil: addDaysISO(today, 14),
-      mark: `⏸ ${addDaysISO(today, 14).slice(5, 7)}/${addDaysISO(today, 14).slice(8, 10)}`,
+      mark: `${addDaysISO(today, 14).slice(5, 7)}/${addDaysISO(today, 14).slice(8, 10)}`,
     },
   ])('$name', ({ heldUntil, mark }) => {
     const details = [

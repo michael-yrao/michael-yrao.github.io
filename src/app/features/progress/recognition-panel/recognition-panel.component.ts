@@ -4,13 +4,16 @@ import { RouterLink } from '@angular/router';
 import { Probes } from '../../../core/models/progress.model';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
-import { PRACTICE_GLYPH } from '../practice-link';
+import { CLEAN_COMFORT } from '../../../core/models/comfort';
+import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
+import { PRACTICE_ICON } from '../practice-link';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 const CLEAN_HIGH = 0.85;
 const CLEAN_LOW = 0.7;
 
 /**
- * The Recognition tab: surfaces `dsa/probes/README.md`'s Probe log — cold, label-stripped,
+ * The Recognition page (/quiz/recognition): surfaces `dsa/probes/README.md`'s Probe log — cold, label-stripped,
  * disposable reps that measure whether the practiced pool still teaches recognition (a
  * clean 🟢 probe earns NO tracker row, so it's invisible everywhere else). Entirely derived
  * from the summary's `probes` (a few rows, ~1/week) — no fetch, ever.
@@ -19,10 +22,11 @@ const CLEAN_LOW = 0.7;
   selector: 'app-recognition-panel',
   templateUrl: './recognition-panel.component.html',
   styleUrls: ['./recognition-panel.component.scss'],
-  imports: [RouterLink],
+  imports: [RouterLink, ComfortMarkComponent, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecognitionPanelComponent {
+  protected readonly cleanComfort = CLEAN_COMFORT;
   readonly probes = input<Probes | null | undefined>();
   readonly practiceNumbers = input<ReadonlySet<number>>(new Set());
   /** The repo/branch the page renders (ProgressService.repoRef); null until known. */
@@ -56,5 +60,5 @@ export class RecognitionPanelComponent {
   readonly recent = computed(() => [...(this.probes()?.items ?? [])].reverse());
 
   protected readonly externalJudgeUrlFor = externalJudgeUrlFor;
-  protected readonly practiceGlyph = PRACTICE_GLYPH;
+  protected readonly practiceIcon = PRACTICE_ICON;
 }

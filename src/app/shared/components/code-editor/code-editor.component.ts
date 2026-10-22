@@ -45,8 +45,8 @@ const errorLineField = StateField.define<DecorationSet>({
   provide: (field) => EditorView.decorations.from(field),
 });
 
-// Theme tokens come from the site's CSS custom properties, so the editor follows the light
-// and dark themes with no second palette. The size comes from three custom properties that a
+// Theme tokens come from the site's CSS custom properties, so the editor uses the site
+// tokens with no second palette. The size comes from three custom properties that a
 // parent can override from a media query; the fallbacks are the stacked layout's values.
 const editorTheme = EditorView.theme({
   '&': {

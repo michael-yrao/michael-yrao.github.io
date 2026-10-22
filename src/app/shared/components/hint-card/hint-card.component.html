@@ -1,6 +1,6 @@
 <div class="hint">
   <button class="hint__toggle" (click)="toggle()">
-    <span class="hint__icon">{{ revealed ? '🔒' : '💡' }}</span>
+    <span class="hint__icon"><app-icon [name]="revealed ? 'lock' : 'bulb'" [size]="14" /></span>
     {{ revealed ? 'Hide Hint' : 'Show Hint' }}
     <span class="hint__chevron" [class.hint__chevron--open]="revealed">›</span>
   </button>

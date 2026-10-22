@@ -31,7 +31,7 @@
             }
             <span class="recognition__date">{{ item.date }}</span>
             @if (item.result) {
-              <span class="recognition__result">{{ item.result }}</span>
+              <span class="recognition__result"><app-comfort-mark [comfort]="item.result" /></span>
             }
             <span class="recognition__links">
               <span class="recognition__slot">
@@ -42,7 +42,7 @@
                     class="recognition__link practice-link"
                     aria-label="Run code"
                     title="Run code"
-                  >{{ practiceGlyph }}</a>
+                  ><app-icon [name]="practiceIcon" [size]="14" /></a>
                 }
               </span>
               <span class="recognition__slot">
@@ -63,7 +63,7 @@
       </ul>
 
       <p class="recognition__note">
-        Probes are cold, label-stripped, and disposable — a clean 🟢 earns no tracker row, so
+        Probes are cold, label-stripped, and disposable — a clean rep (<app-comfort-mark [comfort]="cleanComfort" label="" />) earns no tracker row, so
         this is the only place they're counted.
       </p>
     } @else {

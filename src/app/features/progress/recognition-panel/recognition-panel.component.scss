@@ -35,7 +35,6 @@
   &:hover, &:focus-visible { @include prow.status-badge-link-hover; }
   &:focus-visible { @include prow.status-badge-link-focus; }
 }
-.recognition__result { font-size: 0.95rem; }
 .recognition__date { @include prow.meta; }
 .recognition__num { @include prow.num; }
 // The title stops growing so the difficulty tag sits against its text; the date takes the free space.

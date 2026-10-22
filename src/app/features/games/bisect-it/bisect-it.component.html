@@ -13,7 +13,7 @@
   <div class="game-layout">
     <div class="game-column">
       @if (current) {
-        <div class="game-stats">
+        <div class="game-stats po-card po-card--compact">
           <div class="stat">
             <span class="stat__value">{{ progressLabel }}</span>
             <span class="stat__label">round</span>
@@ -35,7 +35,7 @@
           </div>
         </div>
 
-        <div class="question-card">
+        <div class="question-card po-card po-card--compact">
           <p class="question-card__text">{{ current.question }}</p>
           <div class="question-card__row">
             <span class="question-card__label">{{ current.itemLabel }}</span>
@@ -101,8 +101,8 @@
 
         @if (!solverRunning && mode === 'playing') {
           <div class="move-controls">
-            <button class="btn-probe" [disabled]="!canProbe" (click)="probe()">Probe {{ selectedValue }}</button>
-            <button class="btn-submit" [disabled]="!canSubmit" (click)="submit()">Submit {{ selectedValue }}</button>
+            <button class="btn-probe po-btn po-btn--outline" [disabled]="!canProbe" (click)="probe()">Probe {{ selectedValue }}</button>
+            <button class="btn-submit po-btn" [disabled]="!canSubmit" (click)="submit()">Submit {{ selectedValue }}</button>
           </div>
         }
 
@@ -117,7 +117,7 @@
         }
 
         @if (mode === 'revealed') {
-          <div class="reveal-card" [class.reveal-card--exact]="isExact">
+          <div class="reveal-card po-card po-card--compact" [class.reveal-card--exact]="isExact">
             <div class="reveal-card__title">
               {{ isExact ? 'Exact boundary!' : (offByOne ? 'Off by one' : 'Not the boundary') }}
             </div>
@@ -126,7 +126,7 @@
               <strong>{{ current.answer }}</strong>. Probes used: <strong>{{ probes.length }}</strong>
               vs par <strong>{{ par }}</strong>.
             </div>
-            <button class="btn-next" (click)="next()">
+            <button class="btn-next po-btn" (click)="next()">
               {{ roundIndex + 1 >= deck.length ? 'See results' : 'Next round' }}
             </button>
           </div>
@@ -134,18 +134,18 @@
       }
 
       @if (mode === 'finished') {
-        <div class="run-summary">
+        <div class="run-summary po-card po-card--compact">
           <h2 class="run-summary__title">Run complete</h2>
           <p class="run-summary__line">Exact boundary: <strong>{{ roundsExact }} / {{ deck.length }}</strong></p>
           <p class="run-summary__line">Total probes: <strong>{{ totalProbes }}</strong> vs total par <strong>{{ totalPar }}</strong></p>
           <p class="run-summary__line">Best exact-boundary streak: <strong>{{ bestStreak }}</strong></p>
-          <button class="btn-play-again" (click)="startRun()">Play Again</button>
+          <button class="btn-play-again po-btn" (click)="startRun()">Play Again</button>
         </div>
       }
     </div>
 
     <aside class="algo-column">
-      <section class="algo-breakdown">
+      <section class="algo-breakdown po-card po-card--compact">
         <h2 class="algo-breakdown__title">How the Algorithm Works</h2>
 
         <div class="algo-breakdown__body">
@@ -155,7 +155,7 @@
             — halving each time finds the exact boundary in <code>ceil(log2(range))</code> probes.
           </p>
 
-          <div class="mapping-table">
+          <div class="mapping-table po-card po-card--compact">
             <div class="mapping-row mapping-row--header">
               <span>Game mechanic</span>
               <span>Binary search concept</span>
@@ -179,7 +179,7 @@
           </div>
 
           @if (current) {
-            <h3 class="algo-breakdown__step-title">This round's predicate</h3>
+            <h3 class="algo-breakdown__step-title po-eyebrow">This round's predicate</h3>
             <p class="algo-breakdown__intro">
               @switch (current.flavour) {
                 @case ('koko') {
@@ -200,20 +200,21 @@
 
           <div class="solver-controls">
             @if (!solverRunning) {
-              <button class="btn-solver" [disabled]="mode !== 'revealed'" (click)="watchSolver()">
-                ▶ Watch binary search
+              <button class="btn-solver po-btn po-btn--outline po-btn--sm" [disabled]="mode !== 'revealed'" (click)="watchSolver()">
+                <app-icon name="play" [size]="14" />
+                Watch binary search
               </button>
             }
             @if (solverRunning) {
               <div class="solver-running">
                 <span class="solver-running__label">Reference trace — step {{ solverStepIdx }} / {{ current?.trace?.length }}</span>
-                <button class="btn-solver-stop" (click)="stopSolver()">Stop</button>
+                <button class="btn-solver-stop po-btn po-btn--danger po-btn--sm" (click)="stopSolver()">Stop</button>
               </div>
             }
           </div>
 
           <div class="algo-breakdown__links">
-            <span class="algo-breakdown__links-label">The problems behind this game</span>
+            <span class="algo-breakdown__links-label po-eyebrow">The problems behind this game</span>
             <a routerLink="/practice/875/solution" queryParamsHandling="preserve" class="problem-link">LC 875 · Koko Eating Bananas</a>
             <a routerLink="/practice/1011/solution" queryParamsHandling="preserve" class="problem-link">LC 1011 · Capacity to Ship Packages Within D Days</a>
             <a routerLink="/practice/1552/solution" queryParamsHandling="preserve" class="problem-link">LC 1552 · Magnetic Force Between Two Balls</a>

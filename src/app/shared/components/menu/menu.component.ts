@@ -16,6 +16,8 @@ import {
 import { NavigationStart, Router } from '@angular/router';
 import { filter } from 'rxjs';
 
+import { IconComponent } from '../icon/icon.component';
+
 export type MenuDotState = 'none' | 'running' | 'failed' | 'off';
 export type MenuSize = 'sm' | 'md' | 'lg';
 export type MenuIcon = 'dots' | 'bars';
@@ -48,6 +50,7 @@ function nextItemIndex(key: string, current: number, count: number): number {
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'menu' },
+  imports: [IconComponent],
 })
 export class MenuComponent {
   /** The trigger's accessible name. */

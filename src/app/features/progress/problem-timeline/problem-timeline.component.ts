@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
+import { comfortName } from '../../../core/models/comfort';
 import { ProblemProgress, TimelinePoint } from '../../../core/models/progress.model';
 
 interface PlotPoint {
@@ -15,8 +16,8 @@ const COMFORT_COLOR: Record<number, string> = {
   0: 'var(--color-hard)',
   1: 'var(--color-medium)',
   2: 'var(--color-easy)',
-  3: 'var(--color-accent)',
-  4: 'var(--color-accent)',
+  3: 'var(--color-graduated)',
+  4: 'var(--color-trophy)',
 };
 
 /**
@@ -34,6 +35,7 @@ const COMFORT_COLOR: Record<number, string> = {
 })
 export class ProblemTimelineComponent {
   readonly problem = input.required<ProblemProgress>();
+  protected readonly comfortName = comfortName;
 
   // The chart spans the full width of its container (progress-page's expanded problem
   // row). W grows with the rep count so many-rep timelines keep a legible minimum

@@ -22,8 +22,11 @@ import {
 } from '../../../core/models/progress.model';
 import { fileUrl, RepoRef } from '../../../core/services/github-file.service';
 import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-date';
+import { CLEAN_COMFORT } from '../../../core/models/comfort';
+import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
-import { PRACTICE_GLYPH } from '../practice-link';
+import { PRACTICE_ICON } from '../practice-link';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import {
@@ -85,9 +88,10 @@ const BOARD_SORT_KEYS: readonly TechniqueSortKey[] = ['name', 'coverage', 'lastP
   templateUrl: './technique-list.component.html',
   styleUrls: ['./technique-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgTemplateOutlet],
+  imports: [RouterLink, NgTemplateOutlet, ComfortMarkComponent, IconComponent],
 })
 export class TechniqueListComponent {
+  protected readonly cleanComfort = CLEAN_COMFORT;
   readonly techniques = input.required<Technique[]>();
   /** The full problems[] (from ProgressService.details), for the expand-to-problems join.
    *  null until loadDetails() has resolved at least once. */
@@ -100,7 +104,7 @@ export class TechniqueListComponent {
   /** Jump to a technique (the roadmap card's tile click): expands its row in List view, selects
    *  its card in Board view, then scrolls it into view. An unknown name is a no-op. */
   readonly focus = input<TechniqueFocus | null>(null);
-  protected readonly practiceGlyph = PRACTICE_GLYPH;
+  protected readonly practiceIcon = PRACTICE_ICON;
   protected readonly externalJudgeUrlFor = externalJudgeUrlFor;
   readonly expand = output<Technique>();
 

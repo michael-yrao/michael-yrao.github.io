@@ -1,8 +1,8 @@
 <div class="card">
   <span class="dot dot--{{ dot() }}" [attr.aria-label]="dot()"></span>
-  <code class="head">{{ headMark }}{{ head() }}</code>
+  <code class="head"><app-icon name="hash" [size]="12" />{{ head() }}</code>
   @if (isDirty()) {
-    <span class="dirty" aria-label="uncommitted">●</span>
+    <span class="dirty" aria-label="uncommitted"></span>
   }
   <span class="cost">{{ cost() }}</span>
 </div>
@@ -10,7 +10,7 @@
   <li><span class="dot dot--awake"></span>awake</li>
   <li><span class="dot dot--waking"></span>waking</li>
   <li><span class="dot dot--asleep"></span>asleep</li>
-  <li><code>⌗</code>head</li>
-  <li><span class="dirty">●</span>uncommitted</li>
+  <li><code><app-icon name="hash" [size]="12" /></code>head</li>
+  <li><span class="dirty"></span>uncommitted</li>
   <li><span class="cost">$</span>session cost</li>
 </ul>

@@ -5,7 +5,7 @@ import { of } from 'rxjs';
 import { vi } from 'vitest';
 
 import { PracticeData, PracticeProblem } from '../../../core/models/practice.model';
-import { GOLD_STANDARD_REPO, LoadStatus } from '../../../core/services/github-file.service';
+import { CONTENT_REPO, LoadStatus } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { ShowcaseService } from '../../../core/services/showcase.service';
 import { SolutionPageComponent } from './solution-page.component';
@@ -36,7 +36,7 @@ async function setUp(number: string, problems: readonly PracticeProblem[]) {
           status: signal<LoadStatus>('ready'),
           error: signal<string | null>(null),
           data: signal<PracticeData | null>(data),
-          ref: signal(GOLD_STANDARD_REPO),
+          ref: signal(CONTENT_REPO),
           load: vi.fn(),
           problemFor: (n: number) => problems.find((p) => p.number === n) ?? null,
         },

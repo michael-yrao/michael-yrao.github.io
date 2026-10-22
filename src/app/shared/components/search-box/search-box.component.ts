@@ -9,10 +9,13 @@ import {
   output,
 } from '@angular/core';
 
+import { IconComponent } from '../icon/icon.component';
+
 const TEXT_ENTRY_SELECTOR = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
 
 @Component({
   selector: 'app-search-box',
+  imports: [IconComponent],
   templateUrl: './search-box.component.html',
   styleUrl: './search-box.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

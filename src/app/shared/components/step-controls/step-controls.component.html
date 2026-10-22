@@ -1,18 +1,18 @@
 <div class="controls">
   <div class="controls__nav">
-    <button class="btn-ctrl" (click)="goToStart()" [disabled]="atStart" title="Go to start" aria-label="Go to start">|◀</button>
-    <button class="btn-ctrl" (click)="stepBack()"  [disabled]="atStart" title="Step back (←)" aria-label="Step back">◀</button>
+    <button class="btn-ctrl po-btn po-btn--icon" (click)="goToStart()" [disabled]="atStart" title="Go to start" aria-label="First step"><app-icon name="skip-back" [size]="16" /></button>
+    <button class="btn-ctrl po-btn po-btn--icon" (click)="stepBack()"  [disabled]="atStart" title="Step back (←)" aria-label="Step back"><app-icon name="step-back" [size]="16" /></button>
     <button
-      class="btn-ctrl btn-ctrl--play"
+      class="btn-ctrl btn-ctrl--play po-btn"
       (click)="togglePlay()"
       [title]="isPlaying() ? 'Pause (Space)' : 'Play (Space)'"
       [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'"
     >
-      {{ isPlaying() ? '⏸' : '▶' }}
+      <app-icon [name]="isPlaying() ? 'pause' : 'play'" [size]="16" />
     </button>
-    <button class="btn-ctrl" (click)="stepForward()" [disabled]="atEnd" title="Step forward (→)" aria-label="Step forward">▶</button>
-    <button class="btn-ctrl" (click)="goToEnd()"    [disabled]="atEnd" title="Go to end" aria-label="Go to end">▶|</button>
-    <button class="btn-ctrl btn-ctrl--reset" (click)="onReset()" title="Reset" aria-label="Reset">↺</button>
+    <button class="btn-ctrl po-btn po-btn--icon" (click)="stepForward()" [disabled]="atEnd" title="Step forward (→)" aria-label="Step forward"><app-icon name="step-forward" [size]="16" /></button>
+    <button class="btn-ctrl po-btn po-btn--icon" (click)="goToEnd()"    [disabled]="atEnd" title="Go to end" aria-label="Last step"><app-icon name="skip-forward" [size]="16" /></button>
+    <button class="btn-ctrl po-btn po-btn--icon" (click)="onReset()" title="Reset" aria-label="Reset"><app-icon name="reset" [size]="16" /></button>
   </div>
 
   <div class="controls__meta">

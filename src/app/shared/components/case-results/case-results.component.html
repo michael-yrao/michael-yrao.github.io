@@ -15,7 +15,7 @@
       [attr.aria-selected]="row.index === activeIndex()"
       (click)="selectedChange.emit(row.index)"
     >
-      <span class="practice__mark" [class.practice__mark--pass]="row.isPass" [class.practice__mark--fail]="!row.isPass">{{ row.mark }}</span>
+      <span class="practice__mark" [class.practice__mark--pass]="row.isPass" [class.practice__mark--fail]="!row.isPass"><app-icon [name]="row.isPass ? 'check' : 'x'" [size]="14" [label]="row.mark" /></span>
       <span class="practice__case">Case {{ row.index + 1 }}</span>
       @if (row.word) {
         <span class="practice__word">{{ row.word }}</span>

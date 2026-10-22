@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
 import type { CoachStatus } from '../../../core/models/coach.model';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 const SHORT_HEAD_LENGTH = 7;
 const COST_DECIMALS = 2;
 const NO_HEAD_MARK = '—';
-const HEAD_MARK = '⌗';
 
 type CoachDot = 'awake' | 'waking' | 'asleep';
 
@@ -14,12 +14,11 @@ type CoachDot = 'awake' | 'waking' | 'asleep';
   templateUrl: './coach-status-card.component.html',
   styleUrls: ['./coach-status-card.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [IconComponent],
 })
 export class CoachStatusCardComponent {
   readonly status = input.required<CoachStatus | null>();
   readonly isWaking = input(false);
-
-  protected readonly headMark = HEAD_MARK;
 
   protected readonly dot = computed<CoachDot>(() => {
     if (this.status()?.awake) return 'awake';

@@ -194,7 +194,7 @@ $tech-box-gap: 3px;
   &:focus-visible { @include prow.status-badge-link-focus; }
 }
 // Comfort takes the free space (title stops growing) and sits just before the links.
-.tech-row__problem-comfort { font-size: 0.95rem; margin-left: auto; }
+.tech-row__problem-comfort { margin-left: auto; }
 .tech-row__problem-num { @include prow.num; }
 // The title stops growing so the difficulty tag sits against its text.
 .tech-row__problem-title { @include prow.title; flex: 0 1 auto; }

@@ -16,16 +16,16 @@
 
   <div class="os-layout">
     <div class="os-controls">
-      <button class="btn-os" (click)="newBoard()" [disabled]="solverRunning">New Board</button>
-      <button class="btn-os" (click)="resetBoard()" [disabled]="solverRunning">Reset</button>
-      <button class="btn-os" (click)="undo()" [disabled]="solverActive || !canUndo">Undo</button>
-      <button class="btn-os" (click)="toggleExplain()" [disabled]="solverActive">
+      <button class="btn-os po-btn po-btn--outline po-btn--sm" (click)="newBoard()" [disabled]="solverRunning">New Board</button>
+      <button class="btn-os po-btn po-btn--outline po-btn--sm" (click)="resetBoard()" [disabled]="solverRunning">Reset</button>
+      <button class="btn-os po-btn po-btn--outline po-btn--sm" (click)="undo()" [disabled]="solverActive || !canUndo">Undo</button>
+      <button class="btn-os po-btn po-btn--outline po-btn--sm" (click)="toggleExplain()" [disabled]="solverActive">
         {{ showExplain ? 'Hide' : 'Explain' }}
       </button>
       @if (!solverActive) {
-        <button class="btn-os btn-os--solver" (click)="watchSolver()">Watch Solver</button>
+        <button class="btn-os btn-os--solver po-btn po-btn--outline po-btn--sm" (click)="watchSolver()">Watch Solver</button>
       } @else {
-        <button class="btn-os btn-os--solver btn-os--active" (click)="stopSolver()">Back to my board</button>
+        <button class="btn-os btn-os--solver btn-os--active po-btn po-btn--outline po-btn--sm" (click)="stopSolver()">Back to my board</button>
       }
       <span class="os-phase" aria-live="polite">
         @if (solverRunning) {
@@ -43,7 +43,7 @@
       </span>
     </div>
 
-    <div class="os-stats">
+    <div class="os-stats po-card po-card--compact">
       <div class="stat">
         <span class="stat__value">{{ movesCount }}</span>
         <span class="stat__label">moves</span>
@@ -70,7 +70,7 @@
       </div>
     </div>
 
-    <div class="os-arena">
+    <div class="os-arena po-card po-card--compact">
       <svg class="os-svg" [attr.viewBox]="viewBox" role="img" aria-label="One-stroke tour board">
         <defs>
           <marker id="os-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
@@ -147,7 +147,7 @@
         <div class="os-overlay">
           <div class="os-overlay__content">
             <div class="os-overlay__icon" [class.os-overlay__icon--win]="phase === 'won'">
-              {{ phase === 'won' ? '✓' : '✗' }}
+              <app-icon [name]="phase === 'won' ? 'check' : 'x'" [size]="28" />
             </div>
             <div class="os-overlay__title">{{ phase === 'won' ? 'Tour Complete!' : 'Dead End' }}</div>
             <div class="os-overlay__sub">
@@ -164,7 +164,7 @@
     </div>
 
     @if (showExplain) {
-      <div class="os-explain">
+      <div class="os-explain po-card po-card--compact">
         @if (invalidStartMessage) {
           <p class="os-explain__warn">{{ invalidStartMessage }}</p>
         }

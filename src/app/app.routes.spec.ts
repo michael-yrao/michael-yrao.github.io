@@ -93,6 +93,14 @@ describe('app routes', () => {
     expect(router.url).toBe('/practice/20/solution');
   });
 
+  it('loads the recognition page at /quiz/recognition', async () => {
+    const router = TestBed.inject(Router);
+
+    await router.navigateByUrl('/quiz/recognition');
+
+    expect(router.url).toBe('/quiz/recognition');
+  });
+
   it('redirects /practice/custom to /interview, keeping query params', async () => {
     const router = TestBed.inject(Router);
 

@@ -12,7 +12,7 @@
   <div class="game-layout">
     <div class="game-column">
       <div class="game-arena">
-        <div class="game-stats">
+        <div class="game-stats po-card po-card--compact">
           <div class="stat">
             <span class="stat__value" [class.stat__value--danger]="movesLeft <= moveBuffer">{{ movesLeft }}</span>
             <span class="stat__label">moves left</span>
@@ -48,7 +48,7 @@
             <div class="game-overlay">
               <div class="game-overlay__content">
                 <div class="game-overlay__icon" [class.game-overlay__icon--win]="gameState === 'won'">
-                  {{ gameState === 'won' ? '✓' : '✗' }}
+                  <app-icon [name]="gameState === 'won' ? 'check' : 'x'" [size]="28" />
                 </div>
                 <div class="game-overlay__title">
                   {{ gameState === 'won' ? 'Board Conquered!' : 'Game Over' }}
@@ -61,7 +61,7 @@
                     The board wasn't conquered in {{ maxMoves }} moves.
                   }
                 </div>
-                <button class="btn-play-again" (click)="initGame()">Play Again</button>
+                <button class="po-btn" (click)="initGame()">Play Again</button>
               </div>
             </div>
           }
@@ -83,7 +83,7 @@
     </div>
 
     <aside class="algo-column">
-      <section class="algo-breakdown">
+      <section class="algo-breakdown po-card po-card--compact">
         <h2 class="algo-breakdown__title">How the Algorithm Works</h2>
 
         <div class="algo-breakdown__body">
@@ -93,7 +93,7 @@
             each move is the BFS frontier expanding one level at a time.
           </p>
 
-          <div class="mapping-table">
+          <div class="mapping-table po-card po-card--compact">
             <div class="mapping-row mapping-row--header">
               <span>Game mechanic</span>
               <span>BFS concept</span>
@@ -120,7 +120,7 @@
             </div>
           </div>
 
-          <h3 class="algo-breakdown__step-title">What happens each move</h3>
+          <h3 class="algo-breakdown__step-title po-eyebrow">What happens each move</h3>
           <ol class="algo-steps">
             <li>All conquered cells immediately repaint to your chosen color</li>
             <li>The queue is seeded with unconquered neighbors that already match that color</li>
@@ -129,7 +129,7 @@
             <li>Win condition: conquered set size equals the total cell count</li>
           </ol>
 
-          <h3 class="algo-breakdown__step-title">How the move limit is set</h3>
+          <h3 class="algo-breakdown__step-title po-eyebrow">How the move limit is set</h3>
           <p class="algo-breakdown__intro">
             Before you play, a <strong>greedy solver</strong> runs on the freshly generated board.
             Each simulated turn it picks the color that absorbs the most cells — a fast, strong heuristic
@@ -149,23 +149,24 @@
           <div class="solver-controls">
             @if (!solverRunning) {
               <button
-                class="btn-solver"
+                class="btn-solver po-btn po-btn--outline po-btn--sm"
                 [disabled]="gameState !== 'playing' || isAnimating"
                 (click)="watchSolver()"
                 >
-                ▶ Watch it solve this board
+                <app-icon name="play" [size]="14" />
+                Watch it solve this board
               </button>
             }
             @if (solverRunning) {
               <div class="solver-running">
                 <span class="solver-running__label">Greedy solver — move {{ solverMoveIdx }} / {{ greedyBest }}</span>
-                <button class="btn-solver-stop" (click)="stopSolver()">Stop</button>
+                <button class="btn-solver-stop po-btn po-btn--danger po-btn--sm" (click)="stopSolver()">Stop</button>
               </div>
             }
           </div>
 
           <div class="algo-breakdown__links">
-            <span class="algo-breakdown__links-label">The problems behind this game</span>
+            <span class="algo-breakdown__links-label po-eyebrow">The problems behind this game</span>
             <a
               routerLink="/practice/102/solution"
               queryParamsHandling="preserve"

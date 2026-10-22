@@ -71,7 +71,7 @@ describe('AppComponent', () => {
       ['Games', '/games', null],
       ['Coach', '/coach', null],
       ['About', '/about', null],
-      ['GitHub ↗', 'https://github.com/michael-yrao/michael-yrao.github.io', '_blank'],
+      ['GitHub', 'https://github.com/michael-yrao/michael-yrao.github.io', '_blank'],
     ]);
   });
 

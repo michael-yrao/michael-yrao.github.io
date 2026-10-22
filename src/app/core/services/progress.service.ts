@@ -19,6 +19,7 @@ import {
   LoadStatus,
   DEFAULT_REPO,
   DEFAULT_BRANCH,
+  DEMO_REPO,
   parseRepoSlug,
   sameRef,
   httpErrorMessage,
@@ -184,7 +185,7 @@ export class ProgressService {
    *  decides how to surface that (see `loadSummary`'s null-ref branch). Delegates to
    *  `parseRepoSlug`, the single implementation shared with `GitHubFileService`. */
   parseRepo(raw: string | null | undefined): RepoRef | null {
-    return parseRepoSlug(raw);
+    return parseRepoSlug(raw, DEMO_REPO);
   }
 
   /** Fetch a logical contract file, preferring its `dashboard/` location and falling back

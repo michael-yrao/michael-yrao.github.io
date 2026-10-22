@@ -6,6 +6,8 @@ import {
   ScheduleItem,
   WorkloadDay,
 } from '../../../core/models/progress.model';
+import { comfortName } from '../../../core/models/comfort';
+import { IconName } from '../../../shared/components/icon/icon-paths';
 import { addDaysISO, shortMonthDay, weekdayShort } from '../../../core/utils/local-date';
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
 
@@ -31,29 +33,29 @@ export interface RowCounts {
 }
 
 export const COMPLEXITY_GATE_TITLE = 'Complexity gate';
-const MOVED_GLYPH = '↷';
-const MOVED_UP_GLYPH = '↶';
-const PULLED_IN_GLYPH = MOVED_UP_GLYPH;
+const MOVED_ICON: IconName = 'redo';
+const MOVED_UP_ICON: IconName = 'undo';
+const PULLED_IN_ICON = MOVED_UP_ICON;
 const PULLED_IN_ARIA_SUFFIX = ', pulled in';
 // A literal `</>` can't be written inline in the template's interpolation (`{{ '</>' }}`) — the
 // `</` reads to the HTML parser as a closing tag before Angular's interpolation is tokenized —
 // so the walkthrough badge's own glyph lives here instead and the template references it.
 export const WALKTHROUGH_GLYPH = '</>';
-const DONE_GLYPH = '✓';
-const PENDING_GLYPH = '◐';
-const OPEN_GLYPH = '○';
-const HELD_GLYPH = '⏸';
+export const DONE_ICON: IconName = 'check';
+const PENDING_ICON: IconName = 'half';
+export const OPEN_ICON: IconName = 'circle';
+export const HELD_ICON: IconName = 'pause';
 const PENDING_LABEL = 'saved, folding';
 const HELD_MONTH_SLICE_START = 5;
 const HELD_MONTH_SLICE_END = 7;
 const HELD_DAY_SLICE_START = 8;
 const HELD_DAY_SLICE_END = 10;
 
-/** The read-only hold mark `⏸ MM/DD` while `heldUntil` is today or later; null otherwise. */
+/** The read-only hold date `MM/DD` (shown beside the pause icon) while `heldUntil` is today or later; null otherwise. */
 export function heldMark(problem: ProblemProgress | null, todayISO: string): string | null {
   const until = problem?.heldUntil;
   if (!until || until < todayISO) return null;
-  return `${HELD_GLYPH} ${until.slice(HELD_MONTH_SLICE_START, HELD_MONTH_SLICE_END)}/${until.slice(HELD_DAY_SLICE_START, HELD_DAY_SLICE_END)}`;
+  return `${until.slice(HELD_MONTH_SLICE_START, HELD_MONTH_SLICE_END)}/${until.slice(HELD_DAY_SLICE_START, HELD_DAY_SLICE_END)}`;
 }
 const RE_ASK_SUFFIX = 're-asks';
 const MAX_PCT = 100;
@@ -278,14 +280,14 @@ export function trendAriaLabel(item: ScheduleItem): string {
   return `Comfort history for #${item.lcNumber}`;
 }
 
-/** The outcome button's aria-label — "earned 🟢" plus the raw note code when present (e.g.
- *  "earned 🟢 s2"). Deliberately short: the bubble this button describes (wired via
+/** The outcome button's aria-label — "earned clean" plus the raw note code when present (e.g.
+ *  "earned clean s2"). Deliberately short: the bubble this button describes (wired via
  *  `aria-describedby`) already carries the note's meaning and the next-review date, so a
  *  screen reader announces the label, then the description, each exactly once. Only ever
  *  called once `item.endComfort` is already known truthy (the template's own `@if`). */
 export function outcomeAriaLabel(item: ScheduleItem): string {
   const noteText = item.endNote ? ` ${item.endNote}` : '';
-  return `earned ${item.endComfort}${noteText}`;
+  return `earned ${comfortName(item.endComfort)}${noteText}`;
 }
 
 /** Selector-strip button label — weekday abbreviation + day-of-month pulled straight out of
@@ -338,10 +340,10 @@ export function plainAriaLabel(item: ScheduleItem, date: string, isPending: bool
   return doneLabel(item, isPending);
 }
 
-/** The badge glyph for a row with no walkthrough route: done / saved-and-folding / open. */
-export function rowStateGlyph(item: ScheduleItem, isPending: boolean): string {
-  if (item.done) return DONE_GLYPH;
-  return isPending ? PENDING_GLYPH : OPEN_GLYPH;
+/** The badge icon for a row with no walkthrough route: done / saved-and-folding / open. */
+export function rowStateIcon(item: ScheduleItem, isPending: boolean): IconName {
+  if (item.done) return DONE_ICON;
+  return isPending ? PENDING_ICON : OPEN_ICON;
 }
 
 /** The status badge's aria-label when it's the GitHub solution-file link — mirrors
@@ -351,13 +353,13 @@ export function githubAriaLabel(item: ScheduleItem, date: string, isPending = fa
   return `Solution source for #${item.lcNumber} on GitHub, ${doneLabel(item, isPending)}${pulledInSuffix(item)}`;
 }
 
-/** The status badge's glyph — `↶` when the row was pulled to an earlier date than its own day
- *  `date` (done or not), the same `↶` for a pulled-in row (the destination copy), `↷` for a moved or missed row (in place of whatever `fallback` this badge
- *  form would otherwise show: `</>`, `✓`/`○`), `fallback` otherwise. */
-export function statusGlyph(item: ScheduleItem, fallback: string, date: string, todayISO: string): string {
-  if (item.deferredTo && isMovedUp(item.deferredTo, date)) return MOVED_UP_GLYPH;
-  if (item.pulledIn) return PULLED_IN_GLYPH;
-  if (isMovedItem(item) || isMissedItem(item, date, todayISO)) return MOVED_GLYPH;
+/** The status badge's icon — `undo` when the row was pulled to an earlier date than its own day
+ *  `date` (done or not), the same `undo` for a pulled-in row (the destination copy), `redo` for a moved or missed row (in place of whatever `fallback` this badge
+ *  form would otherwise show: the `</>` text, a state icon), `fallback` otherwise (null = the walkthrough text). */
+export function statusIcon(item: ScheduleItem, fallback: IconName | null, date: string, todayISO: string): IconName | null {
+  if (item.deferredTo && isMovedUp(item.deferredTo, date)) return MOVED_UP_ICON;
+  if (item.pulledIn) return PULLED_IN_ICON;
+  if (isMovedItem(item) || isMissedItem(item, date, todayISO)) return MOVED_ICON;
   return fallback;
 }
 

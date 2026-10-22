@@ -2,7 +2,7 @@
   @case ('error') {
     <div class="showcase-error">
       <p>{{ error() }}</p>
-      <button type="button" class="showcase-retry-btn" (click)="onRetry()">Retry</button>
+      <button type="button" class="showcase-retry-btn po-btn po-btn--sm po-btn--outline" (click)="onRetry()">Retry</button>
     </div>
   }
   @case ('ready') {
@@ -16,7 +16,7 @@
               [href]="attemptBlobUrl()"
               target="_blank"
               rel="noopener noreferrer"
-              >Grounded ✓ · {{ sourceSlug() }}</a
+              >Grounded <app-icon name="check" [size]="12" /> · {{ sourceSlug() }}</a
             >
           } @else {
             <span

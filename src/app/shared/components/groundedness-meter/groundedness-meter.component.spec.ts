@@ -171,7 +171,7 @@ describe('GroundednessMeterComponent', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain(String(expected.grounded));
     expect(text).toContain(String(expected.total));
-    expect(text).toContain('michael-yrao/cse-progress');
+    expect(text).toContain('michael-yrao/progressive-overflow-content');
     expect(text).toContain(`${Math.round(expected.ratio * RATIO_TO_PERCENT)}%`);
     expect(text).toContain('solution variants');
 

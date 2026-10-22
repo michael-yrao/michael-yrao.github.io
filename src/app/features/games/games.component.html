@@ -21,6 +21,7 @@
         @for (game of section.games; track game) {
           <a
             class="game-card po-card"
+            [class.po-card--link]="game.status === 'available'"
             [class.game-card--available]="game.status === 'available'"
             [class.game-card--soon]="game.status === 'coming-soon'"
             [routerLink]="game.status === 'available' ? game.route : null"

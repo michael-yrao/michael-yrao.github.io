@@ -156,10 +156,10 @@ export class EngineMenuComponent {
     const segments: ResultSegment[] = [];
     if (done.updated.length > 0) segments.push({ text: `✓ ${done.updated.length} updated` });
     if (done.skipped.length > 0) {
-      segments.push({ text: `⚠ ${done.skipped.length} kept`, paths: done.skipped.map((file) => file.path) });
+      segments.push({ text: `△ ${done.skipped.length} kept`, paths: done.skipped.map((file) => file.path) });
     }
     if (done.notice !== undefined) {
-      segments.push({ text: '⛔ workflow files need one new permission' });
+      segments.push({ text: '⊘ workflow files need one new permission' });
     }
     return segments;
   }

@@ -80,7 +80,7 @@ describe('CompleteRepPanelComponent', () => {
       name: 'both match',
       reference: REFERENCE,
       picks: ['O(n)', 'O(1)'],
-      marks: ['✓', '✓'],
+      marks: ['check', 'check'],
       refWhys: ['one pass', 'two counters'],
       hasKey: false,
     },
@@ -88,7 +88,7 @@ describe('CompleteRepPanelComponent', () => {
       name: 'time misses',
       reference: REFERENCE,
       picks: ['O(n log n)', 'O(1)'],
-      marks: ['✗ O(n)', '✓'],
+      marks: ['x O(n)', 'check'],
       refWhys: ['one pass', 'two counters'],
       hasKey: false,
     },
@@ -102,7 +102,10 @@ describe('CompleteRepPanelComponent', () => {
 
     const text = (selector: string): string[] =>
       Array.from(root.querySelectorAll(selector)).map((el) => el.textContent?.trim() ?? '');
-    expect(text('.rep__mark')).toEqual(marks);
+    const iconAndText = Array.from(root.querySelectorAll('.rep__mark')).map((el) =>
+      `${el.querySelector('app-icon svg')?.getAttribute('data-name') ?? ''} ${el.textContent?.trim() ?? ''}`.trim(),
+    );
+    expect(iconAndText).toEqual(marks);
     expect(text('.rep__ref-why')).toEqual(refWhys);
     expect(text('.rep__key')).toEqual(hasKey ? ['no reference bound'] : []);
   });

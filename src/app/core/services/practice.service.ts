@@ -6,7 +6,7 @@ import { PRACTICE_SCHEMA_VERSION, PracticeData, PracticeProblem } from '../model
 import { isPracticeProblem } from '../practice/practice-validation';
 import { ContractSource, fetchWithAuthorFallback$, isAuthorFallbackOf } from './author-fallback';
 import {
-  GOLD_STANDARD_REPO,
+  CONTENT_REPO,
   GitHubFileService,
   LoadStatus,
   RepoRef,
@@ -53,7 +53,7 @@ export class PracticeService {
   readonly source = signal<ContractSource | null>(null);
   /** The viewer asked for another repo's practice contract and is looking at the author's. */
   readonly isAuthorFallback = computed(() =>
-    isAuthorFallbackOf(this.source(), this.currentRef() ?? GOLD_STANDARD_REPO),
+    isAuthorFallbackOf(this.source(), this.currentRef() ?? CONTENT_REPO),
   );
 
   private readonly problems = computed(() => {

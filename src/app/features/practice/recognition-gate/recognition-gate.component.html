@@ -1,5 +1,5 @@
 <div class="gate">
-  <span class="gate__mark" aria-hidden="true">{{ mark }}</span>
+  <span class="gate__mark"><app-icon name="circle" [size]="14" /></span>
   <select class="gate__select" aria-label="Which technique?" (change)="onChange($event)">
     <option value="" disabled selected>Which technique?</option>
     @for (group of groups(); track group.family) {

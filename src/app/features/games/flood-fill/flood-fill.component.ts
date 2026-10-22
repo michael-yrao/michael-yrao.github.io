@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
@@ -14,21 +15,33 @@ const MOVE_BUFFER = 5;
 const WAVE_INTERVAL_MS = 40;
 const SOLVER_WAVE_INTERVAL_MS = 60;
 const SOLVER_MOVE_PAUSE_MS = 480;
-export const COLORS = ['#06b6d4', '#f97316', '#22c55e', '#a855f7', '#ec4899', '#eab308'];
+export const BOARD_COLOR_TOKENS = [
+  '--color-accent',
+  '--color-easy',
+  '--color-medium',
+  '--color-hard',
+  '--color-trophy',
+  '--color-graduated',
+] as const;
+
+function resolveBoardColors(): string[] {
+  const styles = typeof document === 'undefined' ? null : getComputedStyle(document.documentElement);
+  return BOARD_COLOR_TOKENS.map(token => styles?.getPropertyValue(token).trim() || `var(${token})`);
+}
 
 @Component({
     selector: 'app-flood-fill',
     templateUrl: './flood-fill.component.html',
     styleUrls: ['./flood-fill.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink, PageHeaderComponent]
+    imports: [RouterLink, PageHeaderComponent, IconComponent]
 })
 export class FloodFillComponent implements OnInit {
   readonly breadcrumb = BREADCRUMB;
   readonly gridSize = GRID_SIZE;
   readonly moveBuffer = MOVE_BUFFER;
-  readonly colors = COLORS;
-  readonly colorIndices = Array.from({ length: COLORS.length }, (_, i) => i);
+  readonly colors = resolveBoardColors();
+  readonly colorIndices = Array.from({ length: BOARD_COLOR_TOKENS.length }, (_, i) => i);
 
   cells: number[] = [];
   waveCells = new Set<number>();
@@ -64,7 +77,7 @@ export class FloodFillComponent implements OnInit {
 
   initGame(): void {
     this.cells = Array.from({ length: GRID_SIZE * GRID_SIZE }, () =>
-      Math.floor(Math.random() * COLORS.length)
+      Math.floor(Math.random() * BOARD_COLOR_TOKENS.length)
     );
     this.gameState = 'playing';
     this.conqueredSet = this.bfsRegion(0, this.cells[0]);
@@ -175,7 +188,7 @@ export class FloodFillComponent implements OnInit {
       let bestColor = -1;
       let bestGain = 0;
 
-      for (let c = 0; c < COLORS.length; c++) {
+      for (let c = 0; c < BOARD_COLOR_TOKENS.length; c++) {
         const gain = this.colorGain(cells, conquered, c);
         if (gain > bestGain) {
           bestGain = gain;

@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import {
   BisectInstance,
   Range,
@@ -34,7 +35,7 @@ interface Probe {
   templateUrl: './bisect-it.component.html',
   styleUrls: ['./bisect-it.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, PageHeaderComponent],
+  imports: [RouterLink, PageHeaderComponent, IconComponent],
 })
 export class BisectItComponent implements OnDestroy {
   readonly breadcrumb = BREADCRUMB;

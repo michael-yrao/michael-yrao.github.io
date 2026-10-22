@@ -6,7 +6,7 @@ import { BigOData, BigOEntry, BIG_O_SCHEMA_VERSION } from '../models/big-o.model
 import { isBigOEntry, isBigOPool } from '../big-o/big-o-validation';
 import { ContractSource, fetchWithAuthorFallback$, isAuthorFallbackOf } from './author-fallback';
 import {
-  GOLD_STANDARD_REPO,
+  CONTENT_REPO,
   GitHubFileService,
   LoadStatus,
   RepoRef,
@@ -42,7 +42,7 @@ export class BigOService {
   /** The complexity-label pool, in order; empty until a load lands. */
   readonly pool = computed(() => this.data()?.pool ?? []);
 
-  private readonly requestedRef = signal<RepoRef>(GOLD_STANDARD_REPO);
+  private readonly requestedRef = signal<RepoRef>(CONTENT_REPO);
   /** The viewer asked for another repo's code and is looking at the author's. */
   readonly isAuthorFallback = computed(() => isAuthorFallbackOf(this.source(), this.requestedRef()));
 
@@ -51,7 +51,7 @@ export class BigOService {
 
   constructor(private readonly github: GitHubFileService) {}
 
-  load(ref: RepoRef = GOLD_STANDARD_REPO, force = false): void {
+  load(ref: RepoRef = CONTENT_REPO, force = false): void {
     const isCurrent = sameRef(ref, this.requestedRef());
     if (!force && isCurrent && (this.status() === 'ready' || this.status() === 'loading')) return;
 

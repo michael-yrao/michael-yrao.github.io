@@ -1,6 +1,6 @@
 import { ScheduleDay, ScheduleItem, WorkloadDay } from '../../../core/models/progress.model';
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
-import { buildWorkloadBar, countRows, isMissedItem, movedAriaLabel, statusGlyph } from './board-rows';
+import { buildWorkloadBar, countRows, isMissedItem, movedAriaLabel, statusIcon } from './board-rows';
 
 const CEILING = 8;
 const FLOOR = 4;
@@ -53,15 +53,15 @@ describe('moved marker direction', () => {
   });
 });
 
-describe('statusGlyph', () => {
+describe('statusIcon', () => {
   const PAST = '2026-10-09';
   const cases = [
-    { name: 'moved up, done', date: TODAY, done: true, deferredTo: PAST, expected: '↶' },
-    { name: 'moved up, not done', date: TODAY, done: false, deferredTo: PAST, expected: '↶' },
-    { name: 'moved later, not done', date: TODAY, done: false, deferredTo: '2026-10-11', expected: '↷' },
-    { name: 'missed: past day, not done, no deferredTo', date: PAST, done: false, deferredTo: undefined, expected: '↷' },
-    { name: 'today, not done, no deferredTo', date: TODAY, done: false, deferredTo: undefined, expected: '○' },
-    { name: 'pulled in, done', date: TODAY, done: true, deferredTo: undefined, pulledIn: true, expected: '↶' },
+    { name: 'moved up, done', date: TODAY, done: true, deferredTo: PAST, expected: 'undo' },
+    { name: 'moved up, not done', date: TODAY, done: false, deferredTo: PAST, expected: 'undo' },
+    { name: 'moved later, not done', date: TODAY, done: false, deferredTo: '2026-10-11', expected: 'redo' },
+    { name: 'missed: past day, not done, no deferredTo', date: PAST, done: false, deferredTo: undefined, expected: 'redo' },
+    { name: 'today, not done, no deferredTo', date: TODAY, done: false, deferredTo: undefined, expected: 'circle' },
+    { name: 'pulled in, done', date: TODAY, done: true, deferredTo: undefined, pulledIn: true, expected: 'undo' },
   ];
 
   cases.forEach(({ name, date, done, deferredTo, expected, ...rest }) => {
@@ -70,7 +70,7 @@ describe('statusGlyph', () => {
         lcNumber: 1, title: 'A', technique: null, startComfort: null, difficulty: null,
         done, deferredTo, ...rest,
       };
-      expect(statusGlyph(item, '○', date, TODAY)).toBe(expected);
+      expect(statusIcon(item, 'circle', date, TODAY)).toBe(expected);
     });
   });
 });

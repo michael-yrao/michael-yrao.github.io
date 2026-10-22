@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 
 import type { Codec, PracticeCase } from '../../../core/models/practice.model';
 import { RunState } from '../../../core/runner/runner.model';
+import { IconComponent } from '../icon/icon.component';
 import { activeCaseIndex, toResultRow } from '../../utils/practice-results';
 
 /** A run's output: its error, one tab per case, and the selected case's detail. */
@@ -9,6 +10,7 @@ import { activeCaseIndex, toResultRow } from '../../utils/practice-results';
   selector: 'app-case-results',
   templateUrl: './case-results.component.html',
   styleUrls: ['./case-results.component.scss'],
+  imports: [IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CaseResultsComponent {

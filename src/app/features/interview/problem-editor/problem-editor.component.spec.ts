@@ -6,7 +6,7 @@ import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { PracticeData } from '../../../core/models/practice.model';
-import { GOLD_STANDARD_REPO } from '../../../core/services/github-file.service';
+import { CONTENT_REPO } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { EMPTY_PROBLEM } from '../interview-prepare/interview-draft';
@@ -62,7 +62,7 @@ function configure(): void {
           status: signal('ready'),
           error: signal(null),
           data: signal(data),
-          ref: signal(GOLD_STANDARD_REPO),
+          ref: signal(CONTENT_REPO),
           load: vi.fn(),
         },
       },

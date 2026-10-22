@@ -1,0 +1,84 @@
+<svg
+  [attr.width]="size()"
+  [attr.height]="size()"
+  [attr.viewBox]="viewBox"
+  [attr.role]="isDecorative() ? null : 'img'"
+  [attr.aria-label]="isDecorative() ? null : resolvedLabel()"
+  [attr.aria-hidden]="isDecorative() ? 'true' : null"
+  [attr.data-level]="stage().ordinal"
+  [attr.data-key]="stage().key"
+>
+  @switch (stage().key) {
+    @case ('blank') {
+      <circle
+        [attr.cx]="centre"
+        [attr.cy]="centre"
+        [attr.r]="ringRadius"
+        fill="none"
+        stroke="var(--color-hard)"
+        [attr.stroke-width]="ringStrokeWidth"
+      />
+    }
+    @case ('shaky') {
+      <circle
+        [attr.cx]="centre"
+        [attr.cy]="centre"
+        [attr.r]="ringRadius"
+        fill="none"
+        stroke="var(--color-medium)"
+        [attr.stroke-width]="ringStrokeWidth"
+      />
+    }
+    @case ('s0') {
+      <circle
+        [attr.cx]="centre"
+        [attr.cy]="centre"
+        [attr.r]="ringRadius"
+        fill="none"
+        stroke="var(--color-easy)"
+        [attr.stroke-width]="ringStrokeWidth"
+      />
+    }
+    @case ('s1') {
+      <circle
+        [attr.cx]="centre"
+        [attr.cy]="centre"
+        [attr.r]="ringRadius"
+        fill="none"
+        stroke="var(--color-easy)"
+        [attr.stroke-width]="ringStrokeWidth"
+      />
+      <path [attr.d]="halfDiscPath" fill="var(--color-easy)" />
+    }
+    @case ('s2') {
+      <circle [attr.cx]="centre" [attr.cy]="centre" [attr.r]="dotRadius" fill="var(--color-easy)" />
+    }
+    @case ('clean') {
+      <circle [attr.cx]="centre" [attr.cy]="centre" [attr.r]="dotRadius" fill="var(--color-easy)" />
+    }
+    @case ('graduated') {
+      <circle [attr.cx]="centre" [attr.cy]="centre" [attr.r]="targetDotRadius" fill="var(--color-graduated)" />
+      <circle
+        [attr.cx]="centre"
+        [attr.cy]="centre"
+        [attr.r]="targetRingRadius"
+        fill="none"
+        stroke="var(--color-graduated)"
+        [attr.stroke-width]="targetRingStrokeWidth"
+      />
+    }
+    @case ('retired') {
+      <polygon [attr.points]="starPoints" fill="var(--color-trophy)" />
+    }
+    @default {
+      <circle
+        [attr.cx]="centre"
+        [attr.cy]="centre"
+        [attr.r]="ringRadius"
+        fill="none"
+        [attr.stroke]="ringStroke"
+        [attr.stroke-width]="ringStrokeWidth"
+      />
+    }
+  }
+</svg>

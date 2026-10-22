@@ -220,8 +220,7 @@
 .progress__picker-row {
   margin: var(--space-sm) 0 var(--space-md);
 }
-.repo-picker,
-.problems__head {
+.repo-picker {
   display: flex;
   gap: var(--space-sm);
   flex-wrap: wrap;
@@ -288,12 +287,13 @@ $skeleton-card-height: 12rem;
   align-items: baseline;
   gap: var(--space-sm);
 }
-.hero__flame { font-size: 2rem; }
+.hero__flame { display: inline-flex; color: var(--color-accent); }
 .hero__num { font-size: 3rem; font-weight: 800; color: var(--color-text); line-height: 1; }
 .hero__label { color: var(--color-text-muted); font-size: 1rem; em { font-style: normal; opacity: 0.8; } }
 
-.hero__freezes { display: inline-flex; gap: var(--space-xs); font-size: 1.25rem; }
-.hero__freeze--empty { filter: grayscale(1); opacity: 0.3; }
+.hero__freezes { display: inline-flex; gap: var(--space-xs); }
+.hero__freeze { display: inline-flex; color: var(--color-accent); }
+.hero__freeze--empty { color: var(--color-border); }
 
 .hero__tiles { display: flex; gap: var(--space-lg); flex-wrap: wrap; }
 .tile {
@@ -314,6 +314,13 @@ $skeleton-card-height: 12rem;
   h2 { margin: 0 0 var(--space-xs); font-size: 1.1rem; }
 }
 .card__sub { @extend %muted-sm; margin: 0 0 var(--space-md); }
+.card__sub-stage {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  vertical-align: middle;
+}
 
 // The lead tile — a slightly stronger border to read as the landing's main focus.
 .today-board-card { border-color: var(--color-accent-dim); }
@@ -378,36 +385,7 @@ $skeleton-card-height: 12rem;
   text-align: left;
 }
 
-// ── Problems ─────────────────────────────────────────────────────────────────
-.problems__head { justify-content: space-between; align-items: center; }
-.filters {
-  display: flex;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  align-items: center;
-  gap: var(--space-xs);
-
-  app-search-box { flex: 1 1 12rem; min-width: 12rem; }
-}
-.problems__empty { color: var(--color-text-muted); margin: var(--space-md) 0; }
-.filters__btn {
-  @extend %field-btn;
-  @extend %pill-hover;
-  padding: var(--space-xs) var(--space-sm);
-  font-size: 0.85rem;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
-  &.active { border-color: var(--color-accent); background: var(--color-accent-dim); }
-}
-
-.progress__explore {
-  @extend %field-btn;
-  @extend %pill-hover;
-  padding: var(--space-sm) var(--space-md);
-  font-size: 0.9rem;
-  &:hover { background: var(--color-accent-dim); }
-}
-
+// ── Needs-attention rows ─────────────────────────────────────────────────────
 .problems { display: flex; flex-direction: column; gap: var(--space-sm); margin-top: var(--space-md); }
 .problem {
   @include prow.row-surface;
@@ -432,7 +410,7 @@ $skeleton-card-height: 12rem;
 }
 // Comfort takes the free space (title stops growing, so nothing after it floats away from
 // the title) and sits with the meta and links at the right edge.
-.problem__comfort { font-size: 1.1rem; margin-left: auto; }
+.problem__comfort { margin-left: auto; }
 .problem__num { @include prow.num; }
 .problem__name { @include prow.title; flex: 0 1 auto; }
 .problem__meta { @include prow.meta; margin-left: 0; }

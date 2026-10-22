@@ -59,7 +59,7 @@
           <button type="button" class="practice__pane-head" [attr.aria-expanded]="isCodeOpen()" aria-controls="practice-code-body" (click)="toggleCode()">
             <span class="practice__label">Code</span>
             @if (pick(); as p) {
-              <span class="practice__pick">{{ marks.picked }} {{ p.picked }}</span>
+              <span class="practice__pick"><app-icon [name]="recognitionIcons.picked" [size]="recognitionIconSize" /> {{ p.picked }}</span>
             }
             <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
               <path d="M6 9l6 6 6-6" />
@@ -85,7 +85,7 @@
               <button type="button" class="practice__tab-close" aria-label="New solution" title="New solution" [disabled]="!canAddTab()" (click)="addTab()">+</button>
             </div>
             @if (canSave() && (isLocked() || pick())) {
-              <p class="practice__legend">{{ marks.locked }} pick the technique first · {{ marks.picked }} picked</p>
+              <p class="practice__legend"><app-icon [name]="recognitionIcons.locked" [size]="recognitionIconSize" /> pick the technique first · <app-icon [name]="recognitionIcons.picked" [size]="recognitionIconSize" /> picked</p>
             }
             @if (isLocked()) {
               <app-recognition-gate [groups]="choices()" (picked)="onPick($event)" />
@@ -128,15 +128,11 @@
             </button>
             <button type="button" class="practice__btn practice__btn--icon" aria-label="Copy code" title="Copy code" (click)="copy()">
               @switch (copyMark()) {
-                @case ('✓') {
-                  <svg class="practice__icon--ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                    <path d="M5 12.5l4.5 4.5L19 7.5" />
-                  </svg>
+                @case (copyOkIcon) {
+                  <app-icon class="practice__icon--ok" [name]="copyOkIcon" [size]="copyIconSize" />
                 }
-                @case ('✗') {
-                  <svg class="practice__icon--fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                    <path d="M6 6l12 12M18 6L6 18" />
-                  </svg>
+                @case (copyFailIcon) {
+                  <app-icon class="practice__icon--fail" [name]="copyFailIcon" [size]="copyIconSize" />
                 }
                 @default {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">

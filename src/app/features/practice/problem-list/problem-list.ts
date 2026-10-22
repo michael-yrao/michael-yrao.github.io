@@ -2,9 +2,9 @@ import type { Comfort, ProblemProgress } from '../../../core/models/progress.mod
 
 const NO_LEVEL = -1;
 
-/** Each problem number's comfort. When two rows share a number the higher level wins, and a row
+/** One row per problem number. When two rows share a number the higher level wins, and a row
  *  with no level loses to one that has it. */
-export function comfortByNumber(details: readonly ProblemProgress[]): ReadonlyMap<number, Comfort> {
+export function rowByNumber(details: readonly ProblemProgress[]): ReadonlyMap<number, ProblemProgress> {
   const best = new Map<number, ProblemProgress>();
   for (const row of details) {
     const held = best.get(row.lcNumber);
@@ -12,5 +12,10 @@ export function comfortByNumber(details: readonly ProblemProgress[]): ReadonlyMa
       best.set(row.lcNumber, row);
     }
   }
-  return new Map([...best].map(([number, row]) => [number, row.comfort]));
+  return best;
+}
+
+/** Each problem number's comfort, from the row `rowByNumber` picks. */
+export function comfortByNumber(details: readonly ProblemProgress[]): ReadonlyMap<number, Comfort> {
+  return new Map([...rowByNumber(details)].map(([number, row]) => [number, row.comfort]));
 }

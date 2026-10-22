@@ -1,4 +1,4 @@
-<div class="llv">
+<div class="llv po-card">
   <!-- NULL on the left if any pointer points to null -->
   @if (nullPointers().length > 0) {
     <div class="llv__null-left">
@@ -25,10 +25,10 @@
     </div>
     <!-- Arrow to next or null terminator -->
     @if (node.nextId) {
-      <div class="llv__arrow">→</div>
+      <div class="llv__arrow"><app-icon name="chevron-right" [size]="14" /></div>
     }
     @if (!node.nextId) {
-      <div class="llv__null-terminator">→ <span class="llv__null">null</span></div>
+      <div class="llv__null-terminator"><app-icon name="chevron-right" [size]="14" /> <span class="llv__null">null</span></div>
     }
   }
 </div>
@@ -36,7 +36,7 @@
 <!-- Result row -->
 @let result = state().result ?? [];
 @if (result.length > 0) {
-  <div class="llv llv--result">
+  <div class="llv llv--result po-card">
     <span class="llv__result-label">Result:</span>
     @for (node of result; track trackById($index, node)) {
       <div class="llv__node-wrap">
@@ -45,10 +45,10 @@
         </div>
       </div>
       @if (node.nextId) {
-        <div class="llv__arrow">→</div>
+        <div class="llv__arrow"><app-icon name="chevron-right" [size]="14" /></div>
       }
       @if (!node.nextId) {
-        <div class="llv__null-terminator">→ <span class="llv__null">null</span></div>
+        <div class="llv__null-terminator"><app-icon name="chevron-right" [size]="14" /> <span class="llv__null">null</span></div>
       }
     }
   </div>

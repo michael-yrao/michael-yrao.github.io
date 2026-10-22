@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 
-import { GOLD_STANDARD_REPO } from '../../core/services/github-file.service';
+import { CONTENT_REPO } from '../../core/services/github-file.service';
 import { COACH_REFRESH_RETRY_MS, refreshAfterTurn } from './coach-refresh';
 
 interface Row {
@@ -25,7 +25,7 @@ describe('refreshAfterTurn', () => {
     const hashQueue = [...hashes];
     const deps = {
       refreshProgress: vi.fn(),
-      loadedPracticeRef: vi.fn(() => (hasPractice ? GOLD_STANDARD_REPO : null)),
+      loadedPracticeRef: vi.fn(() => (hasPractice ? CONTENT_REPO : null)),
       loadPractice: vi.fn(),
       manifestHash: vi.fn(async () => hashQueue.shift() ?? null),
       delay: vi.fn(async () => {}),
@@ -35,7 +35,7 @@ describe('refreshAfterTurn', () => {
 
     expect(deps.refreshProgress).toHaveBeenCalledTimes(refreshes);
     expect(deps.loadPractice).toHaveBeenCalledTimes(practiceLoads);
-    if (practiceLoads > 0) expect(deps.loadPractice).toHaveBeenCalledWith(GOLD_STANDARD_REPO, true);
+    if (practiceLoads > 0) expect(deps.loadPractice).toHaveBeenCalledWith(CONTENT_REPO, true);
     expect(deps.delay).toHaveBeenCalledTimes(delays);
     if (delays > 0) expect(deps.delay).toHaveBeenCalledWith(COACH_REFRESH_RETRY_MS);
   });

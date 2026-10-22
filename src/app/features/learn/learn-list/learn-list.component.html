@@ -30,13 +30,13 @@
       />
 
       @if (decisionTree()) {
-        <div class="ll-viewbar" role="tablist" aria-label="Learn view">
+        <div class="ll-viewbar po-tabs" role="tablist" aria-label="Learn view">
           @for (view of viewOrder; track view; let i = $index) {
             <button
               type="button"
               role="tab"
               #viewTab
-              class="ll-viewbar__btn"
+              class="ll-viewbar__btn po-tab"
               [class.active]="isViewActive(view)"
               [attr.aria-selected]="isViewActive(view)"
               [attr.tabindex]="isViewActive(view) ? 0 : -1"
@@ -63,9 +63,9 @@
             <table class="ll-table">
               <thead>
                 <tr>
-                  <th>What you see</th>
-                  <th>Reach for</th>
-                  <th>Note</th>
+                  <th class="po-eyebrow">What you see</th>
+                  <th class="po-eyebrow">Reach for</th>
+                  <th class="po-eyebrow">Note</th>
                 </tr>
               </thead>
               <tbody>
@@ -90,7 +90,7 @@
 
       @for (section of familySections(); track section.family) {
         <section class="ll-family">
-          <h2 class="ll-family__title">{{ section.label }}</h2>
+          <h2 class="ll-family__title po-eyebrow">{{ section.label }}</h2>
           <div class="ll-grid">
             @for (technique of section.techniques; track technique.id) {
               <a class="ll-card po-card po-card--link" [routerLink]="['/learn', technique.id]">

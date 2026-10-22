@@ -3,21 +3,40 @@
   font-size: 1.1rem; // matches .card h2 — lets a caller use this AS the card heading (breadth)
 }
 
+$bar-height: 10px; // the visible bar, ONE height for every bar usage
+$bar-gap: 1px; // dataviz: a visible surface gap between stacked fills
+$seg-min-width: 12px;
+$swatch-size: 8px;
+$hit-pad: 6px; // vertical padding per side: keeps a clickable segment's hit area at 22px
+
 .segbar__bar {
+  position: relative;
   display: flex;
-  height: 32px; // ONE height for every bar usage (was 34px pipeline / 20px breadth — the
-  // learner's exact complaint was that these didn't match)
-  gap: 2px; // dataviz: a visible surface gap between stacked fills
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  background: var(--color-bg-raised);
+  height: $bar-height + 2 * $hit-pad;
+  gap: $bar-gap;
+
+  // The raised rounded track sits behind the segments, inside the hit-area padding.
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: $hit-pad;
+    bottom: $hit-pad;
+    background: var(--color-bg-raised);
+    border-radius: var(--radius-sm);
+    pointer-events: none;
+  }
 }
 
 .segbar__seg {
+  position: relative; // paints above the track
   appearance: none;
   border: none;
   height: 100%;
-  min-width: 28px; // kept as a minimum click target, not for fitting text (no in-segment text any more)
+  padding: $hit-pad 0;
+  background-clip: content-box; // only the 10px content box is painted; the padding is hit area
+  min-width: $seg-min-width;
   transition: width var(--transition-base), filter var(--transition-fast);
   overflow: hidden;
 }
@@ -55,8 +74,8 @@ button.segbar__seg {
 
 .segbar__swatch {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: $swatch-size;
+  height: $swatch-size;
   border-radius: 2px;
   margin-right: 6px;
   vertical-align: middle;
@@ -85,7 +104,7 @@ button.segbar__seg {
 .seg-blank { background: var(--color-hard); }
 .seg-shaky { background: var(--color-medium); }
 .seg-clean { background: var(--color-easy); }
-.seg-grad { background: var(--color-accent); }
+.seg-grad { background: var(--color-graduated); }
 .seg-retired { background: var(--color-trophy); }
 
 // Difficulty mix

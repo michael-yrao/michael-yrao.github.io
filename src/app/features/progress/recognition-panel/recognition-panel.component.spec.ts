@@ -65,7 +65,7 @@ describe('RecognitionPanelComponent', () => {
       fixture.nativeElement.querySelectorAll('.recognition__row'),
     );
     const run = practiced.querySelector('a[title="Run code"]');
-    expect(run?.textContent?.trim()).toBe('>_');
+    expect(run?.querySelector('app-icon svg[data-name="terminal"]')).not.toBeNull();
     expect(run?.getAttribute('href')).toBe('/practice/1');
     expect(practiced.querySelector('a[title="External"]')).toBeTruthy();
     expect(external.querySelector('a[title="External"]')).toBeTruthy();
