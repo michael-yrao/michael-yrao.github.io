@@ -60,10 +60,11 @@ jobs:
       - name: Unit tests
         run: npx ng test --watch=false
 
-      # This URL is the workflow's one copy of GOLD_STANDARD_REPO
-      # (src/app/core/services/github-file.service.ts) — michael-yrao/cse-progress@main.
+      # This URL is the workflow's one copy of CONTENT_REPO
+      # (src/app/core/services/github-file.service.ts) — michael-yrao/progressive-overflow-content@main,
+      # the public mirror of the private learner repo's content.
       - name: Fetch showcase contract
-        run: curl -fsSL https://raw.githubusercontent.com/michael-yrao/cse-progress/main/dashboard/showcase.json -o "$RUNNER_TEMP/showcase.json"
+        run: curl -fsSL https://raw.githubusercontent.com/michael-yrao/progressive-overflow-content/main/dashboard/showcase.json -o "$RUNNER_TEMP/showcase.json"
 
       - name: Groundedness check
         run: npm run check:groundedness
