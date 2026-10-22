@@ -366,10 +366,21 @@
             @if (roadmapLevels().length) {
               <div class="card po-card">
                 <app-roadmap-coverage [rows]="roadmapLevels()" (select)="focusTechnique($event)" />
+                @if (d.techniques) {
+                  <div class="technique-toggle">
+                    <button
+                      type="button"
+                      class="po-btn po-btn--sm po-btn--ghost"
+                      aria-controls="technique-list-card"
+                      [attr.aria-expanded]="isTechniqueListOpen()"
+                      (click)="toggleTechniqueList()"
+                    >{{ isTechniqueListOpen() ? 'Hide techniques' : 'Show techniques' }}</button>
+                  </div>
+                }
               </div>
             }
-            @if (d.techniques) {
-              <div class="card po-card">
+            @if (d.techniques && (isTechniqueListOpen() || !roadmapLevels().length)) {
+              <div class="card po-card" id="technique-list-card">
                 <app-technique-list
                   [techniques]="d.techniques"
                   [details]="details()"

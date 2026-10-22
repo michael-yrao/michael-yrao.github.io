@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
@@ -230,6 +230,13 @@ function clickTab(
   fixture.detectChanges();
 }
 
+// The technique list is hidden on the Mastery tab until the roadmap card's toggle opens it.
+function openTechniqueList(fixture: { nativeElement: HTMLElement; detectChanges: () => void }): void {
+  const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.technique-toggle button')!;
+  btn.click();
+  fixture.detectChanges();
+}
+
 // The shared `#problemRowTpl` now renders only in Activity's "Needs attention" list: open it.
 // The caller sets `details` (rows due on or before today) and `detailsStatus: 'ready'` first.
 function openAttentionRows(fixture: { nativeElement: HTMLElement; detectChanges: () => void }): void {
@@ -382,7 +389,7 @@ describe('ProgressPageComponent', () => {
 
     clickTab(fixture, 'mastery');
     expect(fixture.nativeElement.querySelector('app-segmented-bar')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('app-technique-list')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-roadmap-coverage')).toBeTruthy();
 
     clickTab(fixture, 'activity');
     expect(fixture.nativeElement.querySelector('app-streak-calendar')).toBeTruthy();
@@ -811,6 +818,7 @@ describe('ProgressPageComponent', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
+    openTechniqueList(fixture);
 
     const list = fixture.debugElement.query(By.directive(TechniqueListComponent));
     expect(list).toBeTruthy();
@@ -823,6 +831,7 @@ describe('ProgressPageComponent', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
+    openTechniqueList(fixture);
 
     expect(fixture.nativeElement.querySelectorAll('app-technique-list').length).toBe(1);
     expect(fixture.nativeElement.textContent).toContain('Bellman-Ford');
@@ -866,18 +875,47 @@ describe('ProgressPageComponent', () => {
     expect(difficultyBar.querySelector('.segbar__legend')).toBeTruthy();
   });
 
-  it('a roadmap tile click reaches the technique list as its focus', () => {
+  it('the technique list is hidden until the roadmap card reveals it (toggle or tile), and shown when there is no roadmap card', () => {
     Element.prototype.scrollIntoView = vi.fn(); // jsdom has no layout
-    const fixture = TestBed.createComponent(ProgressPageComponent);
-    fixture.detectChanges();
-    clickTab(fixture, 'mastery');
+    const open = (fixture: ComponentFixture<ProgressPageComponent>): void => {
+      clickTab(fixture, 'mastery');
+    };
+    const toggle = (fixture: ComponentFixture<ProgressPageComponent>) =>
+      fixture.nativeElement.querySelector('.technique-toggle button') as HTMLButtonElement | null;
+    const listOf = (fixture: ComponentFixture<ProgressPageComponent>) =>
+      fixture.debugElement.query(By.directive(TechniqueListComponent));
 
-    const tile = fixture.nativeElement.querySelector('app-roadmap-coverage .roadmap__tile') as HTMLButtonElement;
-    tile.click();
+    // default: closed
+    let fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
+    open(fixture);
+    expect(listOf(fixture)).toBeFalsy();
+    expect(toggle(fixture)?.textContent?.trim()).toBe('Show techniques');
+    expect(toggle(fixture)?.getAttribute('aria-expanded')).toBe('false');
 
-    const list = fixture.debugElement.query(By.directive(TechniqueListComponent));
-    expect((list.componentInstance as TechniqueListComponent).focus()?.name).toBe('Bellman-Ford');
+    // toggle click: open
+    toggle(fixture)!.click();
+    fixture.detectChanges();
+    expect(listOf(fixture)).toBeTruthy();
+    expect(toggle(fixture)?.textContent?.trim()).toBe('Hide techniques');
+    expect(toggle(fixture)?.getAttribute('aria-expanded')).toBe('true');
+
+    // tile select while closed: list shown with focus set
+    fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    open(fixture);
+    (fixture.nativeElement.querySelector('app-roadmap-coverage .roadmap__tile') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(listOf(fixture)).toBeTruthy();
+    expect((listOf(fixture).componentInstance as TechniqueListComponent).focus()?.name).toBe('Bellman-Ford');
+
+    // no roadmap levels: list shown, no toggle
+    progress.data.set({ ...makeSummary(), techniques: [] });
+    fixture = TestBed.createComponent(ProgressPageComponent);
+    fixture.detectChanges();
+    open(fixture);
+    expect(listOf(fixture)).toBeTruthy();
+    expect(toggle(fixture)).toBeNull();
   });
 
   it('the streak calendar is not present until the Activity tab is opened', () => {
@@ -1076,6 +1114,7 @@ describe('ProgressPageComponent', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
+    openTechniqueList(fixture);
 
     const ratios = Array.from(fixture.nativeElement.querySelectorAll('.tech-row__ratio')).map(
       (el) => (el as HTMLElement).textContent,
@@ -1091,6 +1130,7 @@ describe('ProgressPageComponent', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
+    openTechniqueList(fixture);
 
     const row: HTMLButtonElement = fixture.nativeElement.querySelector('.tech-row__toggle');
     expect(row).toBeTruthy();

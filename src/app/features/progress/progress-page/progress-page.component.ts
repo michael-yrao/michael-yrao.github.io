@@ -146,7 +146,15 @@ export class ProgressPageComponent {
    *  twice (the technique list re-focuses on every new value). */
   readonly focusedTechnique = signal<TechniqueFocus | null>(null);
 
+  /** The technique list is hidden until the roadmap card reveals it (not persisted). */
+  readonly isTechniqueListOpen = signal(false);
+
+  toggleTechniqueList(): void {
+    this.isTechniqueListOpen.update((isOpen) => !isOpen);
+  }
+
   focusTechnique(name: string): void {
+    this.isTechniqueListOpen.set(true);
     this.focusedTechnique.set({ name, at: Date.now() });
   }
 
