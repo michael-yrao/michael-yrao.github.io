@@ -16,9 +16,17 @@
         <p class="start__card-text">
           LeetCode-style problems with spaced-repetition reviews.
         </p>
-        <button type="button" class="po-btn start__button" [disabled]="isBusy()" (click)="startDsa()">
-          Start DSA
-        </button>
+        @if (onboarding.step() === 'idle' && dsaRepo(); as repo) {
+          <p class="start__repo">
+            <app-icon name="check" [size]="14" aria-hidden="true" />
+            <span class="start__repo-slug">{{ repo }}</span>
+          </p>
+          <button type="button" class="po-btn start__button" (click)="goHome()">Go to my board</button>
+        } @else {
+          <button type="button" class="po-btn start__button" [disabled]="isBusy()" (click)="startDsa()">
+            Start DSA
+          </button>
+        }
       </article>
       <article class="po-card po-card--compact start__card start__card--muted">
         <h2 class="start__card-title">System Design</h2>

@@ -20,7 +20,13 @@ const PAGE_SIZE_QUERY = 'per_page=100';
 const GITHUB_ACCEPT = 'application/vnd.github+json';
 const STATE_BYTES = 16;
 const HOME_PATH = '/';
-const LEARNER_REPO_NAME = 'cse-progress';
+export const LEARNER_REPO_NAME = 'cse-progress';
+
+/** True when `slug` is the viewer's own learner repo (`{login}/cse-progress`), case-insensitive. */
+export function isOwnDsaRepo(slug: string | null, login: string | null): boolean {
+  if (slug === null || login === null) return false;
+  return slug.toLowerCase() === `${login}/${LEARNER_REPO_NAME}`.toLowerCase();
+}
 /** A token this close to expiry is refreshed before use. */
 export const REFRESH_MARGIN_MS = 60_000;
 
@@ -258,8 +264,7 @@ export class AuthService {
     const stored = this.selectedRepo();
     if (stored === null) return false;
     if (slugs.includes(stored)) return true;
-    const login = this.login();
-    return login !== null && stored.toLowerCase() === `${login}/${LEARNER_REPO_NAME}`.toLowerCase();
+    return isOwnDsaRepo(stored, this.login());
   }
 
   /** `?repo=` wins; else the signed-in viewer's own repo; null keeps the author-default behaviour. */

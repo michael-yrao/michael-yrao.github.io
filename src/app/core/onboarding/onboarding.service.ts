@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { Injectable, InjectionToken, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
-import { AuthService } from '../auth/auth.service';
+import { AuthService, LEARNER_REPO_NAME as LEARNER_REPO } from '../auth/auth.service';
 import { WORKER_API_URL } from '../data/site-links';
 import { DEFAULT_BRANCH, GitHubFileService, RepoRef } from '../services/github-file.service';
 import { ProgressService } from '../services/progress.service';
@@ -58,7 +58,6 @@ const ONBOARD_ROUTE = 'onboard/dsa';
 const INTAKE_ROUTE = 'onboard/intake';
 const CONFIG_FILE = 'cse.config.yml';
 const ALREADY_ONBOARDED = 'already-onboarded';
-const LEARNER_REPO = 'cse-progress';
 const HTTP_NOT_FOUND = 404;
 const HTTP_FORBIDDEN = 403;
 const HTTP_CONFLICT = 409;

@@ -13,7 +13,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { AuthService, safeReturnUrl } from '../../core/auth/auth.service';
+import { AuthService, isOwnDsaRepo, safeReturnUrl } from '../../core/auth/auth.service';
 import {
   IntakeTarget,
   OnboardingFailure,
@@ -21,6 +21,7 @@ import {
   OnboardingStep,
 } from '../../core/onboarding/onboarding.service';
 import { addDaysISO, todayLocalISO } from '../../core/utils/local-date';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 type StepMark = 'done' | 'active' | 'pending';
 
@@ -90,6 +91,7 @@ const NEXT_PARAM = 'next';
   selector: 'app-start-page',
   templateUrl: './start-page.component.html',
   styleUrl: './start-page.component.scss',
+  imports: [IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StartPageComponent implements OnInit {
@@ -134,6 +136,15 @@ export class StartPageComponent implements OnInit {
     this.route.snapshot.queryParamMap.get(NEXT_PARAM) ?? HOME_PATH,
   );
 
+  /** The viewer's own learner repo listed by GitHub, found on init when no stored selection names it. */
+  private readonly listedRepo = signal<string | null>(null);
+  /** The viewer's `{login}/cse-progress`, from the stored selection or the repo list; null when they have none. */
+  protected readonly dsaRepo = computed(() => {
+    const selected = this.auth.selectedRepo();
+    if (isOwnDsaRepo(selected, this.auth.login())) return selected;
+    return this.listedRepo();
+  });
+
   protected readonly isBusy = computed(() =>
     PROGRESS_ITEMS.some((item) => item.step === this.onboarding.step()),
   );
@@ -160,6 +171,13 @@ export class StartPageComponent implements OnInit {
   ngOnInit(): void {
     const isResume = this.route.snapshot.queryParamMap.get(RESUME_PARAM) === RESUME_VALUE;
     if (isResume && this.auth.isSignedIn()) void this.onboarding.checkInstall();
+    if (this.auth.isSignedIn() && this.dsaRepo() === null) void this.loadListedRepo();
+  }
+
+  private async loadListedRepo(): Promise<void> {
+    const login = this.auth.login();
+    const slugs = await this.auth.repos();
+    this.listedRepo.set(slugs.find((slug) => isOwnDsaRepo(slug, login)) ?? null);
   }
 
   protected signIn(): void {
