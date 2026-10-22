@@ -1208,6 +1208,39 @@ describe('ProgressPageComponent', () => {
     expect(asOf!.textContent).toContain('as of 2026-09-20'); // makeSummary()'s generatedAt
   });
 
+  describe('access link for an own repo the App cannot see', () => {
+    const OWN_SLUG = 'ada/cse-progress';
+    const cases = [
+      { name: 'own repo loaded and unlisted', slug: OWN_SLUG, status: 'ready', listed: ['ada/other'], access: true, choose: false },
+      { name: 'own repo listed, any case', slug: OWN_SLUG, status: 'ready', listed: ['Ada/CSE-Progress'], access: false, choose: false },
+      { name: 'someone else repo unlisted', slug: 'bob/cse-progress', status: 'ready', listed: ['ada/other'], access: false, choose: false },
+      { name: 'no repos and own repo not loaded', slug: OWN_SLUG, status: 'error', listed: [], access: false, choose: true },
+    ];
+
+    it.each(cases)('$name', async ({ slug, status, listed, access, choose }) => {
+      const auth = TestBed.inject(AuthService);
+      auth.session.set({ token: 't', login: 'ada', expiresAt: null, refreshToken: null, refreshExpiresAt: null });
+      vi.spyOn(auth, 'repos').mockResolvedValue(listed);
+      const [owner, repo] = slug.split('/');
+      progress.repoSlug.set(slug);
+      progress.repoRef.set({ ...DEMO_REPO, owner, repo });
+      progress.status.set(status as 'ready' | 'error');
+      const fixture = TestBed.createComponent(ProgressPageComponent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const link = fixture.nativeElement.querySelector('.progress__access') as HTMLAnchorElement | null;
+      expect(link !== null).toBe(access);
+      if (link) {
+        expect(link.textContent).toContain(`Allow Progressive Overflow to save to ${slug}`);
+        expect(link.getAttribute('href')).toBe(auth.installUrl);
+      }
+      const chooseText = 'Choose what to study to get your own repo';
+      expect((fixture.nativeElement.textContent as string).includes(chooseText)).toBe(choose);
+    });
+  });
+
   // ── Round 6: header "change" control + inline repo picker ──────────────────────────
   describe('default-repo notice + repo picker', () => {
     it('renders neither the removed default-repo notice nor a "Get the coach" link anywhere', () => {

@@ -219,6 +219,9 @@
   align-items: center;
   gap: var(--space-xs);
 }
+.progress__access-mark {
+  color: var(--color-medium);
+}
 .progress__own-repo-select {
   font: inherit;
   font-family: var(--font-mono);

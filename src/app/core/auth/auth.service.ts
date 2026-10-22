@@ -21,6 +21,8 @@ const GITHUB_ACCEPT = 'application/vnd.github+json';
 const STATE_BYTES = 16;
 const HOME_PATH = '/';
 export const LEARNER_REPO_NAME = 'cse-progress';
+const INSTALL_URL_BASE = 'https://github.com/apps/';
+const INSTALL_URL_TAIL = '/installations/new';
 
 /** True when `slug` is the viewer's own learner repo (`{login}/cse-progress`), case-insensitive. */
 export function isOwnDsaRepo(slug: string | null, login: string | null): boolean {
@@ -152,6 +154,8 @@ export class AuthService {
 
   readonly isEnabled = isGithubAppEnabled(this.config);
   readonly appSlug = this.config.appSlug;
+  /** Where a learner adds repos to (or installs) the GitHub App. */
+  readonly installUrl = `${INSTALL_URL_BASE}${this.config.appSlug}${INSTALL_URL_TAIL}`;
 
   readonly session = signal<AuthSession | null>(readStoredSession());
   readonly login = computed(() => this.session()?.login ?? null);

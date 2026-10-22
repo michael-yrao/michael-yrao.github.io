@@ -67,6 +67,17 @@ $mark-size: 14px;
     color: var(--color-text);
   }
 
+  &__access {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    color: var(--color-accent);
+  }
+
+  &__access-mark {
+    color: var(--color-medium);
+  }
+
   &__actions {
     display: flex;
     flex-wrap: wrap;

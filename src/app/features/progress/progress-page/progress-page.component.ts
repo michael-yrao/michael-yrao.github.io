@@ -14,7 +14,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 
-import { AuthService } from '../../../core/auth/auth.service';
+import { AuthService, isOwnDsaRepo } from '../../../core/auth/auth.service';
 import { ProgressService } from '../../../core/services/progress.service';
 import { fileUrl } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
@@ -171,6 +171,16 @@ export class ProgressPageComponent {
     const login = this.auth.login();
     if (!this.auth.isSignedIn() || ref === null || login === null) return false;
     return ref.owner.toLowerCase() === login.toLowerCase();
+  });
+
+  /** The own repo on screen when it loaded but the App is not installed on it (saves would fail); else null. */
+  protected readonly unlistedOwnRepo = computed<string | null>(() => {
+    const repos = this.ownRepos();
+    const slug = this.repoSlug();
+    if (repos === null || slug === null || !this.isOwnRepo()) return null;
+    if (this.status() !== 'ready' || !isOwnDsaRepo(slug, this.auth.login())) return null;
+    const lower = slug.toLowerCase();
+    return repos.some((listed) => listed.toLowerCase() === lower) ? null : slug;
   });
 
   protected readonly demoRepoSlug = DEMO_REPO_SLUG;

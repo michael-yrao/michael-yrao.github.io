@@ -235,7 +235,7 @@ export class PracticePageComponent {
   protected readonly copyFailIcon = COPY_FAIL_ICON;
 
   readonly saveStatus = computed(() => this.saver.statusFor(this.number() ?? 0));
-  readonly installUrl = `https://github.com/apps/${this.auth.appSlug}/installations/new`;
+  readonly installUrl = this.auth.installUrl;
   readonly isCompleting = signal(false);
   /** The rep each problem was last marked complete with, for the marks beside the status. */
   private readonly completedReps = signal<Readonly<Record<number, CompletedRep>>>({});

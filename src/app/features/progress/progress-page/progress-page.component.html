@@ -136,11 +136,23 @@
               }
             </select>
           </label>
-        } @else if (repos.length === 0) {
+        } @else if (repos.length === 0 && !unlistedOwnRepo()) {
           <a class="progress__own-repo" routerLink="/start"
             >Choose what to study to get your own repo</a
           >
         }
+      }
+      @if (unlistedOwnRepo(); as slug) {
+        <a
+          class="progress__own-repo progress__access"
+          [href]="auth.installUrl"
+          target="_blank"
+          rel="noopener"
+        >
+          <app-icon class="progress__access-mark" name="alert" [size]="14" aria-hidden="true" />
+          Allow Progressive Overflow to save to {{ slug }}
+          <app-icon name="external" [size]="12" aria-hidden="true" />
+        </a>
       }
       @if (repoSlug()) {
         <a

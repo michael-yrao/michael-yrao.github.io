@@ -164,7 +164,7 @@ export class PatternSenseComponent {
   readonly copyState = signal<CopyState>('idle');
   readonly saveState = this.githubSave.saveState;
   readonly login = this.auth.login;
-  readonly installUrl = `https://github.com/apps/${this.auth.appSlug}/installations/new`;
+  readonly installUrl = this.auth.installUrl;
 
   /** The week deck is for signed-in viewers; with the GitHub App off the tab shows as before. */
   readonly canShowWeek = computed(() => !this.auth.isEnabled || this.auth.isSignedIn());

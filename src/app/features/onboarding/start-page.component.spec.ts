@@ -8,6 +8,8 @@ import { AuthService } from '../../core/auth/auth.service';
 import { OnboardingService } from '../../core/onboarding/onboarding.service';
 import { StartPageComponent } from './start-page.component';
 
+const INSTALL_URL = 'https://github.com/apps/progressive-overflow/installations/new';
+
 function setup(
   query: Record<string, string>,
   step = 'idle',
@@ -29,6 +31,7 @@ function setup(
     isSignedIn: () => true,
     login: () => 'ada',
     appSlug: 'progressive-overflow',
+    installUrl: INSTALL_URL,
     signIn: vi.fn(),
     selectedRepo: () => selectedRepo,
     repos: vi.fn(async () => listedRepos),
@@ -63,12 +66,13 @@ describe('StartPageComponent', () => {
 
   describe('DSA card', () => {
     const cases = [
-      { name: 'stored own repo', selected: 'ada/cse-progress', listed: [], slug: 'ada/cse-progress' },
-      { name: 'listed own repo, any case', selected: null, listed: ['Ada/CSE-Progress'], slug: 'Ada/CSE-Progress' },
-      { name: 'no repo', selected: null, listed: [], slug: null },
+      { name: 'stored own repo, listed', selected: 'ada/cse-progress', listed: ['ada/cse-progress'], slug: 'ada/cse-progress', hasCheck: true, hasAccess: false },
+      { name: 'stored own repo, not listed', selected: 'ada/cse-progress', listed: [], slug: 'ada/cse-progress', hasCheck: false, hasAccess: true },
+      { name: 'listed own repo, any case', selected: null, listed: ['Ada/CSE-Progress'], slug: 'Ada/CSE-Progress', hasCheck: true, hasAccess: false },
+      { name: 'no repo', selected: null, listed: [], slug: null, hasCheck: false, hasAccess: false },
     ];
 
-    it.each(cases)('$name', async ({ selected, listed, slug }) => {
+    it.each(cases)('$name', async ({ selected, listed, slug, hasCheck, hasAccess }) => {
       const { fixture, element } = setup({}, 'idle', selected, listed);
       await fixture.whenStable();
       fixture.detectChanges();
@@ -76,6 +80,13 @@ describe('StartPageComponent', () => {
       expect(element.querySelector('.start__repo-slug')?.textContent?.trim() ?? null).toBe(slug);
       expect(buttons.includes('Start DSA')).toBe(slug === null);
       expect(buttons.includes('Go to my board')).toBe(slug !== null);
+      expect(element.querySelector('.start__repo app-icon') !== null).toBe(hasCheck);
+      const access = element.querySelector<HTMLAnchorElement>('.start__access');
+      expect(access !== null).toBe(hasAccess);
+      if (access) {
+        expect(access.textContent).toContain('Allow Progressive Overflow to save to this repo');
+        expect(access.getAttribute('href')).toBe(INSTALL_URL);
+      }
     });
 
     it('Go to my board navigates home', async () => {

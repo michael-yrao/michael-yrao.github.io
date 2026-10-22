@@ -81,8 +81,6 @@ const FAILURE_TEXT: Readonly<Record<OnboardingFailure, string>> = {
 
 const START_PATH = '/start';
 const HOME_PATH = '/';
-const INSTALL_URL_BASE = 'https://github.com/apps/';
-const INSTALL_URL_TAIL = '/installations/new';
 const RESUME_PARAM = 'resume';
 const RESUME_VALUE = '1';
 const NEXT_PARAM = 'next';
@@ -131,18 +129,30 @@ export class StartPageComponent implements OnInit {
     () => `${GITHUB_URL_BASE}${this.onboarding.repoSlug()}${BUILD_RUN_URL_TAIL}`,
   );
 
-  protected readonly installUrl = `${INSTALL_URL_BASE}${this.auth.appSlug}${INSTALL_URL_TAIL}`;
+  protected readonly installUrl = this.auth.installUrl;
   protected readonly nextUrl = safeReturnUrl(
     this.route.snapshot.queryParamMap.get(NEXT_PARAM) ?? HOME_PATH,
   );
 
-  /** The viewer's own learner repo listed by GitHub, found on init when no stored selection names it. */
-  private readonly listedRepo = signal<string | null>(null);
+  /** The repos the App is installed on, looked up once on init; null until they arrive. */
+  private readonly listedSlugs = signal<readonly string[] | null>(null);
+  /** The viewer's own learner repo among the listed ones. */
+  private readonly listedRepo = computed(() => {
+    const login = this.auth.login();
+    return this.listedSlugs()?.find((slug) => isOwnDsaRepo(slug, login)) ?? null;
+  });
   /** The viewer's `{login}/cse-progress`, from the stored selection or the repo list; null when they have none. */
   protected readonly dsaRepo = computed(() => {
     const selected = this.auth.selectedRepo();
     if (isOwnDsaRepo(selected, this.auth.login())) return selected;
     return this.listedRepo();
+  });
+  /** Whether the App can see the DSA repo: null until the list arrives. */
+  protected readonly isDsaRepoListed = computed<boolean | null>(() => {
+    const slugs = this.listedSlugs();
+    const repo = this.dsaRepo();
+    if (slugs === null || repo === null) return null;
+    return slugs.some((slug) => slug.toLowerCase() === repo.toLowerCase());
   });
 
   protected readonly isBusy = computed(() =>
@@ -171,13 +181,11 @@ export class StartPageComponent implements OnInit {
   ngOnInit(): void {
     const isResume = this.route.snapshot.queryParamMap.get(RESUME_PARAM) === RESUME_VALUE;
     if (isResume && this.auth.isSignedIn()) void this.onboarding.checkInstall();
-    if (this.auth.isSignedIn() && this.dsaRepo() === null) void this.loadListedRepo();
+    if (this.auth.isSignedIn()) void this.loadListedSlugs();
   }
 
-  private async loadListedRepo(): Promise<void> {
-    const login = this.auth.login();
-    const slugs = await this.auth.repos();
-    this.listedRepo.set(slugs.find((slug) => isOwnDsaRepo(slug, login)) ?? null);
+  private async loadListedSlugs(): Promise<void> {
+    this.listedSlugs.set(await this.auth.repos());
   }
 
   protected signIn(): void {

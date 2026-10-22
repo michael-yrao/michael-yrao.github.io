@@ -18,9 +18,18 @@
         </p>
         @if (onboarding.step() === 'idle' && dsaRepo(); as repo) {
           <p class="start__repo">
-            <app-icon name="check" [size]="14" aria-hidden="true" />
+            @if (isDsaRepoListed() !== false) {
+              <app-icon name="check" [size]="14" aria-hidden="true" />
+            }
             <span class="start__repo-slug">{{ repo }}</span>
           </p>
+          @if (isDsaRepoListed() === false) {
+            <a class="start__access" [href]="installUrl" target="_blank" rel="noopener">
+              <app-icon class="start__access-mark" name="alert" [size]="14" aria-hidden="true" />
+              Allow Progressive Overflow to save to this repo
+              <app-icon name="external" [size]="12" aria-hidden="true" />
+            </a>
+          }
           <button type="button" class="po-btn start__button" (click)="goHome()">Go to my board</button>
         } @else {
           <button type="button" class="po-btn start__button" [disabled]="isBusy()" (click)="startDsa()">
