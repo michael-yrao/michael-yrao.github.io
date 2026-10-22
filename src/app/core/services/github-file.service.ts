@@ -45,6 +45,8 @@ const RATE_LIMIT_STATUS = 403;
 const TOO_MANY_REQUESTS_STATUS = 429;
 const SERVER_ERROR_STATUS = 500;
 const OFFLINE_STATUS = 0;
+// A stale or revoked user token must not hide public content; a private repo still 404s anonymously.
+const TOKEN_REJECTED_STATUSES: readonly number[] = [401, 403];
 
 /** One entry of a directory listing: its file name and `file` / `dir` kind. */
 export interface DirEntry {
@@ -196,7 +198,15 @@ export class GitHubFileService {
   ): Observable<T> {
     if (!this.auth.isSignedIn()) return anonymous$();
     return from(this.auth.getToken()).pipe(
-      switchMap((token) => (token ? authed$(token) : anonymous$())),
+      switchMap((token) =>
+        token
+          ? authed$(token).pipe(
+              catchError((err) =>
+                TOKEN_REJECTED_STATUSES.includes(err?.status) ? anonymous$() : throwError(() => err),
+              ),
+            )
+          : anonymous$(),
+      ),
     );
   }
 

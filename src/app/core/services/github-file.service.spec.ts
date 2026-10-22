@@ -225,9 +225,9 @@ describe('GitHubFileService', () => {
     );
   });
 
-  // Every Contents-API read resolves the token once; signed in it is sent and a 403 is an error.
+  // Every Contents-API read resolves the token once; signed in it is sent, and a 403 retries anonymously (then raw).
   it.each([
-    { name: 'signed in', isSignedIn: true, authHeader: 'Bearer tok', hasRawRetry: false },
+    { name: 'signed in', isSignedIn: true, authHeader: 'Bearer tok', hasRawRetry: true },
     { name: 'signed out', isSignedIn: false, authHeader: null, hasRawRetry: true },
   ])('$name: Authorization header and 403 handling', async ({ isSignedIn, authHeader, hasRawRetry }) => {
     const calls: { url: string; auth: string | null }[] = [];
@@ -256,6 +256,39 @@ describe('GitHubFileService', () => {
 
     expect(calls[0].auth).toBe(authHeader);
     expect(calls.some((call) => call.url.includes('raw.githubusercontent.com'))).toBe(hasRawRetry);
+  });
+
+  // A signed-in request the API rejects (401/403) retries once anonymously; other errors surface.
+  it.each([
+    { name: '401 retries anonymously, then the 403 falls back to raw', status: 401, anonApi: 403, retries: true, rawFallback: true },
+    { name: '404 surfaces with no anonymous retry', status: 404, anonApi: 403, retries: false, rawFallback: false },
+  ])('signed in, $name', async ({ status, anonApi, retries, rawFallback }) => {
+    const calls: { url: string; auth: string | null }[] = [];
+    const http = {
+      get: (url: string, opts: any) => {
+        if (url.includes('manifest.json')) return throwError(() => ({ status: 404 }));
+        const auth = opts?.headers?.get('Authorization') ?? null;
+        calls.push({ url, auth });
+        if (!url.includes('api.github.com')) return of({ ok: true });
+        return throwError(() => ({ status: auth ? status : anonApi }));
+      },
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        GitHubFileService,
+        { provide: HttpClient, useValue: http },
+        { provide: AuthService, useValue: { isSignedIn: () => true, getToken: () => Promise.resolve('tok') } },
+      ],
+    });
+    const service = TestBed.inject(GitHubFileService);
+
+    await firstValueFrom(service.fetch$(CONTENT_REPO, 'dashboard/showcase.json', false)).catch(
+      () => undefined,
+    );
+
+    expect(calls[0].auth).toBe('Bearer tok');
+    expect(calls.some((call) => call.auth === null && call.url.includes('api.github.com'))).toBe(retries);
+    expect(calls.some((call) => call.url.includes('raw.githubusercontent.com'))).toBe(rawFallback);
   });
 
   it('encodes the branch in both URLs, keeping slashes literal on the raw host', () => {
