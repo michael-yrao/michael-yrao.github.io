@@ -41,7 +41,7 @@ function toEntry(
     number,
     // The contract's title is the one the learner's own repo uses, so it wins.
     title: problem?.title ?? algorithm?.title ?? '',
-    difficulty: algorithm?.difficulty ?? null,
+    difficulty: algorithm?.difficulty ?? problem?.difficulty ?? null,
     category: algorithm?.category ?? null,
     tags: algorithm?.tags ?? [],
     isRunnable: problem !== undefined,

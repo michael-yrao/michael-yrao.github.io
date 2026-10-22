@@ -1,3 +1,5 @@
+import { Difficulty } from './algorithm.model';
+
 export const PRACTICE_SCHEMA_VERSION = 1;
 
 /** How a returned value is compared with the expected one (set per problem by cse-progress). */
@@ -101,6 +103,8 @@ export interface PracticeProblem {
   readonly number: number;
   readonly title: string;
   readonly url: string | null;
+  /** Optional: older contracts predate it. Null when the tracker has no row for the number. */
+  readonly difficulty?: Difficulty | null;
   /** Null when the contract has none: the page then shows the static description. */
   readonly statement: string | null;
   readonly stub: string;

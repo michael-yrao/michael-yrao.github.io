@@ -87,10 +87,12 @@
 </main>
 
 <footer class="po-footer">
-  <div class="po-footer__columns">
-    @for (column of footerColumns; track column.heading) {
-      <nav class="po-footer__column" [attr.aria-label]="column.heading">
-        <span class="po-footer__heading">{{ column.heading }}</span>
+  <div class="po-footer__inner">
+    <nav class="po-footer__links" aria-label="Site">
+      @for (column of footerColumns; track column.heading) {
+        @if (!$first) {
+          <span class="po-footer__sep" aria-hidden="true">·</span>
+        }
         @for (link of column.links; track link.label) {
           @if ('href' in link) {
             <a class="po-footer__link" [href]="link.href" target="_blank" rel="noopener">{{ link.label }}<app-icon name="external" [size]="12" /></a>
@@ -98,12 +100,12 @@
             <a class="po-footer__link" [routerLink]="link.path">{{ link.label }}</a>
           }
         }
-      </nav>
-    }
-  </div>
-  <div class="po-footer__inner">
-    <span class="po-footer__line">Built by a human, with Claude in the loop.</span>
-    <span class="po-footer__copy">© {{ year }}</span>
+      }
+    </nav>
+    <span class="po-footer__meta">
+      <span class="po-footer__line">Built by a human, with Claude in the loop.</span>
+      <span class="po-footer__copy">© {{ year }}</span>
+    </span>
   </div>
 </footer>
 </div>

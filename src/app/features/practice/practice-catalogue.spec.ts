@@ -85,6 +85,20 @@ describe('buildCatalogue', () => {
       ],
     },
     {
+      name: 'contract only: the contract difficulty is used',
+      algorithms: [],
+      problems: [{ number: 9002, title: 'Hard One', difficulty: 'Hard' } as PracticeProblem],
+      expected: [entry({ number: 9002, title: 'Hard One', difficulty: 'Hard', isRunnable: true })],
+    },
+    {
+      name: 'both: the registry difficulty wins over the contract',
+      algorithms: [algorithm(21, 'Merge', 'Easy', 'linked-list', false)],
+      problems: [{ number: 21, title: 'Merge', difficulty: 'Hard' } as PracticeProblem],
+      expected: [
+        expect.objectContaining({ number: 21, difficulty: 'Easy' }),
+      ],
+    },
+    {
       name: 'ascending by number across both sources',
       algorithms: [algorithm(50, 'B', 'Hard', 'trees', false), algorithm(3, 'A', 'Hard', 'trees', false)],
       problems: [problem(9001, 'C'), problem(22, 'D')],
