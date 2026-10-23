@@ -4,8 +4,8 @@ Why this exists
 ----------------
 ~/.claude/rules/execution-workflow.md defines a three-tier pyramid: the tech lead (this
 session) plans/reviews/integrates but never writes implementation; a `team-lead` agent
-supervises up to two engineers but never writes or commits; an `engineer` agent implements
-but never commits and never writes through a shell. Agent frontmatter (`disallowedTools`) already removes Write/Edit/
+supervises up to five engineers but never writes or commits; an `engineer` or `engineer-haiku`
+agent implements but never commits and never writes through a shell. Agent frontmatter (`disallowedTools`) already removes Write/Edit/
 NotebookEdit from `team-lead`, but a shell (Bash or PowerShell) can still write a file
 (`sed -i`, `tee`, a redirect, a heredoc, an inline `python -c` write, a PowerShell write
 cmdlet) or run a state-changing git command, and frontmatter has no way to gate *inside* a
@@ -23,7 +23,7 @@ command words and well-known write idioms, deliberately not a full parser.
 Behavior by `agent_type` (present only when this fires inside a subagent):
 - "team-lead": deny Write/Edit/NotebookEdit outright (belt and braces); deny Bash or
   PowerShell when the command matches a WRITE_PATTERN or a GIT_PATTERN.
-- "engineer": deny Bash or PowerShell when the command matches a GIT_PATTERN (never commit/push) or a
+- "engineer" and "engineer-haiku" (same rules): deny Bash or PowerShell when the command matches a GIT_PATTERN (never commit/push) or a
   WRITE_PATTERN (engineers change files with the Edit and Write tools only, never through a shell).
   Write/Edit/NotebookEdit tool calls stay allowed.
 - absent (the main session, i.e. the tech lead): never deny; on the session's FIRST
@@ -57,6 +57,7 @@ RULE_FILE = "~/.claude/rules/execution-workflow.md"
 
 FACTORY_ROLE_ENV = "FACTORY_ROLE"
 FACTORY_ROLE_TEAM_LEAD = "team-lead"
+ENGINEER_AGENT_TYPES = frozenset({"engineer", "engineer-haiku"})
 WRITE_TOOL_NAMES = frozenset({"Write", "Edit", "NotebookEdit"})
 SHELL_TOOL_NAMES = frozenset({"Bash", "PowerShell"})
 
@@ -339,7 +340,8 @@ def decide(payload: dict) -> Decision | None:
     role_decision = _decide_by_role(payload)
     if role_decision is not None:
         return role_decision
-    if payload.get("agent_type") in (None, "team-lead", "engineer"):
+    agent_type = payload.get("agent_type")
+    if agent_type in (None, "team-lead") or agent_type in ENGINEER_AGENT_TYPES:
         return _unreliable_measurement_warning(payload)
     return None
 
@@ -356,7 +358,7 @@ def _decide_by_role(payload: dict) -> Decision | None:
 
     if agent_type == "team-lead":
         return _decide_team_lead(tool_name, tool_input)
-    if agent_type == "engineer":
+    if agent_type in ENGINEER_AGENT_TYPES:
         return _decide_engineer(tool_name, tool_input)
     if agent_type is None:
         if os.environ.get(FACTORY_ROLE_ENV) == FACTORY_ROLE_TEAM_LEAD:

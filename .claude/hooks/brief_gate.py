@@ -7,7 +7,7 @@ requires every brief to carry the `git status --short` output of each repo it na
 must fire at spawn time cannot live only in prose, so this hook checks the Agent call's prompt.
 
 Behavior (tool "Agent", tool_input carries `subagent_type` and `prompt`):
-- subagent_type other than "team-lead" / "engineer", or missing: silent.
+- subagent_type other than "team-lead" / "engineer" / "engineer-haiku", or missing: silent.
 - prompt with no git-status paste: DENY (exit 2). The reason is written to stdout as JSON and
   to stderr, so it reaches the model whichever channel the harness reads.
 - prompt with a paste that names `michael-yrao.github.io` and runs the Angular CLI through a path that
@@ -32,7 +32,7 @@ import re
 import sys
 from dataclasses import dataclass
 
-GATED_SUBAGENT_TYPES = frozenset({"team-lead", "engineer"})
+GATED_SUBAGENT_TYPES = frozenset({"team-lead", "engineer", "engineer-haiku"})
 STATUS_WINDOW_LINES = 20  # how far below the command line a status line may sit
 
 STATUS_COMMAND_MARKER = "git status --short"

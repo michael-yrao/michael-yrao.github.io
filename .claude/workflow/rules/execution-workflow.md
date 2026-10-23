@@ -5,29 +5,50 @@ model. This is the normative rule; the *why*/evidence lives in
 `cse-progress/.claude/memory/feedback_execution_workflow.md`.
 
 **Leads never write implementation.** The tech lead (the session — Fable on Max, Opus otherwise) and
-every Opus team lead plan/supervise/advise/review only; every edit goes to a Sonnet `engineer` agent.
+every Opus team lead plan/supervise/advise/review only; every edit goes to a Sonnet `engineer` agent (or an `engineer-haiku` agent under the tier tests).
 
 | Tier | Who | Model | Does | Never |
 |---|---|---|---|---|
 | **Tech lead** | the orchestrating session (you) | Fable on Max; Opus otherwise | design, write the plan, get approval, brief leads/engineers, review the consolidated diff, integrate (commit/push per the commit rule), optimize (token spend, wall-clock, shipped code, the workflow itself); hands down everything that does not need it | write implementation |
-| **Team lead** | `team-lead` agent | Opus | own one slice of the approved plan: brief its ≤ 2 engineers, supervise, review their diffs for correctness, scope and wasted work, optimize the slice's code through its engineers, report a consolidated diff + review notes up to the tech lead | write implementation, commit/push, re-plan the slice's scope |
-| **Engineer** | `engineer` agent | Sonnet | execute a brief: edits, tests, build; report the diff | commit/push, widen scope |
+| **Team lead** | `team-lead` agent | Opus | own one slice of the approved plan: brief its ≤ 5 engineers, supervise, review their diffs for correctness, scope and wasted work, optimize the slice's code through its engineers, report a consolidated diff + review notes up to the tech lead | write implementation, commit/push, re-plan the slice's scope |
+| **Engineer** | `engineer` / `engineer-haiku` agent | Sonnet (Haiku under the tier tests) | execute a brief: edits, tests, build; report the diff | commit/push, widen scope |
 
 The three tiers map onto three phases — Plan (tech lead), Implement (engineers), Review (tech lead + any
 team leads) — so the phase names still apply when a task is small enough for a single engineer with no
 lead in between.
 
-## Spawn rule (2:1)
+## Spawn rule (5:1)
 
 Count the engineers the plan needs. 1 → the tech lead supervises it directly, no lead, unless supervising
 it would fill the tech lead's context (a long slice, several review rounds); then one lead owns it. n ≥ 2 →
-spawn ceil(n/2) `team-lead` agents, each owning ≤ 2 engineers; the tech lead then supervises leads (and any
-lone remainder engineer directly — e.g. 3 engineers = one lead with 2 + tech lead with 1, or two leads;
-either is fine, ≤ 2 per lead is the invariant). Team leads are spawned by the tech lead; engineers are
+spawn ceil(n/5) `team-lead` agents, each owning ≤ 5 engineers; the tech lead then supervises leads (and any
+lone remainder engineer directly — e.g. 6 engineers = one lead with 5 + tech lead with 1, or two leads;
+either is fine, ≤ 5 per lead is the invariant). Team leads are spawned by the tech lead; engineers are
 spawned by their team lead (or by the tech lead when there is no lead).
 
 Support agents (a sweep, state collection, checker runs: see the next section) are spawned by the tech lead
 and do not count toward n.
+
+## Engineer tier (Sonnet or Haiku)
+
+The brief's author (tech lead or team lead) picks the tier. The default is Sonnet (`engineer`). Use
+`engineer-haiku` only if **all five** of these hold, and the brief states the tier with one line per test:
+
+1. **The checks decide correctness, not just shape.** The brief names a check (a test or command) for every
+   output that fails on a wrong value. If an output can be wrong and still pass, the task is not simple.
+2. **Nothing is derived.** Each change is copied, looked up, templated or a mechanical rename from a named
+   source. It needs no algorithm, design call, reference solution or complexity call.
+3. **No authored prose.** It writes no user-facing text and no rule, skill or doc prose.
+4. **The context is named.** The brief lists every file the engineer reads or edits, so it needs no
+   exploration.
+5. **The change is small.** One repo, at most 3 files.
+
+When unsure, use Sonnet.
+
+**Escalation:** if a Haiku engineer's checks fail, the same brief is re-run once on `engineer` (Sonnet), with
+no Haiku retry. The escalation is noted in the report up.
+
+The factory's recipe tier (`recipe.yml tier:`, `factory.haiku_max_files`) applies the same tests to recipes.
 
 ## The tech lead owns optimization, and keeps only what needs it
 
@@ -121,17 +142,18 @@ text an engineer wrote that was not in the plan is listed after the diff review 
 ## Model rule
 
 **Subagents are never Fable** — Fable is reserved for the orchestrating session. Team leads are Opus,
-engineers are Sonnet, pinned explicitly in their agent definitions. Never pass `model: "fable"` on an
+engineers are Sonnet, or Haiku under the tier tests, pinned explicitly in their agent definitions. Never pass `model: "fable"` on an
 Agent call for a subagent, and never `model: inherit` in an agent definition — `inherit` would silently
 become Fable when the session itself is on Fable.
 
 ## Agent definitions
 
 Roles are enforced as custom agent definitions, not prose only: `~/.claude/agents/team-lead.md` and
-`~/.claude/agents/engineer.md`. Spawn with `subagent_type: "team-lead"` / `"engineer"` — never spawn a
-lead with a generic agent plus a `model: "opus"` override.
+`~/.claude/agents/engineer.md` and `~/.claude/agents/engineer-haiku.md`. Spawn with `subagent_type:
+"team-lead"` / `"engineer"` / `"engineer-haiku"` — never spawn a lead with a generic agent plus a
+`model: "opus"` override.
 
-**Enforced by frontmatter:** the model pin (Opus lead, Sonnet engineer); `Write`/`Edit`/`NotebookEdit`
+**Enforced by frontmatter:** the model pin (Opus lead, Sonnet `engineer`, Haiku `engineer-haiku`); `Write`/`Edit`/`NotebookEdit`
 removed from the lead's tool list.
 
 **Enforced by the `role_gate.py` PreToolUse hook**, wired once in `~/.claude/settings.json` (matcher
