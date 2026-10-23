@@ -24,6 +24,7 @@ yarn-error.log
 .claude/*
 !.claude/settings.json
 !.claude/hooks/
+!.claude/workflow/
 .project
 .classpath
 .c9/

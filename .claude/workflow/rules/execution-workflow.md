@@ -1,0 +1,180 @@
+# Execution Workflow (Plan → Implement → Review) — tech lead / team leads / engineers
+
+**Applies to all repos.** For any **non-trivial** implementation task, split the work across roles by
+model. This is the normative rule; the *why*/evidence lives in
+`cse-progress/.claude/memory/feedback_execution_workflow.md`.
+
+**Leads never write implementation.** The tech lead (the session — Fable on Max, Opus otherwise) and
+every Opus team lead plan/supervise/advise/review only; every edit goes to a Sonnet `engineer` agent.
+
+| Tier | Who | Model | Does | Never |
+|---|---|---|---|---|
+| **Tech lead** | the orchestrating session (you) | Fable on Max; Opus otherwise | design, write the plan, get approval, brief leads/engineers, review the consolidated diff, integrate (commit/push per the commit rule), optimize (token spend, wall-clock, shipped code, the workflow itself); hands down everything that does not need it | write implementation |
+| **Team lead** | `team-lead` agent | Opus | own one slice of the approved plan: brief its ≤ 2 engineers, supervise, review their diffs for correctness, scope and wasted work, optimize the slice's code through its engineers, report a consolidated diff + review notes up to the tech lead | write implementation, commit/push, re-plan the slice's scope |
+| **Engineer** | `engineer` agent | Sonnet | execute a brief: edits, tests, build; report the diff | commit/push, widen scope |
+
+The three tiers map onto three phases — Plan (tech lead), Implement (engineers), Review (tech lead + any
+team leads) — so the phase names still apply when a task is small enough for a single engineer with no
+lead in between.
+
+## Spawn rule (2:1)
+
+Count the engineers the plan needs. 1 → the tech lead supervises it directly, no lead, unless supervising
+it would fill the tech lead's context (a long slice, several review rounds); then one lead owns it. n ≥ 2 →
+spawn ceil(n/2) `team-lead` agents, each owning ≤ 2 engineers; the tech lead then supervises leads (and any
+lone remainder engineer directly — e.g. 3 engineers = one lead with 2 + tech lead with 1, or two leads;
+either is fine, ≤ 2 per lead is the invariant). Team leads are spawned by the tech lead; engineers are
+spawned by their team lead (or by the tech lead when there is no lead).
+
+Support agents (a sweep, state collection, checker runs: see the next section) are spawned by the tech lead
+and do not count toward n.
+
+## The tech lead owns optimization, and keeps only what needs it
+
+The tech lead is accountable for four costs, each checked at a named step. It decides; it hands the
+checking and the legwork down.
+
+| Cost | Step | Check |
+|---|---|---|
+| **Token spend** | planning, briefing | Each task sits at the cheapest tier that can do it. A brief carries what the tech lead already knows, so no agent rediscovers it. A report comes back as a conclusion (diff stat, failing output), not a file or log dump. |
+| **Wall-clock** | spawning | Independent slices spawn in one message and run in the background. Independent tool calls go in one message. The session never polls or sleeps on an agent. |
+| **Shipped code** | reviewing a diff | The team lead is responsible for this inside its slice: it decides the optimization and has its engineer make it, without asking up, as long as the slice's behaviour and scope stay the same. With no lead, the tech lead is. Targets: a complexity the input size does not allow, I/O or parsing repeated in a loop, anything slow in a hook (a hook runs on every prompt or tool call). The tech lead checks the consolidated diff. Only waste that is visible or measured; `coding-style.md`'s "no premature optimization" still holds. |
+| **The workflow** | after integrating | A run that wasted spend or time (an empty hand-back, a re-sent brief, a re-spawn, a rule read two ways) gets its cause named by the tech lead and fixed by an engineer in the rule, agent definition or hook, in the same session. The evidence goes in the why file. A cause already in the self-eval log is fixed one rung higher than last time (recurrence floor, CLAUDE.md gate 5). |
+
+**Stays with the tech lead:** the design and the plan, every exchange with the user, the review of the
+consolidated diff, commit and push, the decision on each cost above (shipped code inside a lead's slice is
+the lead's), and the carve-outs below.
+
+**Goes down, with as many leads and engineers as it takes:**
+
+- A sweep across many files, or a long log or test output to digest: an `Explore` agent, or an engineer
+  on a read-only brief, which returns the conclusion.
+- The pasted state a brief needs (`git status`, quoted lines, dry-run output): an engineer.
+- Supervision, test and build runs, the first review of each diff, and optimizing the slice's code: a team lead.
+- Checker scripts and verification runs: an engineer.
+
+How many agents that takes is the tech lead's call, made per task (user, 2026-10-04: "up to your
+discretion for now"). The floor: an agent is spawned for this work when the work is larger than the brief
+it needs, and a read of one known file stays inline.
+
+**On Fable, the session's own context is the first cost.** Every token the session reads or writes costs
+more than the same token anywhere else in the tree, so the list above is not optional on Fable.
+
+- Nothing already in context is read or run again.
+- A built-in agent (`Explore`, `Plan`, `general-purpose`) is spawned with an explicit `model`: `sonnet`
+  for a sweep, `opus` for design. Without one it can inherit Fable (see the Model rule).
+- Rule and brief text is checked against how Fable behaves in observed runs, not against how an earlier
+  model behaved.
+
+## Briefs carry pasted state, never described state
+
+Every repo a plan or brief names gets its `git status --short` output **pasted into the brief** (a clean repo
+is pasted as a fenced block whose first line is `git status --short` and second is `(clean)` — never as
+prose; `brief_gate.py` denies the prose form, 2026-10-19), and every
+count or "nothing depends on X" claim in a plan comes from a command that was run, pasted, not from a grep
+remembered or a state inferred from an adjacent command. A brief is a mechanical artifact: a second agent with
+the same inputs must produce the same brief, and "clean" / "no spec depends on it" are one-command facts.
+(3× in four days, 2026-09-20/21/23 — a private-repo inference, a "clean at start" brief that carried six
+modified files, a "no spec hard-codes the counts" grep that missed membership dependencies.)
+
+**Enforced by `brief_gate.py`** (PreToolUse, matcher `Agent`): a `team-lead` or `engineer` spawn whose prompt carries no `git status --short` paste is DENIED; an allowed spawn gets a warn-only reminder of the rest of this section. On Windows (`win32`) only, a brief that names `michael-yrao.github.io` and runs the Angular CLI through `npm run lint|test`, `npx ng` or bare `ng …` is DENIED too; the bootstrap path (`node node_modules/@angular/cli/bin/bootstrap.js …`) is the one that runs on this machine (2026-10-21). A `team-lead` brief that tells the lead to run its engineers in the background is DENIED, because `agents/team-lead.md` requires them in the foreground (2026-10-22).
+
+The checklist for this section is `~/.claude/skills/write-brief/SKILL.md`, walked before every `team-lead` / `engineer` spawn.
+
+**A claim that a file says X quotes the matched line.** "`study_guide.md` names 394" is backed by the LINE
+pasted into the plan or brief, never by a match count, a line number alone, or a substring hit. The same
+holds for a verification step's expected output: it is pasted from a dry run, or marked *expected,
+unverified*. (4× in two days, 2026-09-25/26 — a smoke test with a side effect on real state, a topic map
+typed from recall, two verification steps no command had shown, and a grep for "Decode String" that matched
+"Encode and Decode Strings" and was reported as the file naming 394.)
+
+**A brief names the tests to add.** It lists them per `~/.claude/rules/testing.md` — the behaviour that can
+break, table-driven, nothing trivial or already proven — and the engineer adds those and no others.
+
+**A plan that replaces a paragraph of user-facing text quotes the old paragraph in full beside the new
+one.** A dropped sentence is then visible at approval. For any other paragraph, the tech lead diffs old
+against new at its own review and confirms no sentence or citation was dropped. (2026-09-29 — a replacement
+dropped the old paragraph's citation.)
+
+## A running agent's status is read from file times, not from silence
+
+A status answer about a background agent pastes the newest mtime in its slice (`ls -lt`, top line) next to
+the current time. "No notification yet" is not "working", and a file listing is not a file time. A lead or
+engineer quiet for more than twice its previous round is stopped and re-briefed from the tree. The new brief
+carries a stall guard: bounded tasks, no watch-mode command, report up rather than wait. (2026-10-04 — a team
+lead sat 13.5 hours after its last write while a file listing was reported as "in progress".)
+
+## User-facing text gets a second review
+
+Only user-facing text waits on the user: site labels and copy, README, and docs written for a person to
+read. The user reviews each such sentence or paragraph before it is committed.
+
+Everything else lands on the tech lead's own review, with no user approval: rule, skill and memory files,
+`decisions.yml` and config comments, code comments, docstrings, commit messages, test fixtures, ledger and
+tracker entries, and the agent's self-evaluation log entries. (User, 2026-10-02: rule/skill/memory files
+exempt; widened 2026-10-04: "non-user facing wording does not need my approval".)
+
+The tech lead lists each new or changed piece of user-facing text word for word, says where it appears, and
+waits for the user's yes. A plan that quotes the text and is approved counts as that review. User-facing
+text an engineer wrote that was not in the plan is listed after the diff review and held until approved.
+
+## Model rule
+
+**Subagents are never Fable** — Fable is reserved for the orchestrating session. Team leads are Opus,
+engineers are Sonnet, pinned explicitly in their agent definitions. Never pass `model: "fable"` on an
+Agent call for a subagent, and never `model: inherit` in an agent definition — `inherit` would silently
+become Fable when the session itself is on Fable.
+
+## Agent definitions
+
+Roles are enforced as custom agent definitions, not prose only: `~/.claude/agents/team-lead.md` and
+`~/.claude/agents/engineer.md`. Spawn with `subagent_type: "team-lead"` / `"engineer"` — never spawn a
+lead with a generic agent plus a `model: "opus"` override.
+
+**Enforced by frontmatter:** the model pin (Opus lead, Sonnet engineer); `Write`/`Edit`/`NotebookEdit`
+removed from the lead's tool list.
+
+**Enforced by the `role_gate.py` PreToolUse hook**, wired once in `~/.claude/settings.json` (matcher
+`Write|Edit|NotebookEdit|Bash|PowerShell`); settings hooks fire inside subagents and the script branches on the
+`agent_type` field: the lead's and the engineer's Bash or PowerShell calls that match a named write pattern (`sed -i`, `tee`, a redirect, a
+heredoc, cp/mv/rm/touch/mkdir/rmdir, an inline python write, PowerShell write cmdlets and their aliases,
+`-OutFile`, a .NET file write — the full list
+lives in `~/.claude/hooks/role_gate.py`) are DENIED for both (engineers change files with Edit/Write only; 2026-10-21, third scripted-edit lapse), and every state-changing git command (add, commit,
+push, rm, mv, reset, restore, stash, rebase, merge, cherry-pick, tag, checkout, pull, fetch, switch, clean, revert, am, apply, worktree) is DENIED for both the
+lead and the engineer, in Bash and in PowerShell alike. Read-only git (status, diff, log, show, ls-files, branch, remote -v, stash list/show, tag with no argument or `-l`/`--list`) stays allowed.
+
+**Moment-bound reminder** (the same hook's branch for a payload with no `agent_type`): the tech lead gets
+a warn-only `additionalContext` note on its first `Write`/`Edit`/`NotebookEdit` of a session, pointing
+back at this rule. It never denies — the tech lead may still make a trivial one-liner edit inline.
+
+**Enforced by the `brief_gate.py` PreToolUse hook** (2026-10-07), wired in `~/.claude/settings.json` with matcher `Agent`: a `team-lead`/`engineer` spawn with no `git status --short` paste in its prompt is DENIED (see "Briefs carry pasted state").
+
+**Still convention, not enforcement:** any write path Bash or PowerShell could take that isn't in the named pattern
+list above (some obscure tool, a non-interactive editor invocation, etc.); and a lead spawning only
+`engineer` agents, never a generic agent standing in for one (frontmatter has no way to restrict which
+`subagent_type` a lead spawns).
+
+**Verified by live probe, not by docs:** agent-frontmatter `hooks:` blocks did not fire in testing on
+2026-09-21, so they are not used; any future change to enforcement wiring is confirmed by spawning an
+agent and watching the deny land, never by reading the docs alone.
+
+## What triggers it — non-trivial work only
+
+Route through the full workflow when the task is **multi-step, design-bearing, or spans multiple files**
+— i.e. real implementation. Spawn the Sonnet subagent with the approved plan as its brief.
+
+**Runs inline (no subagent), by you directly:**
+- trivial one-liners, typo/rename fixes, a single obvious edit
+- pure reads, searches, questions, and explanations
+- anything where a second competent agent given the same inputs would produce the same artifact AND it's a
+  handful of lines
+
+When unsure whether a task clears the bar, it does — plan it.
+
+## Carve-outs (never delegate)
+
+- **Never send a teach, an explanation, a coaching answer, or a spaced-repetition rep to a subagent** —
+  those are the product, and they stay with the tech lead, inline.
+- The answer-length cap, coaching depth, and register rules are unaffected by this workflow.
+- The Review step is not optional: nothing lands unreviewed. The reviewer is the lead itself — the tech
+  lead reviews the consolidated diff and a team lead reviews its engineers' diffs — before any commit/push.
