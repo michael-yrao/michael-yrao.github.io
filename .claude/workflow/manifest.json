@@ -16,7 +16,7 @@
     "source": "~/.claude/agents/team-lead.md"
   },
   ".claude/workflow/install.sh": {
-    "sha256": "877168f1667c486c6e679475ea6acc316fec5cef23cdb91ca8f91f2cc178ec97",
+    "sha256": "61cb1dc5643e5e2acb61363c041f22cc9e1c884cb928b2c0e8284068ccb5ac02",
     "source": "scripts/sync_workflow.py"
   },
   ".claude/workflow/rules/coding-style.md": {
