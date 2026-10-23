@@ -22,14 +22,6 @@ $divider-line-width: 2px;
 
 .practice__spacer { flex: 1 1 auto; }
 
-.practice__pick { color: var(--color-text-muted); }
-.practice__legend {
-  margin: 0;
-  padding: var(--space-xs) var(--space-md);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
 // A solution tab and its close mark sit together; the + uses the close mark's look.
 .practice__tab-group { display: inline-flex; align-items: center; }
 .practice__tab-close {

@@ -10,7 +10,6 @@ const COMPLEXITY = {
   whyTime: 'one pass over the input',
   whySpace: 'a few counters',
 };
-const RECOGNITION = { picked: 'Two Pointers', at: SAVED_AT };
 const COMPLETE = { complete: true, rating: 'clean', tests: '9/9', complexity: COMPLEXITY };
 
 function attempt(fields: Record<string, unknown>) {
@@ -27,16 +26,9 @@ function attempt(fields: Record<string, unknown>) {
 
 describe('validateAttempt header', () => {
   const cases: { name: string; fields: Record<string, unknown>; ok: boolean }[] = [
-    { name: 'in-progress, no recognition', fields: {}, ok: true },
-    { name: 'in-progress with recognition', fields: { recognition: RECOGNITION }, ok: true },
-    { name: 'complete with recognition', fields: { ...COMPLETE, recognition: RECOGNITION }, ok: true },
+    { name: 'in-progress', fields: {}, ok: true },
+    { name: 'complete', fields: COMPLETE, ok: true },
     { name: 'unknown header key', fields: { extra: 1 }, ok: false },
-    { name: 'empty picked', fields: { recognition: { ...RECOGNITION, picked: '' } }, ok: false },
-    { name: 'picked too long', fields: { recognition: { ...RECOGNITION, picked: 'x'.repeat(201) } }, ok: false },
-    { name: 'bad at', fields: { recognition: { ...RECOGNITION, at: '2026-10-20' } }, ok: false },
-    { name: 'extra recognition key', fields: { recognition: { ...RECOGNITION, extra: 1 } }, ok: false },
-    { name: 'missing at', fields: { recognition: { picked: 'x' } }, ok: false },
-    { name: 'null recognition', fields: { recognition: null }, ok: false },
   ];
 
   for (const { name, fields, ok } of cases) {

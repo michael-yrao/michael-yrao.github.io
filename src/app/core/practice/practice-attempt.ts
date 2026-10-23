@@ -19,19 +19,12 @@ export interface AttemptComplexity {
   readonly whySpace: string;
 }
 
-/** The technique the owner picked before the editor opened, and when (ISO). */
-export interface AttemptRecognition {
-  readonly picked: string;
-  readonly at: string;
-}
-
 /** What a saved attempt records beside the code. `tests` is `"<passed>/<total>"` or null. */
 export interface AttemptMeta {
   readonly complete: boolean;
   readonly rating: AttemptRating | null;
   readonly tests: string | null;
   readonly complexity: AttemptComplexity | null;
-  readonly recognition?: AttemptRecognition | null;
 }
 
 /** A remote attempt read back: when it was saved, whether it is a finished rep, and the code
@@ -40,7 +33,6 @@ export interface RemoteAttempt {
   readonly savedAt: number;
   readonly complete: boolean;
   readonly rating: AttemptRating | null;
-  readonly recognition: AttemptRecognition | null;
   readonly code: string;
 }
 
@@ -76,7 +68,6 @@ export function buildAttemptFile(meta: AttemptMeta, savedAt: Date, code: string)
     tests: meta.tests,
     complexity: meta.complexity,
     savedAt: savedAt.toISOString(),
-    ...(meta.recognition ? { recognition: meta.recognition } : {}),
   });
   return `${HEADER_PREFIX}${header}\n${code}`;
 }
@@ -94,7 +85,6 @@ export function parseAttemptFile(content: string): RemoteAttempt | null {
       savedAt,
       complete: header?.complete === true,
       rating: RATINGS.find((rating) => rating === header?.rating) ?? null,
-      recognition: recognitionFrom(header?.recognition),
       code: content.slice(lineEnd + 1),
     };
   } catch {
@@ -107,13 +97,6 @@ interface HeaderFields {
   readonly savedAt?: unknown;
   readonly complete?: unknown;
   readonly rating?: unknown;
-  readonly recognition?: unknown;
-}
-
-function recognitionFrom(value: unknown): AttemptRecognition | null {
-  if (typeof value !== 'object' || value === null) return null;
-  const { picked, at } = value as { picked?: unknown; at?: unknown };
-  return typeof picked === 'string' && typeof at === 'string' ? { picked, at } : null;
 }
 
 /** `261_graph_valid_tree.py` → 261; null when the name has no leading number. */

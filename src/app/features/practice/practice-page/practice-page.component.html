@@ -58,9 +58,6 @@
         <div class="practice__work" [class.practice__work--code-closed]="!isCodeOpen()" [style.--output-share]="outputShare()">
           <button type="button" class="practice__pane-head" [attr.aria-expanded]="isCodeOpen()" aria-controls="practice-code-body" (click)="toggleCode()">
             <span class="practice__label">Code</span>
-            @if (pick(); as p) {
-              <span class="practice__pick"><app-icon [name]="recognitionIcons.picked" [size]="recognitionIconSize" /> {{ p.picked }}</span>
-            }
             <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
               <path d="M6 9l6 6 6-6" />
             </svg>
@@ -84,23 +81,16 @@
               }
               <button type="button" class="practice__tab-close" aria-label="New solution" title="New solution" [disabled]="!canAddTab()" (click)="addTab()">+</button>
             </div>
-            @if (canSave() && (isLocked() || pick())) {
-              <p class="practice__legend"><app-icon [name]="recognitionIcons.locked" [size]="recognitionIconSize" /> pick the technique first · <app-icon [name]="recognitionIcons.picked" [size]="recognitionIconSize" /> picked</p>
-            }
-            @if (isLocked()) {
-              <app-recognition-gate [groups]="choices()" (picked)="onPick($event)" />
-            } @else {
-              <app-code-editor #editor [initialText]="initialText()" (textChange)="onTextChange($event)" />
-            }
+            <app-code-editor #editor [initialText]="initialText()" (textChange)="onTextChange($event)" />
           </div>
 
           <div class="practice__toolbar">
-            <button type="button" class="practice__btn practice__btn--icon practice__btn--primary" aria-label="Run" title="Run (Ctrl+')" [disabled]="isBusy() || isLocked()" (click)="runSample()">
+            <button type="button" class="practice__btn practice__btn--icon practice__btn--primary" aria-label="Run" title="Run (Ctrl+')" [disabled]="isBusy()" (click)="runSample()">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
                 <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
               </svg>
             </button>
-            <button type="button" class="practice__btn" title="Run all cases (Ctrl+Enter)" [disabled]="isBusy() || isLocked()" (click)="run()">Run all</button>
+            <button type="button" class="practice__btn" title="Run all cases (Ctrl+Enter)" [disabled]="isBusy()" (click)="run()">Run all</button>
             @if (isLoadingPython()) {
               <span class="practice__status">Loading Python</span>
             }
