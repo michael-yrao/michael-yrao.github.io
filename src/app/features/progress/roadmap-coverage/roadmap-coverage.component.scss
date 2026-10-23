@@ -21,32 +21,6 @@ $level-width: $tiles-per-row * $tile-size + ($tiles-per-row - 1) * $tile-gap;
   font-size: 1.1rem; // matches .card h2 — same size as the other Mastery cards' headings
 }
 
-.roadmap__key {
-  display: flex;
-  gap: var(--space-sm);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-}
-
-.roadmap__key-item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-// A key swatch is drawn exactly like the tile it names.
-.roadmap__swatch {
-  width: $tile-size;
-  height: $tile-size;
-  border-radius: 3px;
-  box-shadow: inset 0 0 0 1px var(--color-text-muted);
-}
-
-.roadmap__swatch--started { background: var(--color-roadmap-practiced); box-shadow: none; }
-
 .roadmap__levels {
   display: flex;
   flex-wrap: wrap;

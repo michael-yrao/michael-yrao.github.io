@@ -3,8 +3,8 @@ import { GAMES } from './games.data';
 import { QUIZZES } from './quizzes.data';
 
 // A literal, not a read of `assets/cheat-sheets.json`: importing the JSON here would pull the
-// whole cheat-sheet asset into this chunk. Update it when a technique doc is added to
-// cse-progress (the asset's `techniques` length).
+// whole cheat-sheet asset into the landing chunk. `site-counts.spec.ts` fails when it drifts
+// from the asset's `techniques` length.
 const CHEAT_SHEET_COUNT = 18;
 
 /** The headline counts the landing page and the practice list show. */

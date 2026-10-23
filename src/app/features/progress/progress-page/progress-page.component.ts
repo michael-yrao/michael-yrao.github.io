@@ -38,7 +38,6 @@ import { GrowthAreasComponent } from '../growth-areas/growth-areas.component';
 import { GrowthArea } from '../growth-areas/growth-areas.data';
 import { RoadmapCoverageComponent } from '../roadmap-coverage/roadmap-coverage.component';
 import {
-  MATURITY_STAGES,
   ProgressTab,
   TAB_LABEL,
   TAB_ORDER,
@@ -128,7 +127,6 @@ export class ProgressPageComponent {
   });
   readonly attentionOpen = this.explorer.attentionOpen;
   readonly attentionProblems = this.explorer.attentionProblems;
-  protected readonly maturityStages = MATURITY_STAGES;
 
   // Summary-derived bars, labels and the on-schedule gauge live in SummaryView; the aliases
   // keep the template's member names.
@@ -365,14 +363,10 @@ export class ProgressPageComponent {
     return dueLabel(p, todayLocalISO());
   }
 
-  /** Pipeline segment click: every tier except 🏆 Retired drills into the Practice list's
-   *  own rows. Retired rows are never in details().problems[] (retired rows leave the tracker
-   *  entirely — see cse-progress's parse_retired()), so that segment is a no-op — no
-   *  navigation (the Trophy Case it used to jump to was removed Sep 26, 2026). */
+  /** Pipeline segment click: drills into the Practice list's own rows for that tier. 🏆 Retired
+   *  drills like the rest — the Practice list merges the summary's retired list in as 🏆 rows
+   *  (retired rows leave the tracker, so details has none). */
   pipelineSegmentClick(seg: SegmentedBarSegment): void {
-    if (seg.key === 'retired') {
-      return;
-    }
     const comfort = comfortForPipelineKey(seg.key);
     if (!comfort) return; // defensive — every real pipeline segment key has a mapping
     this.drill({ comfort: comfortName(comfort) });

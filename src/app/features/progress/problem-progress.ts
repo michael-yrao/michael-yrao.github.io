@@ -1,11 +1,25 @@
 // Pure per-problem progress helpers shared by the Practice list and the Progress page: comfort and difficulty facets, the due label, the attention list.
-import { Comfort, ProblemProgress } from '../../core/models/progress.model';
+import { Comfort, ProblemProgress, RetiredProblem } from '../../core/models/progress.model';
 import { daysBetweenISO } from '../../core/utils/local-date';
 
 export type ComfortFilter = 'all' | Comfort;
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
-export const COMFORT_FILTERS: readonly ComfortFilter[] = ['all', '🔴', '🟡', '🟢', '🎓'];
+export const COMFORT_FILTERS: readonly ComfortFilter[] = ['all', '🔴', '🟡', '🟢', '🎓', '🏆'];
+
+/** A retired problem (it left the tracker, so no `problems[]` row) as a progress entry, so the
+ *  Practice list treats it like any other row — at the 🏆 comfort, with no reps or timeline. */
+export function retiredAsProgress(retired: RetiredProblem): ProblemProgress {
+  return {
+    lcNumber: retired.lcNumber,
+    title: retired.title,
+    comfort: '🏆',
+    level: null,
+    streak: 0,
+    repDates: [],
+    timeline: [],
+  };
+}
 
 /** Whether a problem passes the comfort chip; `all` passes everything. */
 export function hasComfort(p: Pick<ProblemProgress, 'comfort'>, filter: ComfortFilter): boolean {

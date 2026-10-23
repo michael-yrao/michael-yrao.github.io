@@ -144,6 +144,10 @@ export interface Technique {
    *  what this technique builds on, drawn as incoming edges in the skill tree. Optional,
    *  additive: an older contract predating it renders every node as a root with no edges. */
   buildsOn?: string[];
+  /** The technique's index in techniques.yml — that file's deliberate study order, which the
+   *  List follows. Optional, additive: absent on a row with no entry, or on an older contract
+   *  predating it (the List then falls back to A-Z). */
+  order?: number | null;
   /** Count of this technique's problems at 🎓 or 🏆 (gamify.py's own tally, so it's correct
    *  even before `details` has loaded). Optional, additive: an older contract predating it
    *  falls back to deriving the count from `details` once loaded (0 until then) — see
@@ -316,7 +320,7 @@ export interface Probes {
 export interface ProgressData {
   schemaVersion: number;
   generatedAt: string;
-  totals: { problems: number; solutions: number; reps: number };
+  totals: { problems: number; reps: number };
   pipeline: Pipeline;
   difficulty?: { Easy: number; Medium: number; Hard: number };
   streak: Streak;
@@ -354,7 +358,7 @@ export interface TrophyGraduateSummary {
 export interface ProgressSummary {
   schemaVersion: number;
   generatedAt: string;
-  totals: { problems: number; solutions: number; reps: number };
+  totals: { problems: number; reps: number };
   pipeline: Pipeline;
   difficulty?: { Easy: number; Medium: number; Hard: number };
   streak: Streak;

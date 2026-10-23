@@ -52,6 +52,8 @@ function createFixture(
   techniques: Technique[],
   details: ProblemProgress[] | null = null,
   repoRef: RepoRef | null = null,
+  // The List starts folded; most specs need its rows, so the helper opens every group.
+  isOpenAll = true,
 ) {
   // Safe to call even before any module has been configured — lets a test create a second,
   // independent fixture (e.g. to check persistence across a fresh component instance).
@@ -65,6 +67,10 @@ function createFixture(
   fixture.componentRef.setInput('details', details);
   fixture.componentRef.setInput('repoRef', repoRef);
   fixture.detectChanges();
+  if (isOpenAll) {
+    fixture.componentInstance.expandAll();
+    fixture.detectChanges();
+  }
   return fixture;
 }
 
@@ -646,6 +652,20 @@ describe('TechniqueListComponent — Board view', () => {
         clickViewButton(fixture, 'Board');
       },
     ],
+    [
+      'clicking the drawer\'s close button',
+      (fixture) => {
+        (fixture.nativeElement.querySelector('.tech-board__drawer-close') as HTMLButtonElement).click();
+        fixture.detectChanges();
+      },
+    ],
+    [
+      'pressing Escape',
+      (fixture) => {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        fixture.detectChanges();
+      },
+    ],
   ];
 
   it.each(clearsSelectionCases)('%s clears a selected board card\'s detail panel', (_label, act) => {
@@ -660,6 +680,22 @@ describe('TechniqueListComponent — Board view', () => {
     act(fixture);
 
     expect(fixture.nativeElement.querySelector('.tech-board__detail')).toBeFalsy();
+  });
+
+  it('Escape returns focus to the card that opened the drawer', async () => {
+    const fixture = createFixture(
+      [makeTechnique({ name: 'Two Pointers', problems: [11] })],
+      [makeProblem({ lcNumber: 11 })],
+    );
+    clickViewButton(fixture, 'Board');
+    clickBoardCard(fixture, 'Two Pointers');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const card = fixture.nativeElement.querySelector('.tech-board__card') as HTMLButtonElement;
+    expect(document.activeElement).toBe(card);
   });
 
   it('turning off the horizon resets a Family filter that only existed among tier2/tier3 techniques, and the board shows techniques again', () => {
@@ -693,6 +729,136 @@ describe('TechniqueListComponent — Board view', () => {
 
     expect(fixture.componentInstance.boardFamily()).toBeNull();
     expect(cardNames()).toEqual(['Core Technique']);
+  });
+});
+
+describe('TechniqueListComponent — folding headers', () => {
+  afterEach(() => localStorage.clear());
+
+  const techniques = [
+    makeTechnique({ name: 'Alpha', family: 'Arrays', tier: 'core' }),
+    makeTechnique({ name: 'Beta', family: 'Graphs', tier: 'core' }),
+    makeTechnique({ name: 'Gamma', family: 'Arrays', tier: 'tier1', started: false, problems: [] }),
+  ];
+  const rowNames = (fixture: ReturnType<typeof createFixture>) =>
+    Array.from(fixture.nativeElement.querySelectorAll('.tech-row__name') as NodeListOf<HTMLElement>)
+      .map((el) => el.textContent?.trim());
+
+  type ListFixture = ReturnType<typeof createFixture>;
+  const clickFold = (fixture: ListFixture, selector: string): void => {
+    (fixture.nativeElement.querySelector(selector) as HTMLButtonElement).click();
+    fixture.detectChanges();
+  };
+  const TIER_FOLD = '.tech-list__tier-label .tech-list__fold';
+  const FAMILY_FOLD = '.tech-list__family .tech-list__fold';
+  const foldStates = (fixture: ListFixture) =>
+    Array.from(fixture.nativeElement.querySelectorAll('.tech-list__fold') as NodeListOf<HTMLElement>)
+      .map((el) => el.getAttribute('aria-expanded'));
+
+  const foldCases: {
+    name: string;
+    act: (fixture: ListFixture) => void;
+    rows: string[];
+    familyHeaders: number;
+    expectedFoldStates: string[];
+  }[] = [
+    { name: 'the default state has no rows and every header folded', act: () => undefined, rows: [], familyHeaders: 0, expectedFoldStates: ['false', 'false'] },
+    {
+      name: 'opening a tier shows its family headers but no rows',
+      act: (fixture) => clickFold(fixture, TIER_FOLD),
+      rows: [],
+      familyHeaders: 2,
+      expectedFoldStates: ['true', 'false', 'false', 'false'],
+    },
+    {
+      name: 'opening a family under an open tier shows exactly that family\'s rows',
+      act: (fixture) => {
+        clickFold(fixture, TIER_FOLD);
+        clickFold(fixture, FAMILY_FOLD);
+      },
+      rows: ['Alpha'],
+      familyHeaders: 2,
+      expectedFoldStates: ['true', 'true', 'false', 'false'],
+    },
+  ];
+
+  it.each(foldCases)('$name', ({ act, rows, familyHeaders, expectedFoldStates }) => {
+    const fixture = createFixture(techniques, null, null, false);
+
+    act(fixture);
+
+    expect(rowNames(fixture)).toEqual(rows);
+    expect(fixture.nativeElement.querySelectorAll('.tech-list__family').length).toBe(familyHeaders);
+    expect(foldStates(fixture)).toEqual(expectedFoldStates);
+  });
+
+  const tierShapeCases: {
+    name: string;
+    items: Technique[];
+    familyHeaders: number;
+    rowsAfterTierClick: string[];
+  }[] = [
+    {
+      name: 'a single-family tier has no family header and shows its rows on opening the tier',
+      items: [
+        makeTechnique({ name: 'One', family: 'expansion', tier: 'tier1' }),
+        makeTechnique({ name: 'Two', family: 'expansion', tier: 'tier1' }),
+      ],
+      familyHeaders: 0,
+      rowsAfterTierClick: ['One', 'Two'],
+    },
+    {
+      name: 'a two-family tier keeps both family headers and shows no rows until a family opens',
+      items: [
+        makeTechnique({ name: 'One', family: 'Arrays', tier: 'core' }),
+        makeTechnique({ name: 'Two', family: 'Graphs', tier: 'core' }),
+      ],
+      familyHeaders: 2,
+      rowsAfterTierClick: [],
+    },
+  ];
+
+  it.each(tierShapeCases)('$name', ({ items, familyHeaders, rowsAfterTierClick }) => {
+    const fixture = createFixture(items, null, null, false);
+
+    clickFold(fixture, TIER_FOLD);
+
+    expect(fixture.nativeElement.querySelectorAll('.tech-list__family').length).toBe(familyHeaders);
+    expect(rowNames(fixture)).toEqual(rowsAfterTierClick);
+  });
+
+  // One icon button flips between the two actions; its label names the next one.
+  const toggleAllCases: { name: string; clicks: number; rows: string[]; expectedFold: string; label: string }[] = [
+    { name: 'the first click opens everything and the label becomes Collapse all', clicks: 1, rows: ['Alpha', 'Beta', 'Gamma'], expectedFold: 'true', label: 'Collapse all' },
+    { name: 'the second click folds everything and the label returns to Expand all', clicks: 2, rows: [], expectedFold: 'false', label: 'Expand all' },
+  ];
+
+  it.each(toggleAllCases)('$name', ({ clicks, rows, expectedFold, label }) => {
+    const fixture = createFixture(techniques, null, null, false);
+    const button = fixture.nativeElement.querySelector('.tech-viewbar__toggle-all') as HTMLButtonElement;
+    expect(button.getAttribute('aria-label')).toBe('Expand all');
+    for (let i = 0; i < clicks; i++) {
+      button.click();
+      fixture.detectChanges();
+    }
+
+    expect(rowNames(fixture)).toEqual(rows);
+    expect(new Set(foldStates(fixture))).toEqual(new Set([expectedFold]));
+    expect(button.getAttribute('aria-label')).toBe(label);
+  });
+
+  it('a focus request for a technique under a folded tier and family unfolds both and expands its row', () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const fixture = createFixture(techniques, null, null, false);
+    expect(rowNames(fixture)).toEqual([]);
+
+    fixture.componentRef.setInput('focus', { name: 'Alpha', at: 1 });
+    fixture.detectChanges();
+
+    expect(rowNames(fixture)).toContain('Alpha');
+    expect(fixture.nativeElement.querySelector('.tech-row__detail')).toBeTruthy();
+    // Alpha's tier and family are open; the other tier (Gamma's) and family (Beta's) stay folded.
+    expect(foldStates(fixture)).toEqual(['true', 'true', 'false', 'false']);
   });
 });
 

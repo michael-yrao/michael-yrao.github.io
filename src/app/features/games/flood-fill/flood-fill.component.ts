@@ -20,7 +20,7 @@ export const BOARD_COLOR_TOKENS = [
   '--color-easy',
   '--color-medium',
   '--color-hard',
-  '--color-trophy',
+  '--color-violet',
   '--color-graduated',
 ] as const;
 

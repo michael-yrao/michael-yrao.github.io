@@ -14,7 +14,7 @@ interface PlotPoint {
 const LEVELS = 5; // 🔴0 🟡1 🟢2 🎓3 🏆4
 const COMFORT_COLOR: Record<number, string> = {
   0: 'var(--color-hard)',
-  1: 'var(--color-medium)',
+  1: 'var(--color-shaky)',
   2: 'var(--color-easy)',
   3: 'var(--color-graduated)',
   4: 'var(--color-trophy)',

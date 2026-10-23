@@ -20,7 +20,10 @@ function createFixture(
       { provide: HttpClient, useValue: http },
       {
         provide: ActivatedRoute,
-        useValue: { paramMap: of(convertToParamMap({ technique: techniqueId })) },
+        useValue: {
+          paramMap: of(convertToParamMap({ technique: techniqueId })),
+          snapshot: { queryParamMap: convertToParamMap({}) },
+        },
       },
     ],
   });

@@ -88,6 +88,26 @@ describe('SegmentedBarComponent', () => {
     expect(clicked[0].key).toBe('b');
   });
 
+  it('an inert segment on a clickable bar renders no button in the bar or the legend, and emits nothing', () => {
+    const fixture = createFixture(
+      [
+        { key: 'a', label: 'Alpha', value: 30, cls: 'seg-easy' },
+        { key: 'r', label: 'Retired', value: 1, cls: 'seg-retired', isInert: true },
+      ],
+      { clickable: true },
+    );
+    const clicked: SegmentedBarSegment[] = [];
+    fixture.componentInstance.segmentClick.subscribe((s) => clicked.push(s));
+
+    expect(fixture.nativeElement.querySelectorAll('button.segbar__seg').length).toBe(1);
+    expect(fixture.nativeElement.querySelectorAll('.segbar__legend-btn').length).toBe(1);
+    const inert = fixture.nativeElement.querySelector('span.segbar__seg.seg-retired') as HTMLElement;
+    expect(inert).toBeTruthy();
+    inert.click();
+
+    expect(clicked).toEqual([]);
+  });
+
   it('renders an optional title and caption', () => {
     const fixture = createFixture(makeSegments(), { title: 'Roadmap coverage', caption: 'A one-line gloss.' });
 

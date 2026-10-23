@@ -67,16 +67,39 @@ function groupBy<T, K>(items: readonly T[], keyOf: (item: T) => K): Map<K, T[]> 
   return groups;
 }
 
-/** Techniques grouped by tier (fixed `TIER_ORDER`, empty tiers dropped), family within each
- *  tier (A-Z), name within each family (A-Z). */
+/** A technique's study order, or null when the contract carries none for it. */
+function orderOf(t: Technique): number | null {
+  return t.order ?? null;
+}
+
+/** Ordered values first (ascending), unordered ones after, each side broken by `tiebreak`. */
+function compareByOrder(a: number | null, b: number | null, tiebreak: () => number): number {
+  if (a !== null && b !== null && a !== b) return a - b;
+  if (a !== null && b === null) return -1;
+  if (a === null && b !== null) return 1;
+  return tiebreak();
+}
+
+/** The smallest `order` among a family's techniques, or null when none carries one. */
+function familyOrder(items: readonly Technique[]): number | null {
+  const orders = items.map(orderOf).filter((o): o is number => o !== null);
+  return orders.length ? Math.min(...orders) : null;
+}
+
+/** Techniques grouped by tier (fixed `TIER_ORDER`, empty tiers dropped). Families and
+ *  techniques follow the study order (`Technique.order`, techniques.yml's index — a family by
+ *  its smallest); anything without an order sorts after the ordered ones, A-Z, so an older
+ *  contract with no orders is plain A-Z. */
 export function groupByTier(techniques: readonly Technique[]): TierGroup[] {
   const byTier = groupBy(techniques, (t) => t.tier);
   return TECHNIQUE_TIER_ORDER.filter((tier) => byTier.has(tier)).map((tier) => {
     const families: FamilyGroup[] = [...groupBy(byTier.get(tier) ?? [], (t) => t.family).entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([famA, a], [famB, b]) =>
+        compareByOrder(familyOrder(a), familyOrder(b), () => famA.localeCompare(famB)))
       .map(([family, items]) => ({
         family,
-        items: [...items].sort((a, b) => a.name.localeCompare(b.name)),
+        items: [...items].sort((a, b) =>
+          compareByOrder(orderOf(a), orderOf(b), () => a.name.localeCompare(b.name))),
       }));
     return { tier, label: TIER_LABEL[tier], families };
   });

@@ -54,12 +54,14 @@ $font-latin-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA
   --color-graduated:   #22c55e;
   --color-medium:      #fb923c;
   --color-medium-dim:  rgba(251, 146, 60, 0.12);
+  --color-shaky:       #ea580c;                   // 🟡 shaky comfort, apart from Medium difficulty
   --color-hard:        #f87171;
   --color-hard-dim:    rgba(248, 113, 113, 0.12);
   --color-over:        #ef4444;
   --color-frozen:      #9a9890;
-  --color-trophy:      #a78bfa;
-  --color-trophy-dim:  rgba(167, 139, 250, 0.14);
+  --color-trophy:      var(--color-accent);       // 🏆 retired wears the brand gold
+  --color-violet:      #a78bfa;                   // plain palette violet (the former trophy value)
+  --color-violet-dim:  rgba(167, 139, 250, 0.14);
   --color-found:       #4ade80;
   --color-active:      #f5b942;
   --color-visited:     #2a2f36;

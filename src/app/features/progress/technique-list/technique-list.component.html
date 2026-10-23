@@ -14,22 +14,34 @@
       [attr.aria-pressed]="view() === 'board'"
       (click)="setView('board')"
     >Board</button>
+    <div class="tech-viewbar__end">
+      <ul class="tech-list__legend">
+        <li class="tech-list__legend-item">
+          <span class="tech-row__box tech-row__box--clean" aria-hidden="true"></span>
+          done
+        </li>
+        <li class="tech-list__legend-item">
+          <span class="tech-row__box tech-row__box--counted" aria-hidden="true"></span>
+          needed to be covered
+        </li>
+        <li class="tech-list__legend-item">
+          <span class="tech-row__box" aria-hidden="true"></span>
+          planned extra
+        </li>
+      </ul>
+      @if (view() === 'list') {
+        <button
+          type="button"
+          class="tech-viewbar__btn tech-viewbar__toggle-all"
+          [attr.aria-label]="isAllOpen() ? 'Collapse all' : 'Expand all'"
+          [attr.title]="isAllOpen() ? 'Collapse all' : 'Expand all'"
+          (click)="toggleAll()"
+        >
+          <app-icon class="tech-viewbar__toggle-icon" [class.tech-viewbar__toggle-icon--up]="isAllOpen()" name="chevron-down" [size]="14" />
+        </button>
+      }
+    </div>
   </div>
-
-  <ul class="tech-list__legend">
-    <li class="tech-list__legend-item">
-      <span class="tech-row__box tech-row__box--clean" aria-hidden="true"></span>
-      done
-    </li>
-    <li class="tech-list__legend-item">
-      <span class="tech-row__box tech-row__box--counted" aria-hidden="true"></span>
-      needed to be covered
-    </li>
-    <li class="tech-list__legend-item">
-      <span class="tech-row__box" aria-hidden="true"></span>
-      planned extra
-    </li>
-  </ul>
 
   @if (view() === 'board') {
     <div class="tech-board">
@@ -60,6 +72,7 @@
         >Show advanced</button>
       </div>
 
+      <div class="tech-board__layout" [class.tech-board__layout--split]="boardSelected() !== null">
       <div class="tech-board__columns">
         @for (col of boardColumns(); track col.key) {
           <div class="tech-board__column">
@@ -77,17 +90,7 @@
                     [attr.aria-pressed]="isBoardSelected(t)"
                     (click)="selectInBoard(t)"
                   >
-                    <span class="tech-board__card-name">{{ shortName(t.name) }}</span>
-                    <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
-                    @if (t.started) {
-                      @if (variationChipLabel(t); as label) {
-                        <span class="chip chip--variation">{{ label }}</span>
-                      }
-                    } @else if (plannedTotalOf(t) === 0) {
-                      <span class="chip chip--no-plan">nothing planned yet</span>
-                    } @else {
-                      <span class="chip chip--not-started">not started</span>
-                    }
+                    <span class="tech-board__card-name" [title]="t.name">{{ shortName(t.name) }}</span>
                     <span
                       class="tech-row__boxes"
                       aria-hidden="true"
@@ -96,6 +99,7 @@
                         <span class="tech-row__box" [class]="coverageBoxClass(box)" aria-hidden="true"></span>
                       }
                     </span>
+                    <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
                   </button>
                 </li>
               }
@@ -103,33 +107,75 @@
           </div>
         }
       </div>
-    </div>
 
     @if (boardSelected(); as t) {
       @let stats = statsFor(t);
-      <div class="tech-row__detail tech-board__detail">
-        <h5 class="tech-board__detail-title">
-          {{ t.name }}
-          <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
-          @if (stats.greenCount > 0 || stats.lastTouched) {
-            <span class="tech-board__detail-stats">
-              {{ stats.greenCount }} <app-comfort-mark [comfort]="cleanComfort" />
-              @if (stats.lastTouched) {
-                · {{ shortMonthDay(stats.lastTouched) }}
-              }
-            </span>
-          }
-        </h5>
+      <aside
+        class="tech-row__detail tech-board__detail tech-board__drawer"
+        role="region"
+        aria-labelledby="tech-board-drawer-title"
+      >
+        <div class="tech-board__drawer-head">
+          <h5 id="tech-board-drawer-title" class="tech-board__detail-title">
+            {{ t.name }}
+            <span class="tech-row__ratio">{{ doneOf(t) }}/{{ ratioDenominatorOf(t) }}</span>
+            @if (stats.greenCount > 0 || stats.lastTouched) {
+              <span class="tech-board__detail-stats">
+                {{ stats.greenCount }} <app-comfort-mark [comfort]="cleanComfort" />
+                @if (stats.lastTouched) {
+                  · {{ shortMonthDay(stats.lastTouched) }}
+                }
+              </span>
+            }
+          </h5>
+          <button
+            type="button"
+            class="tech-board__drawer-close"
+            aria-label="Close"
+            title="Close"
+            (click)="closeBoardDetail()"
+          >✕</button>
+        </div>
         <ng-container *ngTemplateOutlet="detail; context: { $implicit: t }" />
-      </div>
+      </aside>
     }
+      </div>
+    </div>
   } @else {
     @for (group of groups(); track group.tier) {
       <div class="tech-list__tier">
-        <h3 class="tech-list__tier-label">{{ group.label }}</h3>
+        @let tierFolded = isGroupFolded(group.tier);
+        <h3 class="tech-list__tier-label">
+          <button
+            type="button"
+            class="tech-list__fold"
+            [attr.aria-expanded]="!tierFolded"
+            (click)="toggleGroup(group.tier)"
+          >
+            <span class="tech-row__caret" [class.tech-row__caret--open]="!tierFolded">▸</span>
+            {{ group.label }}
+          </button>
+        </h3>
+        @if (!tierFolded) {
         @for (fam of group.families; track fam.family) {
+          @let familyKey = familyFoldKey(group.tier, fam.family);
+          @let familyFolded = isGroupFolded(familyKey);
+          @let isSoleFamily = group.families.length === 1;
           <div class="tech-list__group">
-            <h4 class="tech-list__family">{{ fam.family }}</h4>
+            @if (!isSoleFamily) {
+              <h4 class="tech-list__family">
+                <button
+                  type="button"
+                  class="tech-list__fold"
+                  [attr.aria-expanded]="!familyFolded"
+                  (click)="toggleGroup(familyKey)"
+                >
+                  <span class="tech-row__caret" [class.tech-row__caret--open]="!familyFolded">▸</span>
+                  {{ fam.family }}
+                </button>
+              </h4>
+            }
+            @if (isSoleFamily || !familyFolded) {
             <ul class="tech-list__items">
               @for (t of fam.items; track t.name) {
                 <li class="tech-row" [class.tech-row--not-started]="!t.started" [attr.data-technique]="t.name">
@@ -168,7 +214,9 @@
                 </li>
               }
             </ul>
+            }
           </div>
+        }
         }
       </div>
     }

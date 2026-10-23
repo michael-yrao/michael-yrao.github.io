@@ -10,6 +10,8 @@
 // ── List / Board toggle — chrome copied from workload-chart's .wlchart__toggle ─────────────
 .tech-viewbar {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-xs);
   margin-bottom: var(--space-sm);
 }
@@ -52,6 +54,45 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
+}
+
+// The tier/family header's fold control: a button that reads as the heading text it wraps.
+.tech-list__fold {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+
+  &:hover { color: var(--color-accent); }
+  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+}
+
+// The top row's right end: the legend, then (List view) the one expand/collapse icon.
+.tech-viewbar__end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-left: auto;
+
+  .tech-list__legend { margin: 0; }
+}
+.tech-viewbar__toggle-all { display: inline-flex; align-items: center; padding: 4px 8px; }
+.tech-viewbar__toggle-icon {
+  display: inline-flex;
+  transition: transform var(--transition-fast);
+  &--up { transform: rotate(180deg); }
 }
 
 // ── Legend key (once, above the list) — three sample boxes naming what each box kind means
@@ -157,7 +198,7 @@ $tech-box-gap: 3px;
 // own border colour to match its fill, so a filled box that doesn't count toward the threshold
 // still reads as one solid colour rather than gaining a contrasting outline.
 .tech-row__box--clean { background: var(--color-easy); border-color: var(--color-easy); }
-.tech-row__box--shaky { background: var(--color-medium); border-color: var(--color-medium); }
+.tech-row__box--shaky { background: var(--color-shaky); border-color: var(--color-shaky); }
 // Border — counts toward the threshold, independent of fill: a clearly stronger border than the
 // faint base one, layered after the fill rules above so it always wins the border colour,
 // whether the box is empty, clean or shaky.
@@ -246,23 +287,65 @@ $tech-box-gap: 3px;
   font-size: 0.78rem;
 }
 
+// The board is capped at about one screen: the columns (and the docked detail) stop at the
+// viewport's height under the site bar and each column scrolls on its own. The site bar's
+// height is mirrored here (see $site-header-height, below).
+$site-header-height: 56px;
+$board-viewport-margin: 32px;
+$board-min-height: 240px;
+$board-column-mobile-max-height: 50vh;
+$detail-min-width: 280px;
+$detail-width: 45%;
+$board-height-cap: calc(100vh - #{$site-header-height} - #{$board-viewport-margin});
+
+.tech-board__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: start;
+
+  &--split {
+    grid-template-columns: minmax(0, 1fr) minmax(#{$detail-min-width}, #{$detail-width});
+  }
+
+  @media (max-width: prow.$row-mobile-breakpoint) {
+    &, &--split { grid-template-columns: minmax(0, 1fr); }
+  }
+}
+
 .tech-board__columns {
   display: flex;
   gap: var(--space-sm);
-  align-items: flex-start;
+  align-items: stretch;
+  min-height: $board-min-height;
+  max-height: $board-height-cap;
 
   @media (max-width: prow.$row-mobile-breakpoint) {
     flex-direction: column;
+    max-height: none;
+    min-height: 0;
   }
 }
 .tech-board__column {
   flex: 1 1 0;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
+
+  @media (max-width: prow.$row-mobile-breakpoint) {
+    flex: 0 0 auto;
+    max-height: $board-column-mobile-max-height;
+  }
 }
 .tech-board__column-label {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-bg);
+  padding-bottom: var(--space-xs);
   margin: 0;
   display: flex;
   justify-content: space-between;
@@ -305,7 +388,19 @@ $tech-box-gap: 3px;
   &:hover, &:focus-visible { border-color: var(--color-accent); outline: none; }
   &[aria-pressed="true"] { border-color: var(--color-accent); background: var(--color-accent-dim); }
 }
-.tech-board__card-name { flex: 1 1 auto; font-weight: 600; font-size: 0.82rem; }
+// One non-wrapping line: name (ellipsis) · coverage boxes · ratio.
+.tech-board__card { flex-wrap: nowrap; }
+.tech-board__card .tech-row__boxes { flex: 0 0 auto; flex-wrap: nowrap; }
+.tech-board__card .tech-row__ratio { flex: 0 0 auto; }
+.tech-board__card-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
 
 // The board's detail panel sits below the columns (not nested in a per-family group), so
 // unlike a list row — which already carries its own name — it needs its own heading naming
@@ -319,3 +414,57 @@ $tech-box-gap: 3px;
   color: var(--color-text);
 }
 .tech-board__detail-stats { font-size: 0.68rem; color: var(--color-text-muted); }
+
+// The detail docks beside the columns (the layout's second grid column) with the same height
+// cap, scrolling on its own; on phones it is a fixed bottom sheet. The sheet stacks under the
+// site bar (app.component.scss `.po-nav`, z-index 100) and the coach drawer (110), above
+// in-page content (<= 20).
+$drawer-sheet-max-height: 70vh;
+$drawer-sheet-z-index: 90;
+$drawer-sheet-radius: 12px;
+
+.tech-board__drawer {
+  box-sizing: border-box;
+  max-height: $board-height-cap;
+  margin-top: 0;
+  overflow-y: auto;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+
+  @media (max-width: prow.$row-mobile-breakpoint) {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: $drawer-sheet-z-index;
+    max-height: $drawer-sheet-max-height;
+    border-width: 1px 0 0;
+    border-radius: $drawer-sheet-radius $drawer-sheet-radius 0 0;
+    box-shadow: var(--shadow-strong);
+  }
+}
+
+.tech-board__drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+
+  .tech-board__detail-title { flex: 1 1 auto; }
+}
+
+.tech-board__drawer-close {
+  appearance: none;
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover, &:focus-visible { border-color: var(--color-accent); color: var(--color-text); outline: none; }
+}

@@ -15,15 +15,18 @@ import {
   indexDetails,
   isMastered,
   isThresholdBeyondPlan,
+  parseStoredOpenGroups,
   parseStoredView,
   plannedTotalOf,
   ratioDenominatorOf,
   ratioTitle,
+  readStoredOpenGroups,
   readStoredView,
   remainingToCover,
   shortName,
   TechniqueStats,
   TECHNIQUE_VIEW_STORAGE_KEY,
+  writeStoredOpenGroups,
   writeStoredView,
 } from './technique-view';
 
@@ -102,6 +105,29 @@ describe('readStoredView / writeStoredView', () => {
     });
     expect(() => writeStoredView('board')).not.toThrow();
     spy.mockRestore();
+  });
+});
+
+describe('parseStoredOpenGroups', () => {
+  const cases: [string, string | null, string[]][] = [
+    ['null is nothing open', null, []],
+    ['invalid JSON is nothing open', 'not json', []],
+    ['a non-array JSON value is nothing open', '{}', []],
+    ['non-string elements are dropped', '[1,"a"]', ['a']],
+    ['a tier key and a family key are both kept', '["core","core/Arrays"]', ['core', 'core/Arrays']],
+  ];
+
+  it.each(cases)('%s', (_label, raw, expected) => {
+    expect([...parseStoredOpenGroups(raw)]).toEqual(expected);
+  });
+});
+
+describe('readStoredOpenGroups / writeStoredOpenGroups', () => {
+  afterEach(() => localStorage.clear());
+
+  it('round-trips written open groups', () => {
+    writeStoredOpenGroups(new Set(['core', 'core/Arrays']));
+    expect([...readStoredOpenGroups()]).toEqual(['core', 'core/Arrays']);
   });
 });
 

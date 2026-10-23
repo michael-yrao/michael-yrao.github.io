@@ -34,6 +34,44 @@ export function writeStoredView(view: TechniqueView): void {
   }
 }
 
+export const TECHNIQUE_OPEN_GROUPS_STORAGE_KEY = 'po.progress.techniqueOpenGroups';
+
+/** The fold key of a family header: scoped by its tier, since one family name can appear under
+ *  several tiers. A tier header's key is the bare tier. */
+export function familyFoldKey(tier: string, family: string): string {
+  return `${tier}/${family}`;
+}
+
+/** The open list headers, stored as a JSON array of keys (a tier key, or `tier/family`).
+ *  Null, invalid JSON, a non-array and any non-string element all degrade to "nothing
+ *  open" (the default, all folded) — a stored value must never crash the tab. */
+export function parseStoredOpenGroups(raw: string | null): ReadonlySet<string> {
+  if (raw === null) return new Set();
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((entry): entry is string => typeof entry === 'string'));
+  } catch {
+    return new Set();
+  }
+}
+
+export function readStoredOpenGroups(): ReadonlySet<string> {
+  try {
+    return parseStoredOpenGroups(localStorage.getItem(TECHNIQUE_OPEN_GROUPS_STORAGE_KEY));
+  } catch {
+    return new Set();
+  }
+}
+
+export function writeStoredOpenGroups(open: ReadonlySet<string>): void {
+  try {
+    localStorage.setItem(TECHNIQUE_OPEN_GROUPS_STORAGE_KEY, JSON.stringify([...open]));
+  } catch {
+    // localStorage unavailable (private mode, blocked) — open state stays in-memory only.
+  }
+}
+
 const GREEN_RANK = COMFORT_ORDER.indexOf('🟢');
 const GRAD_RANK = COMFORT_ORDER.indexOf('🎓');
 

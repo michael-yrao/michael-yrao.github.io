@@ -17,11 +17,10 @@ import {
   BreadcrumbEntry,
   PageHeaderComponent,
 } from '../../../shared/components/page-header/page-header.component';
-import { GroundednessMeterComponent } from '../../../shared/components/groundedness-meter/groundedness-meter.component';
 import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
 import { SearchBoxComponent } from '../../../shared/components/search-box/search-box.component';
 import { PRACTICE_ICON } from '../../progress/practice-link';
-import { COMFORT_FILTERS, ComfortFilter, dueLabel, hasComfort, isDueOrOverdue } from '../../progress/problem-progress';
+import { COMFORT_FILTERS, ComfortFilter, dueLabel, hasComfort, isDueOrOverdue, retiredAsProgress } from '../../progress/problem-progress';
 import { ProblemTimelineComponent } from '../../progress/problem-timeline/problem-timeline.component';
 import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -70,7 +69,6 @@ function repoName(slug: string): string {
     NgClass,
     PageHeaderComponent,
     LibrarySubnavComponent,
-    GroundednessMeterComponent,
     SearchBoxComponent,
     IconComponent,
     ComfortMarkComponent,
@@ -120,11 +118,13 @@ export class PracticeListComponent {
     );
   });
 
-  /** The viewer's problems by LeetCode number; empty until their repo's details are in. */
+  /** The viewer's problems by LeetCode number, plus their retired ones (🏆, from the summary's
+   *  trophy case — retired rows leave the tracker); empty until their repo's details are in. */
   protected readonly progressByNumber = computed<ReadonlyMap<number, ProblemProgress>>(() => {
     const details = this.progress.details();
     if (!this.hasProgress() || details === null) return new Map();
-    return rowByNumber(details);
+    const retired = (this.progress.data()?.trophyCase?.retired ?? []).map(retiredAsProgress);
+    return new Map([...rowByNumber(details), ...retired.map((p): [number, ProblemProgress] => [p.lcNumber, p])]);
   });
 
   readonly difficulty = signal<Difficulty | 'All'>(

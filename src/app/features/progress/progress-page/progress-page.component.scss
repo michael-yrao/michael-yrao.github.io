@@ -98,6 +98,19 @@
   justify-content: flex-end;
   margin-top: var(--space-sm);
 }
+$toggle-hit-size: 28px;
+.technique-toggle__btn {
+  min-width: $toggle-hit-size;
+  min-height: $toggle-hit-size;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.technique-toggle__caret {
+  display: inline-block;
+  transition: transform var(--transition-fast);
+  &--open { transform: rotate(90deg); }
+}
 
 .progress__head {
   display: flex;
@@ -323,13 +336,6 @@ $skeleton-card-height: 12rem;
   h2 { margin: 0 0 var(--space-xs); font-size: 1.1rem; }
 }
 .card__sub { @extend %muted-sm; margin: 0 0 var(--space-md); }
-.card__sub-stage {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  vertical-align: middle;
-}
 
 // The lead tile — a slightly stronger border to read as the landing's main focus.
 .today-board-card { border-color: var(--color-accent-dim); }

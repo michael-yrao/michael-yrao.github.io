@@ -36,14 +36,17 @@ import {
   DetailsIndex,
   deriveTechniqueStats,
   doneOf,
+  familyFoldKey,
   indexDetails,
   plannedTotalOf,
   ratioDenominatorOf,
+  readStoredOpenGroups,
   readStoredView,
   shortName as shortNameFor,
   TechniqueSortKey,
   TechniqueStats,
   TechniqueView,
+  writeStoredOpenGroups,
   writeStoredView,
 } from './technique-view';
 import {
@@ -65,7 +68,7 @@ export interface TechniqueFocus {
 const BOARD_SORT_KEYS: readonly TechniqueSortKey[] = ['name', 'coverage', 'lastPracticed'];
 
 /**
- * The technique-breadth drill: "which 94, and how am I doing on each?" Grouped by TIER
+ * The technique-breadth drill: "which techniques, and how am I doing on each?" Grouped by TIER
  * first (round 2 — the honest denominator's detail view), family within each tier. The list
  * itself is entirely derived from the summary's `techniques[]` (a few KB, already on the
  * page) — grouping and the count/target ratio never fetch anything.
@@ -89,6 +92,7 @@ const BOARD_SORT_KEYS: readonly TechniqueSortKey[] = ['name', 'coverage', 'lastP
   styleUrls: ['./technique-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, NgTemplateOutlet, ComfortMarkComponent, IconComponent],
+  host: { '(document:keydown.escape)': 'onEscape()' },
 })
 export class TechniqueListComponent {
   protected readonly cleanComfort = CLEAN_COMFORT;
@@ -121,6 +125,7 @@ export class TechniqueListComponent {
   readonly ratioDenominatorOf = ratioDenominatorOf;
   readonly coverageBoxes = coverageBoxes;
   readonly judgeLabel = judgeLabel;
+  readonly familyFoldKey = familyFoldKey;
 
   private readonly expandedNames = signal<ReadonlySet<string>>(new Set());
 
@@ -158,8 +163,9 @@ export class TechniqueListComponent {
     if (!technique) return;
     if (this.view() === 'board') {
       this.boardSelectedName.set(name);
-    } else if (!this.isExpanded(technique)) {
-      this.toggle(technique);
+    } else {
+      this.unfoldGroupsOf(technique);
+      if (!this.isExpanded(technique)) this.toggle(technique);
     }
     afterNextRender(() => this.scrollToTechnique(name), { injector: this.injector });
   }
@@ -224,7 +230,81 @@ export class TechniqueListComponent {
   selectInBoard(t: Technique): void {
     const isReselect = this.boardSelectedName() === t.name;
     this.boardSelectedName.set(isReselect ? null : t.name);
-    if (!isReselect && t.started) this.expand.emit(t);
+    if (isReselect) return;
+    if (t.started) this.expand.emit(t);
+    afterNextRender(() => this.focusInHost('.tech-board__drawer-close'), { injector: this.injector });
+  }
+
+  /** Closes the board's drawer and hands focus back to the card that opened it. */
+  closeBoardDetail(): void {
+    const name = this.boardSelectedName();
+    if (name === null) return;
+    this.boardSelectedName.set(null);
+    afterNextRender(() => this.focusCard(name), { injector: this.injector });
+  }
+
+  /** Escape closes the drawer — and does nothing in List view or with no card selected. */
+  onEscape(): void {
+    if (this.view() === 'board' && this.boardSelected()) this.closeBoardDetail();
+  }
+
+  private focusInHost(selector: string): void {
+    this.host.nativeElement.querySelector<HTMLElement>(selector)?.focus();
+  }
+
+  private focusCard(name: string): void {
+    const cards = this.host.nativeElement.querySelectorAll<HTMLElement>('button[data-technique]');
+    Array.from(cards).find((el) => el.dataset['technique'] === name)?.focus();
+  }
+
+  /** The List headers that are open — a tier key is the bare tier, a family key `tier/family`
+   *  (`familyFoldKey`). Everything not in the set is folded, so the default is all folded.
+   *  Persisted per viewer; `setView` leaves it alone. */
+  readonly openGroups = signal<ReadonlySet<string>>(readStoredOpenGroups());
+
+  isGroupFolded(key: string): boolean {
+    return !this.openGroups().has(key);
+  }
+
+  toggleGroup(key: string): void {
+    const next = new Set(this.openGroups());
+    if (!next.delete(key)) next.add(key);
+    this.setOpenGroups(next);
+  }
+
+  private readonly allGroupKeys = computed<string[]>(() =>
+    this.groups().flatMap((group) => [
+      group.tier,
+      ...group.families.map((fam) => familyFoldKey(group.tier, fam.family)),
+    ]),
+  );
+
+  /** True once every tier and family header is open — the expand/collapse button's state. */
+  readonly isAllOpen = computed(() => this.allGroupKeys().every((key) => this.openGroups().has(key)));
+
+  expandAll(): void {
+    this.setOpenGroups(new Set(this.allGroupKeys()));
+  }
+
+  collapseAll(): void {
+    this.setOpenGroups(new Set());
+  }
+
+  toggleAll(): void {
+    if (this.isAllOpen()) this.collapseAll();
+    else this.expandAll();
+  }
+
+  /** Opens the tier and family headers a technique sits under, so a jump to it can show it. */
+  private unfoldGroupsOf(t: Technique): void {
+    const keys = [t.tier, familyFoldKey(t.tier, t.family)];
+    if (!keys.some((key) => this.isGroupFolded(key))) return;
+    this.setOpenGroups(new Set([...this.openGroups(), ...keys]));
+  }
+
+  private setOpenGroups(next: ReadonlySet<string>): void {
+    this.openGroups.set(next);
+    writeStoredOpenGroups(next);
   }
 
   /** Board organizing controls — signals rather than derived state, since none of the three

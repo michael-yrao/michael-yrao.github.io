@@ -180,7 +180,7 @@ function makeFullPayload(): ProgressData {
   return {
     schemaVersion: 1,
     generatedAt: '2026-09-20',
-    totals: { problems: 1, solutions: 1, reps: 3 },
+    totals: { problems: 1, reps: 3 },
     pipeline: { blank: 0, shaky: 0, clean: { s0: 0, s1: 0, s2plus: 1, total: 1 }, graduated: 1, retired: 0 },
     difficulty: { Easy: 1, Medium: 0, Hard: 0 },
     streak: { current: 2, longest: 4, lastStudyDay: '2026-09-20', studyDays: 5, freezes: 1, freezesLeft: 1, freezeMax: 2, frozenDays: ['2026-09-19'] },

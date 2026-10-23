@@ -354,7 +354,6 @@
           <div class="tabpanel" role="tabpanel" id="panel-mastery" aria-labelledby="tab-mastery">
             <div class="card po-card">
               <h2>Mastery pipeline</h2>
-              <p class="card__sub">Problems maturing @for (s of maturityStages; track $index) {@if (!$first) { → }<span class="card__sub-stage"><app-comfort-mark [comfort]="s.comfort" [streak]="s.streak" label="" [size]="14" /></span>}. This, not a row count, is progress. Click a tier to see which problems.</p>
               <app-segmented-bar
                 [segments]="pipelineSegments()"
                 [clickable]="true"
@@ -382,11 +381,13 @@
                   <div class="technique-toggle">
                     <button
                       type="button"
-                      class="po-btn po-btn--sm po-btn--ghost"
+                      class="po-btn po-btn--sm po-btn--ghost technique-toggle__btn"
                       aria-controls="technique-list-card"
+                      [attr.aria-label]="isTechniqueListOpen() ? 'Hide techniques' : 'Show techniques'"
+                      [attr.title]="isTechniqueListOpen() ? 'Hide techniques' : 'Show techniques'"
                       [attr.aria-expanded]="isTechniqueListOpen()"
                       (click)="toggleTechniqueList()"
-                    >{{ isTechniqueListOpen() ? 'Hide techniques' : 'Show techniques' }}</button>
+                    ><span class="technique-toggle__caret" [class.technique-toggle__caret--open]="isTechniqueListOpen()" aria-hidden="true">▸</span></button>
                   </div>
                 }
               </div>

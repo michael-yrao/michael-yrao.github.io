@@ -92,7 +92,7 @@ export class CheatSheetComponent {
   readonly nextTechnique = computed<Technique | null>(() => this.sibling(1));
 
   constructor() {
-    this.cheatSheets.load(this.auth.resolveRepo(null));
+    this.loadCheatSheets();
 
     // Redirect to /learn only once data has actually loaded and the id is absent — a
     // pending load or a load error must never bounce (an error renders its own message).
@@ -104,7 +104,12 @@ export class CheatSheetComponent {
   }
 
   retry(): void {
-    this.cheatSheets.load(this.auth.resolveRepo(null));
+    this.loadCheatSheets();
+  }
+
+  /** Loads the cheat sheets for the `?repo=` the URL names, else the viewer's own repo. */
+  private loadCheatSheets(): void {
+    this.cheatSheets.load(this.auth.resolveRepo(this.route.snapshot.queryParamMap.get('repo')));
   }
 
   private sibling(offset: number): Technique | null {

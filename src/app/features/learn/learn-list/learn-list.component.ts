@@ -124,11 +124,16 @@ export class LearnListComponent {
   );
 
   constructor() {
-    this.cheatSheets.load(this.auth.resolveRepo(null));
+    this.loadCheatSheets();
   }
 
   retry(): void {
-    this.cheatSheets.load(this.auth.resolveRepo(null));
+    this.loadCheatSheets();
+  }
+
+  /** Loads the cheat sheets for the `?repo=` the URL names, else the viewer's own repo. */
+  private loadCheatSheets(): void {
+    this.cheatSheets.load(this.auth.resolveRepo(this.route.snapshot.queryParamMap.get('repo')));
   }
 
   /** Selects a view via the URL — `queryParamsHandling: 'merge'` so a bare `view: null`

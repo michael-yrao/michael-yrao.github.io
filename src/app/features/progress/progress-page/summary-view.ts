@@ -19,7 +19,7 @@ export class SummaryView {
   // tab filtered to that comfort tier. The bar's own segments AND its legend row are click targets.
   readonly pipelineSegments = computed<SegmentedBarSegment[]>(() => {
     const d = this.data();
-    return d ? pipelineSegments(d.pipeline) : [];
+    return d ? pipelineSegments(d.pipeline, (d.trophyCase?.retired.length ?? 0) > 0) : [];
   });
 
   // Difficulty mix — folded into the Mastery tab's pipeline card, rendered by the same shared

@@ -101,14 +101,16 @@ button.segbar__seg {
 
 // ── Segment palette — the one shared source of color classes for every bar usage ──────────
 // Mastery pipeline (comfort tiers)
-.seg-blank { background: var(--color-hard); }
-.seg-shaky { background: var(--color-medium); }
-.seg-clean { background: var(--color-easy); }
-.seg-grad { background: var(--color-graduated); }
-.seg-retired { background: var(--color-trophy); }
+// `background-color`, never the `background` shorthand: the shorthand would reset the
+// segment's `background-clip: content-box` and paint its whole hit area.
+.seg-blank { background-color: var(--color-hard); }
+.seg-shaky { background-color: var(--color-shaky); }
+.seg-clean { background-color: var(--color-easy); }
+.seg-grad { background-color: var(--color-graduated); }
+.seg-retired { background-color: var(--color-trophy); }
 
 // Difficulty mix
-.seg-easy { background: var(--color-easy); }
-.seg-medium { background: var(--color-medium); }
-.seg-hard { background: var(--color-hard); }
+.seg-easy { background-color: var(--color-easy); }
+.seg-medium { background-color: var(--color-medium); }
+.seg-hard { background-color: var(--color-hard); }
 

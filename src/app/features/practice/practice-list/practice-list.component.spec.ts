@@ -6,7 +6,7 @@ import { vi } from 'vitest';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { PracticeData, PracticeProblem } from '../../../core/models/practice.model';
-import { ProblemProgress } from '../../../core/models/progress.model';
+import { ProblemProgress, ProgressSummary, RetiredProblem } from '../../../core/models/progress.model';
 import { CONTENT_REPO, LoadStatus, RepoRef } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { ProgressService } from '../../../core/services/progress.service';
@@ -43,6 +43,8 @@ interface SetUpOptions {
   readonly repo?: string | null;
   readonly details?: readonly ProblemProgress[];
   readonly params?: Record<string, string>;
+  /** The summary's trophy-case retired list (rows that left the tracker). */
+  readonly retired?: readonly RetiredProblem[];
 }
 
 function problem(number: number, title: string): PracticeProblem {
@@ -62,11 +64,12 @@ function setUp(
   status: LoadStatus,
   error: string | null,
   problems: readonly PracticeProblem[],
-  { isAuthorFallback = false, repo = null, details = [], params = {} }: SetUpOptions = {},
+  { isAuthorFallback = false, repo = null, details = [], params = {}, retired = [] }: SetUpOptions = {},
 ) {
   const data: PracticeData = { schemaVersion: 1, generatedAt: '2026-10-01', problems };
   const query = convertToParamMap(params);
   const progress = {
+    data: signal({ trophyCase: { graduated: [], retired: [...retired] } } as unknown as ProgressSummary),
     details: signal<ProblemProgress[] | null>(repo === null ? null : [...details]),
     detailsStatus: signal<'idle' | 'ready'>(repo === null ? 'idle' : 'ready'),
     detailsSource: signal<RepoRef | null>(repo === null ? null : REPO_REF),
@@ -246,6 +249,7 @@ describe('PracticeListComponent', () => {
     name: string;
     params: Record<string, string>;
     details?: readonly ProblemProgress[];
+    retired?: readonly RetiredProblem[];
     expectRows: (numbers: number[], root: HTMLElement) => void;
   }
   const PARAM_CASES: readonly ParamCase[] = [
@@ -271,11 +275,22 @@ describe('PracticeListComponent', () => {
       ],
       expectRows: (numbers) => expect(numbers).toEqual([STATIC_ONLY_NUMBER]),
     },
+    {
+      name: "mine=1&comfort=retired lists a number from the summary's retired list, and only it",
+      params: { mine: '1', comfort: 'retired' },
+      details: [progressRow(STATIC_AND_CONTRACT_NUMBER, 2)],
+      retired: [{ lcNumber: STATIC_ONLY_NUMBER, title: 'Gone', retiredOn: '2026-04-17' }],
+      expectRows: (numbers, root) => {
+        expect(numbers).toEqual([STATIC_ONLY_NUMBER]);
+        expect(rowFor(root, STATIC_ONLY_NUMBER).querySelector('.practice-list__reps')).toBeNull();
+      },
+    },
   ];
 
-  it.each(PARAM_CASES)('query param: $name', ({ params, details, expectRows }) => {
+  it.each(PARAM_CASES)('query param: $name', ({ params, details, retired, expectRows }) => {
     const root = setUp('ready', null, [], {
       params,
+      retired,
       repo: REPO_SLUG,
       details: details ?? [progressRow(STATIC_ONLY_NUMBER, 1), progressRow(STATIC_AND_CONTRACT_NUMBER, 2)],
     }).nativeElement as HTMLElement;

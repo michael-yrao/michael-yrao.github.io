@@ -8,6 +8,8 @@ export interface SegmentedBarSegment {
   label: string;
   value: number;
   cls: string;
+  /** A segment with nothing to drill into: drawn as a plain element even on a clickable bar. */
+  isInert?: boolean;
 }
 
 /**

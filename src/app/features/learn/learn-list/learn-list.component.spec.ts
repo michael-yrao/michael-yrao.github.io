@@ -16,8 +16,8 @@ const cheatSheetsWithoutTree = { ...cheatSheetsAsset, decisionTree: undefined };
 
 // `queryParamMap`'s Observable is static per test — none of these tests navigate for real
 // (router.navigate is spied where it matters), so a fixed param map is enough.
-function makeActivatedRouteStub(view: string | null) {
-  const paramMap = convertToParamMap(view ? { view } : {});
+function makeActivatedRouteStub(view: string | null, repo: string | null = null) {
+  const paramMap = convertToParamMap({ ...(view ? { view } : {}), ...(repo ? { repo } : {}) });
   return { queryParamMap: of(paramMap), snapshot: { queryParamMap: paramMap } };
 }
 
@@ -25,13 +25,14 @@ function createFixture(
   http: { get: (url: string, opts?: unknown) => unknown } = { get: () => of(cheatSheetsAsset) },
   view: string | null = null,
   treeEnabled = false,
+  repo: string | null = null,
 ) {
   TestBed.configureTestingModule({
     imports: [LearnListComponent],
     providers: [
       provideRouter([]),
       { provide: HttpClient, useValue: http },
-      { provide: ActivatedRoute, useValue: makeActivatedRouteStub(view) },
+      { provide: ActivatedRoute, useValue: makeActivatedRouteStub(view, repo) },
       ...(treeEnabled ? [{ provide: LEARN_DECISION_TREE_ENABLED, useValue: true }] : []),
     ],
   });
@@ -69,6 +70,17 @@ describe('LearnListComponent', () => {
       (el) => (el as HTMLElement).textContent?.trim(),
     );
     expect(cards).toContain(technique.name);
+  });
+
+  const repoCases: { name: string; repo: string | null; source: string }[] = [
+    { name: 'with ?repo=x/y it loads x/y', repo: 'x/y', source: 'x/y' },
+    { name: 'without ?repo= it loads the default repo', repo: null, source: 'michael-yrao/progressive-overflow-content' },
+  ];
+
+  it.each(repoCases)('$name', ({ repo, source }) => {
+    const fixture = createFixture(undefined, null, false, repo);
+
+    expect(fixture.nativeElement.querySelector('.ll-source-footer')?.textContent).toContain(`from ${source}`);
   });
 
   it('shows a "Generated <date> from <repo>" footer on a successful repo fetch', () => {

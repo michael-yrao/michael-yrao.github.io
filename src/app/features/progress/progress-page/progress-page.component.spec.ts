@@ -15,7 +15,7 @@ import { TodayBoardComponent } from '../today-board/today-board.component';
 import { TechniqueListComponent } from '../technique-list/technique-list.component';
 import { RoadmapCoverageComponent } from '../roadmap-coverage/roadmap-coverage.component';
 import { DEMO_REPO, RepoRef } from '../../../core/services/github-file.service';
-import { ProgressSummary, ProblemProgress, Comfort, Schedule } from '../../../core/models/progress.model';
+import { ProgressSummary, ProblemProgress, Comfort, RetiredProblem, Schedule } from '../../../core/models/progress.model';
 import { addDaysISO, currentWeekStart, todayLocalISO } from '../../../core/utils/local-date';
 import { SOLUTION_LINK_MODE_STORAGE_KEY } from '../solution-link-mode';
 
@@ -30,7 +30,7 @@ function makeSummary(): ProgressSummary {
   return {
     schemaVersion: 1,
     generatedAt: '2026-09-20',
-    totals: { problems: 2, solutions: 2, reps: 10 },
+    totals: { problems: 2, reps: 10 },
     pipeline: {
       blank: 0,
       shaky: 0,
@@ -234,6 +234,11 @@ function clickTab(
 function openTechniqueList(fixture: { nativeElement: HTMLElement; detectChanges: () => void }): void {
   const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.technique-toggle button')!;
   btn.click();
+  fixture.detectChanges();
+  // The list starts folded; open every group so its rows render.
+  const expandAll = fixture.nativeElement.querySelector('.tech-viewbar__toggle-all') as HTMLButtonElement | null;
+  // The button flips, and open state persists across specs: click only while it offers "Expand all".
+  if (expandAll?.getAttribute('aria-label') === 'Expand all') expandAll.click();
   fixture.detectChanges();
 }
 
@@ -881,7 +886,11 @@ describe('ProgressPageComponent', () => {
       clickTab(fixture, 'mastery');
     };
     const toggle = (fixture: ComponentFixture<ProgressPageComponent>) =>
-      fixture.nativeElement.querySelector('.technique-toggle button') as HTMLButtonElement | null;
+      fixture.nativeElement.querySelector(
+        '.technique-toggle button[aria-controls="technique-list-card"]',
+      ) as HTMLButtonElement | null;
+    const labelOf = (fixture: ComponentFixture<ProgressPageComponent>) =>
+      toggle(fixture)?.getAttribute('aria-label');
     const listOf = (fixture: ComponentFixture<ProgressPageComponent>) =>
       fixture.debugElement.query(By.directive(TechniqueListComponent));
 
@@ -890,14 +899,14 @@ describe('ProgressPageComponent', () => {
     fixture.detectChanges();
     open(fixture);
     expect(listOf(fixture)).toBeFalsy();
-    expect(toggle(fixture)?.textContent?.trim()).toBe('Show techniques');
+    expect(labelOf(fixture)).toBe('Show techniques');
     expect(toggle(fixture)?.getAttribute('aria-expanded')).toBe('false');
 
     // toggle click: open
     toggle(fixture)!.click();
     fixture.detectChanges();
     expect(listOf(fixture)).toBeTruthy();
-    expect(toggle(fixture)?.textContent?.trim()).toBe('Hide techniques');
+    expect(labelOf(fixture)).toBe('Hide techniques');
     expect(toggle(fixture)?.getAttribute('aria-expanded')).toBe('true');
 
     // tile select while closed: list shown with focus set
@@ -1038,33 +1047,43 @@ describe('ProgressPageComponent', () => {
     );
   });
 
-  // ── 🏆 Retired never appears in details().problems[] (retired rows leave the tracker
-  // entirely), so it must not drill into a comfort facet. The Trophy Case it used to jump
-  // to was removed Sep 26, 2026, so clicking Retired is now a plain no-op — no fetch, no
-  // facet, no tab switch. ─────────────────────────────────────────────────────────────
-  it('clicking the 🏆 Retired segment does NOT navigate or fetch details, and stays on Mastery', () => {
-    const withRetired: ProgressSummary = {
+  // ── 🏆 Retired drills like every other tier: the Practice list merges the summary's retired
+  // list in as 🏆 rows. Without a list (older contract) the segment is an inert, non-button span. ──
+  const retiredCases: { name: string; retired: RetiredProblem[]; expectedComfort: string | null }[] = [
+    {
+      name: 'a retired list: clicking Retired opens the Practice list on the 🏆 rows',
+      retired: [{ lcNumber: 56, title: 'Merge Intervals', retiredOn: '2026-04-17' }],
+      expectedComfort: 'retired',
+    },
+    { name: 'no retired list: Retired is not a button', retired: [], expectedComfort: null },
+  ];
+
+  it.each(retiredCases)('$name', ({ retired, expectedComfort }) => {
+    progress.data.set({
       ...makeSummary(),
-      pipeline: { ...makeSummary().pipeline, retired: 1 },
-    };
-    progress.data.set(withRetired);
+      pipeline: { ...makeSummary().pipeline, retired: 2 },
+      trophyCase: { graduated: [], retired },
+    });
 
     const fixture = TestBed.createComponent(ProgressPageComponent);
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     fixture.detectChanges();
     clickTab(fixture, 'mastery');
 
-    const retiredSeg: HTMLButtonElement = fixture.nativeElement.querySelector(
-      '.segbar__seg.seg-retired',
-    );
+    const retiredSeg: HTMLElement = fixture.nativeElement.querySelector('.segbar__seg.seg-retired');
     expect(retiredSeg).toBeTruthy();
+
+    if (expectedComfort === null) {
+      expect(retiredSeg.tagName).not.toBe('BUTTON');
+      return;
+    }
+
     retiredSeg.click();
     fixture.detectChanges();
 
-    expect(progress.loadDetails).not.toHaveBeenCalled();
-    expect(navigate).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('#tab-mastery').getAttribute('aria-selected')).toBe(
-      'true',
+    expect(navigate).toHaveBeenCalledWith(
+      ['/practice'],
+      expect.objectContaining({ queryParams: { difficulty: null, comfort: expectedComfort, mine: 1 } }),
     );
   });
 
