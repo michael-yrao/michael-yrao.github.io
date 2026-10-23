@@ -33,6 +33,12 @@ Behavior by `agent_type` (present only when this fires inside a subagent):
   Exception: when the environment variable FACTORY_ROLE is "team-lead" (a cloud routine whose
   main session plays the team lead), the absent case gets the team-lead rules instead.
   `agent_type`, when present, always wins.
+- land.py and factory_job.py (named-pattern denies, matched per command segment outside quoted text,
+  any python/python3 invocation or path prefix; no allowlist, raw git stays denied):
+  every role but the tech lead is denied any `land.py` call (it is the tech lead's local commit/push
+  tool). factory_job.py subcommands denied per role: engineer/engineer-haiku publish, merge, claim,
+  label, comment, digest; the `team-lead` agent publish, merge; the FACTORY_ROLE main session merge
+  (it may publish). Other subcommands (approvals, parse-issue, ...) stay allowed for everyone.
 - any other agent_type (e.g. a plain "Explore" subagent): silent — this hook only governs
   the pyramid roles.
 
@@ -224,6 +230,47 @@ def _shell_command(tool_input: dict) -> str:
     return str(tool_input.get("command", "") or "")
 
 
+# --- FACTORY_TOOL denies: land.py and the GitHub-write subcommands of factory_job.py ---
+
+LAND_PATTERN = re.compile(r"^(?:python3?\s+(?:-\S+\s+)*)?\S*land\.py\b", re.IGNORECASE)  # a land.py call, any path prefix
+FACTORY_JOB_PATTERN = re.compile(
+    r"^(?:python3?\s+(?:-\S+\s+)*)?\S*factory_job\.py\s+([\w-]+)", re.IGNORECASE
+)  # a factory_job.py call; group 1 is its subcommand
+ENGINEER_BLOCKED_FACTORY_JOB = frozenset({"publish", "merge", "claim", "label", "comment", "digest"})
+TEAM_LEAD_AGENT_BLOCKED_FACTORY_JOB = frozenset({"publish", "merge"})
+FACTORY_SESSION_BLOCKED_FACTORY_JOB = frozenset({"merge"})
+
+
+def _is_land_call(command: str) -> bool:
+    return any(LAND_PATTERN.match(segment) for segment in _segments(command))
+
+
+def _blocked_factory_job_subcommand(command: str, blocked: frozenset) -> str | None:
+    for segment in _segments(command):
+        match = FACTORY_JOB_PATTERN.match(segment)
+        if match and match.group(1).lower() in blocked:
+            return match.group(1).lower()
+    return None
+
+
+def _factory_tool_denial(command: str, role: str, blocked_factory_job: frozenset) -> Decision | None:
+    """Deny land.py (the tech lead's tool) and the factory_job.py subcommands blocked for `role`."""
+    if _is_land_call(command):
+        return Decision(
+            "deny",
+            f"{role} never runs land.py (matched: land.py); see {RULE_FILE} — "
+            "landing a commit or push is the tech lead's job",
+        )
+    subcommand = _blocked_factory_job_subcommand(command, blocked_factory_job)
+    if subcommand:
+        return Decision(
+            "deny",
+            f"{role} never runs factory_job.py {subcommand} (matched: factory_job.py {subcommand}); "
+            f"see {RULE_FILE} — that GitHub write belongs to another role",
+        )
+    return None
+
+
 # --- UNRELIABLE_MEASUREMENTS: warn-only (compiled regex, advice) rows -------------
 
 CR_GREP_PATTERN = re.compile(r"""\bgrep\b[^\n|;&]*(?:\$['"]\\r['"]|['"]\\r['"])""")  # grep for $'\r' or a quoted \r
@@ -239,7 +286,12 @@ UNRELIABLE_MEASUREMENTS = (
 
 # --- per-role decisions ------------------------------------------------------
 
-def _decide_team_lead(tool_name: str, tool_input: dict) -> Decision | None:
+def _decide_team_lead(
+    tool_name: str,
+    tool_input: dict,
+    role: str = "team-lead",
+    blocked_factory_job: frozenset = TEAM_LEAD_AGENT_BLOCKED_FACTORY_JOB,
+) -> Decision | None:
     if tool_name in WRITE_TOOL_NAMES:
         return Decision(
             "deny",
@@ -263,7 +315,7 @@ def _decide_team_lead(tool_name: str, tool_input: dict) -> Decision | None:
             f"team-lead never runs state-changing git (matched: git {git_match}); see {RULE_FILE} "
             "— integration is the tech lead's job",
         )
-    return None
+    return _factory_tool_denial(command, role, blocked_factory_job)
 
 
 def _decide_engineer(tool_name: str, tool_input: dict) -> Decision | None:
@@ -284,7 +336,7 @@ def _decide_engineer(tool_name: str, tool_input: dict) -> Decision | None:
             "engineer changes files with the Edit and Write tools only, never through a shell "
             f"(matched: {write_match}); see {RULE_FILE} — redo the change with Edit or Write",
         )
-    return None
+    return _factory_tool_denial(command, "engineer", ENGINEER_BLOCKED_FACTORY_JOB)
 
 
 def _marker_path(payload: dict) -> Path:
@@ -362,7 +414,9 @@ def _decide_by_role(payload: dict) -> Decision | None:
         return _decide_engineer(tool_name, tool_input)
     if agent_type is None:
         if os.environ.get(FACTORY_ROLE_ENV) == FACTORY_ROLE_TEAM_LEAD:
-            return _decide_team_lead(tool_name, tool_input)
+            return _decide_team_lead(
+                tool_name, tool_input, "FACTORY_ROLE team-lead session", FACTORY_SESSION_BLOCKED_FACTORY_JOB
+            )
         return _decide_tech_lead(tool_name, payload)
     return None  # an agent_type outside the pyramid (e.g. "Explore"): not this hook's concern
 

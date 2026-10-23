@@ -4,7 +4,7 @@
     "source": "~/.claude/hooks/brief_gate.py"
   },
   ".claude/hooks/role_gate.py": {
-    "sha256": "b71acd8953f2a69d338ae82d87017ea0895a785423394d197efdca850ebf923d",
+    "sha256": "a230904d68788929eaad89959bb2905cb86be478d0037cc7f5965b8bba3fe00f",
     "source": "~/.claude/hooks/role_gate.py"
   },
   ".claude/workflow/agents/engineer-haiku.md": {
@@ -28,7 +28,7 @@
     "source": "~/.claude/rules/coding-style.md"
   },
   ".claude/workflow/rules/execution-workflow.md": {
-    "sha256": "0062e0ceea96be7f7d4eeda6d145764601952364135fb6f0fc6b8639599720eb",
+    "sha256": "d8380c11e341c286bb39761043c94d5863a26f5493696dcf553e8cfa3edaec21",
     "source": "~/.claude/rules/execution-workflow.md"
   },
   ".claude/workflow/rules/git-workflow.md": {
