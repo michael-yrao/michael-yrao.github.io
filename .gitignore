@@ -21,7 +21,9 @@ yarn-error.log
 .idea/
 
 # Claude Code
-.claude/
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
 .project
 .classpath
 .c9/
