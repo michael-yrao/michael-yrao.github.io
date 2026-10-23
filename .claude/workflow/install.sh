@@ -21,3 +21,5 @@ for name in role_gate.py brief_gate.py; do
   cp "$HERE/../hooks/$name" "$DEST/hooks/"
   echo "installed hooks/$name"
 done
+: > "$DEST/.workflow-bundle"
+echo "installed .workflow-bundle"

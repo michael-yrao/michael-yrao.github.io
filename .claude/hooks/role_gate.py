@@ -30,6 +30,9 @@ Behavior by `agent_type` (present only when this fires inside a subagent):
   Write/Edit/NotebookEdit, emit a one-time WARN reminder that real implementation belongs to
   an `engineer` agent, not the tech lead. Tracked via a per-session marker file so the warn
   fires once, not on every write.
+  Exception: when the environment variable FACTORY_ROLE is "team-lead" (a cloud routine whose
+  main session plays the team lead), the absent case gets the team-lead rules instead.
+  `agent_type`, when present, always wins.
 - any other agent_type (e.g. a plain "Explore" subagent): silent — this hook only governs
   the pyramid roles.
 
@@ -43,6 +46,7 @@ Malformed/non-JSON stdin: silent, exit 0 — a hook must never break the tool it
 from __future__ import annotations  # keeps `X | None` annotations safe on Python < 3.10
 
 import json
+import os
 import re
 import sys
 import tempfile
@@ -51,6 +55,8 @@ from pathlib import Path
 
 RULE_FILE = "~/.claude/rules/execution-workflow.md"
 
+FACTORY_ROLE_ENV = "FACTORY_ROLE"
+FACTORY_ROLE_TEAM_LEAD = "team-lead"
 WRITE_TOOL_NAMES = frozenset({"Write", "Edit", "NotebookEdit"})
 SHELL_TOOL_NAMES = frozenset({"Bash", "PowerShell"})
 
@@ -353,6 +359,8 @@ def _decide_by_role(payload: dict) -> Decision | None:
     if agent_type == "engineer":
         return _decide_engineer(tool_name, tool_input)
     if agent_type is None:
+        if os.environ.get(FACTORY_ROLE_ENV) == FACTORY_ROLE_TEAM_LEAD:
+            return _decide_team_lead(tool_name, tool_input)
         return _decide_tech_lead(tool_name, payload)
     return None  # an agent_type outside the pyramid (e.g. "Explore"): not this hook's concern
 

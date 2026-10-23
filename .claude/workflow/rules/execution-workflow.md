@@ -141,7 +141,7 @@ heredoc, cp/mv/rm/touch/mkdir/rmdir, an inline python write, PowerShell write cm
 `-OutFile`, a .NET file write — the full list
 lives in `~/.claude/hooks/role_gate.py`) are DENIED for both (engineers change files with Edit/Write only; 2026-10-21, third scripted-edit lapse), and every state-changing git command (add, commit,
 push, rm, mv, reset, restore, stash, rebase, merge, cherry-pick, tag, checkout, pull, fetch, switch, clean, revert, am, apply, worktree) is DENIED for both the
-lead and the engineer, in Bash and in PowerShell alike. Read-only git (status, diff, log, show, ls-files, branch, remote -v, stash list/show, tag with no argument or `-l`/`--list`) stays allowed.
+lead and the engineer, in Bash and in PowerShell alike. Read-only git (status, diff, log, show, ls-files, branch, remote -v, stash list/show, tag with no argument or `-l`/`--list`) stays allowed. A main session (no `agent_type`) whose environment sets `FACTORY_ROLE=team-lead` (a cloud routine playing the team lead, which has no Agent-spawned lead) gets the team lead's denies; `agent_type` still wins for its subagents.
 
 **Moment-bound reminder** (the same hook's branch for a payload with no `agent_type`): the tech lead gets
 a warn-only `additionalContext` note on its first `Write`/`Edit`/`NotebookEdit` of a session, pointing
