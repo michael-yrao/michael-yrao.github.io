@@ -256,21 +256,22 @@
     @case ('ready') {
       @if (data(); as d) {
         <!-- Streak hero — compact identity/motivator, always visible above the tabs. -->
+        @let streak = liveStreakData()!;
         <div class="hero po-card">
           <div class="hero__streak">
             <span class="hero__flame"><app-icon name="flame" [size]="28" /></span>
-            <span class="hero__num">{{ d.streak.current }}</span>
+            <span class="hero__num">{{ streak.current }}</span>
             <span class="hero__label"
               >day streak
-              @if (d.streak.longest > d.streak.current) {
-                <em>· best {{ d.streak.longest }}</em>
+              @if (streak.longest > streak.current) {
+                <em>· best {{ streak.longest }}</em>
               }
             </span>
             @if (freezeSlots().length > 0) {
               <span
                 class="hero__freezes"
                 role="img"
-                [attr.aria-label]="(d.streak.freezesLeft ?? 0) + ' of ' + d.streak.freezeMax + ' streak freezes left'"
+                [attr.aria-label]="(streak.freezesLeft ?? 0) + ' of ' + d.streak.freezeMax + ' streak freezes left'"
               >
                 @for (isFilled of freezeSlots(); track $index) {
                   <span class="hero__freeze" [class.hero__freeze--empty]="!isFilled"><app-icon name="snowflake" [size]="20" /></span>
@@ -428,9 +429,9 @@
                 <p class="card__sub">When did I practice? A filled cell is a study day.</p>
                 <app-streak-calendar
                   [studyDays]="d.studyDays"
-                  [frozenDays]="d.streak.frozenDays ?? []"
-                  [current]="d.streak.current"
-                  [longest]="d.streak.longest"
+                  [frozenDays]="streak.frozenDays ?? []"
+                  [current]="streak.current"
+                  [longest]="streak.longest"
                 />
               </div>
             }

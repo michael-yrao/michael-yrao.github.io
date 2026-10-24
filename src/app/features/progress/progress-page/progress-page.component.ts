@@ -19,7 +19,8 @@ import { ProgressService } from '../../../core/services/progress.service';
 import { fileUrl } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { ComfortKey, comfortName } from '../../../core/models/comfort';
-import { ProblemProgress, ScheduleItem, Technique } from '../../../core/models/progress.model';
+import { ProblemProgress, ScheduleItem, Streak, Technique } from '../../../core/models/progress.model';
+import { liveStreak } from '../live-streak';
 import { todayLocalISO } from '../../../core/utils/local-date';
 import { DEMO_REPO_SLUG } from '../../../core/data/site-links';
 import { walkthroughRouteFor } from '../solution-link-mode';
@@ -79,9 +80,14 @@ export class ProgressPageComponent {
   readonly status = this.progress.status;
   readonly error = this.progress.error;
   readonly data = this.progress.data;
+  /** The summary's streak re-spent against the viewer's own today — null until data loads. */
+  readonly liveStreakData = computed<Streak | null>(() => {
+    const streak = this.data()?.streak;
+    return streak ? liveStreak(streak, todayLocalISO()) : null;
+  });
   /** One flag per freeze slot, true when the freeze is still banked — the hero's fill mark. */
   readonly freezeSlots = computed<boolean[]>(() => {
-    const streak = this.data()?.streak;
+    const streak = this.liveStreakData();
     const max = streak?.freezeMax ?? 0;
     const left = streak?.freezesLeft ?? 0;
     return Array.from({ length: max }, (_, i) => i < left);
