@@ -33,6 +33,9 @@ export type Codec =
   | 'list-node-cycle'
   | 'random-list'
   | 'tree-node'
+  | 'tree-node-next'
+  | 'tree-node-list'
+  | 'nary-node'
   | 'tree-value'
   | 'graph-node'
   | 'number-inf';
@@ -114,6 +117,8 @@ export interface PracticeProblem {
   readonly stub: string;
   readonly entry: PracticeEntry;
   readonly compare: CompareMode;
+  /** Optional relative tolerance for numbers (a finite number above 0); absent means exact. */
+  readonly tolerance?: number;
   /** Absent or null means the return value is compared. */
   readonly result?: ResultSpec | null;
   /** Absent or null means every argument and the result are plain JSON. */

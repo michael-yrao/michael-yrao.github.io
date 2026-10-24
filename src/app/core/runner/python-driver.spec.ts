@@ -22,6 +22,17 @@ const FREE_HARNESS = [
   'print(run_free(payload["code"]))',
 ].join('\n');
 
+/** Like HARNESS, but runs several cases in one process, one outcome per output line. */
+const SEQUENCE_HARNESS = [
+  'import json, sys',
+  'payload = json.load(sys.stdin)',
+  'exec(payload["driver"], globals())',
+  'error = define_solution(payload["code"])',
+  'assert not error, error',
+  'for spec in payload["specs"]:',
+  '    print(run_case(spec))',
+].join('\n');
+
 const IS_PYTHON_AVAILABLE = spawnSync('python', ['--version']).status === 0;
 
 function runCase(code: string, spec: string): CaseOutcome {
@@ -31,6 +42,18 @@ function runCase(code: string, spec: string): CaseOutcome {
   });
   if (run.status !== 0) throw new Error(run.stderr);
   return JSON.parse(run.stdout) as CaseOutcome;
+}
+
+function runCaseSequence(code: string, specs: readonly string[]): CaseOutcome[] {
+  const run = spawnSync('python', ['-c', SEQUENCE_HARNESS], {
+    input: JSON.stringify({ driver: PYTHON_DRIVER, code, specs }),
+    encoding: 'utf8',
+  });
+  if (run.status !== 0) throw new Error(run.stderr);
+  return run.stdout
+    .trim()
+    .split('\n')
+    .map((line) => JSON.parse(line) as CaseOutcome);
 }
 
 function runFree(code: string): { stdout: string; error: string } {
@@ -333,6 +356,93 @@ class Solution:
     expected: 4,
   },
   {
+    name: "nary-node: built with the learner's positional Node, children come back in level order",
+    code: `
+class Node:
+    def __init__(self, val, children=None):
+        self.val = val
+        self.children = children
+
+class Solution:
+    def cloneTree(self, root):
+        if root is None:
+            return None
+        return Node(root.val, [self.cloneTree(child) for child in root.children or []])
+`,
+    entry: { className: 'Solution', method: 'cloneTree' },
+    types: { args: ['nary-node'], result: 'nary-node' },
+    testCase: { args: [[1, null, 3, 2, 4, null, 5, 6]] },
+    expected: [1, null, 3, 2, 4, null, 5, 6],
+  },
+  {
+    name: 'tree-node-next: each level is read along .next and closed with "#"',
+    code: `
+class Node:
+    def __init__(self, val=0, left=None, right=None, next=None):
+        self.val = val
+        self.left = left
+        self.right = right
+        self.next = next
+
+class Solution:
+    def connect(self, root):
+        level = root
+        while level and level.left:
+            node = level
+            while node:
+                node.left.next = node.right
+                if node.next:
+                    node.right.next = node.next.left
+                node = node.next
+            level = level.left
+        return root
+`,
+    entry: { className: 'Solution', method: 'connect' },
+    types: { args: ['tree-node-next'], result: 'tree-node-next' },
+    testCase: { args: [[1, 2, 3, 4, 5, 6, 7]] },
+    expected: [1, '#', 2, 3, '#', 4, 5, 6, 7, '#'],
+  },
+  {
+    name: 'tree-node-list: a returned list of trees decodes each root as a tree-node',
+    code: `${TREE_NODE_CLASS}
+class Solution:
+    def generateTrees(self, n):
+        def build(low, high):
+            if low > high:
+                return [None]
+            return [TreeNode(i, left, right) for i in range(low, high + 1) for left in build(low, i - 1) for right in build(i + 1, high)]
+        return build(1, n)
+`,
+    entry: { className: 'Solution', method: 'generateTrees' },
+    types: { args: [null], result: 'tree-node-list' },
+    testCase: { args: [2] },
+    expected: [[1, null, 2], [2, 1]],
+  },
+  {
+    name: 'list-node-list as a result: each returned head decodes, None becomes []',
+    code: `${LIST_NODE_CLASS}
+class Solution:
+    def splitListToParts(self, head, k):
+        length, node = 0, head
+        while node:
+            length, node = length + 1, node.next
+        size, extra = divmod(length, k)
+        parts, node = [], head
+        for i in range(k):
+            part = node
+            for _ in range(size - 1 + (i < extra)):
+                node = node.next
+            if node:
+                node.next, node = None, node.next
+            parts.append(part)
+        return parts
+`,
+    entry: { className: 'Solution', method: 'splitListToParts' },
+    types: { args: ['list-node', null], result: 'list-node-list' },
+    testCase: { args: [[1, 2, 3], 5] },
+    expected: [[1], [2], [3], [], []],
+  },
+  {
     name: 'ops types: the constructor argument goes through types.args, method args stay raw',
     code: `${LIST_NODE_CLASS}
 class Solution:
@@ -448,6 +558,54 @@ describe('run_case errors', () => {
     contains.forEach((text) => expect(message).toContain(text));
     excludes.forEach((text) => expect(message).not.toContain(text));
     expect(message.endsWith(endsWith)).toBe(true);
+  });
+});
+
+describe('codec errors and state between cases', () => {
+  const NEXT_NODE_CLASS = `
+class Node:
+    def __init__(self, val=0, left=None, right=None, next=None):
+        self.val = val
+        self.left = left
+        self.right = right
+        self.next = next
+`;
+
+  it.skipIf(!IS_PYTHON_AVAILABLE)('tree-node-next: a next chain that loops back is a codec error', () => {
+    const code = `${NEXT_NODE_CLASS}
+class Solution:
+    def connect(self, root):
+        root.next = root
+        return root
+`;
+    const entry: PracticeEntry = { className: 'Solution', method: 'connect' };
+    const types: TypeSpec = { args: ['tree-node-next'], result: 'tree-node-next' };
+    const request = { id: 0, code, entry, types, result: undefined, cases: [] };
+
+    const outcome = runCase(code, buildCaseSpec(request, { args: [[1, 2, 3]] }));
+
+    expect(outcome.status).toBe('error');
+    expect(outcome.status === 'error' ? outcome.message : '').toContain('loops back on itself');
+  });
+
+  it.skipIf(!IS_PYTHON_AVAILABLE)('judge: a case with no judge does not see the previous case isBadVersion', () => {
+    const code = `
+class Solution:
+    def firstBadVersion(self, n):
+        return n if isBadVersion(n) else 0
+`;
+    const entry: PracticeEntry = { className: 'Solution', method: 'firstBadVersion' };
+    const request = { id: 0, code, entry, types: undefined, result: undefined, cases: [] };
+    const specs = [
+      buildCaseSpec(request, { args: [5], judge: { isBadVersion: 4 } }),
+      buildCaseSpec(request, { args: [5] }),
+    ];
+
+    const [first, second] = runCaseSequence(code, specs);
+
+    expect(first.status).toBe('ok');
+    expect(second.status).toBe('error');
+    expect(second.status === 'error' ? second.message : '').toContain('NameError');
   });
 });
 

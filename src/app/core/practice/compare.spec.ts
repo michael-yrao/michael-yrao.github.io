@@ -1,6 +1,27 @@
 import { CompareMode } from '../models/practice.model';
 import { matches } from './compare';
 
+describe('matches with a tolerance', () => {
+  const TOLERANCE = 1e-5;
+  const rows: { name: string; got: unknown; expected: unknown; mode: CompareMode; want: boolean }[] = [
+    { name: 'within', got: 3.000001, expected: 3, mode: 'exact', want: true },
+    { name: 'outside', got: 3.001, expected: 3, mode: 'exact', want: false },
+    { name: 'nested lists', got: [[1.000001, 2], [3]], expected: [[1, 2], [3]], mode: 'exact', want: true },
+    { name: 'true is not 1', got: true, expected: 1, mode: 'exact', want: false },
+    { name: 'unordered numbers sort numerically', got: [2, 1.000001], expected: [1, 2], mode: 'unordered', want: true },
+    { name: 'unordered-nested inner and outer', got: [[2.000001, 1], [0]], expected: [[0], [1, 2]], mode: 'unordered-nested', want: true },
+    { name: 'anyOf: a later alternative within', got: 0.5000001, expected: { anyOf: [1, 0.5] }, mode: 'exact', want: true },
+    { name: 'anyOf per op: an op within', got: [null, 1.000001], expected: [null, { anyOf: [1, 2] }], mode: 'exact', want: true },
+  ];
+
+  it.each(rows)('$name', ({ got, expected, mode, want }) => {
+    const gotBefore = structuredClone(got);
+
+    expect(matches(got, expected, mode, TOLERANCE)).toBe(want);
+    expect(got).toEqual(gotBefore);
+  });
+});
+
 describe('matches', () => {
   const rows: { name: string; got: unknown; expected: unknown; exact: boolean; unordered: boolean; nested: boolean }[] = [
     { name: 'identical', got: [[1], [2]], expected: [[1], [2]], exact: true, unordered: true, nested: true },

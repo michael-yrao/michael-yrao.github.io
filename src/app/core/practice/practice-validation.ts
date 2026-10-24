@@ -18,6 +18,9 @@ const CODECS: readonly Codec[] = [
   'list-node-cycle',
   'random-list',
   'tree-node',
+  'tree-node-next',
+  'tree-node-list',
+  'nary-node',
   'tree-value',
   'graph-node',
   'number-inf',
@@ -25,7 +28,7 @@ const CODECS: readonly Codec[] = [
 /** Codecs that only decode a result; they can't build an argument. */
 const RESULT_ONLY_CODECS: readonly Codec[] = ['number-inf', 'list-node-ref'];
 /** Codecs that only build an argument; they can't decode a result. */
-const ARG_ONLY_CODECS: readonly Codec[] = ['list-node-list'];
+const ARG_ONLY_CODECS: readonly Codec[] = ['list-node-cycle'];
 /** The judge APIs a case may bind (the driver's registry). */
 const JUDGE_NAMES: readonly string[] = ['isBadVersion'];
 
@@ -178,6 +181,12 @@ export function isValidTypes(value: unknown): boolean {
   return Array.isArray(args) && args.every(isArgCodecOrNull) && isResultCodecOrNull(value['result']);
 }
 
+/** Absent, or a finite number (not a boolean) above 0. */
+export function isValidTolerance(value: unknown): boolean {
+  if (value === undefined) return true;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
 /** Structural guard for one practice problem: number, title, nullable url, nullable statement,
  *  stub, entry {className, method, optional kind/encode/decode}, a known compare mode, optional
  *  `result` and `types`, and every case (`args` array, `expected` present, boolean `example`;
@@ -192,6 +201,7 @@ export function isPracticeProblem(value: unknown): value is PracticeProblem {
   if (typeof value['stub'] !== 'string') return false;
   if (!isPracticeEntry(value['entry'])) return false;
   if (!COMPARE_MODES.includes(value['compare'] as CompareMode)) return false;
+  if (!isValidTolerance(value['tolerance'])) return false;
   if (!isValidFigure(value['figure'])) return false;
   if (!isValidResult(value['result'])) return false;
   if (!isValidTypes(value['types'])) return false;

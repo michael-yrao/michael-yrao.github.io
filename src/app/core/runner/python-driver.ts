@@ -202,26 +202,75 @@ def _encode_random_list(pairs):
     return nodes[0] if nodes else None
 
 
-def _tree_child(cls, value, queue):
+def _plain_tree_node(cls, value):
+    return cls(value)
+
+
+def _next_tree_node(cls, value):
+    # Built as cls(value) then attributes set, since the learner's Node may order its parameters differently.
+    node = cls(value)
+    node.left = node.right = node.next = None
+    return node
+
+
+def _tree_child(make, cls, value, queue):
     if value is None:
         return None
-    child = cls(value)
+    child = make(cls, value)
     queue.append(child)
     return child
 
 
-def _encode_tree_node(values):
-    _expect("tree-node", isinstance(values, list), "a JSON array", values)
+def _build_tree(codec, values, class_name, make):
+    _expect(codec, isinstance(values, list), "a JSON array", values)
     if not values or values[0] is None:
         return None
-    cls = _node_class("TreeNode")
-    root = cls(values[0])
+    cls = _node_class(class_name)
+    root = make(cls, values[0])
     queue = collections.deque([root])
     rest = iter(values[1:])
     while queue:
         node = queue.popleft()
-        node.left = _tree_child(cls, next(rest, None), queue)
-        node.right = _tree_child(cls, next(rest, None), queue)
+        node.left = _tree_child(make, cls, next(rest, None), queue)
+        node.right = _tree_child(make, cls, next(rest, None), queue)
+    return root
+
+
+def _encode_tree_node(values):
+    return _build_tree("tree-node", values, "TreeNode", _plain_tree_node)
+
+
+def _encode_tree_node_next(values):
+    return _build_tree("tree-node-next", values, "Node", _next_tree_node)
+
+
+def _encode_tree_node_list(lists):
+    _expect("tree-node-list", isinstance(lists, list), "a JSON array of arrays", lists)
+    return [_encode_tree_node(values) for values in lists]
+
+
+def _nary_node(cls, value):
+    node = cls(value)
+    node.children = []
+    return node
+
+
+def _encode_nary_node(values):
+    _expect("nary-node", isinstance(values, list), "a JSON array", values)
+    if not values or values[0] is None:
+        return None
+    cls = _node_class("Node")
+    root = _nary_node(cls, values[0])
+    queue = collections.deque([root])
+    index = 2  # values[1] is the separator after the root
+    while queue and index < len(values):
+        node = queue.popleft()
+        while index < len(values) and values[index] is not None:
+            child = _nary_node(cls, values[index])
+            node.children.append(child)
+            queue.append(child)
+            index += 1
+        index += 1  # the null that closes this node's children
     return root
 
 
@@ -290,6 +339,58 @@ def _decode_tree_node(root):
         _require_attrs("tree-node", node, "val", "left", "right")
         values.append(node.val)
         queue.extend([node.left, node.right])
+    while values and values[-1] is None:
+        values.pop()
+    return values
+
+
+def _decode_tree_node_list(roots):
+    _expect("tree-node-list", isinstance(roots, list), "a list of tree roots", roots)
+    return [_decode_tree_node(root) for root in roots]
+
+
+def _decode_list_node_list(heads):
+    _expect("list-node-list", isinstance(heads, list), "a list of list heads", heads)
+    return [_decode_list_node(head) for head in heads]
+
+
+def _next_level(level):
+    return [child for node in level for child in (node.left, node.right) if child is not None]
+
+
+def _decode_tree_node_next(root):
+    # Each level is read by walking .next from its leftmost node, then marked with "#".
+    values = []
+    level = [root] if root is not None else []
+    while level:
+        for node in level:
+            _require_attrs("tree-node-next", node, "val", "left", "right", "next")
+        values.extend(node.val for node in _walk_next("tree-node-next", level[0]))
+        values.append("#")
+        level = _next_level(level)
+    return values
+
+
+def _decode_nary_node(root):
+    if root is None:
+        return []
+    values = [None]
+    order = collections.deque([root])
+    seen = {id(root)}
+    while order:
+        node = order.popleft()
+        _require_attrs("nary-node", node, "val", "children")
+        children = node.children if node.children is not None else []
+        _expect("nary-node", isinstance(children, (list, tuple)), "children to be a list", children)
+        for child in children:
+            _require_attrs("nary-node", child, "val", "children")
+            if id(child) in seen:
+                raise CodecError("nary-node: the returned tree loops back on itself")
+            seen.add(id(child))
+            values.append(child.val)
+            order.append(child)
+        values.append(None)
+    values.insert(0, root.val)
     while values and values[-1] is None:
         values.pop()
     return values
@@ -365,15 +466,21 @@ _ENCODERS = {
     "list-node-cycle": _encode_list_node_cycle,
     "random-list": _encode_random_list,
     "tree-node": _encode_tree_node,
+    "tree-node-next": _encode_tree_node_next,
+    "tree-node-list": _encode_tree_node_list,
+    "nary-node": _encode_nary_node,
     "graph-node": _encode_graph_node,
 }
 
 _DECODERS = {
     "list-node": _decode_list_node,
-    "list-node-list": _decode_unsupported,
+    "list-node-list": _decode_list_node_list,
     "list-node-cycle": _decode_unsupported,
     "random-list": _decode_random_list,
     "tree-node": _decode_tree_node,
+    "tree-node-next": _decode_tree_node_next,
+    "tree-node-list": _decode_tree_node_list,
+    "nary-node": _decode_nary_node,
     "tree-value": _decode_tree_value,
     "graph-node": _decode_graph_node,
     "number-inf": _decode_number_inf,

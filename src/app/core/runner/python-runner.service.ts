@@ -42,7 +42,7 @@ interface RunSpec<S extends { readonly status: RunStatus }> {
 
 function verdictFor(outcome: CaseOutcome, expected: unknown, problem: PracticeProblem): CaseVerdict {
   if (outcome.status === 'error') return outcome.kind === 'recursion' ? 'recursion' : 'error';
-  return outcome.hasJson && matches(outcome.gotJson, expected, problem.compare) ? 'pass' : 'fail';
+  return outcome.hasJson && matches(outcome.gotJson, expected, problem.compare, problem.tolerance) ? 'pass' : 'fail';
 }
 
 /** The next state after one worker message; never mutates `state`. */
