@@ -192,6 +192,19 @@ class Solution:
     expected: [1, 2, null, null, 3],
   },
   {
+    name: 'tree-node: two parents sharing one child is a DAG, not a cycle',
+    code: `${TREE_NODE_CLASS}
+class Solution:
+    def shared(self):
+        child = TreeNode(0)
+        return TreeNode(0, child, child)
+`,
+    entry: { className: 'Solution', method: 'shared' },
+    types: { args: [], result: 'tree-node' },
+    testCase: { args: [] },
+    expected: [0, 0, 0],
+  },
+  {
     name: 'tree-value: arguments name nodes by value, the result decodes to .val',
     code: `${TREE_NODE_CLASS}
 class Solution:
@@ -525,6 +538,7 @@ describe('run_case errors', () => {
     name: string;
     code: string;
     method: string;
+    types?: TypeSpec;
     contains: readonly string[];
     excludes: readonly string[];
     endsWith: string;
@@ -545,11 +559,29 @@ describe('run_case errors', () => {
       excludes: ['Traceback'],
       endsWith: 'AttributeError: Solution has no method missing',
     },
+    {
+      name: 'tree-node: a returned tree that loops back on itself is a codec error',
+      code: 'class Node:\n    def __init__(self):\n        self.val = 1\n        self.left = self\n        self.right = None\n\nclass Solution:\n    def m(self):\n        return Node()',
+      method: 'm',
+      types: { args: [], result: 'tree-node' },
+      contains: ['tree-node: the returned tree loops back on itself'],
+      excludes: [],
+      endsWith: 'the returned tree loops back on itself',
+    },
+    {
+      name: 'tree-node-next: a returned tree that loops back on itself is a codec error',
+      code: 'class Node:\n    def __init__(self):\n        self.val = 1\n        self.left = self\n        self.right = None\n        self.next = None\n\nclass Solution:\n    def m(self):\n        return Node()',
+      method: 'm',
+      types: { args: [], result: 'tree-node-next' },
+      contains: ['tree-node-next: the returned tree loops back on itself'],
+      excludes: [],
+      endsWith: 'the returned tree loops back on itself',
+    },
   ];
 
-  it.skipIf(!IS_PYTHON_AVAILABLE).each(ERROR_ROWS)('$name', ({ code, method, contains, excludes, endsWith }) => {
+  it.skipIf(!IS_PYTHON_AVAILABLE).each(ERROR_ROWS)('$name', ({ code, method, types, contains, excludes, endsWith }) => {
     const entry: PracticeEntry = { className: 'Solution', method };
-    const request = { id: 0, code, entry, types: undefined, result: undefined, cases: [] };
+    const request = { id: 0, code, entry, types, result: undefined, cases: [] };
 
     const outcome = runCase(code, buildCaseSpec(request, { args: [] }));
 

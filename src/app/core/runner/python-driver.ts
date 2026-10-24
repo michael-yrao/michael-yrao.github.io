@@ -328,15 +328,38 @@ def _decode_random_list(head):
     return [[node.val, _random_index(node, index_of)] for node in nodes]
 
 
+def _reject_loops(codec, root, attrs, children_of):
+    # A loop is a node that is its own ancestor; a node shared by two parents is a valid DAG.
+    on_path = set()
+    stack = [(root, False)]
+    while stack:
+        node, is_exit = stack.pop()
+        if is_exit:
+            on_path.discard(id(node))
+            continue
+        _require_attrs(codec, node, *attrs)
+        on_path.add(id(node))
+        stack.append((node, True))
+        for child in children_of(node):
+            if id(child) in on_path:
+                raise CodecError(codec + ": the returned tree loops back on itself")
+            stack.append((child, False))
+
+
+def _binary_children(node):
+    return [child for child in (node.left, node.right) if child is not None]
+
+
 def _decode_tree_node(root):
     values = []
     queue = collections.deque([root] if root is not None else [])
+    if root is not None:
+        _reject_loops("tree-node", root, ("val", "left", "right"), _binary_children)
     while queue:
         node = queue.popleft()
         if node is None:
             values.append(None)
             continue
-        _require_attrs("tree-node", node, "val", "left", "right")
         values.append(node.val)
         queue.extend([node.left, node.right])
     while values and values[-1] is None:
@@ -362,31 +385,30 @@ def _decode_tree_node_next(root):
     # Each level is read by walking .next from its leftmost node, then marked with "#".
     values = []
     level = [root] if root is not None else []
+    if root is not None:
+        _reject_loops("tree-node-next", root, ("val", "left", "right", "next"), _binary_children)
     while level:
-        for node in level:
-            _require_attrs("tree-node-next", node, "val", "left", "right", "next")
         values.extend(node.val for node in _walk_next("tree-node-next", level[0]))
         values.append("#")
         level = _next_level(level)
     return values
 
 
+def _nary_children(node):
+    children = node.children if node.children is not None else []
+    _expect("nary-node", isinstance(children, (list, tuple)), "children to be a list", children)
+    return children
+
+
 def _decode_nary_node(root):
     if root is None:
         return []
+    _reject_loops("nary-node", root, ("val", "children"), _nary_children)
     values = [None]
     order = collections.deque([root])
-    seen = {id(root)}
     while order:
         node = order.popleft()
-        _require_attrs("nary-node", node, "val", "children")
-        children = node.children if node.children is not None else []
-        _expect("nary-node", isinstance(children, (list, tuple)), "children to be a list", children)
-        for child in children:
-            _require_attrs("nary-node", child, "val", "children")
-            if id(child) in seen:
-                raise CodecError("nary-node: the returned tree loops back on itself")
-            seen.add(id(child))
+        for child in _nary_children(node):
             values.append(child.val)
             order.append(child)
         values.append(None)
