@@ -227,6 +227,14 @@ describe('PracticeListComponent', () => {
       markedLabel: 'Comfort: clean, streak 1',
       repsText: '3 reps',
     },
+    {
+      name: 'with repo + an unrated row for #1 draws the unknown stage',
+      repo: REPO_SLUG,
+      details: [progressRow(STATIC_ONLY_NUMBER, 3, { unrated: true })],
+      isLoaded: true,
+      markedLabel: 'Comfort: unknown',
+      repsText: '3 reps',
+    },
   ];
 
   it.each(PROGRESS_CASES)('$name', ({ repo, details, isLoaded, markedLabel, repsText }) => {

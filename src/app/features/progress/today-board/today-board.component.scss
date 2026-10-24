@@ -334,7 +334,7 @@ $workload-planned-opacity: 0.35;
   border-color: var(--color-hard);
   color: var(--color-hard);
 }
-// A row-level mark beside the badge: `❔` (rep logged, rating pending) or a red x (save refused).
+// A row-level mark beside the badge: the unknown-stage mark (rep logged, rating pending) or a red x (save refused).
 .today-board__mark {
   display: inline-flex;
   align-items: center;

@@ -40,7 +40,7 @@
       >
     }
     @if (isUnratedItem(item, date)) {
-      <span class="today-board__mark" role="img" [attr.aria-label]="unratedLabel">{{ unratedGlyph }}</span>
+      <span class="today-board__mark"><app-comfort-mark [comfort]="null" [label]="unratedLabel" /></span>
     }
     @if (refusalFor(item, date); as reason) {
       <span

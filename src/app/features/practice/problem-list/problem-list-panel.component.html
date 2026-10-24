@@ -45,7 +45,7 @@
               }
             </span>
             @if (row) {
-              <app-comfort-mark class="problem-list__comfort" [comfort]="row.comfort" [streak]="row.streak" />
+              <app-comfort-mark class="problem-list__comfort" [comfort]="row.unrated ? null : row.comfort" [streak]="row.streak" />
             }
           </a>
         </li>

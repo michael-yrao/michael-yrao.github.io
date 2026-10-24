@@ -31,6 +31,9 @@ export interface ProblemProgress {
   timeline: TimelinePoint[];
   /** holds.yml `until` for this row; absent = no hold; may be past. */
   heldUntil?: string;
+  /** gamify sets it while the problem's latest rep has a `❔` End cell (logged, rating
+   *  pending); `comfort` keeps the tracker value. Only the drawn mark reads it. */
+  unrated?: boolean;
 }
 
 export interface RetiredProblem {

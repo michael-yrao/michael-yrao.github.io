@@ -35,7 +35,6 @@ import {
   COMPLEXITY_GATE_TITLE,
   RowCounts,
   WALKTHROUGH_GLYPH,
-  UNRATED_GLYPH,
   UNRATED_LABEL,
   REFUSED_ICON,
   refusedLabel,
@@ -408,7 +407,6 @@ export class TodayBoardComponent {
   protected readonly openIcon = OPEN_ICON;
   protected readonly heldIcon = HELD_ICON;
   protected readonly walkthroughGlyph = WALKTHROUGH_GLYPH;
-  protected readonly unratedGlyph = UNRATED_GLYPH;
   protected readonly unratedLabel = UNRATED_LABEL;
   protected readonly refusedIcon = REFUSED_ICON;
   protected readonly refusedLabel = refusedLabel;

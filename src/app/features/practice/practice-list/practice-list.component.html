@@ -95,7 +95,7 @@
             }
           </span>
           @if (progress; as p) {
-            <app-comfort-mark [comfort]="p.comfort" [streak]="p.streak" />
+            <app-comfort-mark [comfort]="p.unrated ? null : p.comfort" [streak]="p.streak" />
             @if (p.comfort !== '🏆') {
               <span class="practice-list__reps">{{ p.repDates.length }} reps</span>
             }

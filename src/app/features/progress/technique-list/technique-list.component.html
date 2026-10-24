@@ -264,7 +264,7 @@
             @if (p.difficulty) {
               <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
             }
-            <span class="tech-row__problem-comfort"><app-comfort-mark [comfort]="p.comfort" [streak]="p.streak" /></span>
+            <span class="tech-row__problem-comfort"><app-comfort-mark [comfort]="p.unrated ? null : p.comfort" [streak]="p.streak" /></span>
             <span class="tech-row__problem-links">
               <span class="tech-row__problem-slot">
                 @if (practiceNumbers().has(p.lcNumber)) {

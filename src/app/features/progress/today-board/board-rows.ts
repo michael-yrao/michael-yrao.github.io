@@ -46,8 +46,7 @@ const PENDING_ICON: IconName = 'half';
 export const OPEN_ICON: IconName = 'circle';
 export const HELD_ICON: IconName = 'pause';
 const PENDING_LABEL = 'saved, folding';
-/** The mark of a rep that is logged but not yet rated; its aria-label is `UNRATED_LABEL`. */
-export const UNRATED_GLYPH = '❔';
+/** The spoken label of the unknown-stage mark shown for a rep that is logged but not yet rated. */
 export const UNRATED_LABEL = 'logged — rating pending';
 export const REFUSED_ICON: IconName = 'x';
 const REFUSED_LABEL_PREFIX = 'not recorded — ';

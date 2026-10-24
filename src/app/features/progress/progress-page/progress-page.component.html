@@ -68,7 +68,7 @@
       @if (p.difficulty) {
         <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
       }
-      <span class="problem__comfort"><app-comfort-mark [comfort]="p.comfort" [streak]="p.streak" /></span>
+      <span class="problem__comfort"><app-comfort-mark [comfort]="p.unrated ? null : p.comfort" [streak]="p.streak" /></span>
       <span class="problem__meta">{{ p.repDates.length }} reps</span>
       @if (showDue) {
         <span

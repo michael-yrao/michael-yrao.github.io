@@ -185,10 +185,10 @@ describe('TodayBoardComponent', () => {
   });
 
   it.each([
-    { state: 'summary-unrated done row', lcNumber: 9011, done: true, unrated: true, label: 'logged — rating pending' },
-    { state: 'provisional pending open row', lcNumber: 9012, done: false, unrated: false, label: 'logged — rating pending' },
-    { state: 'refused open row', lcNumber: 9013, done: false, unrated: false, label: 'not recorded — tests failed' },
-  ])('labels a $state', ({ lcNumber, done, unrated, label }) => {
+    { state: 'summary-unrated done row', lcNumber: 9011, done: true, unrated: true, label: 'logged — rating pending', key: 'unknown' },
+    { state: 'provisional pending open row', lcNumber: 9012, done: false, unrated: false, label: 'logged — rating pending', key: 'unknown' },
+    { state: 'refused open row', lcNumber: 9013, done: false, unrated: false, label: 'not recorded — tests failed', key: null },
+  ])('labels a $state', ({ lcNumber, done, unrated, label, key }) => {
     const schedule = makeSchedule({
       days: [
         {
@@ -209,8 +209,11 @@ describe('TodayBoardComponent', () => {
     fixture.componentRef.setInput('refused', new Map([[9013, 'tests failed']]));
     fixture.detectChanges();
 
-    const mark = fixture.nativeElement.querySelector('.today-board__mark');
-    expect(mark?.getAttribute('aria-label')).toBe(label);
+    const mark: HTMLElement = fixture.nativeElement.querySelector('.today-board__mark');
+    const svg = mark.querySelector('app-comfort-mark svg');
+    expect((svg ?? mark).getAttribute('aria-label')).toBe(label);
+    expect(svg?.getAttribute('data-key') ?? null).toBe(key);
+    expect(fixture.nativeElement.textContent).not.toContain('❔');
   });
 
   // ── The technique-naming day label is dropped from the board (recognition-gate spoiler) ─
