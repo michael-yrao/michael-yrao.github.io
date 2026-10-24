@@ -295,14 +295,14 @@ def _find_by_value(root, target):
     raise CodecError("tree-value: no node with value " + str(target) + " in the tree")
 
 
-def _walk_next(codec, head):
+def _walk_next(codec, head, loop_message=": the returned list loops back"):
     nodes = []
     seen = set()
     node = head
     while node is not None:
         _require_attrs(codec, node, "val", "next")
         if id(node) in seen:
-            raise CodecError(codec + ": the returned list loops back on itself")
+            raise CodecError(codec + loop_message)
         seen.add(id(node))
         nodes.append(node)
         node = node.next
@@ -342,7 +342,7 @@ def _reject_loops(codec, root, attrs, children_of):
         stack.append((node, True))
         for child in children_of(node):
             if id(child) in on_path:
-                raise CodecError(codec + ": the returned tree loops back on itself")
+                raise CodecError(codec + ": the returned tree loops back")
             stack.append((child, False))
 
 
@@ -388,7 +388,7 @@ def _decode_tree_node_next(root):
     if root is not None:
         _reject_loops("tree-node-next", root, ("val", "left", "right", "next"), _binary_children)
     while level:
-        values.extend(node.val for node in _walk_next("tree-node-next", level[0]))
+        values.extend(node.val for node in _walk_next("tree-node-next", level[0], ": the next pointers loop back"))
         values.append("#")
         level = _next_level(level)
     return values

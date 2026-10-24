@@ -560,22 +560,22 @@ describe('run_case errors', () => {
       endsWith: 'AttributeError: Solution has no method missing',
     },
     {
-      name: 'tree-node: a returned tree that loops back on itself is a codec error',
+      name: 'tree-node: a returned tree that loops back is a codec error',
       code: 'class Node:\n    def __init__(self):\n        self.val = 1\n        self.left = self\n        self.right = None\n\nclass Solution:\n    def m(self):\n        return Node()',
       method: 'm',
       types: { args: [], result: 'tree-node' },
-      contains: ['tree-node: the returned tree loops back on itself'],
+      contains: ['tree-node: the returned tree loops back'],
       excludes: [],
-      endsWith: 'the returned tree loops back on itself',
+      endsWith: 'the returned tree loops back',
     },
     {
-      name: 'tree-node-next: a returned tree that loops back on itself is a codec error',
+      name: 'tree-node-next: a returned tree that loops back is a codec error',
       code: 'class Node:\n    def __init__(self):\n        self.val = 1\n        self.left = self\n        self.right = None\n        self.next = None\n\nclass Solution:\n    def m(self):\n        return Node()',
       method: 'm',
       types: { args: [], result: 'tree-node-next' },
-      contains: ['tree-node-next: the returned tree loops back on itself'],
+      contains: ['tree-node-next: the returned tree loops back'],
       excludes: [],
-      endsWith: 'the returned tree loops back on itself',
+      endsWith: 'the returned tree loops back',
     },
   ];
 
@@ -617,7 +617,7 @@ class Solution:
     const outcome = runCase(code, buildCaseSpec(request, { args: [[1, 2, 3]] }));
 
     expect(outcome.status).toBe('error');
-    expect(outcome.status === 'error' ? outcome.message : '').toContain('loops back on itself');
+    expect(outcome.status === 'error' ? outcome.message : '').toContain('tree-node-next: the next pointers loop back');
   });
 
   it.skipIf(!IS_PYTHON_AVAILABLE)('judge: a case with no judge does not see the previous case isBadVersion', () => {
