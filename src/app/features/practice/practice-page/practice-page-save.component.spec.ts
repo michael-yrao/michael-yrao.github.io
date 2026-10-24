@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { vi } from 'vitest';
 
 import { SESSION_KEY } from '../../../core/auth/auth.service';
@@ -132,6 +132,30 @@ function clickRun(fixture: ComponentFixture<PracticePageComponent>, isSample: bo
 
 const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve));
 
+function headerOf(content: string): unknown {
+  return JSON.parse(content.split('\n', 1)[0].replace('# po-attempt: ', ''));
+}
+
+/** The open complete-rep panel: both bounds with a why, Check, a rating, Save rep. */
+function rateAndSave(fixture: ComponentFixture<PracticePageComponent>): void {
+  const root: HTMLElement = fixture.nativeElement;
+  const rows = Array.from(root.querySelectorAll('.rep__row'));
+  const chipIn = (row: Element, label: string): HTMLButtonElement =>
+    Array.from(row.querySelectorAll<HTMLButtonElement>('.rep__chip')).find((b) => b.textContent?.trim() === label)!;
+  chipIn(rows[0], 'O(n)').click();
+  chipIn(rows[1], 'O(1)').click();
+  for (const input of Array.from(root.querySelectorAll<HTMLInputElement>('.rep__why-input'))) {
+    input.value = WHY;
+    input.dispatchEvent(new Event('input'));
+  }
+  fixture.detectChanges();
+  buttonByText(root, 'Check')!.click();
+  fixture.detectChanges();
+  root.querySelector<HTMLInputElement>('input[type="radio"]')!.click();
+  fixture.detectChanges();
+  buttonByText(root, 'Save rep')!.click();
+}
+
 describe('PracticePageComponent save to GitHub', () => {
   beforeEach(() => {
     vi.stubGlobal('localStorage', createMemoryStorage());
@@ -140,6 +164,7 @@ describe('PracticePageComponent save to GitHub', () => {
   });
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it.each([
@@ -203,36 +228,105 @@ describe('PracticePageComponent save to GitHub', () => {
     httpMock.expectOne(`${WORKER_API_URL}practice/latest`).flush({}, { status: 404, statusText: 'none' });
     clickRun(fixture, false);
 
-    if (isComplete) {
-      buttonByText(root, MARK_COMPLETE)!.click();
-      fixture.detectChanges();
-      const rows = Array.from(root.querySelectorAll('.rep__row'));
-      const chipIn = (row: Element, label: string): HTMLButtonElement =>
-        Array.from(row.querySelectorAll<HTMLButtonElement>('.rep__chip')).find((b) => b.textContent?.trim() === label)!;
-      chipIn(rows[0], 'O(n)').click();
-      chipIn(rows[1], 'O(1)').click();
-      for (const input of Array.from(root.querySelectorAll<HTMLInputElement>('.rep__why-input'))) {
-        input.value = WHY;
-        input.dispatchEvent(new Event('input'));
-      }
-      fixture.detectChanges();
-      buttonByText(root, 'Check')!.click();
-      fixture.detectChanges();
-      root.querySelector<HTMLInputElement>('input[type="radio"]')!.click();
-      fixture.detectChanges();
-      buttonByText(root, 'Save rep')!.click();
-    } else {
-      buttonByText(root, SAVE_BUTTON)!.click();
-    }
+    if (isComplete) rateAndSave(fixture);
+    else buttonByText(root, SAVE_BUTTON)!.click();
     await tick(); // the token arrives before the request
     const req = httpMock.expectOne(`${WORKER_API_URL}practice/save`);
     req.flush({ ok: true });
     await tick();
     fixture.detectChanges();
 
-    const headerLine = (req.request.body.content as string).split('\n', 1)[0];
-    expect(JSON.parse(headerLine.replace('# po-attempt: ', ''))).toMatchObject(expected);
+    expect(headerOf(req.request.body.content)).toMatchObject(expected);
     if (isComplete) expect(root.textContent).toContain('Marked complete · 🟢 · O(n) / O(1)');
+  });
+
+  it.each([
+    { name: 'a full pass', verdicts: ['pass', 'pass', 'pass'], isSample: false, editBeforeResult: false, isOpen: true },
+    { name: 'a partial pass', verdicts: ['pass', 'pass', 'fail'], isSample: false, editBeforeResult: false, isOpen: false },
+    { name: 'a pass on stale code', verdicts: ['pass', 'pass', 'pass'], isSample: false, editBeforeResult: true, isOpen: false },
+  ] as const)('$name: the complete-rep panel opens is $isOpen', ({ verdicts, isSample, editBeforeResult, isOpen }) => {
+    signIn(OWNER);
+    const result = new Subject<RunState>();
+    runSpy.mockReturnValue(result);
+    const { fixture } = render();
+
+    clickRun(fixture, isSample);
+    if (editBeforeResult) fixture.componentInstance.onTextChange('changed while running');
+    result.next(runOf(verdicts));
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('app-complete-rep-panel') !== null).toBe(isOpen);
+  });
+
+  const LEAVE_ROWS: readonly {
+    readonly name: string;
+    readonly hasPass: boolean;
+    readonly isConfirmed: boolean;
+    readonly isConfirmAsked: boolean;
+    readonly canLeave: boolean;
+    readonly isSent: boolean;
+  }[] = [
+    { name: 'unsaved pass, confirm OK', hasPass: true, isConfirmed: true, isConfirmAsked: true, canLeave: true, isSent: true },
+    { name: 'unsaved pass, confirm cancel', hasPass: true, isConfirmed: false, isConfirmAsked: true, canLeave: false, isSent: false },
+    { name: 'no pass', hasPass: false, isConfirmed: true, isConfirmAsked: false, canLeave: true, isSent: false },
+  ];
+
+  it.each(LEAVE_ROWS)('leaving, $name', async ({ hasPass, isConfirmed, isConfirmAsked, canLeave, isSent }) => {
+    signIn(OWNER);
+    if (hasPass) runSpy.mockReturnValue(of(runOf(['pass', 'pass', 'pass'])));
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(isConfirmed);
+    const { fixture, httpMock } = render();
+    if (hasPass) clickRun(fixture, false);
+
+    const leaving = fixture.componentInstance.confirmLeave();
+    await tick(); // the token arrives before the request
+    const saves = httpMock.match(`${WORKER_API_URL}practice/save`);
+    saves.forEach((req) => req.flush({ ok: true }));
+
+    expect(await leaving).toBe(canLeave);
+    expect(confirmSpy).toHaveBeenCalledTimes(isConfirmAsked ? 1 : 0);
+    expect(saves).toHaveLength(isSent ? 1 : 0);
+    if (isSent) {
+      expect(headerOf(saves[0].request.body.content)).toMatchObject({
+        complete: true,
+        rating: null,
+        tests: '3/3',
+        complexity: null,
+      });
+    }
+  });
+
+  it.each([
+    {
+      name: 'a complete save',
+      act: async (fixture: ComponentFixture<PracticePageComponent>, httpMock: HttpTestingController) => {
+        rateAndSave(fixture);
+        await tick();
+        httpMock.expectOne(`${WORKER_API_URL}practice/save`).flush({ ok: true });
+      },
+    },
+    {
+      name: 'a provisional save',
+      act: async (fixture: ComponentFixture<PracticePageComponent>, httpMock: HttpTestingController) => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
+        const leaving = fixture.componentInstance.confirmLeave();
+        await tick();
+        httpMock.expectOne(`${WORKER_API_URL}practice/save`).flush({ ok: true });
+        await leaving;
+      },
+    },
+  ])('Save to GitHub is hidden after $name', async ({ act }) => {
+    signIn(OWNER);
+    runSpy.mockReturnValue(of(runOf(['pass', 'pass', 'pass'])));
+    const { fixture, httpMock } = render();
+    clickRun(fixture, false);
+    expect(buttonByText(fixture.nativeElement, SAVE_BUTTON)).toBeDefined();
+
+    await act(fixture, httpMock);
+    await tick();
+    fixture.detectChanges();
+
+    expect(buttonByText(fixture.nativeElement, SAVE_BUTTON)).toBeUndefined();
   });
 
   it('owner on a problem with no pick: the editor shows at once and Run is enabled', () => {

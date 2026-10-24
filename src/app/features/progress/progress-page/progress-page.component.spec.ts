@@ -9,6 +9,7 @@ import { ProgressPageComponent } from './progress-page.component';
 import { ProgressTab } from './progress-derivations';
 import { By } from '@angular/platform-browser';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ProvisionalRepService } from '../../../core/services/provisional-rep.service';
 import { ProgressService } from '../../../core/services/progress.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { TodayBoardComponent } from '../today-board/today-board.component';
@@ -184,6 +185,9 @@ function makeProgressServiceStub() {
     repoRef: signal<RepoRef | null>(DEMO_REPO),
     refreshing: signal(false),
     pending: signal<ReadonlySet<number>>(new Set()),
+    provisional: signal<ReadonlySet<number>>(new Set()),
+    refused: signal<ReadonlyMap<number, string>>(new Map()),
+    hasSavedToday: signal(false),
     refreshError: signal<string | null>(null),
 
     detailsStatus: signal<'idle' | 'loading' | 'ready' | 'error'>('idle'),
@@ -276,6 +280,7 @@ describe('ProgressPageComponent', () => {
             loadIndex: vi.fn(),
           },
         },
+        { provide: ProvisionalRepService, useValue: { resendPending: vi.fn() } },
         { provide: ActivatedRoute, useValue: makeActivatedRouteStub() },
         // A real (empty) router — RouterLink (vizRoute links) needs a working Router, not
         // just a navigate() stub.

@@ -334,6 +334,14 @@ $workload-planned-opacity: 0.35;
   border-color: var(--color-hard);
   color: var(--color-hard);
 }
+// A row-level mark beside the badge: `❔` (rep logged, rating pending) or a red x (save refused).
+.today-board__mark {
+  display: inline-flex;
+  align-items: center;
+}
+.today-board__mark--refused {
+  color: var(--color-hard);
+}
 // Hover/focus-visible only apply to the link form — the plain span isn't interactive.
 // Scoped under `.today-board__row` so this beats the done rule above on specificity (both
 // compile with Angular's emulated `[_ngcontent-*]` attribute added to every compound

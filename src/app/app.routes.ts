@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { progressMatch } from './core/auth/progress-match';
 import { interviewSolutionGuard } from './features/interview/session/interview-solution.guard';
+import { practiceLeaveGuard } from './features/practice/practice-page/practice-leave.guard';
 import { problemTitleResolver, solutionTitleResolver } from './problem-title.resolver';
 
 export const routes: Routes = [
@@ -117,6 +118,7 @@ export const routes: Routes = [
   {
     path: 'practice/:number',
     title: problemTitleResolver,
+    canDeactivate: [practiceLeaveGuard],
     loadComponent: () =>
       import('./features/practice/practice-page/practice-page.component').then(
         (m) => m.PracticePageComponent,

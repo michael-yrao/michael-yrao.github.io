@@ -36,6 +36,9 @@ export interface AttemptFile {
 
 export interface ValidAttempt {
   readonly commitMessage: string;
+  readonly isComplete: boolean;
+  /** Complete but not yet rated. */
+  readonly isProvisional: boolean;
 }
 
 export interface LatestRequest extends RepoTarget {
@@ -114,7 +117,26 @@ function isValidHeader(header: Record<string, unknown>): boolean {
   if (rating !== null && !RATINGS.includes(rating)) return false;
   if (!isValidTests(tests)) return false;
   if (!complete) return rating === null && complexity === null;
-  return rating !== null && isCompleteTests(tests) && isCompleteComplexity(complexity);
+  // Provisional rep: finished and all tests pass, but not yet rated or given a complexity.
+  if (rating === null) return complexity === null && isCompleteTests(tests);
+  return isCompleteTests(tests) && isCompleteComplexity(complexity);
+}
+
+function readHeaderRecord(text: string): Record<string, unknown> | null {
+  const firstLine = text.split('\n', 1)[0] ?? '';
+  if (!firstLine.startsWith(HEADER_PREFIX)) return null;
+  return parseJsonRecord(firstLine.slice(HEADER_PREFIX.length));
+}
+
+/** True when the file's header line says `complete: true` (rated or provisional). */
+export function isCompleteAttemptText(text: string): boolean {
+  return readHeaderRecord(text)?.['complete'] === true;
+}
+
+/** True when the file's header line says `complete: true` with a rating (not provisional). */
+export function isRatedAttemptText(text: string): boolean {
+  const header = readHeaderRecord(text);
+  return header?.['complete'] === true && header['rating'] !== null && header['rating'] !== undefined;
 }
 
 function commitMessageFor(path: string, isComplete: boolean): string {
@@ -133,5 +155,7 @@ export function validateAttempt(file: AttemptFile): ValidAttempt | { error: stri
   const header = parseJsonRecord(firstLine.slice(HEADER_PREFIX.length));
   if (header === null || !isValidHeader(header)) return { error: 'invalid-attempt-header' };
 
-  return { commitMessage: commitMessageFor(file.path, header['complete'] === true) };
+  const isComplete = header['complete'] === true;
+  const isProvisional = isComplete && header['rating'] === null;
+  return { commitMessage: commitMessageFor(file.path, isComplete), isComplete, isProvisional };
 }

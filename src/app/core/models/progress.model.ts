@@ -243,6 +243,9 @@ export interface ScheduleItem {
    *  a leading `←` with no `deferredTo`). The board counts it done but leaves it out of the
    *  day's total. Optional, additive: an older contract predating it renders every row as before. */
   pulledIn?: boolean;
+  /** True for a done row whose End cell holds `❔`: the rep is logged but its rating is pending
+   *  (cse-progress gamify.py). Absent otherwise. */
+  unrated?: boolean;
 }
 
 export interface ScheduleDay {

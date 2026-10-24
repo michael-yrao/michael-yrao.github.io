@@ -39,6 +39,18 @@
         ><app-icon [name]="statusIcon(item, rowStateIcon(item, isPendingItem(item, date)), date, todayISO())!" [size]="14" /></span
       >
     }
+    @if (isUnratedItem(item, date)) {
+      <span class="today-board__mark" role="img" [attr.aria-label]="unratedLabel">{{ unratedGlyph }}</span>
+    }
+    @if (refusalFor(item, date); as reason) {
+      <span
+        class="today-board__mark today-board__mark--refused"
+        role="img"
+        [attr.aria-label]="refusedLabel(reason)"
+        [attr.title]="refusedLabel(reason)"
+        ><app-icon [name]="refusedIcon" [size]="14" /></span
+      >
+    }
     @if (item.lcNumber) {
       <span class="today-board__num">#{{ item.lcNumber }}</span>
     }

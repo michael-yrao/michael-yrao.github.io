@@ -43,6 +43,20 @@ describe('liveStreak', () => {
     expect(result.frozenDays).toEqual(frozenDays);
   });
 
+  const savedCases: [string, string, Partial<Streak>, number, number, number][] = [
+    ['saved today, no trailing misses: current + 1', '2026-10-23', {}, 6, 2, 9],
+    ['saved today, two trailing misses: bank spent, current + 1', '2026-10-25', {}, 6, 0, 9],
+    ['saved today, three trailing misses: broken bank starts a run of 1', '2026-10-26', {}, 1, 0, 9],
+    ['saved today at the record: longest rises with current', '2026-10-23', { current: 9 }, 10, 2, 10],
+  ];
+
+  it.each(savedCases)('%s', (_label, today, override, current, freezesLeft, longest) => {
+    const result = liveStreak({ ...BASE, ...override }, today, true);
+    expect(result.current).toBe(current);
+    expect(result.freezesLeft).toBe(freezesLeft);
+    expect(result.longest).toBe(longest);
+  });
+
   it('passes a streak without freezes through unchanged', () => {
     const legacy: Streak = { current: 5, longest: 9, lastStudyDay: '2026-10-22', studyDays: 20 };
     expect(liveStreak(legacy, '2026-10-26')).toBe(legacy);

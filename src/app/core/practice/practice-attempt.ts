@@ -1,9 +1,8 @@
 import type { Comfort } from '../models/progress.model';
+import { sessionDateISO } from '../utils/local-date';
 
 const ATTEMPTS_DIR = 'dsa/attempts';
 const HEADER_PREFIX = '# po-attempt: ';
-const DATE_PAD = 2;
-const MONTH_OFFSET = 1;
 const NON_NAME_RUN = /[^a-z0-9]+/g;
 const EDGE_UNDERSCORES = /^_+|_+$/g;
 const ATTEMPT_NUMBER_PREFIX = /^(\d+)_/;
@@ -49,15 +48,11 @@ export const RATING_OPTIONS: readonly {
 
 const RATINGS: readonly AttemptRating[] = RATING_OPTIONS.map((option) => option.rating);
 
-function padded(value: number): string {
-  return String(value).padStart(DATE_PAD, '0');
-}
-
-/** `261`, `Graph Valid Tree`, 2026-10-18 local → `dsa/attempts/20261018/261_graph_valid_tree.py`. */
+/** `261`, `Graph Valid Tree`, 2026-10-18 local (05:00 or later) →
+ *  `dsa/attempts/20261018/261_graph_valid_tree.py`; before 05:00 the previous day's folder. */
 export function attemptPath(date: Date, number: number, title: string): string {
-  const day = `${date.getFullYear()}${padded(date.getMonth() + MONTH_OFFSET)}${padded(date.getDate())}`;
   const name = title.toLowerCase().replace(NON_NAME_RUN, '_').replace(EDGE_UNDERSCORES, '');
-  return `${ATTEMPTS_DIR}/${day}/${number}_${name}.py`;
+  return `${attemptDayDir(sessionDateISO(date))}/${number}_${name}.py`;
 }
 
 /** The header line, a newline, then the editor code verbatim. */

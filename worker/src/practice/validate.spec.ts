@@ -29,6 +29,19 @@ describe('validateAttempt header', () => {
     { name: 'in-progress', fields: {}, ok: true },
     { name: 'complete', fields: COMPLETE, ok: true },
     { name: 'unknown header key', fields: { extra: 1 }, ok: false },
+    { name: 'provisional', fields: { complete: true, tests: '9/9' }, ok: true },
+    { name: 'provisional with failing tests', fields: { complete: true, tests: '2/3' }, ok: false },
+    { name: 'provisional with 0/0', fields: { complete: true, tests: '0/0' }, ok: false },
+    {
+      name: 'complete with a rating but no complexity',
+      fields: { complete: true, rating: 'clean', tests: '9/9' },
+      ok: false,
+    },
+    {
+      name: 'complexity without a rating and failing tests',
+      fields: { complete: true, tests: '2/3', complexity: COMPLEXITY },
+      ok: false,
+    },
   ];
 
   for (const { name, fields, ok } of cases) {

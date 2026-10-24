@@ -14,9 +14,17 @@ import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { CoachContextService, CoachPracticeSnapshot } from '../../../core/coach/coach-context.service';
 import { isCoachOwner } from '../../../core/data/site-links';
-import { AttemptMeta, RATING_OPTIONS, parseAttemptFile } from '../../../core/practice/practice-attempt';
+import {
+  AttemptMeta,
+  RATING_OPTIONS,
+  attemptPath,
+  buildAttemptFile,
+  parseAttemptFile,
+} from '../../../core/practice/practice-attempt';
 import { BigOService } from '../../../core/services/big-o.service';
 import { PracticeSaveService } from '../../../core/services/practice-save.service';
+import { ProvisionalRepService } from '../../../core/services/provisional-rep.service';
+import { addRecord } from '../../../core/services/provisional-records';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
 import type { PracticeProblem } from '../../../core/models/practice.model';
 import type { RepoRef } from '../../../core/services/github-file.service';
@@ -54,6 +62,27 @@ const COPY_FAIL_ICON: IconName = 'x';
 const COPY_ICON_SIZE_PX = 14;
 const PERCENT = 100;
 const RESET_CONFIRM = 'Reset this solution to the starter code?';
+const LEAVE_CONFIRM = 'Leave without rating? The rep is saved as unrated.';
+/** How long leaving waits for the provisional save before it lets the navigation through. */
+const PROVISIONAL_SAVE_TIMEOUT_MS = 4000;
+
+/** A full pass and the provisional rep built from it. */
+interface PassRecord {
+  readonly run: RunState;
+  readonly ref: RepoRef;
+  readonly path: string;
+  readonly content: string;
+}
+
+/** Settles with `work`, or with false once `ms` have passed. */
+function withTimeout(work: Promise<boolean>, ms: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<boolean>((resolve) => {
+    timer = setTimeout(() => resolve(false), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+
 const closeConfirm = (position: number): string => `Close Solution ${position}? Its code will be deleted.`;
 
 @Component({
@@ -70,13 +99,18 @@ const closeConfirm = (position: number): string => `Close Solution ${position}? 
     PracticeHeaderComponent,
   ],
   // Host metadata rather than @HostListener: another runtime symbol would land in the initial bundle.
-  host: { '(document:keydown)': 'onShortcut($event)' },
+  host: {
+    '(document:keydown)': 'onShortcut($event)',
+    '(window:beforeunload)': 'onBeforeUnload($event)',
+    '(window:pagehide)': 'onPageHide()',
+  },
 })
 export class PracticePageComponent {
   private readonly runner = inject(PythonRunnerService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
   private readonly saver = inject(PracticeSaveService);
+  private readonly provisional = inject(ProvisionalRepService);
   private readonly coachContext = inject(CoachContextService);
   protected readonly bigO = inject(BigOService);
 
@@ -199,12 +233,31 @@ export class PracticePageComponent {
     return state.results.length === total && total > 0 ? { passed: this.passedCount(), total } : null;
   });
 
-  /** Mark Complete: the latest Run passed every case it ran, on exactly the code now in the editor. */
-  readonly canMarkComplete = computed(() => {
+  /** The run state of a full pass on exactly the code now in the editor; null when there is none. */
+  private readonly passingRun = computed<RunState | null>(() => {
     const tally = this.latestTally();
     const isSameCode = this.lastRun()?.code === this.text();
     const isFullRun = tally?.total === this.problem()?.cases.length;
-    return tally !== null && isFullRun && tally.passed === tally.total && isSameCode && this.saveStatus().state !== 'saving';
+    return tally !== null && isFullRun && tally.passed === tally.total && isSameCode ? this.runState() : null;
+  });
+
+  /** Mark Complete: the latest Run passed every case it ran, on exactly the code now in the editor. */
+  readonly canMarkComplete = computed(() => this.passingRun() !== null && this.saveStatus().state !== 'saving');
+
+  /** The provisional rep stored for the latest full pass; null until one passes. */
+  private readonly pass = signal<PassRecord | null>(null);
+
+  /** The passing run on the current code that no complete or provisional save of this day has covered. */
+  private readonly unsavedPass = computed(() => {
+    const pass = this.pass();
+    if (pass === null || pass.run !== this.passingRun() || this.saver.hasLanded(pass.path)) return null;
+    return this.saveStatus().state === 'saving' ? null : pass;
+  });
+
+  /** A complete or provisional save of this problem for today's path is known; Save to GitHub hides. */
+  readonly isDayLanded = computed(() => {
+    const problem = this.problem();
+    return problem !== null && this.saver.hasLanded(attemptPath(new Date(), problem.number, problem.title));
   });
 
   /** The finished run the coach sees: the tally plus each case's raw verdict; null until a run has finished. */
@@ -236,6 +289,9 @@ export class PracticePageComponent {
   private runSubscription: Subscription | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
+  private autoOpenedRun: RunState | null = null;
+  private sentRun: RunState | null = null;
+  private hasResentPending = false;
 
   constructor() {
     effect(() => {
@@ -244,6 +300,21 @@ export class PracticePageComponent {
       const number = this.problem()?.number;
       if (!this.canSave() || !ref || number === undefined) return;
       untracked(() => void this.loadRemote(ref, number));
+      untracked(() => this.resendPendingOnce());
+    });
+    effect(() => {
+      const run = this.passingRun();
+      if (run === null || !this.canSave()) return;
+      untracked(() => this.recordPass(run));
+    });
+    effect(() => {
+      const run = this.passingRun();
+      if (run === null || run === this.autoOpenedRun || !this.canSave() || !this.canCompleteRep()) return;
+      untracked(() => {
+        this.autoOpenedRun = run;
+        this.isCompleting.set(true);
+        this.isOutputOpen.set(true);
+      });
     });
     effect(() => {
       const problem = this.problem();
@@ -420,6 +491,51 @@ export class PracticePageComponent {
     return tally === null ? null : `${tally.passed}/${tally.total}`;
   }
 
+  /** Keeps the provisional rep for a full pass in localStorage until a save of it lands. */
+  private recordPass(run: RunState): void {
+    const ref = this.ref();
+    const problem = this.problem();
+    const tally = this.latestTally();
+    if (this.pass()?.run === run || !ref || !problem || tally === null) return;
+    const now = new Date();
+    const path = attemptPath(now, problem.number, problem.title);
+    const tests = `${tally.total}/${tally.total}`;
+    const content = buildAttemptFile({ complete: true, rating: null, tests, complexity: null }, now, this.text());
+    if (!this.saver.hasLanded(path)) addRecord({ ref, path, content, date: now.toISOString() });
+    this.pass.set({ run, ref, path, content });
+  }
+
+  private resendPendingOnce(): void {
+    if (this.hasResentPending) return;
+    this.hasResentPending = true;
+    void this.provisional.resendPending();
+  }
+
+  /** The CanDeactivate check: with an unsaved pass, ask, then save it as unrated before leaving. */
+  async confirmLeave(): Promise<boolean> {
+    const pass = this.unsavedPass();
+    if (pass === null) return true;
+    if (!window.confirm(LEAVE_CONFIRM)) return false;
+    if (this.sentRun === pass.run) return true;
+    this.sentRun = pass.run;
+    await withTimeout(this.saver.sendProvisional(pass.ref, pass.path, pass.content), PROVISIONAL_SAVE_TIMEOUT_MS);
+    return true;
+  }
+
+  onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.unsavedPass() === null) return;
+    event.preventDefault();
+    event.returnValue = '';
+  }
+
+  /** The page is going away: send the provisional rep once, with a request that outlives it. */
+  onPageHide(): void {
+    const pass = this.unsavedPass();
+    if (pass === null || this.sentRun === pass.run) return;
+    this.sentRun = pass.run;
+    void this.saver.sendKeepalive(pass.ref, pass.path, pass.content);
+  }
+
   private saveAttempt(meta: AttemptMeta): void {
     const ref = this.ref();
     const problem = this.problem();
@@ -430,9 +546,13 @@ export class PracticePageComponent {
   /** Loads the newest GitHub copy into the open tab when it is newer than the local draft. A legacy
    *  draft with no time keeps winning, and so does anything typed while the request was out. */
   private async loadRemote(ref: RepoRef, number: number): Promise<void> {
-    const content = await this.saver.latest(ref, number);
-    const remote = content === null ? null : parseAttemptFile(content);
-    if (remote === null || this.problem()?.number !== number) return;
+    const file = await this.saver.latestFile(ref, number);
+    const remote = file === null ? null : parseAttemptFile(file.content);
+    if (file === null || remote === null || this.problem()?.number !== number) return;
+    const problem = this.problem();
+    if (remote.complete && problem && file.path === attemptPath(new Date(), number, problem.title)) {
+      this.saver.markLanded(file.path);
+    }
     if (this.edited()?.number === number) return;
     const draft = loadDraftStamp(ref, number);
     if (draft.exists && (draft.savedAt === null || draft.savedAt >= remote.savedAt)) return;

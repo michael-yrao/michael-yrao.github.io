@@ -18,6 +18,18 @@ export function todayLocalISO(): string {
   return localISODate(new Date());
 }
 
+/** Local hours before this belong to the previous day's session. Mirrors cse-progress
+ *  `scripts/session_date.py` `SMALL_HOURS_CUTOFF`. */
+export const SMALL_HOURS_CUTOFF = 5;
+
+/** The study session's date as `YYYY-MM-DD`: the local date, except before `SMALL_HOURS_CUTOFF`
+ *  local time, when it is still the previous day. Mirrors cse-progress `scripts/session_date.py`;
+ *  the attempt save path and the pending lookup both use it so they name the same folder. */
+export function sessionDateISO(now: Date = new Date()): string {
+  if (now.getHours() >= SMALL_HOURS_CUTOFF) return localISODate(now);
+  return localISODate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+}
+
 const ISO_DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Fixed offsets into a `YYYY-MM-DD` string — named so the slice calls below read as "month"

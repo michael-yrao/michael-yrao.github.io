@@ -197,6 +197,38 @@ describe('practice /save', () => {
     expect(body.sha).toBe('abc123');
     expect(Buffer.from(body.content, 'base64').toString('utf8')).toBe(content);
   });
+
+  it('a non-rated save is 409 over a file it would bury, and writes otherwise', async () => {
+    const existingFile = (fields: Record<string, unknown>) => ({
+      sha: 'abc123',
+      content: Buffer.from(`${header(fields)}\nold\n`).toString('base64'),
+    });
+    const inProgress = {};
+    const provisional = { complete: true, tests: '9/9' };
+    const rated = { complete: true, rating: 'clean', tests: '9/9', complexity: COMPLEXITY };
+    const rows = [
+      { name: 'in-progress over provisional', incoming: inProgress, existing: provisional, status: 409, puts: 0 },
+      { name: 'in-progress over in-progress', incoming: inProgress, existing: inProgress, status: 200, puts: 1 },
+      { name: 'provisional over rated', incoming: provisional, existing: rated, status: 409, puts: 0 },
+      { name: 'provisional over provisional', incoming: provisional, existing: provisional, status: 200, puts: 1 },
+      { name: 'provisional over in-progress', incoming: provisional, existing: inProgress, status: 200, puts: 1 },
+    ];
+
+    for (const row of rows) {
+      const script = ownerScript('alice', {
+        [`GET ${CONTENTS_URL}?ref=main`]: { status: 200, body: existingFile(row.existing) },
+      });
+      const { fetchImpl, calls } = stubFetch(script);
+      const response = await handle(saveRequest(PATH, `${header(row.incoming)}\nnew\n`), ENV, fetchImpl);
+
+      expect(response.status, row.name).toBe(row.status);
+      if (row.status === 409) expect(await response.json()).toEqual({ error: 'already-complete' });
+      expect(calls.filter((call) => call.method === 'PUT'), row.name).toHaveLength(row.puts);
+      expect(calls.filter((call) => call.url.startsWith(CONTENTS_URL)), row.name).toHaveLength(
+        row.puts + 1,
+      );
+    }
+  });
 });
 
 describe('practice /latest', () => {

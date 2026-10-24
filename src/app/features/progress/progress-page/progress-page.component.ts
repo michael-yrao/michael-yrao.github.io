@@ -18,10 +18,11 @@ import { AuthService, isOwnDsaRepo } from '../../../core/auth/auth.service';
 import { ProgressService } from '../../../core/services/progress.service';
 import { fileUrl } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
+import { ProvisionalRepService } from '../../../core/services/provisional-rep.service';
 import { ComfortKey, comfortName } from '../../../core/models/comfort';
 import { ProblemProgress, ScheduleItem, Streak, Technique } from '../../../core/models/progress.model';
 import { liveStreak } from '../live-streak';
-import { todayLocalISO } from '../../../core/utils/local-date';
+import { sessionDateISO, todayLocalISO } from '../../../core/utils/local-date';
 import { DEMO_REPO_SLUG } from '../../../core/data/site-links';
 import { walkthroughRouteFor } from '../solution-link-mode';
 import { PRACTICE_ICON } from '../practice-link';
@@ -83,7 +84,7 @@ export class ProgressPageComponent {
   /** The summary's streak re-spent against the viewer's own today — null until data loads. */
   readonly liveStreakData = computed<Streak | null>(() => {
     const streak = this.data()?.streak;
-    return streak ? liveStreak(streak, todayLocalISO()) : null;
+    return streak ? liveStreak(streak, sessionDateISO(), this.progress.hasSavedToday()) : null;
   });
   /** One flag per freeze slot, true when the freeze is still banked — the hero's fill mark. */
   readonly freezeSlots = computed<boolean[]>(() => {
@@ -105,6 +106,9 @@ export class ProgressPageComponent {
   readonly details = this.progress.details;
   // LeetCode numbers saved today but not yet folded into the summary — the board's third state.
   readonly pending = this.progress.pending;
+  // The unrated and refused subsets of today's saves, drawn on the board's rows.
+  readonly provisional = this.progress.provisional;
+  readonly refused = this.progress.refused;
 
   // The Overview board's archived weeks — opt-in, fetched only once the board steps back
   // past the week the summary already carries (see WeekNavigation.prevWeek()).
@@ -167,6 +171,7 @@ export class ProgressPageComponent {
   private readonly activeRepo;
 
   protected readonly auth = inject(AuthService);
+  private readonly provisionalReps = inject(ProvisionalRepService);
   /** The repos the App is installed on for the signed-in viewer; null until looked up. */
   protected readonly ownRepos = signal<readonly string[] | null>(null);
   /** Signed in as the owner of the repo on screen: the engine mark and setup link show only then. */
@@ -243,6 +248,7 @@ export class ProgressPageComponent {
     effect(() => {
       if (!this.isOwnRepo()) return;
       untracked(() => this.progress.loadDetails());
+      untracked(() => void this.provisionalReps.resendPending());
     });
     // Look up the viewer's own repos once per sign-in.
     effect(() => {

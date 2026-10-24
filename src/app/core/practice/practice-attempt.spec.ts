@@ -1,4 +1,18 @@
-import { buildAttemptFile, parseAttemptFile } from './practice-attempt';
+import { attemptPath, buildAttemptFile, parseAttemptFile } from './practice-attempt';
+
+describe('attemptPath session-date folder', () => {
+  const cases: { name: string; now: Date; folder: string }[] = [
+    { name: '04:59 is still yesterday', now: new Date(2026, 9, 18, 4, 59), folder: '20261017' },
+    { name: '05:00 is today', now: new Date(2026, 9, 18, 5, 0), folder: '20261018' },
+    { name: '00:00 on the 1st is the last day of the previous month', now: new Date(2026, 10, 1, 0, 0), folder: '20261031' },
+  ];
+
+  for (const { name, now, folder } of cases) {
+    it(name, () => {
+      expect(attemptPath(now, 261, 'Graph Valid Tree')).toBe(`dsa/attempts/${folder}/261_graph_valid_tree.py`);
+    });
+  }
+});
 
 const SAVED_AT = new Date('2026-10-19T10:00:00.000Z');
 const CODE = 'def solve():\n    pass\n';

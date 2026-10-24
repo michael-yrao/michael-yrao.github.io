@@ -9,18 +9,24 @@ import {
   HTTP_OK,
   isRecord,
   jsonResponse,
+  putFile,
+  readFileWithSha,
   readJson,
   writeOwnedFile,
   type FetchImpl,
+  type FileCommit,
   type HeaderMap,
   type RepoTarget,
 } from '../github/write-file';
 import { gateOrigin, preflight, type PatternSenseEnv } from '../pattern-sense/handler';
 import {
   ATTEMPTS_DIR,
+  isCompleteAttemptText,
+  isRatedAttemptText,
   parseAttemptFile,
   parseLatestRequest,
   validateAttempt,
+  type AttemptFile,
   type LatestRequest,
 } from './validate';
 
@@ -52,13 +58,35 @@ async function handleSave(
   const checked = validateAttempt(file);
   if ('error' in checked) return failure(400, checked.error, cors);
 
-  return writeOwnedFile(
-    fetchImpl,
-    token,
-    file,
-    { message: checked.commitMessage, content: file.content },
-    cors,
-  );
+  const commit = { message: checked.commitMessage, content: file.content };
+  if (checked.isComplete && !checked.isProvisional)
+    return writeOwnedFile(fetchImpl, token, file, commit, cors);
+  return writeGuarded(fetchImpl, token, file, commit, checked.isProvisional, cors);
+}
+
+/** An in-progress save never buries a complete rep, and a provisional save never buries a rated
+ *  one: the one contents GET that finds the sha also shows the existing file (409). */
+async function writeGuarded(
+  fetchImpl: FetchImpl,
+  token: string,
+  file: AttemptFile,
+  commit: FileCommit,
+  isProvisional: boolean,
+  cors: HeaderMap,
+): Promise<Response> {
+  const refusal = await checkOwner(fetchImpl, token, file, cors);
+  if (refusal !== null) return refusal;
+
+  const existing = await readFileWithSha(fetchImpl, token, file, cors);
+  if (existing.kind === 'refused') return existing.response;
+  const isBlocked = isProvisional ? isRatedAttemptText : isCompleteAttemptText;
+  if (existing.kind === 'found' && isBlocked(existing.text))
+    return failure(409, 'already-complete', cors);
+
+  const sha = existing.kind === 'found' ? existing.sha : undefined;
+  const put = await putFile(fetchImpl, token, file, commit, sha, cors);
+  if (put.kind === 'written') return jsonResponse(200, { ok: true }, cors);
+  return put.kind === 'refused' ? put.response : failure(502, 'github-error', cors);
 }
 
 function refModeUrl(target: RepoTarget, path: string): string {

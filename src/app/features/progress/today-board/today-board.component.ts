@@ -21,7 +21,7 @@ import { LoadStatus } from '../../../core/services/progress.service';
 import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { streakFromNote } from '../../../core/models/comfort';
-import { shortMonthDay } from '../../../core/utils/local-date';
+import { sessionDateISO, shortMonthDay } from '../../../core/utils/local-date';
 import { EngineMenuComponent } from '../engine-menu/engine-menu.component';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
 import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
@@ -35,6 +35,10 @@ import {
   COMPLEXITY_GATE_TITLE,
   RowCounts,
   WALKTHROUGH_GLYPH,
+  UNRATED_GLYPH,
+  UNRATED_LABEL,
+  REFUSED_ICON,
+  refusedLabel,
   DONE_ICON,
   HELD_ICON,
   OPEN_ICON,
@@ -66,6 +70,7 @@ import {
 import { WeekNavigation } from './week-navigation';
 
 const NO_PENDING: ReadonlySet<number> = new Set();
+const NO_REFUSALS: ReadonlyMap<number, string> = new Map();
 
 /**
  * The Overview tab's one schedule card: a 7-day selector strip over the week's
@@ -136,6 +141,10 @@ export class TodayBoardComponent {
   /** LeetCode numbers whose complete rep is saved today but not yet folded into the summary
    *  (`ProgressService.pending`) — those rows show the "saved, folding" state. */
   readonly pending = input<ReadonlySet<number>>(NO_PENDING);
+  /** The subset of `pending` that is saved but not yet rated (`ProgressService.provisional`). */
+  readonly provisional = input<ReadonlySet<number>>(NO_PENDING);
+  /** Today's refused saves, problem number -> reason (`ProgressService.refused`). */
+  readonly refused = input<ReadonlyMap<number, string>>(NO_REFUSALS);
 
   /** The archived weeks (`ProgressService.history`) — `null` until the board has asked for
    *  them (see `prevWeek()`), an array (possibly empty) once that fetch has resolved. */
@@ -345,9 +354,24 @@ export class TodayBoardComponent {
     return (
       !item.done &&
       item.lcNumber !== null &&
-      date === this.todayISO() &&
+      date === sessionDateISO() &&
       this.pending().has(item.lcNumber)
     );
+  }
+
+  /** True for a row whose rep is logged with its rating pending: a done row the summary marks
+   *  `unrated`, or an open row whose saved file is provisional. */
+  isUnratedItem(item: ScheduleItem, date: string): boolean {
+    if (item.unrated === true) return true;
+    return (
+      this.isPendingItem(item, date) && item.lcNumber !== null && this.provisional().has(item.lcNumber)
+    );
+  }
+
+  /** The reason today's save for an open row was refused; null when it was not. */
+  refusalFor(item: ScheduleItem, date: string): string | null {
+    if (item.done || item.lcNumber === null || date !== sessionDateISO()) return null;
+    return this.refused().get(item.lcNumber) ?? null;
   }
 
   /** Rows for one day, used by both the collapsed (selected-day) and expanded (7-day) views. */
@@ -384,6 +408,10 @@ export class TodayBoardComponent {
   protected readonly openIcon = OPEN_ICON;
   protected readonly heldIcon = HELD_ICON;
   protected readonly walkthroughGlyph = WALKTHROUGH_GLYPH;
+  protected readonly unratedGlyph = UNRATED_GLYPH;
+  protected readonly unratedLabel = UNRATED_LABEL;
+  protected readonly refusedIcon = REFUSED_ICON;
+  protected readonly refusedLabel = refusedLabel;
   protected readonly practiceIcon = PRACTICE_ICON;
   protected readonly gateTitle = COMPLEXITY_GATE_TITLE;
 }

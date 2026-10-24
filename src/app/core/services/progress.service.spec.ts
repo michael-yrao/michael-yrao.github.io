@@ -16,6 +16,7 @@ function makeHttp() {
     calls,
     get: (url: string, opts: any) => {
       if (url.includes('manifest.json')) return throwError(() => ({ status: 404 })); // unrecorded
+      if (url.includes('dsa/attempts')) return of([]); // the pending lookup's listing: not what these tests count
       calls.push({ url, opts });
       return of(payload);
     },

@@ -11,8 +11,8 @@ const TODAY = '2026-10-19';
 const DAY_DIR_URL = 'contents/dsa/attempts/20261019?';
 const SAVED_AT = new Date('2026-10-19T10:00:00.000Z');
 
-function attemptText(complete: boolean): string {
-  return buildAttemptFile({ complete, rating: complete ? 'clean' : null, tests: null, complexity: null }, SAVED_AT, 'x = 1\n');
+function attemptText(complete: boolean, rating: 'clean' | null = complete ? 'clean' : null): string {
+  return buildAttemptFile({ complete, rating, tests: null, complexity: null }, SAVED_AT, 'x = 1\n');
 }
 
 type Listing = { name: string; type: string }[] | 'missing';
@@ -58,6 +58,45 @@ describe('PendingAttemptsService.load', () => {
     const result = await service.load(REF, TODAY, new Set([1, 2]));
     expect([...result]).toEqual([1]);
     expect([...service.pending()]).toEqual([1]);
+  });
+
+  it('a provisional file counts as pending and as provisional', async () => {
+    const http = makeHttp(
+      [
+        { name: '1_two_sum.py', type: 'file' },
+        { name: '2_add_two_numbers.py', type: 'file' },
+      ],
+      { '1_two_sum.py': attemptText(true, null), '2_add_two_numbers.py': attemptText(true) },
+    );
+    const service = serviceWith(http);
+    await service.load(REF, TODAY, new Set([1, 2]));
+    expect([...service.pending()].sort()).toEqual([1, 2]);
+    expect([...service.provisional()]).toEqual([1]);
+  });
+
+  it.each([
+    ['a refused.json entry gives the refused state with its reason', '[{"number":1,"reason":"tests failed"}]', [[1, 'tests failed']]],
+    ['a malformed refused.json gives no refused state', '[{"number":"1"}]', []],
+    ['a refused.json that is not JSON gives no refused state', '{nope', []],
+  ])('%s', async (_label, refusedText, expected) => {
+    const http = makeHttp(
+      [
+        { name: '1_two_sum.py', type: 'file' },
+        { name: 'refused.json', type: 'file' },
+      ],
+      { 'refused.json': refusedText },
+    );
+    const service = serviceWith(http);
+    await service.load(REF, TODAY, new Set([1]));
+    expect([...service.refused()]).toEqual(expected);
+  });
+
+  it('hasSavedToday is true for a complete file that is not on an open row', async () => {
+    const http = makeHttp([{ name: '9_other.py', type: 'file' }], { '9_other.py': attemptText(true) });
+    const service = serviceWith(http);
+    await service.load(REF, TODAY, new Set([1]));
+    expect(service.hasSavedToday()).toBe(true);
+    expect([...service.pending()]).toEqual([]);
   });
 
   it('never requests a file whose number is not an open row', async () => {

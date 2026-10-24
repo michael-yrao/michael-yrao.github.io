@@ -10,7 +10,7 @@ import { LoadStatus, ProgressService } from '../../../core/services/progress.ser
 import { EngineService } from '../../../core/engine/engine.service';
 import { NO_ENGINE_RUN } from '../../../core/engine/engine-status';
 import { of } from 'rxjs';
-import { addDaysISO, currentWeekStart, shortMonthDay, todayLocalISO, weekdayShort } from '../../../core/utils/local-date';
+import { addDaysISO, currentWeekStart, sessionDateISO, shortMonthDay, weekdayShort } from '../../../core/utils/local-date';
 
 // Filled bars of each comfort mark inside `host`, read from the mark's `data-level`, in DOM order (🔴 → 1, 🟢 with s2 or no note → 5).
 function filledBars(host: Element): number[] {
@@ -38,10 +38,10 @@ afterEach(() => localStorage.removeItem(SOLUTION_LINK_MODE_STORAGE_KEY));
 // week instead of this fixture's own days.
 function makeSchedule(overrides: Partial<Schedule> = {}): Schedule {
   return {
-    weekOf: currentWeekStart(todayLocalISO()),
+    weekOf: currentWeekStart(sessionDateISO()),
     days: [
       {
-        date: todayLocalISO(),
+        date: sessionDateISO(),
         weekday: 'Today',
         label: 'Test day',
         units: 5,
@@ -74,7 +74,7 @@ function makeWeekSchedule(): Schedule {
           startComfort: null, difficulty: null, done: false }],
       })),
       {
-        date: todayLocalISO(),
+        date: sessionDateISO(),
         weekday: 'Today',
         label: 'Test day',
         units: 5,
@@ -166,7 +166,7 @@ describe('TodayBoardComponent', () => {
     const schedule = makeSchedule({
       days: [
         {
-          date: todayLocalISO(),
+          date: sessionDateISO(),
           weekday: 'Today',
           label: null,
           units: 1,
@@ -182,6 +182,35 @@ describe('TodayBoardComponent', () => {
     expect(row.classList.contains('today-board__row--done')).toBe(done);
     expect(row.classList.contains('today-board__row--pending')).toBe(isPending);
     expect(iconName(row.querySelector('.today-board__status'))).toBe(icon);
+  });
+
+  it.each([
+    { state: 'summary-unrated done row', lcNumber: 9011, done: true, unrated: true, label: 'logged — rating pending' },
+    { state: 'provisional pending open row', lcNumber: 9012, done: false, unrated: false, label: 'logged — rating pending' },
+    { state: 'refused open row', lcNumber: 9013, done: false, unrated: false, label: 'not recorded — tests failed' },
+  ])('labels a $state', ({ lcNumber, done, unrated, label }) => {
+    const schedule = makeSchedule({
+      days: [
+        {
+          date: sessionDateISO(),
+          weekday: 'Today',
+          label: null,
+          units: 1,
+          items: [
+            { lcNumber, title: 'Row', technique: 'Arrays', startComfort: null, difficulty: null, done, ...(unrated ? { unrated } : {}) },
+          ],
+        },
+      ],
+      weekOf: currentWeekStart(sessionDateISO()),
+    });
+    const fixture = createFixture(schedule);
+    fixture.componentRef.setInput('pending', new Set([9012]));
+    fixture.componentRef.setInput('provisional', new Set([9012]));
+    fixture.componentRef.setInput('refused', new Map([[9013, 'tests failed']]));
+    fixture.detectChanges();
+
+    const mark = fixture.nativeElement.querySelector('.today-board__mark');
+    expect(mark?.getAttribute('aria-label')).toBe(label);
   });
 
   // ── The technique-naming day label is dropped from the board (recognition-gate spoiler) ─
@@ -354,7 +383,7 @@ describe('TodayBoardComponent', () => {
     const base = makeWeekSchedule();
     const schedule: Schedule = {
       ...base,
-      days: base.days.map((d) => (d.date === todayLocalISO() ? { ...d, items: gateItems } : d)),
+      days: base.days.map((d) => (d.date === sessionDateISO() ? { ...d, items: gateItems } : d)),
     };
 
     const fixture = createFixture(schedule);
@@ -394,7 +423,7 @@ describe('TodayBoardComponent', () => {
 
   it('bands as Over when done exceeds the ceiling even though planned only equals it', () => {
     // planned=8 (== ceiling -> Heavy alone), done=9 > ceiling 8 -> Over.
-    const workload: WorkloadDay[] = [{ date: todayLocalISO(), planned: 8, done: 9, built: 9, partial: false }];
+    const workload: WorkloadDay[] = [{ date: sessionDateISO(), planned: 8, done: 9, built: 9, partial: false }];
     const fixture = createFixture(makeSchedule(), 8, 3, undefined, undefined, undefined, workload);
 
     const label = fixture.nativeElement.querySelector('.today-board__workload-label');
@@ -426,7 +455,7 @@ describe('TodayBoardComponent', () => {
       {
         dayUnits: 7.7,
         extraItems: [],
-        workload: [{ date: todayLocalISO(), planned: 7.7, done: 7.3, built: 7.7, partial: false }],
+        workload: [{ date: sessionDateISO(), planned: 7.7, done: 7.3, built: 7.7, partial: false }],
         expectedLabel: '7.3 of 7.7 units done · ceiling 8 · Heavy',
         expectedFillCount: 2, // the dimmed planned fill + the solid done fill on top of it.
       },
@@ -442,7 +471,7 @@ describe('TodayBoardComponent', () => {
         // read from the entry's frozen planned (7.7), not the lowered header.
         dayUnits: 3.8,
         extraItems: [movedItem],
-        workload: [{ date: todayLocalISO(), planned: 7.7, done: 3.8, built: 3.8, partial: false }],
+        workload: [{ date: sessionDateISO(), planned: 7.7, done: 3.8, built: 3.8, partial: false }],
         expectedLabel: '3.8 of 7.7 units done · ceiling 8 · Heavy',
         expectedFillCount: 2,
       },
@@ -834,7 +863,7 @@ describe('TodayBoardComponent', () => {
   // ── Round 7: a `deferredTo` row (not done) renders as "moved" ──────────────────────
   it('renders ↷ with no chip and no line-through for a moved row, with "4 of 5 done · 1 moved"', () => {
     const schedule = makeSchedule();
-    const tomorrow = addDaysISO(todayLocalISO(), 1);
+    const tomorrow = addDaysISO(sessionDateISO(), 1);
     schedule.days[0].items = [
       { lcNumber: 1, title: 'A', technique: null, startComfort: null, difficulty: null, done: true },
       { lcNumber: 2, title: 'B', technique: null, startComfort: null, difficulty: null, done: true },
@@ -1306,7 +1335,7 @@ describe('TodayBoardComponent — current-week resolution', () => {
     expect(activeBtn).toBe(todayBtn);
   }
 
-  const today = todayLocalISO();
+  const today = sessionDateISO();
   const currentWeekOf = currentWeekStart(today);
   const currentWeekDates = Array.from({ length: 7 }, (_, i) => addDaysISO(currentWeekOf, i));
   const weekSchedule = makeWeekSchedule();
@@ -1405,7 +1434,7 @@ describe('TodayBoardComponent — current-week resolution', () => {
 
 describe('TodayBoardComponent — week navigation', () => {
   it('steps between known weeks with no fetch, asks for a week it does not have, and disables ◀/▶ at the known edges', () => {
-    const today = todayLocalISO();
+    const today = sessionDateISO();
     const currentWeekOf = currentWeekStart(today);
     const lastWeekOf = addDaysISO(currentWeekOf, -7);
 
@@ -1488,7 +1517,7 @@ describe('TodayBoardComponent — week navigation', () => {
   });
 
   describe('▶ on the current week', () => {
-    const currentWeekOf = currentWeekStart(todayLocalISO());
+    const currentWeekOf = currentWeekStart(sessionDateISO());
     const nextWeekOf = addDaysISO(currentWeekOf, 7);
 
     function emptyWeekOf(weekOf: string): Schedule {
@@ -1775,7 +1804,7 @@ describe('TodayBoardComponent setup CTA', () => {
 });
 
 describe('TodayBoardComponent held mark', () => {
-  const today = todayLocalISO();
+  const today = sessionDateISO();
   it.each<{ name: string; heldUntil?: string; mark: string | null }>([
     { name: 'no heldUntil shows no mark', mark: null },
     { name: 'a past heldUntil shows no mark', heldUntil: addDaysISO(today, -1), mark: null },

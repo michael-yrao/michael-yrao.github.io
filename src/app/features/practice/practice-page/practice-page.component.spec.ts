@@ -142,11 +142,11 @@ describe('PracticePageComponent', () => {
     localStorage.removeItem(SPLIT_KEY);
   });
   afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.restoreAllMocks();
     localStorage.removeItem(DRAFT_KEY);
     localStorage.removeItem(TABS_KEY);
     localStorage.removeItem(SPLIT_KEY);
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it('draws a tab per case with the first failure selected; clicking a tab shows that case in full', () => {

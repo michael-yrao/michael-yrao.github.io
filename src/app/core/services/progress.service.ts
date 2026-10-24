@@ -26,7 +26,7 @@ import {
   invalidSlugMessage,
 } from './github-file.service';
 import { PendingAttemptsService } from './pending-attempts.service';
-import { todayLocalISO } from '../utils/local-date';
+import { sessionDateISO } from '../utils/local-date';
 
 // The dashboard renders any repo that follows the cse-coach schema. This is the default
 // when no ?repo= is given; ?repo=owner/name overrides it for any PUBLIC repo. Re-exported
@@ -161,6 +161,12 @@ export class ProgressService {
 
   /** Today's open rows that already have a complete attempt file saved (not yet folded). */
   readonly pending: Signal<ReadonlySet<number>>;
+  /** The subset of `pending` that is saved but not yet rated. */
+  readonly provisional: Signal<ReadonlySet<number>>;
+  /** Today's refused saves: problem number -> reason. */
+  readonly refused: Signal<ReadonlyMap<number, string>>;
+  /** Any finished attempt is saved in today's folder, folded or not. */
+  readonly hasSavedToday: Signal<boolean>;
 
   readonly repoSlug = computed(() => {
     const s = this.source();
@@ -177,6 +183,9 @@ export class ProgressService {
     private readonly pendingAttempts: PendingAttemptsService,
   ) {
     this.pending = pendingAttempts.pending;
+    this.provisional = pendingAttempts.provisional;
+    this.refused = pendingAttempts.refused;
+    this.hasSavedToday = pendingAttempts.hasSavedToday;
   }
 
   /** Parse "owner/name" or "owner/name@branch"; empty/missing input falls back to the
@@ -309,7 +318,7 @@ export class ProgressService {
 
   /** Looks up today's saved-but-unfolded attempts, then keeps polling the summary while any remain. */
   private trackPending(ref: RepoRef, requestId: number): void {
-    const today = todayLocalISO();
+    const today = sessionDateISO();
     void this.pendingAttempts
       .load(ref, today, this.openNumbersFor(today))
       .then((pending) => this.schedulePoll(ref, requestId, pending));
