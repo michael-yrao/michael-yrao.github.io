@@ -8,10 +8,10 @@ interface StripDot {
   readonly number: number;
   readonly label: string;
   readonly isDone: boolean;
-  readonly isCurrent: boolean;
+  readonly isPage: boolean;
 }
 
-/** One dot per problem in today's run-through: filled when done, ringed on the problem being viewed. */
+/** One dot per problem in today's run-through: an empty circle, or a green filled one when done. */
 @Component({
   selector: 'app-today-strip',
   templateUrl: './today-strip.component.html',
@@ -27,7 +27,7 @@ export class TodayStripComponent {
 
   protected readonly isShown = computed(() => {
     const n = this.number();
-    return n !== null && this.session.active() && this.session.contains(n);
+    return n !== null && this.session.isRunning(n);
   });
 
   protected readonly dots = computed<readonly StripDot[]>(() =>
@@ -37,7 +37,7 @@ export class TodayStripComponent {
         number: m,
         label: title ? `#${m} ${title}` : `#${m}`,
         isDone: this.session.isDone(m),
-        isCurrent: m === this.number(),
+        isPage: m === this.number(),
       };
     }),
   );

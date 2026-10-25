@@ -20,7 +20,7 @@ function render(isActive: boolean, contains: boolean, current: number): HTMLElem
         useValue: {
           active: signal(isActive),
           queue: signal(QUEUE),
-          contains: () => contains,
+          isRunning: () => isActive && contains,
           isDone: (n: number) => DONE.has(n),
         },
       },
@@ -41,12 +41,14 @@ describe('TodayStripComponent', () => {
     expect(render(isActive, contains, 2).querySelectorAll('a')).toHaveLength(0);
   });
 
-  it('active session: one link per queue item with done, current and label', () => {
-    const dots = Array.from(render(true, true, 2).querySelectorAll('a'));
+  it('active session: one link per queue item with done, page and label', () => {
+    const root = render(true, true, 2);
+    const dots = Array.from(root.querySelectorAll('a'));
 
     expect(dots.map((d) => d.getAttribute('href'))).toEqual(['/practice/1', '/practice/2', '/practice/3']);
     expect(dots.map((d) => d.getAttribute('aria-label'))).toEqual(['#1 Two Sum', '#2 Add Two Numbers', '#3']);
     expect(dots.map((d) => d.classList.contains('today-strip__dot--done'))).toEqual([true, false, false]);
-    expect(dots.map((d) => d.classList.contains('today-strip__dot--current'))).toEqual([false, true, false]);
+    expect(root.querySelector('.today-strip__dot--current')).toBeNull();
+    expect(dots.map((d) => d.getAttribute('aria-current'))).toEqual([null, 'page', null]);
   });
 });

@@ -4,10 +4,9 @@
       <a
         class="today-strip__dot"
         [class.today-strip__dot--done]="dot.isDone"
-        [class.today-strip__dot--current]="dot.isCurrent"
         [routerLink]="['/practice', dot.number]"
         [attr.aria-label]="dot.label"
-        [attr.aria-current]="dot.isCurrent ? 'page' : null"
+        [attr.aria-current]="dot.isPage ? 'page' : null"
         [attr.title]="dot.label"
       ></a>
     }

@@ -65,6 +65,11 @@ export class TodaySessionService {
     return this.queue().includes(n);
   }
 
+  /** True while a run-through is active and problem n belongs to it. */
+  isRunning(n: number): boolean {
+    return this.active() && this.contains(n);
+  }
+
   start(): void {
     const order = buildQueue(this.todayDay(), this.practiceNumbers());
     const index = order.findIndex((n) => !this.isDone(n));

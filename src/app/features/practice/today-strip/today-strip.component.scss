@@ -1,5 +1,4 @@
 $dot-size: 0.75rem;
-$ring-gap: 3px;
 
 // No box of its own, so a hidden strip adds no gap to the row it sits in.
 :host { display: contents; }
@@ -23,9 +22,6 @@ $ring-gap: 3px;
   &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 }
 .today-strip__dot--done {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-}
-.today-strip__dot--current {
-  box-shadow: 0 0 0 $ring-gap var(--color-bg), 0 0 0 calc(#{$ring-gap} + 1.5px) var(--color-text);
+  border-color: var(--color-easy);
+  background: var(--color-easy);
 }

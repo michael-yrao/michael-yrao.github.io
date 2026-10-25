@@ -1,9 +1,10 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Difficulty } from '../../../core/models/algorithm.model';
 import type { RepoRef } from '../../../core/services/github-file.service';
+import { TodaySessionService } from '../../../core/today-session/today-session.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CatalogueEntry, CatalogueNeighbors } from '../practice-catalogue';
 import { ProblemListPanelComponent } from '../problem-list/problem-list-panel.component';
@@ -31,6 +32,14 @@ export class PracticeHeaderComponent {
   readonly hasSolution = input.required<boolean>();
   readonly catalogue = input.required<readonly CatalogueEntry[]>();
   readonly repo = input.required<RepoRef | null>();
+
+  private readonly session = inject(TodaySessionService);
+
+  /** During a run-through the today strip is the only navigation, so prev / next hide. */
+  protected readonly isRunThrough = computed(() => {
+    const n = this.number();
+    return n !== null && this.session.isRunning(n);
+  });
 
   /** Prev / next stay on the current tab: a problem's solution page links to the next solution page. */
   protected readonly neighborCommands = computed(() => {

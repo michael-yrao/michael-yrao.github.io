@@ -15,21 +15,23 @@
   </div>
   <div class="practice-header__neighbor-nav">
     <app-today-strip [number]="number()" />
-    @if (neighbors().prev; as prev) {
-      <a
-        [routerLink]="neighborCommands()(prev.number)"
-        queryParamsHandling="preserve"
-        class="neighbor-btn po-btn po-btn--sm po-btn--outline"
-        ><app-icon name="chevron-left" [size]="14" /> {{ prev.number }}</a
-      >
-    }
-    @if (neighbors().next; as next) {
-      <a
-        [routerLink]="neighborCommands()(next.number)"
-        queryParamsHandling="preserve"
-        class="neighbor-btn po-btn po-btn--sm po-btn--outline"
-        >{{ next.number }} <app-icon name="chevron-right" [size]="14" /></a
-      >
+    @if (!isRunThrough()) {
+      @if (neighbors().prev; as prev) {
+        <a
+          [routerLink]="neighborCommands()(prev.number)"
+          queryParamsHandling="preserve"
+          class="neighbor-btn po-btn po-btn--sm po-btn--outline"
+          ><app-icon name="chevron-left" [size]="14" /> {{ prev.number }}</a
+        >
+      }
+      @if (neighbors().next; as next) {
+        <a
+          [routerLink]="neighborCommands()(next.number)"
+          queryParamsHandling="preserve"
+          class="neighbor-btn po-btn po-btn--sm po-btn--outline"
+          >{{ next.number }} <app-icon name="chevron-right" [size]="14" /></a
+        >
+      }
     }
   </div>
 </header>
