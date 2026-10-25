@@ -23,8 +23,8 @@ describe('LEARN_SLUG_REDIRECTS', () => {
     expect(Object.keys(LEARN_SLUG_REDIRECTS).sort()).toEqual([...OLD_SLUGS, ...FOLDED_SLUGS].sort());
   });
 
-  it('maps every old slug either to a known technique id or to the /learn landing page', () => {
-    // 'arrays-hash' has no dedicated hash-map technique page, so it maps to '' (landing page)
+  it('maps every old slug either to a known technique id or to the /cheat-sheet landing page', () => {
+// 'arrays-hash' has no dedicated hash-map technique page, so it maps to '' (landing page)
     // instead of a technique id — every other old slug must resolve to a real technique.
     const techniqueIds = new Set(cheatSheetsAsset.techniques.map((t) => t.id));
     expect(LEARN_SLUG_REDIRECTS['arrays-hash']).toBe('');
@@ -43,14 +43,14 @@ describe('LEARN_ROUTES generated redirects', () => {
       (route) => typeof route.redirectTo === 'string' && route.path !== ':technique' && route.path !== '',
     );
     for (const route of redirectRoutes) {
-      const target = (route.redirectTo as string).replace('/learn/', '');
+      const target = (route.redirectTo as string).replace('/cheat-sheet/', '');
       expect(route.path).not.toBe(target);
     }
   });
 
-  it('redirects arrays-hash to the /learn landing page, not a technique route', () => {
+  it('redirects arrays-hash to the /cheat-sheet landing page, not a technique route', () => {
     const route = LEARN_ROUTES.find((r) => r.path === 'arrays-hash');
-    expect(route?.redirectTo).toBe('/learn');
+    expect(route?.redirectTo).toBe('/cheat-sheet');
   });
 
   it('skips a redirect route for slugs that map to themselves (sliding-window, binary-search)', () => {

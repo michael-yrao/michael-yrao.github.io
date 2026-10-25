@@ -25,6 +25,8 @@ $split-breakpoint: 900px;
 }
 .practice-header__neighbor-nav {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-sm);
 }
 

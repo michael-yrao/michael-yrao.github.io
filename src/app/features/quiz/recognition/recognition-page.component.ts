@@ -7,12 +7,12 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { ProgressService } from '../../../core/services/progress.service';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
-import { PracticeNumbers } from '../../progress/progress-page/practice-numbers';
+import { PracticeNumbers } from '../../../core/practice/practice-numbers';
 import { RecognitionPanelComponent } from '../../progress/recognition-panel/recognition-panel.component';
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
-  { label: 'Learn', link: '/learn' },
+  { label: 'Practice', link: '/practice' },
   { label: 'Quiz', link: '/quiz' },
   { label: 'Recognition' },
 ];

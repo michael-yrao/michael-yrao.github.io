@@ -1,8 +1,8 @@
 // Owns which LeetCode numbers have a practice entry (the Run link): loads the practice index for the rendered repo and resolves the set.
 import { Signal, computed, effect, untracked } from '@angular/core';
 
-import { PracticeService } from '../../../core/services/practice.service';
-import { RepoRef, sameRef } from '../../../core/services/github-file.service';
+import { PracticeService } from '../services/practice.service';
+import { RepoRef, sameRef } from '../services/github-file.service';
 
 /** Must be constructed in an injection context (it registers the index-load effect).
  *

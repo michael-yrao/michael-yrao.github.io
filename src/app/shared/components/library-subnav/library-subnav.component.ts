@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, input } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { LIBRARY_SECTIONS, type LibrarySection } from '../../../core/data/library-sections';
+import type { LibrarySection } from '../../../core/data/library-sections';
+import { PRACTICE_SECTIONS } from '../../../core/data/practice-sections';
 
 @Component({
   selector: 'app-library-subnav',
@@ -10,6 +11,6 @@ import { LIBRARY_SECTIONS, type LibrarySection } from '../../../core/data/librar
   imports: [RouterLink, RouterLinkActive],
 })
 export class LibrarySubnavComponent {
-  readonly sections = input<readonly LibrarySection[]>(LIBRARY_SECTIONS);
-  readonly ariaLabel = input('Library sections');
+  readonly sections = input<readonly LibrarySection[]>(PRACTICE_SECTIONS);
+  readonly ariaLabel = input('Practice sections');
 }

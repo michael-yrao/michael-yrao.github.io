@@ -39,7 +39,7 @@ function toLeafView(
   const reach = node.reach ?? '';
   const technique = node.page === false ? undefined : techniqueById(reach);
   return {
-    route: technique ? ['/learn', reach] : null,
+    route: technique ? ['/cheat-sheet', reach] : null,
     reachLabel: node.reachLabel ?? technique?.name ?? reach,
     note: node.note ?? '',
   };
@@ -66,7 +66,7 @@ function toView(
   };
 }
 
-/** The `/learn` decision tree (shape → cue → technique), rendered as an expanded, indented
+/** The `/cheat-sheet` decision tree (shape → cue → technique), rendered as an expanded, indented
  *  HTML tree — no step-through, no SVG. Recurses through a single `<ng-template #nodeTpl>`
  *  applied to itself via `ngTemplateOutlet` (precedent: `today-board.component.html`), rather
  *  than a self-importing component (which needs `forwardRef`). */

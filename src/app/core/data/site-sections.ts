@@ -1,6 +1,6 @@
-// The footer's link columns. The first two import the rails' lists, so the footer and the
-// Practice / Learn subnavs cannot drift.
-import { LIBRARY_SECTIONS, LibrarySection } from './library-sections';
+// The footer's link columns. The first imports the rail's list, so the footer and the
+// Practice subnav cannot drift.
+import { LibrarySection } from './library-sections';
 import { PRACTICE_SECTIONS } from './practice-sections';
 import { SITE_LINKS } from './site-links';
 
@@ -18,7 +18,6 @@ export interface FooterColumn {
 
 export const FOOTER_COLUMNS: readonly FooterColumn[] = [
   { heading: 'Practice', links: PRACTICE_SECTIONS },
-  { heading: 'Learn', links: LIBRARY_SECTIONS },
   {
     heading: 'Site',
     links: [

@@ -125,13 +125,13 @@
         <!-- ── Prev / Next navigation ──────────────────────────────── -->
         <nav class="cs-nav">
           @if (prevTechnique(); as prev) {
-            <a class="cs-nav__btn cs-nav__btn--prev po-btn po-btn--sm po-btn--outline" [routerLink]="['/learn', prev.id]">← {{ prev.name }}</a>
+            <a class="cs-nav__btn cs-nav__btn--prev po-btn po-btn--sm po-btn--outline" [routerLink]="['/cheat-sheet', prev.id]">← {{ prev.name }}</a>
           } @else {
             <span></span>
           }
-          <a class="cs-nav__all" routerLink="/learn">All patterns</a>
+          <a class="cs-nav__all" routerLink="/cheat-sheet">All patterns</a>
           @if (nextTechnique(); as next) {
-            <a class="cs-nav__btn cs-nav__btn--next po-btn po-btn--sm po-btn--outline" [routerLink]="['/learn', next.id]">{{ next.name }} →</a>
+            <a class="cs-nav__btn cs-nav__btn--next po-btn po-btn--sm po-btn--outline" [routerLink]="['/cheat-sheet', next.id]">{{ next.name }} →</a>
           }
         </nav>
       </div>

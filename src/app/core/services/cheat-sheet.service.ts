@@ -63,7 +63,7 @@ export class CheatSheetService {
     return ref ? `${ref.owner}/${ref.repo}` : null;
   });
 
-  /** The one-line footer both `/learn` pages render: which copy of the contract is on
+  /** The one-line footer both `/cheat-sheet` pages render: which copy of the contract is on
    *  screen and when it was generated. `null` until a load finishes. */
   readonly sourceFooter = computed<string | null>(() => {
     const generatedAt = this.generatedAt();
@@ -93,7 +93,7 @@ export class CheatSheetService {
     this.techniquesByFamily().flatMap((group) => group.techniques),
   );
 
-  /** The `/learn` decision-tree payload, or `null` when the loaded contract has none (an
+  /** The `/cheat-sheet` decision-tree payload, or `null` when the loaded contract has none (an
    *  older bundled copy) or its root doesn't look like a real tree node — a malformed remote
    *  tree hides the Table/Tree toggle instead of crashing the page. */
   readonly decisionTree = computed<DecisionTreeNode | null>(() => {

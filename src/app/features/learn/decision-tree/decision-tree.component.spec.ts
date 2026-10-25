@@ -81,7 +81,7 @@ describe('DecisionTreeComponent', () => {
     );
     const link = links.find((l) => l.textContent === 'two pointers (converging)');
 
-    expect(link?.getAttribute('href')).toBe('/learn/two-pointer');
+    expect(link?.getAttribute('href')).toBe('/cheat-sheet/two-pointer');
     expect(link?.closest('li.dt__node')?.querySelector('.dt__note')?.textContent).toContain(
       'converge from ends',
     );
@@ -94,7 +94,7 @@ describe('DecisionTreeComponent', () => {
       fixture.nativeElement.querySelectorAll('a.dt__reach'),
     );
     const link = links.find(
-      (l) => l.getAttribute('href') === '/learn/two-pointer' && l.textContent === 'Two Pointer',
+      (l) => l.getAttribute('href') === '/cheat-sheet/two-pointer' && l.textContent === 'Two Pointer',
     );
 
     expect(link).toBeTruthy();

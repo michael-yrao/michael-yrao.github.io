@@ -1,0 +1,15 @@
+@if (isShown()) {
+  <nav class="today-strip" aria-label="Today">
+    @for (dot of dots(); track dot.number) {
+      <a
+        class="today-strip__dot"
+        [class.today-strip__dot--done]="dot.isDone"
+        [class.today-strip__dot--current]="dot.isCurrent"
+        [routerLink]="['/practice', dot.number]"
+        [attr.aria-label]="dot.label"
+        [attr.aria-current]="dot.isCurrent ? 'page' : null"
+        [attr.title]="dot.label"
+      ></a>
+    }
+  </nav>
+}

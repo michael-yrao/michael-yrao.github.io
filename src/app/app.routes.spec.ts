@@ -35,8 +35,9 @@ describe('app routes', () => {
   });
 
   it.each([
-    { from: '/library', to: '/learn' },
-    { from: '/explore', to: '/learn' },
+    { from: '/library', to: '/cheat-sheet' },
+    { from: '/explore', to: '/cheat-sheet' },
+    { from: '/learn/two-pointers', to: '/cheat-sheet/two-pointer' },
   ])('redirects $from to $to', async ({ from, to }) => {
     const router = TestBed.inject(Router);
 

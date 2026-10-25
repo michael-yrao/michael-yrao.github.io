@@ -166,7 +166,14 @@ $nav-font-size: 14px;
     color: var(--color-text-muted);
   }
 
-  // Coach toggle: owner only, first in the right-hand group.
+  // Resume-today chip: icon plus done/total, first in the right-hand group while a run-through is active.
+  &__resume {
+    gap: var(--space-xs);
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+  }
+
+  // Coach toggle: owner only.
   &__coach {
     &--on {
       color: var(--color-accent);

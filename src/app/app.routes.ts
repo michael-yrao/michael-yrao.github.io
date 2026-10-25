@@ -28,11 +28,20 @@ export const routes: Routes = [
   },
   {
     path: 'library',
-    redirectTo: 'learn',
+    redirectTo: 'cheat-sheet',
   },
   {
     path: 'explore',
-    redirectTo: 'learn',
+    redirectTo: 'cheat-sheet',
+  },
+  {
+    path: 'learn',
+    pathMatch: 'full',
+    redirectTo: 'cheat-sheet',
+  },
+  {
+    path: 'learn/:technique',
+    redirectTo: 'cheat-sheet/:technique',
   },
   {
     path: 'coach',
@@ -65,8 +74,8 @@ export const routes: Routes = [
       import('./features/quiz/quiz.routes').then((m) => m.QUIZ_ROUTES),
   },
   {
-    path: 'learn',
-    title: 'Learn',
+    path: 'cheat-sheet',
+    title: 'Cheat sheet',
     loadChildren: () =>
       import('./features/learn/learn.routes').then((m) => m.LEARN_ROUTES),
   },

@@ -1,6 +1,6 @@
 {
   ".claude/hooks/brief_gate.py": {
-    "sha256": "6c1fcb1ee6418437b567e88b1a6a4a8f195f4162ca4699620ce0093b74a641c6",
+    "sha256": "e276a2e47440f559cf8c2b2713a3241ba892188feff46bed76155f5294d3d7e7",
     "source": "~/.claude/hooks/brief_gate.py"
   },
   ".claude/hooks/role_gate.py": {
@@ -16,7 +16,7 @@
     "source": "~/.claude/agents/engineer.md"
   },
   ".claude/workflow/agents/team-lead.md": {
-    "sha256": "86aa9b7393617b82444fd0c58e63e7aeb6c4153dd5ae0beb2b2f7f2c96391353",
+    "sha256": "f7c4b483dd54e32589c6f617729528b55def8b46173c7701cabdd3054e167c8f",
     "source": "~/.claude/agents/team-lead.md"
   },
   ".claude/workflow/install.sh": {
@@ -28,7 +28,7 @@
     "source": "~/.claude/rules/coding-style.md"
   },
   ".claude/workflow/rules/execution-workflow.md": {
-    "sha256": "1b0004ace4aa682911c424ffcb87688a681ac2842364347f1d4411c1339c8d90",
+    "sha256": "e9ef0db2fc2d6fe4586b02a0534a60a26f3f5360505dd30e37ec8dc597c353a1",
     "source": "~/.claude/rules/execution-workflow.md"
   },
   ".claude/workflow/rules/git-workflow.md": {

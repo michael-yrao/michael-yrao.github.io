@@ -193,6 +193,16 @@
       }
     }
     <div class="today-board__week-nav">
+      @if (runControl(); as run) {
+        <button
+          type="button"
+          class="today-board__week-nav-btn"
+          [attr.aria-label]="run.label"
+          [attr.title]="run.label"
+          [disabled]="run.action === 'done'"
+          (click)="runToday()"
+        ><app-icon [name]="run.icon" [size]="14" /></button>
+      }
       <button
         type="button"
         class="today-board__week-nav-btn"

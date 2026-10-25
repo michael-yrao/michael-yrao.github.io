@@ -7,11 +7,20 @@
     </a>
 
     <div class="po-nav__links">
-      <a class="po-nav__link" routerLink="/practice" [class.active]="activeGroup() === 'practice'">Practice</a>
-      <a class="po-nav__link" routerLink="/learn" [class.active]="activeGroup() === 'learn'">Learn</a>
+      <a class="po-nav__link" routerLink="/practice" [class.active]="isPracticeActive()">Practice</a>
     </div>
 
     <div class="po-nav__end">
+    @if (todaySession.active()) {
+      <a
+        class="po-btn po-btn--ghost po-nav__resume"
+        [routerLink]="['/practice', todaySession.current()]"
+        [attr.aria-label]="'Resume today, ' + todaySession.doneCount() + ' of ' + todaySession.queue().length + ' done'"
+      >
+        <app-icon name="skip-forward" />{{ todaySession.doneCount() }}/{{ todaySession.queue().length }}
+      </a>
+    }
+
     @if (hasCoach()) {
       <button
         type="button"
@@ -60,9 +69,6 @@
       }
       <a role="menuitem" class="menu__item" routerLink="/practice" routerLinkActive="active"
         >Practice</a
-      >
-      <a role="menuitem" class="menu__item" routerLink="/learn" routerLinkActive="active"
-        >Learn</a
       >
       @if (auth.isEnabled) {
         <div class="menu__separator" role="separator"></div>

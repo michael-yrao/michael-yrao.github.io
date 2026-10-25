@@ -15,7 +15,7 @@ const CATEGORY_ORDER: GameCategory[] = ['graph-traversal', 'optimization'];
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
-  { label: 'Learn', link: '/learn' },
+  { label: 'Practice', link: '/practice' },
   { label: 'Games' },
 ];
 

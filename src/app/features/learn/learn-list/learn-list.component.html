@@ -1,8 +1,8 @@
 <div class="ll-page">
   <app-page-header
-    [breadcrumb]="[{ label: 'Home', link: '/' }, { label: 'Learn' }]"
+    [breadcrumb]="[{ label: 'Home', link: '/' }, { label: 'Practice', link: '/practice' }, { label: 'Cheat sheet' }]"
     eyebrow="Pattern Reference"
-    heading="Learn"
+    heading="Cheat sheet"
   >
     One cheat sheet per technique: when to reach for it, the signal that picks it over its
     nearest neighbour, the canonical template, and the pitfalls to watch for.
@@ -30,7 +30,7 @@
       />
 
       @if (decisionTree()) {
-        <div class="ll-viewbar po-tabs" role="tablist" aria-label="Learn view">
+        <div class="ll-viewbar po-tabs" role="tablist" aria-label="Cheat sheet view">
           @for (view of viewOrder; track view; let i = $index) {
             <button
               type="button"
@@ -93,7 +93,7 @@
           <h2 class="ll-family__title po-eyebrow">{{ section.label }}</h2>
           <div class="ll-grid">
             @for (technique of section.techniques; track technique.id) {
-              <a class="ll-card po-card po-card--link" [routerLink]="['/learn', technique.id]">
+              <a class="ll-card po-card po-card--link" [routerLink]="['/cheat-sheet', technique.id]">
                 <div class="ll-card__body">
                   <h3 class="ll-card__title">{{ technique.name }}</h3>
                   <p class="ll-card__when">{{ technique.whenToUse }}</p>

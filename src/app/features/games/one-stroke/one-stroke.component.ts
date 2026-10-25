@@ -18,7 +18,7 @@ import { computeEdgeRenderInfo, EdgeRenderInfo, NODE_RADIUS } from './one-stroke
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
-  { label: 'Learn', link: '/learn' },
+  { label: 'Practice', link: '/practice' },
   { label: 'Games', link: '/games' },
   { label: 'One-Stroke Tour' },
 ];

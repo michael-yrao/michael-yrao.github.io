@@ -6,7 +6,7 @@ import { LibrarySubnavComponent } from '../../shared/components/library-subnav/l
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
-  { label: 'Learn', link: '/learn' },
+  { label: 'Practice', link: '/practice' },
   { label: 'Quiz' },
 ];
 

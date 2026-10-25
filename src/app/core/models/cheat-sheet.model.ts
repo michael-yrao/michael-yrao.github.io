@@ -13,7 +13,7 @@ export interface CheatSheetsData {
   decisionTree?: DecisionTreeNode;
 }
 
-/** A node in the `/learn` decision tree: shape → cue → technique. An inner node carries
+/** A node in the `/cheat-sheet` decision tree: shape → cue → technique. An inner node carries
  *  `children`; a leaf carries `reach` (a technique id, or a plain no-page label) and `note`
  *  instead — never both. `reachLabel`, when present, is the author's own display text for the
  *  leaf (the doc's link/bold text, e.g. "DFS postorder") — `reach` stays the id/route key,

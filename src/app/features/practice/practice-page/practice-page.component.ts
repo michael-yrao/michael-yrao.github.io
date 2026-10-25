@@ -23,6 +23,7 @@ import {
 } from '../../../core/practice/practice-attempt';
 import { BigOService } from '../../../core/services/big-o.service';
 import { PracticeSaveService } from '../../../core/services/practice-save.service';
+import { TodaySessionService } from '../../../core/today-session/today-session.service';
 import { ProvisionalRepService } from '../../../core/services/provisional-rep.service';
 import { addRecord } from '../../../core/services/provisional-records';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
@@ -110,6 +111,7 @@ export class PracticePageComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
   private readonly saver = inject(PracticeSaveService);
+  private readonly todaySession = inject(TodaySessionService);
   private readonly provisional = inject(ProvisionalRepService);
   private readonly coachContext = inject(CoachContextService);
   protected readonly bigO = inject(BigOService);
@@ -466,7 +468,7 @@ export class PracticePageComponent {
   }
 
   saveToGithub(): void {
-    this.saveAttempt({ complete: false, rating: null, tests: this.testsLabel(), complexity: null });
+    void this.saveAttempt({ complete: false, rating: null, tests: this.testsLabel(), complexity: null });
   }
 
   toggleCompleteRep(): void {
@@ -479,11 +481,21 @@ export class PracticePageComponent {
     this.isOutputOpen.set(true);
   }
 
-  completeRep(rep: CompletedRep): void {
+  async completeRep(rep: CompletedRep): Promise<void> {
     this.isCompleting.set(false);
     const number = this.number();
     if (number !== null) this.completedReps.update((all) => ({ ...all, [number]: rep }));
-    this.saveAttempt({ complete: true, rating: rep.rating, tests: this.testsLabel(), complexity: rep.complexity });
+    const isSaved = await this.saveAttempt({
+      complete: true,
+      rating: rep.rating,
+      tests: this.testsLabel(),
+      complexity: rep.complexity,
+    });
+    // Walk on only once the rep is on GitHub, so the leave guard has nothing left to ask about.
+    if (isSaved && number !== null && this.todaySession.contains(number)) {
+      this.todaySession.markCompleted(number);
+      this.todaySession.advanceFrom(number);
+    }
   }
 
   private testsLabel(): string | null {
@@ -536,11 +548,14 @@ export class PracticePageComponent {
     void this.saver.sendKeepalive(pass.ref, pass.path, pass.content);
   }
 
-  private saveAttempt(meta: AttemptMeta): void {
+  /** True once the save landed on GitHub; false when it could not start or failed. */
+  private async saveAttempt(meta: AttemptMeta): Promise<boolean> {
     const ref = this.ref();
     const problem = this.problem();
-    if (!this.canSave() || !ref || !problem) return;
-    void this.saver.save(ref, problem, this.text(), meta);
+    if (!this.canSave() || !ref || !problem) return false;
+    await this.saver.save(ref, problem, this.text(), meta);
+    const status = this.saver.statusFor(problem.number);
+    return status.state === 'saved' && status.isComplete === meta.complete;
   }
 
   /** Loads the newest GitHub copy into the open tab when it is newer than the local draft. A legacy

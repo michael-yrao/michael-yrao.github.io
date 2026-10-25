@@ -13,6 +13,7 @@ import { CoachAvailabilityService } from './core/coach/coach-availability.servic
 import { CoachUiService } from './core/coach/coach-ui.service';
 import { isCoachOwner } from './core/data/site-links';
 import { FOOTER_COLUMNS } from './core/data/site-sections';
+import { TodaySessionService } from './core/today-session/today-session.service';
 import { CoachPanelComponent } from './features/coach-panel/coach-panel.component';
 import { IconComponent } from './shared/components/icon/icon.component';
 import { LogoMarkComponent } from './shared/components/logo-mark/logo-mark.component';
@@ -24,13 +25,13 @@ export const COACH_DOCK_MIN_PX = 1024;
 const COACH_DOCK_QUERY = `(min-width: ${COACH_DOCK_MIN_PX}px)`;
 const PRACTICE_PROBLEM_URL = /^\/practice\/\d+/;
 
-type NavGroup = 'practice' | 'learn';
-const NAV_GROUP_BY_SEGMENT: ReadonlyMap<string, NavGroup> = new Map<string, NavGroup>([
-  ['practice', 'practice'],
-  ['interview', 'practice'],
-  ['learn', 'learn'],
-  ['quiz', 'learn'],
-  ['games', 'learn'],
+const PRACTICE_SEGMENTS: ReadonlySet<string> = new Set([
+  'practice',
+  'interview',
+  'patterns',
+  'learn',
+  'quiz',
+  'games',
 ]);
 
 @Component({
@@ -48,6 +49,7 @@ export class AppComponent {
   private readonly router = inject(Router);
   readonly auth = inject(AuthService);
   readonly coachUi = inject(CoachUiService);
+  protected readonly todaySession = inject(TodaySessionService);
   private readonly coachAvailability = inject(CoachAvailabilityService);
   /** The owner, on a deploy whose Worker serves a coach; everyone else never sees the toggle or the panel. */
   readonly hasCoach = computed(() => isCoachOwner(this.auth.login()) && this.coachAvailability.available());
@@ -72,10 +74,10 @@ export class AppComponent {
     query.addEventListener('change', (e) => this.isWide.set(e.matches));
   }
 
-  /** Which bar link's group the current page belongs to; matched on the whole first path segment. */
-  readonly activeGroup = computed<NavGroup | null>(() => {
+  /** Whether the current page belongs to the Practice bar link; matched on the whole first path segment. */
+  readonly isPracticeActive = computed(() => {
     const [segment] = this.url().split(/[?#]/)[0].split('/').filter(Boolean);
-    return NAV_GROUP_BY_SEGMENT.get(segment ?? '') ?? null;
+    return PRACTICE_SEGMENTS.has(segment ?? '');
   });
 
   signIn(): void {

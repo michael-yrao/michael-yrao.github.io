@@ -50,7 +50,7 @@ import {
 import { Difficulty, dueLabel } from '../problem-progress';
 import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
-import { PracticeNumbers } from './practice-numbers';
+import { PracticeNumbers } from '../../../core/practice/practice-numbers';
 import { ProblemExplorer } from './problem-explorer';
 import { RepoPicker } from './repo-picker';
 import { SummaryView } from './summary-view';

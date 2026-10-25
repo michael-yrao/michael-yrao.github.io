@@ -1,4 +1,4 @@
-// Pure helpers for the /learn hub's search: the family label and the technique matcher.
+// Pure helpers for the /cheat-sheet hub's search: the family label and the technique matcher.
 import { Technique } from '../../core/models/cheat-sheet.model';
 import { FamilyGroup } from '../../core/services/cheat-sheet.service';
 import { matchesAnyText } from '../../shared/utils/text-search';

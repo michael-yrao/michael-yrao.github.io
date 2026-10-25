@@ -14,6 +14,7 @@
     }
   </div>
   <div class="practice-header__neighbor-nav">
+    <app-today-strip [number]="number()" />
     @if (neighbors().prev; as prev) {
       <a
         [routerLink]="neighborCommands()(prev.number)"

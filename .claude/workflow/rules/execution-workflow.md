@@ -19,14 +19,24 @@ lead in between.
 
 Walk `~/.claude/skills/write-plan/SKILL.md` before plan approval.
 
-## Spawn rule (5:1)
+## Spawn rule: team leads are opt-in
 
-Count the engineers the plan needs. 1 → the tech lead supervises it directly, no lead, unless supervising
-it would fill the tech lead's context (a long slice, several review rounds); then one lead owns it. n ≥ 2 →
-spawn ceil(n/5) `team-lead` agents, each owning ≤ 5 engineers; the tech lead then supervises leads (and any
-lone remainder engineer directly — e.g. 6 engineers = one lead with 5 + tech lead with 1, or two leads;
-either is fine, ≤ 5 per lead is the invariant). Team leads are spawned by the tech lead; engineers are
-spawned by their team lead (or by the tech lead when there is no lead).
+The default is no team lead: the tech lead briefs, supervises and reviews every engineer itself.
+A lead is an extra layer (an Opus spawn, a second review, a hand-off) and the plan must justify it.
+The plan's Staffing section names each lead with a `Lead because:` line giving one of these
+reasons, or says `Lead because: none`:
+
+- **width**: the plan runs more than 5 engineers at once. Leads take groups of ≤ 5, so the
+  tech lead never supervises more than 5 agents directly.
+- **depth**: one slice is expected to need more than two review/fix rounds, or a long test or
+  build log digested each round, while the tech lead holds other slices. On Fable a slice
+  expected to need two or more rounds qualifies.
+
+A lead owns ≤ 5 engineers. Team leads are spawned by the tech lead; engineers are spawned by
+their lead, or by the tech lead when there is none. A cloud recipe routine
+(`FACTORY_ROLE=team-lead`) is a lead by construction and needs no `Lead because:` line.
+`brief_gate.py` denies a `team-lead` spawn whose brief has no `Lead because: width` or
+`Lead because: depth` line.
 
 Support agents (a sweep, state collection, checker runs: see the next section) are spawned by the tech lead
 and do not count toward n.
@@ -68,12 +78,12 @@ checking and the legwork down.
 consolidated diff, commit and push, the decision on each cost above (shipped code inside a lead's slice is
 the lead's), and the carve-outs below.
 
-**Goes down, with as many leads and engineers as it takes:**
+**Goes down, with as many engineers as it takes (and a lead only for a named `Lead because:` reason):**
 
 - A sweep across many files, or a long log or test output to digest: an `Explore` agent, or an engineer
   on a read-only brief, which returns the conclusion.
 - The pasted state a brief needs (`git status`, quoted lines, dry-run output): an engineer.
-- Supervision, test and build runs, the first review of each diff, and optimizing the slice's code: a team lead.
+- Supervision, test and build runs, the first review of each diff, and optimizing the slice's code: the tech lead, or a team lead when the plan's `Lead because:` line names one.
 - Checker scripts and verification runs: an engineer.
 
 How many agents that takes is the tech lead's call, made per task. The floor: an agent is spawned for this work when the work is larger than the brief
@@ -97,7 +107,7 @@ count or "nothing depends on X" claim in a plan comes from a command that was ru
 remembered or a state inferred from an adjacent command. A brief is a mechanical artifact: a second agent with
 the same inputs must produce the same brief, and "clean" / "no spec depends on it" are one-command facts.
 
-**Enforced by `brief_gate.py`** (PreToolUse, matcher `Agent`): a `team-lead` or `engineer` spawn whose prompt carries no `git status --short` paste is DENIED; an allowed spawn gets a warn-only reminder of the rest of this section. On Windows (`win32`) only, a brief that names `michael-yrao.github.io` and runs the Angular CLI through `npm run lint|test`, `npx ng` or bare `ng …` is DENIED too; the bootstrap path (`node node_modules/@angular/cli/bin/bootstrap.js …`) is the one that runs on this machine. A `team-lead` brief that tells the lead to run its engineers in the background is DENIED, because `agents/team-lead.md` requires them in the foreground.
+**Enforced by `brief_gate.py`** (PreToolUse, matcher `Agent`): a `team-lead` or `engineer` spawn whose prompt carries no `git status --short` paste is DENIED; an allowed spawn gets a warn-only reminder of the rest of this section. On Windows (`win32`) only, a brief that names `michael-yrao.github.io` and runs the Angular CLI through `npm run lint|test`, `npx ng` or bare `ng …` is DENIED too; the bootstrap path (`node node_modules/@angular/cli/bin/bootstrap.js …`) is the one that runs on this machine. A `team-lead` brief that tells the lead to run its engineers in the background is DENIED, because `agents/team-lead.md` requires them in the foreground. A `team-lead` brief with no `Lead because: width|depth` line is DENIED (see "Spawn rule: team leads are opt-in").
 
 The checklist for this section is `~/.claude/skills/write-brief/SKILL.md`, walked before every `team-lead` / `engineer` spawn.
 

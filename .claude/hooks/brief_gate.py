@@ -16,6 +16,8 @@ Behavior (tool "Agent", tool_input carries `subagent_type` and `prompt`):
 - team-lead prompt with a paste and a sentence that tells the lead to run/spawn/launch/start its engineers
   in the background (or `run_in_background: true`), with no negation or "foreground" in that sentence: DENY,
   citing agents/team-lead.md. Never fires for other subagent types.
+- team-lead prompt with a paste and no line `Lead because: width` or `Lead because: depth` (case-insensitive):
+  DENY, citing the rule "Spawn rule: team leads are opt-in". Never fires for other subagent types.
 - prompt with a paste and none of the above: allowed, with a warn-only reminder of the rest of the brief checklist.
 
 A paste is either a `git status --short` line followed within STATUS_WINDOW_LINES lines by a
@@ -79,6 +81,13 @@ BACKGROUND_DENY_REASON = (
     "~/.claude/agents/team-lead.md requires engineers to be spawned with `run_in_background: false`: a "
     "lead's turn that ends while its engineers still run is handed back with no diff. Rewrite the brief "
     "so the lead spawns its engineers in the foreground."
+)
+LEAD_REASON_PATTERN = re.compile(r"^\s*Lead because:\s*(?:width|depth)\b", re.IGNORECASE | re.MULTILINE)
+LEAD_REASON_DENY_REASON = (
+    "Brief gate: ~/.claude/rules/execution-workflow.md \"Spawn rule: team leads are opt-in\" makes a team "
+    "lead an extra layer that the plan must justify, and this team-lead brief has no `Lead because: width` "
+    "or `Lead because: depth` line. If the plan names neither reason, do not spawn a lead: the tech lead "
+    "briefs the engineers itself."
 )
 # A fix sent/routed/returned/given (back) to "the same engineer" / "that engineer", or the old engineer
 # resumed or SendMessage'd for a fix, all within one sentence.
@@ -177,6 +186,8 @@ def decide(subagent_type: object, prompt: object) -> Decision | None:
         return Decision("deny", DENY_REASON)
     if has_bad_site_cli(text):
         return Decision("deny", SITE_CLI_DENY_REASON)
+    if subagent_type == "team-lead" and not LEAD_REASON_PATTERN.search(text):
+        return Decision("deny", LEAD_REASON_DENY_REASON)
     if subagent_type == "team-lead" and has_background_engineer_order(text):
         return Decision("deny", BACKGROUND_DENY_REASON)
     if subagent_type == "team-lead" and has_same_engineer_fix_order(text):

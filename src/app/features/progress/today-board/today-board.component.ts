@@ -67,6 +67,20 @@ import {
   trendPanelId,
 } from './board-rows';
 import { WeekNavigation } from './week-navigation';
+import { TodaySessionService } from '../../../core/today-session/today-session.service';
+import { IconName } from '../../../shared/components/icon/icon-paths';
+
+interface RunControl {
+  readonly action: 'start' | 'resume' | 'done';
+  readonly icon: IconName;
+  readonly label: string;
+}
+
+const RUN_CONTROLS = {
+  start: { action: 'start', icon: 'play', label: 'Start today' },
+  resume: { action: 'resume', icon: 'skip-forward', label: 'Resume today' },
+  done: { action: 'done', icon: 'check', label: 'Today done' },
+} as const satisfies Record<string, RunControl>;
 
 const NO_PENDING: ReadonlySet<number> = new Set();
 const NO_REFUSALS: ReadonlyMap<number, string> = new Map();
@@ -207,6 +221,23 @@ export class TodayBoardComponent {
   readonly selectedDay = computed<ScheduleDay | null>(
     () => this.days().find((d) => d.date === this.effectiveDate()) ?? null,
   );
+
+  private readonly todaySession = inject(TodaySessionService);
+
+  /** The run-through control's one icon: play (not started), resume (in progress), check (all done). */
+  protected readonly runControl = computed<RunControl | null>(() => {
+    const isTodaySelected = this.effectiveDate() === sessionDateISO();
+    if (!isTodaySelected || !this.isOwnRepo() || this.todaySession.queue().length === 0) return null;
+    if (this.todaySession.active()) return RUN_CONTROLS.resume;
+    const isAllDone = this.todaySession.doneCount() === this.todaySession.queue().length;
+    return isAllDone ? RUN_CONTROLS.done : RUN_CONTROLS.start;
+  });
+
+  protected runToday(): void {
+    const control = this.runControl();
+    if (control?.action === 'start') this.todaySession.start();
+    else if (control?.action === 'resume') this.todaySession.resume();
+  }
 
   // Per-day board rows — a run of consecutive `kind === 'complexity'` items collapses into
   // one gate row (see groupComplexityItems()). Keyed by date so both the collapsed

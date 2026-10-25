@@ -1,9 +1,10 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
 import { AuthService } from './core/auth/auth.service';
 import { GITHUB_APP_CONFIG } from './core/pattern-sense/github-save';
+import { TodaySessionService } from './core/today-session/today-session.service';
 
 const DISABLED_APP = { clientId: 'REPLACE_WITH_CLIENT_ID', appSlug: 'REPLACE_WITH_APP_SLUG' };
 
@@ -65,10 +66,10 @@ describe('AppComponent', () => {
     );
     expect(links.map((a) => [a.textContent?.trim(), a.getAttribute('href'), a.getAttribute('target')])).toEqual([
       ['Problems', '/practice', null],
-      ['Interview', '/interview', null],
-      ['Patterns', '/learn', null],
+      ['Cheat sheet', '/cheat-sheet', null],
       ['Quiz', '/quiz', null],
       ['Games', '/games', null],
+      ['Interview', '/interview', null],
       ['Coach', '/coach', null],
       ['About', '/about', null],
       ['GitHub', 'https://github.com/michael-yrao/michael-yrao.github.io', '_blank'],
@@ -77,7 +78,7 @@ describe('AppComponent', () => {
 
   it.each<{ url: string; active: string | null }>([
     { url: '/interview', active: 'Practice' },
-    { url: '/quiz/big-o', active: 'Learn' },
+    { url: '/quiz/big-o', active: 'Practice' },
     { url: '/practices', active: null },
   ])('on $url the active bar link is $active', async ({ url, active }) => {
     fixture.detectChanges();
@@ -147,12 +148,12 @@ const menuItems = (root: HTMLElement, scope = HAMBURGER): HTMLElement[] =>
 
 describe('Bar links and account chip', () => {
   it.each<{ name: string; auth: AuthStub | null; links: string[]; chip: string | null }>([
-    { name: 'app off', auth: null, links: ['Practice', 'Learn'], chip: null },
-    { name: 'signed out', auth: makeAuthStub(), links: ['Practice', 'Learn'], chip: 'Sign in' },
+    { name: 'app off', auth: null, links: ['Practice'], chip: null },
+    { name: 'signed out', auth: makeAuthStub(), links: ['Practice'], chip: 'Sign in' },
     {
       name: 'signed in',
       auth: makeAuthStub(SIGNED_IN),
-      links: ['Practice', 'Learn'],
+      links: ['Practice'],
       chip: 'ada',
     },
   ])('$name shows its links and chip', ({ auth, links, chip }) => {
@@ -180,6 +181,36 @@ describe('Bar links and account chip', () => {
   });
 });
 
+describe('Resume-today chip', () => {
+  const CHIP = '.po-nav__resume';
+
+  function mountWithSession(isActive: boolean): HTMLElement {
+    const session = { active: signal(isActive), current: signal(3), doneCount: signal(2), queue: signal([1, 2, 3, 4, 5]) };
+    TestBed.configureTestingModule({
+      imports: [AppComponent],
+      providers: [
+        provideRouter([{ path: '**', component: BlankComponent }]),
+        { provide: GITHUB_APP_CONFIG, useValue: DISABLED_APP },
+        { provide: TodaySessionService, useValue: session },
+      ],
+    });
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  it('active: shows 2/5 linking to the current problem; inactive: absent', () => {
+    const chip = mountWithSession(true).querySelector(CHIP) as HTMLAnchorElement;
+
+    expect(chip.textContent?.trim()).toBe('2/5');
+    expect(chip.getAttribute('href')).toBe('/practice/3');
+    expect(chip.getAttribute('aria-label')).toBe('Resume today, 2 of 5 done');
+
+    TestBed.resetTestingModule();
+    expect(mountWithSession(false).querySelector(CHIP)).toBeNull();
+  });
+});
+
 describe('Site menu', () => {
   it.each<{
     name: string;
@@ -191,22 +222,22 @@ describe('Site menu', () => {
     {
       name: 'app off',
       auth: null,
-      labels: ['Practice', 'Learn'],
-      hrefs: ['/practice', '/learn'],
+      labels: ['Practice'],
+      hrefs: ['/practice'],
       account: null,
     },
     {
       name: 'signed out',
       auth: makeAuthStub(),
-      labels: ['Practice', 'Learn', 'Sign in with GitHub'],
-      hrefs: ['/practice', '/learn', null],
+      labels: ['Practice', 'Sign in with GitHub'],
+      hrefs: ['/practice', null],
       account: null,
     },
     {
       name: 'signed in',
       auth: makeAuthStub(SIGNED_IN),
-      labels: ['Practice', 'Learn', 'Sign out'],
-      hrefs: ['/practice', '/learn', null],
+      labels: ['Practice', 'Sign out'],
+      hrefs: ['/practice', null],
       account: 'adaada/cse-progress',
     },
   ])('$name lists its items in order', ({ auth, labels, hrefs, account }) => {

@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
@@ -8,6 +9,7 @@ import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemProgress, Schedule, ScheduleItem, WorkloadDay } from '../../../core/models/progress.model';
 import { LoadStatus, ProgressService } from '../../../core/services/progress.service';
 import { EngineService } from '../../../core/engine/engine.service';
+import { TodaySessionService } from '../../../core/today-session/today-session.service';
 import { NO_ENGINE_RUN } from '../../../core/engine/engine-status';
 import { of } from 'rxjs';
 import { addDaysISO, currentWeekStart, sessionDateISO, shortMonthDay, weekdayShort } from '../../../core/utils/local-date';
@@ -1794,7 +1796,7 @@ describe('TodayBoardComponent setup CTA', () => {
       providers: [
         provideRouter([]),
         { provide: EngineService, useValue: { status$: () => of(NO_ENGINE_RUN) } },
-        { provide: ProgressService, useValue: { refresh: () => undefined } },
+        { provide: ProgressService, useValue: { refresh: () => undefined, repoRef: signal(null), data: signal(null) } },
       ],
     });
     const fixture = TestBed.createComponent(TodayBoardComponent);
@@ -1841,7 +1843,7 @@ describe('TodayBoardComponent engine menu', () => {
       providers: [
         provideRouter([]),
         { provide: EngineService, useValue: { status$: () => of(NO_ENGINE_RUN), versions: async () => null } },
-        { provide: ProgressService, useValue: { refresh: () => undefined } },
+        { provide: ProgressService, useValue: { refresh: () => undefined, repoRef: signal(null), data: signal(null) } },
       ],
     });
     const fixture = TestBed.createComponent(TodayBoardComponent);
@@ -1849,5 +1851,54 @@ describe('TodayBoardComponent engine menu', () => {
     fixture.componentRef.setInput('isOwnRepo', isOwnRepo);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelectorAll('.today-board__week-nav app-engine-menu').length).toBe(count);
+  });
+});
+
+describe('TodayBoardComponent run-through control', () => {
+  function createWithSession(session: { queue: number[]; active: boolean; doneCount: number }, isOwnRepo = true) {
+    TestBed.configureTestingModule({
+      imports: [TodayBoardComponent],
+      providers: [
+        provideRouter([]),
+        { provide: EngineService, useValue: { status$: () => of(NO_ENGINE_RUN), versions: async () => null } },
+        { provide: ProgressService, useValue: { refresh: () => undefined } },
+        {
+          provide: TodaySessionService,
+          useValue: {
+            queue: () => session.queue,
+            active: () => session.active,
+            doneCount: () => session.doneCount,
+            start: () => undefined,
+            resume: () => undefined,
+          },
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(TodayBoardComponent);
+    fixture.componentRef.setInput('schedule', makeWeekSchedule());
+    fixture.componentRef.setInput('isOwnRepo', isOwnRepo);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  const runButton = (fixture: ReturnType<typeof createWithSession>): HTMLButtonElement | null =>
+    fixture.nativeElement.querySelector('.today-board__week-nav button[aria-label$=" today"], .today-board__week-nav button[aria-label="Today done"]');
+
+  it.each<{ name: string; queue: number[]; active: boolean; doneCount: number; label: string | null; isDisabled: boolean }>([
+    { name: 'play before a run starts', queue: [1, 2], active: false, doneCount: 0, label: 'Start today', isDisabled: false },
+    { name: 'resume while a run is active', queue: [1, 2], active: true, doneCount: 1, label: 'Resume today', isDisabled: false },
+    { name: 'a disabled check when all are done', queue: [1, 2], active: false, doneCount: 2, label: 'Today done', isDisabled: true },
+    { name: 'hidden with an empty queue', queue: [], active: false, doneCount: 0, label: null, isDisabled: false },
+  ])('shows $name', ({ queue, active, doneCount, label, isDisabled }) => {
+    const button = runButton(createWithSession({ queue, active, doneCount }));
+    expect(button?.getAttribute('aria-label') ?? null).toBe(label);
+    if (button) expect(button.disabled).toBe(isDisabled);
+  });
+
+  it('is hidden when the selected day is not today', () => {
+    const fixture = createWithSession({ queue: [1], active: false, doneCount: 0 });
+    fixture.componentInstance.selectDay('2020-01-06');
+    fixture.detectChanges();
+    expect(runButton(fixture)).toBeNull();
   });
 });

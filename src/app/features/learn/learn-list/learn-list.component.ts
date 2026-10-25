@@ -39,7 +39,7 @@ export const LEARN_DECISION_TREE_ENABLED = new InjectionToken<boolean>(
 );
 
 interface SignalRowView extends SignalRow {
-  /** Route to `/learn/<reach>` when the row names a technique that resolves; null renders
+  /** Route to `/cheat-sheet/<reach>` when the row names a technique that resolves; null renders
    *  `reachLabel` as plain text (a `page: false` row, or an id with no matching technique). */
   techniqueRoute: string[] | null;
   /** The resolved technique's display name when it resolves, else the raw `reach` label. */
@@ -109,7 +109,7 @@ export class LearnListComponent {
       const technique = row.page === false ? undefined : this.cheatSheets.techniqueById(row.reach);
       return {
         ...row,
-        techniqueRoute: technique ? ['/learn', row.reach] : null,
+        techniqueRoute: technique ? ['/cheat-sheet', row.reach] : null,
         reachLabel: technique?.name ?? row.reach,
       };
     });
@@ -137,7 +137,7 @@ export class LearnListComponent {
   }
 
   /** Selects a view via the URL — `queryParamsHandling: 'merge'` so a bare `view: null`
-   *  (the Table selection) drops the param and `/learn` stays canonical. */
+   *  (the Table selection) drops the param and `/cheat-sheet` stays canonical. */
   setView(view: LearnView): void {
     this.router.navigate([], {
       relativeTo: this.route,

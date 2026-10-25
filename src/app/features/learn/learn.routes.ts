@@ -30,7 +30,7 @@ const redirectRoutes: Routes = Object.entries(LEARN_SLUG_REDIRECTS)
   .map(([oldSlug, newSlug]) => ({
     path: oldSlug,
     pathMatch: 'full' as const,
-    redirectTo: newSlug ? `/learn/${newSlug}` : '/learn',
+    redirectTo: newSlug ? `/cheat-sheet/${newSlug}` : '/cheat-sheet',
   }));
 
 export const LEARN_ROUTES: Routes = [

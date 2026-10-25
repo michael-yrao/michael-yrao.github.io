@@ -16,7 +16,7 @@ export const PAGE_DESCRIPTIONS: Readonly<Record<string, string>> = {
     'See how the spaced-repetition coach schedules reviews and keeps each problem honest, all from a conversation in Claude Code.',
   games: 'Play interactive games that build intuition for the algorithm each one uses.',
   quiz: 'Take quick-fire drills that test naming the pattern and the complexity before writing any code.',
-  learn:
+  'cheat-sheet':
     'Read one cheat sheet per technique: when to use it, the canonical template, and the pitfalls.',
   interview:
     'Run a practice problem as a live interview with a partner, then keep the debrief.',

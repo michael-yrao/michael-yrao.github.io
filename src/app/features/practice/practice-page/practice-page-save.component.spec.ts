@@ -1,4 +1,4 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, Provider, input, output, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -16,6 +16,7 @@ import { CONTENT_REPO } from '../../../core/services/github-file.service';
 import { PracticeService } from '../../../core/services/practice.service';
 import { BigOService } from '../../../core/services/big-o.service';
 import { ShowcaseService } from '../../../core/services/showcase.service';
+import { TodaySessionService } from '../../../core/today-session/today-session.service';
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { PracticePageComponent } from './practice-page.component';
 
@@ -77,7 +78,10 @@ function signIn(login: string): void {
   );
 }
 
-function render(): { fixture: ComponentFixture<PracticePageComponent>; httpMock: HttpTestingController } {
+function render(extraProviders: readonly Provider[] = []): {
+  fixture: ComponentFixture<PracticePageComponent>;
+  httpMock: HttpTestingController;
+} {
   const params = convertToParamMap({ number: '90' });
   const query = convertToParamMap({});
   const data: PracticeData = { schemaVersion: 1, generatedAt: '2026-10-01', problems: [PROBLEM] };
@@ -87,6 +91,8 @@ function render(): { fixture: ComponentFixture<PracticePageComponent>; httpMock:
       provideRouter([]),
       provideHttpClient(),
       provideHttpClientTesting(),
+      { provide: TodaySessionService, useValue: { active: () => false, contains: () => false } },
+      ...extraProviders,
       {
         provide: PracticeService,
         useValue: {
@@ -238,6 +244,29 @@ describe('PracticePageComponent save to GitHub', () => {
 
     expect(headerOf(req.request.body.content)).toMatchObject(expected);
     if (isComplete) expect(root.textContent).toContain('Marked complete · 🟢 · O(n) / O(1)');
+  });
+
+  it.each([
+    { name: 'in the session, save succeeds', isInSession: true, status: 200, isAdvanced: true },
+    { name: 'in the session, save fails', isInSession: true, status: 500, isAdvanced: false },
+    { name: 'not in the session, save succeeds', isInSession: false, status: 200, isAdvanced: false },
+  ])('Save rep, $name: advances is $isAdvanced', async ({ isInSession, status, isAdvanced }) => {
+    signIn(OWNER);
+    runSpy.mockReturnValue(of(runOf(['pass', 'pass', 'pass'])));
+    const todaySession = { active: () => false, contains: vi.fn(() => isInSession), markCompleted: vi.fn(), advanceFrom: vi.fn() };
+    const { fixture, httpMock } = render([{ provide: TodaySessionService, useValue: todaySession }]);
+    await tick();
+    httpMock.expectOne(`${WORKER_API_URL}practice/latest`).flush({}, { status: 404, statusText: 'none' });
+    clickRun(fixture, false);
+
+    rateAndSave(fixture);
+    await tick(); // the token arrives before the request
+    httpMock.expectOne(`${WORKER_API_URL}practice/save`).flush({ ok: true }, { status, statusText: 'reply' });
+    await tick();
+
+    expect(todaySession.markCompleted).toHaveBeenCalledTimes(isAdvanced ? 1 : 0);
+    expect(todaySession.advanceFrom).toHaveBeenCalledTimes(isAdvanced ? 1 : 0);
+    if (isAdvanced) expect(todaySession.advanceFrom).toHaveBeenCalledWith(90);
   });
 
   it.each([
