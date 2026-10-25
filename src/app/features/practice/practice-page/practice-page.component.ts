@@ -290,10 +290,14 @@ export class PracticePageComponent {
 
   private runSubscription: Subscription | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  /** The tabs the debounce timer will write, with the problem and repo they were typed for. */
+  private pendingSave: { readonly ref: RepoRef; readonly number: number; readonly tabs: SolutionTabs } | null = null;
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
   private autoOpenedRun: RunState | null = null;
   private sentRun: RunState | null = null;
   private hasResentPending = false;
+  /** The problem the page last showed; null until the first one loads. */
+  private shownNumber: number | null = null;
 
   constructor() {
     effect(() => {
@@ -326,6 +330,10 @@ export class PracticePageComponent {
       }
       this.coachContext.publish({ number: problem.number, title: problem.title, code: this.text(), run: this.coachRun() });
     });
+    effect(() => {
+      const number = this.problem()?.number;
+      if (number !== undefined) untracked(() => this.showProblem(number));
+    });
     this.destroyRef.onDestroy(() => this.coachContext.clear());
     this.destroyRef.onDestroy(() => this.flushPendingSave());
     this.destroyRef.onDestroy(() => {
@@ -334,12 +342,33 @@ export class PracticePageComponent {
     });
   }
 
+  /** The route reuses this component when only `:number` changes, and the editor reads `initialText`
+   *  once. So a different problem drops the last one's run, Output and open panels and puts its own
+   *  saved text in the editor. The first problem shown needs none of it. */
+  private showProblem(number: number): void {
+    const previous = this.shownNumber;
+    this.shownNumber = number;
+    if (previous === null || previous === number) return;
+    this.runSubscription?.unsubscribe();
+    this.runState.set(null);
+    this.selectedCase.set(null);
+    this.runCaseCount.set(0);
+    this.lastRun.set(null);
+    this.isCompleting.set(false);
+    this.isOutputOpen.set(false);
+    this.editor?.setText(this.initialText());
+    this.editor?.setErrorLine(null);
+  }
+
   onTextChange(text: string): void {
     const problem = this.problem();
     if (!problem || text === this.text()) return;
     const { texts, active } = this.tabs();
     this.edited.set({ number: problem.number, tabs: { texts: texts.map((t, i) => (i === active ? text : t)), active } });
     this.cancelPendingSave();
+    const ref = this.ref();
+    // The snapshot is what the timer writes, so a move to another problem cannot redirect it.
+    if (ref) this.pendingSave = { ref, number: problem.number, tabs: this.tabs() };
     this.saveTimer = setTimeout(() => this.flushPendingSave(), DRAFT_SAVE_DELAY_MS);
   }
 
@@ -663,15 +692,18 @@ export class PracticePageComponent {
   }
 
   private cancelPendingSave(): void {
+    this.pendingSave = null;
     if (this.saveTimer === null) return;
     clearTimeout(this.saveTimer);
     this.saveTimer = null;
   }
 
-  /** Writes the tabs now if a debounced save is waiting (also run when the page is left). */
+  /** Writes the tabs a debounced save is waiting on, for the problem they were typed on (also run
+   *  when the page is left). */
   private flushPendingSave(): void {
-    if (this.saveTimer === null) return;
-    this.persistTabs();
+    const pending = this.pendingSave;
+    this.cancelPendingSave();
+    if (pending) saveTabs(pending.ref, pending.number, pending.tabs);
   }
 
   private persistTabs(): void {

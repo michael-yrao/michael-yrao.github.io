@@ -5,6 +5,8 @@ export interface TodaySession {
   readonly date: string;
   readonly order: readonly number[];
   readonly index: number;
+  /** Problems finished in this run-through, a subset of `order`. */
+  readonly completed: readonly number[];
 }
 
 const QUEUED_KINDS: ReadonlySet<string> = new Set(['rep', 'new', 'probe']);
@@ -31,10 +33,11 @@ export function nextUndone(order: readonly number[], isDone: (n: number) => bool
   return before ?? null;
 }
 
-function isTodaySessionShape(value: unknown): value is { date: string; order: number[]; index: number } {
+function isTodaySessionShape(value: unknown): value is { date: string; order: number[]; index: number; completed: number[] } {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
-  const { date, order, index } = value as Record<string, unknown>;
+  const { date, order, index, completed } = value as Record<string, unknown>;
   if (typeof date !== 'string' || !Array.isArray(order) || !order.every(Number.isInteger)) return false;
+  if (!Array.isArray(completed) || !completed.every((n) => order.includes(n))) return false;
   return Number.isInteger(index) && (index as number) >= 0 && (index as number) < order.length;
 }
 
@@ -49,5 +52,5 @@ export function readSession(raw: string | null, today: string): TodaySession | n
     return null;
   }
   if (!isTodaySessionShape(parsed) || parsed.date !== today) return null;
-  return { date: parsed.date, order: [...parsed.order], index: parsed.index };
+  return { date: parsed.date, order: [...parsed.order], index: parsed.index, completed: [...parsed.completed] };
 }

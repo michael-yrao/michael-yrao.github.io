@@ -46,11 +46,13 @@ describe('readSession', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it.each<{ name: string; raw: string | null; expected: unknown; isLogged: boolean }>([
-    { name: 'a valid session', raw: JSON.stringify({ date: today, order: [1, 2], index: 1 }), expected: { date: today, order: [1, 2], index: 1 }, isLogged: false },
-    { name: 'another date', raw: JSON.stringify({ date: '2026-10-23', order: [1], index: 0 }), expected: null, isLogged: false },
+    { name: 'a valid session', raw: JSON.stringify({ date: today, order: [1, 2], index: 1, completed: [1] }), expected: { date: today, order: [1, 2], index: 1, completed: [1] }, isLogged: false },
+    { name: 'another date', raw: JSON.stringify({ date: '2026-10-23', order: [1], index: 0, completed: [] }), expected: null, isLogged: false },
     { name: 'malformed JSON', raw: '{nope', expected: null, isLogged: true },
-    { name: 'index out of range', raw: JSON.stringify({ date: today, order: [1], index: 1 }), expected: null, isLogged: false },
-    { name: 'order of non-integers', raw: JSON.stringify({ date: today, order: ['a'], index: 0 }), expected: null, isLogged: false },
+    { name: 'index out of range', raw: JSON.stringify({ date: today, order: [1], index: 1, completed: [] }), expected: null, isLogged: false },
+    { name: 'order of non-integers', raw: JSON.stringify({ date: today, order: ['a'], index: 0, completed: [] }), expected: null, isLogged: false },
+    { name: 'completed not an array', raw: JSON.stringify({ date: today, order: [1], index: 0, completed: 1 }), expected: null, isLogged: false },
+    { name: 'completed outside order', raw: JSON.stringify({ date: today, order: [1], index: 0, completed: [2] }), expected: null, isLogged: false },
     { name: 'null input', raw: null, expected: null, isLogged: false },
   ])('$name', ({ raw, expected, isLogged }) => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);

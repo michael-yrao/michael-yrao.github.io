@@ -1,7 +1,7 @@
 import { Component, input, output, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
 import { EditorView } from '@codemirror/view';
 import { vi } from 'vitest';
 
@@ -21,6 +21,7 @@ const STUB = 'class Solution:\n    pass\n';
 const DRAFT_KEY = 'po-practice-draft:michael-yrao/progressive-overflow-content:90';
 const TABS_KEY = 'po-practice-tabs:michael-yrao/progressive-overflow-content:90';
 const SPLIT_KEY = 'po-practice-split';
+const DRAFT_SAVE_DELAY_MS = 500;
 // The Output pane's case tabs and the Code pane's solution tabs are both role="tab".
 const CASE_TAB = '[aria-label="Cases"] [role="tab"]';
 const SOLUTION_TAB = '[aria-label="Solutions"] [role="tab"]';
@@ -56,6 +57,11 @@ const RUN_STATE: RunState = {
     },
   ],
 };
+
+const STUB_B = 'class Solution:\n    def other(self): ...\n';
+const PROBLEM_B: PracticeProblem = { ...PROBLEM, number: 91, title: 'Other', stub: STUB_B };
+
+let routeParams: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
 
 const setTextSpy = vi.fn();
 const runSpy = vi.fn();
@@ -95,6 +101,7 @@ function setUp(
 ) {
   const params = convertToParamMap({ number });
   const query = convertToParamMap({});
+  routeParams = new BehaviorSubject(params);
   TestBed.configureTestingModule({
     imports: [PracticePageComponent],
     providers: [
@@ -106,7 +113,7 @@ function setUp(
       {
         provide: ActivatedRoute,
         useValue: {
-          paramMap: of(params),
+          paramMap: routeParams,
           queryParamMap: of(query),
           snapshot: { paramMap: params, queryParamMap: query },
         },
@@ -375,6 +382,42 @@ describe('PracticePageComponent', () => {
     view.dispatch({ changes: { from: 0, insert: 'x' } });
 
     expect(lineHasTint()).toBe(false);
+  });
+
+  it('moving to another problem on the same page instance clears the code and the Output of the first', () => {
+    const fixture = setUp('90', [PROBLEM, PROBLEM_B], 'ready', null, true);
+    const root: HTMLElement = fixture.nativeElement;
+    const editorText = () => root.querySelector('.cm-content')?.textContent ?? '';
+    click(root, 'Run');
+    fixture.detectChanges();
+    expect(root.querySelector('.practice__summary')).not.toBeNull();
+
+    routeParams.next(convertToParamMap({ number: '91' }));
+    fixture.detectChanges();
+
+    expect(editorText()).toContain('def other');
+    expect(editorText()).not.toContain('pass');
+    expect(root.querySelector('.practice__summary')).toBeNull();
+    expect(root.querySelector('app-case-results')).toBeNull();
+  });
+
+  it('typing on one problem then moving to another before the debounce saves the typed tabs under the first', () => {
+    vi.useFakeTimers();
+    try {
+      const fixture = setUp('90', [PROBLEM, PROBLEM_B]);
+      const keyB = TABS_KEY.replace(':90', ':91');
+
+      fixture.componentInstance.onTextChange('typed on A');
+      routeParams.next(convertToParamMap({ number: '91' }));
+      fixture.detectChanges();
+      vi.advanceTimersByTime(DRAFT_SAVE_DELAY_MS + 1);
+
+      expect(JSON.parse(localStorage.getItem(TABS_KEY)!).texts).toEqual(['typed on A']);
+      expect(localStorage.getItem(keyB)).toBeNull();
+    } finally {
+      localStorage.removeItem(TABS_KEY.replace(':90', ':91'));
+      vi.useRealTimers();
+    }
   });
 
   it('ArrowRight on the divider widens the problem pane by one step and stores it; a double-click resets to 50', () => {

@@ -96,6 +96,7 @@ interface AuthStub {
   isSignedIn: () => boolean;
   login: () => string | null;
   selectedRepo: () => string | null;
+  resolveRepo: (queryRepo: string | null) => string | null;
   signIn: ReturnType<typeof vi.fn>;
   signOut: ReturnType<typeof vi.fn>;
 }
@@ -105,6 +106,7 @@ const makeAuthStub = (overrides: Partial<AuthStub> = {}): AuthStub => ({
   isSignedIn: () => false,
   login: () => null,
   selectedRepo: () => null,
+  resolveRepo: () => null,
   signIn: vi.fn(),
   signOut: vi.fn(),
   ...overrides,
