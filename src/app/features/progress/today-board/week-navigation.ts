@@ -3,7 +3,7 @@ import { Signal, WritableSignal, computed, effect, untracked } from '@angular/co
 
 import { Schedule } from '../../../core/models/progress.model';
 import { LoadStatus } from '../../../core/services/progress.service';
-import { addDaysISO, currentWeekStart, todayLocalISO } from '../../../core/utils/local-date';
+import { addDaysISO, currentWeekStart, sessionDateISO } from '../../../core/utils/local-date';
 import { emptyWeek } from './board-rows';
 
 const DAYS_PER_WEEK = 7;
@@ -25,7 +25,7 @@ export interface WeekNavigationDeps {
 
 /** Must be constructed in an injection context (it registers the stale-summary gap effect). */
 export class WeekNavigation {
-  readonly todayISO = computed(() => todayLocalISO());
+  readonly todayISO = computed(() => sessionDateISO());
   readonly currentWeekOf = computed(() => currentWeekStart(this.todayISO()));
 
   /** Every week the board currently has data for, keyed by its own `weekOf` — the live
