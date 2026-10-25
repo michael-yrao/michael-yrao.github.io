@@ -44,7 +44,7 @@ worker po-api (public event feeds, KV interview records) --(HTTP, CORS)--> Event
 - Site: `.github/workflows/deploy.yml`. On push to `main` (and pull_request, workflow_dispatch) it runs `npm ci`, lint, `check:contract-mirror`, `check:registry`, `check:sitemap`, `npx ng test --watch=false`, the groundedness check, `npm run build`, and e2e; the deploy job (not on pull_request) publishes `dist/progressive-overflow` to GitHub Pages. Custom domain via `src/CNAME` listed in `angular.json` assets.
 - Worker: `.github/workflows/worker.yml`. On push to `main` touching `worker/**` (plus the workflow file, `src/app/core/models/events.model.ts`, `src/app/features/interview/directory/directory-contract.ts`, `scripts/check-contract-mirror.mjs`) it typechecks, runs the mirror check and tests, then runs `wrangler deploy` via `cloudflare/wrangler-action` only if the Cloudflare secrets are set.
 - Daily groundedness re-check: `.github/workflows/groundedness.yml` (contents not inspected beyond `CLAUDE.md`'s description).
-- Local scripts from `package.json`: `start`, `build`, `test`, `lint`, `e2e`, `gen:registry`, `gen:sitemap`. Node 24 per `CLAUDE.md`.
+- Local scripts from `package.json`: `start`, `build`, `test`, `lint`, `e2e`, `gen:registry`, `gen:sitemap`. Node 26 per `CLAUDE.md`.
 
 ## Unknowns
 - Requirements beyond the conventions in `CLAUDE.md`.

@@ -7,9 +7,8 @@ interview directory under `/interviews/`: the lookup that turns an interview cod
 record the browser needs, stored in Workers KV.
 
 Self-contained toolchain: everything below runs inside `worker/`, with its own
-`package.json`/`package-lock.json`, independent of the Angular app at the repo root. Node 24
-is required (`export PATH=/opt/homebrew/opt/node@24/bin:$PATH` on a Mac with Homebrew's
-keg-only `node@24`).
+`package.json`/`package-lock.json`, independent of the Angular app at the repo root. Node 26
+is required (Homebrew's default `node` on a Mac).
 
 ## Local development
 

@@ -183,12 +183,11 @@ emits `trophyCase`; the site ignores it.
 pass; CI (`.github/workflows/deploy.yml`) runs both before `npm run build` on
 every push.
 
-**Run the toolchain on Node 24, the version CI uses** (`actions/setup-node` in deploy.yml). On a
-Mac with Homebrew that is the keg-only `node@24`: prefix commands with
-`export PATH=/opt/homebrew/opt/node@24/bin:$PATH`. Node 25+ ships an experimental `localStorage`
-global (undefined without `--localstorage-file`) that shadows jsdom's in the vitest environment and
-fails the Big-O trainer's filter-persistence specs; they pass on 24. Angular 22 / TypeScript 6 as
-of Sep 24, 2026 — `ng update` refuses a dirty working tree, so commit first.
+**Run the toolchain on Node 26, the version CI uses** (`actions/setup-node` in deploy.yml); on a
+Mac that is Homebrew's default `node`. Node 25+ ships its own `localStorage` global that shadows
+jsdom's; `src/test-setup.ts` puts jsdom's storage back so the specs see a working `localStorage`.
+Angular 22 / TypeScript 6 as of Sep 24, 2026 — `ng update` refuses a dirty working tree, so commit
+first.
 
 ## VibeWise learning mode
 

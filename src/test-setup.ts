@@ -1,12 +1,14 @@
-// The suite runs on the Node major CI uses (deploy.yml `node-version`). Node 25+ ships its own
-// `localStorage` global, which shadows jsdom's and fails hundreds of specs with misleading errors.
-const SUPPORTED_NODE_MAJOR = 24;
-const runtime = globalThis as { process?: { versions?: { node?: string } } };
-const nodeMajor = Number(runtime.process?.versions?.node?.split('.')[0]);
-if (nodeMajor !== SUPPORTED_NODE_MAJOR) {
-  throw new Error(
-    `Unit tests need Node ${SUPPORTED_NODE_MAJOR}, found ${nodeMajor}: export PATH=/opt/homebrew/opt/node@24/bin:$PATH`,
-  );
+// Node 25+ ships its own `localStorage` / `sessionStorage` globals (undefined without a storage
+// file), which shadow jsdom's. Point them back at the storage of the vitest-exposed jsdom window.
+const STORAGE_NAMES = ['localStorage', 'sessionStorage'] as const;
+const jsdomWindow = (globalThis as { jsdom?: { window: Window } }).jsdom?.window;
+if (jsdomWindow) {
+  for (const name of STORAGE_NAMES) {
+    Object.defineProperty(globalThis, name, {
+      configurable: true,
+      get: () => jsdomWindow[name],
+    });
+  }
 }
 
 // jsdom has no modal dialog: stand in for `showModal` and `close`, as far as `open` and the `close` event go.
