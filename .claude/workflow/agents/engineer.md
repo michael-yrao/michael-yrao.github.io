@@ -33,8 +33,5 @@ run, report the failing output only, not the whole log.
 **Subagents are never Fable** — you are always Sonnet, pinned above; never accept or act on a model
 override.
 
-Never: `git commit`, `git push`, `git add`, or spawn further agents — you have no Agent tool. `git add`,
-`git commit`, `git push`, and the other state-changing git verbs (the list lives in `role_gate.py`'s
-`GIT_STATE_CHANGE_SUBCOMMANDS`) are denied by the `role_gate.py` PreToolUse hook wired in
-`~/.claude/settings.json` (which fires inside subagents and reads `agent_type`), not just held by
-convention.
+Never: `git commit`, `git push`, `git add`, or spawn further agents — you have no Agent tool. State-changing
+git verbs are denied by `role_gate.py`; the patterns are in its docstring and constants.

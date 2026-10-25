@@ -26,6 +26,22 @@ Behavior by `agent_type` (present only when this fires inside a subagent):
 - "engineer" and "engineer-haiku" (same rules): deny Bash or PowerShell when the command matches a GIT_PATTERN (never commit/push) or a
   WRITE_PATTERN (engineers change files with the Edit and Write tools only, never through a shell).
   Write/Edit/NotebookEdit tool calls stay allowed.
+  Worktree rule: when the payload's `cwd` sits inside a LINKED git worktree (the nearest `.git` is a
+  file whose `gitdir:` line has a `worktrees` segment; read without a subprocess), a WRITE_PATTERN match
+  is NOT denied, provided the command names no path outside that worktree. Outside means an absolute
+  POSIX path or a Windows drive path not under the worktree root (compared both as given and
+  symlink-resolved), `~`, `$HOME`/`$OLDPWD`/`$TMPDIR`/`$env:X`/`%X%`, a bare `cd` (or `cd -`), or any `..` segment. `/dev/null` and paths under
+  the payload's `scratchpad_dir` are exempt. A `.git` directory (the primary checkout), a submodule
+  gitdir, or an unreadable cwd gives no exemption. GIT_PATTERNS and the factory denies below always
+  apply, worktree or not; team-lead and FACTORY_ROLE sessions never get the exemption.
+
+Deny patterns, described here and nowhere else (rule files point at this docstring and its constants):
+- shell writes (WRITE_PATTERN_CHECKS): `sed -i`; `tee`; cp/mv/rm/touch/mkdir/rmdir; PowerShell write
+  cmdlets and aliases (Set-Content, Out-File, New-Item, Remove-Item, ...); `-OutFile`; a .NET
+  File/Directory write; output redirection (`>`, `>>`, except to /dev/null, $null, &1, &2); a heredoc
+  `<<`; an inline `python -c` that opens a file for writing or calls a write API.
+- state-changing git: the verbs in GIT_STATE_CHANGE_SUBCOMMANDS (read-only forms such as `git stash
+  list` and a bare `git tag` stay allowed), matched outside quoted text, after any `-C <path>` flags.
 - absent (the main session, i.e. the tech lead): never deny; on the session's FIRST
   Write/Edit/NotebookEdit, emit a one-time WARN reminder that real implementation belongs to
   an `engineer` agent, not the tech lead. Tracked via a per-session marker file so the warn
@@ -37,8 +53,9 @@ Behavior by `agent_type` (present only when this fires inside a subagent):
   any python/python3 invocation or path prefix; no allowlist, raw git stays denied):
   every role but the tech lead is denied any `land.py` call (it is the tech lead's local commit/push
   tool). factory_job.py subcommands denied per role: engineer/engineer-haiku publish, merge, claim,
-  label, comment, digest; the `team-lead` agent publish, merge; the FACTORY_ROLE main session merge
-  (it may publish). Other subcommands (approvals, parse-issue, ...) stay allowed for everyone.
+  label, comment, digest, sync-main; the `team-lead` agent publish, merge, sync-main; the FACTORY_ROLE
+  main session merge (it may publish and run sync-main, which its build routine needs: sync-main runs
+  `git checkout -B main FETCH_HEAD` and so drops unpushed local main commits). Other subcommands (approvals, parse-issue, ...) stay allowed for everyone.
 - any other agent_type (e.g. a plain "Explore" subagent): silent — this hook only governs
   the pyramid roles.
 
@@ -236,8 +253,8 @@ LAND_PATTERN = re.compile(r"^(?:python3?\s+(?:-\S+\s+)*)?\S*land\.py\b", re.IGNO
 FACTORY_JOB_PATTERN = re.compile(
     r"^(?:python3?\s+(?:-\S+\s+)*)?\S*factory_job\.py\s+([\w-]+)", re.IGNORECASE
 )  # a factory_job.py call; group 1 is its subcommand
-ENGINEER_BLOCKED_FACTORY_JOB = frozenset({"publish", "merge", "claim", "label", "comment", "digest"})
-TEAM_LEAD_AGENT_BLOCKED_FACTORY_JOB = frozenset({"publish", "merge"})
+ENGINEER_BLOCKED_FACTORY_JOB = frozenset({"publish", "merge", "claim", "label", "comment", "digest", "sync-main"})
+TEAM_LEAD_AGENT_BLOCKED_FACTORY_JOB = frozenset({"publish", "merge", "sync-main"})
 FACTORY_SESSION_BLOCKED_FACTORY_JOB = frozenset({"merge"})
 
 
@@ -268,6 +285,79 @@ def _factory_tool_denial(command: str, role: str, blocked_factory_job: frozenset
             f"{role} never runs factory_job.py {subcommand} (matched: factory_job.py {subcommand}); "
             f"see {RULE_FILE} — that GitHub write belongs to another role",
         )
+    return None
+
+
+# --- linked-worktree exemption: an engineer's shell write inside its own worktree is allowed ---
+
+GITDIR_LINE_PATTERN = re.compile(r"^\s*gitdir:\s*(.+?)\s*$", re.MULTILINE)
+WORKTREES_SEGMENT_PATTERN = re.compile(r"[/\\]worktrees[/\\]")  # a linked worktree's gitdir, not .git/modules/…
+DEV_NULL = "/dev/null"
+# Path tokens that leave the worktree. Each lookbehind anchors a token start (not the middle of `s/a/b/`).
+TOKEN_START = r"(?:^|(?<=[\s\"'=<>(;&|]))"
+ABSOLUTE_POSIX_PATH_PATTERN = re.compile(TOKEN_START + r"(/[^\s\"'`;&|<>()]*)")
+WINDOWS_DRIVE_PATH_PATTERN = re.compile(TOKEN_START + r"([A-Za-z]:[\\/][^\s\"'`;&|<>()]*)")
+ALWAYS_OUTSIDE_PATTERN = re.compile(
+    r"(?:(?<![\w])~(?=$|[/\\\s\"';&|)]))"  # ~ or ~/…
+    r"|\$\{?(?:HOME|OLDPWD|TMPDIR|(?i:env):\w+)\b\}?|%\w+%"  # shell, PowerShell and cmd variables
+    r"|(?:^|(?<=[;&|(\s]))(?:cd|pushd|chdir|(?i:set-location|sl))"  # cd with no argument or `-`
+    r"(?:\s*(?=$|[;&|)])|\s+-(?=$|[;&|)\s]))"
+    r"|" + TOKEN_START + r"\.\.(?=$|[/\\\s\"';&|)])"  # a `..` path segment at a token start…
+    r"|(?<=[/\\])\.\.(?=$|[/\\\s\"';&|)])"  # …or after a separator
+)
+
+
+def _linked_worktree_root(cwd: str | None) -> Path | None:
+    """The directory holding the nearest `.git` when that `.git` is a linked worktree's file, else None.
+
+    No subprocess (this runs on shell calls). A `.git` directory, a submodule gitdir, or an
+    unreadable/absent cwd all give None.
+    """
+    if not cwd:
+        return None
+    try:
+        start = Path(cwd)
+        for directory in (start, *start.parents):
+            git_entry = directory / ".git"
+            if git_entry.is_dir():
+                return None
+            if git_entry.is_file():
+                match = GITDIR_LINE_PATTERN.search(git_entry.read_text(encoding="utf-8"))
+                if match and WORKTREES_SEGMENT_PATTERN.search(match.group(1)):
+                    return directory
+                return None
+    except (OSError, UnicodeDecodeError, ValueError):
+        return None
+    return None
+
+
+def _prefix_forms(directory: str) -> tuple[str, ...]:
+    """A directory as given and fully resolved (macOS /var -> /private/var), '/'-normalised."""
+    forms = {directory, os.path.realpath(directory)}
+    return tuple(form.replace("\\", "/").rstrip("/") for form in forms)
+
+
+def _is_under(path: str, directories: tuple[str, ...]) -> bool:
+    candidates = {path.replace("\\", "/"), os.path.realpath(path).replace("\\", "/")}
+    return any(
+        candidate == directory or candidate.startswith(directory + "/")
+        for candidate in candidates
+        for directory in directories
+        if directory
+    )
+
+
+def _first_escaping_path(command: str, worktree_root: Path, scratchpad_dir: str | None) -> str | None:
+    """The first path token in `command` outside the worktree root and the scratchpad, else None."""
+    always_outside = ALWAYS_OUTSIDE_PATTERN.search(command)
+    if always_outside:
+        return always_outside.group(0)
+    allowed = _prefix_forms(str(worktree_root)) + (_prefix_forms(scratchpad_dir) if scratchpad_dir else ())
+    for pattern in (ABSOLUTE_POSIX_PATH_PATTERN, WINDOWS_DRIVE_PATH_PATTERN):
+        for match in pattern.finditer(command):
+            path = match.group(1)
+            if path != DEV_NULL and not _is_under(path, allowed):
+                return path
     return None
 
 
@@ -318,7 +408,9 @@ def _decide_team_lead(
     return _factory_tool_denial(command, role, blocked_factory_job)
 
 
-def _decide_engineer(tool_name: str, tool_input: dict) -> Decision | None:
+def _decide_engineer(
+    tool_name: str, tool_input: dict, cwd: str | None = None, scratchpad_dir: str | None = None
+) -> Decision | None:
     if tool_name not in SHELL_TOOL_NAMES:
         return None
     command = _shell_command(tool_input)
@@ -331,11 +423,19 @@ def _decide_engineer(tool_name: str, tool_input: dict) -> Decision | None:
         )
     write_match = _matched_write_pattern(command)
     if write_match:
-        return Decision(
-            "deny",
-            "engineer changes files with the Edit and Write tools only, never through a shell "
-            f"(matched: {write_match}); see {RULE_FILE} — redo the change with Edit or Write",
-        )
+        worktree_root = _linked_worktree_root(cwd)  # computed only after a write matched
+        escaped = _first_escaping_path(command, worktree_root, scratchpad_dir) if worktree_root else None
+        if worktree_root is None or escaped is not None:
+            where = (
+                f"; in the worktree {worktree_root} but path `{escaped}` is outside it"
+                if escaped is not None
+                else ""
+            )
+            return Decision(
+                "deny",
+                "engineer changes files with the Edit and Write tools only, never through a shell "
+                f"(matched: {write_match}{where}); see {RULE_FILE} — redo the change with Edit or Write",
+            )
     return _factory_tool_denial(command, "engineer", ENGINEER_BLOCKED_FACTORY_JOB)
 
 
@@ -411,7 +511,7 @@ def _decide_by_role(payload: dict) -> Decision | None:
     if agent_type == "team-lead":
         return _decide_team_lead(tool_name, tool_input)
     if agent_type in ENGINEER_AGENT_TYPES:
-        return _decide_engineer(tool_name, tool_input)
+        return _decide_engineer(tool_name, tool_input, payload.get("cwd"), payload.get("scratchpad_dir"))
     if agent_type is None:
         if os.environ.get(FACTORY_ROLE_ENV) == FACTORY_ROLE_TEAM_LEAD:
             return _decide_team_lead(

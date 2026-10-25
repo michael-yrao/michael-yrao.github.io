@@ -41,13 +41,10 @@ only waste you can see or measure. A fix goes to a fresh `engineer` spawned with
 false` and a self-contained brief (what to change, why, the test that must still pass, the files it may
 touch), because a SendMessage resumes the old engineer in the background and leaves you nothing to block
 on (2026-10-05: a lead busy-looped 120 s to hold its turn). You still have no Write/Edit.
-Both shells stay available, for running tests and reading; the role gate applies to both: a write
-matching the named patterns in `~/.claude/hooks/role_gate.py` (sed -i, tee, a redirect, a heredoc,
-cp/mv/rm/touch/mkdir/rmdir, an inline python write, PowerShell write cmdlets and their aliases,
-`-OutFile`, `[IO.File]::Write*`) and every state-changing git command (the list lives in `role_gate.py`'s
-`GIT_STATE_CHANGE_SUBCOMMANDS`) are denied in Bash and in PowerShell alike by
-the `role_gate.py` PreToolUse hook wired in `~/.claude/settings.json` (which fires inside subagents and
-reads `agent_type`) — only an unlisted write path remains convention rather than enforcement.
+Both shells stay available, for running tests and reading; the role gate applies to both: shell writes
+and every state-changing git command are denied in Bash and in PowerShell alike. Enforced by `role_gate.py`;
+the patterns are in its docstring and constants. Only an unlisted write path remains convention rather
+than enforcement.
 
 **You are responsible for code optimization inside your slice.** When you see or measure waste in an
 engineer's diff, decide the fix yourself and send it to a fresh foreground `engineer` as a self-contained

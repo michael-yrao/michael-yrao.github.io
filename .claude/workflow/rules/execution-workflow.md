@@ -17,6 +17,8 @@ The three tiers map onto three phases — Plan (tech lead), Implement (engineers
 team leads) — so the phase names still apply when a task is small enough for a single engineer with no
 lead in between.
 
+Walk `~/.claude/skills/write-plan/SKILL.md` before plan approval.
+
 ## Spawn rule (5:1)
 
 Count the engineers the plan needs. 1 → the tech lead supervises it directly, no lead, unless supervising
@@ -74,8 +76,7 @@ the lead's), and the carve-outs below.
 - Supervision, test and build runs, the first review of each diff, and optimizing the slice's code: a team lead.
 - Checker scripts and verification runs: an engineer.
 
-How many agents that takes is the tech lead's call, made per task (user, 2026-10-04: "up to your
-discretion for now"). The floor: an agent is spawned for this work when the work is larger than the brief
+How many agents that takes is the tech lead's call, made per task. The floor: an agent is spawned for this work when the work is larger than the brief
 it needs, and a read of one known file stays inline.
 
 **On Fable, the session's own context is the first cost.** Every token the session reads or writes costs
@@ -91,39 +92,33 @@ more than the same token anywhere else in the tree, so the list above is not opt
 
 Every repo a plan or brief names gets its `git status --short` output **pasted into the brief** (a clean repo
 is pasted as a fenced block whose first line is `git status --short` and second is `(clean)` — never as
-prose; `brief_gate.py` denies the prose form, 2026-10-19), and every
+prose; `brief_gate.py` denies the prose form), and every
 count or "nothing depends on X" claim in a plan comes from a command that was run, pasted, not from a grep
 remembered or a state inferred from an adjacent command. A brief is a mechanical artifact: a second agent with
 the same inputs must produce the same brief, and "clean" / "no spec depends on it" are one-command facts.
-(3× in four days, 2026-09-20/21/23 — a private-repo inference, a "clean at start" brief that carried six
-modified files, a "no spec hard-codes the counts" grep that missed membership dependencies.)
 
-**Enforced by `brief_gate.py`** (PreToolUse, matcher `Agent`): a `team-lead` or `engineer` spawn whose prompt carries no `git status --short` paste is DENIED; an allowed spawn gets a warn-only reminder of the rest of this section. On Windows (`win32`) only, a brief that names `michael-yrao.github.io` and runs the Angular CLI through `npm run lint|test`, `npx ng` or bare `ng …` is DENIED too; the bootstrap path (`node node_modules/@angular/cli/bin/bootstrap.js …`) is the one that runs on this machine (2026-10-21). A `team-lead` brief that tells the lead to run its engineers in the background is DENIED, because `agents/team-lead.md` requires them in the foreground (2026-10-22).
+**Enforced by `brief_gate.py`** (PreToolUse, matcher `Agent`): a `team-lead` or `engineer` spawn whose prompt carries no `git status --short` paste is DENIED; an allowed spawn gets a warn-only reminder of the rest of this section. On Windows (`win32`) only, a brief that names `michael-yrao.github.io` and runs the Angular CLI through `npm run lint|test`, `npx ng` or bare `ng …` is DENIED too; the bootstrap path (`node node_modules/@angular/cli/bin/bootstrap.js …`) is the one that runs on this machine. A `team-lead` brief that tells the lead to run its engineers in the background is DENIED, because `agents/team-lead.md` requires them in the foreground.
 
 The checklist for this section is `~/.claude/skills/write-brief/SKILL.md`, walked before every `team-lead` / `engineer` spawn.
 
 **A claim that a file says X quotes the matched line.** "`study_guide.md` names 394" is backed by the LINE
 pasted into the plan or brief, never by a match count, a line number alone, or a substring hit. The same
 holds for a verification step's expected output: it is pasted from a dry run, or marked *expected,
-unverified*. (4× in two days, 2026-09-25/26 — a smoke test with a side effect on real state, a topic map
-typed from recall, two verification steps no command had shown, and a grep for "Decode String" that matched
-"Encode and Decode Strings" and was reported as the file naming 394.)
+unverified*.
 
 **A brief names the tests to add.** It lists them per `~/.claude/rules/testing.md` — the behaviour that can
 break, table-driven, nothing trivial or already proven — and the engineer adds those and no others.
 
 **A plan that replaces a paragraph of user-facing text quotes the old paragraph in full beside the new
 one.** A dropped sentence is then visible at approval. For any other paragraph, the tech lead diffs old
-against new at its own review and confirms no sentence or citation was dropped. (2026-09-29 — a replacement
-dropped the old paragraph's citation.)
+against new at its own review and confirms no sentence or citation was dropped.
 
 ## A running agent's status is read from file times, not from silence
 
 A status answer about a background agent pastes the newest mtime in its slice (`ls -lt`, top line) next to
 the current time. "No notification yet" is not "working", and a file listing is not a file time. A lead or
 engineer quiet for more than twice its previous round is stopped and re-briefed from the tree. The new brief
-carries a stall guard: bounded tasks, no watch-mode command, report up rather than wait. (2026-10-04 — a team
-lead sat 13.5 hours after its last write while a file listing was reported as "in progress".)
+carries a stall guard: bounded tasks, no watch-mode command, report up rather than wait.
 
 ## User-facing text gets a second review
 
@@ -132,8 +127,7 @@ read. The user reviews each such sentence or paragraph before it is committed.
 
 Everything else lands on the tech lead's own review, with no user approval: rule, skill and memory files,
 `decisions.yml` and config comments, code comments, docstrings, commit messages, test fixtures, ledger and
-tracker entries, and the agent's self-evaluation log entries. (User, 2026-10-02: rule/skill/memory files
-exempt; widened 2026-10-04: "non-user facing wording does not need my approval".)
+tracker entries, and the agent's self-evaluation log entries.
 
 The tech lead lists each new or changed piece of user-facing text word for word, says where it appears, and
 waits for the user's yes. A plan that quotes the text and is approved counts as that review. User-facing
@@ -158,12 +152,10 @@ removed from the lead's tool list.
 
 **Enforced by the `role_gate.py` PreToolUse hook**, wired once in `~/.claude/settings.json` (matcher
 `Write|Edit|NotebookEdit|Bash|PowerShell`); settings hooks fire inside subagents and the script branches on the
-`agent_type` field: the lead's and the engineer's Bash or PowerShell calls that match a named write pattern (`sed -i`, `tee`, a redirect, a
-heredoc, cp/mv/rm/touch/mkdir/rmdir, an inline python write, PowerShell write cmdlets and their aliases,
-`-OutFile`, a .NET file write — the full list
-lives in `~/.claude/hooks/role_gate.py`) are DENIED for both (engineers change files with Edit/Write only; 2026-10-21, third scripted-edit lapse), and every state-changing git command (add, commit,
-push, rm, mv, reset, restore, stash, rebase, merge, cherry-pick, tag, checkout, pull, fetch, switch, clean, revert, am, apply, worktree) is DENIED for both the
-lead and the engineer, in Bash and in PowerShell alike. Read-only git (status, diff, log, show, ls-files, branch, remote -v, stash list/show, tag with no argument or `-l`/`--list`) stays allowed. A main session (no `agent_type`) whose environment sets `FACTORY_ROLE=team-lead` (a cloud routine playing the team lead, which has no Agent-spawned lead) gets the team lead's denies; `agent_type` still wins for its subagents. Two more named denies, matched per command segment outside quoted text: any `land.py` call is DENIED for every role but the tech lead (it is the tech lead's local commit/push tool); and `factory_job.py` subcommands are DENIED per role — `engineer`/`engineer-haiku`: `publish`, `merge`, `claim`, `label`, `comment`, `digest`; the `team-lead` agent: `publish`, `merge`; the `FACTORY_ROLE` session: `merge` (it may `publish`). `approvals`, `parse-issue` and the other subcommands stay allowed for all. Raw git stays denied for every role under `FACTORY_ROLE`; there is no allowlist.
+`agent_type` field: the lead's and the engineer's Bash or PowerShell calls that write files are DENIED for both (engineers change files with Edit/Write only; inside a worktree the hook stops enforcing it, see below), and every state-changing git command is DENIED for both the
+lead and the engineer, in Bash and in PowerShell alike. Read-only git stays allowed. The patterns and verbs are in `role_gate.py`'s docstring and constants. A main session (no `agent_type`) whose environment sets `FACTORY_ROLE=team-lead` (a cloud routine playing the team lead, which has no Agent-spawned lead) gets the team lead's denies; `agent_type` still wins for its subagents. Two more named denies, matched per command segment outside quoted text: any `land.py` call is DENIED for every role but the tech lead (it is the tech lead's local commit/push tool); and `factory_job.py` subcommands are DENIED per role — `engineer`/`engineer-haiku`: `publish`, `merge`, `claim`, `label`, `comment`, `digest`, `sync-main`; the `team-lead` agent: `publish`, `merge`, `sync-main`; the `FACTORY_ROLE` session: `merge` (it may `publish`). `approvals`, `parse-issue` and the other subcommands stay allowed for all. Raw git stays denied for every role under `FACTORY_ROLE`; there is no allowlist.
+
+**Worktree engineer.** An interactive engineer whose brief edits only the session's launch repo is spawned with `isolation: "worktree"`. The Edit/Write-only rule still holds; `role_gate.py` stops denying a shell write inside the worktree, because a slip there reaches the main checkout only through the tech lead's review. The tech lead integrates by `land.py commit --repo <worktree>`, then `git cherry-pick <sha>` in the main checkout, then `git worktree remove`. The site repo stays in the primary checkout.
 
 **A recipe routine runs as a team lead with no tech lead** (a cloud session with `FACTORY_ROLE=team-lead`). The recipe is the approved plan: the lead spawns `engineer` or `engineer-haiku` per the recipe's `recipe.yml tier:`, follows the Haiku escalation above (a failed `engineer-haiku` check re-runs once on `engineer`), and sends every GitHub write through `scripts/factory_job.py`, never raw git or `gh`.
 
@@ -171,15 +163,13 @@ lead and the engineer, in Bash and in PowerShell alike. Read-only git (status, d
 a warn-only `additionalContext` note on its first `Write`/`Edit`/`NotebookEdit` of a session, pointing
 back at this rule. It never denies — the tech lead may still make a trivial one-liner edit inline.
 
-**Enforced by the `brief_gate.py` PreToolUse hook** (2026-10-07), wired in `~/.claude/settings.json` with matcher `Agent`: a `team-lead`/`engineer` spawn with no `git status --short` paste in its prompt is DENIED (see "Briefs carry pasted state").
+**Enforced by the `brief_gate.py` PreToolUse hook**, wired in `~/.claude/settings.json` with matcher `Agent`: a `team-lead`/`engineer` spawn with no `git status --short` paste in its prompt is DENIED (see "Briefs carry pasted state").
 
-**Still convention, not enforcement:** any write path Bash or PowerShell could take that isn't in the named pattern
-list above (some obscure tool, a non-interactive editor invocation, etc.); and a lead spawning only
+**Still convention, not enforcement:** any write path Bash or PowerShell could take that `role_gate.py` does not name (some obscure tool, a non-interactive editor invocation, etc.); and a lead spawning only
 `engineer` agents, never a generic agent standing in for one (frontmatter has no way to restrict which
 `subagent_type` a lead spawns).
 
-**Verified by live probe, not by docs:** agent-frontmatter `hooks:` blocks did not fire in testing on
-2026-09-21, so they are not used; any future change to enforcement wiring is confirmed by spawning an
+**Verified by live probe, not by docs:** agent-frontmatter `hooks:` blocks did not fire in testing, so they are not used; any future change to enforcement wiring is confirmed by spawning an
 agent and watching the deny land, never by reading the docs alone.
 
 ## What triggers it — non-trivial work only

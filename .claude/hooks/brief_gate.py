@@ -80,8 +80,24 @@ BACKGROUND_DENY_REASON = (
     "lead's turn that ends while its engineers still run is handed back with no diff. Rewrite the brief "
     "so the lead spawns its engineers in the foreground."
 )
+# A fix sent/routed/returned/given (back) to "the same engineer" / "that engineer", or the old engineer
+# resumed or SendMessage'd for a fix, all within one sentence.
+SAME_ENGINEER_FIX_PATTERN = re.compile(
+    r"\bfix(?:es)?\b[^.!?\n]*\b(?:to|back to|with)\s+(?:the same|that) engineer\b"
+    r"|\b(?:send|route|return|give|resume|sendmessage)\b[^.!?\n]*\b(?:the same|that|the old) engineer\b[^.!?\n]*\bfix",
+    re.IGNORECASE,
+)
+# "fresh", "new" or a negation in the same sentence turns the instruction into an allowed one.
+SAME_ENGINEER_EXEMPT_PATTERN = re.compile(r"\b(?:fresh|new|never|do not|don't|don’t|dont)\b", re.IGNORECASE)
+SAME_ENGINEER_DENY_REASON = (
+    "Brief gate: this team-lead brief sends fixes back to the same engineer, but "
+    "~/.claude/agents/team-lead.md requires a fix to go to a fresh `engineer` spawned with "
+    "`run_in_background: false`: a SendMessage resumes the old engineer in the background and leaves the "
+    "lead nothing to block on. Rewrite the brief so each fix goes to a fresh foreground engineer."
+)
 WARN_TEXT = (
-    "Brief check: guard/validation logic is pasted as the function body, not grep hits; the brief names "
+    "Brief check: guard/validation logic is pasted as the function body, not grep hits; a guard, filter or join "
+    "brief states the input it must still accept and the key it joins on; the brief names "
     "the tests to add and the full-suite command; counts come from a command that was run; "
     "load the write-brief skill before the next brief."
 )
@@ -133,12 +149,24 @@ def _is_background_order(sentence: str) -> bool:
     return bool(BACKGROUND_ORDER_PATTERN.search(sentence)) and not BACKGROUND_EXEMPT_PATTERN.search(sentence)
 
 
-def has_background_engineer_order(prompt: str) -> bool:
+def _is_same_engineer_fix_order(sentence: str) -> bool:
+    return bool(SAME_ENGINEER_FIX_PATTERN.search(sentence)) and not SAME_ENGINEER_EXEMPT_PATTERN.search(sentence)
+
+
+def _any_sentence(prompt: str, predicate) -> bool:
     return any(
-        _is_background_order(sentence)
+        predicate(sentence)
         for line in prompt.splitlines()
         for sentence in SENTENCE_SPLIT_PATTERN.split(line)
     )
+
+
+def has_background_engineer_order(prompt: str) -> bool:
+    return _any_sentence(prompt, _is_background_order)
+
+
+def has_same_engineer_fix_order(prompt: str) -> bool:
+    return _any_sentence(prompt, _is_same_engineer_fix_order)
 
 
 def decide(subagent_type: object, prompt: object) -> Decision | None:
@@ -151,6 +179,8 @@ def decide(subagent_type: object, prompt: object) -> Decision | None:
         return Decision("deny", SITE_CLI_DENY_REASON)
     if subagent_type == "team-lead" and has_background_engineer_order(text):
         return Decision("deny", BACKGROUND_DENY_REASON)
+    if subagent_type == "team-lead" and has_same_engineer_fix_order(text):
+        return Decision("deny", SAME_ENGINEER_DENY_REASON)
     return Decision("warn", WARN_TEXT)
 
 
