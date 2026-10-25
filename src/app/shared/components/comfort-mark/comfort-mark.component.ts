@@ -9,6 +9,11 @@ const DOT_RADIUS = 5;
 const RING_STROKE_WIDTH = 1.5;
 const RING_RADIUS = DOT_RADIUS - RING_STROKE_WIDTH / 2;
 const RING_STROKE = 'var(--color-border)';
+const SHAKY_DASH_COUNT = 6;
+const SHAKY_DASH_PERIOD = (2 * Math.PI * RING_RADIUS) / SHAKY_DASH_COUNT;
+const SHAKY_DASH_FRACTION = 0.6;
+const SHAKY_DASH_ARRAY =
+  `${(SHAKY_DASH_PERIOD * SHAKY_DASH_FRACTION).toFixed(2)} ${(SHAKY_DASH_PERIOD * (1 - SHAKY_DASH_FRACTION)).toFixed(2)}`;
 const TARGET_DOT_RADIUS = 3;
 const TARGET_RING_RADIUS = 5.25;
 const TARGET_RING_STROKE_WIDTH = 1;
@@ -17,8 +22,8 @@ const STAR_POINTS = '6,0.8 7.5,4.2 11.2,4.5 8.4,6.9 9.3,10.5 6,8.6 2.7,10.5 3.6,
 const HALF_DISC_PATH = 'M6 1 A5 5 0 0 0 6 11 Z';
 
 /**
- * blank, shaky and s0 are rings (red, orange, green); s1 half, s2 full; graduated a green target
- * (dot in a ring); retired a violet star; unknown a hollow grey ring.
+ * blank and s0 are solid rings (red, green), shaky a dashed orange ring; s1 half, s2 full; graduated
+ * a green target (dot in a ring); retired a gold star; unknown a hollow grey ring.
  * The data stays the comfort emoji string plus a streak; this renders it.
  * `label` undefined = the stage's spoken text; `''` = decorative.
  */
@@ -41,6 +46,7 @@ export class ComfortMarkComponent {
   protected readonly ringRadius = RING_RADIUS;
   protected readonly ringStroke = RING_STROKE;
   protected readonly ringStrokeWidth = RING_STROKE_WIDTH;
+  protected readonly shakyDashArray = SHAKY_DASH_ARRAY;
   protected readonly targetDotRadius = TARGET_DOT_RADIUS;
   protected readonly targetRingRadius = TARGET_RING_RADIUS;
   protected readonly targetRingStrokeWidth = TARGET_RING_STROKE_WIDTH;

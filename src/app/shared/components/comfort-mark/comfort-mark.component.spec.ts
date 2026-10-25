@@ -28,7 +28,7 @@ describe('ComfortMarkComponent', () => {
     },
     {
       comfort: '🟡', level: 2, key: 'shaky', spoken: 'Comfort: shaky',
-      drawn: [['circle', 'fill', 'none'], ['circle', 'stroke', 'var(--color-shaky)']],
+      drawn: [['circle', 'fill', 'none'], ['circle', 'stroke', 'var(--color-shaky)'], ['circle', 'stroke-dasharray', '2.67 1.78']],
     },
     {
       comfort: '🟢', streak: 0, level: 3, key: 's0', spoken: 'Comfort: clean, streak 0',
