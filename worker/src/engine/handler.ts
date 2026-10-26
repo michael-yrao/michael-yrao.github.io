@@ -17,6 +17,7 @@ import {
 } from '../github/write-file';
 import type { OnboardEnv } from '../onboard/handler';
 import { gateOrigin, preflight } from '../pattern-sense/handler';
+import { APPROVE_PATH, handleApproveWeek } from './approve-week';
 import { handleEngineUpdate, UPDATE_PATH } from './update-route';
 import { OWNER_PATTERN, REPO_PATTERN } from '../pattern-sense/validate';
 
@@ -130,5 +131,6 @@ export async function handle(
   const { pathname } = new URL(request.url);
   if (pathname === WEEKLY_BUILD_PATH) return handleWeeklyBuild(request, fetchImpl, cors);
   if (pathname === UPDATE_PATH) return handleEngineUpdate(request, env, fetchImpl, cors);
+  if (pathname === APPROVE_PATH) return handleApproveWeek(request, fetchImpl, cors);
   return failure(404, 'not-found', cors);
 }

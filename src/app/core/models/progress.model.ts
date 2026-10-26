@@ -266,6 +266,8 @@ export interface ScheduleDay {
 export interface Schedule {
   weekOf: string;
   days: ScheduleDay[];
+  /** Present (true) while the week is an unapproved draft from the headless build. */
+  isDraft?: boolean;
 }
 
 /** The full history export (`dashboard/schedule-history.json`) — every archived and live week

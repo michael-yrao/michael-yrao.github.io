@@ -22,6 +22,7 @@ const RUNS_URL_BASE = 'https://api.github.com/repos/';
 const RUNS_URL_TAIL = '/actions/runs?per_page=1';
 const BUILD_ROUTE = 'engine/weekly-build';
 const UPDATE_ROUTE = 'engine/update';
+const APPROVE_ROUTE = 'engine/approve-week';
 const HTTP_FORBIDDEN = 403;
 const HTTP_CONFLICT = 409;
 const REFUSED_CODE = 'integration-refused';
@@ -82,6 +83,25 @@ export class EngineService {
       return 'dispatched';
     } catch (err) {
       return buildFailure(err);
+    }
+  }
+
+  /** Asks the Worker to remove the draft marker from the week starting `weekOf`; true on success. */
+  async approveWeek(ref: RepoRef, weekOf: string): Promise<boolean> {
+    const token = await this.auth.getToken();
+    if (token === null) return false;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    try {
+      await firstValueFrom(
+        this.http.post<unknown>(
+          `${WORKER_API_URL}${APPROVE_ROUTE}`,
+          { owner: ref.owner, repo: ref.repo, weekOf },
+          { headers },
+        ),
+      );
+      return true;
+    } catch {
+      return false;
     }
   }
 

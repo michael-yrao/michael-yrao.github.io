@@ -1854,6 +1854,51 @@ describe('TodayBoardComponent engine menu', () => {
   });
 });
 
+describe('TodayBoardComponent approve control', () => {
+  function createApprovable(isDraft: boolean, isOwnRepo: boolean, approveWeek = async () => true) {
+    const refresh = vi.fn();
+    const approve = vi.fn(approveWeek);
+    TestBed.configureTestingModule({
+      imports: [TodayBoardComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: EngineService,
+          useValue: { status$: () => of(NO_ENGINE_RUN), versions: async () => null, approveWeek: approve },
+        },
+        { provide: ProgressService, useValue: { refresh, repoRef: signal(null), data: signal(null) } },
+      ],
+    });
+    const fixture = TestBed.createComponent(TodayBoardComponent);
+    fixture.componentRef.setInput('schedule', makeSchedule(isDraft ? { isDraft: true } : {}));
+    fixture.componentRef.setInput('isOwnRepo', isOwnRepo);
+    fixture.componentRef.setInput('repoRef', { owner: 'alice', repo: 'cse-progress', branch: 'main' });
+    fixture.detectChanges();
+    const button = (): HTMLButtonElement | null =>
+      fixture.nativeElement.querySelector('button[aria-label="Approve this week"]');
+    return { fixture, button, approve, refresh };
+  }
+
+  it.each<{ name: string; isDraft: boolean; isOwnRepo: boolean; isShown: boolean }>([
+    { name: 'own repo and draft shows it', isDraft: true, isOwnRepo: true, isShown: true },
+    { name: 'own repo and not draft hides it', isDraft: false, isOwnRepo: true, isShown: false },
+    { name: 'not own repo and draft hides it', isDraft: true, isOwnRepo: false, isShown: false },
+  ])('$name', ({ isDraft, isOwnRepo, isShown }) => {
+    const { button } = createApprovable(isDraft, isOwnRepo);
+    expect(button() !== null).toBe(isShown);
+  });
+
+  it('a click approves once, then hides the control and refreshes', async () => {
+    const { fixture, button, approve, refresh } = createApprovable(true, true);
+    button()?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(approve).toHaveBeenCalledTimes(1);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(button()).toBeNull();
+  });
+});
+
 describe('TodayBoardComponent run-through control', () => {
   function createWithSession(session: { queue: number[]; active: boolean; doneCount: number }, isOwnRepo = true) {
     TestBed.configureTestingModule({

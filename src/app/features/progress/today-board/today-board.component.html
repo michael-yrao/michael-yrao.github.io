@@ -218,6 +218,16 @@
         [disabled]="!canGoNext()"
         (click)="nextWeek()"
       ><app-icon name="chevron-right" [size]="14" /></button>
+      @if (isApprovable()) {
+        <button
+          type="button"
+          class="today-board__week-nav-btn"
+          aria-label="Approve this week"
+          title="Approve this week"
+          [disabled]="isApproving()"
+          (click)="approveWeek()"
+        ><app-icon name="check" [size]="14" /></button>
+      }
       @if (isOwnRepo()) {
         <app-engine-menu [repoRef]="repoRef()" [isWeekMissing]="isCurrentWeekMissing()" />
       }

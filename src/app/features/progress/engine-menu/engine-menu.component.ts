@@ -31,15 +31,18 @@ const BUILD_LABEL = 'Build next week…';
 const MISSING_WEEK_BUILD_LABEL = 'Build this week…';
 const CONFIRM_HEADING = 'Build next week now?';
 const MISSING_WEEK_CONFIRM_HEADING = 'Build this week now?';
+const DRAFT_LINE = 'Lands as a draft for you to approve';
 const CONFIRM_LINES: readonly string[] = [
   'Archives this week',
   'Re-seats what is left into next week',
   'Runs in your repo as a commit',
+  DRAFT_LINE,
 ];
 const MISSING_WEEK_CONFIRM_LINES: readonly string[] = [
   'Archives last week',
   'Re-seats what is left into this week',
   'Runs in your repo as a commit',
+  DRAFT_LINE,
 ];
 const NO_CONFIG_ROW = '✗ no cse.config.yml';
 const RUN_ROWS: Readonly<Record<'running' | 'ok' | 'failed', string>> = {

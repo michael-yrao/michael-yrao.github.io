@@ -224,7 +224,12 @@ describe('EngineMenuComponent', () => {
       label: 'Build next week',
       meta: 'closes this week',
       heading: 'Build next week now?',
-      lines: ['Archives this week', 'Re-seats what is left into next week', 'Runs in your repo as a commit'],
+      lines: [
+        'Archives this week',
+        'Re-seats what is left into next week',
+        'Runs in your repo as a commit',
+        'Lands as a draft for you to approve',
+      ],
     },
     {
       name: 'the week is missing',
@@ -232,7 +237,12 @@ describe('EngineMenuComponent', () => {
       label: 'Build this week',
       meta: 'missing',
       heading: 'Build this week now?',
-      lines: ['Archives last week', 'Re-seats what is left into this week', 'Runs in your repo as a commit'],
+      lines: [
+        'Archives last week',
+        'Re-seats what is left into this week',
+        'Runs in your repo as a commit',
+        'Lands as a draft for you to approve',
+      ],
     },
   ])('the Build item and dialog wording: $name', async ({ isWeekMissing, label, meta: expectedMeta, heading, lines }) => {
     vi.setSystemTime(WEDNESDAY_NOON);

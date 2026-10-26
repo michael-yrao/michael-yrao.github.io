@@ -79,6 +79,7 @@ gets a 503 when a binding is missing.
 - `src/onboard/`: `POST /onboard/dsa` creates your `cse-progress` repo from the cse-coach template, or adopts the one you already have.
 - `src/onboard/`: `POST /onboard/intake` takes `{name, target, timezone, startDate}` and writes `intake.yml` to your `cse-progress` repo; it answers 409 `already-onboarded` once `cse.config.yml` exists.
 - `src/engine/`: `POST /engine/weekly-build` takes `{owner, repo}`, enables the repo's `weekly-build.yml` workflow and dispatches it on `main` (202 `{status: 'dispatched'}`); refuses 409 `no-config` when the repo has no `cse.config.yml`.
+- `POST /engine/approve-week` takes `{owner, repo, weekOf}` (a Monday, `YYYY-MM-DD`) and removes the `<!-- status: draft -->` line from that week's schedule file in one commit (200 `{status: 'approved'}`); refuses 400 `invalid-request` for a `weekOf` that is not a Monday, 404 `no-week` when the file is missing, 409 `not-draft` when it has no marker line.
 - `POST /engine/update`: brings the learner's repo up to the current cse-coach engine (one commit; edited files are kept).
 
 Only the origins in `ALLOWED_ORIGINS` (a `[vars]` entry in `wrangler.toml`) are served.

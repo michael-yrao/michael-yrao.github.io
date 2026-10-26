@@ -17,7 +17,8 @@ import {
   ScheduleItem,
   WorkloadDay,
 } from '../../../core/models/progress.model';
-import { LoadStatus } from '../../../core/services/progress.service';
+import { LoadStatus, ProgressService } from '../../../core/services/progress.service';
+import { EngineService } from '../../../core/engine/engine.service';
 import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { streakFromNote } from '../../../core/models/comfort';
@@ -236,6 +237,31 @@ export class TodayBoardComponent {
     const isAllDone = this.todaySession.doneCount() === this.todaySession.queue().length;
     return isAllDone ? RUN_CONTROLS.done : RUN_CONTROLS.start;
   });
+
+  private readonly engine = inject(EngineService);
+  private readonly progress = inject(ProgressService);
+  private readonly approvedWeeks = signal<ReadonlySet<string>>(new Set());
+  protected readonly isApproving = signal(false);
+
+  /** The approve check: own repo, displayed week is an unapproved draft. */
+  protected readonly isApprovable = computed(
+    () =>
+      this.isOwnRepo() &&
+      this.weekNav.displayedSchedule().isDraft === true &&
+      !this.approvedWeeks().has(this.displayedWeekOf()),
+  );
+
+  protected async approveWeek(): Promise<void> {
+    const ref = this.repoRef();
+    const weekOf = this.displayedWeekOf();
+    if (ref === null || this.isApproving()) return;
+    this.isApproving.set(true);
+    const isApproved = await this.engine.approveWeek(ref, weekOf);
+    this.isApproving.set(false);
+    if (!isApproved) return;
+    this.approvedWeeks.update((weeks) => new Set(weeks).add(weekOf));
+    this.progress.refresh();
+  }
 
   protected runToday(): void {
     const control = this.runControl();
