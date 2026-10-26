@@ -23,7 +23,6 @@ import { PracticePageComponent } from './practice-page.component';
 const OWNER = CONTENT_REPO.owner;
 const TABS_KEY = `po-practice-tabs:${OWNER}/${CONTENT_REPO.repo}:90`;
 const SAVE_BUTTON = 'Save to GitHub';
-const MARK_COMPLETE = 'Mark Complete';
 const REMOTE_SAVED_AT = '2026-10-10T12:00:00.000Z';
 const REMOTE_CODE = 'remote code\n';
 const REMOTE_FILE = `# po-attempt: {"complete":false,"rating":null,"tests":null,"complexity":null,"savedAt":"${REMOTE_SAVED_AT}"}\n${REMOTE_CODE}`;
@@ -182,41 +181,12 @@ describe('PracticePageComponent save to GitHub', () => {
     const root: HTMLElement = fixture.nativeElement;
 
     expect(buttonByText(root, SAVE_BUTTON)).toBeUndefined();
-    expect(buttonByText(root, MARK_COMPLETE)).toBeUndefined();
     httpMock.expectNone(`${WORKER_API_URL}practice/latest`);
-  });
-
-  const MARK_ROWS: readonly {
-    readonly name: string;
-    readonly verdicts: readonly ('pass' | 'fail')[] | null;
-    readonly editAfter: boolean;
-    readonly isSample: boolean;
-    readonly isEnabled: boolean;
-  }[] = [
-    { name: 'never run', verdicts: null, editAfter: false, isSample: false, isEnabled: false },
-    { name: 'not every case passed', verdicts: ['pass', 'pass', 'fail'], editAfter: false, isSample: false, isEnabled: false },
-    { name: 'edited after a passing run', verdicts: ['pass', 'pass', 'pass'], editAfter: true, isSample: false, isEnabled: false },
-    { name: 'a sample run that passed every sampled case', verdicts: ['pass', 'pass'], editAfter: false, isSample: true, isEnabled: false },
-    { name: 'a fresh full pass', verdicts: ['pass', 'pass', 'pass'], editAfter: false, isSample: false, isEnabled: true },
-  ];
-
-  it.each(MARK_ROWS)('Mark Complete, owner, $name: enabled is $isEnabled', ({ verdicts, editAfter, isSample, isEnabled }) => {
-    signIn(OWNER.toUpperCase()); // the owner match ignores case
-    if (verdicts !== null) runSpy.mockReturnValue(of(runOf(verdicts)));
-    const { fixture } = render();
-    const root: HTMLElement = fixture.nativeElement;
-
-    if (verdicts !== null) clickRun(fixture, isSample);
-    if (editAfter) fixture.componentInstance.onTextChange('changed after the run');
-    fixture.detectChanges();
-
-    expect(buttonByText(root, SAVE_BUTTON)).toBeDefined();
-    expect(buttonByText(root, MARK_COMPLETE)!.disabled).toBe(!isEnabled);
   });
 
   it.each([
     {
-      name: 'Mark Complete, dialog, Check, rating, Save rep',
+      name: 'Complete dialog, Check, rating, Save rep',
       isComplete: true,
       expected: {
         complete: true,
@@ -272,6 +242,7 @@ describe('PracticePageComponent save to GitHub', () => {
   it.each([
     { name: 'a full pass', verdicts: ['pass', 'pass', 'pass'], isSample: false, editBeforeResult: false, isOpen: true },
     { name: 'a partial pass', verdicts: ['pass', 'pass', 'fail'], isSample: false, editBeforeResult: false, isOpen: false },
+    { name: 'a sample run that passed every sampled case', verdicts: ['pass', 'pass'], isSample: true, editBeforeResult: false, isOpen: false },
     { name: 'a pass on stale code', verdicts: ['pass', 'pass', 'pass'], isSample: false, editBeforeResult: true, isOpen: false },
   ] as const)('$name: the complete-rep panel opens is $isOpen', ({ verdicts, isSample, editBeforeResult, isOpen }) => {
     signIn(OWNER);

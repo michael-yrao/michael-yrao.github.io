@@ -98,7 +98,6 @@
               @if (!isDayLanded()) {
                 <button type="button" class="practice__btn" [disabled]="saveStatus().state === 'saving'" (click)="saveToGithub()">Save to GitHub</button>
               }
-              <button type="button" class="practice__btn" [disabled]="!canCompleteRep()" [attr.aria-pressed]="isCompleting()" (click)="toggleCompleteRep()">Mark Complete</button>
               @switch (saveStatus().state) {
                 @case ('saved') {
                   <span class="practice__status">{{ saveStatus().isComplete ? 'Marked complete' + completedMarks() : 'Saved' }}</span>

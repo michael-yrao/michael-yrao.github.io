@@ -13,7 +13,7 @@ const ROUTE_PREFIX = 'practice/';
 const HTTP_CONFLICT = 409;
 const ALREADY_COMPLETE_ERROR = 'already-complete';
 
-/** One problem's save state; `isComplete` is true once a Mark Complete save landed. */
+/** One problem's save state; `isComplete` is true once a complete-rep save landed. */
 export interface PracticeSaveStatus {
   readonly state: SaveState;
   readonly isComplete: boolean;

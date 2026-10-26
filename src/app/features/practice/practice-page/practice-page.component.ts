@@ -243,7 +243,7 @@ export class PracticePageComponent {
     return tally !== null && isFullRun && tally.passed === tally.total && isSameCode ? this.runState() : null;
   });
 
-  /** Mark Complete: the latest Run passed every case it ran, on exactly the code now in the editor. */
+  /** Completion opens on its own: the latest Run passed every case it ran, on exactly the code now in the editor. */
   readonly canMarkComplete = computed(() => this.passingRun() !== null && this.saveStatus().state !== 'saving');
 
   /** The provisional rep stored for the latest full pass; null until one passes. */
@@ -269,7 +269,7 @@ export class PracticePageComponent {
     return { ...tally, verdicts: this.runState()?.results.map((result) => result.verdict) ?? [] };
   });
 
-  /** Mark Complete needs the Big-O reference loaded as well, since the dialog judges against it. */
+  /** Completion needs the Big-O reference loaded as well, since the dialog judges against it. */
   readonly canCompleteRep = computed(() => this.canMarkComplete() && this.bigO.status() === 'ready');
 
   /** This problem's reference bounds from big-o.json; null when it has no entry. */
@@ -498,16 +498,6 @@ export class PracticePageComponent {
 
   saveToGithub(): void {
     void this.saveAttempt({ complete: false, rating: null, tests: this.testsLabel(), complexity: null });
-  }
-
-  toggleCompleteRep(): void {
-    if (this.isCompleting()) {
-      this.isCompleting.set(false);
-      return;
-    }
-    if (!this.canCompleteRep()) return;
-    this.isCompleting.set(true);
-    this.isOutputOpen.set(true);
   }
 
   async completeRep(rep: CompletedRep): Promise<void> {
