@@ -106,7 +106,7 @@ describe('POST /engine/approve-week', () => {
     expect(await response.json()).toEqual(body);
     expect(puts).toHaveLength(wrote ? 1 : 0);
     if (!wrote) return;
-    const put = JSON.parse(puts[0]) as { message: string; content: string };
+    const put = JSON.parse(puts[0] ?? '') as { message: string; content: string };
     expect(put.message).toBe(`chore(schedule): approve week of ${MONDAY}`);
     expect(atob(put.content)).toBe(APPROVED_TEXT);
   });
