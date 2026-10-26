@@ -48,7 +48,7 @@ describe('TodayStripComponent', () => {
     expect(dots.map((d) => d.getAttribute('href'))).toEqual(['/practice/1', '/practice/2', '/practice/3']);
     expect(dots.map((d) => d.getAttribute('aria-label'))).toEqual(['#1 Two Sum', '#2 Add Two Numbers', '#3']);
     expect(dots.map((d) => d.classList.contains('today-strip__dot--done'))).toEqual([true, false, false]);
-    expect(root.querySelector('.today-strip__dot--current')).toBeNull();
+    expect(dots.map((d) => d.classList.contains('today-strip__dot--current'))).toEqual([false, true, false]);
     expect(dots.map((d) => d.getAttribute('aria-current'))).toEqual([null, 'page', null]);
   });
 });

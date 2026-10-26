@@ -11,7 +11,7 @@ interface StripDot {
   readonly isPage: boolean;
 }
 
-/** One dot per problem in today's run-through: an empty circle, or a green filled one when done. */
+/** One dot per problem in today's run-through: an empty circle, or a green filled one when done, ringed on the problem being viewed. */
 @Component({
   selector: 'app-today-strip',
   templateUrl: './today-strip.component.html',

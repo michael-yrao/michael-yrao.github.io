@@ -4,6 +4,7 @@
       <a
         class="today-strip__dot"
         [class.today-strip__dot--done]="dot.isDone"
+        [class.today-strip__dot--current]="dot.isPage"
         [routerLink]="['/practice', dot.number]"
         [attr.aria-label]="dot.label"
         [attr.aria-current]="dot.isPage ? 'page' : null"
