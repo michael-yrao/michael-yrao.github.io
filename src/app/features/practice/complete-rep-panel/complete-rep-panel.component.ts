@@ -47,7 +47,7 @@ const BOUND_NAMES: Readonly<Record<BoundKey, string>> = { time: 'Time', space: '
 const BOUND_KEYS: readonly BoundKey[] = ['time', 'space'];
 // The same cap lives in worker/src/practice/validate.ts (MAX_WHY_CHARS), cse-progress/scripts/fold_attempt.py
 // and cse-coach/scripts/fold_attempt.py (WHY_MAX_CHARS); a cap change touches all four.
-const WHY_MAX_CHARS = 500;
+const WHY_MAX_CHARS = 2000;
 /** The remaining-character count shows once this few characters are left. */
 const WHY_COUNT_THRESHOLD = 50;
 

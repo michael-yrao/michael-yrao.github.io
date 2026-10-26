@@ -111,9 +111,9 @@ describe('CompleteRepPanelComponent', () => {
   });
 
   it.each([
-    { name: '51 remaining', length: 449, count: [] },
-    { name: '50 remaining', length: 450, count: ['50'] },
-    { name: '0 remaining', length: 500, count: ['0'] },
+    { name: '51 remaining', length: 1949, count: [] },
+    { name: '50 remaining', length: 1950, count: ['50'] },
+    { name: '0 remaining', length: 2000, count: ['0'] },
   ])('why count, $name', ({ length, count }) => {
     const { fixture, root } = render(REFERENCE);
 

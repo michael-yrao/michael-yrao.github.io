@@ -17,7 +17,7 @@ const TESTS_PATTERN = /^(\d+)\/(\d+)$/;
 const RATINGS: readonly unknown[] = ['clean', 'shaky', 'blank'];
 const HEADER_KEYS: readonly string[] = ['complete', 'rating', 'tests', 'complexity', 'savedAt'];
 const MAX_LABEL_CHARS = 200;
-const MAX_WHY_CHARS = 500;
+const MAX_WHY_CHARS = 2000;
 const COMPLEXITY_LIMITS: readonly (readonly [string, number])[] = [
   ['time', MAX_LABEL_CHARS],
   ['space', MAX_LABEL_CHARS],

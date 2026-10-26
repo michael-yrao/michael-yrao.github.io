@@ -38,6 +38,16 @@ describe('validateAttempt header', () => {
       ok: false,
     },
     {
+      name: 'why at the 2000-char cap',
+      fields: { ...COMPLETE, complexity: { ...COMPLEXITY, whyTime: 'x'.repeat(2000) } },
+      ok: true,
+    },
+    {
+      name: 'why one char over the cap',
+      fields: { ...COMPLETE, complexity: { ...COMPLEXITY, whyTime: 'x'.repeat(2001) } },
+      ok: false,
+    },
+    {
       name: 'complexity without a rating and failing tests',
       fields: { complete: true, tests: '2/3', complexity: COMPLEXITY },
       ok: false,
