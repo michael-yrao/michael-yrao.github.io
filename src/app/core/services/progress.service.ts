@@ -94,7 +94,6 @@ function summaryFromFull(full: ProgressData): ProgressSummary {
     streak: full.streak,
     coverage: full.coverage,
     onSchedule: full.onSchedule,
-    badges: full.badges,
     trophyCase: { graduated, retired: trophyCase?.retired ?? [] },
     techniques: full.techniques,
     studyDays: full.studyDays,

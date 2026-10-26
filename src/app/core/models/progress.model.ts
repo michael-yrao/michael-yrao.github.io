@@ -80,17 +80,6 @@ export interface OnSchedule {
   overdue: number;
 }
 
-export interface Badge {
-  id: string;
-  title: string;
-  icon?: string;
-  description?: string;
-  earned: boolean;
-  /** Only on counter badges (streak-N, trophies-N, all-green) — never on one-shot event
-   *  badges. Lets a locked counter badge show "current / target" progress. */
-  progress?: { current: number; target: number };
-}
-
 /** Curriculum tier for the honest technique-breadth denominator (Sep 21, 2026): 'core' =
  *  already-started NC150/pattern-doc techniques; 'dp' = the not-yet-started DP framework
  *  lenses + core 1D/2D DP; 'tier1' = Knowledge Expansion Queue ABOVE the interview-ROI
@@ -335,7 +324,6 @@ export interface ProgressData {
   coverage: Coverage | null;
   onSchedule?: OnSchedule;
   trophyCase?: { graduated: ProblemProgress[]; retired: RetiredProblem[] };
-  badges: Badge[];
   problems: ProblemProgress[];
   techniques?: Technique[];
   studyDays?: string[];
@@ -373,7 +361,6 @@ export interface ProgressSummary {
   coverage: Coverage | null;
   onSchedule?: OnSchedule;
   trophyCase?: { graduated: TrophyGraduateSummary[]; retired: RetiredProblem[] };
-  badges: Badge[];
   /** Per-technique detail (name/family/problemCount/plannedTotal/bestComfort/thin/
    *  hasVariantGap/untriedVariations) — small (~56 rows), rides the summary so the
    *  technique-breadth drill renders with no fetch. */

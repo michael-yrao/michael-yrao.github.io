@@ -12,7 +12,6 @@ import {
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
-  { label: 'Practice', link: '/practice' },
   { label: 'Games', link: '/games' },
   { label: 'Bisect It' },
 ];

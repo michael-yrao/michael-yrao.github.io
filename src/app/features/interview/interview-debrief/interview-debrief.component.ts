@@ -2,8 +2,6 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import { EditorState, type Extension } from '@codemirror/state';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { PRACTICE_SECTIONS } from '../../../core/data/practice-sections';
-import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
 import { PageHeaderComponent, type BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { COPY_FEEDBACK_MS, copyText, type CopyMark } from '../copy-text';
@@ -25,12 +23,11 @@ const READ_ONLY_EXTENSIONS: readonly Extension[] = [EditorState.readOnly.of(true
   templateUrl: './interview-debrief.component.html',
   styleUrls: ['./interview-debrief.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CodeEditorComponent, LibrarySubnavComponent, PageHeaderComponent],
+  imports: [CodeEditorComponent, PageHeaderComponent],
 })
 export class InterviewDebriefComponent {
   private readonly router = inject(Router);
 
-  protected readonly practiceSections = PRACTICE_SECTIONS;
   protected readonly checkKeys = CHECK_KEYS;
   protected readonly checkNames = CHECK_NAMES;
   protected readonly readOnlyExtensions = READ_ONLY_EXTENSIONS;
@@ -40,7 +37,6 @@ export class InterviewDebriefComponent {
   protected readonly debrief = signal<Debrief | null>(null);
   protected readonly breadcrumb: BreadcrumbEntry[] = [
     { label: 'Home', link: '/' },
-    { label: 'Practice', link: '/practice' },
     { label: 'Interview', link: INTERVIEW_PATH },
   ];
   protected readonly durationMinutes = computed(() => {

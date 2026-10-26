@@ -51,7 +51,6 @@ export class InterviewPrepareComponent {
 
   protected readonly breadcrumb: BreadcrumbEntry[] = [
     { label: 'Home', link: '/' },
-    { label: 'Practice', link: '/practice' },
     { label: 'Interview', link: '/interview' },
     { label: 'Problem' },
   ];

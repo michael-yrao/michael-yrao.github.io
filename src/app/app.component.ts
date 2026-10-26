@@ -25,14 +25,18 @@ export const COACH_DOCK_MIN_PX = 1024;
 const COACH_DOCK_QUERY = `(min-width: ${COACH_DOCK_MIN_PX}px)`;
 const PRACTICE_PROBLEM_URL = /^\/practice\/\d+/;
 
-const PRACTICE_SEGMENTS: ReadonlySet<string> = new Set([
-  'practice',
-  'interview',
-  'patterns',
-  'learn',
-  'quiz',
-  'games',
-]);
+interface NavLink {
+  readonly label: string;
+  readonly path: string;
+  /** First path segments that light this link; matched whole, so `/practices` lights nothing. */
+  readonly segments: ReadonlySet<string>;
+}
+
+const NAV_LINKS: readonly NavLink[] = [
+  { label: 'Practice', path: '/practice', segments: new Set(['practice', 'quiz', 'cheat-sheet']) },
+  { label: 'Interview', path: '/interview', segments: new Set(['interview']) },
+  { label: 'Games', path: '/games', segments: new Set(['games']) },
+];
 
 @Component({
   selector: 'app-root',
@@ -44,6 +48,7 @@ const PRACTICE_SEGMENTS: ReadonlySet<string> = new Set([
 })
 export class AppComponent {
   readonly footerColumns = FOOTER_COLUMNS;
+  readonly navLinks = NAV_LINKS;
   readonly year = new Date().getFullYear();
 
   private readonly router = inject(Router);
@@ -74,11 +79,15 @@ export class AppComponent {
     query.addEventListener('change', (e) => this.isWide.set(e.matches));
   }
 
-  /** Whether the current page belongs to the Practice bar link; matched on the whole first path segment. */
-  readonly isPracticeActive = computed(() => {
+  /** The path of the bar link the current page belongs to, or null; matched on the whole first path segment. */
+  private readonly activePath = computed(() => {
     const [segment] = this.url().split(/[?#]/)[0].split('/').filter(Boolean);
-    return PRACTICE_SEGMENTS.has(segment ?? '');
+    return NAV_LINKS.find((link) => link.segments.has(segment ?? ''))?.path ?? null;
   });
+
+  isNavLinkActive(link: NavLink): boolean {
+    return this.activePath() === link.path;
+  }
 
   signIn(): void {
     this.auth.signIn(this.router.url);

@@ -29,7 +29,6 @@ import { PRACTICE_ICON } from '../practice-link';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
-import { BadgeGridComponent } from '../badge-grid/badge-grid.component';
 import { TechniqueFocus, TechniqueListComponent } from '../technique-list/technique-list.component';
 import { StreakCalendarComponent } from '../streak-calendar/streak-calendar.component';
 import { TodayBoardComponent } from '../today-board/today-board.component';
@@ -64,7 +63,6 @@ import { SummaryView } from './summary-view';
     RouterLink,
     NgTemplateOutlet,
     ProblemTimelineComponent,
-    BadgeGridComponent,
     TechniqueListComponent,
     StreakCalendarComponent,
     TodayBoardComponent,

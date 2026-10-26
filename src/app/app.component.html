@@ -7,7 +7,9 @@
     </a>
 
     <div class="po-nav__links">
-      <a class="po-nav__link" routerLink="/practice" [class.active]="isPracticeActive()">Practice</a>
+      @for (link of navLinks; track link.path) {
+        <a class="po-nav__link" [routerLink]="link.path" [class.active]="isNavLinkActive(link)">{{ link.label }}</a>
+      }
     </div>
 
     <div class="po-nav__end">
@@ -67,9 +69,9 @@
         </div>
         <div class="menu__separator" role="separator"></div>
       }
-      <a role="menuitem" class="menu__item" routerLink="/practice" routerLinkActive="active"
-        >Practice</a
-      >
+      @for (link of navLinks; track link.path) {
+        <a role="menuitem" class="menu__item" [routerLink]="link.path" routerLinkActive="active">{{ link.label }}</a>
+      }
       @if (auth.isEnabled) {
         <div class="menu__separator" role="separator"></div>
         @if (auth.isSignedIn()) {

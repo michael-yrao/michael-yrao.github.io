@@ -6,5 +6,4 @@ export const MINIMAL_SUMMARY_BODY = {
   pipeline: {},
   totals: {},
   problems: [],
-  badges: [],
 };

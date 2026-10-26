@@ -8,7 +8,6 @@ describe('isProgressSummary', () => {
   const cases: { name: string; value: unknown; expected: boolean }[] = [
     { name: 'the minimal summary fixture', value: MINIMAL_SUMMARY_BODY, expected: true },
     { name: 'missing streak', value: withoutStreak, expected: false },
-    { name: 'badges not an array', value: { ...MINIMAL_SUMMARY_BODY, badges: {} }, expected: false },
     { name: 'schemaVersion a string', value: { ...MINIMAL_SUMMARY_BODY, schemaVersion: '1' }, expected: false },
   ];
 

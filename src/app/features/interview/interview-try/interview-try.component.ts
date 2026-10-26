@@ -15,7 +15,6 @@ import type { InterviewProblem } from '../session/interview-problem';
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
-  { label: 'Practice', link: '/practice' },
   { label: 'Interview', link: '/interview' },
   { label: 'Test run' },
 ];

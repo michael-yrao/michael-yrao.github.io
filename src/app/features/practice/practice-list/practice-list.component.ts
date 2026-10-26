@@ -82,7 +82,7 @@ export class PracticeListComponent {
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
 
-  readonly breadcrumb: BreadcrumbEntry[] = [{ label: 'Home', link: '/' }, { label: 'Practice' }];
+  readonly breadcrumb: BreadcrumbEntry[] = [{ label: 'Home', link: '/' }, { label: 'All Problems' }];
   readonly sections = PRACTICE_SECTIONS;
   readonly difficulties: readonly (Difficulty | 'All')[] = ['All', 'Easy', 'Medium', 'Hard'];
   readonly categories = Object.keys(CATEGORY_LABELS) as Category[];

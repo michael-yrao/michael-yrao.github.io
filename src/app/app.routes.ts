@@ -113,7 +113,7 @@ export const routes: Routes = [
   },
   {
     path: 'practice',
-    title: 'Practice',
+    title: 'All Problems',
     loadComponent: () =>
       import('./features/practice/practice-list/practice-list.component').then(
         (m) => m.PracticeListComponent,

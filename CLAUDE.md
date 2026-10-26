@@ -172,10 +172,9 @@ to the learner's own solution file on GitHub instead (board: done/not done; Prob
 repo/branch the page is rendering (`?repo=` aware, never the gold standard). With neither a
 walkthrough nor a `file`, the board shows a plain `✓`/`○` and the Problems tab an empty spacer.
 
-Activity's Achievements card shows an earned/total count with a meter and All · Earned · Locked
-filter chips; a locked counter badge (the contract's optional `badge.progress`) also shows a
-current/target meter. The separate Trophy case card was removed Sep 26, 2026 — the contract still
-emits `trophyCase`; the site ignores it.
+The Achievements card was removed 2026-10-26 — the contract still emits `badges`; the site ignores
+it. The Trophy case card was removed Sep 26, 2026 — the contract still emits `trophyCase`; the site
+ignores it.
 
 ## Lint & test
 

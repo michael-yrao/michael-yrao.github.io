@@ -188,7 +188,6 @@ function makeFullPayload(): ProgressData {
     coverage: null,
     onSchedule: { totalActive: 1, dueToday: 0, overdue: 0 },
     trophyCase: { graduated: [problem], retired: [] },
-    badges: [{ id: 'first-graduate', title: 'First Graduation', earned: true }],
     problems: [problem],
   };
 }
@@ -300,7 +299,6 @@ describe('ProgressService — loadHistory on a missing schedule-history.json', (
       pipeline: {},
       totals: {},
       problems: [],
-      badges: [],
     };
     const http = {
       get: (url: string) => {

@@ -1,5 +1,5 @@
-// The footer's link columns. The first imports the rail's list, so the footer and the
-// Practice subnav cannot drift.
+// The footer's link columns. The first imports the Practice subnav's list, so the footer and the
+// subnav cannot drift; the second holds the Interview and Games bar links.
 import { LibrarySection } from './library-sections';
 import { PRACTICE_SECTIONS } from './practice-sections';
 import { SITE_LINKS } from './site-links';
@@ -18,6 +18,13 @@ export interface FooterColumn {
 
 export const FOOTER_COLUMNS: readonly FooterColumn[] = [
   { heading: 'Practice', links: PRACTICE_SECTIONS },
+  {
+    heading: 'Play',
+    links: [
+      { label: 'Interview', path: '/interview' },
+      { label: 'Games', path: '/games' },
+    ],
+  },
   {
     heading: 'Site',
     links: [

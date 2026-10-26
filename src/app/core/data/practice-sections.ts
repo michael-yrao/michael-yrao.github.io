@@ -4,9 +4,7 @@
 import type { LibrarySection } from './library-sections';
 
 export const PRACTICE_SECTIONS: readonly LibrarySection[] = [
-  { label: 'Problems', path: '/practice' },
-  { label: 'Cheat sheet', path: '/cheat-sheet' },
+  { label: 'All Problems', path: '/practice' },
   { label: 'Quiz', path: '/quiz' },
-  { label: 'Games', path: '/games' },
-  { label: 'Interview', path: '/interview' },
+  { label: 'Cheat sheet', path: '/cheat-sheet' },
 ];

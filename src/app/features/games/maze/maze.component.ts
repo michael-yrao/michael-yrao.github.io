@@ -5,7 +5,6 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
-  { label: 'Practice', link: '/practice' },
   { label: 'Games', link: '/games' },
   { label: 'Maze Generator & Solver' },
 ];

@@ -65,11 +65,11 @@ describe('AppComponent', () => {
       (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('.po-footer a'),
     );
     expect(links.map((a) => [a.textContent?.trim(), a.getAttribute('href'), a.getAttribute('target')])).toEqual([
-      ['Problems', '/practice', null],
-      ['Cheat sheet', '/cheat-sheet', null],
+      ['All Problems', '/practice', null],
       ['Quiz', '/quiz', null],
-      ['Games', '/games', null],
+      ['Cheat sheet', '/cheat-sheet', null],
       ['Interview', '/interview', null],
+      ['Games', '/games', null],
       ['Coach', '/coach', null],
       ['About', '/about', null],
       ['GitHub', 'https://github.com/michael-yrao/michael-yrao.github.io', '_blank'],
@@ -77,8 +77,10 @@ describe('AppComponent', () => {
   });
 
   it.each<{ url: string; active: string | null }>([
-    { url: '/interview', active: 'Practice' },
+    { url: '/interview', active: 'Interview' },
     { url: '/quiz/big-o', active: 'Practice' },
+    { url: '/games/maze', active: 'Games' },
+    { url: '/cheat-sheet', active: 'Practice' },
     { url: '/practices', active: null },
   ])('on $url the active bar link is $active', async ({ url, active }) => {
     fixture.detectChanges();
@@ -150,12 +152,12 @@ const menuItems = (root: HTMLElement, scope = HAMBURGER): HTMLElement[] =>
 
 describe('Bar links and account chip', () => {
   it.each<{ name: string; auth: AuthStub | null; links: string[]; chip: string | null }>([
-    { name: 'app off', auth: null, links: ['Practice'], chip: null },
-    { name: 'signed out', auth: makeAuthStub(), links: ['Practice'], chip: 'Sign in' },
+    { name: 'app off', auth: null, links: ['Practice', 'Interview', 'Games'], chip: null },
+    { name: 'signed out', auth: makeAuthStub(), links: ['Practice', 'Interview', 'Games'], chip: 'Sign in' },
     {
       name: 'signed in',
       auth: makeAuthStub(SIGNED_IN),
-      links: ['Practice'],
+      links: ['Practice', 'Interview', 'Games'],
       chip: 'ada',
     },
   ])('$name shows its links and chip', ({ auth, links, chip }) => {
@@ -224,22 +226,22 @@ describe('Site menu', () => {
     {
       name: 'app off',
       auth: null,
-      labels: ['Practice'],
-      hrefs: ['/practice'],
+      labels: ['Practice', 'Interview', 'Games'],
+      hrefs: ['/practice', '/interview', '/games'],
       account: null,
     },
     {
       name: 'signed out',
       auth: makeAuthStub(),
-      labels: ['Practice', 'Sign in with GitHub'],
-      hrefs: ['/practice', null],
+      labels: ['Practice', 'Interview', 'Games', 'Sign in with GitHub'],
+      hrefs: ['/practice', '/interview', '/games', null],
       account: null,
     },
     {
       name: 'signed in',
       auth: makeAuthStub(SIGNED_IN),
-      labels: ['Practice', 'Sign out'],
-      hrefs: ['/practice', null],
+      labels: ['Practice', 'Interview', 'Games', 'Sign out'],
+      hrefs: ['/practice', '/interview', '/games', null],
       account: 'adaada/cse-progress',
     },
   ])('$name lists its items in order', ({ auth, labels, hrefs, account }) => {

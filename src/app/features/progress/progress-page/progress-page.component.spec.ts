@@ -56,7 +56,6 @@ function makeSummary(): ProgressSummary {
       graduated: [{ lcNumber: 206, title: 'Reverse Linked List', difficulty: 'Easy' }],
       retired: [],
     },
-    badges: [{ id: 'first-graduate', title: 'First Graduation', earned: true }],
     techniques: [
       {
         name: 'Bellman-Ford',
@@ -404,16 +403,15 @@ describe('ProgressPageComponent', () => {
     clickTab(fixture, 'activity');
     expect(fixture.nativeElement.querySelector('app-streak-calendar')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('.gauge')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('app-badge-grid')).toBeTruthy();
   });
 
-  it('orders the Activity tab as calendar, gauge, then Achievements', () => {
+  it('orders the Activity tab as calendar, then gauge', () => {
     const fixture = TestBed.createComponent(ProgressPageComponent);
     fixture.detectChanges();
     clickTab(fixture, 'activity');
 
     const panel = fixture.nativeElement.querySelector('#panel-activity')!;
-    const order = ['app-streak-calendar', '.gauge', 'app-badge-grid'];
+    const order = ['app-streak-calendar', '.gauge'];
     const indices = order.map((sel) =>
       Array.from(panel.querySelectorAll('*')).findIndex((el) => (el as HTMLElement).matches(sel)),
     );

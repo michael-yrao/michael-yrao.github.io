@@ -2,7 +2,6 @@
   @if (debrief(); as shown) {
     <div class="interview-debrief">
       <app-page-header [breadcrumb]="breadcrumb" [heading]="shown.title" />
-      <app-library-subnav [sections]="practiceSections" ariaLabel="Practice sections" />
 
       <p class="interview-debrief__meta">
         <span class="interview-debrief__when">{{ formatDate(shown.summary.endedAt) }} · {{ durationMinutes() }} min · {{ roleLabel(shown.role) }}</span>

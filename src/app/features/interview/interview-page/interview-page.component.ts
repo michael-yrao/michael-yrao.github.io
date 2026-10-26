@@ -24,8 +24,6 @@ import { InterviewsCardComponent } from '../interviews-card/interviews-card.comp
 import { injectCodeRun } from '../run/code-run';
 import { RunPanelComponent } from '../run-panel/run-panel.component';
 import { PageHeaderComponent, type BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
-import { LibrarySubnavComponent } from '../../../shared/components/library-subnav/library-subnav.component';
-import { PRACTICE_SECTIONS } from '../../../core/data/practice-sections';
 import { InterviewBarComponent } from '../session/interview-bar/interview-bar.component';
 import { parseInterviewProblem, type InterviewProblem } from '../session/interview-problem';
 import { CODE_PARAM, HOST_PARAM, JOIN_PARAM } from '../session/interview-params';
@@ -55,7 +53,6 @@ const LEFT_TABS: readonly { readonly id: LeftTab; readonly label: string }[] = [
 
 const LANDING_BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
-  { label: 'Practice', link: '/practice' },
   { label: 'Interview' },
 ];
 
@@ -73,7 +70,6 @@ const DEBRIEF_PATH = '/interview/debrief';
     InterviewBarComponent,
     InterviewNotesComponent,
     InterviewsCardComponent,
-    LibrarySubnavComponent,
     PageHeaderComponent,
     PracticeDescriptionComponent,
     ProblemEditorComponent,
@@ -99,7 +95,6 @@ export class InterviewPageComponent {
   protected readonly workTrack = WORK_TRACK;
   protected readonly leftTabs = LEFT_TABS;
   protected readonly breadcrumb = LANDING_BREADCRUMB;
-  protected readonly practiceSections = PRACTICE_SECTIONS;
   protected readonly debriefPath = DEBRIEF_PATH;
   protected readonly formatDate = formatDebriefDate;
   protected readonly roleLabel = roleLabel;
