@@ -219,7 +219,7 @@
         (click)="nextWeek()"
       ><app-icon name="chevron-right" [size]="14" /></button>
       @if (isOwnRepo()) {
-        <app-engine-menu [repoRef]="repoRef()" [canBuild]="!!schedule()" />
+        <app-engine-menu [repoRef]="repoRef()" [isWeekMissing]="isCurrentWeekMissing()" />
       }
     </div>
   </div>

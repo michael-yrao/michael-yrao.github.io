@@ -11,7 +11,6 @@ const CONFLICT = 409;
 
 describe('EngineService.buildNextWeek', () => {
   it.each<{ code: string; expected: BuildResult }>([
-    { code: 'build-off', expected: 'off' },
     { code: 'no-config', expected: 'no-config' },
   ])('a 409 $code answers $expected', async ({ code, expected }) => {
     TestBed.configureTestingModule({

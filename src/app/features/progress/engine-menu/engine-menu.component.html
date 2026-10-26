@@ -3,10 +3,10 @@
     type="button"
     role="menuitem"
     class="menu__item"
-    [disabled]="!canBuild() || isBuilding()"
+    [disabled]="isBuilding()"
     (click)="isConfirming.set(true)"
   >
-    Build next week…
+    {{ buildLabel() }}
     <span class="menu__meta">{{ buildMeta() }}</span>
   </button>
   <button
@@ -69,11 +69,11 @@
     </div>
   }
 </app-menu>
-<app-modal heading="Build next week now?" [isOpen]="isConfirming()" (closed)="isConfirming.set(false)">
+<app-modal [heading]="confirmHeading()" [isOpen]="isConfirming()" (closed)="isConfirming.set(false)">
   <ul class="engine-menu__confirm">
-    <li>Archives this week</li>
-    <li>Re-seats what is left into next week</li>
-    <li>Runs in your repo as a commit</li>
+    @for (line of confirmLines(); track line) {
+      <li>{{ line }}</li>
+    }
   </ul>
   <span class="engine-menu__actions">
     <button type="button" class="engine-menu__button" (click)="confirmBuild()">Build</button>

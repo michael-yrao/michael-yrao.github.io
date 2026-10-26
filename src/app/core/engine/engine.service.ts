@@ -8,7 +8,7 @@ import { RepoRef } from '../services/github-file.service';
 import { EngineStatus, NO_ENGINE_RUN, engineStatus } from './engine-status';
 import { EngineUpdate, EngineVersions, engineUpdate, engineVersions } from './engine-update';
 
-export type BuildResult = 'dispatched' | 'refused' | 'off' | 'no-config' | 'failed';
+export type BuildResult = 'dispatched' | 'refused' | 'no-config' | 'failed';
 
 export const ENGINE_STATUS_TTL_MS = 60_000;
 
@@ -25,7 +25,6 @@ const UPDATE_ROUTE = 'engine/update';
 const HTTP_FORBIDDEN = 403;
 const HTTP_CONFLICT = 409;
 const REFUSED_CODE = 'integration-refused';
-const BUILD_OFF_CODE = 'build-off';
 const NO_CONFIG_CODE = 'no-config';
 
 interface CachedStatus {
@@ -41,7 +40,6 @@ function buildFailure(err: unknown): BuildResult {
   if (!(err instanceof HttpErrorResponse)) return 'failed';
   const code = (err.error as { error?: unknown } | null)?.error;
   if (err.status === HTTP_FORBIDDEN && code === REFUSED_CODE) return 'refused';
-  if (err.status === HTTP_CONFLICT && code === BUILD_OFF_CODE) return 'off';
   if (err.status === HTTP_CONFLICT && code === NO_CONFIG_CODE) return 'no-config';
   return 'failed';
 }

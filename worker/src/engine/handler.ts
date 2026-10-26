@@ -1,4 +1,4 @@
-// POST /engine/weekly-build: reads the repo's weekly_build switch first, then enables and
+// POST /engine/weekly-build: checks the repo has a config, then enables and
 // dispatches the weekly-build workflow in a repo the caller owns.
 import {
   API_BASE,
@@ -17,7 +17,6 @@ import {
 } from '../github/write-file';
 import type { OnboardEnv } from '../onboard/handler';
 import { gateOrigin, preflight } from '../pattern-sense/handler';
-import { readWeeklyBuildSwitch } from './config-switch';
 import { handleEngineUpdate, UPDATE_PATH } from './update-route';
 import { OWNER_PATTERN, REPO_PATTERN } from '../pattern-sense/validate';
 
@@ -30,7 +29,6 @@ const HTTP_ACCEPTED = 202;
 const HTTP_CONFLICT = 409;
 const CONFIG_PATH = 'cse.config.yml';
 const ERROR_NO_CONFIG = 'no-config';
-const ERROR_BUILD_OFF = 'build-off';
 
 type Step = { readonly kind: 'ok' } | { readonly kind: 'refused'; readonly response: Response };
 
@@ -73,7 +71,7 @@ async function callWorkflow(
   return { kind: 'refused', response: failure(502, 'github-error', cors) };
 }
 
-async function checkBuildSwitch(
+async function checkConfig(
   fetchImpl: FetchImpl,
   token: string,
   target: RepoTarget,
@@ -82,7 +80,6 @@ async function checkBuildSwitch(
   const config = await readFileWithSha(fetchImpl, token, { ...target, path: CONFIG_PATH }, cors);
   if (config.kind === 'refused') return config.response;
   if (config.kind === 'missing') return failure(HTTP_CONFLICT, ERROR_NO_CONFIG, cors);
-  if (readWeeklyBuildSwitch(config.text) !== true) return failure(HTTP_CONFLICT, ERROR_BUILD_OFF, cors);
   return null;
 }
 
@@ -100,8 +97,8 @@ async function handleWeeklyBuild(
   const refusal = await checkOwner(fetchImpl, token, target, cors);
   if (refusal !== null) return refusal;
 
-  const switchRefusal = await checkBuildSwitch(fetchImpl, token, target, cors);
-  if (switchRefusal !== null) return switchRefusal;
+  const configRefusal = await checkConfig(fetchImpl, token, target, cors);
+  if (configRefusal !== null) return configRefusal;
 
   const enabled = await callWorkflow(fetchImpl, token, workflowUrl(target, 'enable'), 'PUT', undefined, cors);
   if (enabled.kind === 'refused') return enabled.response;

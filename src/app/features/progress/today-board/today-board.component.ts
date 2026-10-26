@@ -207,6 +207,10 @@ export class TodayBoardComponent {
   readonly days = computed(() => this.weekNav.displayedSchedule().days);
   /** An owner whose repo has no schedule yet gets the setup link instead of an empty strip. */
   readonly needsSetup = computed(() => this.isOwnRepo() && !this.schedule());
+  /** True when no schedule (summary or archived) starts on the current week, e.g. a missed Sunday build. */
+  readonly isCurrentWeekMissing = computed(
+    () => !this.weekNav.weeksByStart().has(this.weekNav.currentWeekOf()),
+  );
 
   readonly effectiveDate = computed<string | null>(() => {
     const list = this.days();

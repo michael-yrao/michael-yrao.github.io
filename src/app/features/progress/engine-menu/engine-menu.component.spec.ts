@@ -82,11 +82,16 @@ const DONE: EngineUpdate = {
 interface MountOptions {
   readonly status?: EngineStatus;
   readonly plan?: EngineUpdate | null;
-  readonly canBuild?: boolean;
+  readonly isWeekMissing?: boolean;
   readonly buildResult?: BuildResult;
 }
 
-async function mountMenu({ status = NO_ENGINE_RUN, plan = null, canBuild = true, buildResult = 'dispatched' }: MountOptions = {}) {
+async function mountMenu({
+  status = NO_ENGINE_RUN,
+  plan = null,
+  isWeekMissing = false,
+  buildResult = 'dispatched',
+}: MountOptions = {}) {
   const buildNextWeek = vi.fn(async () => buildResult);
   const update = vi.fn(async () => DONE);
   TestBed.configureTestingModule({
@@ -98,7 +103,7 @@ async function mountMenu({ status = NO_ENGINE_RUN, plan = null, canBuild = true,
   });
   const fixture = TestBed.createComponent(EngineMenuComponent);
   fixture.componentRef.setInput('repoRef', REF);
-  fixture.componentRef.setInput('canBuild', canBuild);
+  fixture.componentRef.setInput('isWeekMissing', isWeekMissing);
   fixture.detectChanges();
   await fixture.whenStable();
   fixture.detectChanges();
@@ -144,7 +149,6 @@ describe('EngineMenuComponent', () => {
   });
 
   it.each<{ name: string; buildResult: BuildResult; isAwaited: boolean; dot: string }>([
-    { name: 'a build-off refusal reads off', buildResult: 'off', isAwaited: true, dot: 'off' },
     { name: 'a no-config refusal reads failed', buildResult: 'no-config', isAwaited: true, dot: 'failed' },
     { name: 'a dispatched build reads running while it waits', buildResult: 'dispatched', isAwaited: false, dot: 'running' },
   ])('the dot after building: $name', async ({ buildResult, isAwaited, dot }) => {
@@ -188,15 +192,6 @@ describe('EngineMenuComponent', () => {
       updateMeta: 'v0.11.0',
     },
     {
-      name: 'no config disables Build',
-      now: WEDNESDAY_NOON,
-      options: { plan: PLAN('0.11.0', '0.11.0'), canBuild: false },
-      isBuildEnabled: false,
-      buildMeta: 'closes this week',
-      isUpdateEnabled: false,
-      updateMeta: 'v0.11.0',
-    },
-    {
       name: 'a build in progress disables Build',
       now: WEDNESDAY_NOON,
       options: { plan: PLAN('0.11.0', '0.11.0') },
@@ -222,15 +217,47 @@ describe('EngineMenuComponent', () => {
     expect(meta(update)).toBe(updateMeta);
   });
 
-  it.each([
-    { name: 'the Build item asks first', presses: [] as string[], isModalOpen: true, calls: 0 },
-    { name: 'Cancel closes it without building', presses: ['Cancel'], isModalOpen: false, calls: 0 },
-    { name: 'Build closes it and builds once', presses: ['Build'], isModalOpen: false, calls: 1 },
-  ])('the build flow: $name', async ({ presses, isModalOpen, calls }) => {
-    vi.setSystemTime(SUNDAY_NOON);
-    const { fixture, el, buildNextWeek, openMenu, settle } = await mountMenu();
+  it.each<{ name: string; isWeekMissing: boolean; label: string; meta: string; heading: string; lines: string[] }>([
+    {
+      name: 'the week is present',
+      isWeekMissing: false,
+      label: 'Build next week',
+      meta: 'closes this week',
+      heading: 'Build next week now?',
+      lines: ['Archives this week', 'Re-seats what is left into next week', 'Runs in your repo as a commit'],
+    },
+    {
+      name: 'the week is missing',
+      isWeekMissing: true,
+      label: 'Build this week',
+      meta: 'missing',
+      heading: 'Build this week now?',
+      lines: ['Archives last week', 'Re-seats what is left into this week', 'Runs in your repo as a commit'],
+    },
+  ])('the Build item and dialog wording: $name', async ({ isWeekMissing, label, meta: expectedMeta, heading, lines }) => {
+    vi.setSystemTime(WEDNESDAY_NOON);
+    const { fixture, el, openMenu } = await mountMenu({ isWeekMissing });
     openMenu();
-    item(el, 'Build next week')?.click();
+    const build = item(el, label);
+    expect(build?.disabled).toBe(false);
+    expect(meta(build)).toBe(expectedMeta);
+    build?.click();
+    fixture.detectChanges();
+    expect(el.querySelector('.modal__heading')?.textContent?.trim()).toBe(heading);
+    expect(Array.from(el.querySelectorAll('.engine-menu__confirm li')).map((li) => li.textContent?.trim())).toEqual(lines);
+  });
+
+  it.each(
+    [false, true].flatMap((isWeekMissing) => [
+      { name: 'the Build item asks first', isWeekMissing, presses: [] as string[], isModalOpen: true, calls: 0 },
+      { name: 'Cancel closes it without building', isWeekMissing, presses: ['Cancel'], isModalOpen: false, calls: 0 },
+      { name: 'Build closes it and builds once', isWeekMissing, presses: ['Build'], isModalOpen: false, calls: 1 },
+    ]),
+  )('the build flow (week missing: $isWeekMissing): $name', async ({ isWeekMissing, presses, isModalOpen, calls }) => {
+    vi.setSystemTime(SUNDAY_NOON);
+    const { fixture, el, buildNextWeek, openMenu, settle } = await mountMenu({ isWeekMissing });
+    openMenu();
+    item(el, isWeekMissing ? 'Build this week' : 'Build next week')?.click();
     fixture.detectChanges();
     for (const label of presses) {
       (Array.from(el.querySelectorAll('dialog button')).find((b) => b.textContent?.trim() === label) as HTMLElement).click();
@@ -254,7 +281,6 @@ describe('EngineMenuComponent', () => {
   });
 
   it.each<{ name: string; buildResult: BuildResult; row: string }>([
-    { name: 'a build-off refusal keeps the menu open on the off row', buildResult: 'off', row: '⏻ weekly build off' },
     { name: 'a no-config refusal shows its row', buildResult: 'no-config', row: '✗ no cse.config.yml' },
   ])('the status row after building: $name', async ({ buildResult, row }) => {
     vi.setSystemTime(WEDNESDAY_NOON);

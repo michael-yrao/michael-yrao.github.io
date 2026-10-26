@@ -78,7 +78,7 @@ gets a 503 when a binding is missing.
 - `src/practice/`: `POST /practice/latest` returns your newest saved attempt for a problem.
 - `src/onboard/`: `POST /onboard/dsa` creates your `cse-progress` repo from the cse-coach template, or adopts the one you already have.
 - `src/onboard/`: `POST /onboard/intake` takes `{name, target, timezone, startDate}` and writes `intake.yml` to your `cse-progress` repo; it answers 409 `already-onboarded` once `cse.config.yml` exists.
-- `src/engine/`: `POST /engine/weekly-build` takes `{owner, repo}`, enables the repo's `weekly-build.yml` workflow and dispatches it on `main` (202 `{status: 'dispatched'}`); refuses 409 `build-off` when `automation.weekly_build` is false and 409 `no-config` when the repo has no `cse.config.yml`.
+- `src/engine/`: `POST /engine/weekly-build` takes `{owner, repo}`, enables the repo's `weekly-build.yml` workflow and dispatches it on `main` (202 `{status: 'dispatched'}`); refuses 409 `no-config` when the repo has no `cse.config.yml`.
 - `POST /engine/update`: brings the learner's repo up to the current cse-coach engine (one commit; edited files are kept).
 
 Only the origins in `ALLOWED_ORIGINS` (a `[vars]` entry in `wrangler.toml`) are served.

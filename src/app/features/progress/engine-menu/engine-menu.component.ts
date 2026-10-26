@@ -26,7 +26,21 @@ export const ENGINE_POLL_MAX = 24;
 
 const BUILD_DAY_META = 'today';
 const OFF_BUILD_DAY_META = 'closes this week';
-const OFF_ROW = '⏻ weekly build off';
+const MISSING_WEEK_META = 'missing';
+const BUILD_LABEL = 'Build next week…';
+const MISSING_WEEK_BUILD_LABEL = 'Build this week…';
+const CONFIRM_HEADING = 'Build next week now?';
+const MISSING_WEEK_CONFIRM_HEADING = 'Build this week now?';
+const CONFIRM_LINES: readonly string[] = [
+  'Archives this week',
+  'Re-seats what is left into next week',
+  'Runs in your repo as a commit',
+];
+const MISSING_WEEK_CONFIRM_LINES: readonly string[] = [
+  'Archives last week',
+  'Re-seats what is left into this week',
+  'Runs in your repo as a commit',
+];
 const NO_CONFIG_ROW = '✗ no cse.config.yml';
 const RUN_ROWS: Readonly<Record<'running' | 'ok' | 'failed', string>> = {
   running: '⟳ running',
@@ -34,7 +48,7 @@ const RUN_ROWS: Readonly<Record<'running' | 'ok' | 'failed', string>> = {
   failed: '✗ last run failed',
 };
 /** Build results that leave the menu open so the row they cause is seen. */
-const REFUSALS: ReadonlySet<BuildResult> = new Set<BuildResult>(['off', 'no-config', 'refused']);
+const REFUSALS: ReadonlySet<BuildResult> = new Set<BuildResult>(['no-config', 'refused']);
 
 interface StatusRow {
   readonly text: string;
@@ -58,8 +72,8 @@ interface ResultSegment {
 })
 export class EngineMenuComponent {
   readonly repoRef = input<RepoRef | null>(null);
-  /** False when the repo has no config to build from: the Build item is disabled. */
-  readonly canBuild = input(true);
+  /** True when the current week has no schedule: Build then builds this week, not next. */
+  readonly isWeekMissing = input(false);
 
   private readonly engine = inject(EngineService);
   private readonly progress = inject(ProgressService);
@@ -84,12 +98,21 @@ export class EngineMenuComponent {
   });
 
   protected readonly dotState = computed<MenuDotState>(() => {
-    if (this.lastBuild() === 'off') return 'off';
     if (this.lastBuild() === 'no-config') return 'failed';
     if (this.isBuilding() || this.status().state === 'running') return 'running';
     return this.status().state === 'failed' ? 'failed' : 'none';
   });
-  protected readonly buildMeta = computed(() => (isBuildDay(todayLocalISO()) ? BUILD_DAY_META : OFF_BUILD_DAY_META));
+  protected readonly buildMeta = computed(() => {
+    if (this.isWeekMissing()) return MISSING_WEEK_META;
+    return isBuildDay(todayLocalISO()) ? BUILD_DAY_META : OFF_BUILD_DAY_META;
+  });
+  protected readonly buildLabel = computed(() => (this.isWeekMissing() ? MISSING_WEEK_BUILD_LABEL : BUILD_LABEL));
+  protected readonly confirmHeading = computed(() =>
+    this.isWeekMissing() ? MISSING_WEEK_CONFIRM_HEADING : CONFIRM_HEADING,
+  );
+  protected readonly confirmLines = computed(() =>
+    this.isWeekMissing() ? MISSING_WEEK_CONFIRM_LINES : CONFIRM_LINES,
+  );
   protected readonly updateMeta = computed(() => {
     const versions = this.versions();
     if (versions === null || versions.repo === null) return '';
@@ -142,7 +165,6 @@ export class EngineMenuComponent {
 
   private buildStatusRow(): StatusRow | null {
     const last = this.lastBuild();
-    if (last === 'off') return { text: OFF_ROW, url: null };
     if (last === 'no-config') return { text: NO_CONFIG_ROW, url: null };
     const { state, htmlUrl } = this.status();
     if (this.isBuilding() || state === 'running') return { text: RUN_ROWS.running, url: htmlUrl };

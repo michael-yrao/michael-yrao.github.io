@@ -85,11 +85,11 @@ describe('POST /engine/weekly-build', () => {
       github: [],
     },
     {
-      label: 'weekly build switched off',
+      label: 'weekly build switched off still dispatches',
       script: script({ [`GET ${CONFIG_URL}`]: configAnswer('automation:\n  weekly_build: false\n') }),
-      status: 409,
-      body: { error: 'build-off' },
-      github: [],
+      status: 202,
+      body: { status: 'dispatched' },
+      github: [`PUT ${ENABLE_URL}`, `POST ${DISPATCH_URL}`],
     },
     {
       label: 'enable refused',
