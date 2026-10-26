@@ -18,7 +18,9 @@ Behavior (tool "Agent", tool_input carries `subagent_type` and `prompt`):
   citing agents/team-lead.md. Never fires for other subagent types.
 - team-lead prompt with a paste and no line `Lead because: width` or `Lead because: depth` (case-insensitive):
   DENY, citing the rule "Spawn rule: team leads are opt-in". Never fires for other subagent types.
-- prompt with a paste and none of the above: allowed, with a warn-only reminder of the rest of the brief checklist.
+- prompt with a paste and none of the above: allowed, with a warn-only reminder of the rest of the brief checklist;
+  when its Verify section holds a backticked command with no "unverified" mark and no ```output fence,
+  the reminder gains one line (write-brief step 6). Never a deny.
 
 A paste is either a `git status --short` line followed within STATUS_WINDOW_LINES lines by a
 status row at column 0 (or a clean marker: `(clean)`, `(empty)`, `(empty — clean)`, `(nothing)`,
@@ -110,6 +112,15 @@ WARN_TEXT = (
     "the tests to add and the full-suite command; counts come from a command that was run; "
     "load the write-brief skill before the next brief."
 )
+VERIFY_HEADING_PATTERN = re.compile(r"^(?:\d+\.\s*)?verif(?:y|ication)\b", re.IGNORECASE)
+HEADING_STRIP_CHARS = "#* \t"
+UNVERIFIED_PATTERN = re.compile(r"unverified", re.IGNORECASE)
+OUTPUT_FENCE_PATTERN = re.compile(r"^\s*```output\b")
+INLINE_CODE_MARKER = "`"
+HEADING_PREFIX = "#"
+VERIFY_WARN_TEXT = (
+    " A verify command needs pasted output or an *(expected, unverified)* mark (write-brief step 6)."
+)
 
 
 @dataclass(frozen=True)
@@ -178,6 +189,40 @@ def has_same_engineer_fix_order(prompt: str) -> bool:
     return _any_sentence(prompt, _is_same_engineer_fix_order)
 
 
+def _is_verify_heading(line: str) -> bool:
+    return bool(VERIFY_HEADING_PATTERN.match(line.strip().lstrip(HEADING_STRIP_CHARS)))
+
+
+def _verify_sections(lines: list[str]) -> list[list[str]]:
+    """Each Verify section: its heading line to the next `#` heading outside a fence, or the end."""
+    sections: list[list[str]] = []
+    current: list[str] | None = None
+    is_in_fence = False
+    for line in lines:
+        if line.strip().startswith(FENCE_MARKER):
+            is_in_fence = not is_in_fence
+        is_heading = not is_in_fence and line.lstrip().startswith(HEADING_PREFIX)
+        if current is not None and is_heading:
+            current = None
+        if current is None and _is_verify_heading(line):
+            current = []
+            sections.append(current)
+        if current is not None:
+            current.append(line)
+    return sections
+
+
+def _is_unmarked_verify_command(section: list[str]) -> bool:
+    text = "\n".join(section)
+    if INLINE_CODE_MARKER not in text or UNVERIFIED_PATTERN.search(text):
+        return False
+    return not any(OUTPUT_FENCE_PATTERN.match(line) for line in section)
+
+
+def has_unmarked_verify_command(prompt: str) -> bool:
+    return any(_is_unmarked_verify_command(s) for s in _verify_sections(prompt.splitlines()))
+
+
 def decide(subagent_type: object, prompt: object) -> Decision | None:
     if subagent_type not in GATED_SUBAGENT_TYPES:
         return None
@@ -192,6 +237,8 @@ def decide(subagent_type: object, prompt: object) -> Decision | None:
         return Decision("deny", BACKGROUND_DENY_REASON)
     if subagent_type == "team-lead" and has_same_engineer_fix_order(text):
         return Decision("deny", SAME_ENGINEER_DENY_REASON)
+    if has_unmarked_verify_command(text):
+        return Decision("warn", WARN_TEXT + VERIFY_WARN_TEXT)
     return Decision("warn", WARN_TEXT)
 
 

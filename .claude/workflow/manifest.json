@@ -1,6 +1,6 @@
 {
   ".claude/hooks/brief_gate.py": {
-    "sha256": "e276a2e47440f559cf8c2b2713a3241ba892188feff46bed76155f5294d3d7e7",
+    "sha256": "09ec26f404acdbc1b446b88ffe17cfc11bb0c6c35503264799e622ce886f5ce6",
     "source": "~/.claude/hooks/brief_gate.py"
   },
   ".claude/hooks/role_gate.py": {
