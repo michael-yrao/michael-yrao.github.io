@@ -59,7 +59,7 @@ describe('AppComponent', () => {
     );
   });
 
-  it('renders the footer links in column order, the external one in a new tab', () => {
+  it('renders the footer links in column order', () => {
     fixture.detectChanges();
     const links = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('.po-footer a'),
@@ -72,7 +72,6 @@ describe('AppComponent', () => {
       ['Games', '/games', null],
       ['Coach', '/coach', null],
       ['About', '/about', null],
-      ['GitHub', 'https://github.com/michael-yrao/michael-yrao.github.io', '_blank'],
     ]);
   });
 
