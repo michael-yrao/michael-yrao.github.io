@@ -24,14 +24,18 @@
       </div>
       <label class="rep__why">
         <span class="rep__why-name">Why</span>
-        <input
-          type="text"
+        <textarea
           class="rep__why-input"
+          rows="6"
+          [maxLength]="whyMaxChars"
           placeholder="name each contributor"
           [value]="row.why"
           [disabled]="isChecked()"
           (input)="onWhy(row.key, $event)"
-        />
+        ></textarea>
+        @if (row.remaining !== null) {
+          <span class="rep__why-count">{{ row.remaining }}</span>
+        }
       </label>
       @if (row.reveal; as reveal) {
         <p class="rep__mark" [class.rep__mark--miss]="!reveal.isMatch"><app-icon [name]="reveal.isMatch ? 'check' : 'x'" [size]="14" [label]="reveal.mark" />@if (reveal.expected) { {{ reveal.expected }}}</p>

@@ -33,6 +33,7 @@ import { RunState } from '../../../core/runner/runner.model';
 import { lockedProblem } from '../../interview/session/candidate-lock';
 import { CaseResultsComponent } from '../../../shared/components/case-results/case-results.component';
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
+import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
 import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
 import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
 import { CompleteRepPanelComponent, CompletedRep, ReferenceBounds } from '../complete-rep-panel/complete-rep-panel.component';
@@ -61,6 +62,7 @@ const COPY_FEEDBACK_MS = 1500;
 const COPY_OK_ICON: IconName = 'check';
 const COPY_FAIL_ICON: IconName = 'x';
 const COPY_ICON_SIZE_PX = 14;
+const COMPLETE_REP_ICON: IconName = 'check';
 const PERCENT = 100;
 const RESET_CONFIRM = 'Reset this solution to the starter code?';
 const LEAVE_CONFIRM = 'Leave without rating? The rep is saved as unrated.';
@@ -94,6 +96,7 @@ const closeConfirm = (position: number): string => `Close Solution ${position}? 
   imports: [
     CaseResultsComponent,
     CodeEditorComponent,
+    CodeViewerComponent,
     CompleteRepPanelComponent,
     IconComponent,
     PracticeDescriptionComponent,
@@ -219,6 +222,7 @@ export class PracticePageComponent {
   protected readonly copyIconSize = COPY_ICON_SIZE_PX;
   protected readonly copyOkIcon = COPY_OK_ICON;
   protected readonly copyFailIcon = COPY_FAIL_ICON;
+  protected readonly completeRepIcon = COMPLETE_REP_ICON;
 
   readonly saveStatus = computed(() => this.saver.statusFor(this.number() ?? 0));
   readonly installUrl = this.auth.installUrl;
@@ -272,6 +276,12 @@ export class PracticePageComponent {
   /** Completion needs the Big-O reference loaded as well, since the dialog judges against it. */
   readonly canCompleteRep = computed(() => this.canMarkComplete() && this.bigO.status() === 'ready');
 
+  /** The head button reopens the rep panel whenever it could have opened on its own: a current pass, closed now. */
+  protected readonly canReopenRep = computed(() => this.canSave() && this.canCompleteRep() && !this.isCompleting());
+
+  /** The code of the run that passed, shown read-only in the left pane while the rep panel is open. */
+  protected readonly passedCode = computed(() => this.lastRun()?.code ?? '');
+
   /** This problem's reference bounds from big-o.json; null when it has no entry. */
   readonly reference = computed<ReferenceBounds | null>(() => {
     const entry = this.bigO.entryFor(this.number() ?? 0);
@@ -321,6 +331,10 @@ export class PracticePageComponent {
         this.isCompleting.set(true);
         this.isOutputOpen.set(true);
       });
+    });
+    effect(() => {
+      // An edit to the code ends the pass the rep panel was opened for.
+      if (this.passingRun() === null) untracked(() => this.isCompleting.set(false));
     });
     effect(() => {
       const problem = this.problem();

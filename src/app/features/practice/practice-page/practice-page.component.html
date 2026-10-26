@@ -24,14 +24,25 @@
       [style.--work-track]="workTrack()"
     >
       <div class="practice__problem" [class.practice__problem--closed]="!isProblemOpen()">
-        <button type="button" class="practice__pane-head" [attr.aria-expanded]="isProblemOpen()" aria-controls="practice-problem-body" (click)="toggleProblem()">
-          <span class="practice__label">Problem</span>
-          <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </button>
+        <div class="practice__pane-bar">
+          <button type="button" class="practice__pane-head" [attr.aria-expanded]="isProblemOpen()" aria-controls="practice-problem-body" (click)="toggleProblem()">
+            <span class="practice__label">Problem</span>
+            <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          @if (canReopenRep()) {
+            <button type="button" class="practice__btn practice__btn--icon" aria-label="Complete rep" title="Complete rep" (click)="isCompleting.set(true)">
+              <app-icon [name]="completeRepIcon" [size]="copyIconSize" />
+            </button>
+          }
+        </div>
         <div id="practice-problem-body" [hidden]="!isProblemOpen()">
-          <app-practice-description [problem]="problem()" [meta]="meta()" />
+          @if (isCompleting()) {
+            <app-code-viewer [code]="passedCode()" />
+          } @else {
+            <app-practice-description [problem]="problem()" [meta]="meta()" />
+          }
         </div>
       </div>
 
@@ -56,13 +67,18 @@
         }
 
         <div class="practice__work" [class.practice__work--code-closed]="!isCodeOpen()" [style.--output-share]="outputShare()">
-          <button type="button" class="practice__pane-head" [attr.aria-expanded]="isCodeOpen()" aria-controls="practice-code-body" (click)="toggleCode()">
-            <span class="practice__label">Code</span>
-            <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </button>
-          <div id="practice-code-body" class="practice__code-body" [hidden]="!isCodeOpen()">
+          @if (isCompleting()) {
+            <app-complete-rep-panel class="practice__rep" [pool]="bigO.pool()" [reference]="reference()" (saved)="completeRep($event)" (closed)="isCompleting.set(false)" />
+          } @else {
+            <button type="button" class="practice__pane-head" [attr.aria-expanded]="isCodeOpen()" aria-controls="practice-code-body" (click)="toggleCode()">
+              <span class="practice__label">Code</span>
+              <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          }
+          <!-- Kept in the DOM while the rep panel shows, so the editor keeps its text and cursor. -->
+          <div id="practice-code-body" class="practice__code-body" [hidden]="!isCodeOpen() || isCompleting()">
             <div class="practice__tabs" role="tablist" aria-label="Solutions">
               @for (_ of tabs().texts; track $index) {
                 <span class="practice__tab-group" role="none">
@@ -84,6 +100,7 @@
             <app-code-editor #editor [initialText]="initialText()" (textChange)="onTextChange($event)" />
           </div>
 
+          @if (!isCompleting()) {
           <div class="practice__toolbar">
             <button type="button" class="practice__btn practice__btn--icon practice__btn--primary" aria-label="Run" title="Run (Ctrl+')" [disabled]="isBusy()" (click)="runSample()">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
@@ -165,14 +182,11 @@
               </svg>
             </button>
 
-            @if (isOutputOpen()) {
-              @if (isCompleting()) {
-                <app-complete-rep-panel id="practice-output-body" class="practice__output-body" [pool]="bigO.pool()" [reference]="reference()" (saved)="completeRep($event)" (closed)="isCompleting.set(false)" />
-              } @else if (runState(); as state) {
-                <app-case-results id="practice-output-body" class="practice__output-body" [runState]="state" [cases]="p.cases" [resultCodec]="p.types?.result ?? null" [selected]="selectedCase()" (selectedChange)="selectCase($event)" />
-              }
+            @if (isOutputOpen() && runState(); as state) {
+              <app-case-results id="practice-output-body" class="practice__output-body" [runState]="state" [cases]="p.cases" [resultCodec]="p.types?.result ?? null" [selected]="selectedCase()" (selectedChange)="selectCase($event)" />
             }
           </section>
+          }
         </div>
       }
     </div>

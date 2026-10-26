@@ -576,21 +576,25 @@ describe('TodayBoardComponent', () => {
     expect(info.getAttribute('aria-describedby')).toBe(bubble.id);
   });
 
-  it('toggles the popover open/closed on click (tap support — no hover on touch)', () => {
+  // jsdom has no :hover / :focus-visible, so this covers the signal-driven `--open` state only.
+  it.each([
+    { name: 'a click opens', act: ['click'], isOpen: true },
+    { name: 'a second click closes', act: ['click', 'click'], isOpen: false },
+    { name: 'a pointerdown outside closes', act: ['click', 'outside'], isOpen: false },
+    { name: 'Escape closes', act: ['click', 'escape'], isOpen: false },
+  ])('info bubble: $name', ({ act, isOpen }) => {
     const fixture = createFixture(makeSchedule(), 8, 3);
-
     const info: HTMLButtonElement = fixture.nativeElement.querySelector('.today-board__info');
     const wrap = () => fixture.nativeElement.querySelector('.today-board__info-wrap');
 
-    expect(wrap()?.classList.contains('today-board__info-wrap--open')).toBe(false);
+    for (const step of act) {
+      if (step === 'click') info.click();
+      if (step === 'outside') document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      if (step === 'escape') document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      fixture.detectChanges();
+    }
 
-    info.click();
-    fixture.detectChanges();
-    expect(wrap()?.classList.contains('today-board__info-wrap--open')).toBe(true);
-
-    info.click();
-    fixture.detectChanges();
-    expect(wrap()?.classList.contains('today-board__info-wrap--open')).toBe(false);
+    expect(wrap()?.classList.contains('today-board__info-wrap--open')).toBe(isOpen);
   });
 
   it('renders no info affordance when there is no workload bar', () => {

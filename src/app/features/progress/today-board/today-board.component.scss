@@ -204,7 +204,7 @@ $workload-planned-opacity: 0.35;
   transform: translateX(-50%);
 }
 .today-board__info-wrap:hover .today-board__info-bubble,
-.today-board__info-wrap:focus-within .today-board__info-bubble,
+.today-board__info-wrap:has(:focus-visible) .today-board__info-bubble,
 .today-board__info-wrap--open .today-board__info-bubble {
   opacity: 1;
   visibility: visible;
@@ -220,7 +220,7 @@ $workload-planned-opacity: 0.35;
   max-width: 260px;
 }
 .today-board__outcome-wrap:hover .today-board__outcome-bubble,
-.today-board__outcome-wrap:focus-within .today-board__outcome-bubble,
+.today-board__outcome-wrap:has(:focus-visible) .today-board__outcome-bubble,
 .today-board__outcome-wrap--open .today-board__outcome-bubble {
   opacity: 1;
   visibility: visible;

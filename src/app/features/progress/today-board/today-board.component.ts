@@ -83,6 +83,9 @@ const RUN_CONTROLS = {
   done: { action: 'done', icon: 'check', label: 'Today done' },
 } as const satisfies Record<string, RunControl>;
 
+const INFO_WRAP_SELECTOR = '.today-board__info-wrap';
+const OPEN_OUTCOME_WRAP_SELECTOR = '.today-board__outcome-wrap--open';
+
 const NO_PENDING: ReadonlySet<number> = new Set();
 const NO_REFUSALS: ReadonlyMap<number, string> = new Map();
 
@@ -112,6 +115,11 @@ const NO_REFUSALS: ReadonlyMap<number, string> = new Map();
   templateUrl: './today-board.component.html',
   styleUrls: ['./today-board.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Host metadata rather than @HostListener: another runtime symbol would land in the initial bundle.
+  host: {
+    '(document:pointerdown)': 'onDocumentPointerDown($event)',
+    '(document:keydown.escape)': 'onDocumentEscape()',
+  },
   imports: [
     RouterLink,
     NgTemplateOutlet,
@@ -304,12 +312,29 @@ export class TodayBoardComponent {
 
   // The units-explainer popover (round 4 item 2 — replaces the native `title` tooltip, which
   // is slow (~1s), invisible on touch, and too wordy). Click/tap TOGGLES it (works on touch,
-  // where there's no hover); the template also shows it instantly on `:hover`/`:focus-within`
-  // for mouse/keyboard, in pure CSS, no signal involved for that path.
+  // where there's no hover); the stylesheet also shows it instantly on `:hover` and keyboard
+  // focus (`:has(:focus-visible)`), in pure CSS, no signal involved for that path. A pointerdown
+  // outside the wrap, or Escape, closes it.
   readonly infoOpen = signal(false);
 
   toggleInfo(): void {
     this.infoOpen.update((v) => !v);
+  }
+
+  /** Closes the info and outcome bubbles on a pointerdown outside their open wrap. A pointerdown
+   *  inside the open wrap is left to the button's own click toggle. */
+  protected onDocumentPointerDown(event: Event): void {
+    const target = event.target instanceof Element ? event.target : null;
+    if (this.infoOpen() && !target?.closest(INFO_WRAP_SELECTOR)) this.infoOpen.set(false);
+    if (this.openOutcomeKey() !== null && !target?.closest(OPEN_OUTCOME_WRAP_SELECTOR)) {
+      this.openOutcomeKey.set(null);
+    }
+  }
+
+  /** Closes the info and outcome bubbles on Escape. */
+  protected onDocumentEscape(): void {
+    this.infoOpen.set(false);
+    this.openOutcomeKey.set(null);
   }
 
   // The done-row outcome popover — the note's meaning and the next-review date are hidden

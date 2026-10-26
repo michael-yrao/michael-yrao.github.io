@@ -135,6 +135,17 @@ function clickRun(fixture: ComponentFixture<PracticePageComponent>, isSample: bo
   fixture.detectChanges();
 }
 
+/** The rep panel hides the toolbar while it shows; close it to reach Save to GitHub. */
+function closeRepPanel(fixture: ComponentFixture<PracticePageComponent>): void {
+  fixture.nativeElement.querySelector('.rep__close').click();
+  fixture.detectChanges();
+}
+
+function reopenRepPanel(fixture: ComponentFixture<PracticePageComponent>): void {
+  fixture.nativeElement.querySelector('button[aria-label="Complete rep"]').click();
+  fixture.detectChanges();
+}
+
 const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve));
 
 function headerOf(content: string): unknown {
@@ -149,7 +160,7 @@ function rateAndSave(fixture: ComponentFixture<PracticePageComponent>): void {
     Array.from(row.querySelectorAll<HTMLButtonElement>('.rep__chip')).find((b) => b.textContent?.trim() === label)!;
   chipIn(rows[0], 'O(n)').click();
   chipIn(rows[1], 'O(1)').click();
-  for (const input of Array.from(root.querySelectorAll<HTMLInputElement>('.rep__why-input'))) {
+  for (const input of Array.from(root.querySelectorAll<HTMLTextAreaElement>('.rep__why-input'))) {
     input.value = WHY;
     input.dispatchEvent(new Event('input'));
   }
@@ -205,7 +216,10 @@ describe('PracticePageComponent save to GitHub', () => {
     clickRun(fixture, false);
 
     if (isComplete) rateAndSave(fixture);
-    else buttonByText(root, SAVE_BUTTON)!.click();
+    else {
+      closeRepPanel(fixture);
+      buttonByText(root, SAVE_BUTTON)!.click();
+    }
     await tick(); // the token arrives before the request
     const req = httpMock.expectOne(`${WORKER_API_URL}practice/save`);
     req.flush({ ok: true });
@@ -240,22 +254,59 @@ describe('PracticePageComponent save to GitHub', () => {
   });
 
   it.each([
-    { name: 'a full pass', verdicts: ['pass', 'pass', 'pass'], isSample: false, editBeforeResult: false, isOpen: true },
-    { name: 'a partial pass', verdicts: ['pass', 'pass', 'fail'], isSample: false, editBeforeResult: false, isOpen: false },
-    { name: 'a sample run that passed every sampled case', verdicts: ['pass', 'pass'], isSample: true, editBeforeResult: false, isOpen: false },
-    { name: 'a pass on stale code', verdicts: ['pass', 'pass', 'pass'], isSample: false, editBeforeResult: true, isOpen: false },
-  ] as const)('$name: the complete-rep panel opens is $isOpen', ({ verdicts, isSample, editBeforeResult, isOpen }) => {
+    { name: 'a full pass', verdicts: ['pass', 'pass', 'pass'], isSample: false, editBeforeResult: false, editAfterResult: false, isOpen: true },
+    { name: 'a partial pass', verdicts: ['pass', 'pass', 'fail'], isSample: false, editBeforeResult: false, editAfterResult: false, isOpen: false },
+    { name: 'a sample run that passed every sampled case', verdicts: ['pass', 'pass'], isSample: true, editBeforeResult: false, editAfterResult: false, isOpen: false },
+    { name: 'a pass on stale code', verdicts: ['pass', 'pass', 'pass'], isSample: false, editBeforeResult: true, editAfterResult: false, isOpen: false },
+    { name: 'a full pass followed by an edit', verdicts: ['pass', 'pass', 'pass'], isSample: false, editBeforeResult: false, editAfterResult: true, isOpen: false },
+  ] as const)('$name: the complete-rep panel opens is $isOpen', ({ verdicts, isSample, editBeforeResult, editAfterResult, isOpen }) => {
     signIn(OWNER);
     const result = new Subject<RunState>();
     runSpy.mockReturnValue(result);
     const { fixture } = render();
+    const root: HTMLElement = fixture.nativeElement;
 
     clickRun(fixture, isSample);
     if (editBeforeResult) fixture.componentInstance.onTextChange('changed while running');
     result.next(runOf(verdicts));
     fixture.detectChanges();
+    if (editAfterResult) {
+      fixture.componentInstance.onTextChange('changed after the pass');
+      fixture.detectChanges();
+    }
 
-    expect((fixture.nativeElement as HTMLElement).querySelector('app-complete-rep-panel') !== null).toBe(isOpen);
+    expect(root.querySelector('app-complete-rep-panel') !== null).toBe(isOpen);
+    expect(root.querySelector('.practice__problem app-code-viewer') !== null).toBe(isOpen);
+    expect(root.querySelector('.practice__problem app-practice-description') !== null).toBe(!isOpen);
+    expect(root.querySelector('app-code-editor')!.closest('[hidden]') !== null).toBe(isOpen);
+    expect(root.querySelector('.practice__toolbar') !== null).toBe(!isOpen);
+    if (isOpen) {
+      expect(root.querySelector('app-variant-bar')).toBeNull();
+      expect(root.querySelector('app-approach-compare')).toBeNull();
+    }
+  });
+
+  it('closing the rep panel restores the statement and editor, and the head button reopens it', () => {
+    signIn(OWNER);
+    runSpy.mockReturnValue(of(runOf(['pass', 'pass', 'pass'])));
+    const { fixture } = render();
+    const root: HTMLElement = fixture.nativeElement;
+    const reopen = (): HTMLButtonElement | null => root.querySelector('button[aria-label="Complete rep"]');
+    clickRun(fixture, false);
+    expect(reopen()).toBeNull();
+
+    root.querySelector<HTMLButtonElement>('.rep__close')!.click();
+    fixture.detectChanges();
+
+    expect(root.querySelector('app-practice-description')).not.toBeNull();
+    expect(root.querySelector('app-code-editor')!.closest('[hidden]')).toBeNull();
+    expect(reopen()).not.toBeNull();
+
+    reopen()!.click();
+    fixture.detectChanges();
+
+    expect(root.querySelector('app-complete-rep-panel')).not.toBeNull();
+    expect(reopen()).toBeNull();
   });
 
   const LEAVE_ROWS: readonly {
@@ -320,10 +371,13 @@ describe('PracticePageComponent save to GitHub', () => {
     runSpy.mockReturnValue(of(runOf(['pass', 'pass', 'pass'])));
     const { fixture, httpMock } = render();
     clickRun(fixture, false);
+    closeRepPanel(fixture);
     expect(buttonByText(fixture.nativeElement, SAVE_BUTTON)).toBeDefined();
+    reopenRepPanel(fixture);
 
     await act(fixture, httpMock);
     await tick();
+    fixture.nativeElement.querySelector('.rep__close')?.click(); // the toolbar hides while the panel shows
     fixture.detectChanges();
 
     expect(buttonByText(fixture.nativeElement, SAVE_BUTTON)).toBeUndefined();

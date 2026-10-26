@@ -30,7 +30,7 @@ function chip(root: HTMLElement, rowIndex: number, label: string): HTMLButtonEle
 }
 
 function type(fixture: ComponentFixture<unknown>, rowIndex: number, text: string): void {
-  const input = fixture.nativeElement.querySelectorAll('.rep__why-input')[rowIndex] as HTMLInputElement;
+  const input = fixture.nativeElement.querySelectorAll('.rep__why-input')[rowIndex] as HTMLTextAreaElement;
   input.value = text;
   input.dispatchEvent(new Event('input'));
 }
@@ -108,6 +108,19 @@ describe('CompleteRepPanelComponent', () => {
     expect(iconAndText).toEqual(marks);
     expect(text('.rep__ref-why')).toEqual(refWhys);
     expect(text('.rep__key')).toEqual(hasKey ? ['no reference bound'] : []);
+  });
+
+  it.each([
+    { name: '51 remaining', length: 449, count: [] },
+    { name: '50 remaining', length: 450, count: ['50'] },
+    { name: '0 remaining', length: 500, count: ['0'] },
+  ])('why count, $name', ({ length, count }) => {
+    const { fixture, root } = render(REFERENCE);
+
+    type(fixture, 0, 'x'.repeat(length));
+    fixture.detectChanges();
+
+    expect(Array.from(root.querySelectorAll('.rep__why-count')).map((el) => el.textContent?.trim())).toEqual(count);
   });
 
   it('keeps the rating buttons disabled until Check, and locks the chips after it', () => {

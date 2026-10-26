@@ -30,6 +30,7 @@ interface BoundRow {
   readonly name: string;
   readonly label: string | null;
   readonly why: string;
+  readonly remaining: number | null;
   /** Set once checked against a reference: the mark word, the reference bound on a miss, and the reference's why, if it has one. */
   readonly reveal: {
     readonly isMatch: boolean;
@@ -44,8 +45,19 @@ const MATCH_MARK = 'pass';
 const MISS_MARK = 'fail';
 const BOUND_NAMES: Readonly<Record<BoundKey, string>> = { time: 'Time', space: 'Space' };
 const BOUND_KEYS: readonly BoundKey[] = ['time', 'space'];
+// The same cap lives in worker/src/practice/validate.ts (MAX_WHY_CHARS), cse-progress/scripts/fold_attempt.py
+// and cse-coach/scripts/fold_attempt.py (WHY_MAX_CHARS); a cap change touches all four.
+const WHY_MAX_CHARS = 500;
+/** The remaining-character count shows once this few characters are left. */
+const WHY_COUNT_THRESHOLD = 50;
 
-/** The complexity-first completion panel, shown in the Output pane: state both bounds with a why, Check, then rate and save. */
+/** The remaining characters once few enough are left to show; null before that. */
+function remainingCount(why: string): number | null {
+  const remaining = WHY_MAX_CHARS - why.length;
+  return remaining <= WHY_COUNT_THRESHOLD ? remaining : null;
+}
+
+/** The complexity-first completion panel, filling the right column: state both bounds with a why, Check, then rate and save. */
 @Component({
   selector: 'app-complete-rep-panel',
   templateUrl: './complete-rep-panel.component.html',
@@ -61,6 +73,7 @@ export class CompleteRepPanelComponent {
   readonly closed = output<void>();
 
   protected readonly ratingOptions = RATING_OPTIONS;
+  protected readonly whyMaxChars = WHY_MAX_CHARS;
 
   private readonly drafts = signal<Readonly<Record<BoundKey, BoundDraft>>>({ time: EMPTY_DRAFT, space: EMPTY_DRAFT });
   protected readonly isChecked = signal(false);
@@ -71,7 +84,10 @@ export class CompleteRepPanelComponent {
   );
 
   protected readonly rows = computed<readonly BoundRow[]>(() =>
-    BOUND_KEYS.map((key) => ({ key, name: BOUND_NAMES[key], ...this.drafts()[key], reveal: this.revealFor(key) })),
+    BOUND_KEYS.map((key) => {
+      const draft = this.drafts()[key];
+      return { key, name: BOUND_NAMES[key], ...draft, remaining: remainingCount(draft.why), reveal: this.revealFor(key) };
+    }),
   );
 
   protected pick(key: BoundKey, label: string): void {
@@ -79,7 +95,7 @@ export class CompleteRepPanelComponent {
   }
 
   protected onWhy(key: BoundKey, event: Event): void {
-    this.updateDraft(key, { why: (event.target as HTMLInputElement).value });
+    this.updateDraft(key, { why: (event.target as HTMLTextAreaElement).value });
   }
 
   protected check(): void {
