@@ -23,22 +23,38 @@
       [style.--problem-track]="problemTrack()"
       [style.--work-track]="workTrack()"
     >
-      <div class="practice__problem" [class.practice__problem--closed]="!isProblemOpen()">
+      <div class="practice__problem" [class.practice__problem--closed]="!isProblemOpen()" [class.practice__problem--passed]="isPassFresh()">
         <div class="practice__pane-bar">
           <button type="button" class="practice__pane-head" [attr.aria-expanded]="isProblemOpen()" aria-controls="practice-problem-body" (click)="toggleProblem()">
-            <span class="practice__label">Problem</span>
+            <span class="practice__label">{{ isShowingCode() ? 'Solution' : 'Problem' }}</span>
             <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
               <path d="M6 9l6 6 6-6" />
             </svg>
           </button>
+          @if (isPassFresh()) {
+            <app-icon class="practice__pass-mark" name="check" [size]="copyIconSize" />
+          }
+          <span class="practice__sr-only" aria-live="polite">{{ isPassFresh() ? 'Passed' : '' }}</span>
+          @if (isCompleting()) {
+            <button
+              type="button"
+              class="practice__btn practice__btn--icon"
+              [attr.aria-pressed]="isShowingStatement()"
+              [attr.aria-label]="isShowingCode() ? 'Show problem' : 'Show solution'"
+              [attr.title]="isShowingCode() ? 'Show problem' : 'Show solution'"
+              (click)="toggleLeftView()"
+            >
+              <app-icon [name]="isShowingCode() ? showStatementIcon : showCodeIcon" [size]="copyIconSize" />
+            </button>
+          }
           @if (canReopenRep()) {
-            <button type="button" class="practice__btn practice__btn--icon" aria-label="Complete rep" title="Complete rep" (click)="isCompleting.set(true)">
+            <button type="button" class="practice__btn practice__btn--icon" aria-label="Complete rep" title="Complete rep" (click)="reopenRep()">
               <app-icon [name]="completeRepIcon" [size]="copyIconSize" />
             </button>
           }
         </div>
         <div id="practice-problem-body" [hidden]="!isProblemOpen()">
-          @if (isCompleting()) {
+          @if (isShowingCode()) {
             <app-code-viewer [code]="passedCode()" />
           } @else {
             <app-practice-description [problem]="problem()" [meta]="meta()" />

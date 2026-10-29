@@ -309,6 +309,65 @@ describe('PracticePageComponent save to GitHub', () => {
     expect(reopen()).toBeNull();
   });
 
+  it('the left-pane toggle flips code and statement, and reopening the rep panel resets it to the code', () => {
+    signIn(OWNER);
+    runSpy.mockReturnValue(of(runOf(['pass', 'pass', 'pass'])));
+    const { fixture } = render();
+    const root: HTMLElement = fixture.nativeElement;
+    const toggle = (): void => {
+      root.querySelector<HTMLButtonElement>('.practice__pane-bar button[aria-pressed]')!.click();
+      fixture.detectChanges();
+    };
+    clickRun(fixture, false);
+    expect(root.querySelector('.practice__problem app-code-viewer')).not.toBeNull();
+
+    toggle();
+
+    expect(root.querySelector('.practice__problem app-practice-description')).not.toBeNull();
+    expect(root.querySelector('.practice__problem app-code-viewer')).toBeNull();
+    expect(root.querySelector('app-complete-rep-panel')).not.toBeNull();
+
+    toggle();
+
+    expect(root.querySelector('.practice__problem app-code-viewer')).not.toBeNull();
+
+    toggle();
+    closeRepPanel(fixture);
+    reopenRepPanel(fixture);
+
+    expect(root.querySelector('.practice__problem app-code-viewer')).not.toBeNull();
+  });
+
+  it.each([
+    { name: 'an automatic open shows the effect, then drops it', isReopened: false },
+    { name: 'a reopen after the effect expired does not bring it back', isReopened: true },
+  ])('pass effect: $name', ({ isReopened }) => {
+    const PASS_EFFECT_MS = 1200;
+    vi.useFakeTimers();
+    try {
+      signIn(OWNER);
+      runSpy.mockReturnValue(of(runOf(['pass', 'pass', 'pass'])));
+      const { fixture } = render();
+      const root: HTMLElement = fixture.nativeElement;
+      const isPassed = (): boolean => root.querySelector('.practice__problem--passed') !== null;
+
+      clickRun(fixture, false);
+      expect(isPassed()).toBe(true);
+
+      vi.advanceTimersByTime(PASS_EFFECT_MS);
+      fixture.detectChanges();
+      expect(isPassed()).toBe(false);
+
+      if (isReopened) {
+        closeRepPanel(fixture);
+        reopenRepPanel(fixture);
+        expect(isPassed()).toBe(false);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   const LEAVE_ROWS: readonly {
     readonly name: string;
     readonly hasPass: boolean;

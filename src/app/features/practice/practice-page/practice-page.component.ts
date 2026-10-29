@@ -59,10 +59,14 @@ import {
 
 const DRAFT_SAVE_DELAY_MS = 500;
 const COPY_FEEDBACK_MS = 1500;
+/** How long the pass glow and check mark show; the `practice-pass-glow` animation in the scss lasts the same. */
+const PASS_EFFECT_MS = 1200;
 const COPY_OK_ICON: IconName = 'check';
 const COPY_FAIL_ICON: IconName = 'x';
 const COPY_ICON_SIZE_PX = 14;
 const COMPLETE_REP_ICON: IconName = 'check';
+const SHOW_STATEMENT_ICON: IconName = 'file';
+const SHOW_CODE_ICON: IconName = 'terminal';
 const PERCENT = 100;
 const RESET_CONFIRM = 'Reset this solution to the starter code?';
 const LEAVE_CONFIRM = 'Leave without rating? The rep is saved as unrated.';
@@ -223,10 +227,17 @@ export class PracticePageComponent {
   protected readonly copyOkIcon = COPY_OK_ICON;
   protected readonly copyFailIcon = COPY_FAIL_ICON;
   protected readonly completeRepIcon = COMPLETE_REP_ICON;
+  protected readonly showStatementIcon = SHOW_STATEMENT_ICON;
+  protected readonly showCodeIcon = SHOW_CODE_ICON;
 
   readonly saveStatus = computed(() => this.saver.statusFor(this.number() ?? 0));
   readonly installUrl = this.auth.installUrl;
   readonly isCompleting = signal(false);
+  /** The left-pane view while completing: the problem statement (true) or the passing code (false). */
+  protected readonly isShowingStatement = signal(false);
+  protected readonly isShowingCode = computed(() => this.isCompleting() && !this.isShowingStatement());
+  /** True for PASS_EFFECT_MS after a pass opens the rep panel on its own; a manual reopen never sets it. */
+  protected readonly isPassFresh = signal(false);
   /** The rep each problem was last marked complete with, for the marks beside the status. */
   private readonly completedReps = signal<Readonly<Record<number, CompletedRep>>>({});
 
@@ -303,6 +314,7 @@ export class PracticePageComponent {
   /** The tabs the debounce timer will write, with the problem and repo they were typed for. */
   private pendingSave: { readonly ref: RepoRef; readonly number: number; readonly tabs: SolutionTabs } | null = null;
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
+  private passEffectTimer: ReturnType<typeof setTimeout> | null = null;
   private autoOpenedRun: RunState | null = null;
   private sentRun: RunState | null = null;
   private hasResentPending = false;
@@ -328,8 +340,10 @@ export class PracticePageComponent {
       if (run === null || run === this.autoOpenedRun || !this.canSave() || !this.canCompleteRep()) return;
       untracked(() => {
         this.autoOpenedRun = run;
+        this.isShowingStatement.set(false);
         this.isCompleting.set(true);
         this.isOutputOpen.set(true);
+        this.startPassEffect();
       });
     });
     effect(() => {
@@ -352,8 +366,26 @@ export class PracticePageComponent {
     this.destroyRef.onDestroy(() => this.flushPendingSave());
     this.destroyRef.onDestroy(() => {
       if (this.copyTimer) clearTimeout(this.copyTimer);
+      if (this.passEffectTimer) clearTimeout(this.passEffectTimer);
       this.runSubscription?.unsubscribe();
     });
+  }
+
+  /** The head button reopens the rep panel on the passing code. */
+  protected reopenRep(): void {
+    this.isShowingStatement.set(false);
+    this.isCompleting.set(true);
+  }
+
+  /** Flips the left pane between the passing code and the problem statement while completing. */
+  protected toggleLeftView(): void {
+    this.isShowingStatement.update((isShowing) => !isShowing);
+  }
+
+  private startPassEffect(): void {
+    if (this.passEffectTimer) clearTimeout(this.passEffectTimer);
+    this.isPassFresh.set(true);
+    this.passEffectTimer = setTimeout(() => this.isPassFresh.set(false), PASS_EFFECT_MS);
   }
 
   /** The route reuses this component when only `:number` changes, and the editor reads `initialText`

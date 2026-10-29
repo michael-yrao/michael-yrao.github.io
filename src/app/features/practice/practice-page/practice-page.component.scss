@@ -18,6 +18,44 @@ $divider-line-width: 2px;
 
 @media (prefers-reduced-motion: reduce) {
   .practice__skeleton { animation: none; }
+  .practice__problem--passed { animation: none; }
+  .practice__pass-mark { animation: none; }
+}
+
+// A fresh pass lights the problem pane's edge and pops a check beside its head.
+// The glow lasts as long as PASS_EFFECT_MS in the component, which drops the class and the mark.
+.practice__problem--passed {
+  border-radius: var(--radius-md);
+  animation: practice-pass-glow 1.2s ease-out;
+}
+
+@keyframes practice-pass-glow {
+  from { box-shadow: inset 0 0 0 2px var(--color-found), inset 0 0 1.5rem var(--color-found); }
+  to { box-shadow: inset 0 0 0 0 transparent, inset 0 0 0 transparent; }
+}
+
+.practice__pass-mark {
+  flex: 0 0 auto;
+  color: var(--color-found);
+  animation: practice-pass-pop 0.4s ease-out;
+}
+
+@keyframes practice-pass-pop {
+  from { transform: scale(0.4); }
+  60% { transform: scale(1.15); }
+  to { transform: scale(1); }
+}
+
+// Text for screen readers only (the live "Passed" announcement).
+.practice__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .practice__spacer { flex: 1 1 auto; }

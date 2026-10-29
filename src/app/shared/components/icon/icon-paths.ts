@@ -3,7 +3,7 @@ export type IconName =
   | 'search' | 'x' | 'circle' | 'half' | 'pause' | 'play' | 'skip-back' | 'skip-forward'
   | 'step-back' | 'step-forward' | 'reset' | 'chevron-left' | 'chevron-right' | 'chevron-down'
   | 'undo' | 'redo' | 'external' | 'info' | 'trend' | 'lock' | 'bulb' | 'clock' | 'memory'
-  | 'sidebar' | 'terminal' | 'hexagon' | 'pick' | 'arrow-up' | 'square' | 'hash';
+  | 'sidebar' | 'terminal' | 'hexagon' | 'pick' | 'arrow-up' | 'square' | 'hash' | 'file';
 
 const CIRCLE = 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z';
 const HALF_CIRCLE = 'M12 3a9 9 0 0 0 0 18z';
@@ -49,6 +49,7 @@ export const ICON_PATHS: Readonly<Record<IconName, string>> = {
   'arrow-up': 'M12 20V4M5 11l7-7 7 7',
   square: SQUARE,
   hash: 'M5 9h14M5 15h14M10 4 8 20M16 4l-2 16',
+  file: 'M14 3H6v18h12V7zM14 3v4h4M9 13h6M9 17h6',
 };
 
 /** A second, filled sub-path drawn over the stroked outline of the shapes that carry a solid fill. */
