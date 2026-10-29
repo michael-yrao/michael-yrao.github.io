@@ -29,9 +29,12 @@ function makeEntry(overrides: Partial<BigOEntry> = {}): BigOEntry {
     space: 'O(n)',
     whyTime: null,
     whySpace: null,
+    variables: {},
+    timeChoices: [],
+    spaceChoices: [],
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
-    segments: [],
+    segments: [{ kind: 'attempt', symbol: 'twoSum', startLine: 1, endLine: 1, lines: ['def two_sum(): pass'] }],
     ...overrides,
   };
 }
@@ -51,6 +54,11 @@ describe('filterDeck', () => {
   it('returns every entry for the default (All / not misses-only) filter', () => {
     const pool = makePool(6);
     expect(filterDeck(pool, DEFAULT_FILTER).length).toBe(6);
+  });
+
+  it('never deals a reference-only entry (empty segments)', () => {
+    const pool = [makeEntry({ key: 'code' }), makeEntry({ key: 'ref-only', file: null, symbol: null, segments: [] })];
+    expect(filterDeck(pool, DEFAULT_FILTER).map((e) => e.key)).toEqual(['code']);
   });
 
   it('narrows by difficulty', () => {

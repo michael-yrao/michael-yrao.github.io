@@ -93,7 +93,7 @@ export class BigOComponent {
   readonly attemptBlobUrl = computed(() => {
     const entry = this.current();
     const attempt = entry?.segments.find((s) => s.kind === 'attempt');
-    if (!entry || !attempt) return null;
+    if (!entry || !attempt || entry.file === null) return null;
     return blobUrl(
       this.bigO.sourceRef() ?? CONTENT_REPO,
       entry.file,

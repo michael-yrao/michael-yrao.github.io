@@ -1,18 +1,24 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { CompleteRepPanelComponent, CompletedRep, ReferenceBounds } from './complete-rep-panel.component';
+import { CompleteRepPanelComponent, CompletedRep, LegendItem, ReferenceBounds, RepChoices } from './complete-rep-panel.component';
 
 const POOL = ['O(1)', 'O(n)', 'O(n log n)'];
+const CHOICES = { time: POOL, space: POOL };
 const REFERENCE: ReferenceBounds = { time: 'O(n)', space: 'O(1)', whyTime: 'one pass', whySpace: 'two counters' };
 const WHY = '  one pass  ';
 
-function render(reference: ReferenceBounds | null): {
+function render(
+  reference: ReferenceBounds | null,
+  choices: RepChoices = CHOICES,
+  legend: readonly LegendItem[] = [],
+): {
   fixture: ComponentFixture<CompleteRepPanelComponent>;
   root: HTMLElement;
   emitted: CompletedRep[];
 } {
   const fixture = TestBed.createComponent(CompleteRepPanelComponent);
-  fixture.componentRef.setInput('pool', POOL);
+  fixture.componentRef.setInput('choices', choices);
+  fixture.componentRef.setInput('legend', legend);
   fixture.componentRef.setInput('reference', reference);
   const emitted: CompletedRep[] = [];
   fixture.componentInstance.saved.subscribe((rep) => emitted.push(rep));
@@ -60,6 +66,28 @@ describe('CompleteRepPanelComponent', () => {
     fire(root);
 
     expect(closedSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('each row offers its own choices', () => {
+    const { root } = render(REFERENCE, { time: ['O(n)', 'O(n²)'], space: ['O(1)'] });
+
+    const labelsOf = (row: Element): (string | undefined)[] =>
+      Array.from(row.querySelectorAll('.rep__chip')).map((c) => c.textContent?.trim());
+    expect(Array.from(root.querySelectorAll('.rep__row')).map(labelsOf)).toEqual([['O(n)', 'O(n²)'], ['O(1)']]);
+  });
+
+  it.each([
+    { name: 'two variables', legend: [{ symbol: 'n', meaning: 'length of nums' }, { symbol: 'k', meaning: 'window size' }], items: ['n length of nums', 'k window size'], hasList: true },
+    { name: 'no variables', legend: [], items: [], hasList: false },
+  ])('legend, $name', ({ legend, items, hasList }) => {
+    const { root } = render(REFERENCE, CHOICES, legend);
+
+    expect(root.querySelector('.rep__legend') !== null).toBe(hasList);
+    expect(
+      Array.from(root.querySelectorAll('.rep__legend-item')).map(
+        (i) => `${i.querySelector('dt')?.textContent} ${i.querySelector('dd')?.textContent}`,
+      ),
+    ).toEqual(items);
   });
 
   it.each([

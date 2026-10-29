@@ -29,6 +29,12 @@ const REMOTE_FILE = `# po-attempt: {"complete":false,"rating":null,"tests":null,
 const POOL = ['O(1)', 'O(n)', 'O(n log n)'];
 const REFERENCE_ENTRY = { time: 'O(n)', space: 'O(1)', whyTime: 'one pass', whySpace: 'two counters' };
 const WHY = 'one pass over the input';
+const ENTRY_WITH_CHOICES = {
+  ...REFERENCE_ENTRY,
+  variables: { n: 'length of nums', k: 'subset size' },
+  timeChoices: ['O(n)', 'O(n²)'],
+  spaceChoices: ['O(1)', 'O(k)'],
+};
 
 const PROBLEM: PracticeProblem = {
   number: 90,
@@ -77,7 +83,7 @@ function signIn(login: string): void {
   );
 }
 
-function render(extraProviders: readonly Provider[] = []): {
+function render(extraProviders: readonly Provider[] = [], entry: object | null = REFERENCE_ENTRY): {
   fixture: ComponentFixture<PracticePageComponent>;
   httpMock: HttpTestingController;
 } {
@@ -106,7 +112,7 @@ function render(extraProviders: readonly Provider[] = []): {
       { provide: ShowcaseService, useValue: { data: signal(null), load: vi.fn(), entryFor: () => null } },
       {
         provide: BigOService,
-        useValue: { status: signal('ready'), load: vi.fn(), pool: () => POOL, entryFor: () => REFERENCE_ENTRY },
+        useValue: { status: signal('ready'), load: vi.fn(), pool: () => POOL, entryFor: () => entry },
       },
       { provide: PythonRunnerService, useValue: { run: runSpy } },
       {
@@ -284,6 +290,35 @@ describe('PracticePageComponent save to GitHub', () => {
       expect(root.querySelector('app-variant-bar')).toBeNull();
       expect(root.querySelector('app-approach-compare')).toBeNull();
     }
+  });
+
+  it.each([
+    { name: 'no entry', entry: null, time: POOL, space: POOL, legend: [] },
+    { name: 'an entry without choices', entry: REFERENCE_ENTRY, time: POOL, space: POOL, legend: [] },
+    {
+      name: 'an entry with choices and variables',
+      entry: ENTRY_WITH_CHOICES,
+      time: ['O(n)', 'O(n²)'],
+      space: ['O(1)', 'O(k)'],
+      legend: ['n length of nums', 'k subset size'],
+    },
+  ])('the rep panel, $name: rows offer the matching labels and the legend shows', ({ entry, time, space, legend }) => {
+    signIn(OWNER);
+    runSpy.mockReturnValue(of(runOf(['pass', 'pass', 'pass'])));
+    const { fixture } = render([], entry);
+    const root: HTMLElement = fixture.nativeElement;
+
+    clickRun(fixture, false);
+
+    const chipsOf = (row: Element): (string | undefined)[] =>
+      Array.from(row.querySelectorAll('.rep__chip')).map((c) => c.textContent?.trim());
+    const rows = Array.from(root.querySelectorAll('.rep__row'));
+    expect(rows.map(chipsOf)).toEqual([time, space]);
+    expect(
+      Array.from(root.querySelectorAll('.rep__legend-item')).map(
+        (i) => `${i.querySelector('dt')?.textContent} ${i.querySelector('dd')?.textContent}`,
+      ),
+    ).toEqual(legend);
   });
 
   it('closing the rep panel restores the statement and editor, and the head button reopens it', () => {

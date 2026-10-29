@@ -19,12 +19,14 @@ export interface DeckFilter {
 export const DEFAULT_FILTER: DeckFilter = { difficulty: 'All', missesOnly: false };
 
 /** Narrows the full entry list to those matching the difficulty and misses-only filter.
+ *  An entry with no segments is reference-only (no code to show) and is never dealt.
  *  Pure — never mutates `entries`. */
 export function filterDeck(
   entries: readonly BigOEntry[],
   filter: DeckFilter,
 ): readonly BigOEntry[] {
   return entries.filter((entry) => {
+    if (entry.segments.length === 0) return false;
     if (filter.difficulty !== 'All' && entry.difficulty !== filter.difficulty) return false;
     if (filter.missesOnly && !entry.isMiss) return false;
     return true;

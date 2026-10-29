@@ -14,6 +14,18 @@ export interface ReferenceBounds {
   readonly whySpace: string | null;
 }
 
+/** The labels offered for each bound. */
+export interface RepChoices {
+  readonly time: readonly string[];
+  readonly space: readonly string[];
+}
+
+/** One variable of the problem: its symbol and what it counts. */
+export interface LegendItem {
+  readonly symbol: string;
+  readonly meaning: string;
+}
+
 /** What Save rep hands the page: the comfort rating and the stated bounds. */
 export interface CompletedRep {
   readonly rating: AttemptRating;
@@ -29,6 +41,7 @@ interface BoundRow {
   readonly key: BoundKey;
   readonly name: string;
   readonly label: string | null;
+  readonly choices: readonly string[];
   readonly why: string;
   readonly remaining: number | null;
   /** Set once checked against a reference: the mark word, the reference bound on a miss, and the reference's why, if it has one. */
@@ -67,7 +80,10 @@ function remainingCount(why: string): number | null {
 })
 export class CompleteRepPanelComponent {
   protected readonly headingId = 'rep-heading';
-  readonly pool = input.required<readonly string[]>();
+  /** The labels each row offers. */
+  readonly choices = input.required<RepChoices>();
+  /** The problem's variables, shown under the heading; empty shows nothing. */
+  readonly legend = input<readonly LegendItem[]>([]);
   readonly reference = input<ReferenceBounds | null>(null);
   readonly saved = output<CompletedRep>();
   readonly closed = output<void>();
@@ -86,7 +102,7 @@ export class CompleteRepPanelComponent {
   protected readonly rows = computed<readonly BoundRow[]>(() =>
     BOUND_KEYS.map((key) => {
       const draft = this.drafts()[key];
-      return { key, name: BOUND_NAMES[key], ...draft, remaining: remainingCount(draft.why), reveal: this.revealFor(key) };
+      return { key, name: BOUND_NAMES[key], choices: this.choices()[key], ...draft, remaining: remainingCount(draft.why), reveal: this.revealFor(key) };
     }),
   );
 

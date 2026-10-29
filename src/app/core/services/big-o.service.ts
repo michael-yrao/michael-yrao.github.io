@@ -3,7 +3,7 @@ import { catchError, of } from 'rxjs';
 
 import { contractVersionProblem } from '../contracts/contract-version';
 import { BigOData, BigOEntry, BIG_O_SCHEMA_VERSION } from '../models/big-o.model';
-import { isBigOEntry, isBigOPool } from '../big-o/big-o-validation';
+import { isBigOEntry, isBigOPool, normalizeBigOEntry } from '../big-o/big-o-validation';
 import { ContractSource, fetchWithAuthorFallback$, isAuthorFallbackOf } from './author-fallback';
 import {
   CONTENT_REPO,
@@ -78,7 +78,7 @@ export class BigOService {
           return;
         }
 
-        this.data.set(result.body as BigOData);
+        this.data.set(this.normalized(result.body as BigOData));
         this.source.set(result.source);
         this.sourceRef.set(result.sourceRef);
         this.status.set('ready');
@@ -93,6 +93,10 @@ export class BigOService {
   /** Re-fetches the ref last requested, bypassing caches (the Retry button). */
   reload(): void {
     this.load(this.requestedRef(), true);
+  }
+
+  private normalized(data: BigOData): BigOData {
+    return { ...data, entries: data.entries.map(normalizeBigOEntry) };
   }
 
   private fail(message: string): void {

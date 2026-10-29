@@ -36,7 +36,7 @@ import { CodeEditorComponent } from '../../../shared/components/code-editor/code
 import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
 import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
 import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
-import { CompleteRepPanelComponent, CompletedRep, ReferenceBounds } from '../complete-rep-panel/complete-rep-panel.component';
+import { CompleteRepPanelComponent, CompletedRep, LegendItem, ReferenceBounds, RepChoices } from '../complete-rep-panel/complete-rep-panel.component';
 import { injectPracticeProblem } from '../practice-problem';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import type { IconName } from '../../../shared/components/icon/icon-paths';
@@ -300,6 +300,23 @@ export class PracticePageComponent {
       ? null
       : { time: entry.time, space: entry.space, whyTime: entry.whyTime, whySpace: entry.whySpace };
   });
+
+  /** The labels each row of the rep panel offers: the entry's own choices, else the whole pool. */
+  readonly repChoices = computed<RepChoices>(() => {
+    const entry = this.bigO.entryFor(this.number() ?? 0);
+    const pool = this.bigO.pool();
+    const time = entry?.timeChoices ?? [];
+    const space = entry?.spaceChoices ?? [];
+    return { time: time.length > 0 ? time : pool, space: space.length > 0 ? space : pool };
+  });
+
+  /** The entry's variables as legend items, in authored order; empty when it has none. */
+  readonly repLegend = computed<readonly LegendItem[]>(() =>
+    Object.entries(this.bigO.entryFor(this.number() ?? 0)?.variables ?? {}).map(([symbol, meaning]) => ({
+      symbol,
+      meaning,
+    })),
+  );
 
   /** `<comfort emoji> · <time> / <space>` once this problem was marked complete from this page. */
   readonly completedMarks = computed(() => {

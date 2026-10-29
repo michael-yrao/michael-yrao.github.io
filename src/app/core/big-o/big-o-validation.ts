@@ -7,13 +7,13 @@ const OPTION_COUNT = 4;
 
 const ENTRY_STRING_FIELDS: readonly (keyof BigOEntry)[] = [
   'key',
-  'file',
-  'symbol',
   'category',
   'time',
   'space',
 ];
 const ENTRY_NULLABLE_STRING_FIELDS: readonly (keyof BigOEntry)[] = [
+  'file',
+  'symbol',
   'variant',
   'title',
   'url',
@@ -52,11 +52,34 @@ function isOptionSet(options: unknown, answer: unknown): boolean {
   return typeof answer === 'string' && options.includes(answer);
 }
 
-/** Structural guard for one Big-O trainer entry: string `key`/`file`/`symbol`/`category`/
- *  `time`/`space`, number `lcNumber`, the nullable string fields each string-or-null, a valid
- *  or null `difficulty`, boolean `isMiss`, `timeOptions`/`spaceOptions` each exactly 4 strings
- *  containing the correct answer, and every segment structurally valid (reusing
- *  `isShowcaseSegment`). Pure and Angular-free, matching `isShowcaseEntry`'s shape. */
+function isStringArray(value: unknown): boolean {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+function isStringRecord(value: unknown): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.values(value).every((meaning) => typeof meaning === 'string')
+  );
+}
+
+/** The practice-page fields older payloads lack: each absent or well-formed. */
+function hasValidPracticeFields(entry: Partial<BigOEntry>): boolean {
+  if (entry.variables !== undefined && !isStringRecord(entry.variables)) return false;
+  if (entry.timeChoices !== undefined && !isStringArray(entry.timeChoices)) return false;
+  return entry.spaceChoices === undefined || isStringArray(entry.spaceChoices);
+}
+
+/** Structural guard for one Big-O trainer entry: string `key`/`category`/`time`/`space`,
+ *  number `lcNumber`, the nullable string fields (including `file`/`symbol`, null for a
+ *  reference-only entry) each string-or-null, a valid or null `difficulty`, boolean
+ *  `isMiss`, `timeOptions`/`spaceOptions` each exactly 4 strings containing the correct
+ *  answer, `variables`/`timeChoices`/`spaceChoices` absent or well-formed, and every
+ *  segment structurally valid (reusing `isShowcaseSegment`; none is fine). The three
+ *  practice fields may be absent on the wire — `normalizeBigOEntry` fills them. Pure and
+ *  Angular-free, matching `isShowcaseEntry`'s shape. */
 export function isBigOEntry(value: unknown): value is BigOEntry {
   if (typeof value !== 'object' || value === null) return false;
   const entry = value as Partial<BigOEntry>;
@@ -68,7 +91,19 @@ export function isBigOEntry(value: unknown): value is BigOEntry {
   if (typeof entry.isMiss !== 'boolean') return false;
   if (!isOptionSet(entry.timeOptions, entry.time)) return false;
   if (!isOptionSet(entry.spaceOptions, entry.space)) return false;
+  if (!hasValidPracticeFields(entry)) return false;
   if (!Array.isArray(entry.segments)) return false;
 
   return entry.segments.every(isShowcaseSegment);
+}
+
+/** A copy of a validated entry with the practice-page fields defaulted (`{}` / `[]`) when
+ *  an older payload omits them, so consumers never branch on undefined. */
+export function normalizeBigOEntry(entry: BigOEntry): BigOEntry {
+  return {
+    ...entry,
+    variables: entry.variables ?? {},
+    timeChoices: entry.timeChoices ?? [],
+    spaceChoices: entry.spaceChoices ?? [],
+  };
 }

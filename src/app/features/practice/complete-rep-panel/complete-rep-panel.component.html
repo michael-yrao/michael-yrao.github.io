@@ -7,11 +7,21 @@
       </svg>
     </button>
   </div>
+  @if (legend().length > 0) {
+    <dl class="rep__legend">
+      @for (item of legend(); track item.symbol) {
+        <div class="rep__legend-item">
+          <dt>{{ item.symbol }}</dt>
+          <dd>{{ item.meaning }}</dd>
+        </div>
+      }
+    </dl>
+  }
   @for (row of rows(); track row.key) {
     <section class="rep__row">
       <h3 class="rep__name">{{ row.name }}</h3>
       <div class="rep__chips">
-        @for (label of pool(); track label) {
+        @for (label of row.choices; track label) {
           <button
             type="button"
             class="rep__chip"

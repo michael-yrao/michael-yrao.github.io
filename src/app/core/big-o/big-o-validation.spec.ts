@@ -19,6 +19,9 @@ function validEntry(): BigOEntry {
     space: 'O(n²)',
     whyTime: 'The DP table has n² cells, each filled in O(1).',
     whySpace: 'The memo table holds n² entries.',
+    variables: { n: 'length of s', k: 'allowed deletions' },
+    timeChoices: ['O(n)', 'O(n²)'],
+    spaceChoices: ['O(n)', 'O(n²)'],
     timeOptions: ['O(n)', 'O(n log n)', 'O(n²)', 'O(n³)'],
     spaceOptions: ['O(1)', 'O(n)', 'O(n²)', 'O(n³)'],
     segments: [
@@ -59,6 +62,20 @@ describe('isBigOEntry', () => {
         difficulty: null,
       }),
     ).toBe(true);
+  });
+
+  it.each([
+    { name: 'with the practice fields', change: {}, isValid: true },
+    {
+      name: 'without the practice fields',
+      change: { variables: undefined, timeChoices: undefined, spaceChoices: undefined },
+      isValid: true,
+    },
+    { name: 'variables with a non-string value', change: { variables: { n: 3 } }, isValid: false },
+    { name: 'timeChoices not an array of strings', change: { timeChoices: ['O(n)', 7] }, isValid: false },
+    { name: 'null file and symbol with empty segments', change: { file: null, symbol: null, segments: [] }, isValid: true },
+  ])('an entry $name: valid is $isValid', ({ change, isValid }) => {
+    expect(isBigOEntry({ ...validEntry(), ...change })).toBe(isValid);
   });
 
   it('rejects a non-string, non-null title', () => {

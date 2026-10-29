@@ -84,7 +84,7 @@
 
         <div class="practice__work" [class.practice__work--code-closed]="!isCodeOpen()" [style.--output-share]="outputShare()">
           @if (isCompleting()) {
-            <app-complete-rep-panel class="practice__rep" [pool]="bigO.pool()" [reference]="reference()" (saved)="completeRep($event)" (closed)="isCompleting.set(false)" />
+            <app-complete-rep-panel class="practice__rep" [choices]="repChoices()" [legend]="repLegend()" [reference]="reference()" (saved)="completeRep($event)" (closed)="isCompleting.set(false)" />
           } @else {
             <button type="button" class="practice__pane-head" [attr.aria-expanded]="isCodeOpen()" aria-controls="practice-code-body" (click)="toggleCode()">
               <span class="practice__label">Code</span>

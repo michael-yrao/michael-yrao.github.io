@@ -29,6 +29,9 @@ function makeEntry(overrides: Partial<BigOEntry> = {}): BigOEntry {
     space: 'O(n)',
     whyTime: 'One pass.',
     whySpace: 'The hash map holds up to n entries.',
+    variables: {},
+    timeChoices: [],
+    spaceChoices: [],
     timeOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     spaceOptions: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
     segments: [
