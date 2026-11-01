@@ -182,6 +182,21 @@ ignores it.
 pass; CI (`.github/workflows/deploy.yml`) runs both before `npm run build` on
 every push.
 
+**Before any push to `main` (a push IS the deploy), run every gate deploy.yml runs, in order:**
+
+1. `npm run lint`: 0 errors.
+2. `npx ng test --watch=false`: all pass.
+3. `npx ng build`
+4. `npm run e2e` (Playwright smoke on the build; `npx playwright install chromium` once). It
+   checks things unit tests stub out, e.g. that `/practice/1` has an `h1` naming the problem.
+5. Any manual check the plan lists (a browser look at a changed screen) is done, or the push waits
+   and the report says it is not done.
+
+A cse-progress contract change the current site can't read (a new figure kind, a new field) must
+deploy here first: the content mirror publishes within a minute, and the live site rejects the
+whole contract on one problem it can't parse. (2026-11-01: 84's `bars` figure reached the content
+repo while the site deploy failed on step 4, and every practice page broke.)
+
 **Run the toolchain on Node 26, the version CI uses** (`actions/setup-node` in deploy.yml); on a
 Mac that is Homebrew's default `node`. Node 25+ ships its own `localStorage` global that shadows
 jsdom's; `src/test-setup.ts` puts jsdom's storage back so the specs see a working `localStorage`.

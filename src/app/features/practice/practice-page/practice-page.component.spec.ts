@@ -256,6 +256,8 @@ describe('PracticePageComponent', () => {
     const root: HTMLElement = fixture.nativeElement;
 
     const title = root.querySelector<HTMLElement>('.practice__pane-title')!;
+    expect(title.tagName).toBe('H1');
+    expect(root.querySelectorAll('h1')).toHaveLength(1);
     expect(title.getAttribute('title')).toBe('Subsets II');
     expect(title.querySelector('.practice__pane-num')?.textContent?.trim()).toBe('#90');
     const link = title.querySelector<HTMLAnchorElement>('a')!;

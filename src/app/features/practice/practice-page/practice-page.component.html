@@ -26,8 +26,8 @@
     >
       <div class="practice__problem" [class.practice__problem--closed]="!isProblemOpen()" [class.practice__problem--passed]="isPassFresh()">
         <div class="practice__pane-bar">
-          <!-- The pane names its problem; only the chevron folds it. -->
-          <span class="practice__pane-title" [attr.title]="title()">
+          <!-- The pane names its problem, as the page's heading; only the chevron folds it. -->
+          <h1 class="practice__pane-title" [attr.title]="title()">
             <span class="practice__pane-num">#{{ number() }}</span>
             <span class="practice__pane-name">
               @if (titleUrl(); as url) {
@@ -36,7 +36,7 @@
                 {{ title() }}
               }
             </span>
-          </span>
+          </h1>
           @if (entry()?.difficulty; as level) {
             <span [class]="'practice__pane-badge difficulty-badge badge-' + level.toLowerCase()">{{ level }}</span>
           }
