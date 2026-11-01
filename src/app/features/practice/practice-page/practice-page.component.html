@@ -13,6 +13,7 @@
       [repo]="ref()"
       activeTab="description"
       [hasSolution]="hasSolution()"
+      [isTitleShown]="false"
     />
 
     <div
@@ -25,12 +26,20 @@
     >
       <div class="practice__problem" [class.practice__problem--closed]="!isProblemOpen()" [class.practice__problem--passed]="isPassFresh()">
         <div class="practice__pane-bar">
-          <button type="button" class="practice__pane-head" [attr.aria-expanded]="isProblemOpen()" aria-controls="practice-problem-body" (click)="toggleProblem()">
-            <span class="practice__label">{{ isShowingCode() ? 'Solution' : 'Problem' }}</span>
-            <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </button>
+          <!-- The pane names its problem; only the chevron folds it. -->
+          <span class="practice__pane-title" [attr.title]="title()">
+            <span class="practice__pane-num">#{{ number() }}</span>
+            <span class="practice__pane-name">
+              @if (titleUrl(); as url) {
+                <a [href]="url" target="_blank" rel="noopener">{{ title() }}<app-icon class="practice__pane-arrow" name="external" [size]="12" /></a>
+              } @else {
+                {{ title() }}
+              }
+            </span>
+          </span>
+          @if (entry()?.difficulty; as level) {
+            <span [class]="'practice__pane-badge difficulty-badge badge-' + level.toLowerCase()">{{ level }}</span>
+          }
           @if (isPassFresh()) {
             <app-icon class="practice__pass-mark" name="check" [size]="copyIconSize" />
           }
@@ -52,6 +61,19 @@
               <app-icon [name]="completeRepIcon" [size]="copyIconSize" />
             </button>
           }
+          <button
+            type="button"
+            class="practice__pane-toggle"
+            [attr.aria-expanded]="isProblemOpen()"
+            aria-controls="practice-problem-body"
+            [attr.aria-label]="isProblemOpen() ? 'Collapse problem' : 'Expand problem'"
+            [attr.title]="isProblemOpen() ? 'Collapse problem' : 'Expand problem'"
+            (click)="toggleProblem()"
+          >
+            <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
         </div>
         <div id="practice-problem-body" [hidden]="!isProblemOpen()">
           @if (isShowingCode()) {
@@ -86,33 +108,43 @@
           @if (isCompleting()) {
             <app-complete-rep-panel class="practice__rep" [choices]="repChoices()" [legend]="repLegend()" [reference]="reference()" (saved)="completeRep($event)" (closed)="isCompleting.set(false)" />
           } @else {
-            <button type="button" class="practice__pane-head" [attr.aria-expanded]="isCodeOpen()" aria-controls="practice-code-body" (click)="toggleCode()">
-              <span class="practice__label">Code</span>
-              <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
+            <!-- The solution tabs are the pane's name; only the chevron folds the editor. -->
+            <div class="practice__pane-bar practice__pane-bar--tabs">
+              <div class="practice__tabs" role="tablist" aria-label="Solutions">
+                @for (_ of tabs().texts; track $index) {
+                  <span class="practice__tab-group" role="none">
+                    <button
+                      type="button"
+                      role="tab"
+                      class="practice__tab"
+                      [class.practice__tab--active]="$index === tabs().active"
+                      [attr.aria-selected]="$index === tabs().active"
+                      (click)="selectTab($index)"
+                    >Solution {{ $index + 1 }}</button>
+                    @if (canCloseTab()) {
+                      <button type="button" class="practice__tab-close" [attr.aria-label]="'Close Solution ' + ($index + 1)" (click)="closeTab($index)">×</button>
+                    }
+                  </span>
+                }
+                <button type="button" class="practice__tab-close" aria-label="New solution" title="New solution" [disabled]="!canAddTab()" (click)="addTab()">+</button>
+              </div>
+              <button
+                type="button"
+                class="practice__pane-toggle"
+                [attr.aria-expanded]="isCodeOpen()"
+                aria-controls="practice-code-body"
+                [attr.aria-label]="isCodeOpen() ? 'Collapse code' : 'Expand code'"
+                [attr.title]="isCodeOpen() ? 'Collapse code' : 'Expand code'"
+                (click)="toggleCode()"
+              >
+                <svg class="practice__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+            </div>
           }
           <!-- Kept in the DOM while the rep panel shows, so the editor keeps its text and cursor. -->
           <div id="practice-code-body" class="practice__code-body" [hidden]="!isCodeOpen() || isCompleting()">
-            <div class="practice__tabs" role="tablist" aria-label="Solutions">
-              @for (_ of tabs().texts; track $index) {
-                <span class="practice__tab-group" role="none">
-                  <button
-                    type="button"
-                    role="tab"
-                    class="practice__tab"
-                    [class.practice__tab--active]="$index === tabs().active"
-                    [attr.aria-selected]="$index === tabs().active"
-                    (click)="selectTab($index)"
-                  >Solution {{ $index + 1 }}</button>
-                  @if (canCloseTab()) {
-                    <button type="button" class="practice__tab-close" [attr.aria-label]="'Close Solution ' + ($index + 1)" (click)="closeTab($index)">×</button>
-                  }
-                </span>
-              }
-              <button type="button" class="practice__tab-close" aria-label="New solution" title="New solution" [disabled]="!canAddTab()" (click)="addTab()">+</button>
-            </div>
             <app-code-editor #editor [initialText]="initialText()" (textChange)="onTextChange($event)" />
           </div>
 

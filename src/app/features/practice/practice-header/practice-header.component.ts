@@ -12,8 +12,8 @@ import { TodayStripComponent } from '../today-strip/today-strip.component';
 
 export type PracticeHeaderTab = 'description' | 'solution';
 
-/** A problem's heading, its previous / next links and the Description | Solution tab row, shared
- *  by the practice page and the solution page. Renders its inputs; its one choice is which tab the
+/** A problem's heading (unless the page names the problem itself), its Description | Solution tabs
+ *  and its previous / next links on one bar, shared by the practice page and the solution page. Renders its inputs; its one choice is which tab the
  *  previous / next links keep. */
 @Component({
   selector: 'app-practice-header',
@@ -32,6 +32,8 @@ export class PracticeHeaderComponent {
   readonly hasSolution = input.required<boolean>();
   readonly catalogue = input.required<readonly CatalogueEntry[]>();
   readonly repo = input.required<RepoRef | null>();
+  /** False where the page names the problem itself (the practice page's problem pane bar). */
+  readonly isTitleShown = input(true);
 
   private readonly session = inject(TodaySessionService);
 

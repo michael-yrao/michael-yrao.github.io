@@ -1,0 +1,49 @@
+.bv {
+  display: flex;
+  flex-direction: column;
+
+  &__svg {
+    width: 100%;
+    max-height: 300px;
+    overflow: visible;
+  }
+
+  // Bars touch, as in a histogram; each one's outline draws the seam between neighbours.
+  &__bar {
+    fill: var(--color-bg-raised);
+    stroke: var(--color-text-muted);
+    stroke-width: 1;
+  }
+
+  // The answer: shaded over the bars it covers, outlined so it reads on any bar colour.
+  &__rect {
+    fill: var(--color-found);
+    fill-opacity: 0.45;
+    stroke: var(--color-found);
+    stroke-width: 2;
+  }
+
+  &__baseline {
+    stroke: var(--color-text-muted);
+    stroke-width: 1.5;
+  }
+
+  &__value,
+  &__index {
+    font-family: var(--font-mono);
+    text-anchor: middle;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  &__value {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--color-text);
+  }
+
+  &__index {
+    font-size: 10px;
+    fill: var(--color-text-muted);
+  }
+}

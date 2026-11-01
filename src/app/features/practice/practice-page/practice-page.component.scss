@@ -95,13 +95,51 @@ $divider-line-width: 2px;
 }
 .practice__pane-head .practice__summary { margin-left: auto; }
 
-// The pane head and the icon beside it (Complete rep) share one row.
+// A pane's bar: its name on the left (the problem's title, or the solution tabs), its icon
+// buttons and the fold chevron on the right.
 .practice__pane-bar {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  .practice__pane-head { flex: 1 1 auto; width: auto; min-width: 0; }
   .practice__btn { flex: 0 0 auto; }
+}
+
+// One line: a long title ends in an ellipsis, and the `title` attribute holds the whole name.
+.practice__pane-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
+}
+.practice__pane-num { margin-right: var(--space-sm); font-family: var(--font-mono); color: var(--color-text-muted); }
+.practice__pane-arrow { display: inline-flex; vertical-align: middle; margin-left: var(--space-xs); }
+.practice__pane-badge { flex: 0 0 auto; }
+
+// The code pane's bar is its tab strip; the active tab's underline sits on the bar's bottom rule.
+.practice__pane-bar--tabs {
+  border-bottom: 1px solid var(--color-border);
+  .practice__tabs { flex: 1 1 auto; min-width: 0; border-bottom: 0; }
+  .practice__tab { margin-bottom: -1px; }
+}
+
+// The chevron alone folds a pane.
+.practice__pane-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  &:hover { color: var(--color-text); background: var(--color-bg-raised); }
+  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  .practice__chevron { margin-left: 0; }
 }
 
 .practice__chevron {
@@ -193,13 +231,12 @@ $divider-line-width: 2px;
 
   .practice__problem--closed {
     overflow: visible;
+    // The folded rail reads only the number, top to bottom, above its buttons and the chevron.
     .practice__pane-bar { flex-direction: column; }
-    .practice__pane-head {
-      flex-direction: column;
-      width: auto;
-    }
-    .practice__label { writing-mode: vertical-rl; }
-    .practice__chevron { margin-left: 0; }
+    .practice__pane-title { flex: 0 0 auto; overflow: visible; writing-mode: vertical-rl; }
+    .practice__pane-num { margin: 0; }
+    .practice__pane-name,
+    .practice__pane-badge { display: none; }
   }
 
   // The problem pane folds sideways, so its chevron points right when folded and left when open.

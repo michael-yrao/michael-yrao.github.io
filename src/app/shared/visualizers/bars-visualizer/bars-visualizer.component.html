@@ -1,0 +1,15 @@
+<div class="bv po-card">
+  <svg [attr.viewBox]="viewBox()" class="bv__svg" xmlns="http://www.w3.org/2000/svg" role="img" [attr.aria-label]="'Bars of heights ' + state().bars.join(', ')">
+    @for (bar of drawnBars(); track bar.index) {
+      <rect class="bv__bar" [attr.x]="bar.x" [attr.y]="bar.y" [attr.width]="barWidth" [attr.height]="bar.height" />
+    }
+    @if (drawnRect(); as rect) {
+      <rect class="bv__rect" [attr.x]="rect.x" [attr.y]="rect.y" [attr.width]="rect.width" [attr.height]="rect.height" />
+    }
+    <line class="bv__baseline" x1="0" [attr.y1]="baseline" [attr.x2]="width()" [attr.y2]="baseline" />
+    @for (bar of drawnBars(); track bar.index) {
+      <text class="bv__value" [attr.x]="bar.labelX" [attr.y]="bar.labelY">{{ bar.value }}</text>
+      <text class="bv__index" [attr.x]="bar.labelX" [attr.y]="indexY">{{ bar.index }}</text>
+    }
+  </svg>
+</div>

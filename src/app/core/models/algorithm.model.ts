@@ -117,6 +117,14 @@ export interface GraphState {
   counters?: { label: string; value: number | string }[];
 }
 
+/** A histogram of unit-width bars; `rect` is a rectangle drawn over them as found. A practice
+ *  figure only, not a walkthrough step. */
+export interface BarsState {
+  type: 'bars';
+  bars: number[];
+  rect?: { left: number; right: number; height: number };
+}
+
 export type VisualizerState = ArrayState | GridState | LinkedListState | TreeState | GraphState;
 
 export interface StepVariable {

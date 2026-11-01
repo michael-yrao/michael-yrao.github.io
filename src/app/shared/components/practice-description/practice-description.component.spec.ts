@@ -101,6 +101,29 @@ describe('PracticeDescriptionComponent', () => {
     expect(marked.querySelector('.practice-description__figure-key')?.textContent?.trim()).toBe('Output');
   });
 
+  it('draws a histogram per example, with the Output key only under the one with a rect', () => {
+    const statement = 'Largest rectangle.\n\nExample 1:\n    Input: [2,1,5,6,2,3]\n\nExample 2:\n    Input: [2,4]';
+    const problem: PracticeProblem = {
+      ...PROBLEM,
+      statement,
+      figure: { kind: 'bars', heightsArg: 0 },
+      cases: [
+        { args: [[2, 1, 5, 6, 2, 3]], expected: 10, example: true, figureRect: [2, 3, 5] },
+        { args: [[2, 4]], expected: 4, example: true },
+      ],
+    };
+    const root = setUp(problem);
+
+    const figures = root.querySelectorAll('.practice-description__figure');
+    expect(figures.length).toBe(2);
+    expect(figures[0].querySelectorAll('.bv__bar').length).toBe(6);
+    expect(figures[0].querySelector('.bv__rect')).not.toBeNull();
+    expect(figures[0].querySelector('.practice-description__figure-key')?.textContent?.trim()).toBe('Output');
+    expect(figures[1].querySelectorAll('.bv__bar').length).toBe(2);
+    expect(figures[1].querySelector('.bv__rect')).toBeNull();
+    expect(figures[1].querySelector('.practice-description__figure-key')).toBeNull();
+  });
+
   it('draws a backtick-marked span as inline code with the backticks gone', () => {
     const problem: PracticeProblem = { ...PROBLEM, statement: 'Given `nums`, return subsets.' };
     const root = setUp(problem);

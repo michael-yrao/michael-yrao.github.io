@@ -56,6 +56,8 @@ export interface PracticeCase {
   readonly judge?: Readonly<Record<string, number>>;
   /** [row, column] cells an example case's grid figure draws as found (its answer path). */
   readonly figureCells?: readonly (readonly [number, number])[];
+  /** [left, right, height]: the rectangle an example case's bars figure shades as found. */
+  readonly figureRect?: readonly [number, number, number];
   /** Any JSON value, including null; `{anyOf: [...]}` matches any one alternative. */
   readonly expected: unknown;
   readonly example: boolean;
@@ -104,7 +106,13 @@ export interface GridFigure {
   readonly blank?: string;
 }
 
-export type PracticeFigure = GraphFigure | GridFigure;
+/** Which arg of a case holds a histogram's bar heights, drawn as an example diagram. */
+export interface BarsFigure {
+  readonly kind: 'bars';
+  readonly heightsArg: number;
+}
+
+export type PracticeFigure = GraphFigure | GridFigure | BarsFigure;
 
 export interface PracticeProblem {
   readonly number: number;

@@ -4,10 +4,16 @@
       <figcaption class="practice-description__figure-caption">{{ figure.caption }}</figcaption>
     }
     <div class="practice-description__figure-art">
-      @if (figure.state.type === 'graph') {
-        <app-graph-visualizer [state]="figure.state" />
-      } @else {
-        <app-grid-visualizer [state]="figure.state" />
+      @switch (figure.state.type) {
+        @case ('graph') {
+          <app-graph-visualizer [state]="figure.state" />
+        }
+        @case ('grid') {
+          <app-grid-visualizer [state]="figure.state" />
+        }
+        @case ('bars') {
+          <app-bars-visualizer [state]="figure.state" />
+        }
       }
     </div>
     @if (figure.hasHighlight) {

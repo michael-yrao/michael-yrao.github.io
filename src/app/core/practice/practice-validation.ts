@@ -67,6 +67,12 @@ function isValidFigureCells(value: unknown): boolean {
   );
 }
 
+/** Absent, or a [left, right, height] triple of integers. */
+function isValidFigureRect(value: unknown): boolean {
+  if (value === undefined) return true;
+  return Array.isArray(value) && value.length === 3 && value.every(Number.isInteger);
+}
+
 /** A mapping with an `anyOf` key must be exactly `{anyOf: [non-empty list]}`. */
 function isWellFormedAnyOf(value: unknown): boolean {
   return !isRecord(value) || !('anyOf' in value) || isAnyOf(value);
@@ -85,6 +91,7 @@ export function isPracticeCase(value: unknown, isOps: boolean): value is Practic
   if (!isValidExpected(value['expected'])) return false;
   if (!isValidJudge(value['judge'])) return false;
   if (!isValidFigureCells(value['figureCells'])) return false;
+  if (!isValidFigureRect(value['figureRect'])) return false;
   if (isOps && !hasOpsShape(value)) return false;
   return typeof value['example'] === 'boolean';
 }
@@ -142,11 +149,13 @@ function hasValidGridOptions(value: Record<string, unknown>): boolean {
 }
 
 /** An absent or null `figure` is valid (no diagram); a present one must be a well-formed
- *  graph (see `isValidGraphFigure`) or grid (integer `gridArg`, optional `boxSize` and `blank`). */
+ *  graph (see `isValidGraphFigure`), grid (integer `gridArg`, optional `boxSize` and `blank`) or
+ *  bars (integer `heightsArg`). */
 export function isValidFigure(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (!isRecord(value)) return false;
   if (value['kind'] === 'grid') return isArgIndex(value['gridArg']) && hasValidGridOptions(value);
+  if (value['kind'] === 'bars') return isArgIndex(value['heightsArg']);
   return value['kind'] === 'graph' && isValidGraphFigure(value);
 }
 

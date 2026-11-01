@@ -1,19 +1,47 @@
 <header class="practice-header">
   <div class="practice-header__title-row">
     <app-problem-list-panel [catalogue]="catalogue()" [currentNumber]="number()" [repo]="repo()" />
-    <h1 class="practice-header__heading">
-      <span class="practice-header__num">#{{ number() }}</span>
-      @if (titleUrl(); as url) {
-        <a [href]="url" target="_blank" rel="noopener">{{ title() }}<span class="practice-header__arrow"><app-icon name="external" [size]="14" /></span></a>
-      } @else {
-        {{ title() }}
+    @if (isTitleShown()) {
+      <h1 class="practice-header__heading" [attr.title]="title()">
+        <span class="practice-header__num">#{{ number() }}</span>
+        @if (titleUrl(); as url) {
+          <a [href]="url" target="_blank" rel="noopener">{{ title() }}<span class="practice-header__arrow"><app-icon name="external" [size]="14" /></span></a>
+        } @else {
+          {{ title() }}
+        }
+      </h1>
+      @if (difficulty(); as level) {
+        <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
       }
-    </h1>
-    @if (difficulty(); as level) {
-      <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
     }
+    <nav class="practice-header__tabs" aria-label="Problem views">
+      <a
+        class="practice-header__tab"
+        [class.practice-header__tab--active]="activeTab() === 'description'"
+        [attr.aria-current]="activeTab() === 'description' ? 'page' : null"
+        [routerLink]="['/practice', number()]"
+        queryParamsHandling="preserve"
+        >Description</a
+      >
+      @if (hasSolution()) {
+        <a
+          class="practice-header__tab"
+          [class.practice-header__tab--active]="activeTab() === 'solution'"
+          [attr.aria-current]="activeTab() === 'solution' ? 'page' : null"
+          [routerLink]="['/practice', number(), 'solution']"
+          queryParamsHandling="preserve"
+          >Solution</a
+        >
+      }
+    </nav>
   </div>
   <div class="practice-header__neighbor-nav">
+    <a
+      class="practice-header__interview"
+      routerLink="/interview/prepare"
+      [queryParams]="{ import: number() }"
+      >Write an interview problem from this</a
+    >
     <app-today-strip [number]="number()" />
     @if (!isRunThrough()) {
       @if (neighbors().prev; as prev) {
@@ -35,30 +63,3 @@
     }
   </div>
 </header>
-
-<div class="practice-header__tabs">
-  <a
-    class="practice-header__tab"
-    [class.practice-header__tab--active]="activeTab() === 'description'"
-    [attr.aria-current]="activeTab() === 'description' ? 'page' : null"
-    [routerLink]="['/practice', number()]"
-    queryParamsHandling="preserve"
-    >Description</a
-  >
-  @if (hasSolution()) {
-    <a
-      class="practice-header__tab"
-      [class.practice-header__tab--active]="activeTab() === 'solution'"
-      [attr.aria-current]="activeTab() === 'solution' ? 'page' : null"
-      [routerLink]="['/practice', number(), 'solution']"
-      queryParamsHandling="preserve"
-      >Solution</a
-    >
-  }
-  <a
-    class="practice-header__interview"
-    routerLink="/interview/prepare"
-    [queryParams]="{ import: number() }"
-    >Write an interview problem from this</a
-  >
-</div>

@@ -515,14 +515,17 @@ export class PracticePageComponent {
     this.openTabs({ texts: texts.map((text, i) => (i === active ? problem.stub : text)), active });
   }
 
+  /** The tabs sit in the code pane's bar, so adding or picking one also opens a collapsed editor. */
   addTab(): void {
     const problem = this.problem();
     if (!problem || !this.canAddTab()) return;
+    this.isCodeOpen.set(true);
     const { texts } = this.tabs();
     this.openTabs({ texts: [...texts, problem.stub], active: texts.length });
   }
 
   selectTab(index: number): void {
+    this.isCodeOpen.set(true);
     const { texts, active } = this.tabs();
     if (index === active) return;
     this.openTabs({ texts, active: index });

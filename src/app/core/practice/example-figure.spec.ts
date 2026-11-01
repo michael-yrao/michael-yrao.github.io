@@ -1,12 +1,12 @@
-import { GraphState, GridState } from '../models/algorithm.model';
+import { BarsState, GraphState, GridState } from '../models/algorithm.model';
 import { PracticeFigure } from '../models/practice.model';
-import { MAX_FIGURE_NODES, MAX_MATRIX_FIGURE_NODES, figureStateFor } from './example-figure';
+import { MAX_FIGURE_BARS, MAX_FIGURE_NODES, MAX_MATRIX_FIGURE_NODES, figureStateFor } from './example-figure';
 
 const GRAPH: PracticeFigure = { kind: 'graph', directed: true, edgesArg: 1, nodeCountArg: 0 };
 const GRAPH_NO_COUNT: PracticeFigure = { kind: 'graph', directed: false, edgesArg: 0, nodeCountArg: null };
 const GRID: PracticeFigure = { kind: 'grid', gridArg: 0 };
 
-const nodeIds = (state: GraphState | GridState | null): unknown[] =>
+const nodeIds = (state: ReturnType<typeof figureStateFor>): unknown[] =>
   (state as GraphState).nodes.map((n) => n.id);
 
 describe('figureStateFor', () => {
@@ -66,7 +66,7 @@ describe('figureStateFor', () => {
     const NODES_ARG: PracticeFigure = { kind: 'graph', directed: false, edgesArg: 0, nodeCountArg: null, nodesArg: 1 };
     const HIGHLIGHT: PracticeFigure = { kind: 'graph', directed: false, edgesArg: 0, nodeCountArg: null, highlight: 'expected' };
     const square = (n: number): number[][] => Array.from({ length: n }, () => Array<number>(n).fill(0));
-    const summary = (state: GraphState | GridState | null) => {
+    const summary = (state: ReturnType<typeof figureStateFor>) => {
       const g = state as GraphState;
       return {
         nodes: g.nodes.map((n) => n.id),
@@ -118,6 +118,40 @@ describe('figureStateFor', () => {
     ];
     for (const [label, figure, args] of misfits) {
       expect(figureStateFor(figure, args, null), label).toBeNull();
+    }
+  });
+
+  it('draws bars with the answer rect, drops a rect that does not fit, and nothing when the heights do not fit', () => {
+    const BARS: PracticeFigure = { kind: 'bars', heightsArg: 0 };
+    const heights = [2, 1, 5, 6, 2, 3];
+
+    expect(figureStateFor(BARS, [heights], 10)).toEqual({ type: 'bars', bars: heights });
+    expect(figureStateFor(BARS, [heights], 10, [], [2, 3, 5])).toEqual({
+      type: 'bars',
+      bars: heights,
+      rect: { left: 2, right: 3, height: 5 },
+    });
+    expect(figureStateFor(BARS, [[0, 0]], 0)).toEqual({ type: 'bars', bars: [0, 0] });
+
+    const rectMisfits: [string, [number, number, number]][] = [
+      ['left after right', [3, 2, 5]],
+      ['beyond the bars', [5, 6, 1]],
+      ['taller than a bar it covers', [1, 3, 5]],
+      ['height 0', [2, 3, 0]],
+    ];
+    for (const [label, rect] of rectMisfits) {
+      expect((figureStateFor(BARS, [heights], 10, [], rect) as BarsState).rect, label).toBeUndefined();
+    }
+
+    const misfits: [string, unknown[]][] = [
+      ['heights not a list', [5]],
+      ['no bars', [[]]],
+      ['a negative height', [[2, -1]]],
+      ['a non-number height', [[2, '3']]],
+      ['bars over the cap', [Array.from({ length: MAX_FIGURE_BARS + 1 }, () => 1)]],
+    ];
+    for (const [label, args] of misfits) {
+      expect(figureStateFor(BARS, args, null), label).toBeNull();
     }
   });
 });

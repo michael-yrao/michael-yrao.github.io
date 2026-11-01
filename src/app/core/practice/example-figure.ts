@@ -1,6 +1,7 @@
-import { GraphEdge, GraphNode, GraphState, GridState } from '../models/algorithm.model';
+import { BarsState, GraphEdge, GraphNode, GraphState, GridState } from '../models/algorithm.model';
 import {
   AdjacencyFigure,
+  BarsFigure,
   EdgeListFigure,
   GraphFigure,
   GridFigure,
@@ -12,6 +13,8 @@ import {
 export const MAX_FIGURE_NODES = 12;
 /** A weight matrix with more nodes than this is not drawn: its edges would crowd the circle. */
 export const MAX_MATRIX_FIGURE_NODES = 6;
+/** A histogram with more bars than this is not drawn: they would be too thin to label. */
+export const MAX_FIGURE_BARS = 20;
 /** The circle never shrinks below this radius, so a two-node graph is not a stub. */
 const MIN_CIRCLE_RADIUS = 70;
 /** Arc length of circle given to each node, so neighbours never touch as the count grows. */
@@ -264,16 +267,50 @@ function gridStateFor(
   return { type: 'grid', grid, ...(figure.boxSize === undefined ? {} : { boxSize: figure.boxSize }) };
 }
 
+function isHeight(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+/** The rect when it spans bars that exist and rises no higher than the lowest of them. */
+function fittedRect(
+  heights: readonly number[],
+  figureRect: readonly [number, number, number] | undefined,
+): BarsState['rect'] {
+  if (figureRect === undefined) return undefined;
+  const [left, right, height] = figureRect;
+  const isInside = 0 <= left && left <= right && right < heights.length;
+  if (!isInside || height <= 0 || height > Math.min(...heights.slice(left, right + 1))) return undefined;
+  return { left, right, height };
+}
+
+function barsStateFor(
+  figure: BarsFigure,
+  args: readonly unknown[],
+  figureRect: readonly [number, number, number] | undefined,
+): BarsState | null {
+  const heights = args[figure.heightsArg];
+  if (!Array.isArray(heights) || heights.length === 0 || heights.length > MAX_FIGURE_BARS) return null;
+  if (!heights.every(isHeight)) return null;
+  const rect = fittedRect(heights, figureRect);
+  return { type: 'bars', bars: [...heights], ...(rect === undefined ? {} : { rect }) };
+}
+
 /** The picture of one example case's input, or null when its arguments do not fit the figure.
  *  Pure: `args` and `expected` are only read; `expected` marks edges when the figure highlights it,
- *  and `figureCells` marks grid cells as found. */
+ *  `figureCells` marks grid cells as found, and `figureRect` shades a rectangle over the bars. */
 export function figureStateFor(
   figure: PracticeFigure,
   args: readonly unknown[],
   expected: unknown,
   figureCells: readonly (readonly [number, number])[] = [],
-): GraphState | GridState | null {
-  return figure.kind === 'graph'
-    ? graphStateFor(figure, args, expected)
-    : gridStateFor(figure, args, figureCells);
+  figureRect?: readonly [number, number, number],
+): GraphState | GridState | BarsState | null {
+  switch (figure.kind) {
+    case 'graph':
+      return graphStateFor(figure, args, expected);
+    case 'grid':
+      return gridStateFor(figure, args, figureCells);
+    case 'bars':
+      return barsStateFor(figure, args, figureRect);
+  }
 }

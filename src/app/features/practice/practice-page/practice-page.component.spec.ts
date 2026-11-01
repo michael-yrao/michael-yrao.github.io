@@ -220,7 +220,7 @@ describe('PracticePageComponent', () => {
   ];
 
   it.each(COLLAPSIBLE_PANES)(
-    'the $label head collapses its body and a second click restores it',
+    'the $label toggle collapses its body and a second click restores it',
     ({ label, bodyId, isRunFirst, isEditorKept }) => {
       const fixture = setUp('90', [PROBLEM], 'ready', null, isEditorKept);
       const root: HTMLElement = fixture.nativeElement;
@@ -228,9 +228,7 @@ describe('PracticePageComponent', () => {
         click(root, 'Run');
         fixture.detectChanges();
       }
-      const head = Array.from(root.querySelectorAll<HTMLElement>('.practice__pane-head')).find(
-        (button) => button.querySelector('.practice__label')?.textContent?.trim() === label,
-      )!;
+      const head = root.querySelector<HTMLElement>(`button[aria-controls="${bodyId}"]`)!;
       const body = () => root.querySelector<HTMLElement>('#' + bodyId);
       const editorBefore = root.querySelector('.cm-editor');
 
@@ -252,6 +250,38 @@ describe('PracticePageComponent', () => {
       expect(body()!.hidden).toBe(false);
     },
   );
+
+  it('names the problem in its pane bar, not in the page header, and the name does not fold the pane', () => {
+    const fixture = setUp('90', [PROBLEM]);
+    const root: HTMLElement = fixture.nativeElement;
+
+    const title = root.querySelector<HTMLElement>('.practice__pane-title')!;
+    expect(title.getAttribute('title')).toBe('Subsets II');
+    expect(title.querySelector('.practice__pane-num')?.textContent?.trim()).toBe('#90');
+    const link = title.querySelector<HTMLAnchorElement>('a')!;
+    expect(link.getAttribute('href')).toBe(PROBLEM.url);
+    expect(link.target).toBe('_blank');
+    expect(root.querySelector('.practice-header__heading')).toBeNull();
+
+    title.click();
+    fixture.detectChanges();
+    expect(root.querySelector('#practice-problem-body')!.hasAttribute('hidden')).toBe(false);
+  });
+
+  it('carries the solution tabs in the code bar, and picking one reopens a folded editor', () => {
+    const fixture = setUp('90', [PROBLEM]);
+    const root: HTMLElement = fixture.nativeElement;
+    const body = () => root.querySelector<HTMLElement>('#practice-code-body')!;
+
+    expect(root.querySelector('.practice__pane-bar--tabs [aria-label="Solutions"]')).not.toBeNull();
+    root.querySelector<HTMLElement>('button[aria-controls="practice-code-body"]')!.click();
+    fixture.detectChanges();
+    expect(body().hidden).toBe(true);
+
+    root.querySelector<HTMLElement>(SOLUTION_TAB)!.click();
+    fixture.detectChanges();
+    expect(body().hidden).toBe(false);
+  });
 
   const PANES: readonly {
     readonly name: string;

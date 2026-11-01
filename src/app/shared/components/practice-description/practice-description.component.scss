@@ -74,8 +74,10 @@ $swatch-height: 3px;
   max-width: $figure-max-width;
 
   // The visualizers carry their own roomy padding and a 300px tall canvas; tighten both here.
-  ::ng-deep .gv { padding: var(--space-md); }
-  ::ng-deep .gv__svg { max-height: $figure-max-height; }
+  ::ng-deep .gv,
+  ::ng-deep .bv { padding: var(--space-md); }
+  ::ng-deep .gv__svg,
+  ::ng-deep .bv__svg { max-height: $figure-max-height; }
   ::ng-deep .gv__cell { width: $figure-cell; height: $figure-cell; font-size: var(--text-sm); }
 }
 

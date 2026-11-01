@@ -1,27 +1,27 @@
 $content-max-width: 60rem;
 $split-breakpoint: 900px;
 
-:host {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
+:host { display: block; }
 
+// One bar: the list button, the title (when shown) and the Description | Solution tabs on the
+// left; the interview link, today strip and previous / next on the right. It wraps when narrow.
 .practice-header {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: var(--space-xs) var(--space-md);
   width: 100%;
   max-width: $content-max-width;
   margin-inline: auto;
+  border-bottom: 1px solid var(--color-border);
 }
 .practice-header__title-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-md);
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
 }
 .practice-header__neighbor-nav {
   display: flex;
@@ -30,38 +30,44 @@ $split-breakpoint: 900px;
   gap: var(--space-sm);
 }
 
+// One line: a long title ends in an ellipsis, and its `title` attribute holds the whole name.
 .practice-header__heading {
+  min-width: 0;
   margin: 0;
-  font-size: var(--text-xl);
+  overflow: hidden;
+  font-size: var(--text-md);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
 }
 .practice-header__arrow { display: inline-flex; vertical-align: middle; color: var(--color-accent); margin-left: var(--space-xs); }
 .practice-header__num { margin-right: var(--space-sm); font-family: var(--font-mono); color: var(--color-text-muted); }
 
-// The Description | Solution switch.
+// The Description | Solution switch; the active tab's underline sits on the bar's bottom rule.
 .practice-header__tabs {
   display: flex;
-  flex-wrap: wrap;
+  align-self: stretch;
   gap: var(--space-xs);
-  width: 100%;
-  max-width: $content-max-width;
-  margin-inline: auto;
-  border-bottom: 1px solid var(--color-border);
 }
 .practice-header__tab {
-  padding: var(--space-xs) var(--space-md);
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: -1px;
+  padding: var(--space-xs) var(--space-sm);
   border-bottom: 2px solid transparent;
   color: var(--color-text-muted);
+  font-size: var(--text-sm);
   text-decoration: none;
   transition: color var(--transition-fast), border-color var(--transition-fast);
 
   &:hover { color: var(--color-text); text-decoration: none; }
   &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 }
-// A quiet text link: on its own line below the split breakpoint, at the row's right end above it.
+.practice-header__tab--active { border-bottom-color: var(--color-accent); color: var(--color-text); }
+
+// A quiet text link at the start of the right-hand group.
 .practice-header__interview {
-  flex: 1 0 100%;
-  padding: var(--space-xs) 0;
   font-size: var(--text-sm);
   color: var(--color-accent);
   text-decoration: none;
@@ -69,13 +75,11 @@ $split-breakpoint: 900px;
   &:hover { text-decoration: underline; }
   &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 }
-.practice-header__tab--active { border-bottom-color: var(--color-accent); color: var(--color-text); }
 
+// Side by side, the bar never wraps: the title gives way first.
 @media (min-width: $split-breakpoint) {
-  .practice-header__interview {
-    flex: 0 0 auto;
-    margin-left: auto;
-  }
-  .practice-header,
-  .practice-header__tabs { max-width: none; }
+  .practice-header { flex-wrap: nowrap; max-width: none; }
+  .practice-header__title-row { flex: 1 1 auto; flex-wrap: nowrap; }
+  .practice-header__title-row > :not(.practice-header__heading) { flex: 0 0 auto; }
+  .practice-header__neighbor-nav { flex: 0 0 auto; flex-wrap: nowrap; }
 }
