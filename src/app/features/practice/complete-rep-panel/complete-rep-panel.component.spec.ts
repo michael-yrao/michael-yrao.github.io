@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { CompleteRepPanelComponent, CompletedRep, LegendItem, ReferenceBounds, RepChoices } from './complete-rep-panel.component';
+import { CompleteRepPanelComponent, CompletedRep, InferredBounds, LegendItem, ReferenceBounds, RepChoices } from './complete-rep-panel.component';
 
 const POOL = ['O(1)', 'O(n)', 'O(n log n)'];
 const CHOICES = { time: POOL, space: POOL };
@@ -11,6 +11,8 @@ function render(
   reference: ReferenceBounds | null,
   choices: RepChoices = CHOICES,
   legend: readonly LegendItem[] = [],
+  inferred: InferredBounds | null = null,
+  pool: readonly string[] = [],
 ): {
   fixture: ComponentFixture<CompleteRepPanelComponent>;
   root: HTMLElement;
@@ -20,6 +22,8 @@ function render(
   fixture.componentRef.setInput('choices', choices);
   fixture.componentRef.setInput('legend', legend);
   fixture.componentRef.setInput('reference', reference);
+  fixture.componentRef.setInput('inferred', inferred);
+  fixture.componentRef.setInput('pool', pool);
   const emitted: CompletedRep[] = [];
   fixture.componentInstance.saved.subscribe((rep) => emitted.push(rep));
   fixture.detectChanges();
@@ -136,6 +140,48 @@ describe('CompleteRepPanelComponent', () => {
     expect(iconAndText).toEqual(marks);
     expect(text('.rep__ref-why')).toEqual(refWhys);
     expect(text('.rep__key')).toEqual(hasKey ? ['no reference bound'] : []);
+  });
+
+  it.each([
+    {
+      name: 'inferred on both axes: graded against the code, no why',
+      inferred: { time: 'O(n log n)', space: 'O(1)' },
+      picks: ['O(n log n)', 'O(n)'],
+      marks: ['check', 'x O(1)'],
+      sources: ['Graded against your code', 'Graded against your code'],
+      refWhys: [],
+    },
+    {
+      name: 'inferred null on an axis: that axis is graded against the reference, with its why',
+      inferred: { time: null, space: 'O(1)' },
+      picks: ['O(n)', 'O(1)'],
+      marks: ['check', 'check'],
+      sources: ['Graded against the reference', 'Graded against your code'],
+      refWhys: ['one pass'],
+    },
+  ])('graded against the code, $name', ({ inferred, picks, marks, sources, refWhys }) => {
+    const { fixture, root } = render(REFERENCE, CHOICES, [], inferred, POOL);
+    fill(fixture, picks[0], picks[1], ['x', 'y']);
+
+    buttonByText(root, 'Check').click();
+    fixture.detectChanges();
+
+    const marksText = Array.from(root.querySelectorAll('.rep__mark')).map((el) =>
+      `${el.querySelector('app-icon svg')?.getAttribute('data-name') ?? ''} ${el.textContent?.trim() ?? ''}`.trim(),
+    );
+    const sourceLabels = Array.from(root.querySelectorAll('.rep__source app-icon svg')).map((svg) => svg.getAttribute('aria-label'));
+    expect(marksText).toEqual(marks);
+    expect(sourceLabels).toEqual(sources);
+    expect(Array.from(root.querySelectorAll('.rep__ref-why')).map((el) => el.textContent?.trim())).toEqual(refWhys);
+  });
+
+  it.each([
+    { name: 'between its pool neighbours', choices: ['O(1)', 'O(n log n)'], label: 'O(n)', expected: ['O(1)', 'O(n)', 'O(n log n)'] },
+    { name: 'after every choice the pool lists earlier', choices: ['O(1)', 'O(n)'], label: 'O(n log n)', expected: ['O(1)', 'O(n)', 'O(n log n)'] },  ])('an inferred label is inserted in pool order, $name', ({ choices, label, expected }) => {
+    const { root } = render(REFERENCE, { time: choices, space: choices }, [], { time: label, space: null }, POOL);
+
+    const row = root.querySelectorAll('.rep__row')[0];
+    expect(Array.from(row.querySelectorAll('.rep__chip')).map((c) => c.textContent?.trim())).toEqual(expected);
   });
 
   it.each([

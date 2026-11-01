@@ -14,6 +14,9 @@
         @case ('bars') {
           <app-bars-visualizer [state]="figure.state" />
         }
+        @case ('line') {
+          <app-line-visualizer [state]="figure.state" />
+        }
       }
     </div>
     @if (figure.hasHighlight) {

@@ -320,6 +320,21 @@ describe('PracticePageComponent', () => {
     },
   );
 
+  it('hides the Solution tab while the complete-rep panel is open', () => {
+    const fixture = setUp('1', []);
+    const root: HTMLElement = fixture.nativeElement;
+    const hasSolutionTab = () =>
+      Array.from(root.querySelectorAll('a.practice-header__tab')).some((a) => a.textContent?.trim() === 'Solution');
+
+    expect(hasSolutionTab()).toBe(true);
+    fixture.componentInstance.isCompleting.set(true);
+    fixture.detectChanges();
+    expect(hasSolutionTab()).toBe(false);
+    fixture.componentInstance.isCompleting.set(false);
+    fixture.detectChanges();
+    expect(hasSolutionTab()).toBe(true);
+  });
+
   it('shows the not-found state and no editor for a number absent from the contract', () => {
     const fixture = setUp('91', [PROBLEM]);
     const root: HTMLElement = fixture.nativeElement;

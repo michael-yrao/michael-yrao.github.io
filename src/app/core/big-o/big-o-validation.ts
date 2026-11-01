@@ -68,6 +68,7 @@ function isStringRecord(value: unknown): boolean {
 /** The practice-page fields older payloads lack: each absent or well-formed. */
 function hasValidPracticeFields(entry: Partial<BigOEntry>): boolean {
   if (entry.variables !== undefined && !isStringRecord(entry.variables)) return false;
+  if (entry.bind !== undefined && !isStringRecord(entry.bind)) return false;
   if (entry.timeChoices !== undefined && !isStringArray(entry.timeChoices)) return false;
   return entry.spaceChoices === undefined || isStringArray(entry.spaceChoices);
 }

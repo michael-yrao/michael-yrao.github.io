@@ -1,6 +1,16 @@
 /// <reference lib="webworker" />
 import { PYTHON_DRIVER } from './python-driver';
-import { CaseOutcome, FreeRunRequest, RunRequest, WorkerMessage, buildCaseSpec } from './runner.model';
+import { COMPLEXITY_DRIVER } from './complexity-driver';
+import {
+  AnalyzeRequest,
+  CaseOutcome,
+  FreeRunRequest,
+  InferredComplexity,
+  NO_INFERENCE,
+  RunRequest,
+  WorkerMessage,
+  buildCaseSpec,
+} from './runner.model';
 
 const PYODIDE_INDEX_URL = 'https://cdn.jsdelivr.net/pyodide/v314.0.7/full/';
 
@@ -18,6 +28,8 @@ interface DriverApi {
   readonly defineSolution: (code: string) => string;
   readonly runCase: (caseSpecJson: string) => string;
   readonly runFree: (code: string) => string;
+  readonly setupAnalyzer: (payloadJson: string) => void;
+  readonly analyzeCode: (payloadJson: string) => string;
 }
 
 let driverPromise: Promise<DriverApi> | null = null;
@@ -28,7 +40,10 @@ async function createDriver(): Promise<DriverApi> {
   const pyodideModule = (await import(/* @vite-ignore */ moduleUrl)) as PyodideModule;
   const pyodide = await pyodideModule.loadPyodide({ indexURL: PYODIDE_INDEX_URL });
   pyodide.runPython(PYTHON_DRIVER);
+  pyodide.runPython(COMPLEXITY_DRIVER);
   return {
+    setupAnalyzer: pyodide.globals.get('setup_analyzer') as DriverApi['setupAnalyzer'],
+    analyzeCode: pyodide.globals.get('analyze_code') as DriverApi['analyzeCode'],
     defineSolution: pyodide.globals.get('define_solution') as DriverApi['defineSolution'],
     runCase: pyodide.globals.get('run_case') as DriverApi['runCase'],
     runFree: pyodide.globals.get('run_free') as DriverApi['runFree'],
@@ -76,6 +91,34 @@ async function handleFreeRun(request: FreeRunRequest): Promise<void> {
   post({ id, type: 'done' });
 }
 
+/** The analyzer's modules are written and imported once per worker. */
+let isAnalyzerReady = false;
+
+/** The inferred labels, or both null when the analyzer cannot be set up or run. */
+function analyze(driver: DriverApi, request: AnalyzeRequest): InferredComplexity {
+  try {
+    if (!isAnalyzerReady) {
+      driver.setupAnalyzer(JSON.stringify({ modules: request.modules, pool: request.pool }));
+      isAnalyzerReady = true;
+    }
+    const { source, entry, signature, variables, bind } = request;
+    return JSON.parse(driver.analyzeCode(JSON.stringify({ source, entry, signature, variables, bind }))) as InferredComplexity;
+  } catch {
+    return NO_INFERENCE;
+  }
+}
+
+async function handleAnalyze(request: AnalyzeRequest): Promise<void> {
+  const { id } = request;
+  const driver = await driverOrReportFailure(id);
+  if (driver === null) return;
+
+  post({ id, type: 'ready' });
+  const { time, space } = analyze(driver, request);
+  post({ id, type: 'analyze-result', time, space });
+  post({ id, type: 'done' });
+}
+
 async function handleRun(request: RunRequest): Promise<void> {
   const { id, code, cases } = request;
   const driver = await driverOrReportFailure(id);
@@ -97,13 +140,15 @@ async function handleRun(request: RunRequest): Promise<void> {
   post({ id, type: 'done' });
 }
 
-function isFreeRun(request: RunRequest | FreeRunRequest): request is FreeRunRequest {
-  return 'kind' in request && request.kind === 'free';
+type WorkerRequest = RunRequest | FreeRunRequest | AnalyzeRequest;
+
+function handle(request: WorkerRequest): Promise<void> {
+  if (!('kind' in request)) return handleRun(request);
+  return request.kind === 'free' ? handleFreeRun(request) : handleAnalyze(request);
 }
 
-addEventListener('message', (event: MessageEvent<RunRequest | FreeRunRequest>) => {
-  const request = event.data;
-  (isFreeRun(request) ? handleFreeRun(request) : handleRun(request)).catch((error: unknown) => {
+addEventListener('message', (event: MessageEvent<WorkerRequest>) => {
+  handle(event.data).catch((error: unknown) => {
     // Anything not handled above is a broken worker: raise it so the service's `error` path
     // replaces this worker rather than reusing a possibly corrupted interpreter.
     setTimeout(() => {

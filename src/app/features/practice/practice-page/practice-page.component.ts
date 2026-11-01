@@ -22,14 +22,17 @@ import {
   parseAttemptFile,
 } from '../../../core/practice/practice-attempt';
 import { BigOService } from '../../../core/services/big-o.service';
+import { ComplexityAnalyzerService } from '../../../core/services/complexity-analyzer.service';
 import { PracticeSaveService } from '../../../core/services/practice-save.service';
 import { TodaySessionService } from '../../../core/today-session/today-session.service';
 import { ProvisionalRepService } from '../../../core/services/provisional-rep.service';
 import { addRecord } from '../../../core/services/provisional-records';
 import { PythonRunnerService } from '../../../core/runner/python-runner.service';
+import type { BigOEntry } from '../../../core/models/big-o.model';
 import type { PracticeProblem } from '../../../core/models/practice.model';
+import type { ComplexityModule } from '../../../core/big-o/complexity-modules';
 import type { RepoRef } from '../../../core/services/github-file.service';
-import { RunState } from '../../../core/runner/runner.model';
+import { InferredComplexity, RunState } from '../../../core/runner/runner.model';
 import { lockedProblem } from '../../interview/session/candidate-lock';
 import { CaseResultsComponent } from '../../../shared/components/case-results/case-results.component';
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
@@ -122,6 +125,7 @@ export class PracticePageComponent {
   private readonly provisional = inject(ProvisionalRepService);
   private readonly coachContext = inject(CoachContextService);
   protected readonly bigO = inject(BigOService);
+  private readonly analyzer = inject(ComplexityAnalyzerService);
 
   // A decorator query, not viewChild(): the signal-query helper is another runtime symbol
   // that would land in the initial bundle.
@@ -290,6 +294,9 @@ export class PracticePageComponent {
   /** The head button reopens the rep panel whenever it could have opened on its own: a current pass, closed now. */
   protected readonly canReopenRep = computed(() => this.canSave() && this.canCompleteRep() && !this.isCompleting());
 
+  /** The complexity the analyzer read from the passing code; null until it answers, and while there is no pass or no analyzer. */
+  protected readonly inferred = signal<InferredComplexity | null>(null);
+
   /** The code of the run that passed, shown read-only in the left pane while the rep panel is open. */
   protected readonly passedCode = computed(() => this.lastRun()?.code ?? '');
 
@@ -327,6 +334,7 @@ export class PracticePageComponent {
   });
 
   private runSubscription: Subscription | null = null;
+  private analysisSubscription: Subscription | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   /** The tabs the debounce timer will write, with the problem and repo they were typed for. */
   private pendingSave: { readonly ref: RepoRef; readonly number: number; readonly tabs: SolutionTabs } | null = null;
@@ -341,11 +349,20 @@ export class PracticePageComponent {
   constructor() {
     effect(() => {
       const ref = this.ref();
-      if (ref) untracked(() => this.bigO.load(ref));
+      if (ref) {
+        untracked(() => this.bigO.load(ref));
+        untracked(() => this.analyzer.load(ref));
+      }
       const number = this.problem()?.number;
       if (!this.canSave() || !ref || number === undefined) return;
       untracked(() => void this.loadRemote(ref, number));
       untracked(() => this.resendPendingOnce());
+    });
+    effect(() => {
+      const run = this.passingRun();
+      const modules = this.analyzer.modules();
+      const entry = this.bigO.entryFor(this.number() ?? 0);
+      untracked(() => this.inferComplexity(run, modules, entry));
     });
     effect(() => {
       const run = this.passingRun();
@@ -385,7 +402,31 @@ export class PracticePageComponent {
       if (this.copyTimer) clearTimeout(this.copyTimer);
       if (this.passEffectTimer) clearTimeout(this.passEffectTimer);
       this.runSubscription?.unsubscribe();
+      this.analysisSubscription?.unsubscribe();
     });
+  }
+
+  /** Reads the complexity off the passing code; with no pass, no analyzer or no entry, `inferred` is null. */
+  private inferComplexity(
+    run: RunState | null,
+    modules: readonly ComplexityModule[] | null,
+    entry: BigOEntry | null,
+  ): void {
+    this.analysisSubscription?.unsubscribe();
+    this.inferred.set(null);
+    const problem = this.problem();
+    if (run === null || modules === null || entry === null || !problem) return;
+    this.analysisSubscription = this.runner
+      .analyze({
+        modules,
+        pool: this.bigO.pool(),
+        source: this.passedCode(),
+        entry: problem.entry.method,
+        signature: problem.signature ?? '',
+        variables: entry.variables,
+        bind: entry.bind ?? null,
+      })
+      .subscribe((labels) => this.inferred.set(labels));
   }
 
   /** The head button reopens the rep panel on the passing code. */

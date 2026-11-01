@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 import { AttemptComplexity, AttemptRating, RATING_OPTIONS } from '../../../core/practice/practice-attempt';
 import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { IconName } from '../../../shared/components/icon/icon-paths';
 
 type BoundKey = 'time' | 'space';
 
@@ -13,6 +14,15 @@ export interface ReferenceBounds {
   readonly whyTime: string | null;
   readonly whySpace: string | null;
 }
+
+/** The labels the analyzer read off the learner's code; null on an axis it abstained from. */
+export interface InferredBounds {
+  readonly time: string | null;
+  readonly space: string | null;
+}
+
+/** What an axis was graded against. */
+type GradeSource = 'code' | 'reference';
 
 /** The labels offered for each bound. */
 export interface RepChoices {
@@ -50,12 +60,19 @@ interface BoundRow {
     readonly mark: string;
     readonly expected: string | null;
     readonly why: string | null;
+    readonly source: GradeSource;
+    readonly sourceIcon: IconName;
+    readonly sourceLabel: string;
   } | null;
 }
 
 const EMPTY_DRAFT: BoundDraft = { label: null, why: '' };
 const MATCH_MARK = 'pass';
 const MISS_MARK = 'fail';
+const SOURCE_MARKS: Readonly<Record<GradeSource, { readonly icon: IconName; readonly label: string }>> = {
+  code: { icon: 'terminal', label: 'Graded against your code' },
+  reference: { icon: 'file', label: 'Graded against the reference' },
+};
 const BOUND_NAMES: Readonly<Record<BoundKey, string>> = { time: 'Time', space: 'Space' };
 const BOUND_KEYS: readonly BoundKey[] = ['time', 'space'];
 // The same cap lives in worker/src/practice/validate.ts (MAX_WHY_CHARS), cse-progress/scripts/fold_attempt.py
@@ -68,6 +85,14 @@ const WHY_COUNT_THRESHOLD = 50;
 function remainingCount(why: string): number | null {
   const remaining = WHY_MAX_CHARS - why.length;
   return remaining <= WHY_COUNT_THRESHOLD ? remaining : null;
+}
+
+/** `choices` with `label` added at its place in `pool` (before the first choice the pool lists later; at the end when the pool lacks it). */
+function withLabel(choices: readonly string[], label: string | null, pool: readonly string[]): readonly string[] {
+  if (label === null || choices.includes(label)) return choices;
+  const rank = pool.indexOf(label);
+  const at = rank === -1 ? -1 : choices.findIndex((choice) => pool.indexOf(choice) > rank);
+  return at === -1 ? [...choices, label] : [...choices.slice(0, at), label, ...choices.slice(at)];
 }
 
 /** The complexity-first completion panel, filling the right column: state both bounds with a why, Check, then rate and save. */
@@ -85,6 +110,10 @@ export class CompleteRepPanelComponent {
   /** The problem's variables, shown under the heading; empty shows nothing. */
   readonly legend = input<readonly LegendItem[]>([]);
   readonly reference = input<ReferenceBounds | null>(null);
+  /** What the analyzer read off the learner's code; an axis with a label is graded against it. */
+  readonly inferred = input<InferredBounds | null>(null);
+  /** The complexity-label pool in order; places an inferred label among the choices. */
+  readonly pool = input<readonly string[]>([]);
   readonly saved = output<CompletedRep>();
   readonly closed = output<void>();
 
@@ -102,9 +131,13 @@ export class CompleteRepPanelComponent {
   protected readonly rows = computed<readonly BoundRow[]>(() =>
     BOUND_KEYS.map((key) => {
       const draft = this.drafts()[key];
-      return { key, name: BOUND_NAMES[key], choices: this.choices()[key], ...draft, remaining: remainingCount(draft.why), reveal: this.revealFor(key) };
+      const choices = withLabel(this.choices()[key], this.inferred()?.[key] ?? null, this.pool());
+      return { key, name: BOUND_NAMES[key], choices, ...draft, remaining: remainingCount(draft.why), reveal: this.revealFor(key) };
     }),
   );
+
+  /** An axis with neither an inferred label nor a reference to grade against. */
+  protected readonly hasUngradedRow = computed(() => this.rows().some((row) => row.reveal === null));
 
   protected pick(key: BoundKey, label: string): void {
     this.updateDraft(key, { label });
@@ -144,13 +177,21 @@ export class CompleteRepPanelComponent {
 
   private revealFor(key: BoundKey): BoundRow['reveal'] {
     const reference = this.reference();
-    if (!this.isChecked() || reference === null) return null;
-    const isMatch = this.drafts()[key].label === reference[key];
+    const inferredLabel = this.inferred()?.[key] ?? null;
+    if (!this.isChecked() || (inferredLabel === null && reference === null)) return null;
+    const source: GradeSource = inferredLabel === null ? 'reference' : 'code';
+    const answer = inferredLabel ?? reference?.[key] ?? '';
+    const isMatch = this.drafts()[key].label === answer;
+    const referenceWhy = key === 'time' ? reference?.whyTime : reference?.whySpace;
     return {
       isMatch,
       mark: isMatch ? MATCH_MARK : MISS_MARK,
-      expected: isMatch ? null : reference[key],
-      why: key === 'time' ? reference.whyTime : reference.whySpace,
+      expected: isMatch ? null : answer,
+      // The reference's why can contradict the learner's own code, so only a reference-graded axis shows it.
+      why: source === 'reference' ? (referenceWhy ?? null) : null,
+      source,
+      sourceIcon: SOURCE_MARKS[source].icon,
+      sourceLabel: SOURCE_MARKS[source].label,
     };
   }
 }

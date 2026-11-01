@@ -125,6 +125,14 @@ export interface BarsState {
   rect?: { left: number; right: number; height: number };
 }
 
+/** Baskets at integer positions on a number line; `picks` (a subset, or empty) hold balls. A
+ *  practice figure only, not a walkthrough step. */
+export interface LineState {
+  type: 'line';
+  positions: number[];
+  picks: number[];
+}
+
 export type VisualizerState = ArrayState | GridState | LinkedListState | TreeState | GraphState;
 
 export interface StepVariable {

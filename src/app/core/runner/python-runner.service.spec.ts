@@ -26,6 +26,9 @@ class FakeWorker {
   emit(message: WorkerMessage): void {
     this.listeners.get('message')?.forEach((listener) => listener({ data: message }));
   }
+  crash(): void {
+    this.listeners.get('error')?.forEach((listener) => listener({ message: 'boom', type: 'error' }));
+  }
 }
 
 function okOutcome(gotJson: unknown): CaseOutcome {
@@ -108,6 +111,30 @@ describe('PythonRunnerService', () => {
 
     expect(start()).not.toBe(worker);
     expect(workers.length).toBe(2);
+  });
+
+  describe('analyze', () => {
+    const INPUT = { modules: [], pool: ['O(n)'], source: 'x', entry: 'solve', signature: 'a: int -> int', variables: {}, bind: null };
+    const FAILURES: { name: string; fail: (worker: FakeWorker, id: number) => void }[] = [
+      { name: 'a worker error event', fail: (worker) => worker.crash() },
+      {
+        name: 'a run-error response',
+        fail: (worker, id) => {
+          worker.emit({ id, type: 'run-error', message: 'no pyodide' });
+          worker.emit({ id, type: 'done' });
+        },
+      },
+    ];
+
+    it.each(FAILURES)('$name gives both labels null', ({ fail }) => {
+      const results: unknown[] = [];
+      service.analyze(INPUT).subscribe((labels) => results.push(labels));
+      const worker = workers[workers.length - 1];
+
+      fail(worker, worker.posted[0].id);
+
+      expect(results).toEqual([{ time: null, space: null }]);
+    });
   });
 
   describe('runFree', () => {

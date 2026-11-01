@@ -37,11 +37,13 @@
   </div>
   <div class="practice-header__neighbor-nav">
     <a
-      class="practice-header__interview"
+      class="practice-header__interview po-btn po-btn--sm po-btn--outline"
       routerLink="/interview/prepare"
       [queryParams]="{ import: number() }"
-      >Write an interview problem from this</a
-    >
+      aria-label="Write an interview problem from this"
+      title="Write an interview problem from this"
+      ><app-icon name="pen" [size]="14"
+    /></a>
     <app-today-strip [number]="number()" />
     @if (!isRunThrough()) {
       @if (neighbors().prev; as prev) {

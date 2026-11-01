@@ -73,6 +73,12 @@ function isValidFigureRect(value: unknown): boolean {
   return Array.isArray(value) && value.length === 3 && value.every(Number.isInteger);
 }
 
+/** Absent, or a list of integers. */
+function isValidFigurePicks(value: unknown): boolean {
+  if (value === undefined) return true;
+  return Array.isArray(value) && value.every(Number.isInteger);
+}
+
 /** A mapping with an `anyOf` key must be exactly `{anyOf: [non-empty list]}`. */
 function isWellFormedAnyOf(value: unknown): boolean {
   return !isRecord(value) || !('anyOf' in value) || isAnyOf(value);
@@ -92,6 +98,7 @@ export function isPracticeCase(value: unknown, isOps: boolean): value is Practic
   if (!isValidJudge(value['judge'])) return false;
   if (!isValidFigureCells(value['figureCells'])) return false;
   if (!isValidFigureRect(value['figureRect'])) return false;
+  if (!isValidFigurePicks(value['figurePicks'])) return false;
   if (isOps && !hasOpsShape(value)) return false;
   return typeof value['example'] === 'boolean';
 }
@@ -156,6 +163,7 @@ export function isValidFigure(value: unknown): boolean {
   if (!isRecord(value)) return false;
   if (value['kind'] === 'grid') return isArgIndex(value['gridArg']) && hasValidGridOptions(value);
   if (value['kind'] === 'bars') return isArgIndex(value['heightsArg']);
+  if (value['kind'] === 'line') return isArgIndex(value['positionsArg']);
   return value['kind'] === 'graph' && isValidGraphFigure(value);
 }
 

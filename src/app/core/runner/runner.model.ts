@@ -82,8 +82,30 @@ export interface FreeRunState {
   readonly isTimedOut: boolean;
 }
 
+/** The complexity labels inferred for a piece of code; null on an axis the analyzer abstains from. */
+export interface InferredComplexity {
+  readonly time: string | null;
+  readonly space: string | null;
+}
+
+export const NO_INFERENCE: InferredComplexity = { time: null, space: null };
+
+/** Infers the complexity labels of `source` with the Python analyzer. */
+export interface AnalyzeRequest {
+  readonly id: number;
+  readonly kind: 'analyze';
+  readonly modules: readonly { readonly name: string; readonly source: string }[];
+  readonly pool: readonly string[];
+  readonly source: string;
+  readonly entry: string;
+  readonly signature: string;
+  readonly variables: Readonly<Record<string, string>>;
+  readonly bind: Readonly<Record<string, string>> | null;
+}
+
 export type WorkerMessage =
   | { readonly id: number; readonly type: 'ready' }
+  | { readonly id: number; readonly type: 'analyze-result'; readonly time: string | null; readonly space: string | null }
   | { readonly id: number; readonly type: 'free-result'; readonly stdout: string; readonly error: string | null }
   | { readonly id: number; readonly type: 'case'; readonly index: number; readonly outcome: CaseOutcome }
   | { readonly id: number; readonly type: 'run-error'; readonly message: string }

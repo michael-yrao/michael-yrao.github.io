@@ -1,0 +1,65 @@
+.lv {
+  display: flex;
+  flex-direction: column;
+
+  &__svg {
+    width: 100%;
+    max-height: 200px;
+    overflow: visible;
+  }
+
+  &__line,
+  &__tick {
+    stroke: var(--color-text-muted);
+    stroke-width: 1.5;
+  }
+
+  &__tick {
+    stroke-width: 1;
+  }
+
+  // A basket is hollow: the line shows through, and a ball sits inside its rim.
+  &__basket {
+    fill: var(--color-bg);
+    stroke: var(--color-text);
+    stroke-width: 1.5;
+  }
+
+  &__ball {
+    fill: var(--color-text);
+  }
+
+  &__bracket {
+    fill: none;
+    stroke: var(--color-text-muted);
+    stroke-width: 1.5;
+
+    &--smallest {
+      stroke: var(--color-accent);
+      stroke-width: 2;
+    }
+  }
+
+  &__gap,
+  &__value {
+    font-family: var(--font-mono);
+    text-anchor: middle;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  &__gap {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--color-text-muted);
+
+    &--smallest {
+      fill: var(--color-accent);
+    }
+  }
+
+  &__value {
+    font-size: 10px;
+    fill: var(--color-text-muted);
+  }
+}

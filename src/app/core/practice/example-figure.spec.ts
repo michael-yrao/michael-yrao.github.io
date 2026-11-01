@@ -1,6 +1,6 @@
-import { BarsState, GraphState, GridState } from '../models/algorithm.model';
+import { BarsState, GraphState, GridState, LineState } from '../models/algorithm.model';
 import { PracticeFigure } from '../models/practice.model';
-import { MAX_FIGURE_BARS, MAX_FIGURE_NODES, MAX_MATRIX_FIGURE_NODES, figureStateFor } from './example-figure';
+import { MAX_FIGURE_BARS, MAX_FIGURE_NODES, MAX_FIGURE_SPAN, MAX_MATRIX_FIGURE_NODES, figureStateFor } from './example-figure';
 
 const GRAPH: PracticeFigure = { kind: 'graph', directed: true, edgesArg: 1, nodeCountArg: 0 };
 const GRAPH_NO_COUNT: PracticeFigure = { kind: 'graph', directed: false, edgesArg: 0, nodeCountArg: null };
@@ -152,6 +152,23 @@ describe('figureStateFor', () => {
     ];
     for (const [label, args] of misfits) {
       expect(figureStateFor(BARS, args, null), label).toBeNull();
+    }
+  });
+
+  it('draws a number line with valid picks, drops picks that do not fit, and nothing when the positions do not fit', () => {
+    const LINE: PracticeFigure = { kind: 'line', positionsArg: 0 };
+    const spanOf = (span: number): number[] => [0, span];
+
+    const rows: [string, unknown[], number[] | undefined, LineState | null][] = [
+      ['span exactly at the cap', [spanOf(MAX_FIGURE_SPAN)], undefined, { type: 'line', positions: spanOf(MAX_FIGURE_SPAN), picks: [] }],
+      ['span over the cap', [spanOf(MAX_FIGURE_SPAN + 1)], undefined, null],
+      ['a non-integer position', [[1, 2.5]], undefined, null],
+      ['a pick that is not a position', [[1, 2, 3]], [1, 5], { type: 'line', positions: [1, 2, 3], picks: [] }],
+      ['a single pick', [[1, 2, 3]], [1], { type: 'line', positions: [1, 2, 3], picks: [] }],
+      ['1552 example 1', [[1, 2, 3, 4, 7], 3], [1, 4, 7], { type: 'line', positions: [1, 2, 3, 4, 7], picks: [1, 4, 7] }],
+    ];
+    for (const [label, args, picks, expected] of rows) {
+      expect(figureStateFor(LINE, args, 3, [], undefined, picks), label).toEqual(expected);
     }
   });
 });

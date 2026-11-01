@@ -34,6 +34,8 @@ export interface BigOEntry {
   readonly whySpace: string | null;
   /** The problem's variable legend, symbol to meaning, in display order. `{}` when the payload has none. */
   readonly variables: Readonly<Record<string, string>>;
+  /** Optional: maps the signature's parameters to the variables for the code analyzer; absent means it derives the binding. */
+  readonly bind?: Readonly<Record<string, string>>;
   /** Up to 10 pool labels offered for time on the practice page, always including `time`; `[]` when the payload has none. */
   readonly timeChoices: readonly string[];
   /** Up to 10 pool labels offered for space on the practice page, always including `space`; `[]` when the payload has none. */

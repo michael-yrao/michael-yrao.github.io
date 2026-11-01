@@ -1,0 +1,19 @@
+<div class="lv po-card">
+  <svg [attr.viewBox]="viewBox()" class="lv__svg" xmlns="http://www.w3.org/2000/svg" role="img" [attr.aria-label]="ariaLabel()">
+    <line class="lv__line" [attr.x1]="lineStart" [attr.y1]="lineY" [attr.x2]="lineEnd()" [attr.y2]="lineY" />
+    @for (tick of ticks(); track tick.value) {
+      <line class="lv__tick" [attr.x1]="tick.x" [attr.y1]="lineY" [attr.x2]="tick.x" [attr.y2]="tickEnd" />
+    }
+    @for (gap of gaps(); track $index) {
+      <path class="lv__bracket" [class.lv__bracket--smallest]="gap.isSmallest" [attr.d]="gap.path" />
+      <text class="lv__gap" [class.lv__gap--smallest]="gap.isSmallest" [attr.x]="gap.labelX" [attr.y]="gapLabelY">{{ gap.gap }}</text>
+    }
+    @for (basket of baskets(); track basket.value) {
+      <circle class="lv__basket" [attr.cx]="basket.x" [attr.cy]="lineY" [attr.r]="basketRadius" />
+      @if (basket.hasBall) {
+        <circle class="lv__ball" [attr.cx]="basket.x" [attr.cy]="lineY" [attr.r]="ballRadius" />
+      }
+      <text class="lv__value" [attr.x]="basket.x" [attr.y]="labelY">{{ basket.value }}</text>
+    }
+  </svg>
+</div>

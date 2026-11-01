@@ -1,14 +1,17 @@
 import { Injectable, InjectionToken, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, filter, map } from 'rxjs';
 
 import { PracticeProblem } from '../models/practice.model';
 import { matches } from '../practice/compare';
 import {
+  AnalyzeRequest,
   CaseOutcome,
   CaseResult,
   CaseVerdict,
   FreeRunRequest,
   FreeRunState,
+  InferredComplexity,
+  NO_INFERENCE,
   RunRequest,
   RunState,
   RunStatus,
@@ -32,7 +35,7 @@ const LOADING_FREE_STATE: FreeRunState = { status: 'loading', stdout: '', error:
 /** How one kind of run reacts to the worker; `execute` owns the worker plumbing around it. */
 interface RunSpec<S extends { readonly status: RunStatus }> {
   readonly initial: S;
-  readonly buildRequest: (id: number) => RunRequest | FreeRunRequest;
+  readonly buildRequest: (id: number) => RunRequest | FreeRunRequest | AnalyzeRequest;
   readonly apply: (state: S, message: WorkerMessage) => S;
   /** The state when the time limit kills the worker. */
   readonly onTimeLimit: (state: S) => S;
@@ -58,6 +61,7 @@ function applyMessage(state: RunState, message: WorkerMessage, problem: Practice
       return { ...state, results: [...state.results, result] };
     }
     case 'free-result':
+    case 'analyze-result':
       return state;
     case 'run-error':
       return { ...state, runError: message.message };
@@ -90,9 +94,35 @@ function applyFreeMessage(state: FreeRunState, message: WorkerMessage): FreeRunS
     case 'run-error':
       return { ...state, error: message.message };
     case 'case':
+    case 'analyze-result':
     case 'done':
       return state;
   }
+}
+
+type AnalyzeState = InferredComplexity & { readonly status: RunStatus };
+
+/** The next analyze state after one worker message; a load error leaves both labels null. */
+function applyAnalyzeMessage(state: AnalyzeState, message: WorkerMessage): AnalyzeState {
+  switch (message.type) {
+    case 'ready':
+      return { ...state, status: 'running' };
+    case 'analyze-result':
+      return { ...state, time: message.time, space: message.space };
+    default:
+      return state;
+  }
+}
+
+/** What the analyzer needs to read one passing solution. */
+export interface AnalyzeInput {
+  readonly modules: AnalyzeRequest['modules'];
+  readonly pool: readonly string[];
+  readonly source: string;
+  readonly entry: string;
+  readonly signature: string;
+  readonly variables: Readonly<Record<string, string>>;
+  readonly bind: Readonly<Record<string, string>> | null;
 }
 
 function buildRequest(id: number, code: string, problem: PracticeProblem): RunRequest {
@@ -142,6 +172,21 @@ export class PythonRunnerService {
       onTimeLimit: (state) => ({ ...state, isTimedOut: true }),
       onCrash: (state, message) => ({ ...state, error: message }),
     });
+  }
+
+  /** Emits the inferred labels once and completes; any failure, crash or time-out gives both null. */
+  analyze(input: AnalyzeInput): Observable<InferredComplexity> {
+    const failed = (state: AnalyzeState): AnalyzeState => ({ ...state, ...NO_INFERENCE });
+    return this.execute<AnalyzeState>({
+      initial: { status: 'loading', ...NO_INFERENCE },
+      buildRequest: (id): AnalyzeRequest => ({ id, kind: 'analyze', ...input }),
+      apply: applyAnalyzeMessage,
+      onTimeLimit: failed,
+      onCrash: failed,
+    }).pipe(
+      filter((state) => state.status === 'done'),
+      map(({ time, space }) => ({ time, space })),
+    );
   }
 
   private execute<S extends { readonly status: RunStatus }>(spec: RunSpec<S>): Observable<S> {

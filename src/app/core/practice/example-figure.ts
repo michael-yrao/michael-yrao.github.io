@@ -1,10 +1,11 @@
-import { BarsState, GraphEdge, GraphNode, GraphState, GridState } from '../models/algorithm.model';
+import { BarsState, GraphEdge, GraphNode, GraphState, GridState, LineState } from '../models/algorithm.model';
 import {
   AdjacencyFigure,
   BarsFigure,
   EdgeListFigure,
   GraphFigure,
   GridFigure,
+  LineFigure,
   MatrixFigure,
   PracticeFigure,
 } from '../models/practice.model';
@@ -15,6 +16,10 @@ export const MAX_FIGURE_NODES = 12;
 export const MAX_MATRIX_FIGURE_NODES = 6;
 /** A histogram with more bars than this is not drawn: they would be too thin to label. */
 export const MAX_FIGURE_BARS = 20;
+/** A number line whose first and last position are further apart than this is not drawn: its ticks would be too thin to read. */
+export const MAX_FIGURE_SPAN = 20;
+/** A line figure fills baskets with balls only when at least this many are picked. */
+const MIN_FIGURE_PICKS = 2;
 /** The circle never shrinks below this radius, so a two-node graph is not a stub. */
 const MIN_CIRCLE_RADIUS = 70;
 /** Arc length of circle given to each node, so neighbours never touch as the count grows. */
@@ -295,16 +300,35 @@ function barsStateFor(
   return { type: 'bars', bars: [...heights], ...(rect === undefined ? {} : { rect }) };
 }
 
+/** The picks when there are enough of them and each is a basket; otherwise none. */
+function fittedPicks(positions: readonly number[], figurePicks: readonly number[] | undefined): number[] {
+  if (figurePicks === undefined || figurePicks.length < MIN_FIGURE_PICKS) return [];
+  return figurePicks.every((pick) => positions.includes(pick)) ? [...figurePicks] : [];
+}
+
+function lineStateFor(
+  figure: LineFigure,
+  args: readonly unknown[],
+  figurePicks: readonly number[] | undefined,
+): LineState | null {
+  const positions = args[figure.positionsArg];
+  if (!Array.isArray(positions) || positions.length === 0 || !positions.every(Number.isInteger)) return null;
+  if (Math.max(...positions) - Math.min(...positions) > MAX_FIGURE_SPAN) return null;
+  return { type: 'line', positions: [...positions], picks: fittedPicks(positions, figurePicks) };
+}
+
 /** The picture of one example case's input, or null when its arguments do not fit the figure.
  *  Pure: `args` and `expected` are only read; `expected` marks edges when the figure highlights it,
- *  `figureCells` marks grid cells as found, and `figureRect` shades a rectangle over the bars. */
+ *  `figureCells` marks grid cells as found, `figureRect` shades a rectangle over the bars, and
+ *  `figurePicks` fills baskets of a number line with balls. */
 export function figureStateFor(
   figure: PracticeFigure,
   args: readonly unknown[],
   expected: unknown,
   figureCells: readonly (readonly [number, number])[] = [],
   figureRect?: readonly [number, number, number],
-): GraphState | GridState | BarsState | null {
+  figurePicks?: readonly number[],
+): GraphState | GridState | BarsState | LineState | null {
   switch (figure.kind) {
     case 'graph':
       return graphStateFor(figure, args, expected);
@@ -312,5 +336,7 @@ export function figureStateFor(
       return gridStateFor(figure, args, figureCells);
     case 'bars':
       return barsStateFor(figure, args, figureRect);
+    case 'line':
+      return lineStateFor(figure, args, figurePicks);
   }
 }

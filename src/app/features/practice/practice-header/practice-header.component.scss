@@ -66,16 +66,6 @@ $split-breakpoint: 900px;
 }
 .practice-header__tab--active { border-bottom-color: var(--color-accent); color: var(--color-text); }
 
-// A quiet text link at the start of the right-hand group.
-.practice-header__interview {
-  font-size: var(--text-sm);
-  color: var(--color-accent);
-  text-decoration: none;
-
-  &:hover { text-decoration: underline; }
-  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-}
-
 // Side by side, the bar never wraps: the title gives way first.
 @media (min-width: $split-breakpoint) {
   .practice-header { flex-wrap: nowrap; max-width: none; }

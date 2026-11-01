@@ -48,14 +48,14 @@
         }
       </label>
       @if (row.reveal; as reveal) {
-        <p class="rep__mark" [class.rep__mark--miss]="!reveal.isMatch"><app-icon [name]="reveal.isMatch ? 'check' : 'x'" [size]="14" [label]="reveal.mark" />@if (reveal.expected) { {{ reveal.expected }}}</p>
+        <p class="rep__mark" [class.rep__mark--miss]="!reveal.isMatch"><app-icon [name]="reveal.isMatch ? 'check' : 'x'" [size]="14" [label]="reveal.mark" />@if (reveal.expected) { {{ reveal.expected }}}<span class="rep__source" [attr.title]="reveal.sourceLabel"><app-icon [name]="reveal.sourceIcon" [size]="14" [label]="reveal.sourceLabel" /></span></p>
         @if (reveal.why) {
           <p class="rep__ref-why">{{ reveal.why }}</p>
         }
       }
     </section>
   }
-  @if (isChecked() && reference() === null) {
+  @if (isChecked() && hasUngradedRow()) {
     <p class="rep__key">no reference bound</p>
   }
   <button type="button" class="rep__btn po-btn po-btn--sm po-btn--outline" [disabled]="!canCheck()" (click)="check()">Check</button>

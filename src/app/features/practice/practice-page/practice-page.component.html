@@ -12,7 +12,7 @@
       [catalogue]="catalogue()"
       [repo]="ref()"
       activeTab="description"
-      [hasSolution]="hasSolution()"
+      [hasSolution]="hasSolution() && !isCompleting()"
       [isTitleShown]="false"
     />
 
@@ -106,7 +106,7 @@
 
         <div class="practice__work" [class.practice__work--code-closed]="!isCodeOpen()" [style.--output-share]="outputShare()">
           @if (isCompleting()) {
-            <app-complete-rep-panel class="practice__rep" [choices]="repChoices()" [legend]="repLegend()" [reference]="reference()" (saved)="completeRep($event)" (closed)="isCompleting.set(false)" />
+            <app-complete-rep-panel class="practice__rep" [choices]="repChoices()" [legend]="repLegend()" [reference]="reference()" [inferred]="inferred()" [pool]="bigO.pool()" (saved)="completeRep($event)" (closed)="isCompleting.set(false)" />
           } @else {
             <!-- The solution tabs are the pane's name; only the chevron folds the editor. -->
             <div class="practice__pane-bar practice__pane-bar--tabs">

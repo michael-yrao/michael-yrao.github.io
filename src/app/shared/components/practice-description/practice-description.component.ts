@@ -1,7 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-import { AlgorithmMeta, BarsState, GraphState, GridState } from '../../../core/models/algorithm.model';
+import { AlgorithmMeta, BarsState, GraphState, GridState, LineState } from '../../../core/models/algorithm.model';
 import { PracticeProblem } from '../../../core/models/practice.model';
 import { figureStateFor } from '../../../core/practice/example-figure';
 import { splitInlineCode } from '../../../core/practice/inline-code';
@@ -12,12 +12,13 @@ import { HintCardComponent } from '../hint-card/hint-card.component';
 import { BarsVisualizerComponent } from '../../visualizers/bars-visualizer/bars-visualizer.component';
 import { GraphVisualizerComponent } from '../../visualizers/graph-visualizer/graph-visualizer.component';
 import { GridVisualizerComponent } from '../../visualizers/grid-visualizer/grid-visualizer.component';
+import { LineVisualizerComponent } from '../../visualizers/line-visualizer/line-visualizer.component';
 
 /** One example case's input drawn as a diagram, captioned by its place among the examples. */
 export interface ExampleFigure {
   readonly number: number;
   readonly caption: string;
-  readonly state: GraphState | GridState | BarsState;
+  readonly state: GraphState | GridState | BarsState | LineState;
   /** True when an edge, a grid cell or a bars rect is drawn as found, so the figure carries the Output key. */
   readonly hasHighlight: boolean;
 }
@@ -54,7 +55,7 @@ export interface StatementBlock {
   templateUrl: './practice-description.component.html',
   styleUrls: ['./practice-description.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgTemplateOutlet, HintCardComponent, BarsVisualizerComponent, GraphVisualizerComponent, GridVisualizerComponent],
+  imports: [NgTemplateOutlet, HintCardComponent, BarsVisualizerComponent, GraphVisualizerComponent, GridVisualizerComponent, LineVisualizerComponent],
 })
 export class PracticeDescriptionComponent {
   readonly problem = input<PracticeProblem | null>(null);
@@ -70,14 +71,16 @@ export class PracticeDescriptionComponent {
     if (!problem || !figure) return [];
     const examples = problem.cases.filter((c) => c.example);
     return examples.flatMap((c, i) => {
-      const state = figureStateFor(figure, c.args, c.expected, c.figureCells, c.figureRect);
+      const state = figureStateFor(figure, c.args, c.expected, c.figureCells, c.figureRect, c.figurePicks);
       if (!state) return [];
       const hasHighlight =
         state.type === 'graph'
           ? state.edges.some((e) => e.state === 'found')
           : state.type === 'grid'
             ? state.grid.some((row) => row.some((cell) => cell.state === 'found'))
-            : state.rect !== undefined;
+            : state.type === 'bars'
+              ? state.rect !== undefined
+              : false;
       return [{ number: i + 1, caption: `Example ${i + 1}`, state, hasHighlight }];
     });
   });

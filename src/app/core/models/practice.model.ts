@@ -58,6 +58,8 @@ export interface PracticeCase {
   readonly figureCells?: readonly (readonly [number, number])[];
   /** [left, right, height]: the rectangle an example case's bars figure shades as found. */
   readonly figureRect?: readonly [number, number, number];
+  /** The positions an example case's line figure fills with balls: a subset of the case's positions. */
+  readonly figurePicks?: readonly number[];
   /** Any JSON value, including null; `{anyOf: [...]}` matches any one alternative. */
   readonly expected: unknown;
   readonly example: boolean;
@@ -112,7 +114,13 @@ export interface BarsFigure {
   readonly heightsArg: number;
 }
 
-export type PracticeFigure = GraphFigure | GridFigure | BarsFigure;
+/** Which arg of a case holds the integer positions of baskets on a number line, drawn as an example diagram. */
+export interface LineFigure {
+  readonly kind: 'line';
+  readonly positionsArg: number;
+}
+
+export type PracticeFigure = GraphFigure | GridFigure | BarsFigure | LineFigure;
 
 export interface PracticeProblem {
   readonly number: number;
@@ -125,6 +133,8 @@ export interface PracticeProblem {
   readonly stub: string;
   readonly entry: PracticeEntry;
   readonly compare: CompareMode;
+  /** Optional typed signature of the entry method, e.g. `position: List[int], m: int -> int`; read by the complexity analyzer only. */
+  readonly signature?: string;
   /** Optional relative tolerance for numbers (a finite number above 0); absent means exact. */
   readonly tolerance?: number;
   /** Absent or null means the return value is compared. */

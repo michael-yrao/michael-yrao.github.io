@@ -132,6 +132,10 @@ $close-icon-size: 1.1rem;
 }
 
 .rep__mark--miss { color: var(--color-hard); }
+.rep__source {
+  margin-left: var(--space-sm);
+  color: var(--color-text-muted);
+}
 .rep__ref-why,
 .rep__key { color: var(--color-text-muted); }
 
