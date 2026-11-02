@@ -22,7 +22,7 @@ import { MenuComponent, MenuDotState } from '../../../shared/components/menu/men
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
 
 export const ENGINE_POLL_MS = 10_000;
-export const ENGINE_POLL_MAX = 24;
+export const ENGINE_POLL_MAX = 60;
 
 const BUILD_DAY_META = 'today';
 const OFF_BUILD_DAY_META = 'closes this week';
@@ -86,6 +86,7 @@ export class EngineMenuComponent {
   private isDestroyed = false;
 
   protected readonly status = signal<EngineStatus>(NO_ENGINE_RUN);
+  protected readonly step = signal<string | null>(null);
   protected readonly isBuilding = signal(false);
   protected readonly isRefused = signal(false);
   protected readonly lastBuild = signal<BuildResult | null>(null);
@@ -154,6 +155,7 @@ export class EngineMenuComponent {
     this.isBuilding.set(true);
     this.isRefused.set(false);
     this.lastBuild.set(null);
+    this.step.set(null);
     const previousRunId = this.status().runId;
     const result = await this.engine.buildNextWeek(ref);
     this.lastBuild.set(result);
@@ -170,7 +172,10 @@ export class EngineMenuComponent {
     const last = this.lastBuild();
     if (last === 'no-config') return { text: NO_CONFIG_ROW, url: null };
     const { state, htmlUrl } = this.status();
-    if (this.isBuilding() || state === 'running') return { text: RUN_ROWS.running, url: htmlUrl };
+    if (this.isBuilding() || state === 'running') {
+      const step = this.step();
+      return { text: step === null ? RUN_ROWS.running : `⟳ ${step}`, url: htmlUrl };
+    }
     if (state === 'none') return null;
     return { text: RUN_ROWS[state], url: htmlUrl };
   }
@@ -201,17 +206,35 @@ export class EngineMenuComponent {
     this.isUpdating.set(false);
   }
 
-  /** Polls the runs list until a run other than `previousRunId` has finished. */
+  /**
+   * Polls the weekly-build runs until a run other than `previousRunId` has finished.
+   * A read with no run never ends the wait; on budget exhaustion the last real read stands.
+   */
   private async awaitNewRun(ref: RepoRef, previousRunId: number | null): Promise<void> {
+    let lastRead: EngineStatus = NO_ENGINE_RUN;
     for (let attempt = 0; attempt < ENGINE_POLL_MAX; attempt++) {
       await this.delay(ENGINE_POLL_MS);
       if (this.isDestroyed) return;
       const latest = await firstValueFrom(this.engine.status$(ref, true));
+      if (latest.runId === null) continue;
+      lastRead = latest;
       if (latest.runId === previousRunId) continue;
       this.status.set(latest);
-      if (latest.state === 'running') continue;
+      if (latest.state === 'running') {
+        await this.showStep(ref, latest.runId);
+        continue;
+      }
+      this.step.set(null);
       this.progress.refresh();
       return;
     }
+    this.step.set(null);
+    this.status.set(lastRead);
+  }
+
+  /** Shows the run's current step; the previous step stays when the read finds none. */
+  private async showStep(ref: RepoRef, runId: number): Promise<void> {
+    const name = await firstValueFrom(this.engine.step$(ref, runId));
+    if (name !== null) this.step.set(name);
   }
 }

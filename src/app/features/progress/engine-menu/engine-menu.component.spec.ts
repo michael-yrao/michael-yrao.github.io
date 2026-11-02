@@ -48,7 +48,10 @@ describe('EngineMenuComponent build()', () => {
     const refresh = vi.fn();
     TestBed.configureTestingModule({
       providers: [
-        { provide: EngineService, useValue: { status$, buildNextWeek: async () => 'dispatched', versions: async () => null } },
+        {
+          provide: EngineService,
+          useValue: { status$, step$: () => of(null), buildNextWeek: async () => 'dispatched', versions: async () => null },
+        },
         { provide: ProgressService, useValue: { refresh } },
         { provide: ENGINE_DELAY, useValue: async () => undefined },
       ],
@@ -63,6 +66,58 @@ describe('EngineMenuComponent build()', () => {
 
     expect(status$).toHaveBeenCalledTimes(1 + expectedPolls);
     expect(refresh).toHaveBeenCalledTimes(expectedRefreshes);
+  });
+
+  interface MenuInternals {
+    build(): Promise<void>;
+    statusRow(): { text: string } | null;
+    dotState(): string;
+  }
+
+  async function runBuild(reads: readonly EngineStatus[], stepName: string | null) {
+    let calls = 0;
+    const rowsSeen: (string | null)[] = [];
+    const status$ = vi.fn(() => {
+      const scripted = reads[Math.min(calls, reads.length - 1)];
+      calls++;
+      rowsSeen.push((fixture.componentInstance as unknown as MenuInternals).statusRow()?.text ?? null);
+      return of(scripted);
+    });
+    const refresh = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: EngineService,
+          useValue: { status$, step$: () => of(stepName), buildNextWeek: async () => 'dispatched', versions: async () => null },
+        },
+        { provide: ProgressService, useValue: { refresh } },
+        { provide: ENGINE_DELAY, useValue: async () => undefined },
+      ],
+    });
+    const fixture = TestBed.createComponent(EngineMenuComponent);
+    fixture.componentRef.setInput('repoRef', REF);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const internals = fixture.componentInstance as unknown as MenuInternals;
+    rowsSeen.length = 0;
+    await internals.build();
+    return { internals, refresh, rowsSeen };
+  }
+
+  it('gives up cleanly when no weekly-build run is ever read (the bug: stuck on running)', async () => {
+    const { internals, refresh } = await runBuild([NO_ENGINE_RUN], null);
+
+    expect(internals.statusRow()).toBeNull();
+    expect(internals.dotState()).not.toBe('running');
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it('names the current step while a new run is in progress, then reads ok once it finishes', async () => {
+    const { internals, refresh, rowsSeen } = await runBuild([NO_ENGINE_RUN, NEW_RUNNING, NEW_OK], 'Build the week');
+
+    expect(rowsSeen[1]).toBe('⟳ Build the week');
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(internals.statusRow()?.text).toBe('✓ last run ok');
   });
 });
 

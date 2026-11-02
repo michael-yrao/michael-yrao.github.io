@@ -5,7 +5,7 @@ import { Observable, catchError, firstValueFrom, map, of, tap } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { WORKER_API_URL } from '../data/site-links';
 import { RepoRef } from '../services/github-file.service';
-import { EngineStatus, NO_ENGINE_RUN, engineStatus } from './engine-status';
+import { EngineStatus, NO_ENGINE_RUN, engineStatus, engineStep } from './engine-status';
 import { EngineUpdate, EngineVersions, engineUpdate, engineVersions } from './engine-update';
 
 export type BuildResult = 'dispatched' | 'refused' | 'no-config' | 'failed';
@@ -19,7 +19,9 @@ export const ENGINE_DELAY = new InjectionToken<(ms: number) => Promise<void>>('E
 });
 
 const RUNS_URL_BASE = 'https://api.github.com/repos/';
-const RUNS_URL_TAIL = '/actions/runs?per_page=1';
+const RUNS_URL_TAIL = '/actions/workflows/weekly-build.yml/runs?per_page=1';
+const JOBS_URL_MIDDLE = '/actions/runs/';
+const JOBS_URL_TAIL = '/jobs';
 const BUILD_ROUTE = 'engine/weekly-build';
 const UPDATE_ROUTE = 'engine/update';
 const APPROVE_ROUTE = 'engine/approve-week';
@@ -66,6 +68,16 @@ export class EngineService {
       }),
       catchError(() => of(NO_ENGINE_RUN)),
     );
+  }
+
+  /** The name of the run's in-progress step; null when none or on any failure. Never cached. */
+  step$(ref: RepoRef, runId: number): Observable<string | null> {
+    return this.http
+      .get<unknown>(`${RUNS_URL_BASE}${ref.owner}/${ref.repo}${JOBS_URL_MIDDLE}${runId}${JOBS_URL_TAIL}`)
+      .pipe(
+        map(engineStep),
+        catchError(() => of(null)),
+      );
   }
 
   async buildNextWeek(ref: RepoRef): Promise<BuildResult> {

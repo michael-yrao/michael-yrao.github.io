@@ -25,7 +25,35 @@ function stateOf(status: unknown, conclusion: unknown): EngineState {
   return FAILED_CONCLUSIONS.has(conclusion) ? 'failed' : 'none';
 }
 
-/** Reads the newest run from a `GET /repos/{o}/{r}/actions/runs?per_page=1` body; never throws. */
+const IN_PROGRESS = 'in_progress';
+const RUN_PREFIX = /^Run\s+/;
+const AT_SUFFIX = /@.*$/;
+
+function isInProgress(item: unknown): item is Record<string, unknown> {
+  return typeof item === 'object' && item !== null && (item as { status?: unknown }).status === IN_PROGRESS;
+}
+
+function cleanStepName(name: string): string {
+  const trimmed = name.trim().replace(RUN_PREFIX, '').replace(AT_SUFFIX, '');
+  return trimmed.split('/').pop()?.trim() ?? '';
+}
+
+/** Names the in-progress step from a `GET .../actions/runs/{id}/jobs` body; null when there is none; never throws. */
+export function engineStep(payload: unknown): string | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const jobs = (payload as { jobs?: unknown }).jobs;
+  if (!Array.isArray(jobs)) return null;
+  const job = jobs.find(isInProgress);
+  if (job === undefined) return null;
+  const steps = job['steps'];
+  if (!Array.isArray(steps)) return null;
+  const step = steps.find(isInProgress);
+  if (step === undefined || typeof step['name'] !== 'string') return null;
+  const name = cleanStepName(step['name']);
+  return name === '' ? null : name;
+}
+
+/** Reads the newest run from a `GET /repos/{o}/{r}/actions/workflows/{file}/runs?per_page=1` body; never throws. */
 export function engineStatus(payload: unknown): EngineStatus {
   if (typeof payload !== 'object' || payload === null) return NO_ENGINE_RUN;
   const runs = (payload as { workflow_runs?: unknown }).workflow_runs;
