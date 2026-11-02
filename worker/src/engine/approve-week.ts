@@ -38,6 +38,11 @@ function isMonday(weekOf: string): boolean {
   return date.getUTCDay() === MONDAY_UTC_DAY;
 }
 
+/** True for a `YYYY-MM-DD` string that names a real Monday. */
+export function isWeekOf(value: unknown): value is string {
+  return typeof value === 'string' && WEEK_OF_PATTERN.test(value) && isMonday(value);
+}
+
 function parseRequest(text: string): ApproveRequest | null {
   let body: unknown;
   try {
@@ -49,7 +54,7 @@ function parseRequest(text: string): ApproveRequest | null {
   const { owner, repo, weekOf } = body;
   if (typeof owner !== 'string' || !OWNER_PATTERN.test(owner)) return null;
   if (typeof repo !== 'string' || !REPO_PATTERN.test(repo)) return null;
-  if (typeof weekOf !== 'string' || !WEEK_OF_PATTERN.test(weekOf) || !isMonday(weekOf)) return null;
+  if (!isWeekOf(weekOf)) return null;
   const path = `${SCHEDULE_DIR}/${weekOf.replaceAll('-', '')}_schedule.md`;
   return { target: { owner, repo, branch: BRANCH, path }, weekOf };
 }

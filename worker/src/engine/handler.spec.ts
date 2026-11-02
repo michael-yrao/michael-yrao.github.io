@@ -62,6 +62,41 @@ function weeklyBuildRequest(): Request {
   });
 }
 
+function rebuildRequest(rebuildWeek: string | undefined): Request {
+  return new Request('https://worker.test/engine/weekly-build', {
+    method: 'POST',
+    headers: { Origin: ORIGIN, Authorization: 'Bearer tok' },
+    body: JSON.stringify({ owner: 'alice', repo: 'cse-progress', rebuildWeek }),
+  });
+}
+
+describe('POST /engine/weekly-build rebuildWeek', () => {
+  const cases: ReadonlyArray<{
+    label: string;
+    rebuildWeek: string | undefined;
+    status: number;
+    dispatchBody: string | null;
+  }> = [
+    { label: 'absent sends no inputs', rebuildWeek: undefined, status: 202, dispatchBody: '{"ref":"main"}' },
+    {
+      label: 'a Monday is passed as rebuild_week',
+      rebuildWeek: '2026-11-02',
+      status: 202,
+      dispatchBody: '{"ref":"main","inputs":{"rebuild_week":"2026-11-02"}}',
+    },
+    { label: 'malformed date is refused', rebuildWeek: '2026-11-3', status: 400, dispatchBody: null },
+    { label: 'a Tuesday is refused', rebuildWeek: '2026-11-03', status: 400, dispatchBody: null },
+  ];
+
+  it.each(cases)('$label', async ({ rebuildWeek, status, dispatchBody }) => {
+    const { fetchImpl, calls } = stubFetch(script());
+    const response = await handle(rebuildRequest(rebuildWeek), ENV, fetchImpl);
+    expect(response.status).toBe(status);
+    const dispatch = calls.find((call) => call.url === DISPATCH_URL);
+    expect(dispatch?.body ?? null).toBe(dispatchBody);
+  });
+});
+
 describe('POST /engine/weekly-build', () => {
   const cases: ReadonlyArray<{
     label: string;

@@ -139,6 +139,7 @@ interface MountOptions {
   readonly plan?: EngineUpdate | null;
   readonly isWeekMissing?: boolean;
   readonly buildResult?: BuildResult;
+  readonly rebuildWeekOf?: string | null;
 }
 
 async function mountMenu({
@@ -146,8 +147,9 @@ async function mountMenu({
   plan = null,
   isWeekMissing = false,
   buildResult = 'dispatched',
+  rebuildWeekOf = null,
 }: MountOptions = {}) {
-  const buildNextWeek = vi.fn(async () => buildResult);
+  const buildNextWeek = vi.fn(async (_ref: unknown, _rebuildWeek?: string) => buildResult);
   const update = vi.fn(async () => DONE);
   TestBed.configureTestingModule({
     providers: [
@@ -159,6 +161,7 @@ async function mountMenu({
   const fixture = TestBed.createComponent(EngineMenuComponent);
   fixture.componentRef.setInput('repoRef', REF);
   fixture.componentRef.setInput('isWeekMissing', isWeekMissing);
+  fixture.componentRef.setInput('rebuildWeekOf', rebuildWeekOf);
   fixture.detectChanges();
   await fixture.whenStable();
   fixture.detectChanges();
@@ -331,6 +334,26 @@ describe('EngineMenuComponent', () => {
     await settle();
     expect((el.querySelector('dialog') as HTMLDialogElement).open).toBe(isModalOpen);
     expect(buildNextWeek).toHaveBeenCalledTimes(calls);
+  });
+
+  it.each<{ name: string; rebuildWeekOf: string | null; isShown: boolean; calls: unknown[][] }>([
+    { name: 'no draft to rebuild hides the item', rebuildWeekOf: null, isShown: false, calls: [] },
+    { name: 'a rebuildable draft shows it and confirming rebuilds that week', rebuildWeekOf: '2026-11-02', isShown: true, calls: [[REF, '2026-11-02']] },
+  ])('the Rebuild draft item: $name', async ({ rebuildWeekOf, isShown, calls }) => {
+    vi.setSystemTime(WEDNESDAY_NOON);
+    const { fixture, el, buildNextWeek, openMenu, settle } = await mountMenu({ rebuildWeekOf });
+    openMenu();
+    const rebuild = item(el, 'Rebuild draft');
+    expect(rebuild !== undefined).toBe(isShown);
+    if (rebuild !== undefined) {
+      expect(meta(rebuild)).toBe('Nov 2');
+      rebuild.click();
+      fixture.detectChanges();
+      expect(el.querySelector('.modal__heading')?.textContent?.trim()).toBe('Rebuild the draft now?');
+      (Array.from(el.querySelectorAll('dialog button')).find((b) => b.textContent?.trim() === 'Build') as HTMLElement).click();
+      await settle();
+    }
+    expect(buildNextWeek.mock.calls).toEqual(calls);
   });
 
   it.each<{ name: string; status: EngineStatus; row: string | null }>([

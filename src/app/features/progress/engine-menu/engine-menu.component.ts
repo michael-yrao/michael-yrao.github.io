@@ -17,7 +17,7 @@ import { EngineStatus, NO_ENGINE_RUN } from '../../../core/engine/engine-status'
 import { EngineUpdate, EngineVersions, isNewerVersion } from '../../../core/engine/engine-update';
 import { RepoRef } from '../../../core/services/github-file.service';
 import { ProgressService } from '../../../core/services/progress.service';
-import { todayLocalISO } from '../../../core/utils/local-date';
+import { shortMonthDay, todayLocalISO } from '../../../core/utils/local-date';
 import { MenuComponent, MenuDotState } from '../../../shared/components/menu/menu.component';
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
 
@@ -41,6 +41,14 @@ const CONFIRM_LINES: readonly string[] = [
 const MISSING_WEEK_CONFIRM_LINES: readonly string[] = [
   'Archives last week',
   'Re-seats what is left into this week',
+  'Runs in your repo as a commit',
+  DRAFT_LINE,
+];
+const REBUILD_LABEL = 'Rebuild draft…';
+const REBUILD_CONFIRM_HEADING = 'Rebuild the draft now?';
+const REBUILD_CONFIRM_LINES: readonly string[] = [
+  'Discards the draft week',
+  'Re-seats from your tracker',
   'Runs in your repo as a commit',
   DRAFT_LINE,
 ];
@@ -77,6 +85,8 @@ export class EngineMenuComponent {
   readonly repoRef = input<RepoRef | null>(null);
   /** True when the current week has no schedule: Build then builds this week, not next. */
   readonly isWeekMissing = input(false);
+  /** The Monday of the untouched draft week that may be rebuilt; null hides the Rebuild item. */
+  readonly rebuildWeekOf = input<string | null>(null);
 
   private readonly engine = inject(EngineService);
   private readonly progress = inject(ProgressService);
@@ -91,6 +101,8 @@ export class EngineMenuComponent {
   protected readonly isRefused = signal(false);
   protected readonly lastBuild = signal<BuildResult | null>(null);
   protected readonly isConfirming = signal(false);
+  /** True while the open confirm is the draft rebuild, not the ordinary build. */
+  protected readonly isRebuildConfirm = signal(false);
 
   protected readonly versions = signal<EngineVersions | null>(null);
   protected readonly result = signal<EngineUpdate | null>(null);
@@ -111,12 +123,15 @@ export class EngineMenuComponent {
     return isBuildDay(todayLocalISO()) ? BUILD_DAY_META : OFF_BUILD_DAY_META;
   });
   protected readonly buildLabel = computed(() => (this.isWeekMissing() ? MISSING_WEEK_BUILD_LABEL : BUILD_LABEL));
-  protected readonly confirmHeading = computed(() =>
-    this.isWeekMissing() ? MISSING_WEEK_CONFIRM_HEADING : CONFIRM_HEADING,
-  );
-  protected readonly confirmLines = computed(() =>
-    this.isWeekMissing() ? MISSING_WEEK_CONFIRM_LINES : CONFIRM_LINES,
-  );
+  protected readonly rebuildMeta = computed(() => shortMonthDay(this.rebuildWeekOf() ?? ''));
+  protected readonly confirmHeading = computed(() => {
+    if (this.isRebuildConfirm()) return REBUILD_CONFIRM_HEADING;
+    return this.isWeekMissing() ? MISSING_WEEK_CONFIRM_HEADING : CONFIRM_HEADING;
+  });
+  protected readonly confirmLines = computed(() => {
+    if (this.isRebuildConfirm()) return REBUILD_CONFIRM_LINES;
+    return this.isWeekMissing() ? MISSING_WEEK_CONFIRM_LINES : CONFIRM_LINES;
+  });
   protected readonly updateMeta = computed(() => {
     const versions = this.versions();
     if (versions === null || versions.repo === null) return '';
@@ -144,12 +159,20 @@ export class EngineMenuComponent {
       .subscribe((status) => this.status.set(status));
   }
 
-  protected confirmBuild(): void {
-    this.isConfirming.set(false);
-    void this.build();
+  protected readonly rebuildLabel = REBUILD_LABEL;
+
+  protected openConfirm(isRebuild: boolean): void {
+    this.isRebuildConfirm.set(isRebuild);
+    this.isConfirming.set(true);
   }
 
-  protected async build(): Promise<void> {
+  protected confirmBuild(): void {
+    this.isConfirming.set(false);
+    const rebuildWeek = this.isRebuildConfirm() ? this.rebuildWeekOf() : null;
+    void this.build(rebuildWeek ?? undefined);
+  }
+
+  protected async build(rebuildWeek?: string): Promise<void> {
     const ref = this.repoRef();
     if (ref === null || this.isBuilding()) return;
     this.isBuilding.set(true);
@@ -157,7 +180,7 @@ export class EngineMenuComponent {
     this.lastBuild.set(null);
     this.step.set(null);
     const previousRunId = this.status().runId;
-    const result = await this.engine.buildNextWeek(ref);
+    const result = await this.engine.buildNextWeek(ref, rebuildWeek);
     this.lastBuild.set(result);
     if (result === 'refused') this.isRefused.set(true);
     if (REFUSALS.has(result)) this.menu().open();

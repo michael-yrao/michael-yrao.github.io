@@ -4,11 +4,23 @@
     role="menuitem"
     class="menu__item"
     [disabled]="isBuilding()"
-    (click)="isConfirming.set(true)"
+    (click)="openConfirm(false)"
   >
     {{ buildLabel() }}
     <span class="menu__meta">{{ buildMeta() }}</span>
   </button>
+  @if (rebuildWeekOf() !== null) {
+    <button
+      type="button"
+      role="menuitem"
+      class="menu__item"
+      [disabled]="isBuilding()"
+      (click)="openConfirm(true)"
+    >
+      {{ rebuildLabel }}
+      <span class="menu__meta">{{ rebuildMeta() }}</span>
+    </button>
+  }
   <button
     type="button"
     role="menuitem"

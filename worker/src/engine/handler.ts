@@ -17,7 +17,7 @@ import {
 } from '../github/write-file';
 import type { OnboardEnv } from '../onboard/handler';
 import { gateOrigin, preflight } from '../pattern-sense/handler';
-import { APPROVE_PATH, handleApproveWeek } from './approve-week';
+import { APPROVE_PATH, handleApproveWeek, isWeekOf } from './approve-week';
 import { handleEngineUpdate, UPDATE_PATH } from './update-route';
 import { OWNER_PATTERN, REPO_PATTERN } from '../pattern-sense/validate';
 
@@ -33,7 +33,13 @@ const ERROR_NO_CONFIG = 'no-config';
 
 type Step = { readonly kind: 'ok' } | { readonly kind: 'refused'; readonly response: Response };
 
-function parseTarget(text: string): RepoTarget | null {
+interface BuildRequest {
+  readonly target: RepoTarget;
+  /** The Monday of a draft week to discard and rebuild; absent for the ordinary build. */
+  readonly rebuildWeek?: string;
+}
+
+function parseRequest(text: string): BuildRequest | null {
   let body: unknown;
   try {
     body = JSON.parse(text);
@@ -41,10 +47,19 @@ function parseTarget(text: string): RepoTarget | null {
     return null;
   }
   if (!isRecord(body)) return null;
-  const { owner, repo } = body;
+  const { owner, repo, rebuildWeek } = body;
   if (typeof owner !== 'string' || !OWNER_PATTERN.test(owner)) return null;
   if (typeof repo !== 'string' || !REPO_PATTERN.test(repo)) return null;
-  return { owner, repo, branch: BRANCH };
+  const target = { owner, repo, branch: BRANCH };
+  if (rebuildWeek === undefined) return { target };
+  if (!isWeekOf(rebuildWeek)) return null;
+  return { target, rebuildWeek };
+}
+
+function dispatchBodyOf(request: BuildRequest): string {
+  const { target, rebuildWeek } = request;
+  if (rebuildWeek === undefined) return JSON.stringify({ ref: target.branch });
+  return JSON.stringify({ ref: target.branch, inputs: { rebuild_week: rebuildWeek } });
 }
 
 function workflowUrl(target: RepoTarget, action: string): string {
@@ -92,8 +107,9 @@ async function handleWeeklyBuild(
   const token = bearerToken(request);
   if (token === null) return failure(401, 'bad-token', cors);
 
-  const target = parseTarget(await request.text());
-  if (target === null) return failure(400, 'invalid-request', cors);
+  const parsed = parseRequest(await request.text());
+  if (parsed === null) return failure(400, 'invalid-request', cors);
+  const { target } = parsed;
 
   const refusal = await checkOwner(fetchImpl, token, target, cors);
   if (refusal !== null) return refusal;
@@ -104,13 +120,12 @@ async function handleWeeklyBuild(
   const enabled = await callWorkflow(fetchImpl, token, workflowUrl(target, 'enable'), 'PUT', undefined, cors);
   if (enabled.kind === 'refused') return enabled.response;
 
-  const dispatchBody = JSON.stringify({ ref: target.branch });
   const dispatched = await callWorkflow(
     fetchImpl,
     token,
     workflowUrl(target, 'dispatches'),
     'POST',
-    dispatchBody,
+    dispatchBodyOf(parsed),
     cors,
   );
   if (dispatched.kind === 'refused') return dispatched.response;

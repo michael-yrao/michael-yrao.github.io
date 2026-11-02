@@ -80,7 +80,8 @@ export class EngineService {
       );
   }
 
-  async buildNextWeek(ref: RepoRef): Promise<BuildResult> {
+  /** Dispatches the weekly build; with `rebuildWeek` (a Monday) it discards and rebuilds that draft week. */
+  async buildNextWeek(ref: RepoRef, rebuildWeek?: string): Promise<BuildResult> {
     const token = await this.auth.getToken();
     if (token === null) return 'failed';
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
@@ -88,7 +89,7 @@ export class EngineService {
       await firstValueFrom(
         this.http.post<unknown>(
           `${WORKER_API_URL}${BUILD_ROUTE}`,
-          { owner: ref.owner, repo: ref.repo },
+          { owner: ref.owner, repo: ref.repo, ...(rebuildWeek === undefined ? {} : { rebuildWeek }) },
           { headers },
         ),
       );

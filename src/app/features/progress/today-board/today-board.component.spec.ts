@@ -1870,7 +1870,10 @@ describe('TodayBoardComponent approve control', () => {
           provide: EngineService,
           useValue: { status$: () => of(NO_ENGINE_RUN), versions: async () => null, approveWeek: approve },
         },
-        { provide: ProgressService, useValue: { refresh, repoRef: signal(null), data: signal(null) } },
+        {
+          provide: ProgressService,
+          useValue: { refresh, repoRef: signal(null), data: signal(null), hasSavedToday: signal(false) },
+        },
       ],
     });
     const fixture = TestBed.createComponent(TodayBoardComponent);
@@ -1900,6 +1903,49 @@ describe('TodayBoardComponent approve control', () => {
     expect(approve).toHaveBeenCalledTimes(1);
     expect(refresh).toHaveBeenCalledTimes(1);
     expect(button()).toBeNull();
+  });
+});
+
+describe('TodayBoardComponent rebuildWeekOf', () => {
+  const untouchedItem: ScheduleItem = { lcNumber: 9999, title: 'Untouched', technique: 'Backtracking', startComfort: '🔴', difficulty: 'Medium', done: false };
+
+  it.each<{
+    name: string;
+    isDraft: boolean;
+    isOwnRepo: boolean;
+    hasSavedToday: boolean;
+    item: Partial<ScheduleItem>;
+    isOffered: boolean;
+  }>([
+    { name: 'an untouched draft offers its week', isDraft: true, isOwnRepo: true, hasSavedToday: false, item: {}, isOffered: true },
+    { name: 'a done item withholds it', isDraft: true, isOwnRepo: true, hasSavedToday: false, item: { done: true }, isOffered: false },
+    { name: 'an unrated item withholds it', isDraft: true, isOwnRepo: true, hasSavedToday: false, item: { unrated: true }, isOffered: false },
+    { name: 'not a draft withholds it', isDraft: false, isOwnRepo: true, hasSavedToday: false, item: {}, isOffered: false },
+    { name: 'not your repo withholds it', isDraft: true, isOwnRepo: false, hasSavedToday: false, item: {}, isOffered: false },
+    { name: 'a save today withholds it', isDraft: true, isOwnRepo: true, hasSavedToday: true, item: {}, isOffered: false },
+  ])('$name', ({ isDraft, isOwnRepo, hasSavedToday, item, isOffered }) => {
+    TestBed.configureTestingModule({
+      imports: [TodayBoardComponent],
+      providers: [
+        provideRouter([]),
+        { provide: EngineService, useValue: { status$: () => of(NO_ENGINE_RUN), versions: async () => null } },
+        {
+          provide: ProgressService,
+          useValue: { refresh: vi.fn(), repoRef: signal(null), data: signal(null), hasSavedToday: signal(hasSavedToday) },
+        },
+      ],
+    });
+    const base = makeSchedule();
+    const schedule = makeSchedule({
+      ...(isDraft ? { isDraft: true } : {}),
+      days: [{ ...base.days[0], items: [{ ...untouchedItem, ...item }] }],
+    });
+    const fixture = TestBed.createComponent(TodayBoardComponent);
+    fixture.componentRef.setInput('schedule', schedule);
+    fixture.componentRef.setInput('isOwnRepo', isOwnRepo);
+    fixture.detectChanges();
+    const rebuildWeekOf = (fixture.componentInstance as unknown as { rebuildWeekOf(): string | null }).rebuildWeekOf();
+    expect(rebuildWeekOf).toBe(isOffered ? schedule.weekOf : null);
   });
 });
 

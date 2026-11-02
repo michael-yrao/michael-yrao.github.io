@@ -229,7 +229,11 @@
         ><app-icon name="check" [size]="14" /></button>
       }
       @if (isOwnRepo()) {
-        <app-engine-menu [repoRef]="repoRef()" [isWeekMissing]="isCurrentWeekMissing()" />
+        <app-engine-menu
+          [repoRef]="repoRef()"
+          [isWeekMissing]="isCurrentWeekMissing()"
+          [rebuildWeekOf]="rebuildWeekOf()"
+        />
       }
     </div>
   </div>

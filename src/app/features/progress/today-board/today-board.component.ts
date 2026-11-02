@@ -259,6 +259,13 @@ export class TodayBoardComponent {
       !this.approvedWeeks().has(this.displayedWeekOf()),
   );
 
+  /** The week the Engine menu may rebuild: an approvable draft with no row done or unrated and nothing saved today. */
+  protected readonly rebuildWeekOf = computed<string | null>(() => {
+    if (!this.isApprovable() || this.progress.hasSavedToday()) return null;
+    const isTouched = this.days().some((day) => day.items.some((item) => item.done || item.unrated === true));
+    return isTouched ? null : this.displayedWeekOf();
+  });
+
   protected async approveWeek(): Promise<void> {
     const ref = this.repoRef();
     const weekOf = this.displayedWeekOf();
