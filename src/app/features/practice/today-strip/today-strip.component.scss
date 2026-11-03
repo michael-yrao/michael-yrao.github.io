@@ -29,3 +29,34 @@ $ring-gap: 3px;
 .today-strip__dot--current {
   box-shadow: 0 0 0 $ring-gap var(--color-bg), 0 0 0 calc(#{$ring-gap} + 1.5px) var(--color-text);
 }
+
+// A fresh pass fills the current dot at once and sends two rings outward. The rings are ::after
+// layers, so the dot's box and the strip's layout never move. The 2s total matches PASS_EFFECT_MS.
+$ripple-duration: 1s;
+$ripple-scale: 3;
+
+.today-strip__dot--celebrating {
+  position: relative;
+  border-color: var(--color-easy);
+  background: var(--color-easy);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    border: 1.5px solid var(--color-easy);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    animation: today-strip-ripple $ripple-duration ease-out 2 both;
+  }
+}
+
+@keyframes today-strip-ripple {
+  from { opacity: 0.8; transform: scale(1); }
+  to { opacity: 0; transform: scale($ripple-scale); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today-strip__dot--celebrating::after { animation: none; }
+}

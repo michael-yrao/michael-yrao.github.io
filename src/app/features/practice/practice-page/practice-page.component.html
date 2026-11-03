@@ -14,6 +14,7 @@
       activeTab="description"
       [hasSolution]="hasSolution() && !isCompleting()"
       [isTitleShown]="false"
+      [isPassFresh]="isPassFresh()"
     />
 
     <div
@@ -25,6 +26,9 @@
       [style.--work-track]="workTrack()"
     >
       <div class="practice__problem" [class.practice__problem--closed]="!isProblemOpen()" [class.practice__problem--passed]="isPassFresh()">
+        @if (isPassFresh()) {
+          <span class="practice__pass-overlay" aria-hidden="true"><app-icon name="check" [size]="passCheckSize" /></span>
+        }
         <div class="practice__pane-bar">
           <!-- The pane names its problem, as the page's heading; only the chevron folds it. -->
           <h1 class="practice__pane-title" [attr.title]="title()">

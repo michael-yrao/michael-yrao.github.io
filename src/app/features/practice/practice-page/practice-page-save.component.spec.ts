@@ -377,7 +377,7 @@ describe('PracticePageComponent save to GitHub', () => {
     { name: 'an automatic open shows the effect, then drops it', isReopened: false },
     { name: 'a reopen after the effect expired does not bring it back', isReopened: true },
   ])('pass effect: $name', ({ isReopened }) => {
-    const PASS_EFFECT_MS = 1200;
+    const PASS_EFFECT_MS = 2000;
     vi.useFakeTimers();
     try {
       signIn(OWNER);

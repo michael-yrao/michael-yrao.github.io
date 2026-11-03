@@ -34,6 +34,8 @@ export class PracticeHeaderComponent {
   readonly repo = input.required<RepoRef | null>();
   /** False where the page names the problem itself (the practice page's problem pane bar). */
   readonly isTitleShown = input(true);
+  /** True while the page celebrates a fresh pass; the today strip ripples its current dot. */
+  readonly isPassFresh = input(false);
 
   private readonly session = inject(TodaySessionService);
 

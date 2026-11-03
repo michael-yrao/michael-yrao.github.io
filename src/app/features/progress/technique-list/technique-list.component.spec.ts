@@ -184,12 +184,12 @@ describe('TechniqueListComponent', () => {
 
     const rows: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.tech-row__problems li'));
     const [practiced, external] = rows;
-    const run = practiced.querySelector('a[title="Run code"]');
+    const run = practiced.querySelector('a[title="Practice"]');
     expect(run?.querySelector('app-icon svg[data-name="terminal"]')).not.toBeNull();
     expect(run?.getAttribute('href')).toBe('/practice/11');
     expect(practiced.querySelector('a[title="External"]')).toBeTruthy();
     expect(external.querySelector('a[title="External"]')).toBeTruthy();
-    expect(external.querySelector('a[title="Run code"]')).toBeFalsy();
+    expect(external.querySelector('a[title="Practice"]')).toBeFalsy();
   });
 
   it('emits expand exactly once when a started technique is expanded for the first time', () => {

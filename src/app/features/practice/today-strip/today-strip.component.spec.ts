@@ -10,7 +10,7 @@ const QUEUE = [1, 2, 3];
 const DONE = new Set([1]);
 const TITLES: Readonly<Record<number, string>> = { 1: 'Two Sum', 2: 'Add Two Numbers' };
 
-function render(isActive: boolean, contains: boolean, current: number): HTMLElement {
+function render(isActive: boolean, contains: boolean, current: number, isCelebrating = false): HTMLElement {
   TestBed.configureTestingModule({
     imports: [TodayStripComponent],
     providers: [
@@ -29,6 +29,7 @@ function render(isActive: boolean, contains: boolean, current: number): HTMLElem
   });
   const fixture = TestBed.createComponent(TodayStripComponent);
   fixture.componentRef.setInput('number', current);
+  fixture.componentRef.setInput('isCelebrating', isCelebrating);
   fixture.detectChanges();
   return fixture.nativeElement;
 }
@@ -50,5 +51,14 @@ describe('TodayStripComponent', () => {
     expect(dots.map((d) => d.classList.contains('today-strip__dot--done'))).toEqual([true, false, false]);
     expect(dots.map((d) => d.classList.contains('today-strip__dot--current'))).toEqual([false, true, false]);
     expect(dots.map((d) => d.getAttribute('aria-current'))).toEqual([null, 'page', null]);
+  });
+
+  it.each([
+    { isCelebrating: false, expected: [false, false, false] },
+    { isCelebrating: true, expected: [false, true, false] },
+  ])('isCelebrating $isCelebrating: ripple class on $expected', ({ isCelebrating, expected }) => {
+    const dots = Array.from(render(true, true, 2, isCelebrating).querySelectorAll('a'));
+
+    expect(dots.map((d) => d.classList.contains('today-strip__dot--celebrating'))).toEqual(expected);
   });
 });

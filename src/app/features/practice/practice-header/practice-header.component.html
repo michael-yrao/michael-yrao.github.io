@@ -44,7 +44,7 @@
       title="Write an interview problem from this"
       ><app-icon name="pen" [size]="14"
     /></a>
-    <app-today-strip [number]="number()" />
+    <app-today-strip [number]="number()" [isCelebrating]="isPassFresh()" />
     @if (!isRunThrough()) {
       @if (neighbors().prev; as prev) {
         <a

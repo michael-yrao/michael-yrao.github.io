@@ -105,6 +105,17 @@ export class TodaySessionService {
     this.goToPractice(order[index]);
   }
 
+  /** Opens problem n inside today's run: keeps the stored session's place list, or builds one as `start` does. */
+  startAt(n: number): void {
+    const stored = this.session();
+    const order = stored ? stored.order : buildQueue(this.todayDay(), this.practiceNumbers());
+    const index = order.indexOf(n);
+    if (index === -1) return;
+    const completed = stored ? stored.completed : order.filter((m) => this.isDone(m));
+    this.writeSession({ date: stored?.date ?? sessionDateISO(), order, index, completed });
+    this.goToPractice(n);
+  }
+
   resume(): void {
     const n = this.current();
     if (n !== null) this.goToPractice(n);

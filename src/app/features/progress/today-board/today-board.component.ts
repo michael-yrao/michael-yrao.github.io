@@ -439,6 +439,20 @@ export class TodayBoardComponent {
     return file && ref ? fileUrl(ref, file) : null;
   }
 
+  /** True for a row of today's day, in the viewer's own repo, that belongs to today's run-through. */
+  isTodayRunItem(item: ScheduleItem, date: string): boolean {
+    return (
+      item.lcNumber !== null &&
+      date === sessionDateISO() &&
+      this.isOwnRepo() &&
+      this.todaySession.contains(item.lcNumber)
+    );
+  }
+
+  protected practiceToday(n: number): void {
+    this.todaySession.startAt(n);
+  }
+
   /** True for an open row whose rep is saved but not yet folded. Only TODAY's day qualifies:
    *  the pending set comes from today's attempt folder, so a same-numbered row on another day
    *  must not light up. */

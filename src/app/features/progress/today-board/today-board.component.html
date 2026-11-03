@@ -104,7 +104,11 @@
     <span class="today-board__links">
       <span class="today-board__slot">
         @if (item.lcNumber && practiceNumbers().has(item.lcNumber)) {
-          <a [routerLink]="['/practice', item.lcNumber]" queryParamsHandling="preserve" aria-label="Run code" title="Run code" class="practice-link"><app-icon [name]="practiceIcon" [size]="14" /></a>
+          @if (isTodayRunItem(item, date)) {
+            <button type="button" class="practice-link" aria-label="Practice" title="Practice" (click)="practiceToday(item.lcNumber)"><app-icon [name]="practiceIcon" [size]="14" /></button>
+          } @else {
+            <a [routerLink]="['/practice', item.lcNumber]" queryParamsHandling="preserve" aria-label="Practice" title="Practice" class="practice-link"><app-icon [name]="practiceIcon" [size]="14" /></a>
+          }
         }
       </span>
       <span class="today-board__slot">

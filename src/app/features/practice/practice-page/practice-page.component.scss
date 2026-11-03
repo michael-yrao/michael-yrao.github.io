@@ -20,18 +20,63 @@ $divider-line-width: 2px;
   .practice__skeleton { animation: none; }
   .practice__problem--passed { animation: none; }
   .practice__pass-mark { animation: none; }
+  .practice__pass-overlay { animation: none; }
 }
 
-// A fresh pass lights the problem pane's edge and pops a check beside its head.
-// The glow lasts as long as PASS_EFFECT_MS in the component, which drops the class and the mark.
+// A fresh pass pulses the problem pane's edge twice, centres a large check over it, and pops a small
+// check beside the pane head. These durations match PASS_EFFECT_MS (2000 ms) in the component, which
+// drops the class, the overlay and the mark when it ends.
+$pass-effect-duration: 2s;
+$pass-ring-width: 4px;
+$pass-overlay-backdrop-size: 8rem;
+$pass-overlay-backdrop-share: 22%;
+
 .practice__problem--passed {
   border-radius: var(--radius-md);
-  animation: practice-pass-glow 1.2s ease-out;
+  animation: practice-pass-glow $pass-effect-duration ease-in-out;
 }
 
 @keyframes practice-pass-glow {
-  from { box-shadow: inset 0 0 0 2px var(--color-found), inset 0 0 1.5rem var(--color-found); }
-  to { box-shadow: inset 0 0 0 0 transparent, inset 0 0 0 transparent; }
+  0%, 50% {
+    box-shadow: inset 0 0 0 $pass-ring-width var(--color-found), inset 0 0 2.5rem var(--color-found);
+  }
+  25%, 75% {
+    box-shadow: inset 0 0 0 calc(#{$pass-ring-width} / 2) var(--color-found), inset 0 0 1rem var(--color-found);
+  }
+  100% { box-shadow: inset 0 0 0 0 transparent, inset 0 0 0 transparent; }
+}
+
+// A zero-height sticky line at the pane's visible middle: the check overflows evenly around it, so it
+// is centred on the on-screen part of the pane at any scroll. The negative margin cancels the flex gap
+// the first child would add, so nothing below it moves.
+.practice__pass-overlay {
+  position: sticky;
+  top: 50%;
+  z-index: 2;
+  height: 0;
+  margin-block-end: calc(-1 * var(--space-md));
+  display: grid;
+  grid-template-rows: 0;
+  place-items: center;
+  pointer-events: none;
+  color: var(--color-found);
+  animation: practice-pass-overlay $pass-effect-duration ease-out both;
+
+  app-icon {
+    display: grid;
+    place-items: center;
+    width: $pass-overlay-backdrop-size;
+    height: $pass-overlay-backdrop-size;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-found) $pass-overlay-backdrop-share, transparent);
+  }
+}
+
+@keyframes practice-pass-overlay {
+  0% { transform: scale(0.3); opacity: 0; }
+  15% { transform: scale(1.15); opacity: 1; }
+  25%, 75% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
 }
 
 .practice__pass-mark {

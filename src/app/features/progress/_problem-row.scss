@@ -113,6 +113,17 @@ $row-mobile-breakpoint: 680px;
 
   // The `>_` practice link: two characters that must read as one mark.
   .practice-link { font-family: var(--font-mono); white-space: nowrap; }
+
+  // The same mark as a button (today's run): no native button chrome, link colour.
+  button.practice-link {
+    display: inline-flex;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-accent);
+    font-size: inherit;
+    cursor: pointer;
+  }
 }
 
 // One link mark (run, or external ↗) in its own fixed-width box, so an absent mark leaves its

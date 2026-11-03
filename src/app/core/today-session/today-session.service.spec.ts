@@ -109,6 +109,28 @@ describe('TodaySessionService', () => {
     expect(other.isDone(9001)).toBe(false);
   });
 
+  it.each([
+    { name: 'no stored session builds one at n', stored: null, n: 2, expected: { index: 1, completed: [] as number[] }, isNavigated: true },
+    {
+      name: 'a stored session keeps its completed and moves the index',
+      stored: { date: sessionDateISO(), order: [1, 2, 3], index: 0, completed: [1] },
+      n: 3,
+      expected: { index: 2, completed: [1] },
+      isNavigated: true,
+    },
+    { name: 'n outside the queue writes and navigates nowhere', stored: null, n: 9, expected: null, isNavigated: false },
+  ])('startAt: $name', ({ stored, n, expected, isNavigated }) => {
+    if (stored) localStorage.setItem(KEY, JSON.stringify(stored));
+    const { service, navigate } = setup();
+
+    service.startAt(n);
+
+    if (expected === null) expect(localStorage.getItem(KEY)).toBeNull();
+    else expect(JSON.parse(localStorage.getItem(KEY) as string)).toMatchObject({ order: [1, 2, 3], ...expected });
+    if (isNavigated) expect(navigate).toHaveBeenCalledWith(['/practice', n]);
+    else expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('counts a pending attempt as done', () => {
     const { service } = setup([2]);
     expect(service.isDone(2)).toBe(true);

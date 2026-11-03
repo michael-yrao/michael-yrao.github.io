@@ -676,7 +676,7 @@ describe('TodayBoardComponent', () => {
     fixture.componentRef.setInput('practiceNumbers', new Set([39]));
     fixture.detectChanges();
 
-    const run: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a[title="Run code"]');
+    const run: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a[title="Practice"]');
     const external = fixture.nativeElement.querySelector('a[title="External"]');
     expect(external).toBeTruthy();
     if (isPracticed) {
@@ -1988,6 +1988,45 @@ describe('TodayBoardComponent run-through control', () => {
     const button = runButton(createWithSession({ queue, active, doneCount }));
     expect(button?.getAttribute('aria-label') ?? null).toBe(label);
     if (button) expect(button.disabled).toBe(isDisabled);
+  });
+
+  it('a run item on today is a button that starts the run at it; the same problem on another day stays a link', () => {
+    const startAt = vi.fn();
+    TestBed.configureTestingModule({
+      imports: [TodayBoardComponent],
+      providers: [
+        provideRouter([]),
+        { provide: EngineService, useValue: { status$: () => of(NO_ENGINE_RUN), versions: async () => null } },
+        { provide: ProgressService, useValue: { refresh: () => undefined } },
+        {
+          provide: TodaySessionService,
+          useValue: { queue: () => [39], active: () => false, doneCount: () => 0, contains: (n: number) => n === 39, startAt },
+        },
+      ],
+    });
+    const base = makeSchedule();
+    const item = { lcNumber: 39, title: 'Combination Sum', technique: null, startComfort: null, difficulty: null, done: false };
+    const schedule = makeSchedule({
+      days: [
+        { ...base.days[0], items: [item] },
+        { ...base.days[0], date: '2020-01-06', items: [item] },
+      ],
+    });
+    const fixture = TestBed.createComponent(TodayBoardComponent);
+    fixture.componentRef.setInput('schedule', schedule);
+    fixture.componentRef.setInput('isOwnRepo', true);
+    fixture.componentRef.setInput('practiceNumbers', new Set([39]));
+    fixture.detectChanges();
+
+    const button: HTMLButtonElement | null = fixture.nativeElement.querySelector('button[title="Practice"]');
+    expect(button).not.toBeNull();
+    button?.click();
+    expect(startAt).toHaveBeenCalledWith(39);
+
+    fixture.componentInstance.selectDay('2020-01-06');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('button[title="Practice"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('a[title="Practice"]')?.getAttribute('href')).toBe('/practice/39');
   });
 
   it('is hidden when the selected day is not today', () => {

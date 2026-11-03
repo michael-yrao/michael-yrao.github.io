@@ -9,6 +9,7 @@ interface StripDot {
   readonly label: string;
   readonly isDone: boolean;
   readonly isPage: boolean;
+  readonly isCelebrating: boolean;
 }
 
 /** One dot per problem in today's run-through: an empty circle, or a green filled one when done, ringed on the problem being viewed. */
@@ -21,6 +22,8 @@ interface StripDot {
 })
 export class TodayStripComponent {
   readonly number = input.required<number | null>();
+  /** True while a fresh pass is celebrated: the current dot fills green and ripples. */
+  readonly isCelebrating = input(false);
 
   private readonly session = inject(TodaySessionService);
   private readonly practice = inject(PracticeService);
@@ -33,11 +36,13 @@ export class TodayStripComponent {
   protected readonly dots = computed<readonly StripDot[]>(() =>
     this.session.queue().map((m) => {
       const title = this.practice.problemFor(m)?.title;
+      const isPage = m === this.number();
       return {
         number: m,
         label: title ? `#${m} ${title}` : `#${m}`,
         isDone: this.session.isDone(m),
-        isPage: m === this.number(),
+        isPage,
+        isCelebrating: isPage && this.isCelebrating(),
       };
     }),
   );

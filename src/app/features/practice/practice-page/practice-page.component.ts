@@ -62,8 +62,9 @@ import {
 
 const DRAFT_SAVE_DELAY_MS = 500;
 const COPY_FEEDBACK_MS = 1500;
-/** How long the pass glow and check mark show; the `practice-pass-glow` animation in the scss lasts the same. */
-const PASS_EFFECT_MS = 1200;
+/** How long the pass glow, centre check and strip ripple show; the pass animations in the scss last the same. */
+const PASS_EFFECT_MS = 2000;
+const PASS_CHECK_SIZE_PX = 72;
 const COPY_OK_ICON: IconName = 'check';
 const COPY_FAIL_ICON: IconName = 'x';
 const COPY_ICON_SIZE_PX = 14;
@@ -228,6 +229,7 @@ export class PracticePageComponent {
   });
 
   protected readonly copyIconSize = COPY_ICON_SIZE_PX;
+  protected readonly passCheckSize = PASS_CHECK_SIZE_PX;
   protected readonly copyOkIcon = COPY_OK_ICON;
   protected readonly copyFailIcon = COPY_FAIL_ICON;
   protected readonly completeRepIcon = COMPLETE_REP_ICON;

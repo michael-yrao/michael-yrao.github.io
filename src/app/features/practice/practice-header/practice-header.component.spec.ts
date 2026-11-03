@@ -17,6 +17,7 @@ class ProblemListPanelStub {
 @Component({ selector: 'app-today-strip', template: '' })
 class TodayStripStub {
   readonly number = input<unknown>();
+  readonly isCelebrating = input<unknown>();
 }
 
 function render(isRunning: boolean, isTitleShown = true): HTMLElement {

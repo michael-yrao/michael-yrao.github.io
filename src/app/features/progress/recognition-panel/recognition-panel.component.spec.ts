@@ -64,12 +64,12 @@ describe('RecognitionPanelComponent', () => {
     const [external, practiced]: HTMLElement[] = Array.from(
       fixture.nativeElement.querySelectorAll('.recognition__row'),
     );
-    const run = practiced.querySelector('a[title="Run code"]');
+    const run = practiced.querySelector('a[title="Practice"]');
     expect(run?.querySelector('app-icon svg[data-name="terminal"]')).not.toBeNull();
     expect(run?.getAttribute('href')).toBe('/practice/1');
     expect(practiced.querySelector('a[title="External"]')).toBeTruthy();
     expect(external.querySelector('a[title="External"]')).toBeTruthy();
-    expect(external.querySelector('a[title="Run code"]')).toBeFalsy();
+    expect(external.querySelector('a[title="Practice"]')).toBeFalsy();
   });
 
   it('shows the disposable/cold/counted-only-here note when there are probes', () => {
