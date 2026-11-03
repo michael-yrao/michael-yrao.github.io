@@ -23,7 +23,7 @@ class TodayStripStub {
 function render(isRunning: boolean, isTitleShown = true): HTMLElement {
   TestBed.configureTestingModule({
     imports: [PracticeHeaderComponent],
-    providers: [provideRouter([]), { provide: TodaySessionService, useValue: { isRunning: () => isRunning } }],
+    providers: [provideRouter([]), { provide: TodaySessionService, useValue: { isRunning: () => isRunning, handoff: () => null } }],
   }).overrideComponent(PracticeHeaderComponent, {
     set: { imports: [NgClass, RouterLink, IconComponent, ProblemListPanelStub, TodayStripStub] },
   });

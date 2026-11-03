@@ -9,7 +9,7 @@ import { PendingAttemptsService } from '../services/pending-attempts.service';
 import { PracticeService } from '../services/practice.service';
 import { ProgressService } from '../services/progress.service';
 import { sessionDateISO } from '../utils/local-date';
-import { TodaySessionService } from './today-session.service';
+import { FINALE_STAGGER_MS, TodaySessionService } from './today-session.service';
 
 const REF = { owner: 'me', repo: 'dsa', branch: 'main' };
 const KEY = 'po-today-session:me/dsa';
@@ -30,6 +30,7 @@ function setup(pending: number[] = [], isColdLoad = false, options: SetupOptions
   }));
   const pendingSet = signal<ReadonlySet<number>>(new Set(pending));
   const navigate = vi.fn().mockResolvedValue(true);
+  const router = { navigate, url: '/' };
   const loadSummary = vi.fn();
   const progress = isColdLoad
     ? { repoRef: signal(null), data: signal(null), status: signal(status), loadSummary }
@@ -48,32 +49,80 @@ function setup(pending: number[] = [], isColdLoad = false, options: SetupOptions
         provide: PracticeService,
         useValue: { indexNumbers: signal(new Set([1, 2, 3])), indexRef: signal(REF), ref: signal(REF), data: signal(null), loadIndex: vi.fn() },
       },
-      { provide: Router, useValue: { navigate } },
+      { provide: Router, useValue: router },
     ],
   });
-  return { service: TestBed.inject(TodaySessionService), navigate, loadSummary };
+  return { service: TestBed.inject(TodaySessionService), navigate, loadSummary, router };
 }
 
 describe('TodaySessionService', () => {
   beforeEach(() => vi.stubGlobal('localStorage', createMemoryStorage()));
   afterEach(() => vi.unstubAllGlobals());
 
-  it('advanceFrom goes to the next undone, then home and clears storage after the last', () => {
-    const { service, navigate } = setup();
-    service.start();
-    expect(navigate).toHaveBeenLastCalledWith(['/practice', 1]);
+  describe('advanceFrom', () => {
+    const HANDOFF_MS = 1500;
+    const FINALE_MS = 600 + FINALE_STAGGER_MS * 3;
 
-    service.advanceFrom(1);
-    expect(navigate).toHaveBeenLastCalledWith(['/practice', 2]);
-    service.markCompleted(1);
-    service.markCompleted(2);
-    service.advanceFrom(2);
-    expect(navigate).toHaveBeenLastCalledWith(['/practice', 3]);
-    service.markCompleted(3);
-    service.advanceFrom(3);
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
 
-    expect(navigate).toHaveBeenLastCalledWith(['/']);
-    expect(localStorage.getItem(KEY)).toBeNull();
+    it.each([
+      {
+        name: 'a next problem: hand-off, then walks on',
+        completed: [1],
+        from: 1,
+        url: '/practice/1?tab=code',
+        leftTo: null,
+        handoff: { from: 1, to: 2 },
+        delayMs: HANDOFF_MS,
+        expectedNavigate: ['/practice', 2],
+        isStoragePresentAfter: true,
+      },
+      {
+        name: 'the last problem: finale, then home with storage cleared',
+        completed: [1, 2, 3],
+        from: 3,
+        url: '/practice/3',
+        leftTo: null,
+        handoff: { from: 3, to: null },
+        delayMs: FINALE_MS,
+        expectedNavigate: ['/'],
+        isStoragePresentAfter: false,
+      },
+      {
+        name: 'the learner left during the beat: no navigation',
+        completed: [1],
+        from: 1,
+        url: '/practice/1',
+        leftTo: '/progress',
+        handoff: { from: 1, to: 2 },
+        delayMs: HANDOFF_MS,
+        expectedNavigate: null,
+        isStoragePresentAfter: true,
+      },
+    ] as const)('$name', ({ completed, from, url, leftTo, handoff, delayMs, expectedNavigate, isStoragePresentAfter }) => {
+      const { service, navigate, router } = setup();
+      service.start();
+      completed.forEach((n) => service.markCompleted(n));
+      router.url = url;
+      navigate.mockClear();
+
+      service.advanceFrom(from);
+
+      expect(service.handoff()).toEqual(handoff);
+      expect(navigate).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(delayMs - 1);
+      expect(navigate).not.toHaveBeenCalled();
+      expect(localStorage.getItem(KEY) !== null).toBe(true);
+
+      if (leftTo) router.url = leftTo;
+      vi.advanceTimersByTime(1);
+
+      expect(service.handoff()).toBeNull();
+      if (expectedNavigate) expect(navigate).toHaveBeenCalledWith(expectedNavigate);
+      else expect(navigate).not.toHaveBeenCalled();
+      expect(localStorage.getItem(KEY) !== null).toBe(isStoragePresentAfter);
+    });
   });
 
   it('restores the run-through from storage alone on a cold load, with no progress data', () => {

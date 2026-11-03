@@ -3,14 +3,21 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { PracticeService } from '../../../core/services/practice.service';
-import { TodaySessionService } from '../../../core/today-session/today-session.service';
+import { FINALE_STAGGER_MS, Handoff, TodaySessionService } from '../../../core/today-session/today-session.service';
 import { TodayStripComponent } from './today-strip.component';
 
 const QUEUE = [1, 2, 3];
 const DONE = new Set([1]);
 const TITLES: Readonly<Record<number, string>> = { 1: 'Two Sum', 2: 'Add Two Numbers' };
 
-function render(isActive: boolean, contains: boolean, current: number, isCelebrating = false): HTMLElement {
+function render(
+  isActive: boolean,
+  contains: boolean,
+  current: number,
+  isCelebrating = false,
+  handoff: Handoff | null = null,
+  isAllDone = false,
+): HTMLElement {
   TestBed.configureTestingModule({
     imports: [TodayStripComponent],
     providers: [
@@ -20,8 +27,9 @@ function render(isActive: boolean, contains: boolean, current: number, isCelebra
         useValue: {
           active: signal(isActive),
           queue: signal(QUEUE),
+          handoff: signal(handoff),
           isRunning: () => isActive && contains,
-          isDone: (n: number) => DONE.has(n),
+          isDone: (n: number) => isAllDone || DONE.has(n),
         },
       },
       { provide: PracticeService, useValue: { problemFor: (n: number) => (TITLES[n] ? { title: TITLES[n] } : null) } },
@@ -60,5 +68,48 @@ describe('TodayStripComponent', () => {
     const dots = Array.from(render(true, true, 2, isCelebrating).querySelectorAll('a'));
 
     expect(dots.map((d) => d.classList.contains('today-strip__dot--celebrating'))).toEqual(expected);
+  });
+
+  it.each([
+    {
+      name: 'hand-off: landing on from, receiving on to',
+      handoff: { from: 1, to: 2 },
+      isRunning: true,
+      isAllDone: false,
+      landing: [true, false, false],
+      receiving: [false, true, false],
+      finale: [false, false, false],
+      delays: ['', '', ''],
+    },
+    {
+      name: 'finale: every dot pulses in sequence, strip shown with all done',
+      handoff: { from: 3, to: null },
+      isRunning: false,
+      isAllDone: true,
+      landing: [false, false, true],
+      receiving: [false, false, false],
+      finale: [true, true, true],
+      delays: ['0ms', `${FINALE_STAGGER_MS}ms`, `${FINALE_STAGGER_MS * 2}ms`],
+    },
+    {
+      name: 'no hand-off: none of the classes',
+      handoff: null,
+      isRunning: true,
+      isAllDone: false,
+      landing: [false, false, false],
+      receiving: [false, false, false],
+      finale: [false, false, false],
+      delays: ['', '', ''],
+    },
+  ])('$name', ({ handoff, isRunning, isAllDone, landing, receiving, finale, delays }) => {
+    const current = handoff?.from ?? 2;
+    const dots = Array.from(render(isRunning, true, current, false, handoff, isAllDone).querySelectorAll('a'));
+    const has = (cls: string) => dots.map((d) => d.classList.contains(`today-strip__dot--${cls}`));
+
+    expect(dots).toHaveLength(QUEUE.length);
+    expect(has('landing')).toEqual(landing);
+    expect(has('receiving')).toEqual(receiving);
+    expect(has('finale')).toEqual(finale);
+    expect(dots.map((d) => d.style.animationDelay)).toEqual(delays);
   });
 });

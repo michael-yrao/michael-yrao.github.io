@@ -13,6 +13,16 @@ const STORAGE_KEY_PREFIX = 'po-today-session:';
 const HOME_ROUTE = '/';
 const PRACTICE_ROUTE = '/practice';
 
+// The strip's hand-off and finale animations are timed to these (today-strip.component.scss).
+export const FINALE_STAGGER_MS = 120;
+const HANDOFF_MS = 1500;
+const FINALE_BASE_MS = 600;
+
+export interface Handoff {
+  readonly from: number;
+  readonly to: number | null;
+}
+
 function withCompleted(session: TodaySession, n: number): TodaySession {
   return session.completed.includes(n) ? session : { ...session, completed: [...session.completed, n] };
 }
@@ -35,6 +45,11 @@ export class TodaySessionService {
   private readonly memorySession = signal<TodaySession | null>(null);
   /** Bumped on every storage write so `session` re-reads. */
   private readonly storageWrites = signal(0);
+  private readonly handoffState = signal<Handoff | null>(null);
+  private beatTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** The completion beat playing before the walk on: `to` is the next problem, or null for the day's finale. */
+  readonly handoff = this.handoffState.asReadonly();
 
   /** Keyed by the signed-in viewer's repo, known from boot on every page, not by the progress page's load. */
   private readonly storageKey = computed(() => {
@@ -98,6 +113,7 @@ export class TodaySessionService {
   }
 
   start(): void {
+    this.cancelHandoff();
     const order = buildQueue(this.todayDay(), this.practiceNumbers());
     const index = order.findIndex((n) => !this.isDone(n));
     if (index === -1) return;
@@ -107,6 +123,7 @@ export class TodaySessionService {
 
   /** Opens problem n inside today's run: keeps the stored session's place list, or builds one as `start` does. */
   startAt(n: number): void {
+    this.cancelHandoff();
     const stored = this.session();
     const order = stored ? stored.order : buildQueue(this.todayDay(), this.practiceNumbers());
     const index = order.indexOf(n);
@@ -117,6 +134,7 @@ export class TodaySessionService {
   }
 
   resume(): void {
+    this.cancelHandoff();
     const n = this.current();
     if (n !== null) this.goToPractice(n);
   }
@@ -130,20 +148,51 @@ export class TodaySessionService {
     this.looseCompleted.update((done) => new Set(done).add(n));
   }
 
-  /** Moves past `n` (counted as done) to the next undone problem, or home with the session cleared when none is left. */
+  /**
+   * Plays the completion beat for `n` (counted as done), then moves to the next undone problem, or home with the
+   * session cleared when none is left. The beat is the `handoff` signal; the move waits for its delay.
+   */
   advanceFrom(n: number): void {
+    this.cancelHandoff();
     const order = this.queue();
     const position = order.indexOf(n);
     if (position === -1) return;
     const next = nextUndone(order, (candidate) => candidate === n || this.isDone(candidate), position + 1);
     if (next === null) {
-      this.writeSession(null);
-      void this.router.navigate([HOME_ROUTE]);
+      // The strip still draws the queue during the finale, so the session is cleared only when the beat ends.
+      this.playBeat({ from: n, to: null }, FINALE_BASE_MS + FINALE_STAGGER_MS * order.length, (isStillOnProblem) => {
+        this.writeSession(null);
+        if (isStillOnProblem) void this.router.navigate([HOME_ROUTE]);
+      });
       return;
     }
     const stored = this.session();
     if (stored) this.writeSession({ ...withCompleted(stored, n), index: order.indexOf(next) });
-    this.goToPractice(next);
+    this.playBeat({ from: n, to: next }, HANDOFF_MS, (isStillOnProblem) => {
+      if (isStillOnProblem) this.goToPractice(next);
+    });
+  }
+
+  /** Shows `handoff` for `delayMs`, then clears it and runs `onEnd` with whether the router is still on problem `from`. */
+  private playBeat(handoff: Handoff, delayMs: number, onEnd: (isStillOnProblem: boolean) => void): void {
+    this.handoffState.set(handoff);
+    this.beatTimer = setTimeout(() => {
+      this.beatTimer = null;
+      this.handoffState.set(null);
+      onEnd(this.isOnProblem(handoff.from));
+    }, delayMs);
+  }
+
+  private cancelHandoff(): void {
+    if (this.beatTimer !== null) clearTimeout(this.beatTimer);
+    this.beatTimer = null;
+    this.handoffState.set(null);
+  }
+
+  /** True when the router sits on `/practice/<n>`, whatever its query string or fragment. */
+  private isOnProblem(n: number): boolean {
+    const path = this.router.url.split(/[?#]/)[0];
+    return path === `${PRACTICE_ROUTE}/${n}`;
   }
 
   private goToPractice(n: number): void {

@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { RouterLink } from '@angular/router';
 
 import { PracticeService } from '../../../core/services/practice.service';
-import { TodaySessionService } from '../../../core/today-session/today-session.service';
+import { FINALE_STAGGER_MS, TodaySessionService } from '../../../core/today-session/today-session.service';
 
 interface StripDot {
   readonly number: number;
@@ -10,6 +10,13 @@ interface StripDot {
   readonly isDone: boolean;
   readonly isPage: boolean;
   readonly isCelebrating: boolean;
+  /** The completed dot of a hand-off: it pops and its ring fades. */
+  readonly isLanding: boolean;
+  /** The next problem's dot of a hand-off: the ring arrives on it. */
+  readonly isReceiving: boolean;
+  /** The day's last problem was just completed: every dot pulses in turn. */
+  readonly isFinale: boolean;
+  readonly finaleDelayMs: number;
 }
 
 /** One dot per problem in today's run-through: an empty circle, or a green filled one when done, ringed on the problem being viewed. */
@@ -30,11 +37,14 @@ export class TodayStripComponent {
 
   protected readonly isShown = computed(() => {
     const n = this.number();
-    return n !== null && this.session.isRunning(n);
+    if (n === null) return false;
+    // The finale completes every problem, so the run is no longer active; the beat keeps the strip up.
+    return this.session.isRunning(n) || this.session.handoff()?.from === n;
   });
 
-  protected readonly dots = computed<readonly StripDot[]>(() =>
-    this.session.queue().map((m) => {
+  protected readonly dots = computed<readonly StripDot[]>(() => {
+    const handoff = this.session.handoff();
+    return this.session.queue().map((m, index) => {
       const title = this.practice.problemFor(m)?.title;
       const isPage = m === this.number();
       return {
@@ -43,7 +53,11 @@ export class TodayStripComponent {
         isDone: this.session.isDone(m),
         isPage,
         isCelebrating: isPage && this.isCelebrating(),
+        isLanding: handoff?.from === m,
+        isReceiving: handoff?.to === m,
+        isFinale: handoff !== null && handoff.to === null,
+        finaleDelayMs: index * FINALE_STAGGER_MS,
       };
-    }),
-  );
+    });
+  });
 }

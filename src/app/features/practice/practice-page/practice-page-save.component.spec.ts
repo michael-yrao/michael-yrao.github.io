@@ -96,7 +96,7 @@ function render(extraProviders: readonly Provider[] = [], entry: object | null =
       provideRouter([]),
       provideHttpClient(),
       provideHttpClientTesting(),
-      { provide: TodaySessionService, useValue: { active: () => false, contains: () => false, isRunning: () => false } },
+      { provide: TodaySessionService, useValue: { active: () => false, contains: () => false, isRunning: () => false, handoff: () => null } },
       ...extraProviders,
       {
         provide: PracticeService,
@@ -243,7 +243,7 @@ describe('PracticePageComponent save to GitHub', () => {
   ])('Save rep, $name: advances is $isAdvanced', async ({ isInSession, status, isAdvanced }) => {
     signIn(OWNER);
     runSpy.mockReturnValue(of(runOf(['pass', 'pass', 'pass'])));
-    const todaySession = { active: () => false, isRunning: () => false, contains: vi.fn(() => isInSession), markCompleted: vi.fn(), advanceFrom: vi.fn() };
+    const todaySession = { active: () => false, isRunning: () => false, handoff: () => null, contains: vi.fn(() => isInSession), markCompleted: vi.fn(), advanceFrom: vi.fn() };
     const { fixture, httpMock } = render([{ provide: TodaySessionService, useValue: todaySession }]);
     await tick();
     httpMock.expectOne(`${WORKER_API_URL}practice/latest`).flush({}, { status: 404, statusText: 'none' });
