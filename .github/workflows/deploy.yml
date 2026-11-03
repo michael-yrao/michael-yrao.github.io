@@ -57,19 +57,17 @@ jobs:
       - name: Sitemap check
         run: npm run check:sitemap
 
+      # The content repo URL is derived from CONTENT_REPO_SLUG (src/app/core/data/site-links.ts);
+      # the script exports each file's path as <NAME>_JSON through $GITHUB_ENV.
+      - name: Fetch content
+        run: node scripts/fetch-content.mjs
+
       - name: Unit tests
         run: npx ng test --watch=false
-
-      # This URL is the workflow's one copy of CONTENT_REPO
-      # (src/app/core/services/github-file.service.ts) — michael-yrao/progressive-overflow-content@main,
-      # the public mirror of the private learner repo's content.
-      - name: Fetch showcase contract
-        run: curl -fsSL https://raw.githubusercontent.com/michael-yrao/progressive-overflow-content/main/dashboard/showcase.json -o "$RUNNER_TEMP/showcase.json"
 
       - name: Groundedness check
         run: npm run check:groundedness
         env:
-          SHOWCASE_JSON: ${{ runner.temp }}/showcase.json
           # The report lands in src/assets so the build below ships it as assets/groundedness.json.
           GROUNDEDNESS_REPORT_OUT: ${{ github.workspace }}/src/assets/groundedness.json
 

@@ -13,6 +13,7 @@
     "e2e": "playwright test",
     "check:groundedness": "vitest run --config vitest.groundedness.config.ts",
     "check:contract-mirror": "node scripts/check-contract-mirror.mjs",
+    "fetch:content": "node scripts/fetch-content.mjs",
     "gen:registry": "node scripts/gen-registry.mjs",
     "gen:brand": "node scripts/gen-brand.mjs",
     "check:registry": "node scripts/gen-registry.mjs --check",
