@@ -11,6 +11,14 @@ const CONTENT_FILES = [
   'dashboard/showcase.json',
   'dashboard/practice.json',
   'dashboard/cheat-sheets.json',
+  'dashboard/pattern-sense.json',
+  'dashboard/progress.schema.json',
+  'dashboard/practice.schema.json',
+  'dashboard/big-o.schema.json',
+  'dashboard/cheat-sheets.schema.json',
+  'dashboard/showcase.schema.json',
+  'dashboard/pattern-sense.schema.json',
+  'scripts/fixtures/streak-parity.json',
 ];
 
 function fail(message) {
@@ -35,7 +43,7 @@ function resolveOutDir() {
 }
 
 function envName(file) {
-  return `${basename(file, '.json').toUpperCase().replace(/-/g, '_')}_JSON`;
+  return `${basename(file, '.json').toUpperCase().replace(/[-.]/g, '_')}_JSON`;
 }
 
 async function fetchFile(slug, file, outDir) {
