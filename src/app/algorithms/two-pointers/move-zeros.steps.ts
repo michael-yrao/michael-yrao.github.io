@@ -6,8 +6,14 @@ import { arrayState } from '../../core/steps';
 // inlined via a tmp variable (tmp = nums[left]; nums[left] = nums[right]; nums[right] = tmp).
 // There is no else branch for a zero — the if simply doesn't fire, and right+=1 always runs.
 
+// In place: the spec judges args[0] after the call, so `expected` is the final array.
+const TRACE: NonNullable<SolutionVariant['trace']> = {
+  args: [[0, 1, 0, 3, 12]],
+  expected: [1, 3, 12, 0, 0],
+};
+
 function generateSteps(): Step[] {
-  const arr = [0, 1, 0, 3, 12];
+  const arr = [...(TRACE.args[0] as readonly number[])];
   const steps: Step[] = [];
 
   const snap = (left: number, right: number) =>
@@ -79,6 +85,7 @@ function generateSteps(): Step[] {
       { name: 'left', value: left },
       { name: 'right', value: arr.length },
     ],
+    result: [...arr],
   });
 
   return steps;
@@ -87,6 +94,7 @@ function generateSteps(): Step[] {
 const twoPointerSolution: SolutionVariant = {
   label: 'Two Pointers',
   variant: 'two-pointers',
+  trace: TRACE,
   generateSteps,
 };
 

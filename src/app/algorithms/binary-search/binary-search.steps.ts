@@ -1,5 +1,11 @@
-import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 import { arrayState } from '../../core/steps';
+
+// Both variants walk the same spec case: search 9 in the sorted array; the answer is index 4.
+const TRACE: NonNullable<SolutionVariant['trace']> = {
+  args: [[-1, 0, 3, 5, 9, 12], 9],
+  expected: 4,
+};
 
 // ── Solution 1: Iterative ─────────────────────────────────────────────────────
 //
@@ -7,8 +13,8 @@ import { arrayState } from '../../core/steps';
 // (r - l) // 2; equal → return mid; greater → r = mid - 1; else → l = mid + 1.
 
 function generateIterativeSteps(): Step[] {
-  const nums = [-1, 0, 3, 5, 9, 12];
-  const target = 9;
+  const nums = [...(TRACE.args[0] as readonly number[])];
+  const target = TRACE.args[1] as number;
   const steps: Step[] = [];
 
   let l = 0;
@@ -65,6 +71,7 @@ function generateIterativeSteps(): Step[] {
           { name: 'target', value: target },
           { name: 'result', value: mid, highlight: true },
         ],
+        result: mid,
       });
       break;
     }
@@ -110,8 +117,8 @@ function generateIterativeSteps(): Step[] {
 // → return search(m+1, r). Kicked off via return search(0, len(nums)-1).
 
 function generateRecursiveSteps(): Step[] {
-  const nums = [-1, 0, 3, 5, 9, 12];
-  const target = 9;
+  const nums = [...(TRACE.args[0] as readonly number[])];
+  const target = TRACE.args[1] as number;
   const steps: Step[] = [];
 
   const makeState = (l: number, r: number, mid: number | null, depth: number, foundAt: number | null = null) =>
@@ -191,6 +198,7 @@ function generateRecursiveSteps(): Step[] {
     anchor: { match: 'return search(0, len(nums)-1)' },
     state: makeState(answer, answer, answer, 0, answer),
     variables: [{ name: 'result', value: answer, highlight: true }],
+    result: answer,
   });
 
   return steps;
@@ -227,7 +235,7 @@ export const binarySearchMeta: AlgorithmMeta = {
   ],
   hint: 'The array is sorted. If the middle element is too big, where can the target possibly be? If it\'s too small, where can it be?',
   solutions: [
-    { label: 'Iterative', variant: 'iterative', generateSteps: generateIterativeSteps },
-    { label: 'Recursive', variant: 'recursive', generateSteps: generateRecursiveSteps },
+    { label: 'Iterative', variant: 'iterative', trace: TRACE, generateSteps: generateIterativeSteps },
+    { label: 'Recursive', variant: 'recursive', trace: TRACE, generateSteps: generateRecursiveSteps },
   ],
 };

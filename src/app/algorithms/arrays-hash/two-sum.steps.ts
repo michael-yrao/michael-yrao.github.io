@@ -9,9 +9,14 @@ const scanState = (i: number) => (j: number): CellState => (j < i ? 'visited' : 
 // enumerate(nums): diff = target - number; if diff in map: return
 // [map[diff], index]; map[number] = index`.
 
+const TRACE: NonNullable<SolutionVariant['trace']> = {
+  args: [[2, 7, 11, 15], 9],
+  expected: [0, 1],
+};
+
 function generateSteps(): Step[] {
-  const nums = [2, 7, 11, 15];
-  const target = 9;
+  const nums = [...(TRACE.args[0] as readonly number[])];
+  const target = TRACE.args[1] as number;
   const steps: Step[] = [];
 
   steps.push({
@@ -65,6 +70,7 @@ function generateSteps(): Step[] {
           { name: 'diff', value: diff },
           { name: 'result', value: `[${seen[diff]}, ${i}]`, highlight: true },
         ],
+        result: [seen[diff], i],
       });
       break;
     }
@@ -94,6 +100,7 @@ function generateSteps(): Step[] {
 const hashMapSolution: SolutionVariant = {
   label: 'Hash Map',
   variant: 'hash-map',
+  trace: TRACE,
   generateSteps,
 };
 

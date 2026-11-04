@@ -7,8 +7,13 @@ import { arrayState } from '../../core/steps';
 // iteration (not gated behind an if) — l, r = 0, 1; while r < len(prices); then a separate if
 // moves l when a lower price is seen.
 
+const TRACE: NonNullable<SolutionVariant['trace']> = {
+  args: [[7, 1, 5, 3, 6, 4]],
+  expected: 5,
+};
+
 function generateSteps(): Step[] {
-  const prices = [7, 1, 5, 3, 6, 4];
+  const prices = [...(TRACE.args[0] as readonly number[])];
   const steps: Step[] = [];
 
   let l = 0;
@@ -106,6 +111,7 @@ function generateSteps(): Step[] {
     variables: [
       { name: 'maxProfit', value: maxProfit, highlight: true },
     ],
+    result: maxProfit,
   });
 
   return steps;
@@ -114,6 +120,7 @@ function generateSteps(): Step[] {
 const slidingWindowSolution: SolutionVariant = {
   label: 'Sliding Window',
   variant: 'two-pointers',
+  trace: TRACE,
   generateSteps,
 };
 

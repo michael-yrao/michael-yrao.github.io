@@ -152,6 +152,8 @@ export interface Step {
   anchor?: StepAnchor;
   state: VisualizerState;
   variables?: StepVariable[];
+  /** Set on the last step of a traced variant: the value the walkthrough ends on. */
+  result?: unknown;
 }
 
 export interface ProblemExample {
@@ -164,6 +166,10 @@ export interface SolutionVariant {
   label: string;
   /** Kebab-case approach id; joins to the showcase entry via `${lcNumber}:${variant}`. */
   variant: string;
+  /** The input this walkthrough runs on, in the practice spec's encoding: `args` is the
+   *  positional argument list, `expected` the judged result (the return value, or the
+   *  argument after the call for an in-place problem). Must be a case of the practice spec. */
+  trace?: { args: readonly unknown[]; expected: unknown };
   generateSteps: () => Step[];
 }
 

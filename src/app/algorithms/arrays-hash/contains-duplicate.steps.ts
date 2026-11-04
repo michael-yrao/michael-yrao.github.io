@@ -1,5 +1,11 @@
-import { AlgorithmMeta, Step, ProblemExample } from '../../core/models/algorithm.model';
+import { AlgorithmMeta, SolutionVariant, Step, ProblemExample } from '../../core/models/algorithm.model';
 import { arrayState } from '../../core/steps';
+
+// Both variants walk the same spec case: [1, 2, 3, 1] holds a duplicate.
+const TRACE: NonNullable<SolutionVariant['trace']> = {
+  args: [[1, 2, 3, 1]],
+  expected: true,
+};
 
 // ── Solution 1: Set iteration ────────────────────────────────────────────────
 //
@@ -8,7 +14,7 @@ import { arrayState } from '../../core/steps';
 // otherwise adds it, falling through to return False.
 
 function generateSetIterationSteps(): Step[] {
-  const nums = [1, 2, 3, 1];
+  const nums = [...(TRACE.args[0] as readonly number[])];
   const steps: Step[] = [];
   const seen = new Set<number>();
 
@@ -42,6 +48,7 @@ function generateSetIterationSteps(): Step[] {
           { name: 'integer in numsSet', value: 'yes', highlight: true },
           { name: 'result', value: 'true', highlight: true },
         ],
+        result: true,
       });
       break;
     }
@@ -71,7 +78,7 @@ function generateSetIterationSteps(): Step[] {
 // and comparing its length does under the hood.
 
 function generateLenComparisonSteps(): Step[] {
-  const nums = [1, 2, 3, 1];
+  const nums = [...(TRACE.args[0] as readonly number[])];
   const steps: Step[] = [];
   const seen = new Set<number>();
 
@@ -123,6 +130,7 @@ function generateLenComparisonSteps(): Step[] {
       { name: 'len(nums)', value: nums.length },
       { name: 'result', value: String(dup), highlight: true },
     ],
+    result: dup,
   });
 
   return steps;
@@ -146,7 +154,7 @@ export const containsDuplicateMeta: AlgorithmMeta = {
   constraints: ['1 ≤ nums.length ≤ 10⁵', '-10⁹ ≤ nums[i] ≤ 10⁹'],
   hint: 'You need to know if you\'ve seen a value before. What data structure lets you check membership in O(1)?',
   solutions: [
-    { label: 'Set Iteration', variant: 'set-iteration', generateSteps: generateSetIterationSteps },
-    { label: 'Length Check', variant: 'length-check', generateSteps: generateLenComparisonSteps },
+    { label: 'Set Iteration', variant: 'set-iteration', trace: TRACE, generateSteps: generateSetIterationSteps },
+    { label: 'Length Check', variant: 'length-check', trace: TRACE, generateSteps: generateLenComparisonSteps },
   ],
 };

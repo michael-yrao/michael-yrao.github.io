@@ -34,6 +34,10 @@ describe('every step generator', () => {
       expect(stepsPerSolution.some((s) => s.length > 0)).toBe(entry.hasVisualization);
       expect(steps.filter((s) => !VISUALIZER_TYPES.has(s.state.type))).toEqual([]);
       expect(steps.flatMap((s, i) => arrayPointerProblems(s, i, entry.id))).toEqual([]);
+
+      // A traced variant ends on the value its trace declares.
+      const traced = meta.solutions.filter((s) => s.trace !== undefined);
+      expect(traced.map((s) => s.generateSteps().at(-1)?.result)).toEqual(traced.map((s) => s.trace?.expected));
     },
   );
 });
