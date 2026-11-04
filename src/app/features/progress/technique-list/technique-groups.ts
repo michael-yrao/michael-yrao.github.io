@@ -73,7 +73,7 @@ function orderOf(t: Technique): number | null {
 }
 
 /** Ordered values first (ascending), unordered ones after, each side broken by `tiebreak`. */
-function compareByOrder(a: number | null, b: number | null, tiebreak: () => number): number {
+export function compareByOrder(a: number | null, b: number | null, tiebreak: () => number): number {
   if (a !== null && b !== null && a !== b) return a - b;
   if (a !== null && b === null) return -1;
   if (a === null && b !== null) return 1;
@@ -81,7 +81,7 @@ function compareByOrder(a: number | null, b: number | null, tiebreak: () => numb
 }
 
 /** The smallest `order` among a family's techniques, or null when none carries one. */
-function familyOrder(items: readonly Technique[]): number | null {
+export function familyOrder(items: readonly Technique[]): number | null {
   const orders = items.map(orderOf).filter((o): o is number => o !== null);
   return orders.length ? Math.min(...orders) : null;
 }

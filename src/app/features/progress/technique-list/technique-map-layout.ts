@@ -1,5 +1,6 @@
 import { labelFor } from '../../../core/data/family-labels';
 import { Technique } from '../../../core/models/progress.model';
+import { compareByOrder, familyOrder } from './technique-groups';
 
 /**
  * Pure, Angular-free swimlane layout for the Mastery tab's technique map. `buildTechniqueGraph`
@@ -132,44 +133,31 @@ export const GAP_Y = 8;
 export const LANE_PAD = 10;
 export const EXPANSION_FAMILY = 'expansion';
 
-/** Lane display order: known families first (in this curriculum order), then any unknown
- *  family (name-sorted), with `expansion` always last. */
-export const LANE_ORDER: readonly string[] = [
-  'arrays_and_hash',
-  'two_pointers',
-  'sliding_window',
-  'prefix_sum',
-  'binary_search',
-  'stack',
-  'linked_list',
-  'recursion',
-  'sorting',
-  'intervals',
-  'backtracking',
-  'trees',
-  'tries',
-  'heap',
-  'graphs',
-  'advanced_graphs',
-  'dynamic_programming',
-  EXPANSION_FAMILY,
-];
 
 /** x = column × (NODE_W + GAP_X) — every node at a given depth shares this column x. */
 function colX(column: number): number {
   return column * (NODE_W + GAP_X);
 }
 
-/** Orders the families actually present (excluding any hidden): known `LANE_ORDER` families
- *  in curriculum order, then unknown families name-sorted, with `expansion` (if present and
- *  visible) always last. Never mutates `presentFamilies`. */
-function orderedLanes(presentFamilies: ReadonlySet<string>): string[] {
-  const known = LANE_ORDER.filter((f) => f !== EXPANSION_FAMILY && presentFamilies.has(f));
-  const unknown = [...presentFamilies]
-    .filter((f) => f !== EXPANSION_FAMILY && !LANE_ORDER.includes(f))
-    .sort((a, b) => a.localeCompare(b));
-  const expansion = presentFamilies.has(EXPANSION_FAMILY) ? [EXPANSION_FAMILY] : [];
-  return [...known, ...unknown, ...expansion];
+/** Orders the families of `techniques` (excluding any hidden) by each family's study order
+ *  (`familyOrder`, ascending); families with no order follow, name-sorted, and `expansion`
+ *  (if present and visible) is always last. Never mutates its inputs. */
+export function orderLanes(
+  techniques: readonly Technique[],
+  hiddenFamilies: ReadonlySet<string> = new Set<string>(),
+): string[] {
+  const byFamily = new Map<string, Technique[]>();
+  for (const t of techniques) {
+    if (hiddenFamilies.has(t.family)) continue;
+    byFamily.set(t.family, [...(byFamily.get(t.family) ?? []), t]);
+  }
+  const ordered = [...byFamily.entries()]
+    .filter(([family]) => family !== EXPANSION_FAMILY)
+    .sort(([famA, a], [famB, b]) =>
+      compareByOrder(familyOrder(a), familyOrder(b), () => famA.localeCompare(famB)))
+    .map(([family]) => family);
+  const expansion = byFamily.has(EXPANSION_FAMILY) ? [EXPANSION_FAMILY] : [];
+  return [...ordered, ...expansion];
 }
 
 /** Lays out a technique graph as a swimlane diagram: one horizontal lane per family, depth
@@ -189,8 +177,9 @@ export function layoutSwimlanes(graph: TechniqueGraph, opts: SwimlaneOptions = {
     return { lanes: [], nodes: [], edges: [], width: 0, height: 0, cycleBreakCount };
   }
 
-  const presentFamilies = new Set(visibleNames.map((name) => graph.techniques.get(name)!.family));
-  const laneFamilies = orderedLanes(presentFamilies);
+  const laneFamilies = orderLanes(
+    visibleNames.map((name) => graph.techniques.get(name)!),
+  );
 
   // family -> depth -> names, name-sorted within each cell.
   const cellsByFamily = new Map<string, Map<number, string[]>>();

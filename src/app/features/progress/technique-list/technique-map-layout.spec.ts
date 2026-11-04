@@ -105,25 +105,6 @@ describe('computeDepths', () => {
 });
 
 describe('layoutSwimlanes — lane order', () => {
-  it('orders known families per LANE_ORDER, an unknown family after known and before expansion, expansion last', () => {
-    const techniques = [
-      makeTechnique({ name: 'Heap1', family: 'heap' }),
-      makeTechnique({ name: 'Arr1', family: 'arrays_and_hash' }),
-      makeTechnique({ name: 'Exp1', family: EXPANSION_FAMILY }),
-      makeTechnique({ name: 'Unknown1', family: 'zzz_unknown' }),
-      makeTechnique({ name: 'TwoP1', family: 'two_pointers' }),
-    ];
-    const layout = layoutSwimlanes(buildTechniqueGraph(techniques));
-
-    expect(layout.lanes.map((l) => l.family)).toEqual([
-      'arrays_and_hash',
-      'two_pointers',
-      'heap',
-      'zzz_unknown',
-      EXPANSION_FAMILY,
-    ]);
-  });
-
   it('gives no lane to a family with no visible technique', () => {
     const layout = layoutSwimlanes(buildTechniqueGraph([makeTechnique({ family: 'heap' })]));
     expect(layout.lanes.map((l) => l.family)).toEqual(['heap']);

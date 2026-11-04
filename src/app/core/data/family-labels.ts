@@ -26,6 +26,11 @@ const FAMILY_LABEL: ReadonlyMap<string, string> = new Map([
   ['expansion', 'Expansion (tier 1–3)'],
 ]);
 
+/** Whether a family id has a curated display name (the CI check asserts every contract family does). */
+export function hasFamilyLabel(family: string): boolean {
+  return FAMILY_LABEL.has(family);
+}
+
 /** A family's display label — the curated name when known, else the raw family string
  *  (never blank), so an unrecognized family still reads as something in the lane column. */
 export function labelFor(family: string): string {

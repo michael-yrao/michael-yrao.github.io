@@ -62,6 +62,12 @@ jobs:
       - name: Fetch content
         run: node scripts/fetch-content.mjs
 
+      # The committed copies are an offline fallback; tests and the build must read the owner's bytes.
+      - name: Use owner cheat sheets
+        run: |
+          cp "$CHEAT_SHEETS_JSON" src/assets/cheat-sheets.json
+          cp "$CHEAT_SHEETS_SCHEMA_JSON" src/assets/cheat-sheets.schema.json
+
       - name: Unit tests
         run: npx ng test --watch=false
 

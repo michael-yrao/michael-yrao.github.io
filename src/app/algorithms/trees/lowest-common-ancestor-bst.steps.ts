@@ -92,7 +92,7 @@ function generateSteps(): Step[] {
 export const lowestCommonAncestorBstMeta: AlgorithmMeta = {
   id: 'lowest-common-ancestor-bst',
   lcNumber: 235,
-  title: 'Lowest Common Ancestor of BST',
+  title: 'Lowest Common Ancestor of a Binary Search Tree',
   difficulty: 'Medium',
   category: 'trees',
   tags: ['Tree', 'DFS', 'BST'],

@@ -91,7 +91,7 @@ const solution: SolutionVariant = {
 export const twoSumIIMeta: AlgorithmMeta = {
   id: 'two-sum-ii',
   lcNumber: 167,
-  title: 'Two Sum II',
+  title: 'Two Sum II - Input Array Is Sorted',
   difficulty: 'Medium',
   category: 'two-pointers',
   tags: ['Array', 'Two Pointers', 'Binary Search'],

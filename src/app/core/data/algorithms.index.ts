@@ -497,7 +497,7 @@ export const ALGORITHM_INDEX: readonly AlgorithmIndexEntry[] = [
   {
     id: 'two-sum-ii',
     lcNumber: 167,
-    title: 'Two Sum II',
+    title: 'Two Sum II - Input Array Is Sorted',
     difficulty: 'Medium',
     category: 'two-pointers',
     tags: ['Array', 'Two Pointers', 'Binary Search'],
@@ -1098,7 +1098,7 @@ export const ALGORITHM_INDEX: readonly AlgorithmIndexEntry[] = [
   {
     id: 'lowest-common-ancestor-bst',
     lcNumber: 235,
-    title: 'Lowest Common Ancestor of BST',
+    title: 'Lowest Common Ancestor of a Binary Search Tree',
     difficulty: 'Medium',
     category: 'trees',
     tags: ['Tree', 'DFS', 'BST'],

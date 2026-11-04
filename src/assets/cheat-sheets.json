@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-15T01:29:13Z",
+  "generatedAt": "2026-10-22T00:56:58Z",
   "signals": [
     {
       "see": "Sorted array + \"find a pair/triple summing to target\"",
@@ -182,7 +182,7 @@
           "title": "Subsets"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/backtracking.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/backtracking.md"
     },
     {
       "id": "binary-search",
@@ -259,7 +259,7 @@
           "title": "Search a 2D Matrix"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/binary_search.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/binary_search.md"
     },
     {
       "id": "dummy-node",
@@ -336,7 +336,7 @@
           "title": "Partition List"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/dummy_node.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/dummy_node.md"
     },
     {
       "id": "dynamic-programming",
@@ -407,7 +407,7 @@
           "title": "Climbing Stairs"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/dynamic_programming.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/dynamic_programming.md"
     },
     {
       "id": "fast-slow-pointer",
@@ -482,7 +482,7 @@
           "title": "Palindrome Linked List"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/fast_slow_pointer.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/fast_slow_pointer.md"
     },
     {
       "id": "floyd-warshall",
@@ -547,7 +547,7 @@
           "title": "Find the City With the Smallest Number of Neighbors at a Threshold Distance"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/floyd_warshall.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/floyd_warshall.md"
     },
     {
       "id": "in-place-reversal",
@@ -620,7 +620,7 @@
           "title": "Reverse Nodes in k-Group"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/in_place_reversal.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/in_place_reversal.md"
     },
     {
       "id": "intervals",
@@ -701,7 +701,7 @@
           "title": "Non-overlapping Intervals"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/intervals.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/intervals.md"
     },
     {
       "id": "monotonic-stack",
@@ -785,7 +785,7 @@
           "title": "Sliding Window Maximum"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/monotonic_stack.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/monotonic_stack.md"
     },
     {
       "id": "prefix-sum",
@@ -855,7 +855,7 @@
           "title": "Contiguous Array"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/prefix_sum.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/prefix_sum.md"
     },
     {
       "id": "prims-mst",
@@ -908,7 +908,7 @@
           "title": "Min Cost to Connect All Points"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/prims_mst.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/prims_mst.md"
     },
     {
       "id": "recursion",
@@ -971,7 +971,7 @@
           "title": "Remove Nth Node From End of List"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/recursion.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/recursion.md"
     },
     {
       "id": "sliding-window",
@@ -1050,7 +1050,7 @@
           "title": "Minimum Size Subarray Sum"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/sliding_window.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/sliding_window.md"
     },
     {
       "id": "topological-sort",
@@ -1121,7 +1121,7 @@
           "title": "Minimum Height Trees"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/topological_sort.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/topological_sort.md"
     },
     {
       "id": "tree-bfs",
@@ -1182,7 +1182,7 @@
           "title": "Serialize and Deserialize Binary Tree"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/tree_bfs.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/tree_bfs.md"
     },
     {
       "id": "tree-dfs",
@@ -1256,7 +1256,7 @@
           "title": "Lowest Common Ancestor of a Binary Tree"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/tree_dfs.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/tree_dfs.md"
     },
     {
       "id": "two-pointer",
@@ -1339,7 +1339,7 @@
           "title": "Sort Colors"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/two_pointer.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/two_pointer.md"
     },
     {
       "id": "union-find",
@@ -1407,7 +1407,7 @@
           "title": "Number of Provinces"
         }
       ],
-      "docUrl": "https://github.com/michael-yrao/cse-progress/blob/main/docs/foundations/dsa/patterns/techniques/union_find.md"
+      "docUrl": "https://github.com/michael-yrao/progressive-overflow-content/blob/main/docs/foundations/dsa/patterns/techniques/union_find.md"
     }
   ],
   "decisionTree": {
