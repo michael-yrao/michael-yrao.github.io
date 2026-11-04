@@ -90,8 +90,6 @@ const solution: SolutionVariant = {
   label: 'Binary Search (Min Boundary)',
   variant: 'min-boundary',
   generateSteps,
-  timeComplexity: 'O(log n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const findPeakElementMeta: AlgorithmMeta = {

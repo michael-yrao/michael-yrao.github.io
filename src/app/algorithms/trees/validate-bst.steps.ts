@@ -143,8 +143,6 @@ export const validateBstMeta: AlgorithmMeta = {
       label: 'Iterative DFS with Bounds',
       variant: 'iterative-bounds',
       generateSteps,
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(h)',
     },
   ],
 };

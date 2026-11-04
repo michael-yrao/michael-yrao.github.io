@@ -27,8 +27,6 @@ export const magneticForceBetweenTwoBallsMeta: AlgorithmMeta = {
       label: 'Binary Search on the Answer',
       variant: 'binary-search-answer',
       generateSteps: () => [],
-      timeComplexity: 'O(n log n + n log R)',
-      spaceComplexity: 'O(1)',
     },
   ],
 };

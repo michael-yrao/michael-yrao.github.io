@@ -13,8 +13,6 @@ function variant(id: string, count: number) {
   return {
     label: id,
     variant: id,
-    timeComplexity: 'O(n)',
-    spaceComplexity: 'O(1)',
     generateSteps: stepsOf(count),
   };
 }

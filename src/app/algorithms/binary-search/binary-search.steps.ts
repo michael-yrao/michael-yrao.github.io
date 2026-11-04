@@ -227,7 +227,7 @@ export const binarySearchMeta: AlgorithmMeta = {
   ],
   hint: 'The array is sorted. If the middle element is too big, where can the target possibly be? If it\'s too small, where can it be?',
   solutions: [
-    { label: 'Iterative', variant: 'iterative', generateSteps: generateIterativeSteps, timeComplexity: 'O(log n)', spaceComplexity: 'O(1)' },
-    { label: 'Recursive', variant: 'recursive', generateSteps: generateRecursiveSteps, timeComplexity: 'O(log n)', spaceComplexity: 'O(log n)' },
+    { label: 'Iterative', variant: 'iterative', generateSteps: generateIterativeSteps },
+    { label: 'Recursive', variant: 'recursive', generateSteps: generateRecursiveSteps },
   ],
 };

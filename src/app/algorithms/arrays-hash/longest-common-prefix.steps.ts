@@ -115,8 +115,6 @@ const solution: SolutionVariant = {
   label: 'Vertical Scan',
   variant: 'vertical-scan',
   generateSteps,
-  timeComplexity: 'O(m·n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const longestCommonPrefixMeta: AlgorithmMeta = {

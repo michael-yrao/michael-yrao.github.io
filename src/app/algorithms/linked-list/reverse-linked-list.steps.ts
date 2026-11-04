@@ -222,7 +222,7 @@ export const reverseLinkedListMeta: AlgorithmMeta = {
   ],
   hint: 'To reverse a node\'s pointer, you need to know both where it currently points AND what was behind it. How many pointers do you need to track those things?',
   solutions: [
-    { label: 'Iterative', variant: 'iterative', generateSteps: generateIterativeSteps, timeComplexity: 'O(n)', spaceComplexity: 'O(1)' },
-    { label: 'Recursive', variant: 'recursive', generateSteps: generateRecursiveSteps, timeComplexity: 'O(n)', spaceComplexity: 'O(n)' },
+    { label: 'Iterative', variant: 'iterative', generateSteps: generateIterativeSteps },
+    { label: 'Recursive', variant: 'recursive', generateSteps: generateRecursiveSteps },
   ],
 };

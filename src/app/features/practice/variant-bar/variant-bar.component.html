@@ -13,7 +13,11 @@
     }
   </div>
 }
-@if (state.activeSolution(); as variant) {
-  <span class="complexity"><app-icon name="clock" [size]="14" /> {{ variant.timeComplexity }}</span>
-  <span class="complexity"><app-icon name="memory" [size]="14" /> {{ variant.spaceComplexity }}</span>
+@if (bounds(); as b) {
+  @if (b.time) {
+    <span class="complexity"><app-icon name="clock" [size]="14" /> {{ b.time }}</span>
+  }
+  @if (b.space) {
+    <span class="complexity"><app-icon name="memory" [size]="14" /> {{ b.space }}</span>
+  }
 }

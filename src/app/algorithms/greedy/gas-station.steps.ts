@@ -29,8 +29,6 @@ export const gasStationMeta: AlgorithmMeta = {
       label: 'Greedy Reset',
       variant: 'greedy-reset',
       generateSteps: () => [],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(1)',
     },
   ],
 };

@@ -7,8 +7,6 @@ const solution: SolutionVariant = {
   label: 'Floyd-Warshall (Transitive Closure)',
   variant: 'floyd-warshall',
   generateSteps: () => [],
-  timeComplexity: 'O(n³ + q)',
-  spaceComplexity: 'O(n²)',
 };
 
 export const courseScheduleIvMeta: AlgorithmMeta = {

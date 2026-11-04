@@ -24,8 +24,6 @@ export const longestSubstringWithoutRepeatingCharactersMeta: AlgorithmMeta = {
       label: 'Sliding Window + Set',
       variant: 'set-window',
       generateSteps: () => [],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(min(n, alphabet))',
     },
   ],
 };

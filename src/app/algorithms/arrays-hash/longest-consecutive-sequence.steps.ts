@@ -128,8 +128,6 @@ const solution: SolutionVariant = {
   label: 'HashSet',
   variant: 'hashset',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 // ── Solution 2: HashMap (endpoint run-length merge) ───────────────────────────
@@ -201,8 +199,6 @@ const mapSolution: SolutionVariant = {
   label: 'HashMap (endpoint merge)',
   variant: 'endpoint-map',
   generateSteps: generateStepsMap,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const longestConsecutiveSequenceMeta: AlgorithmMeta = {

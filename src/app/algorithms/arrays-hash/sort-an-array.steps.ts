@@ -169,8 +169,6 @@ const solution: SolutionVariant = {
   label: 'Merge Sort (Divide & Conquer)',
   variant: 'merge-sort',
   generateSteps,
-  timeComplexity: 'O(n log n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const sortAnArrayMeta: AlgorithmMeta = {

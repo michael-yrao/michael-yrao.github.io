@@ -133,8 +133,6 @@ const solution: SolutionVariant = {
   label: 'DFS with Visited Set',
   variant: 'dfs-visited',
   generateSteps,
-  timeComplexity: 'O(m × n)',
-  spaceComplexity: 'O(m × n)',
 };
 
 export const maxAreaOfIslandMeta: AlgorithmMeta = {

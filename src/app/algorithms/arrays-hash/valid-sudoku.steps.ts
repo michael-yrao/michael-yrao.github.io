@@ -379,16 +379,12 @@ const multiPassSolution: SolutionVariant = {
   label: 'Multi-Pass (Row → Col → Box)',
   variant: 'multi-pass',
   generateSteps: generateMultiPassSteps,
-  timeComplexity: 'O(1)',
-  spaceComplexity: 'O(1)',
 };
 
 const singleLoopSolution: SolutionVariant = {
   label: 'Single-Loop with 3 Maps',
   variant: 'single-loop',
   generateSteps: generateSingleLoopSteps,
-  timeComplexity: 'O(1)',
-  spaceComplexity: 'O(1)',
 };
 
 export const validSudokuMeta: AlgorithmMeta = {

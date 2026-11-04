@@ -24,8 +24,6 @@ export const dailyTemperaturesMeta: AlgorithmMeta = {
       label: 'Monotonic Decreasing Stack',
       variant: 'monotonic-stack',
       generateSteps: () => [],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(n)',
     },
   ],
 };

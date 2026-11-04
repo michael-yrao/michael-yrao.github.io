@@ -222,8 +222,6 @@ export const pacificAtlanticWaterFlowMeta: AlgorithmMeta = {
       label: 'DFS (Reverse)',
       variant: 'reverse-dfs',
       generateSteps: generateDfsSteps,
-      timeComplexity: 'O(m × n)',
-      spaceComplexity: 'O(m × n)',
     },
   ],
 };

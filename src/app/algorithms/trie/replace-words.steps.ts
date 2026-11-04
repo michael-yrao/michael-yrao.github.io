@@ -37,8 +37,6 @@ export const replaceWordsMeta: AlgorithmMeta = {
       label: 'Trie',
       variant: 'trie',
       generateSteps: () => [],
-      timeComplexity: 'O(D + S)',
-      spaceComplexity: 'O(D)',
     },
   ],
 };

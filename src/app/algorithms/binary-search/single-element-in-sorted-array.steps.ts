@@ -131,8 +131,6 @@ const solution: SolutionVariant = {
   label: 'Binary Search on Pair Parity',
   variant: 'pair-parity',
   generateSteps,
-  timeComplexity: 'O(log n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const singleElementSortedArrayMeta: AlgorithmMeta = {

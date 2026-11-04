@@ -143,8 +143,6 @@ export const diameterOfBinaryTreeMeta: AlgorithmMeta = {
       label: 'Postorder DFS',
       variant: 'postorder',
       generateSteps,
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(h)',
     },
   ],
 };

@@ -29,8 +29,6 @@ export const evaluateReversePolishNotationMeta: AlgorithmMeta = {
       label: 'Stack',
       variant: 'stack',
       generateSteps: () => [],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(n)',
     },
   ],
 };

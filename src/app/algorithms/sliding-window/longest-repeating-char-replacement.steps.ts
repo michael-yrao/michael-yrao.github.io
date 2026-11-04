@@ -103,8 +103,6 @@ const solution: SolutionVariant = {
   label: 'Sliding Window + Freq Map',
   variant: 'freq-window',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const longestRepeatingCharReplacementMeta: AlgorithmMeta = {

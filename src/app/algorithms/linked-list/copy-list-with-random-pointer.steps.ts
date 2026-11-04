@@ -172,8 +172,6 @@ const solution: SolutionVariant = {
   label: 'Three-Pass HashMap (oldToNewMap)',
   variant: 'two-pass-map',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const copyListWithRandomPointerMeta: AlgorithmMeta = {

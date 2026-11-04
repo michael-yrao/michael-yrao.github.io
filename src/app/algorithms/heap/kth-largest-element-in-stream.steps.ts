@@ -99,8 +99,6 @@ const solution: SolutionVariant = {
   label: 'Min-Heap (size k)',
   variant: 'min-heap-k',
   generateSteps,
-  timeComplexity: 'O(log k) per add',
-  spaceComplexity: 'O(k)',
 };
 
 export const kthLargestInStreamMeta: AlgorithmMeta = {

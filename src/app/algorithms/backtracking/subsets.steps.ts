@@ -7,8 +7,6 @@ const solution: SolutionVariant = {
   label: 'Backtracking (Include / Exclude)',
   variant: 'include-exclude',
   generateSteps: () => [],
-  timeComplexity: 'O(n · 2ⁿ)',
-  spaceComplexity: 'O(n · 2ⁿ)',
 };
 
 export const subsetsMeta: AlgorithmMeta = {

@@ -9,6 +9,13 @@ const ENTRY_NULLABLE_STRING_FIELDS: readonly (keyof ShowcaseEntry)[] = [
   'attemptDate',
 ];
 
+const ENTRY_OPTIONAL_NULLABLE_STRING_FIELDS: readonly (keyof ShowcaseEntry)[] = [
+  'time',
+  'space',
+  'timeQualifier',
+  'spaceQualifier',
+];
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((v) => typeof v === 'string');
 }
@@ -52,6 +59,13 @@ function hasValidNullableFields(entry: Partial<ShowcaseEntry>): boolean {
   return ENTRY_NULLABLE_STRING_FIELDS.every((field) => isStringOrNull(entry[field]));
 }
 
+/** The bound fields may be absent (older contracts), null or a string. */
+function hasValidOptionalFields(entry: Partial<ShowcaseEntry>): boolean {
+  return ENTRY_OPTIONAL_NULLABLE_STRING_FIELDS.every(
+    (field) => entry[field] === undefined || isStringOrNull(entry[field]),
+  );
+}
+
 /** Structural guard for one showcase entry: string `key`/`variant`/`file`/`symbol`, number
  *  `lcNumber`, `title`/`url`/`attemptDate` each string-or-null (a title is null only when
  *  cse-progress found neither a header nor a tracker title), and every segment's `lines`
@@ -64,6 +78,7 @@ export function isShowcaseEntry(value: unknown): value is ShowcaseEntry {
   if (!hasValidStringFields(entry)) return false;
   if (typeof entry.lcNumber !== 'number') return false;
   if (!hasValidNullableFields(entry)) return false;
+  if (!hasValidOptionalFields(entry)) return false;
   if (!Array.isArray(entry.segments)) return false;
 
   return entry.segments.every(isShowcaseSegment);

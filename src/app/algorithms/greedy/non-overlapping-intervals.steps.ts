@@ -34,8 +34,6 @@ export const nonOverlappingIntervalsMeta: AlgorithmMeta = {
       label: 'Sort by End',
       variant: 'sort-by-end',
       generateSteps: () => [],
-      timeComplexity: 'O(n log n)',
-      spaceComplexity: 'O(1)',
     },
   ],
 };

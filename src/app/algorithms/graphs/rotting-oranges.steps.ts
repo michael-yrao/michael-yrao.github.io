@@ -154,8 +154,6 @@ const bfsSolution: SolutionVariant = {
   label: 'Multi-Source BFS',
   variant: 'multi-source-bfs',
   generateSteps,
-  timeComplexity: 'O(m × n)',
-  spaceComplexity: 'O(m × n)',
 };
 
 export const rottingOrangesMeta: AlgorithmMeta = {

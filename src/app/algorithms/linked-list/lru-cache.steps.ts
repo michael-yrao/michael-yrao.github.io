@@ -154,8 +154,6 @@ const solution: SolutionVariant = {
   label: 'HashMap + Doubly Linked List',
   variant: 'hashmap-dll',
   generateSteps,
-  timeComplexity: 'O(1) per get/put',
-  spaceComplexity: 'O(capacity)',
 };
 
 export const lruCacheMeta: AlgorithmMeta = {

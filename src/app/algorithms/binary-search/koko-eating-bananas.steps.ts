@@ -121,8 +121,6 @@ const solution: SolutionVariant = {
   label: 'Binary Search on Answer Space',
   variant: 'answer-space',
   generateSteps,
-  timeComplexity: 'O(n log m)',
-  spaceComplexity: 'O(1)',
 };
 
 export const kokoEatingBananasMeta: AlgorithmMeta = {

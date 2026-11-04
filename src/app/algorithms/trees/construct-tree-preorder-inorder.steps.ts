@@ -109,8 +109,6 @@ const solution: SolutionVariant = {
   label: 'Recursive Preorder/Inorder Split',
   variant: 'recursive-split',
   generateSteps,
-  timeComplexity: 'O(n²) (O(n) with an index map)',
-  spaceComplexity: 'O(n)',
 };
 
 export const constructTreePreorderInorderMeta: AlgorithmMeta = {

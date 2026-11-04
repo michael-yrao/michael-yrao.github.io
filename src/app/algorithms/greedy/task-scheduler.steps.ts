@@ -233,16 +233,12 @@ const simVariant: SolutionVariant = {
   label: 'Max-Heap Simulation (count idles)',
   variant: 'heap-simulation',
   generateSteps: generateSimSteps,
-  timeComplexity: 'O(total intervals)',
-  spaceComplexity: 'O(1) — at most 26 tasks',
 };
 
 const bulkVariant: SolutionVariant = {
   label: 'Max-Heap O(n) (bulk intervals)',
   variant: 'heap-bulk',
   generateSteps: generateBulkSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1) — at most 26 tasks',
 };
 
 export const taskSchedulerMeta: AlgorithmMeta = {

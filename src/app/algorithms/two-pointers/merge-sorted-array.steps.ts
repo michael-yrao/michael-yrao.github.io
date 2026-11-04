@@ -118,8 +118,6 @@ const solution: SolutionVariant = {
   label: 'Merge from Back',
   variant: 'merge-from-back',
   generateSteps,
-  timeComplexity: 'O(m+n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const mergeSortedArrayMeta: AlgorithmMeta = {

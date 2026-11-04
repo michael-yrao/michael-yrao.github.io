@@ -152,6 +152,6 @@ export const redundantConnectionMeta: AlgorithmMeta = {
   ],
   hint: "Process edges one by one with Union Find. The first edge whose two endpoints share the same root creates the cycle — that's the redundant edge.",
   solutions: [
-    { label: 'Union Find', variant: 'union-find', generateSteps, timeComplexity: 'O(n · α(n))', spaceComplexity: 'O(n)' },
+    { label: 'Union Find', variant: 'union-find', generateSteps },
   ],
 };

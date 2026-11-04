@@ -9,8 +9,6 @@ const STEP_INDEX = 3;
 function metaWith(id: string): AlgorithmMeta {
   const variant = (label: string) => ({
     label,
-    timeComplexity: 'O(n)',
-    spaceComplexity: 'O(1)',
     generateSteps: () => [],
   });
   return { id, solutions: [variant('A'), variant('B')] } as unknown as AlgorithmMeta;

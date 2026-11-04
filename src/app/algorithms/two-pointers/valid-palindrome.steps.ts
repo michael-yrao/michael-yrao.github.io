@@ -210,16 +210,12 @@ const twoPointerSolution: SolutionVariant = {
   label: 'Clean Then Scan',
   variant: 'clean-then-scan',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 const noCleaningSolution: SolutionVariant = {
   label: 'No Cleaning',
   variant: 'no-cleaning',
   generateSteps: generateNoCleaningSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const validPalindromeMeta: AlgorithmMeta = {

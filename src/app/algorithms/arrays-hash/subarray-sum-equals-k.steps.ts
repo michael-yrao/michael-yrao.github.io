@@ -92,8 +92,6 @@ const solution: SolutionVariant = {
   label: 'Prefix Sum + Hash Map',
   variant: 'prefix-map',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const subarraySumEqualsKMeta: AlgorithmMeta = {

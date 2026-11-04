@@ -177,8 +177,6 @@ export const floodFillMeta: AlgorithmMeta = {
       label: 'BFS (Queue)',
       variant: 'bfs',
       generateSteps: generateBfsSteps,
-      timeComplexity: 'O(m × n)',
-      spaceComplexity: 'O(m × n)',
     },
   ],
 };

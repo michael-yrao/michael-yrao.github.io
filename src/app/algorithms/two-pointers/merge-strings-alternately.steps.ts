@@ -176,8 +176,6 @@ const solution: SolutionVariant = {
   label: 'Two Pointer Alternating Merge',
   variant: 'alternating',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const mergeStringsAlternatelyMeta: AlgorithmMeta = {

@@ -84,8 +84,6 @@ const floydsSolution: SolutionVariant = {
   label: "Floyd's Cycle Detection",
   variant: 'floyd',
   generateSteps: generateFloydsSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const linkedListCycleMeta: AlgorithmMeta = {

@@ -126,8 +126,6 @@ export const sameTreeMeta: AlgorithmMeta = {
       label: 'Preorder DFS (Recursive)',
       variant: 'preorder',
       generateSteps,
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(h)',
     },
   ],
 };

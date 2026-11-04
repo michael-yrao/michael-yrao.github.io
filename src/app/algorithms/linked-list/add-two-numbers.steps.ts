@@ -99,8 +99,6 @@ const solution: SolutionVariant = {
   label: 'Elementary Addition',
   variant: 'elementary-add',
   generateSteps,
-  timeComplexity: 'O(max(m, n))',
-  spaceComplexity: 'O(max(m, n))',
 };
 
 export const addTwoNumbersMeta: AlgorithmMeta = {

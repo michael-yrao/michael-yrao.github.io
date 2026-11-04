@@ -148,8 +148,6 @@ const solution: SolutionVariant = {
   label: 'Length Prefix (two-pointer decode)',
   variant: 'length-prefix',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const encodeAndDecodeStringsMeta: AlgorithmMeta = {

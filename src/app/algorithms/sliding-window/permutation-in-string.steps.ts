@@ -147,8 +147,6 @@ const solution: SolutionVariant = {
   label: 'Fixed-Size Sliding Window + Freq Array',
   variant: 'fixed-window',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const permutationInStringMeta: AlgorithmMeta = {

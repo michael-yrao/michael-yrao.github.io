@@ -93,8 +93,6 @@ const solution: SolutionVariant = {
   label: 'Two Pointers',
   variant: 'two-pointers',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const containerWithMostWaterMeta: AlgorithmMeta = {

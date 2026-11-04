@@ -256,8 +256,6 @@ const solutionBFS: SolutionVariant = {
   label: "Kahn's BFS Topological Sort",
   variant: 'topological',
   generateSteps: generateStepsBFS,
-  timeComplexity: 'O(V+E)',
-  spaceComplexity: 'O(V+E)',
 };
 
 export const courseScheduleMeta: AlgorithmMeta = {

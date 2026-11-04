@@ -136,16 +136,12 @@ const solution: SolutionVariant = {
   label: 'Sort Key HashMap',
   variant: 'sort-key-map',
   generateSteps,
-  timeComplexity: 'O(n·k log k)',
-  spaceComplexity: 'O(n·k)',
 };
 
 const altSolution: SolutionVariant = {
   label: 'defaultdict',
   variant: 'defaultdict',
   generateSteps: generateAltSteps,
-  timeComplexity: 'O(n·k log k)',
-  spaceComplexity: 'O(n·k)',
 };
 
 export const groupAnagramsMeta: AlgorithmMeta = {

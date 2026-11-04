@@ -85,8 +85,6 @@ const solution: SolutionVariant = {
   label: 'Index Modulo Fill',
   variant: 'modulo-fill',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const concatenationOfArrayMeta: AlgorithmMeta = {

@@ -7,8 +7,6 @@ const solution: SolutionVariant = {
   label: "Topological Sort (Kahn's BFS)",
   variant: 'kahn-bfs',
   generateSteps: () => [],
-  timeComplexity: 'O(C)',
-  spaceComplexity: 'O(1)',
 };
 
 export const alienDictionaryMeta: AlgorithmMeta = {

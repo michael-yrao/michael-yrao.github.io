@@ -7,8 +7,6 @@ const solution: SolutionVariant = {
   label: 'BFS + Wildcard Buckets',
   variant: 'bfs-wildcard',
   generateSteps: () => [],
-  timeComplexity: 'O(n · L²)',
-  spaceComplexity: 'O(n · L²)',
 };
 
 export const wordLadderMeta: AlgorithmMeta = {

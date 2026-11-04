@@ -82,8 +82,6 @@ const solution: SolutionVariant = {
   label: 'Greedy (Collect Every Upward Move)',
   variant: 'greedy',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const bestTimeBuySellStockIiMeta: AlgorithmMeta = {

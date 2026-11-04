@@ -95,8 +95,6 @@ const hashMapSolution: SolutionVariant = {
   label: 'Hash Map',
   variant: 'hash-map',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const twoSumMeta: AlgorithmMeta = {

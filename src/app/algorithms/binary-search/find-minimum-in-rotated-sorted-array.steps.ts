@@ -91,8 +91,6 @@ const solution: SolutionVariant = {
   label: 'Binary Search on Minimum',
   variant: 'min-boundary',
   generateSteps,
-  timeComplexity: 'O(log n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const findMinimumInRotatedSortedArrayMeta: AlgorithmMeta = {

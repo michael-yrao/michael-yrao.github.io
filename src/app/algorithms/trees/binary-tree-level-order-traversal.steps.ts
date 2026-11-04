@@ -139,8 +139,6 @@ export const binaryTreeLevelOrderTraversalMeta: AlgorithmMeta = {
       label: 'BFS (Queue)',
       variant: 'bfs',
       generateSteps,
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(n)',
     },
   ],
 };

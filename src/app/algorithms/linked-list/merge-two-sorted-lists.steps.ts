@@ -184,16 +184,12 @@ const iterativeSolution: SolutionVariant = {
   label: 'Iterative',
   variant: 'iterative',
   generateSteps: generateIterativeSteps,
-  timeComplexity: 'O(m+n)',
-  spaceComplexity: 'O(1)',
 };
 
 const recursiveSolution: SolutionVariant = {
   label: 'Recursive',
   variant: 'recursive',
   generateSteps: generateRecursiveSteps,
-  timeComplexity: 'O(m+n)',
-  spaceComplexity: 'O(m+n)',
 };
 
 export const mergeTwoSortedListsMeta: AlgorithmMeta = {

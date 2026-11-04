@@ -242,8 +242,6 @@ const solution: SolutionVariant = {
   label: 'Find Middle + Reverse + Merge',
   variant: 'mid-reverse-merge',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const reorderListMeta: AlgorithmMeta = {

@@ -134,8 +134,6 @@ const solution: SolutionVariant = {
   label: 'Two Pointers + Skip Check',
   variant: 'skip-check',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const validPalindromeIIMeta: AlgorithmMeta = {

@@ -219,16 +219,12 @@ const heapVariant: SolutionVariant = {
   label: "Prim's — Min-Heap",
   variant: 'prims-heap',
   generateSteps: generateHeapSteps,
-  timeComplexity: 'O(n² log n)',
-  spaceComplexity: 'O(n²)',
 };
 
 const arrayVariant: SolutionVariant = {
   label: "Prim's — O(n²) array",
   variant: 'prims-array',
   generateSteps: generateArraySteps,
-  timeComplexity: 'O(n²)',
-  spaceComplexity: 'O(n)',
 };
 
 export const minCostConnectAllPointsMeta: AlgorithmMeta = {

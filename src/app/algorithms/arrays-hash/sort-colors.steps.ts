@@ -187,16 +187,12 @@ const dutchFlagSolution: SolutionVariant = {
   label: 'Dutch Flag',
   variant: 'dutch-flag',
   generateSteps: generateDutchFlagSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 const bucketSortSolution: SolutionVariant = {
   label: 'Bucket Sort',
   variant: 'bucket-sort',
   generateSteps: generateBucketSortSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const sortColorsMeta: AlgorithmMeta = {

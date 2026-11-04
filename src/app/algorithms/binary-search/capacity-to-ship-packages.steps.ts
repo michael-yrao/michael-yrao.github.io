@@ -153,8 +153,6 @@ const solution: SolutionVariant = {
   label: 'Binary Search on Capacity',
   variant: 'capacity-search',
   generateSteps,
-  timeComplexity: 'O(n log m)',
-  spaceComplexity: 'O(1)',
 };
 
 export const capacityToShipPackagesMeta: AlgorithmMeta = {

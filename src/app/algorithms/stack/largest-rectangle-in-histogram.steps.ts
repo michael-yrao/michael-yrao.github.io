@@ -26,8 +26,6 @@ export const largestRectangleInHistogramMeta: AlgorithmMeta = {
       label: 'Monotonic Increasing Stack',
       variant: 'monotonic-stack',
       generateSteps: () => [],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(n)',
     },
   ],
 };

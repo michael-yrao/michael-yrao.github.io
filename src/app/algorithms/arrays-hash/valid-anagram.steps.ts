@@ -145,16 +145,12 @@ const hashMapSolution: SolutionVariant = {
   label: 'Hash Map',
   variant: 'hash-map',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 const sortedSolution: SolutionVariant = {
   label: 'Sort',
   variant: 'sort',
   generateSteps: generateSortedSteps,
-  timeComplexity: 'O(n log n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const validAnagramMeta: AlgorithmMeta = {

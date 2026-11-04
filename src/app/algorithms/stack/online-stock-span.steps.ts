@@ -123,8 +123,6 @@ const solution: SolutionVariant = {
   label: 'Monotonic Decreasing Stack',
   variant: 'monotonic-stack',
   generateSteps,
-  timeComplexity: 'O(1) amortized per next()',
-  spaceComplexity: 'O(n)',
 };
 
 export const onlineStockSpanMeta: AlgorithmMeta = {

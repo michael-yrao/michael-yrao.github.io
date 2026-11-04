@@ -83,8 +83,6 @@ const solution: SolutionVariant = {
   label: 'Max-Heap (size k)',
   variant: 'max-heap-k',
   generateSteps,
-  timeComplexity: 'O(n log k)',
-  spaceComplexity: 'O(k)',
 };
 
 export const kClosestPointsMeta: AlgorithmMeta = {

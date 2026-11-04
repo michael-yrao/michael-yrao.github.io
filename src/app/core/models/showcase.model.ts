@@ -20,6 +20,11 @@ export interface ShowcaseEntry {
   readonly file: string;
   readonly symbol: string;
   readonly attemptDate: string | null;
+  /** Owned, analyzer-graded bounds; absent in contracts older than the field. */
+  readonly time?: string | null;
+  readonly space?: string | null;
+  readonly timeQualifier?: string | null;
+  readonly spaceQualifier?: string | null;
   readonly segments: readonly ShowcaseSegment[];
 }
 

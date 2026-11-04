@@ -129,8 +129,6 @@ const solution: SolutionVariant = {
   label: 'Dijkstra (min-heap)',
   variant: 'dijkstra',
   generateSteps,
-  timeComplexity: 'O(E log V)',
-  spaceComplexity: 'O(V + E)',
 };
 
 export const networkDelayTimeMeta: AlgorithmMeta = {

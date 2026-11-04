@@ -82,8 +82,6 @@ const solution: SolutionVariant = {
   label: 'Max-Heap',
   variant: 'max-heap',
   generateSteps,
-  timeComplexity: 'O(n log n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const lastStoneWeightMeta: AlgorithmMeta = {

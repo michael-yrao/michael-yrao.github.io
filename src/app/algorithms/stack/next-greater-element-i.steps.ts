@@ -151,8 +151,6 @@ const monotonicStackSolution: SolutionVariant = {
   label: 'Monotonic Stack',
   variant: 'monotonic-stack',
   generateSteps,
-  timeComplexity: 'O(n + m)',
-  spaceComplexity: 'O(n)',
 };
 
 export const nextGreaterElementIMeta: AlgorithmMeta = {

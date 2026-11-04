@@ -41,6 +41,23 @@ describe('isShowcaseEntry', () => {
     );
   });
 
+  it.each([
+    {
+      name: 'strings',
+      bounds: { time: 'O(n)', space: 'O(1)', timeQualifier: 'per operation', spaceQualifier: 'recursion depth' },
+      isValid: true,
+    },
+    {
+      name: 'null',
+      bounds: { time: null, space: null, timeQualifier: null, spaceQualifier: null },
+      isValid: true,
+    },
+    { name: 'absent', bounds: {}, isValid: true },
+    { name: 'a number', bounds: { time: 5 }, isValid: false },
+  ])('bound fields as $name -> valid: $isValid', ({ bounds, isValid }) => {
+    expect(isShowcaseEntry({ ...validEntry(), ...bounds })).toBe(isValid);
+  });
+
   it('rejects a non-string, non-null title', () => {
     expect(isShowcaseEntry({ ...validEntry(), title: 42 })).toBe(false);
   });

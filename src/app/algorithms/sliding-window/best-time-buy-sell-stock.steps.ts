@@ -115,8 +115,6 @@ const slidingWindowSolution: SolutionVariant = {
   label: 'Sliding Window',
   variant: 'two-pointers',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const bestTimeBuySellMeta: AlgorithmMeta = {

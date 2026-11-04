@@ -187,16 +187,12 @@ const freqSolution: SolutionVariant = {
   label: 'Frequency Map',
   variant: 'freq-map',
   generateSteps: generateStepsFreq,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 const solution: SolutionVariant = {
   label: 'Extended Boyer-Moore',
   variant: 'boyer-moore',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const majorityElementIIMeta: AlgorithmMeta = {

@@ -146,7 +146,7 @@ export const containsDuplicateMeta: AlgorithmMeta = {
   constraints: ['1 ≤ nums.length ≤ 10⁵', '-10⁹ ≤ nums[i] ≤ 10⁹'],
   hint: 'You need to know if you\'ve seen a value before. What data structure lets you check membership in O(1)?',
   solutions: [
-    { label: 'Set Iteration', variant: 'set-iteration', generateSteps: generateSetIterationSteps, timeComplexity: 'O(n)', spaceComplexity: 'O(n)' },
-    { label: 'Length Check', variant: 'length-check', generateSteps: generateLenComparisonSteps, timeComplexity: 'O(n)', spaceComplexity: 'O(n)' },
+    { label: 'Set Iteration', variant: 'set-iteration', generateSteps: generateSetIterationSteps },
+    { label: 'Length Check', variant: 'length-check', generateSteps: generateLenComparisonSteps },
   ],
 };

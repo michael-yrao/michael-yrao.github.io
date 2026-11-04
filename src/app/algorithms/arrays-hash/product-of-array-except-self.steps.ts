@@ -128,8 +128,6 @@ const prefixSuffixSolution: SolutionVariant = {
   label: 'Prefix & Suffix',
   variant: 'prefix-suffix',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 // ── Solution 2: O(1) extra space (store prefix in result, then multiply suffix) ──
@@ -229,8 +227,6 @@ const efficientSolution: SolutionVariant = {
   label: 'O(1) Space (prefix then suffix)',
   variant: 'o1-space',
   generateSteps: generateStepsEfficient,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const productOfArrayExceptSelfMeta: AlgorithmMeta = {

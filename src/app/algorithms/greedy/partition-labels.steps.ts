@@ -26,8 +26,6 @@ export const partitionLabelsMeta: AlgorithmMeta = {
       label: 'Last-Index Map',
       variant: 'last-index',
       generateSteps: () => [],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(1)',
     },
   ],
 };

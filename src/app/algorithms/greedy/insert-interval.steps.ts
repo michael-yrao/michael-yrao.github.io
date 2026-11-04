@@ -29,8 +29,6 @@ export const insertIntervalMeta: AlgorithmMeta = {
       label: 'Three-Pass Scan',
       variant: 'three-pass',
       generateSteps: () => [],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(n)',
     },
   ],
 };

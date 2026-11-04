@@ -112,8 +112,6 @@ const solution: SolutionVariant = {
   label: 'DFS + HashMap (oldToNew)',
   variant: 'dfs-map',
   generateSteps,
-  timeComplexity: 'O(V+E)',
-  spaceComplexity: 'O(V)',
 };
 
 export const cloneGraphMeta: AlgorithmMeta = {

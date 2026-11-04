@@ -165,8 +165,6 @@ export interface SolutionVariant {
   /** Kebab-case approach id; joins to the showcase entry via `${lcNumber}:${variant}`. */
   variant: string;
   generateSteps: () => Step[];
-  timeComplexity: string;
-  spaceComplexity: string;
 }
 
 export interface AlgorithmMeta {

@@ -201,8 +201,6 @@ const solution: SolutionVariant = {
   label: 'Two-Phase Binary Search',
   variant: 'two-phase',
   generateSteps,
-  timeComplexity: 'O(log(m·n))',
-  spaceComplexity: 'O(1)',
 };
 
 export const searchA2DMatrixMeta: AlgorithmMeta = {

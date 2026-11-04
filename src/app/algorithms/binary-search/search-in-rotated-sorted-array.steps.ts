@@ -198,8 +198,6 @@ const solution: SolutionVariant = {
   label: 'Find Pivot + Binary Search',
   variant: 'pivot-then-search',
   generateSteps,
-  timeComplexity: 'O(log n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const searchInRotatedSortedArrayMeta: AlgorithmMeta = {

@@ -31,8 +31,6 @@ export const mergeIntervalsMeta: AlgorithmMeta = {
       label: 'Sort + Merge',
       variant: 'sort-merge',
       generateSteps: () => [],
-      timeComplexity: 'O(n log n)',
-      spaceComplexity: 'O(n)',
     },
   ],
 };

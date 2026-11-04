@@ -30,8 +30,6 @@ export const jumpGameIiMeta: AlgorithmMeta = {
       label: 'Greedy Reach Window',
       variant: 'greedy-range',
       generateSteps: () => [],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(1)',
     },
   ],
 };

@@ -307,7 +307,7 @@ export const numberOfConnectedComponentsMeta: AlgorithmMeta = {
   ],
   hint: 'Start with n components. For each edge, union the two endpoints — if they share a root, skip; otherwise merge and decrement the count. Union Find with path compression and union by rank runs in near-constant time per operation.',
   solutions: [
-    { label: 'Union Find', variant: 'union-find', generateSteps: generateStepsUF, timeComplexity: 'O(n · α(n))', spaceComplexity: 'O(n)' },
-    { label: 'BFS', variant: 'bfs', generateSteps, timeComplexity: 'O(n + e)', spaceComplexity: 'O(n + e)' },
+    { label: 'Union Find', variant: 'union-find', generateSteps: generateStepsUF },
+    { label: 'BFS', variant: 'bfs', generateSteps },
   ],
 };

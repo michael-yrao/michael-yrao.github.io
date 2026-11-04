@@ -219,8 +219,6 @@ const solution: SolutionVariant = {
   variant: 'sort-min-boundary',
   generateSteps,
   // n spells, m potions: sort the potions, then one binary search per spell.
-  timeComplexity: 'O((n + m) log m)',
-  spaceComplexity: 'O(n)',
 };
 
 export const successfulPairsSpellsPotionsMeta: AlgorithmMeta = {

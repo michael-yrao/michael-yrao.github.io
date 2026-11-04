@@ -108,8 +108,6 @@ const solution: SolutionVariant = {
   label: 'Postorder DFS (global max)',
   variant: 'postorder',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(h)',
 };
 
 export const binaryTreeMaximumPathSumMeta: AlgorithmMeta = {

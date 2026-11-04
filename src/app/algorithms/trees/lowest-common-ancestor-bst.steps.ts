@@ -116,8 +116,6 @@ export const lowestCommonAncestorBstMeta: AlgorithmMeta = {
       label: 'Iterative BST Traversal',
       variant: 'iterative',
       generateSteps,
-      timeComplexity: 'O(h)',
-      spaceComplexity: 'O(1)',
     },
   ],
 };

@@ -7,8 +7,6 @@ const solution: SolutionVariant = {
   label: 'Backtracking',
   variant: 'backtracking',
   generateSteps: () => [],
-  timeComplexity: 'O(4ⁿ / √n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const generateParenthesesMeta: AlgorithmMeta = {

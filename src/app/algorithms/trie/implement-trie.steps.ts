@@ -382,8 +382,6 @@ const solution: SolutionVariant = {
   label: 'TrieNode (children map)',
   variant: 'children-map',
   generateSteps,
-  timeComplexity: 'O(L) per op',
-  spaceComplexity: 'O(total chars)',
 };
 
 export const implementTrieMeta: AlgorithmMeta = {

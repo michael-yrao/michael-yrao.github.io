@@ -7,8 +7,6 @@ const solution: SolutionVariant = {
   label: 'Dijkstra (Min-Heap)',
   variant: 'dijkstra-heap',
   generateSteps: () => [],
-  timeComplexity: 'O(n² log n)',
-  spaceComplexity: 'O(n²)',
 };
 
 export const swimInRisingWaterMeta: AlgorithmMeta = {

@@ -153,8 +153,6 @@ const solution: SolutionVariant = {
   label: 'Hash Maps + Heap-Merged Feed',
   variant: 'heap-feed',
   generateSteps,
-  timeComplexity: 'getNewsFeed O(t log t)',
-  spaceComplexity: 'O(users + tweets)',
 };
 
 export const designTwitterMeta: AlgorithmMeta = {

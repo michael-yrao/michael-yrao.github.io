@@ -94,8 +94,6 @@ const slidingWindowSolution: SolutionVariant = {
   label: 'Sliding Window Set',
   variant: 'window-set',
   generateSteps: generateSlidingWindowSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(min(n,k))',
 };
 
 export const containsDuplicateIIMeta: AlgorithmMeta = {

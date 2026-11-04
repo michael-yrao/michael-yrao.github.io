@@ -7,8 +7,6 @@ const solution: SolutionVariant = {
   label: 'Floyd-Warshall',
   variant: 'floyd-warshall',
   generateSteps: () => [],
-  timeComplexity: 'O(n³)',
-  spaceComplexity: 'O(n²)',
 };
 
 export const findTheCityMeta: AlgorithmMeta = {

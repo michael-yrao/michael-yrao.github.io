@@ -83,8 +83,6 @@ const solution: SolutionVariant = {
   label: 'Carry Propagation',
   variant: 'carry',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const plusOneMeta: AlgorithmMeta = {

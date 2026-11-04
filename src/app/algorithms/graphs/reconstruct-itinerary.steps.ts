@@ -7,8 +7,6 @@ const solution: SolutionVariant = {
   label: 'Hierholzer (Iterative Stack)',
   variant: 'hierholzer-stack',
   generateSteps: () => [],
-  timeComplexity: 'O(E log E)',
-  spaceComplexity: 'O(E)',
 };
 
 export const reconstructItineraryMeta: AlgorithmMeta = {

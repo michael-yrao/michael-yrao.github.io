@@ -125,8 +125,6 @@ const solution: SolutionVariant = {
   label: 'Three Reversals',
   variant: 'three-reversals',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const rotateArrayMeta: AlgorithmMeta = {

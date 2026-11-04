@@ -146,8 +146,6 @@ export const binaryTreeRightSideViewMeta: AlgorithmMeta = {
       label: 'BFS (level-by-level, take last of each level)',
       variant: 'bfs-last',
       generateSteps,
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(n)',
     },
   ],
 };

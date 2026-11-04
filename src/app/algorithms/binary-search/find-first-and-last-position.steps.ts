@@ -29,8 +29,6 @@ export const findFirstAndLastPositionMeta: AlgorithmMeta = {
       label: 'Two Boundary Binary Searches',
       variant: 'boundary-binary-search',
       generateSteps: () => [],
-      timeComplexity: 'O(log n)',
-      spaceComplexity: 'O(1)',
     },
   ],
 };

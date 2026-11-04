@@ -320,7 +320,7 @@ export const graphValidTreeMeta: AlgorithmMeta = {
   ],
   hint: 'A valid tree is connected with no cycles. DFS: walk from node 0 tracking the parent; revisiting a non-parent node means a cycle, and len(visited)==n proves connectivity. Union Find: exactly n−1 edges, and if any edge joins two nodes already in the same component there is a cycle.',
   solutions: [
-    { label: 'DFS', variant: 'dfs', generateSteps: generateStepsDFS, timeComplexity: 'O(n + e)', spaceComplexity: 'O(n + e)' },
-    { label: 'Union Find', variant: 'union-find', generateSteps: generateStepsUF, timeComplexity: 'O(n · α(n))', spaceComplexity: 'O(n)' },
+    { label: 'DFS', variant: 'dfs', generateSteps: generateStepsDFS },
+    { label: 'Union Find', variant: 'union-find', generateSteps: generateStepsUF },
   ],
 };

@@ -214,16 +214,12 @@ const solutionBacktracking: SolutionVariant = {
   label: 'Backtracking',
   variant: 'backtracking',
   generateSteps: () => generateBacktrackingSteps(BACKTRACKING_TRACE),
-  timeComplexity: 'O(n·2^k) — plain exponential backtracking, no memoization',
-  spaceComplexity: 'O(k) recursion depth',
 };
 
 const solutionCache: SolutionVariant = {
   label: 'Backtracking + @cache',
   variant: 'cache',
   generateSteps: () => generateBacktrackingSteps(CACHE_TRACE),
-  timeComplexity: 'O(n²·k)',
-  spaceComplexity: 'O(n²·k)',
 };
 
 export const validPalindromeIIIMeta: AlgorithmMeta = {

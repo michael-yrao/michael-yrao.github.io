@@ -135,8 +135,6 @@ const solution: SolutionVariant = {
   label: 'Sort + Two Nested Loops + Two Pointers',
   variant: 'sort-two-pointers',
   generateSteps,
-  timeComplexity: 'O(n³)',
-  spaceComplexity: 'O(n)',
 };
 
 export const fourSumMeta: AlgorithmMeta = {

@@ -31,8 +31,6 @@ export const jumpGameMeta: AlgorithmMeta = {
       label: 'Greedy Max Reach',
       variant: 'max-reach',
       generateSteps: () => [],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(1)',
     },
   ],
 };

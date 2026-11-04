@@ -144,8 +144,6 @@ export const balancedBinaryTreeMeta: AlgorithmMeta = {
       label: 'Postorder DFS',
       variant: 'postorder',
       generateSteps,
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(h)',
     },
   ],
 };

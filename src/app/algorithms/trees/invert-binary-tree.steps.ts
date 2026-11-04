@@ -115,8 +115,6 @@ export const invertBinaryTreeMeta: AlgorithmMeta = {
       label: 'Postorder DFS (Recursive)',
       variant: 'postorder',
       generateSteps,
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(h)',
     },
   ],
 };

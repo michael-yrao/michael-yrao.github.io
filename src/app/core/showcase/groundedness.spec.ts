@@ -59,8 +59,6 @@ describe('groundednessOf', () => {
       label: 'BFS',
       variant: 'bfs',
       generateSteps: () => [makeStep({ anchor: { match: 'while queue' } })],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(n)',
     };
 
     const result = groundednessOf(meta, variant, makeShowcase());
@@ -74,8 +72,6 @@ describe('groundednessOf', () => {
       label: 'BFS',
       variant: '',
       generateSteps: () => [],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(n)',
     };
 
     const result = groundednessOf(meta, variant, makeShowcase());
@@ -89,8 +85,6 @@ describe('groundednessOf', () => {
       label: 'DFS',
       variant: 'dfs',
       generateSteps: () => [],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(n)',
     };
 
     const result = groundednessOf(meta, variant, makeShowcase());
@@ -108,8 +102,6 @@ describe('groundednessOf', () => {
       label: 'BFS',
       variant: 'bfs',
       generateSteps: () => [makeStep({ anchor: { match: 'while stack' } })],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(n)',
     };
 
     const result = groundednessOf(meta, variant, makeShowcase());
@@ -129,15 +121,11 @@ describe('computeGroundedness', () => {
           label: 'BFS',
           variant: 'bfs',
           generateSteps: () => [makeStep({ anchor: { match: 'while queue' } })],
-          timeComplexity: 'O(n)',
-          spaceComplexity: 'O(n)',
         },
         {
           label: 'DFS',
           variant: '', // legacy: no variant id
           generateSteps: () => [],
-          timeComplexity: 'O(n)',
-          spaceComplexity: 'O(n)',
         },
       ],
     });
@@ -158,8 +146,6 @@ describe('computeGroundedness', () => {
           label: 'DFS',
           variant: 'dfs',
           generateSteps: () => [],
-          timeComplexity: 'O(n)',
-          spaceComplexity: 'O(n)',
         },
       ],
     });

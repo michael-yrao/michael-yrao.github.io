@@ -156,8 +156,6 @@ const solution: SolutionVariant = {
   label: 'Bellman-Ford (k+1 rounds)',
   variant: 'bellman-ford',
   generateSteps,
-  timeComplexity: 'O(k · E)',
-  spaceComplexity: 'O(n)',
 };
 
 export const cheapestFlightsWithinKStopsMeta: AlgorithmMeta = {

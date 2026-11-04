@@ -340,7 +340,7 @@ export const surroundedRegionsMeta: AlgorithmMeta = {
   ],
   hint: "Which 'O' cells can never be captured? Find the ones that are NOT surrounded. For Union Find: add a virtual border node B — union every border O with B, then union all adjacent O pairs. Any O cell not connected to B at the end gets flipped.",
   solutions: [
-    { label: 'Union Find', variant: 'union-find', generateSteps: generateStepsUF, timeComplexity: 'O(m×n · α(m×n))', spaceComplexity: 'O(m×n)' },
-    { label: 'BFS', variant: 'bfs', generateSteps, timeComplexity: 'O(m×n)', spaceComplexity: 'O(m×n)' },
+    { label: 'Union Find', variant: 'union-find', generateSteps: generateStepsUF },
+    { label: 'BFS', variant: 'bfs', generateSteps },
   ],
 };

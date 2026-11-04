@@ -25,8 +25,6 @@ export const slidingWindowMaximumMeta: AlgorithmMeta = {
       label: 'Monotonic Deque',
       variant: 'monotonic-deque',
       generateSteps: () => [],
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(k)',
     },
   ],
 };

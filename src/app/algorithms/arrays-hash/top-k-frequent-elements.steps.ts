@@ -185,8 +185,6 @@ const solution: SolutionVariant = {
   label: 'HashMap + Min-Heap',
   variant: 'min-heap',
   generateSteps,
-  timeComplexity: 'O(n log k)',
-  spaceComplexity: 'O(n)',
 };
 
 export const topKFrequentElementsMeta: AlgorithmMeta = {

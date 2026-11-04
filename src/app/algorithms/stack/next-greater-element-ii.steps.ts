@@ -125,8 +125,6 @@ const solution: SolutionVariant = {
   label: 'Circular Monotonic Stack (2·n pass)',
   variant: 'circular-stack',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const nextGreaterElementIIMeta: AlgorithmMeta = {

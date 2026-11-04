@@ -205,16 +205,12 @@ const stackSolution: SolutionVariant = {
   label: 'Stack',
   variant: 'stack',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 const stackSetSolution: SolutionVariant = {
   label: 'Stack + Set',
   variant: 'stack-set',
   generateSteps: generateSetSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(n)',
 };
 
 export const validParenthesesMeta: AlgorithmMeta = {

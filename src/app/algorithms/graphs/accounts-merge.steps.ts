@@ -7,8 +7,6 @@ const solution: SolutionVariant = {
   label: 'Union-Find',
   variant: 'union-find',
   generateSteps: () => [],
-  timeComplexity: 'O(NK log NK)',
-  spaceComplexity: 'O(NK)',
 };
 
 export const accountsMergeMeta: AlgorithmMeta = {

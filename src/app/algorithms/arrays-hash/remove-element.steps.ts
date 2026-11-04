@@ -130,8 +130,6 @@ const solution: SolutionVariant = {
   label: 'Two Pointer (Write Position)',
   variant: 'write-pointer',
   generateSteps,
-  timeComplexity: 'O(n)',
-  spaceComplexity: 'O(1)',
 };
 
 export const removeElementMeta: AlgorithmMeta = {

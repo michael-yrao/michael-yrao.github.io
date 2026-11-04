@@ -194,8 +194,6 @@ const solution: SolutionVariant = {
   label: 'Trie + Wildcard DFS',
   variant: 'wildcard-dfs',
   generateSteps,
-  timeComplexity: 'O(len) add; O(26^dots · len) search',
-  spaceComplexity: 'O(total chars)',
 };
 
 export const designAddAndSearchWordsMeta: AlgorithmMeta = {

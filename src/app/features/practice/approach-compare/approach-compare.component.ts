@@ -2,14 +2,15 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 
 import { ShowcaseService } from '../../../core/services/showcase.service';
 import { AlgorithmMeta } from '../../../core/models/algorithm.model';
+import { complexityLabel } from '../../../core/showcase/complexity-label';
 import { showcaseKey } from '../../../core/showcase/showcase-key';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { WalkthroughStateService } from '../walkthrough-state.service';
 
 interface ApproachRow {
   readonly label: string;
-  readonly timeComplexity: string;
-  readonly spaceComplexity: string;
+  readonly timeComplexity: string | null;
+  readonly spaceComplexity: string | null;
   readonly stepCount: number;
   readonly isGrounded: boolean;
 }
@@ -37,12 +38,15 @@ export class ApproachCompareComponent {
   protected readonly rows = computed<ApproachRow[]>(() => {
     const meta = this.meta();
     const counts = this.stepCounts();
+    const entries = meta.solutions.map((solution) =>
+      this.showcase.entryFor(showcaseKey(meta, solution)),
+    );
     return meta.solutions.map((solution, i) => ({
       label: solution.label,
-      timeComplexity: solution.timeComplexity,
-      spaceComplexity: solution.spaceComplexity,
+      timeComplexity: complexityLabel(entries[i]?.time, entries[i]?.timeQualifier),
+      spaceComplexity: complexityLabel(entries[i]?.space, entries[i]?.spaceQualifier),
       stepCount: counts[i],
-      isGrounded: this.showcase.entryFor(showcaseKey(meta, solution)) !== null,
+      isGrounded: entries[i] !== null,
     }));
   });
 

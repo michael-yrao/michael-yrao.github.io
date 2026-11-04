@@ -117,8 +117,6 @@ const solution: SolutionVariant = {
   label: 'Sort + Two Pointers',
   variant: 'sort-two-pointers',
   generateSteps,
-  timeComplexity: 'O(n²)',
-  spaceComplexity: 'O(n)',
 };
 
 export const threeSumMeta: AlgorithmMeta = {

@@ -168,8 +168,6 @@ export const subtreeOfAnotherTreeMeta: AlgorithmMeta = {
       label: 'BFS + DFS',
       variant: 'bfs-dfs',
       generateSteps,
-      timeComplexity: 'O(m·n)',
-      spaceComplexity: 'O(m+n)',
     },
   ],
 };

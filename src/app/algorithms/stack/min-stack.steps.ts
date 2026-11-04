@@ -30,8 +30,6 @@ export const minStackMeta: AlgorithmMeta = {
       label: 'Pair with Min-So-Far',
       variant: 'pair-min',
       generateSteps: () => [],
-      timeComplexity: 'O(1) per operation',
-      spaceComplexity: 'O(n)',
     },
   ],
 };

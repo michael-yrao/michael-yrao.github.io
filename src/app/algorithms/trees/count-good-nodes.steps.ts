@@ -159,8 +159,6 @@ export const countGoodNodesMeta: AlgorithmMeta = {
       label: 'Iterative DFS',
       variant: 'iterative-dfs',
       generateSteps,
-      timeComplexity: 'O(n)',
-      spaceComplexity: 'O(h)',
     },
   ],
 };

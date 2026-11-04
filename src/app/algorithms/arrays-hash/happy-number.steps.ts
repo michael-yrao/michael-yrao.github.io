@@ -26,8 +26,6 @@ export const happyNumberMeta: AlgorithmMeta = {
       label: 'Seen Set',
       variant: 'seen-set',
       generateSteps: () => [],
-      timeComplexity: 'O(log n)',
-      spaceComplexity: 'O(log n)',
     },
   ],
 };

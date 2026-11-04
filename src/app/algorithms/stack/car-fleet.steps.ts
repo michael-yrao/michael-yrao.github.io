@@ -36,8 +36,6 @@ export const carFleetMeta: AlgorithmMeta = {
       label: 'Sort + Stack of Arrival Times',
       variant: 'sort-stack',
       generateSteps: () => [],
-      timeComplexity: 'O(n log n)',
-      spaceComplexity: 'O(n)',
     },
   ],
 };
