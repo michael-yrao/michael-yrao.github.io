@@ -604,7 +604,7 @@ describe('TodayBoardComponent', () => {
   });
 
   // ── The leading status badge replaces the check + the after-title glyph ────────────
-  it("renders the boxed </> status link as the row's FIRST child, for a done row with a registered walkthrough route", () => {
+  it("renders the boxed status link with the check icon as the row's FIRST child, for a done row with a registered walkthrough route", () => {
     const fixture = createFixture(makeSchedule()); // lcNumber 100 (Same Tree) has a real route, done: true
 
     expect(fixture.nativeElement.textContent).not.toContain('Visualize');
@@ -612,7 +612,8 @@ describe('TodayBoardComponent', () => {
     const badge: HTMLAnchorElement = fixture.nativeElement.querySelector('.today-board__status--link');
     expect(badge).toBeTruthy();
     expect(badge.tagName).toBe('A');
-    expect(badge.textContent).toContain('</>');
+    expect(badge.textContent).not.toContain('</>');
+    expect(iconName(badge)).toBe('check');
     expect(badge.title).toBe('Solution walkthrough');
     expect(badge.getAttribute('aria-label')).toBe('Solution walkthrough for #100, done');
 
@@ -761,7 +762,7 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.today-board__status--github')).toBeFalsy();
   });
 
-  it('keeps the `</>` walkthrough link (never the GitHub fallback) for a row with a registered viz route, even with a `file` and a repo ref', () => {
+  it('keeps the walkthrough link (never the GitHub fallback) for a row with a registered viz route, even with a `file` and a repo ref', () => {
     const schedule = makeSchedule(); // lcNumber 100 (Same Tree) has a real route
     schedule.days[0].items[1] = { ...schedule.days[0].items[1], file: 'dsa/leetcode/trees/100_same_tree.py' };
     const fixture = createFixture(schedule);
@@ -770,7 +771,7 @@ describe('TodayBoardComponent', () => {
 
     const badge: HTMLAnchorElement = fixture.nativeElement.querySelector('.today-board__status--link');
     expect(badge).toBeTruthy();
-    expect(badge.textContent).toContain('</>');
+    expect(iconName(badge)).toBe('check');
     expect(fixture.nativeElement.querySelector('.today-board__status--github')).toBeFalsy();
   });
 
@@ -808,7 +809,7 @@ describe('TodayBoardComponent', () => {
           const badge = row.querySelector('.today-board__status--link');
           expect(badge).toBeTruthy();
           expect(badge!.classList.contains('today-board__status--github')).toBe(false);
-          expect(badge!.textContent).toContain('</>');
+          expect(iconName(badge)).toBe('check');
         },
       },
       {

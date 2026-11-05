@@ -355,6 +355,11 @@ export function rowStateIcon(item: ScheduleItem, isPending: boolean): IconName {
   return isPending ? PENDING_ICON : OPEN_ICON;
 }
 
+/** The walkthrough badge's state icon once the row is done or saved-and-folding; null while open, so the `</>` glyph stays. */
+export function walkthroughBadgeIcon(item: ScheduleItem, isPending: boolean): IconName | null {
+  return item.done || isPending ? rowStateIcon(item, isPending) : null;
+}
+
 /** The status badge's aria-label when it's the GitHub solution-file link — mirrors
  *  `statusAriaLabel`, done-ness (or moved-ness) in place of the walkthrough's. */
 export function githubAriaLabel(item: ScheduleItem, date: string, isPending = false): string {

@@ -83,13 +83,18 @@ function signIn(login: string): void {
   );
 }
 
-function render(extraProviders: readonly Provider[] = [], entry: object | null = REFERENCE_ENTRY): {
+function render(
+  extraProviders: readonly Provider[] = [],
+  entry: object | null = REFERENCE_ENTRY,
+  routeNumber = '90',
+): {
   fixture: ComponentFixture<PracticePageComponent>;
   httpMock: HttpTestingController;
 } {
-  const params = convertToParamMap({ number: '90' });
+  const params = convertToParamMap({ number: routeNumber });
   const query = convertToParamMap({});
-  const data: PracticeData = { schemaVersion: 1, generatedAt: '2026-10-01', problems: [PROBLEM] };
+  const problem: PracticeProblem = { ...PROBLEM, number: Number(routeNumber) };
+  const data: PracticeData = { schemaVersion: 1, generatedAt: '2026-10-01', problems: [problem] };
   TestBed.configureTestingModule({
     imports: [PracticePageComponent],
     providers: [
@@ -106,7 +111,7 @@ function render(extraProviders: readonly Provider[] = [], entry: object | null =
           data: signal(data),
           ref: signal(CONTENT_REPO),
           load: vi.fn(),
-          problemFor: () => PROBLEM,
+          problemFor: () => problem,
         },
       },
       { provide: ShowcaseService, useValue: { data: signal(null), load: vi.fn(), entryFor: () => null } },
@@ -319,6 +324,33 @@ describe('PracticePageComponent save to GitHub', () => {
         (i) => `${i.querySelector('dt')?.textContent} ${i.querySelector('dd')?.textContent}`,
       ),
     ).toEqual(legend);
+  });
+
+  // 20 is a problem with a static walkthrough, so the Solution tab exists until a rep hides it.
+  it.each([
+    { name: 'no pass', step: 'none', isShown: true },
+    { name: 'the rep panel open', step: 'panel', isShown: false },
+    { name: 'the panel closed on an unsaved pass', step: 'closed', isShown: false },
+    { name: 'a saved complete rep', step: 'saved', isShown: true },
+  ] as const)('the Solution tab with $name: shown is $isShown', async ({ step, isShown }) => {
+    signIn(OWNER);
+    runSpy.mockReturnValue(of(runOf(['pass', 'pass', 'pass'])));
+    const { fixture, httpMock } = render([], REFERENCE_ENTRY, '20');
+    const root: HTMLElement = fixture.nativeElement;
+    await tick();
+    httpMock.expectOne(`${WORKER_API_URL}practice/latest`).flush({}, { status: 404, statusText: 'none' });
+    if (step !== 'none') clickRun(fixture, false);
+    if (step === 'closed') closeRepPanel(fixture);
+    if (step === 'saved') {
+      rateAndSave(fixture);
+      await tick(); // the token arrives before the request
+      httpMock.expectOne(`${WORKER_API_URL}practice/save`).flush({ ok: true });
+      await tick();
+      fixture.detectChanges();
+    }
+
+    const tabs = Array.from(root.querySelectorAll('a.practice-header__tab'));
+    expect(tabs.some((a) => a.textContent?.trim() === 'Solution')).toBe(isShown);
   });
 
   it('closing the rep panel restores the statement and editor, and the head button reopens it', () => {

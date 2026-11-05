@@ -66,6 +66,7 @@ import {
   sumRowCounts,
   trendAriaLabel,
   trendPanelId,
+  walkthroughBadgeIcon,
 } from './board-rows';
 import { WeekNavigation } from './week-navigation';
 import { TodaySessionService } from '../../../core/today-session/today-session.service';
@@ -508,6 +509,7 @@ export class TodayBoardComponent {
   protected readonly githubAriaLabel = githubAriaLabel;
   protected readonly movedAriaLabel = movedAriaLabel;
   protected readonly statusIcon = statusIcon;
+  protected readonly walkthroughBadgeIcon = walkthroughBadgeIcon;
   protected readonly plainAriaLabel = plainAriaLabel;
   protected readonly rowStateIcon = rowStateIcon;
   protected readonly doneIcon = DONE_ICON;

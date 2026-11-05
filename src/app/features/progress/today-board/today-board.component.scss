@@ -318,8 +318,9 @@ $workload-planned-opacity: 0.35;
 // Done carries through to the badge regardless of link/span — it's the done signal now, so
 // it's deliberately left out of the dim list above.
 .today-board__row--done .today-board__status {
+  background: var(--color-easy);
   border-color: var(--color-easy);
-  color: var(--color-easy);
+  color: var(--color-bg);
 }
 .today-board__row--pending .today-board__status {
   border-color: var(--color-medium);
@@ -351,6 +352,14 @@ $workload-planned-opacity: 0.35;
 .today-board__row .today-board__status--link:focus-visible {
   border-color: var(--color-accent);
   color: var(--color-accent);
+}
+// A filled done badge keeps its fill on hover: accent fill, bg-coloured glyph. Same specificity
+// as the rule above (two classes + the pseudo-class), so it wins by coming after it.
+.today-board__row--done .today-board__status--link:hover,
+.today-board__row--done .today-board__status--link:focus-visible {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
 }
 .today-board__status--link:focus-visible {
   outline: 2px solid var(--color-accent);

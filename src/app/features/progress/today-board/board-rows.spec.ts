@@ -1,6 +1,13 @@
 import { ScheduleDay, ScheduleItem, WorkloadDay } from '../../../core/models/progress.model';
 import { WorkloadBand, workloadBand } from '../../../core/utils/workload-band';
-import { buildWorkloadBar, countRows, isMissedItem, movedAriaLabel, statusIcon } from './board-rows';
+import {
+  buildWorkloadBar,
+  countRows,
+  isMissedItem,
+  movedAriaLabel,
+  statusIcon,
+  walkthroughBadgeIcon,
+} from './board-rows';
 
 const CEILING = 8;
 const FLOOR = 4;
@@ -72,6 +79,17 @@ describe('statusIcon', () => {
       };
       expect(statusIcon(item, 'circle', date, TODAY)).toBe(expected);
     });
+  });
+});
+
+describe('walkthroughBadgeIcon', () => {
+  it.each([
+    { name: 'done', done: true, isPending: false, expected: 'check' },
+    { name: 'pending', done: false, isPending: true, expected: 'half' },
+    { name: 'open keeps the </> glyph', done: false, isPending: false, expected: null },
+  ])('$name', ({ done, isPending, expected }) => {
+    const item: ScheduleItem = { lcNumber: 1, title: 'A', technique: null, startComfort: null, difficulty: null, done };
+    expect(walkthroughBadgeIcon(item, isPending)).toBe(expected);
   });
 });
 

@@ -20,7 +20,7 @@
         class="today-board__status today-board__status--link"
         title="Solution walkthrough"
         [attr.aria-label]="statusAriaLabel(item, date, isPendingItem(item, date))"
-        >@if (statusIcon(item, null, date, todayISO()); as icon) {<app-icon [name]="icon" [size]="14" />} @else {{{ walkthroughGlyph }}}</a
+        >@if (statusIcon(item, walkthroughBadgeIcon(item, isPendingItem(item, date)), date, todayISO()); as icon) {<app-icon [name]="icon" [size]="14" />} @else {{{ walkthroughGlyph }}}</a
       >
     } @else if (solutionUrl(item.file); as src) {
       <a

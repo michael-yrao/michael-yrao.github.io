@@ -277,6 +277,9 @@ export class PracticePageComponent {
     return this.saveStatus().state === 'saving' ? null : pass;
   });
 
+  /** A rep is under way: the panel is open, or a passing run on the current code is unsaved; the Solution tab hides. */
+  protected readonly isRepInProgress = computed(() => this.isCompleting() || this.unsavedPass() !== null);
+
   /** A complete or provisional save of this problem for today's path is known; Save to GitHub hides. */
   readonly isDayLanded = computed(() => {
     const problem = this.problem();
