@@ -376,33 +376,52 @@ describe('PracticePageComponent save to GitHub', () => {
     expect(reopen()).toBeNull();
   });
 
-  it('the left-pane toggle flips code and statement, and reopening the rep panel resets it to the code', () => {
+  it('the header Description and Code tabs flip the left pane, and reopening the rep panel resets it to the code', () => {
     signIn(OWNER);
     runSpy.mockReturnValue(of(runOf(['pass', 'pass', 'pass'])));
     const { fixture } = render();
     const root: HTMLElement = fixture.nativeElement;
-    const toggle = (): void => {
-      root.querySelector<HTMLButtonElement>('.practice__pane-bar button[aria-pressed]')!.click();
+    const clickTab = (label: 'Description' | 'Code'): void => {
+      const tab = Array.from(root.querySelectorAll<HTMLButtonElement>('.practice-header__tabs button')).find(
+        (button) => button.textContent?.trim() === label,
+      );
+      tab!.click();
       fixture.detectChanges();
     };
     clickRun(fixture, false);
     expect(root.querySelector('.practice__problem app-code-viewer')).not.toBeNull();
 
-    toggle();
+    clickTab('Description');
 
     expect(root.querySelector('.practice__problem app-practice-description')).not.toBeNull();
     expect(root.querySelector('.practice__problem app-code-viewer')).toBeNull();
     expect(root.querySelector('app-complete-rep-panel')).not.toBeNull();
 
-    toggle();
+    clickTab('Code');
 
     expect(root.querySelector('.practice__problem app-code-viewer')).not.toBeNull();
 
-    toggle();
+    clickTab('Description');
     closeRepPanel(fixture);
     reopenRepPanel(fixture);
 
     expect(root.querySelector('.practice__problem app-code-viewer')).not.toBeNull();
+  });
+
+  it('the header Description tab expands a collapsed pane and shows the statement', () => {
+    signIn(OWNER);
+    const { fixture } = render();
+    const root: HTMLElement = fixture.nativeElement;
+
+    root.querySelector<HTMLButtonElement>('.practice__pane-toggle')!.click();
+    fixture.detectChanges();
+    expect(root.querySelector('#practice-problem-body')!.hasAttribute('hidden')).toBe(true);
+
+    root.querySelector<HTMLButtonElement>('.practice-header__tabs button')!.click();
+    fixture.detectChanges();
+
+    expect(root.querySelector('#practice-problem-body')!.hasAttribute('hidden')).toBe(false);
+    expect(root.querySelector('#practice-problem-body app-practice-description')).not.toBeNull();
   });
 
   it.each([

@@ -15,14 +15,37 @@
       }
     }
     <nav class="practice-header__tabs" aria-label="Problem views">
-      <a
-        class="practice-header__tab"
-        [class.practice-header__tab--active]="activeTab() === 'description'"
-        [attr.aria-current]="activeTab() === 'description' ? 'page' : null"
-        [routerLink]="['/practice', number()]"
-        queryParamsHandling="preserve"
-        >Description</a
-      >
+      @if (pane(); as pane) {
+        <button
+          type="button"
+          class="practice-header__tab"
+          [class.practice-header__tab--active]="pane.shown === 'description'"
+          [attr.aria-pressed]="pane.shown === 'description'"
+          (click)="paneSelect.emit('description')"
+        >
+          Description
+        </button>
+        @if (pane.hasCode) {
+          <button
+            type="button"
+            class="practice-header__tab"
+            [class.practice-header__tab--active]="pane.shown === 'code'"
+            [attr.aria-pressed]="pane.shown === 'code'"
+            (click)="paneSelect.emit('code')"
+          >
+            Code
+          </button>
+        }
+      } @else {
+        <a
+          class="practice-header__tab"
+          [class.practice-header__tab--active]="activeTab() === 'description'"
+          [attr.aria-current]="activeTab() === 'description' ? 'page' : null"
+          [routerLink]="['/practice', number()]"
+          queryParamsHandling="preserve"
+          >Description</a
+        >
+      }
       @if (hasSolution()) {
         <a
           class="practice-header__tab"

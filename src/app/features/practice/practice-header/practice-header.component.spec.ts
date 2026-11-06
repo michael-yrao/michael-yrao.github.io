@@ -1,11 +1,11 @@
 import { NgClass } from '@angular/common';
 import { Component, input } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, RouterLink } from '@angular/router';
 
 import { TodaySessionService } from '../../../core/today-session/today-session.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
-import { PracticeHeaderComponent } from './practice-header.component';
+import { PracticeHeaderComponent, PracticeHeaderPane } from './practice-header.component';
 
 @Component({ selector: 'app-problem-list-panel', template: '' })
 class ProblemListPanelStub {
@@ -20,7 +20,11 @@ class TodayStripStub {
   readonly isCelebrating = input<unknown>();
 }
 
-function render(isRunning: boolean, isTitleShown = true): HTMLElement {
+function createFixture(
+  isRunning: boolean,
+  isTitleShown: boolean,
+  pane: PracticeHeaderPane | null,
+): ComponentFixture<PracticeHeaderComponent> {
   TestBed.configureTestingModule({
     imports: [PracticeHeaderComponent],
     providers: [provideRouter([]), { provide: TodaySessionService, useValue: { isRunning: () => isRunning, handoff: () => null } }],
@@ -38,8 +42,13 @@ function render(isRunning: boolean, isTitleShown = true): HTMLElement {
   fixture.componentRef.setInput('catalogue', []);
   fixture.componentRef.setInput('repo', null);
   fixture.componentRef.setInput('isTitleShown', isTitleShown);
+  fixture.componentRef.setInput('pane', pane);
   fixture.detectChanges();
-  return fixture.nativeElement;
+  return fixture;
+}
+
+function render(isRunning: boolean, isTitleShown = true): HTMLElement {
+  return createFixture(isRunning, isTitleShown, null).nativeElement;
 }
 
 describe('PracticeHeaderComponent neighbor links', () => {
@@ -62,5 +71,41 @@ describe('PracticeHeaderComponent title', () => {
     const hidden = render(false, false);
     expect(hidden.querySelector('.practice-header__heading')).toBeNull();
     expect(hidden.querySelector('.practice-header__tab')).not.toBeNull();
+  });
+});
+
+interface PaneCase {
+  readonly name: string;
+  readonly pane: PracticeHeaderPane | null;
+  readonly tabs: readonly (readonly [string, string])[];
+  readonly active: string | null;
+}
+
+describe('PracticeHeaderComponent pane tabs', () => {
+  it.each<PaneCase>([
+    { name: 'no pane (solution page)', pane: null, tabs: [['A', 'Description']], active: 'Description' },
+    { name: 'statement shown', pane: { shown: 'description', hasCode: false }, tabs: [['BUTTON', 'Description']], active: 'Description' },
+    { name: 'pane collapsed', pane: { shown: null, hasCode: false }, tabs: [['BUTTON', 'Description']], active: null },
+    { name: 'code shown', pane: { shown: 'code', hasCode: true }, tabs: [['BUTTON', 'Description'], ['BUTTON', 'Code']], active: 'Code' },
+    { name: 'statement shown beside code', pane: { shown: 'description', hasCode: true }, tabs: [['BUTTON', 'Description'], ['BUTTON', 'Code']], active: 'Description' },
+  ])('$name: tabs, their elements and the active one', ({ pane, tabs, active }) => {
+    const root: HTMLElement = createFixture(false, true, pane).nativeElement;
+    const rendered = Array.from(root.querySelectorAll('.practice-header__tab'));
+
+    expect(rendered.map((el) => [el.tagName, el.textContent?.trim()])).toEqual(tabs);
+    const activeTexts = rendered.filter((el) => el.classList.contains('practice-header__tab--active')).map((el) => el.textContent?.trim());
+    expect(activeTexts).toEqual(active === null ? [] : [active]);
+  });
+
+  it('clicking a button tab emits its pane', () => {
+    const fixture = createFixture(false, true, { shown: 'description', hasCode: true });
+    const emitted: string[] = [];
+    fixture.componentInstance.paneSelect.subscribe((view) => emitted.push(view));
+    const [description, code] = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('button.practice-header__tab'));
+
+    code.click();
+    description.click();
+
+    expect(emitted).toEqual(['code', 'description']);
   });
 });

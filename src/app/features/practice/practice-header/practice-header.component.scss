@@ -59,6 +59,13 @@ $split-breakpoint: 900px;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
   text-decoration: none;
+  // Strip the button chrome so a <button> tab reads the same as an <a> tab.
+  border-top: 0;
+  border-inline: 0;
+  background: none;
+  font-family: inherit;
+  line-height: inherit;
+  cursor: pointer;
   transition: color var(--transition-fast), border-color var(--transition-fast);
 
   &:hover { color: var(--color-text); text-decoration: none; }

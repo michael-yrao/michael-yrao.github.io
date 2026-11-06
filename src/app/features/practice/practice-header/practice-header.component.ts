@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Difficulty } from '../../../core/models/algorithm.model';
@@ -11,6 +11,15 @@ import { ProblemListPanelComponent } from '../problem-list/problem-list-panel.co
 import { TodayStripComponent } from '../today-strip/today-strip.component';
 
 export type PracticeHeaderTab = 'description' | 'solution';
+
+/** The practice page's left-pane views a header tab can select. */
+export type PracticePaneView = 'description' | 'code';
+
+/** The left pane's state for the header: the view it shows (null while collapsed) and whether Code is offered. */
+export interface PracticeHeaderPane {
+  readonly shown: PracticePaneView | null;
+  readonly hasCode: boolean;
+}
 
 /** A problem's heading (unless the page names the problem itself), its Description | Solution tabs
  *  and its previous / next links on one bar, shared by the practice page and the solution page. Renders its inputs; its one choice is which tab the
@@ -36,6 +45,10 @@ export class PracticeHeaderComponent {
   readonly isTitleShown = input(true);
   /** True while the page celebrates a fresh pass; the today strip ripples its current dot. */
   readonly isPassFresh = input(false);
+  /** Set by the practice page: Description (and Code) become buttons that select the left pane's view.
+   *  Null (the solution page) keeps Description a link back to the practice page. */
+  readonly pane = input<PracticeHeaderPane | null>(null);
+  readonly paneSelect = output<PracticePaneView>();
 
   private readonly session = inject(TodaySessionService);
 

@@ -15,6 +15,8 @@
       [hasSolution]="hasSolution() && !isRepInProgress()"
       [isTitleShown]="false"
       [isPassFresh]="isPassFresh()"
+      [pane]="headerPane()"
+      (paneSelect)="selectPane($event)"
     />
 
     <div
@@ -48,18 +50,6 @@
             <app-icon class="practice__pass-mark" name="check" [size]="copyIconSize" />
           }
           <span class="practice__sr-only" aria-live="polite">{{ isPassFresh() ? 'Passed' : '' }}</span>
-          @if (isCompleting()) {
-            <button
-              type="button"
-              class="practice__btn practice__btn--icon"
-              [attr.aria-pressed]="isShowingStatement()"
-              [attr.aria-label]="isShowingCode() ? 'Show problem' : 'Show solution'"
-              [attr.title]="isShowingCode() ? 'Show problem' : 'Show solution'"
-              (click)="toggleLeftView()"
-            >
-              <app-icon [name]="isShowingCode() ? showStatementIcon : showCodeIcon" [size]="copyIconSize" />
-            </button>
-          }
           @if (canReopenRep()) {
             <button type="button" class="practice__btn practice__btn--icon" aria-label="Complete rep" title="Complete rep" (click)="reopenRep()">
               <app-icon [name]="completeRepIcon" [size]="copyIconSize" />

@@ -38,7 +38,11 @@ import { CaseResultsComponent } from '../../../shared/components/case-results/ca
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
 import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
-import { PracticeHeaderComponent } from '../practice-header/practice-header.component';
+import {
+  PracticeHeaderComponent,
+  PracticeHeaderPane,
+  PracticePaneView,
+} from '../practice-header/practice-header.component';
 import { CompleteRepPanelComponent, CompletedRep, LegendItem, ReferenceBounds, RepChoices } from '../complete-rep-panel/complete-rep-panel.component';
 import { injectPracticeProblem } from '../practice-problem';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -69,8 +73,6 @@ const COPY_OK_ICON: IconName = 'check';
 const COPY_FAIL_ICON: IconName = 'x';
 const COPY_ICON_SIZE_PX = 14;
 const COMPLETE_REP_ICON: IconName = 'check';
-const SHOW_STATEMENT_ICON: IconName = 'file';
-const SHOW_CODE_ICON: IconName = 'terminal';
 const PERCENT = 100;
 const RESET_CONFIRM = 'Reset this solution to the starter code?';
 const LEAVE_CONFIRM = 'Leave without rating? The rep is saved as unrated.';
@@ -233,8 +235,6 @@ export class PracticePageComponent {
   protected readonly copyOkIcon = COPY_OK_ICON;
   protected readonly copyFailIcon = COPY_FAIL_ICON;
   protected readonly completeRepIcon = COMPLETE_REP_ICON;
-  protected readonly showStatementIcon = SHOW_STATEMENT_ICON;
-  protected readonly showCodeIcon = SHOW_CODE_ICON;
 
   readonly saveStatus = computed(() => this.saver.statusFor(this.number() ?? 0));
   readonly installUrl = this.auth.installUrl;
@@ -242,6 +242,11 @@ export class PracticePageComponent {
   /** The left-pane view while completing: the problem statement (true) or the passing code (false). */
   protected readonly isShowingStatement = signal(false);
   protected readonly isShowingCode = computed(() => this.isCompleting() && !this.isShowingStatement());
+  /** What the header's Description / Code tabs show: the pane's visible view, null while it is collapsed. */
+  protected readonly headerPane = computed<PracticeHeaderPane>(() => ({
+    shown: !this.isProblemOpen() ? null : this.isShowingCode() ? 'code' : 'description',
+    hasCode: this.isCompleting(),
+  }));
   /** True for PASS_EFFECT_MS after a pass opens the rep panel on its own; a manual reopen never sets it. */
   protected readonly isPassFresh = signal(false);
   /** The rep each problem was last marked complete with, for the marks beside the status. */
@@ -440,9 +445,10 @@ export class PracticePageComponent {
     this.isCompleting.set(true);
   }
 
-  /** Flips the left pane between the passing code and the problem statement while completing. */
-  protected toggleLeftView(): void {
-    this.isShowingStatement.update((isShowing) => !isShowing);
+  /** A header tab: expands the left pane and shows the statement or the passing code. */
+  protected selectPane(pane: PracticePaneView): void {
+    this.isProblemOpen.set(true);
+    this.isShowingStatement.set(pane === 'description');
   }
 
   private startPassEffect(): void {
