@@ -45,14 +45,6 @@
   @include prow.tag-difficulty;
 }
 
-// `.recognition__link` (the anchor) gets its color/underline from `prow.links`' own nested
-// `a` selector — no separate rule needed.
-.recognition__links {
-  @include prow.links;
-}
-.recognition__result + .recognition__links { margin-left: 0; }
-.recognition__slot { @include prow.link-slot; }
-
 .recognition__note {
   margin: 0;
   color: var(--color-text-muted);

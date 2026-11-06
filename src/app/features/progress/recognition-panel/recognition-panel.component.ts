@@ -1,13 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
 
 import { Probes } from '../../../core/models/progress.model';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { RepoRef, fileUrl } from '../../../core/services/github-file.service';
 import { CLEAN_COMFORT } from '../../../core/models/comfort';
 import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
-import { PRACTICE_ICON } from '../practice-link';
-import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ProblemTitleComponent } from '../../../shared/components/problem-title/problem-title.component';
 
 const CLEAN_HIGH = 0.85;
 const CLEAN_LOW = 0.7;
@@ -22,7 +20,7 @@ const CLEAN_LOW = 0.7;
   selector: 'app-recognition-panel',
   templateUrl: './recognition-panel.component.html',
   styleUrls: ['./recognition-panel.component.scss'],
-  imports: [RouterLink, ComfortMarkComponent, IconComponent],
+  imports: [ComfortMarkComponent, ProblemTitleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecognitionPanelComponent {
@@ -60,5 +58,4 @@ export class RecognitionPanelComponent {
   readonly recent = computed(() => [...(this.probes()?.items ?? [])].reverse());
 
   protected readonly externalJudgeUrlFor = externalJudgeUrlFor;
-  protected readonly practiceIcon = PRACTICE_ICON;
 }

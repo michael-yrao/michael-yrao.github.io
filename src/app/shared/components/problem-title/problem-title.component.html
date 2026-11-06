@@ -1,0 +1,10 @@
+@if (!hasPractice()) {
+  <span class="problem-title__text" [class.problem-title__text--struck]="isStruck()">{{ title() }}</span>
+} @else if (isRunEntry()) {
+  <button type="button" class="problem-title__text problem-title__link" [class.problem-title__text--struck]="isStruck()" (click)="practice.emit(number())">{{ title() }}</button>
+} @else {
+  <a class="problem-title__text problem-title__link" [class.problem-title__text--struck]="isStruck()" [routerLink]="['/practice', number()]" queryParamsHandling="preserve">{{ title() }}</a>
+}
+@if (url(); as external) {
+  <a class="problem-title__arrow" [href]="external" target="_blank" rel="noopener" aria-label="External" title="External"><app-icon name="external" [size]="arrowSize()" /></a>
+}

@@ -215,15 +215,6 @@
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  text-decoration: none;
-  color: inherit;
-  transition: border-color var(--transition-fast), transform var(--transition-fast);
-
-  &:hover {
-    border-color: var(--color-accent);
-    transform: translateX(4px);
-    text-decoration: none;
-  }
 
   &__num {
     font-family: var(--font-mono);
@@ -235,11 +226,6 @@
   &__title {
     font-weight: 600;
     flex: 1;
-  }
-
-  &__arrow {
-    color: var(--color-accent);
-    margin-left: auto;
   }
 }
 

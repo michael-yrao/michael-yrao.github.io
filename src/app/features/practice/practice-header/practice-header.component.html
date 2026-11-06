@@ -1,31 +1,29 @@
 <header class="practice-header">
   <div class="practice-header__title-row">
-    <app-problem-list-panel [catalogue]="catalogue()" [currentNumber]="number()" [repo]="repo()" />
     @if (isTitleShown()) {
       <h1 class="practice-header__heading" [attr.title]="title()">
         <span class="practice-header__num">#{{ number() }}</span>
+        <a class="practice-header__title-link" [routerLink]="['/practice', number()]" queryParamsHandling="preserve">{{ title() }}</a>
         @if (titleUrl(); as url) {
-          <a [href]="url" target="_blank" rel="noopener">{{ title() }}<span class="practice-header__arrow"><app-icon name="external" [size]="14" /></span></a>
-        } @else {
-          {{ title() }}
+          <a class="practice-header__arrow" [href]="url" target="_blank" rel="noopener" aria-label="External" title="External"><app-icon name="external" [size]="14" /></a>
         }
       </h1>
       @if (difficulty(); as level) {
         <span class="difficulty-badge" [ngClass]="'badge-' + level.toLowerCase()">{{ level }}</span>
       }
     }
-    <nav class="practice-header__tabs" aria-label="Problem views">
-      @if (pane(); as pane) {
-        <button
-          type="button"
-          class="practice-header__tab"
-          [class.practice-header__tab--active]="pane.shown === 'description'"
-          [attr.aria-pressed]="pane.shown === 'description'"
-          (click)="paneSelect.emit('description')"
-        >
-          Description
-        </button>
-        @if (pane.hasCode) {
+    @if (pane(); as pane) {
+      @if (pane.hasCode) {
+        <nav class="practice-header__tabs" aria-label="Problem views">
+          <button
+            type="button"
+            class="practice-header__tab"
+            [class.practice-header__tab--active]="pane.shown === 'description'"
+            [attr.aria-pressed]="pane.shown === 'description'"
+            (click)="paneSelect.emit('description')"
+          >
+            Description
+          </button>
           <button
             type="button"
             class="practice-header__tab"
@@ -35,56 +33,11 @@
           >
             Code
           </button>
-        }
-      } @else {
-        <a
-          class="practice-header__tab"
-          [class.practice-header__tab--active]="activeTab() === 'description'"
-          [attr.aria-current]="activeTab() === 'description' ? 'page' : null"
-          [routerLink]="['/practice', number()]"
-          queryParamsHandling="preserve"
-          >Description</a
-        >
-      }
-      @if (hasSolution()) {
-        <a
-          class="practice-header__tab"
-          [class.practice-header__tab--active]="activeTab() === 'solution'"
-          [attr.aria-current]="activeTab() === 'solution' ? 'page' : null"
-          [routerLink]="['/practice', number(), 'solution']"
-          queryParamsHandling="preserve"
-          >Solution</a
-        >
-      }
-    </nav>
-  </div>
-  <div class="practice-header__neighbor-nav">
-    <a
-      class="practice-header__interview po-btn po-btn--sm po-btn--outline"
-      routerLink="/interview/prepare"
-      [queryParams]="{ import: number() }"
-      aria-label="Write an interview problem from this"
-      title="Write an interview problem from this"
-      ><app-icon name="pen" [size]="14"
-    /></a>
-    <app-today-strip [number]="number()" [isCelebrating]="isPassFresh()" />
-    @if (!isRunThrough()) {
-      @if (neighbors().prev; as prev) {
-        <a
-          [routerLink]="neighborCommands()(prev.number)"
-          queryParamsHandling="preserve"
-          class="neighbor-btn po-btn po-btn--sm po-btn--outline"
-          ><app-icon name="chevron-left" [size]="14" /> {{ prev.number }}</a
-        >
-      }
-      @if (neighbors().next; as next) {
-        <a
-          [routerLink]="neighborCommands()(next.number)"
-          queryParamsHandling="preserve"
-          class="neighbor-btn po-btn po-btn--sm po-btn--outline"
-          >{{ next.number }} <app-icon name="chevron-right" [size]="14" /></a
-        >
+        </nav>
       }
     }
+  </div>
+  <div class="practice-header__neighbor-nav">
+    <app-today-strip [number]="number()" [isCelebrating]="isPassFresh()" />
   </div>
 </header>

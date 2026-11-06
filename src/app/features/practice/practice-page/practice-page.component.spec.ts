@@ -260,9 +260,10 @@ describe('PracticePageComponent', () => {
     expect(root.querySelectorAll('h1')).toHaveLength(1);
     expect(title.getAttribute('title')).toBe('Subsets II');
     expect(title.querySelector('.practice__pane-num')?.textContent?.trim()).toBe('#90');
-    const link = title.querySelector<HTMLAnchorElement>('a')!;
-    expect(link.getAttribute('href')).toBe(PROBLEM.url);
-    expect(link.target).toBe('_blank');
+    expect(title.querySelector('a.problem-title__link')!.getAttribute('href')).toBe('/practice/90');
+    const arrow = title.querySelector<HTMLAnchorElement>('a.problem-title__arrow')!;
+    expect(arrow.getAttribute('href')).toBe(PROBLEM.url);
+    expect(arrow.target).toBe('_blank');
     expect(root.querySelector('.practice-header__heading')).toBeNull();
 
     title.click();
@@ -304,15 +305,19 @@ describe('PracticePageComponent', () => {
   ];
 
   it.each(PANES)(
-    '$name has the Solution tab and editor pane it should, and no tag or complexity',
-    ({ number, problems, hasSolutionTab, hasEditor }) => {
-      const root: HTMLElement = setUp(number, problems).nativeElement;
+    '$name has the hint-card Solution link and editor pane it should, and no header tab, tag or complexity',
+    async ({ number, problems, hasSolutionTab, hasEditor }) => {
+      const fixture = setUp(number, problems);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const root: HTMLElement = fixture.nativeElement;
+      root.querySelector<HTMLButtonElement>('.hint__toggle')?.click();
+      fixture.detectChanges();
 
-      const solutionTab = Array.from(root.querySelectorAll('a.practice-header__tab')).find(
-        (a) => a.textContent?.trim() === 'Solution',
-      );
-      expect(solutionTab !== undefined).toBe(hasSolutionTab);
-      if (solutionTab) expect(solutionTab.getAttribute('href')).toBe('/practice/' + number + '/solution');
+      expect(root.querySelector('.practice-header__tab')).toBeNull();
+      const solutionLink = root.querySelector('a.hint__solution');
+      expect(solutionLink !== null).toBe(hasSolutionTab);
+      if (solutionLink) expect(solutionLink.getAttribute('href')).toBe('/practice/' + number + '/solution');
       expect(root.querySelector('app-code-editor') !== null).toBe(hasEditor);
       expect(root.querySelector('.practice__divider') !== null).toBe(hasEditor);
       expect(root.querySelector('.meta-tag')).toBeNull();
@@ -346,7 +351,7 @@ describe('PracticePageComponent', () => {
     const root: HTMLElement = setUp('1', [], 'error', 'Contract load failed').nativeElement;
 
     expect(root.querySelector('.practice__message')?.textContent?.trim()).toBe('Contract load failed');
-    expect(root.querySelector('.practice-header__tab')).not.toBeNull();
+    expect(root.querySelector('.practice-header__neighbor-nav')).not.toBeNull();
   });
 
   it('Reset restores the stub in the editor and clears the stored draft once confirmed', () => {

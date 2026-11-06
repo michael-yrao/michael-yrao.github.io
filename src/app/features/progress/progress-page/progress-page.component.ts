@@ -25,7 +25,6 @@ import { liveStreak } from '../live-streak';
 import { sessionDateISO, todayLocalISO } from '../../../core/utils/local-date';
 import { DEMO_REPO_SLUG } from '../../../core/data/site-links';
 import { walkthroughRouteFor } from '../solution-link-mode';
-import { PRACTICE_ICON } from '../practice-link';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.component';
@@ -49,6 +48,7 @@ import {
 import { Difficulty, dueLabel } from '../problem-progress';
 import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ProblemTitleComponent } from '../../../shared/components/problem-title/problem-title.component';
 import { PracticeNumbers } from '../../../core/practice/practice-numbers';
 import { ProblemExplorer } from './problem-explorer';
 import { RepoPicker } from './repo-picker';
@@ -73,6 +73,7 @@ import { SummaryView } from './summary-view';
     SettingsMenuComponent,
     ComfortMarkComponent,
     IconComponent,
+    ProblemTitleComponent,
   ],
 })
 export class ProgressPageComponent {
@@ -193,7 +194,6 @@ export class ProgressPageComponent {
   protected readonly demoRepoSlug = DEMO_REPO_SLUG;
 
   // Which rows get a Run link — PracticeNumbers also owns the practice-index load effect.
-  protected readonly practiceIcon = PRACTICE_ICON;
   protected readonly externalJudgeUrlFor = externalJudgeUrlFor;
   readonly practiceNumbers = new PracticeNumbers(inject(PracticeService), this.repoRef).numbers;
 

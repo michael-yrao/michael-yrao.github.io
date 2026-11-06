@@ -432,7 +432,6 @@ $workload-planned-opacity: 0.35;
 .today-board__links {
   @include prow.links;
 }
-.today-board__slot { @include prow.link-slot; }
 // The row's comfort-history toggle — sits with the other row icons (</>, ↗); muted at
 // rest, accent on hover/focus and while its panel is open.
 .today-board__trend-btn {

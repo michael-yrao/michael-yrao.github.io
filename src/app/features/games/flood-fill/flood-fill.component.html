@@ -167,24 +167,9 @@
 
           <div class="algo-breakdown__links">
             <span class="algo-breakdown__links-label po-eyebrow">The problems behind this game</span>
-            <a
-              routerLink="/practice/102/solution"
-              queryParamsHandling="preserve"
-              class="problem-link"
-              title="The purest BFS problem — each queue round is exactly one level, like each ripple here"
-            >LC 102 · Binary Tree Level Order Traversal</a>
-            <a
-              routerLink="/practice/200/solution"
-              queryParamsHandling="preserve"
-              class="problem-link"
-              title="Same grid + 4-neighbor expansion as this game — solvable with BFS or DFS"
-            >LC 200 · Number of Islands</a>
-            <a
-              routerLink="/practice/733/solution"
-              queryParamsHandling="preserve"
-              class="problem-link"
-              title="The exact operation this game performs — BFS paint from a start pixel"
-            >LC 733 · Flood Fill</a>
+            <span class="problem-link">LC 102 ·<app-problem-title [number]="102" title="Binary Tree Level Order Traversal" [url]="leetCodeUrlFor(null, 102)" /></span>
+            <span class="problem-link">LC 200 ·<app-problem-title [number]="200" title="Number of Islands" [url]="leetCodeUrlFor(null, 200)" /></span>
+            <span class="problem-link">LC 733 ·<app-problem-title [number]="733" title="Flood Fill" [url]="leetCodeUrlFor(null, 733)" /></span>
           </div>
         </div>
       </section>

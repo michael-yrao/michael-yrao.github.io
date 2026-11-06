@@ -54,7 +54,20 @@
     @if (item.lcNumber) {
       <span class="today-board__num">#{{ item.lcNumber }}</span>
     }
-    <span class="today-board__title">{{ item.title }}</span>
+    @if (item.lcNumber; as n) {
+      <app-problem-title
+        class="today-board__title"
+        [number]="n"
+        [title]="item.title"
+        [url]="externalJudgeUrlFor(item.url, n)"
+        [hasPractice]="practiceNumbers().has(n)"
+        [isRunEntry]="isTodayRunItem(item, date)"
+        [isStruck]="item.done || isPendingItem(item, date)"
+        (practice)="practiceToday($event)"
+      />
+    } @else {
+      <span class="today-board__title">{{ item.title }}</span>
+    }
     @if (item.difficulty) {
       <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
     }
@@ -102,20 +115,6 @@
       <span class="today-board__comfort"><app-comfort-mark [comfort]="item.startComfort" [streak]="streakFromNote(item.startNote)" /></span>
     }
     <span class="today-board__links">
-      <span class="today-board__slot">
-        @if (item.lcNumber && practiceNumbers().has(item.lcNumber)) {
-          @if (isTodayRunItem(item, date)) {
-            <button type="button" class="practice-link" aria-label="Practice" title="Practice" (click)="practiceToday(item.lcNumber)"><app-icon [name]="practiceIcon" [size]="14" /></button>
-          } @else {
-            <a [routerLink]="['/practice', item.lcNumber]" queryParamsHandling="preserve" aria-label="Practice" title="Practice" class="practice-link"><app-icon [name]="practiceIcon" [size]="14" /></a>
-          }
-        }
-      </span>
-      <span class="today-board__slot">
-        @if (externalJudgeUrlFor(item.url, item.lcNumber); as ext) {
-          <a [href]="ext" target="_blank" rel="noopener" aria-label="External" title="External"><app-icon name="external" [size]="14" /></a>
-        }
-      </span>
       @if (item.lcNumber && !item.done && heldMarkFor(item); as held) {
         <span class="today-board__held" [attr.aria-label]="'Held until ' + held"><app-icon [name]="heldIcon" [size]="14" />{{ held }}</span>
       }

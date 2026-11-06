@@ -49,11 +49,11 @@ describe('RecognitionPanelComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Two Sum');
     expect(fixture.nativeElement.textContent).toContain('Number of Islands');
 
-    const link = fixture.nativeElement.querySelector('.recognition__link');
+    const link = fixture.nativeElement.querySelector('.problem-title__arrow');
     expect(link?.getAttribute('href')).toContain('leetcode.com');
   });
 
-  it('draws the external link on every probe row, and Run beside it when the number is in practiceNumbers', () => {
+  it('draws the external arrow on every probe row, and links the title to practice when the number is in practiceNumbers', () => {
     TestBed.configureTestingModule({ imports: [RecognitionPanelComponent], providers: [provideRouter([])] });
     const fixture = TestBed.createComponent(RecognitionPanelComponent);
     fixture.componentRef.setInput('probes', makeProbes());
@@ -64,12 +64,10 @@ describe('RecognitionPanelComponent', () => {
     const [external, practiced]: HTMLElement[] = Array.from(
       fixture.nativeElement.querySelectorAll('.recognition__row'),
     );
-    const run = practiced.querySelector('a[title="Practice"]');
-    expect(run?.querySelector('app-icon svg[data-name="terminal"]')).not.toBeNull();
-    expect(run?.getAttribute('href')).toBe('/practice/1');
-    expect(practiced.querySelector('a[title="External"]')).toBeTruthy();
-    expect(external.querySelector('a[title="External"]')).toBeTruthy();
-    expect(external.querySelector('a[title="Practice"]')).toBeFalsy();
+    expect(practiced.querySelector('a.problem-title__link')?.getAttribute('href')).toBe('/practice/1');
+    expect(practiced.querySelector('a.problem-title__arrow')).toBeTruthy();
+    expect(external.querySelector('a.problem-title__arrow')).toBeTruthy();
+    expect(external.querySelector('a.problem-title__link')).toBeFalsy();
   });
 
   it('shows the disposable/cold/counted-only-here note when there are probes', () => {
@@ -105,7 +103,7 @@ describe('RecognitionPanelComponent', () => {
     expect(link.getAttribute('href')?.endsWith('dsa/probes/1_two_sum.py')).toBe(true);
   });
 
-  it("renders status, num, title, date, result, then .recognition__links as the row's last child", () => {
+  it("renders status, num, title, date, then result as the row's last child", () => {
     const fixture = createFixture(makeProbes());
 
     const rows = fixture.nativeElement.querySelectorAll('.recognition__row');
@@ -117,7 +115,6 @@ describe('RecognitionPanelComponent', () => {
         'recognition__title',
         'recognition__date',
         'recognition__result',
-        'recognition__links',
       ]);
     }
   });

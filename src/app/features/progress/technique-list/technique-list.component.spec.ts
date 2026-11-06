@@ -172,7 +172,7 @@ describe('TechniqueListComponent', () => {
     expect(emitted.length).toBe(0);
   });
 
-  it('draws the external link on every row, and Run beside it when the number is in practiceNumbers', () => {
+  it('draws the external arrow on every row, and links the title to practice when the number is in practiceNumbers', () => {
     const fixture = createFixture(
       [makeTechnique({ problems: [11, 12] })],
       [makeProblem({ lcNumber: 11 }), makeProblem({ lcNumber: 12, title: 'Other', url: 'https://leetcode.com/problems/other/' })],
@@ -184,12 +184,10 @@ describe('TechniqueListComponent', () => {
 
     const rows: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.tech-row__problems li'));
     const [practiced, external] = rows;
-    const run = practiced.querySelector('a[title="Practice"]');
-    expect(run?.querySelector('app-icon svg[data-name="terminal"]')).not.toBeNull();
-    expect(run?.getAttribute('href')).toBe('/practice/11');
-    expect(practiced.querySelector('a[title="External"]')).toBeTruthy();
-    expect(external.querySelector('a[title="External"]')).toBeTruthy();
-    expect(external.querySelector('a[title="Practice"]')).toBeFalsy();
+    expect(practiced.querySelector('a.problem-title__link')?.getAttribute('href')).toBe('/practice/11');
+    expect(practiced.querySelector('a.problem-title__arrow')).toBeTruthy();
+    expect(external.querySelector('a.problem-title__arrow')).toBeTruthy();
+    expect(external.querySelector('a.problem-title__link')).toBeFalsy();
   });
 
   it('emits expand exactly once when a started technique is expanded for the first time', () => {
@@ -255,8 +253,7 @@ describe('TechniqueListComponent', () => {
     expect(row?.firstElementChild?.classList.contains('tech-row__problem-status')).toBe(true);
     expect(row?.firstElementChild?.classList.contains('tech-row__problem-status--link')).toBe(true);
 
-    const link: HTMLAnchorElement | null = row?.querySelector('.tech-row__problem-links a[title="External"]') ?? null;
-    expect(link?.textContent?.trim()).toBe('↗');
+    const link: HTMLAnchorElement | null = row?.querySelector('a.problem-title__arrow') ?? null;
     expect(link?.getAttribute('aria-label')).toBe('External');
   });
 

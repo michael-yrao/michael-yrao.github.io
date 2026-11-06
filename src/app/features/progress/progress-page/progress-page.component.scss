@@ -431,8 +431,6 @@ $skeleton-card-height: 12rem;
 .problem__meta { @include prow.meta; margin-left: 0; }
 .problem__meta--due { color: var(--color-medium); }
 .problem__meta--today { color: var(--color-accent); }
-.problem__links { @include prow.links; margin-left: 0; }
-.problem__slot { @include prow.link-slot; }
 .problem__caret {
   display: inline-block;
   color: var(--color-text-muted);

@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, ChangeDetectionStrategy, ChangeDetectorRe
 import { RouterLink } from '@angular/router';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ProblemTitleComponent } from '../../../shared/components/problem-title/problem-title.component';
 import { vizRouteFor } from '../../../core/data/viz-route';
 import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import {
@@ -40,7 +41,7 @@ type GameState = 'playing' | 'won';
   templateUrl: './connect-cities.component.html',
   styleUrls: ['./connect-cities.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, PageHeaderComponent, IconComponent],
+  imports: [RouterLink, PageHeaderComponent, IconComponent, ProblemTitleComponent],
 })
 export class ConnectCitiesComponent implements OnInit, OnDestroy {
   readonly breadcrumb = BREADCRUMB;

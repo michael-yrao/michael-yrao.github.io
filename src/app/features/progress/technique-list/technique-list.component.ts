@@ -25,8 +25,8 @@ import { shortMonthDay as shortMonthDayFor } from '../../../core/utils/local-dat
 import { CLEAN_COMFORT } from '../../../core/models/comfort';
 import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
-import { PRACTICE_ICON } from '../practice-link';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ProblemTitleComponent } from '../../../shared/components/problem-title/problem-title.component';
 import { externalJudgeUrlFor } from '../../../core/data/lc-url';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import {
@@ -91,7 +91,7 @@ const BOARD_SORT_KEYS: readonly TechniqueSortKey[] = ['name', 'coverage', 'lastP
   templateUrl: './technique-list.component.html',
   styleUrls: ['./technique-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgTemplateOutlet, ComfortMarkComponent, IconComponent],
+  imports: [RouterLink, NgTemplateOutlet, ComfortMarkComponent, IconComponent, ProblemTitleComponent],
   host: { '(document:keydown.escape)': 'onEscape()' },
 })
 export class TechniqueListComponent {
@@ -108,7 +108,6 @@ export class TechniqueListComponent {
   /** Jump to a technique (the roadmap card's tile click): expands its row in List view, selects
    *  its card in Board view, then scrolls it into view. An unknown name is a no-op. */
   readonly focus = input<TechniqueFocus | null>(null);
-  protected readonly practiceIcon = PRACTICE_ICON;
   protected readonly externalJudgeUrlFor = externalJudgeUrlFor;
   readonly expand = output<Technique>();
 

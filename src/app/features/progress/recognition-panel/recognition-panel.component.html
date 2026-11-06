@@ -25,7 +25,17 @@
             @if (item.lcNumber) {
               <span class="recognition__num">#{{ item.lcNumber }}</span>
             }
-            <span class="recognition__title">{{ item.title }}</span>
+            @if (item.lcNumber; as n) {
+              <app-problem-title
+                class="recognition__title"
+                [number]="n"
+                [title]="item.title"
+                [url]="externalJudgeUrlFor(item.url, n)"
+                [hasPractice]="practiceNumbers().has(n)"
+              />
+            } @else {
+              <span class="recognition__title">{{ item.title }}</span>
+            }
             @if (item.difficulty) {
               <span class="tag tag--{{ item.difficulty.toLowerCase() }}">{{ item.difficulty }}</span>
             }
@@ -33,31 +43,6 @@
             @if (item.result) {
               <span class="recognition__result"><app-comfort-mark [comfort]="item.result" /></span>
             }
-            <span class="recognition__links">
-              <span class="recognition__slot">
-                @if (item.lcNumber && practiceNumbers().has(item.lcNumber)) {
-                  <a
-                    [routerLink]="['/practice', item.lcNumber]"
-                    queryParamsHandling="preserve"
-                    class="recognition__link practice-link"
-                    aria-label="Practice"
-                    title="Practice"
-                  ><app-icon [name]="practiceIcon" [size]="14" /></a>
-                }
-              </span>
-              <span class="recognition__slot">
-                @if (externalJudgeUrlFor(item.url, item.lcNumber); as ext) {
-                  <a
-                    [href]="ext"
-                    target="_blank"
-                    rel="noopener"
-                    class="recognition__link"
-                    aria-label="External"
-                    title="External"
-                  >↗</a>
-                }
-              </span>
-            </span>
           </li>
         }
       </ul>

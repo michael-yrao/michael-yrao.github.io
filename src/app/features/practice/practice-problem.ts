@@ -15,11 +15,10 @@ import { CONTENT_REPO, LoadStatus, RepoRef } from '../../core/services/github-fi
 import { PracticeService } from '../../core/services/practice.service';
 import { ShowcaseService } from '../../core/services/showcase.service';
 import { showcaseKey } from '../../core/showcase/showcase-key';
-import { CatalogueEntry, CatalogueNeighbors, buildCatalogue, neighborsOf } from './practice-catalogue';
+import { CatalogueEntry, buildCatalogue } from './practice-catalogue';
 import { injectPracticeContract } from '../../shared/utils/practice-contract';
 
 const POSITIVE_INTEGER = /^[1-9]\d*$/;
-const NO_NEIGHBORS: CatalogueNeighbors = { prev: null, next: null };
 
 /** The route's `:number` as a positive integer, or null (the not-found state). */
 function parseProblemNumber(raw: string | null): number | null {
@@ -53,7 +52,6 @@ export interface PracticeProblemView {
   readonly titleUrl: Signal<string | null>;
   /** Every problem either source has, ascending by number. */
   readonly catalogue: Signal<readonly CatalogueEntry[]>;
-  readonly neighbors: Signal<CatalogueNeighbors>;
 }
 
 /**
@@ -115,11 +113,6 @@ export function injectPracticeProblem(): PracticeProblemView {
     const problems = contract.status() === 'ready' ? (practice.data()?.problems ?? []) : [];
     return buildCatalogue(ALGORITHM_INDEX, problems);
   });
-  const neighbors = computed(() => {
-    const value = number();
-    if (value === null) return NO_NEIGHBORS;
-    return neighborsOf(catalogue(), value);
-  });
 
   return {
     ref: contract.ref,
@@ -136,6 +129,5 @@ export function injectPracticeProblem(): PracticeProblemView {
     title,
     titleUrl,
     catalogue,
-    neighbors,
   };
 }

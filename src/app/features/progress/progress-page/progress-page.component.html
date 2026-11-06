@@ -64,7 +64,16 @@
         <span class="problem__status problem__status--spacer" aria-hidden="true"></span>
       }
       <span class="problem__num">#{{ p.lcNumber }}</span>
-      <span class="problem__name">{{ p.title }}</span>
+      <app-problem-title
+        class="problem__name"
+        [number]="p.lcNumber"
+        [title]="p.title"
+        [url]="externalJudgeUrlFor(p.url, null)"
+        [hasPractice]="practiceNumbers().has(p.lcNumber)"
+        (click)="$event.stopPropagation()"
+        (keydown.enter)="$event.stopPropagation()"
+        (keydown.space)="$event.stopPropagation()"
+      />
       @if (p.difficulty) {
         <span class="tag tag--{{ p.difficulty.toLowerCase() }}">{{ p.difficulty }}</span>
       }
@@ -77,38 +86,6 @@
           >{{ dueLabel(p) }}</span
         >
       }
-      <span class="problem__links">
-        <span class="problem__slot">
-          @if (practiceNumbers().has(p.lcNumber)) {
-            <a
-              [routerLink]="['/practice', p.lcNumber]"
-              queryParamsHandling="preserve"
-              class="practice-link"
-              aria-label="Practice"
-              title="Practice"
-              (click)="$event.stopPropagation()"
-              (keydown.enter)="$event.stopPropagation()"
-              (keydown.space)="$event.stopPropagation()"
-              ><app-icon [name]="practiceIcon" [size]="14" /></a
-            >
-          }
-        </span>
-        <span class="problem__slot">
-          @if (externalJudgeUrlFor(p.url, null); as ext) {
-            <a
-              [href]="ext"
-              target="_blank"
-              rel="noopener"
-              aria-label="External"
-              title="External"
-              (click)="$event.stopPropagation()"
-              (keydown.enter)="$event.stopPropagation()"
-              (keydown.space)="$event.stopPropagation()"
-              >↗</a
-            >
-          }
-        </span>
-      </span>
       <span class="problem__caret" [class.problem__caret--open]="isExpanded(p)">▸</span>
     </div>
     @if (isExpanded(p)) {

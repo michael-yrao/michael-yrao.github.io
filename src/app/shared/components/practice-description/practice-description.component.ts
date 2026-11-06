@@ -60,6 +60,8 @@ export interface StatementBlock {
 export class PracticeDescriptionComponent {
   readonly problem = input<PracticeProblem | null>(null);
   readonly meta = input<AlgorithmMeta | null>(null);
+  /** Where the hint card's Solution link goes; null (the default) offers none. */
+  readonly solutionLink = input<readonly (string | number)[] | null>(null);
 
   readonly hasStatement = computed(() => !!this.problem()?.statement);
 

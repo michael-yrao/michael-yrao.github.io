@@ -1,0 +1,42 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.problem-title__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.problem-title__link {
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+// A struck title stays struck on hover: no underline competes with the line-through.
+.problem-title__text--struck {
+  text-decoration: line-through;
+  &:hover { text-decoration: line-through; }
+}
+
+// The run-entry button reads the same as the link: no native chrome, inherited type.
+button.problem-title__link {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.problem-title__arrow {
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin-left: var(--space-xs);
+  color: var(--color-accent);
+}

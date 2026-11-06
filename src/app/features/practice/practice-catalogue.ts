@@ -27,11 +27,6 @@ export interface CatalogueFilters {
   readonly category: Category | null;
 }
 
-export interface CatalogueNeighbors {
-  readonly prev: CatalogueEntry | null;
-  readonly next: CatalogueEntry | null;
-}
-
 function toEntry(
   number: number,
   algorithm: AlgorithmIndexEntry | undefined,
@@ -91,14 +86,4 @@ export function searchCatalogue(
   const matches = entries.filter((entry) => matchesNumberOrTitle(entry.number, entry.title, needle));
   const exact = matches.filter((entry) => String(entry.number) === needle);
   return [...exact, ...matches.filter((entry) => String(entry.number) !== needle)];
-}
-
-/** The entries either side of `number` in an ascending catalogue; null at an end or when absent. */
-export function neighborsOf(
-  entries: readonly CatalogueEntry[],
-  number: number,
-): CatalogueNeighbors {
-  const index = entries.findIndex((entry) => entry.number === number);
-  if (index === -1) return { prev: null, next: null };
-  return { prev: entries[index - 1] ?? null, next: entries[index + 1] ?? null };
 }

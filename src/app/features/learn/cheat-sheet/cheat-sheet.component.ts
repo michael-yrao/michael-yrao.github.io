@@ -4,10 +4,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
-import { CheatSheetService, ProblemLink } from '../../../core/services/cheat-sheet.service';
+import { leetCodeUrlFor } from '../../../core/data/lc-url';
+import { CheatSheetService } from '../../../core/services/cheat-sheet.service';
 import { NotWhen, Technique } from '../../../core/models/cheat-sheet.model';
 import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ProblemTitleComponent } from '../../../shared/components/problem-title/problem-title.component';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 
 const NOTICE =
@@ -23,7 +25,8 @@ interface NotWhenView extends NotWhen {
 interface KeyProblemView {
   lcNumber: number;
   title: string;
-  link: ProblemLink;
+  /** The external page: the title-derived LeetCode URL, or the number search when a visualizer exists. */
+  url: string | null;
 }
 
 @Component({
@@ -31,7 +34,7 @@ interface KeyProblemView {
   templateUrl: './cheat-sheet.component.html',
   styleUrls: ['./cheat-sheet.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, CodeViewerComponent, PageHeaderComponent, IconComponent],
+  imports: [RouterLink, CodeViewerComponent, PageHeaderComponent, IconComponent, ProblemTitleComponent],
 })
 export class CheatSheetComponent {
   private readonly cheatSheets = inject(CheatSheetService);
@@ -79,10 +82,13 @@ export class CheatSheetComponent {
   readonly keyProblems = computed<KeyProblemView[]>(() => {
     const technique = this.technique();
     if (!technique) return [];
-    return technique.keyProblems.map((problem) => ({
-      ...problem,
-      link: this.cheatSheets.resolveProblemLink(problem.lcNumber, problem.title),
-    }));
+    return technique.keyProblems.map((problem) => {
+      const link = this.cheatSheets.resolveProblemLink(problem.lcNumber, problem.title);
+      return {
+        ...problem,
+        url: link.kind === 'external' ? link.url : leetCodeUrlFor(null, problem.lcNumber),
+      };
+    });
   });
 
   // Prev/next walk the same family-grouped order the list page renders cards in, not the

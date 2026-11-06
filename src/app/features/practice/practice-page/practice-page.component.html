@@ -8,11 +8,6 @@
       [title]="title()"
       [titleUrl]="titleUrl()"
       [difficulty]="entry()?.difficulty ?? null"
-      [neighbors]="neighbors()"
-      [catalogue]="catalogue()"
-      [repo]="ref()"
-      activeTab="description"
-      [hasSolution]="hasSolution() && !isRepInProgress()"
       [isTitleShown]="false"
       [isPassFresh]="isPassFresh()"
       [pane]="headerPane()"
@@ -36,8 +31,8 @@
           <h1 class="practice__pane-title" [attr.title]="title()">
             <span class="practice__pane-num">#{{ number() }}</span>
             <span class="practice__pane-name">
-              @if (titleUrl(); as url) {
-                <a [href]="url" target="_blank" rel="noopener">{{ title() }}<app-icon class="practice__pane-arrow" name="external" [size]="12" /></a>
+              @if (number(); as n) {
+                <app-problem-title [number]="n" [title]="title()" [url]="titleUrl()" [arrowSize]="12" />
               } @else {
                 {{ title() }}
               }
@@ -73,7 +68,7 @@
           @if (isShowingCode()) {
             <app-code-viewer [code]="passedCode()" />
           } @else {
-            <app-practice-description [problem]="problem()" [meta]="meta()" />
+            <app-practice-description [problem]="problem()" [meta]="meta()" [solutionLink]="solutionLink()" />
           }
         </div>
       </div>

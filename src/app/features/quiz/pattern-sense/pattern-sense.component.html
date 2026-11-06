@@ -160,11 +160,13 @@
           Mystery problem — which technique does it call for?
         }
         @if (revealed && solutionRoute; as route) {
-          <a
+          <span class="ps-scenario__title-link">#{{ current.lcNumber }} · </span>
+          <app-problem-title
             class="ps-scenario__title-link"
-            [routerLink]="route"
-            queryParamsHandling="preserve"
-          >#{{ current.lcNumber }} · {{ current.title }} →</a>
+            [number]="current.lcNumber"
+            [title]="current.title"
+            [url]="externalUrl"
+          />
         }
       </div>
       @if (loaded(); as meta) {

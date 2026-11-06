@@ -95,19 +95,10 @@
             <h2 class="cs-section__title po-eyebrow">Key Problems</h2>
             <div class="cs-problems">
               @for (p of keyProblems(); track $index) {
-                @if (p.link.kind === 'internal') {
-                  <a class="cs-problem" [routerLink]="p.link.commands" queryParamsHandling="preserve">
-                    <span class="cs-problem__num">#{{ p.lcNumber }}</span>
-                    <span class="cs-problem__title">{{ p.title }}</span>
-                    <span class="cs-problem__arrow">→</span>
-                  </a>
-                } @else {
-                  <a class="cs-problem" [href]="p.link.url" target="_blank" rel="noopener">
-                    <span class="cs-problem__num">#{{ p.lcNumber }}</span>
-                    <span class="cs-problem__title">{{ p.title }}</span>
-                    <span class="cs-problem__arrow">↗</span>
-                  </a>
-                }
+                <div class="cs-problem">
+                  <span class="cs-problem__num">#{{ p.lcNumber }}</span>
+                  <app-problem-title class="cs-problem__title" [number]="p.lcNumber" [title]="p.title" [url]="p.url" />
+                </div>
               }
             </div>
           </section>

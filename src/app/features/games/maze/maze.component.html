@@ -191,10 +191,10 @@
 
         <div class="maze-breakdown__links">
           <span class="maze-breakdown__links-label po-eyebrow">The problems behind this game</span>
-          <a routerLink="/practice/102/solution" queryParamsHandling="preserve" class="problem-link">LC 102 · Level Order Traversal (pure BFS)</a>
-          <a routerLink="/practice/200/solution" queryParamsHandling="preserve" class="problem-link">LC 200 · Number of Islands (BFS &amp; DFS)</a>
-          <a routerLink="/practice/695/solution" queryParamsHandling="preserve" class="problem-link">LC 695 · Max Area of Island (DFS)</a>
-          <a routerLink="/practice/994/solution" queryParamsHandling="preserve" class="problem-link">LC 994 · Rotting Oranges (multi-source BFS)</a>
+          <span class="problem-link">LC 102 · <app-problem-title [number]="102" title="Level Order Traversal" [url]="leetCodeUrlFor(null, 102)" /> (pure BFS)</span>
+          <span class="problem-link">LC 200 · <app-problem-title [number]="200" title="Number of Islands" [url]="leetCodeUrlFor(null, 200)" /> (BFS &amp; DFS)</span>
+          <span class="problem-link">LC 695 · <app-problem-title [number]="695" title="Max Area of Island" [url]="leetCodeUrlFor(null, 695)" /> (DFS)</span>
+          <span class="problem-link">LC 994 · <app-problem-title [number]="994" title="Rotting Oranges" [url]="leetCodeUrlFor(null, 994)" /> (multi-source BFS)</span>
         </div>
       </section>
     </aside>

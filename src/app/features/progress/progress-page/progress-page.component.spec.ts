@@ -650,7 +650,7 @@ describe('ProgressPageComponent', () => {
     expect(row.querySelector('.problem__num')!.textContent).toContain('#206');
   });
 
-  it('the ↗ LeetCode link lives inside the row and does not toggle it on click (stopPropagation)', () => {
+  it('the title arrow lives inside the row and does not toggle it on click (stopPropagation)', () => {
     const problem: ProblemProgress = {
       lcNumber: 206,
       title: 'Reverse Linked List',
@@ -672,7 +672,7 @@ describe('ProgressPageComponent', () => {
     openAttentionRows(fixture);
 
     const row: HTMLElement = fixture.nativeElement.querySelector('.problem__row');
-    const link: HTMLAnchorElement = row.querySelector('.problem__links a')!;
+    const link: HTMLAnchorElement = row.querySelector('.problem-title__arrow')!;
     expect(link).toBeTruthy();
     expect(row.contains(link)).toBe(true);
 
@@ -738,7 +738,7 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('app-problem-timeline').length).toBe(0);
   });
 
-  it('renders no GitHub status-badge link (plain spacer) when the contract has no file for the row (null) or predates the field (undefined), but keeps the LeetCode ↗', () => {
+  it('renders no GitHub status-badge link (plain spacer) when the contract has no file for the row (null) or predates the field (undefined), but keeps the title arrow', () => {
     progress.repoRef.set({ owner: 'someone', repo: 'their-log', branch: 'dev' });
     progress.detailsStatus.set('ready');
     progress.details.set([
@@ -754,9 +754,7 @@ describe('ProgressPageComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.problem__status--github').length).toBe(0);
     expect(fixture.nativeElement.querySelectorAll('.problem__status--spacer').length).toBe(2);
     // ...and the LeetCode link is unaffected.
-    const lcLinks = Array.from(fixture.nativeElement.querySelectorAll('.problem__links a')) as HTMLAnchorElement[];
-    expect(lcLinks.length).toBe(2);
-    expect(lcLinks.every((a) => a.textContent?.trim() === '↗')).toBe(true);
+    expect(fixture.nativeElement.querySelectorAll('.problem-title__arrow').length).toBe(2);
   });
 
   it('keeps the `</>` walkthrough link (never the GitHub fallback) for a row with a registered viz route, even with a `file` and a repo ref', () => {

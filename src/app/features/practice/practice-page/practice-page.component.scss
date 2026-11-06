@@ -162,7 +162,6 @@ $pass-overlay-backdrop-share: 22%;
   a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
 }
 .practice__pane-num { margin-right: var(--space-sm); font-family: var(--font-mono); color: var(--color-text-muted); }
-.practice__pane-arrow { display: inline-flex; vertical-align: middle; margin-left: var(--space-xs); }
 .practice__pane-badge { flex: 0 0 auto; }
 
 // The code pane's bar is its tab strip; the active tab's underline sits on the bar's bottom rule.

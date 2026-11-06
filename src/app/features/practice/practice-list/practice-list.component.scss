@@ -40,7 +40,7 @@ $row-mark-width: 28px;
 
 .practice-list__row {
   display: grid;
-  grid-template-columns: $row-num-width 1fr auto $row-mark-width $row-mark-width $row-mark-width $row-mark-width;
+  grid-template-columns: $row-num-width 1fr auto $row-mark-width $row-mark-width $row-mark-width $row-mark-width $row-mark-width;
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);

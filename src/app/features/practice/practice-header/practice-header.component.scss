@@ -3,8 +3,8 @@ $split-breakpoint: 900px;
 
 :host { display: block; }
 
-// One bar: the list button, the title (when shown) and the Description | Solution tabs on the
-// left; the interview link, today strip and previous / next on the right. It wraps when narrow.
+// One bar: the title (when shown) and the pane tabs on the
+// left; the today strip on the right. It wraps when narrow.
 .practice-header {
   display: flex;
   flex-wrap: wrap;
@@ -30,21 +30,24 @@ $split-breakpoint: 900px;
   gap: var(--space-sm);
 }
 
-// One line: a long title ends in an ellipsis, and its `title` attribute holds the whole name.
+// One line: a long title ends in an ellipsis (on the title link, so the arrow stays visible),
+// and the heading's `title` attribute holds the whole name.
 .practice-header__heading {
+  display: flex;
+  align-items: center;
   min-width: 0;
   margin: 0;
   overflow: hidden;
   font-size: var(--text-md);
   font-weight: 600;
   white-space: nowrap;
-  text-overflow: ellipsis;
   a { color: var(--color-accent); text-decoration: none; &:hover { text-decoration: underline; } }
 }
-.practice-header__arrow { display: inline-flex; vertical-align: middle; color: var(--color-accent); margin-left: var(--space-xs); }
-.practice-header__num { margin-right: var(--space-sm); font-family: var(--font-mono); color: var(--color-text-muted); }
+.practice-header__title-link { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.practice-header__arrow { display: inline-flex; flex: 0 0 auto; color: var(--color-accent); margin-left: var(--space-xs); }
+.practice-header__num { flex: 0 0 auto; margin-right: var(--space-sm); font-family: var(--font-mono); color: var(--color-text-muted); }
 
-// The Description | Solution switch; the active tab's underline sits on the bar's bottom rule.
+// The Description | Code switch; the active tab's underline sits on the bar's bottom rule.
 .practice-header__tabs {
   display: flex;
   align-self: stretch;

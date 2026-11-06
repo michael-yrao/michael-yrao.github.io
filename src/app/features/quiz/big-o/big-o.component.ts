@@ -10,6 +10,7 @@ import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import { CONTENT_REPO, blobUrl, parseRepoSlug } from '../../../core/services/github-file.service';
 import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ProblemTitleComponent } from '../../../shared/components/problem-title/problem-title.component';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 import {
   DEFAULT_FILTER,
@@ -37,7 +38,7 @@ const BREADCRUMB: BreadcrumbEntry[] = [
   templateUrl: './big-o.component.html',
   styleUrls: ['./big-o.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, CodeViewerComponent, PageHeaderComponent, IconComponent],
+  imports: [RouterLink, CodeViewerComponent, PageHeaderComponent, IconComponent, ProblemTitleComponent],
 })
 export class BigOComponent {
   private readonly bigO = inject(BigOService);

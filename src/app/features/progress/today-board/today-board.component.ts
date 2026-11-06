@@ -28,7 +28,7 @@ import { ProblemTimelineComponent } from '../problem-timeline/problem-timeline.c
 import { ComfortMarkComponent } from '../../../shared/components/comfort-mark/comfort-mark.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { walkthroughRouteFor } from '../solution-link-mode';
-import { PRACTICE_ICON } from '../practice-link';
+import { ProblemTitleComponent } from '../../../shared/components/problem-title/problem-title.component';
 import { SolutionLinkModeService } from '../solution-link-mode.service';
 import { ProgressViewStateService } from '../progress-view-state.service';
 import {
@@ -128,6 +128,7 @@ const NO_REFUSALS: ReadonlyMap<number, string> = new Map();
     EngineMenuComponent,
     ComfortMarkComponent,
     IconComponent,
+    ProblemTitleComponent,
   ],
 })
 export class TodayBoardComponent {
@@ -519,6 +520,5 @@ export class TodayBoardComponent {
   protected readonly unratedLabel = UNRATED_LABEL;
   protected readonly refusedIcon = REFUSED_ICON;
   protected readonly refusedLabel = refusedLabel;
-  protected readonly practiceIcon = PRACTICE_ICON;
   protected readonly gateTitle = COMPLEXITY_GATE_TITLE;
 }

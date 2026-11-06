@@ -326,7 +326,7 @@ describe('PracticePageComponent save to GitHub', () => {
     ).toEqual(legend);
   });
 
-  // 20 is a problem with a static walkthrough, so the Solution tab exists until a rep hides it.
+  // 20 is a problem with a static walkthrough, so the hint card's Solution link exists until a rep hides it.
   it.each([
     { name: 'no pass', step: 'none', isShown: true },
     { name: 'the rep panel open', step: 'panel', isShown: false },
@@ -349,8 +349,12 @@ describe('PracticePageComponent save to GitHub', () => {
       fixture.detectChanges();
     }
 
-    const tabs = Array.from(root.querySelectorAll('a.practice-header__tab'));
-    expect(tabs.some((a) => a.textContent?.trim() === 'Solution')).toBe(isShown);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    root.querySelector<HTMLButtonElement>('.hint__toggle')?.click();
+    fixture.detectChanges();
+
+    expect(root.querySelector('a.hint__solution') !== null).toBe(isShown);
   });
 
   it('closing the rep panel restores the statement and editor, and the head button reopens it', () => {
@@ -406,22 +410,6 @@ describe('PracticePageComponent save to GitHub', () => {
     reopenRepPanel(fixture);
 
     expect(root.querySelector('.practice__problem app-code-viewer')).not.toBeNull();
-  });
-
-  it('the header Description tab expands a collapsed pane and shows the statement', () => {
-    signIn(OWNER);
-    const { fixture } = render();
-    const root: HTMLElement = fixture.nativeElement;
-
-    root.querySelector<HTMLButtonElement>('.practice__pane-toggle')!.click();
-    fixture.detectChanges();
-    expect(root.querySelector('#practice-problem-body')!.hasAttribute('hidden')).toBe(true);
-
-    root.querySelector<HTMLButtonElement>('.practice-header__tabs button')!.click();
-    fixture.detectChanges();
-
-    expect(root.querySelector('#practice-problem-body')!.hasAttribute('hidden')).toBe(false);
-    expect(root.querySelector('#practice-problem-body app-practice-description')).not.toBeNull();
   });
 
   it.each([

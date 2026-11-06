@@ -53,4 +53,11 @@
       line-height: 1.6;
     }
   }
+
+  &__solution {
+    display: inline-block;
+    margin-top: var(--space-sm);
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
 }

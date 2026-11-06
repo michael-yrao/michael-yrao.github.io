@@ -86,7 +86,10 @@
         <!-- ── Code snippet ──────────────────────────────────── -->
         <section class="bo-snippet">
           <div class="bo-snippet__header">
-            <span class="bo-snippet__title">#{{ q.lcNumber }} {{ q.title }}</span>
+            <span class="bo-snippet__title">#{{ q.lcNumber }}</span>
+            @if (q.title; as title) {
+              <app-problem-title class="bo-snippet__title" [number]="q.lcNumber" [title]="title" [url]="leetCodeLink()" />
+            }
             @if (q.difficulty) {
               <span
                 class="bo-pill"

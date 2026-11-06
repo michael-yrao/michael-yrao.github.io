@@ -3,16 +3,8 @@ import { Component, input } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, RouterLink } from '@angular/router';
 
-import { TodaySessionService } from '../../../core/today-session/today-session.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PracticeHeaderComponent, PracticeHeaderPane } from './practice-header.component';
-
-@Component({ selector: 'app-problem-list-panel', template: '' })
-class ProblemListPanelStub {
-  readonly catalogue = input<unknown>();
-  readonly currentNumber = input<unknown>();
-  readonly repo = input<unknown>();
-}
 
 @Component({ selector: 'app-today-strip', template: '' })
 class TodayStripStub {
@@ -21,56 +13,57 @@ class TodayStripStub {
 }
 
 function createFixture(
-  isRunning: boolean,
   isTitleShown: boolean,
   pane: PracticeHeaderPane | null,
+  titleUrl: string | null = null,
 ): ComponentFixture<PracticeHeaderComponent> {
   TestBed.configureTestingModule({
     imports: [PracticeHeaderComponent],
-    providers: [provideRouter([]), { provide: TodaySessionService, useValue: { isRunning: () => isRunning, handoff: () => null } }],
+    providers: [provideRouter([])],
   }).overrideComponent(PracticeHeaderComponent, {
-    set: { imports: [NgClass, RouterLink, IconComponent, ProblemListPanelStub, TodayStripStub] },
+    set: { imports: [NgClass, RouterLink, IconComponent, TodayStripStub] },
   });
   const fixture = TestBed.createComponent(PracticeHeaderComponent);
   fixture.componentRef.setInput('number', 2);
   fixture.componentRef.setInput('title', 'Add Two Numbers');
-  fixture.componentRef.setInput('titleUrl', null);
+  fixture.componentRef.setInput('titleUrl', titleUrl);
   fixture.componentRef.setInput('difficulty', null);
-  fixture.componentRef.setInput('neighbors', { prev: { number: 1 }, next: { number: 3 } });
-  fixture.componentRef.setInput('activeTab', 'description');
-  fixture.componentRef.setInput('hasSolution', false);
-  fixture.componentRef.setInput('catalogue', []);
-  fixture.componentRef.setInput('repo', null);
   fixture.componentRef.setInput('isTitleShown', isTitleShown);
   fixture.componentRef.setInput('pane', pane);
   fixture.detectChanges();
   return fixture;
 }
 
-function render(isRunning: boolean, isTitleShown = true): HTMLElement {
-  return createFixture(isRunning, isTitleShown, null).nativeElement;
+function render(isTitleShown = true, titleUrl: string | null = null): HTMLElement {
+  return createFixture(isTitleShown, null, titleUrl).nativeElement;
 }
-
-describe('PracticeHeaderComponent neighbor links', () => {
-  it.each([
-    { name: 'during a run-through', isRunning: true, count: 0 },
-    { name: 'outside a run-through', isRunning: false, count: 2 },
-  ])('$name: renders $count prev / next links', ({ isRunning, count }) => {
-    expect(render(isRunning).querySelectorAll('.neighbor-btn')).toHaveLength(count);
-  });
-});
 
 describe('PracticeHeaderComponent title', () => {
   it('shows the heading with the whole title as its tooltip, and hides it when the page names the problem', () => {
-    const shown = render(false);
+    const shown = render();
     const heading = shown.querySelector('.practice-header__heading')!;
     expect(heading.getAttribute('title')).toBe('Add Two Numbers');
-    expect(shown.querySelector('.practice-header__tabs .practice-header__tab')?.textContent?.trim()).toBe('Description');
     TestBed.resetTestingModule();
 
-    const hidden = render(false, false);
+    const hidden = render(false);
     expect(hidden.querySelector('.practice-header__heading')).toBeNull();
-    expect(hidden.querySelector('.practice-header__tab')).not.toBeNull();
+  });
+
+  it.each<{ titleUrl: string | null }>([
+    { titleUrl: null },
+    { titleUrl: 'https://leetcode.com/problems/x/' },
+  ])('titleUrl $titleUrl: the title links to practice and the external arrow is its own link', ({ titleUrl }) => {
+    const root = render(true, titleUrl);
+    const titleLink = root.querySelector('a.practice-header__title-link')!;
+    const arrow = root.querySelector('a.practice-header__arrow');
+
+    expect(titleLink.getAttribute('href')).toBe('/practice/2');
+    if (titleUrl === null) {
+      expect(arrow).toBeNull();
+      return;
+    }
+    expect(arrow!.getAttribute('href')).toBe(titleUrl);
+    expect(arrow!.getAttribute('target')).toBe('_blank');
   });
 });
 
@@ -83,22 +76,23 @@ interface PaneCase {
 
 describe('PracticeHeaderComponent pane tabs', () => {
   it.each<PaneCase>([
-    { name: 'no pane (solution page)', pane: null, tabs: [['A', 'Description']], active: 'Description' },
-    { name: 'statement shown', pane: { shown: 'description', hasCode: false }, tabs: [['BUTTON', 'Description']], active: 'Description' },
-    { name: 'pane collapsed', pane: { shown: null, hasCode: false }, tabs: [['BUTTON', 'Description']], active: null },
+    { name: 'no pane (solution page)', pane: null, tabs: [], active: null },
+    { name: 'solving: statement shown', pane: { shown: 'description', hasCode: false }, tabs: [], active: null },
+    { name: 'solving: pane collapsed', pane: { shown: null, hasCode: false }, tabs: [], active: null },
     { name: 'code shown', pane: { shown: 'code', hasCode: true }, tabs: [['BUTTON', 'Description'], ['BUTTON', 'Code']], active: 'Code' },
     { name: 'statement shown beside code', pane: { shown: 'description', hasCode: true }, tabs: [['BUTTON', 'Description'], ['BUTTON', 'Code']], active: 'Description' },
   ])('$name: tabs, their elements and the active one', ({ pane, tabs, active }) => {
-    const root: HTMLElement = createFixture(false, true, pane).nativeElement;
+    const root: HTMLElement = createFixture(true, pane).nativeElement;
     const rendered = Array.from(root.querySelectorAll('.practice-header__tab'));
 
     expect(rendered.map((el) => [el.tagName, el.textContent?.trim()])).toEqual(tabs);
+    expect(root.querySelector('.practice-header__tabs') !== null).toBe(tabs.length > 0);
     const activeTexts = rendered.filter((el) => el.classList.contains('practice-header__tab--active')).map((el) => el.textContent?.trim());
     expect(activeTexts).toEqual(active === null ? [] : [active]);
   });
 
   it('clicking a button tab emits its pane', () => {
-    const fixture = createFixture(false, true, { shown: 'description', hasCode: true });
+    const fixture = createFixture(true, { shown: 'description', hasCode: true });
     const emitted: string[] = [];
     fixture.componentInstance.paneSelect.subscribe((view) => emitted.push(view));
     const [description, code] = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('button.practice-header__tab'));

@@ -624,10 +624,9 @@ describe('TodayBoardComponent', () => {
     // the span instead — covered by the two tests below).
     expect(row.classList.contains('today-board__row--done')).toBe(true);
 
-    // LeetCode still holds its own separate link, never the status badge.
-    const links = row.querySelector('.today-board__links')!;
-    expect(links.contains(badge)).toBe(false);
-    const lcLink: HTMLAnchorElement = links.querySelector('a')!;
+    // LeetCode still holds its own separate arrow, never the status badge.
+    const lcLink: HTMLAnchorElement = row.querySelector('.problem-title__arrow')!;
+    expect(lcLink.contains(badge)).toBe(false);
     expect(iconName(lcLink)).toBe('external');
     expect(lcLink.getAttribute('aria-label')).toBe('External');
   });
@@ -667,7 +666,7 @@ describe('TodayBoardComponent', () => {
   it.each([
     { lcNumber: 39, isPracticed: true },
     { lcNumber: 40, isPracticed: false },
-  ])('draws the external link on every row, and Run beside it only for a practiced number', ({ lcNumber, isPracticed }) => {
+  ])('draws the external arrow on every row, and links the title to practice only for a practiced number', ({ lcNumber, isPracticed }) => {
     const schedule = makeSchedule();
     schedule.days[0].items = [
       { lcNumber, title: 'Combination Sum', technique: null, startComfort: null,
@@ -677,11 +676,10 @@ describe('TodayBoardComponent', () => {
     fixture.componentRef.setInput('practiceNumbers', new Set([39]));
     fixture.detectChanges();
 
-    const run: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a[title="Practice"]');
-    const external = fixture.nativeElement.querySelector('a[title="External"]');
+    const run: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a.problem-title__link');
+    const external = fixture.nativeElement.querySelector('a.problem-title__arrow');
     expect(external).toBeTruthy();
     if (isPracticed) {
-      expect(run?.querySelector('app-icon svg[data-name="terminal"]')).not.toBeNull();
       expect(run?.getAttribute('href')).toBe('/practice/39');
       return;
     }
@@ -704,7 +702,7 @@ describe('TodayBoardComponent', () => {
     expect(fixture.nativeElement.querySelector('.tag--new')?.textContent).toContain('new');
     expect(fixture.nativeElement.querySelector('.tag--easy, .tag--medium, .tag--hard')).toBeFalsy();
     expect(fixture.nativeElement.textContent).toContain('#39');
-    const lcLink: HTMLAnchorElement = fixture.nativeElement.querySelector('.today-board__links a');
+    const lcLink: HTMLAnchorElement = fixture.nativeElement.querySelector('.problem-title__arrow');
     expect(iconName(lcLink)).toBe('external');
     expect(lcLink.getAttribute('aria-label')).toBe('External');
   });
@@ -1572,14 +1570,14 @@ describe('TodayBoardComponent — week navigation', () => {
 // ── Trend panel: a small rising-bars icon button (beside ↗) opens an inline
 // <app-problem-timeline> beneath the row; the title itself is plain text. ────────────────
 describe('TodayBoardComponent — trend panel', () => {
-  it("the title stays a plain span; the row's history button carries the Comfort-history tooltip/aria-label and toggles the panel (aria-expanded, .today-board__trend, one trend emit); clicking again collapses it with no further emit", () => {
+  it("the title is no toggle; the row's history button carries the Comfort-history tooltip/aria-label and toggles the panel (aria-expanded, .today-board__trend, one trend emit); clicking again collapses it with no further emit", () => {
     const fixture = createFixture(makeSchedule());
     const emitted: ScheduleItem[] = [];
     fixture.componentInstance.trend.subscribe((item) => emitted.push(item));
 
     const titles: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.today-board__title'));
     expect(titles.length).toBeGreaterThan(0);
-    expect(titles.every((t) => t.tagName === 'SPAN')).toBe(true);
+    expect(titles.every((t) => t.querySelector('button') === null)).toBe(true);
 
     const btns: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('.today-board__trend-btn'));
     const btn = btns[1]; // Same Tree, lcNumber 100
@@ -1964,6 +1962,7 @@ describe('TodayBoardComponent run-through control', () => {
             queue: () => session.queue,
             active: () => session.active,
             doneCount: () => session.doneCount,
+            contains: () => false,
             start: () => undefined,
             resume: () => undefined,
           },
@@ -2019,15 +2018,15 @@ describe('TodayBoardComponent run-through control', () => {
     fixture.componentRef.setInput('practiceNumbers', new Set([39]));
     fixture.detectChanges();
 
-    const button: HTMLButtonElement | null = fixture.nativeElement.querySelector('button[title="Practice"]');
+    const button: HTMLButtonElement | null = fixture.nativeElement.querySelector('button.problem-title__link');
     expect(button).not.toBeNull();
     button?.click();
     expect(startAt).toHaveBeenCalledWith(39);
 
     fixture.componentInstance.selectDay('2020-01-06');
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('button[title="Practice"]')).toBeNull();
-    expect(fixture.nativeElement.querySelector('a[title="Practice"]')?.getAttribute('href')).toBe('/practice/39');
+    expect(fixture.nativeElement.querySelector('button.problem-title__link')).toBeNull();
+    expect(fixture.nativeElement.querySelector('a.problem-title__link')?.getAttribute('href')).toBe('/practice/39');
   });
 
   it('is hidden when the selected day is not today', () => {

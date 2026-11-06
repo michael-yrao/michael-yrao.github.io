@@ -2,6 +2,8 @@ import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnDestroy } from
 import { RouterLink } from '@angular/router';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ProblemTitleComponent } from '../../../shared/components/problem-title/problem-title.component';
+import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import {
   BisectInstance,
   Range,
@@ -34,10 +36,11 @@ interface Probe {
   templateUrl: './bisect-it.component.html',
   styleUrls: ['./bisect-it.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, PageHeaderComponent, IconComponent],
+  imports: [RouterLink, PageHeaderComponent, IconComponent, ProblemTitleComponent],
 })
 export class BisectItComponent implements OnDestroy {
   readonly breadcrumb = BREADCRUMB;
+  readonly leetCodeUrlFor = leetCodeUrlFor;
 
   deck: BisectInstance[] = [];
   roundIndex = 0;

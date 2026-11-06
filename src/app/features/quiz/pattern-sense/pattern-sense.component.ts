@@ -11,6 +11,7 @@ import { ALGORITHM_INDEX, AlgorithmIndexEntry } from '../../../core/data/algorit
 import { labelFor } from '../../../core/data/family-labels';
 import { loadMetaOrNull } from '../../../core/data/load-meta';
 import { vizRouteFor } from '../../../core/data/viz-route';
+import { leetCodeUrlFor } from '../../../core/data/lc-url';
 import { AlgorithmMeta, Category, CATEGORY_LABELS } from '../../../core/models/algorithm.model';
 import { PatternSenseData } from '../../../core/models/pattern-sense.model';
 import {
@@ -37,6 +38,7 @@ import { PatternSenseService } from '../../../core/services/pattern-sense.servic
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ProblemTitleComponent } from '../../../shared/components/problem-title/problem-title.component';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 
 const BREADCRUMB: BreadcrumbEntry[] = [
@@ -127,7 +129,7 @@ interface CategoryOption {
     templateUrl: './pattern-sense.component.html',
     styleUrls: ['./pattern-sense.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink, NgClass, PageHeaderComponent, IconComponent]
+    imports: [RouterLink, NgClass, PageHeaderComponent, IconComponent, ProblemTitleComponent]
 })
 export class PatternSenseComponent {
   readonly breadcrumb = BREADCRUMB;
@@ -317,6 +319,11 @@ export class PatternSenseComponent {
   /** The current problem's walkthrough route; null when the deck is empty. */
   get solutionRoute(): string | null {
     return vizRouteFor(this.current?.lcNumber);
+  }
+
+  /** The current problem's LeetCode page; null when the deck is empty. */
+  get externalUrl(): string | null {
+    return leetCodeUrlFor(null, this.current?.lcNumber);
   }
 
   get recognitionCue(): string {

@@ -1,12 +1,15 @@
 <div class="hint">
   <button class="hint__toggle" (click)="toggle()">
-    <span class="hint__icon"><app-icon [name]="revealed ? 'lock' : 'bulb'" [size]="14" /></span>
-    {{ revealed ? 'Hide Hint' : 'Show Hint' }}
-    <span class="hint__chevron" [class.hint__chevron--open]="revealed">›</span>
+    <span class="hint__icon"><app-icon [name]="revealed() ? 'lock' : 'bulb'" [size]="14" /></span>
+    {{ revealed() ? 'Hide Hint' : 'Show Hint' }}
+    <span class="hint__chevron" [class.hint__chevron--open]="revealed()">›</span>
   </button>
-  @if (revealed) {
+  @if (revealed()) {
     <div class="hint__body">
       <p>{{ hint() }}</p>
+      @if (solutionLink(); as link) {
+        <a class="hint__solution" [routerLink]="link" queryParamsHandling="preserve">Solution</a>
+      }
     </div>
   }
 </div>

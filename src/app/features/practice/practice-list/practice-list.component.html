@@ -120,6 +120,15 @@
           }
         </span>
         <span class="practice-list__mark">
+          <a
+            routerLink="/interview/prepare"
+            [queryParams]="{ import: row.number }"
+            [attr.aria-label]="'Write an interview problem from #' + row.number"
+            [attr.title]="'Write an interview problem from #' + row.number"
+            ><app-icon name="pen" [size]="14"
+          /></a>
+        </span>
+        <span class="practice-list__mark">
           @if (progress) {
             <button
               type="button"

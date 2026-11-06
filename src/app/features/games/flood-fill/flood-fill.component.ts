@@ -2,6 +2,8 @@ import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@
 import { RouterLink } from '@angular/router';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ProblemTitleComponent } from '../../../shared/components/problem-title/problem-title.component';
+import { leetCodeUrlFor } from '../../../core/data/lc-url';
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
@@ -33,10 +35,11 @@ function resolveBoardColors(): string[] {
     templateUrl: './flood-fill.component.html',
     styleUrls: ['./flood-fill.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink, PageHeaderComponent, IconComponent]
+    imports: [RouterLink, PageHeaderComponent, IconComponent, ProblemTitleComponent]
 })
 export class FloodFillComponent implements OnInit {
   readonly breadcrumb = BREADCRUMB;
+  readonly leetCodeUrlFor = leetCodeUrlFor;
   readonly gridSize = GRID_SIZE;
   readonly moveBuffer = MOVE_BUFFER;
   readonly colors = resolveBoardColors();

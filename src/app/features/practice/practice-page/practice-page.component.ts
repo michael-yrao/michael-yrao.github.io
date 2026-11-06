@@ -38,6 +38,7 @@ import { CaseResultsComponent } from '../../../shared/components/case-results/ca
 import { CodeEditorComponent } from '../../../shared/components/code-editor/code-editor.component';
 import { CodeViewerComponent } from '../../../shared/components/code-viewer/code-viewer.component';
 import { PracticeDescriptionComponent } from '../../../shared/components/practice-description/practice-description.component';
+import { ProblemTitleComponent } from '../../../shared/components/problem-title/problem-title.component';
 import {
   PracticeHeaderComponent,
   PracticeHeaderPane,
@@ -111,6 +112,7 @@ const closeConfirm = (position: number): string => `Close Solution ${position}? 
     IconComponent,
     PracticeDescriptionComponent,
     PracticeHeaderComponent,
+    ProblemTitleComponent,
   ],
   // Host metadata rather than @HostListener: another runtime symbol would land in the initial bundle.
   host: {
@@ -148,14 +150,18 @@ export class PracticePageComponent {
   readonly hasProblem = this.view.hasProblem;
   readonly title = this.view.title;
   readonly titleUrl = this.view.titleUrl;
-  readonly neighbors = this.view.neighbors;
-  readonly catalogue = this.view.catalogue;
 
-  /** The header's Solution tab: hidden while a live candidate lock names this problem. Re-reads
+  /** The Solution link: hidden while a live candidate lock names this problem. Re-reads
    *  storage whenever the problem number changes. */
   protected readonly hasSolution = computed(() => {
     const number = this.number();
     return this.entry() !== null && !(number !== null && lockedProblem() === number);
+  });
+
+  /** The hint card's Solution link: offered once a rep is not in progress, so a pass never spoils it before the save. */
+  protected readonly solutionLink = computed<readonly (string | number)[] | null>(() => {
+    const number = this.number();
+    return number !== null && this.hasSolution() && !this.isRepInProgress() ? ['/practice', number, 'solution'] : null;
   });
 
   /** Read once per problem: the saved tabs (an old single draft becomes Solution 1), else the stub. */

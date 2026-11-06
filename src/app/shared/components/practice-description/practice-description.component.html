@@ -86,6 +86,6 @@
 }
 @if (meta()?.hint; as hint) {
   <section class="practice-description__section">
-    <app-hint-card [hint]="hint"></app-hint-card>
+    <app-hint-card [hint]="hint" [solutionLink]="solutionLink()"></app-hint-card>
   </section>
 }

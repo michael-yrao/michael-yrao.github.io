@@ -144,6 +144,11 @@ describe('PracticeListComponent', () => {
     expect(contractOnly.querySelector('.difficulty-badge')).toBeNull();
 
     expect(rowFor(root, STATIC_ONLY_NUMBER).querySelector(RUN_MARK)).toBeNull();
+
+    for (const row of rows(root)) {
+      const pen = row.querySelector('a[aria-label^="Write an interview problem from #"]');
+      expect(pen?.getAttribute('href')).toBe(`/interview/prepare?import=${rowNumber(row)}`);
+    }
   });
 
   it.each([

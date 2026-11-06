@@ -283,7 +283,7 @@ export const courseScheduleMeta: AlgorithmMeta = {
     '1 ≤ numCourses ≤ 2000',
     '0 ≤ prerequisites.length ≤ 5000',
     'prerequisites[i].length == 2',
-    '0 ≤ ai, bi < numCourses',
+    '0 ≤ aᵢ, bᵢ < numCourses',
     'All prerequisite pairs are unique.',
   ],
   hint: "Use Kahn's BFS: build an in-degree array and adjacency map from prerequisites. Seed the BFS queue with all courses that have in-degree 0. Each time you process a course, decrement the in-degree of its dependents; enqueue any that reach 0. If total courses processed equals numCourses, no cycle — return true.",

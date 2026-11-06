@@ -93,12 +93,6 @@ describe('SolutionPageComponent', () => {
       expect(has(root, 'app-step-visualizer')).toBe(hasWalkthrough);
       expect(has(root, 'app-solution-code')).toBe(false);
       expect(has(root, 'app-code-editor')).toBe(false);
-
-      if (hasWalkthrough) {
-        const hrefs = Array.from(root.querySelectorAll('.neighbor-btn')).map((a) => a.getAttribute('href'));
-        expect(hrefs.length).toBeGreaterThan(0);
-        expect(hrefs.every((href) => href?.endsWith('/solution'))).toBe(true);
-      }
     },
   );
 

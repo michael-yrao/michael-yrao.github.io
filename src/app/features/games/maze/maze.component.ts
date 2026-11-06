@@ -1,7 +1,8 @@
 import { Component, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { PageHeaderComponent, BreadcrumbEntry } from '../../../shared/components/page-header/page-header.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ProblemTitleComponent } from '../../../shared/components/problem-title/problem-title.component';
+import { leetCodeUrlFor } from '../../../core/data/lc-url';
 
 const BREADCRUMB: BreadcrumbEntry[] = [
   { label: 'Home', link: '/' },
@@ -39,10 +40,11 @@ const PATH_TICK_MS = 24;
     templateUrl: './maze.component.html',
     styleUrls: ['./maze.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterLink, PageHeaderComponent, IconComponent]
+    imports: [PageHeaderComponent, IconComponent, ProblemTitleComponent]
 })
 export class MazeComponent implements OnDestroy {
   readonly breadcrumb = BREADCRUMB;
+  readonly leetCodeUrlFor = leetCodeUrlFor;
   readonly rows = ROWS;
   readonly cols = COLS;
   grid: MazeCell[][] = [];
