@@ -24,6 +24,7 @@ import {
   ROUTE_PREFIX as ONBOARD_PREFIX,
   type OnboardEnv,
 } from './onboard/handler';
+import { handle as handleYao, ROUTE_PREFIX as YAO_PREFIX } from './yao/handler';
 
 // How long a built feed is served from the in-memory memo before the next request rebuilds it.
 const MEMO_TTL_MS = 5 * 60 * 1000;
@@ -94,6 +95,9 @@ export interface Env extends OnboardEnv {
   INTERVIEWS: KVNamespace;
   INTERVIEW_READS?: RateLimiter;
   INTERVIEW_WRITES?: RateLimiter;
+  YAO_ATTEMPTS?: RateLimiter;
+  YAO_PASSWORD?: string;
+  readonly OWNER_LOGIN?: string;
 }
 
 /** Builds the live coach wiring for one request, or null when the coach runtime is not bound. */
@@ -141,6 +145,9 @@ export function buildFetch<E extends Env = Env>(coachWiringFor: CoachWiringFacto
     }
     if (pathname.startsWith(ENGINE_PREFIX)) {
       return handleEngine(request, env, (input, init) => fetch(input, init));
+    }
+    if (pathname.startsWith(YAO_PREFIX)) {
+      return handleYao(request, env, (input, init) => fetch(input, init));
     }
     if (pathname.startsWith(ONBOARD_PREFIX)) {
       return handleOnboard(request, env, (input, init) => fetch(input, init));

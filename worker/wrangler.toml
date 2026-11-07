@@ -17,6 +17,7 @@ ALLOWED_ORIGINS = "https://progressiveoverflow.com,http://localhost:4200"
 # The template the /onboard route generates learner repos from.
 TEMPLATE_OWNER = "michael-yrao"
 TEMPLATE_REPO = "cse-coach"
+OWNER_LOGIN = "michael-yrao"
 
 # The id comes from `npx wrangler kv namespace create INTERVIEWS`.
 [[kv_namespaces]]
@@ -37,4 +38,11 @@ name = "INTERVIEW_WRITES"
 namespace_id = "1002"
   [ratelimits.simple]
   limit = 6
+  period = 60
+
+[[ratelimits]]
+name = "YAO_ATTEMPTS"
+namespace_id = "1004"
+  [ratelimits.simple]
+  limit = 5
   period = 60

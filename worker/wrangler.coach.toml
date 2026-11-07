@@ -54,6 +54,13 @@ namespace_id = "1003"
   limit = 30
   period = 60
 
+[[ratelimits]]
+name = "YAO_ATTEMPTS"
+namespace_id = "1004"
+  [ratelimits.simple]
+  limit = 5
+  period = 60
+
 # The coach runtime: one container behind a Durable Object. Needs the Workers Paid plan and the
 # secret set with `npx wrangler secret put ANTHROPIC_API_KEY`. See worker/README.md.
 [[containers]]

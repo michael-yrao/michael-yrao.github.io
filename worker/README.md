@@ -125,6 +125,22 @@ The container keeps the owner's GitHub token in a 0600 credential file. The agen
 
 Local dev uses Podman, not Docker. One time, run `podman machine init`. Then run `podman machine start`. Before `npx wrangler dev --config wrangler.coach.toml`, set `WRANGLER_DOCKER_BIN` to `<repo>\worker\scripts\podman-for-wrangler.cmd`. The wrapper drops build flags Podman does not support. Also set `DOCKER_HOST` to the machine's socket. Read it from `podman machine inspect`, under `ConnectionInfo.PodmanPipe` or `ConnectionInfo.PodmanSocket`.
 
+## Yao
+
+`src/yao/` serves a password-protected story and a view log:
+
+- `POST /yao/unlock`: takes `{ "password": "..." }`. A right password returns the story and logs one view.
+- `GET /yao/views`: lists the logged views, newest first. Only the `OWNER_LOGIN` GitHub login is served.
+
+The story lives in KV key `yao:story` and never in this repo. Views are stored under `yao:view:`. A view holds the time, city, country and a device label. It never holds the IP or the raw user agent. Five wrong tries a minute per IP are allowed (`YAO_ATTEMPTS`).
+
+One-time setup, in `worker/`:
+
+1. Run `npx wrangler secret put YAO_PASSWORD` and enter the password.
+2. Run `npx wrangler kv key put yao:story --path <json> --binding INTERVIEWS --remote`.
+
+For local dev, put `YAO_PASSWORD` in `worker/.dev.vars`, which git ignores.
+
 ## Source list
 
 `src/sources.ts` is the one curated list of feeds; the Angular app never duplicates it — it

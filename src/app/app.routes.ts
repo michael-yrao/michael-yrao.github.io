@@ -161,6 +161,12 @@ export const routes: Routes = [
     redirectTo: '',
   },
   {
+    path: 'yao',
+    title: 'Yao',
+    loadComponent: () =>
+      import('./features/yao/yao-page.component').then((m) => m.YaoPageComponent),
+  },
+  {
     path: '**',
     redirectTo: '',
   },
