@@ -131,7 +131,7 @@ const DONE: EngineUpdate = {
   version: { repo: '0.12.0', template: '0.12.0' },
   updated: ['a', 'b'],
   skipped: [{ path: 'scripts/x.py', reason: 'conflict' }],
-  removedUpstream: [],
+  removedUpstream: ['scripts/old.py'],
 };
 
 interface MountOptions {
@@ -383,14 +383,17 @@ describe('EngineMenuComponent', () => {
     expect(el.querySelector('.engine-menu__run')).toBeNull();
   });
 
-  it('the status row after an update lists what was updated and kept', async () => {
+  it('the status row after an update lists what was updated, kept and dropped upstream', async () => {
     vi.setSystemTime(WEDNESDAY_NOON);
     const { el, update, openMenu, settle } = await mountMenu({ plan: PLAN('0.11.0', '0.12.0') });
     openMenu();
     item(el, 'Update engine')?.click();
     await settle();
     expect(update).toHaveBeenCalledWith(REF, { dryRun: false });
-    expect(rowTexts(el)).toEqual(['✓ 2 updated · △ 1 kept']);
+    expect(rowTexts(el)).toEqual(['✓ 2 updated · △ 1 kept · − 1 dropped upstream']);
+    expect(Array.from(el.querySelectorAll('.engine-menu__result li')).map((li) => li.textContent?.trim())).toContain(
+      'scripts/old.py',
+    );
     expect(el.querySelector('.menu__panel') !== null).toBe(true);
     expect(meta(item(el, 'Update engine'))).toBe('v0.12.0');
     expect(item(el, 'Update engine')?.disabled).toBe(true);

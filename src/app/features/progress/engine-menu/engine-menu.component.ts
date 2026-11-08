@@ -69,7 +69,7 @@ interface StatusRow {
 
 interface ResultSegment {
   readonly text: string;
-  /** Present on the "kept" segment: the skipped paths its details body lists. */
+  /** Present on the "kept" and "dropped upstream" segments: the paths its details body lists. */
   readonly paths?: readonly string[];
 }
 
@@ -210,6 +210,9 @@ export class EngineMenuComponent {
     if (done.updated.length > 0) segments.push({ text: `✓ ${done.updated.length} updated` });
     if (done.skipped.length > 0) {
       segments.push({ text: `△ ${done.skipped.length} kept`, paths: done.skipped.map((file) => file.path) });
+    }
+    if (done.removedUpstream.length > 0) {
+      segments.push({ text: `− ${done.removedUpstream.length} dropped upstream`, paths: done.removedUpstream });
     }
     if (done.notice !== undefined) {
       segments.push({ text: '⊘ workflow files need one new permission' });
