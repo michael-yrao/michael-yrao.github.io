@@ -24,12 +24,20 @@
           </button>
         }
       </app-menu>
-      @if (isOwner()) {
-        <button class="icon-btn tabs__new" type="button" aria-label="New entry" title="New entry" (click)="newEntry()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-        </button>
+      @if (isOwner() && editor() === null) {
+        @if (selectedEntry(); as open) {
+          <button class="icon-btn tabs__new" type="button" aria-label="Edit" title="Edit" (click)="editEntry(open)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M4 20l1-4L16 5l3 3L8 19z" />
+            </svg>
+          </button>
+        } @else if (view() === 'home') {
+          <button class="icon-btn tabs__new" type="button" aria-label="New entry" title="New entry" (click)="newEntry()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        }
       }
     </div>
   }
@@ -72,26 +80,21 @@
 
   @if (entries(); as list) {
     @if (selectedEntry(); as entry) {
-      <article class="entry" [attr.data-entry-id]="entry.id">
-        <span class="entry__date">{{ entry.date }}</span>
-        <div class="entry__head">
-          <h1 class="entry__title">{{ entry.title }}</h1>
-          @if (isOwner()) {
-            <button class="icon-btn" type="button" aria-label="Edit" title="Edit" (click)="editEntry(entry)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                <path d="M4 20l1-4L16 5l3 3L8 19z" />
-              </svg>
-            </button>
+      @if (editor() === null) {
+        <article class="entry" [attr.data-entry-id]="entry.id">
+          <span class="entry__date">{{ entry.date }}</span>
+          <div class="entry__head">
+            <h1 class="entry__title">{{ entry.title }}</h1>
+          </div>
+          @for (block of blocksOf(entry); track $index) {
+            @if (block.isHeading) {
+              <h2 class="entry__heading">{{ block.text }}</h2>
+            } @else {
+              <p class="entry__text">{{ block.text }}</p>
+            }
           }
-        </div>
-        @for (block of blocksOf(entry); track $index) {
-          @if (block.isHeading) {
-            <h2 class="entry__heading">{{ block.text }}</h2>
-          } @else {
-            <p class="entry__text">{{ block.text }}</p>
-          }
-        }
-      </article>
+        </article>
+      }
     } @else if (view() === 'home') {
       <ul class="home">
         @for (entry of list; track entry.id) {

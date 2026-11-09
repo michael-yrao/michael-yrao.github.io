@@ -1,3 +1,22 @@
+// A US-letter sheet: 8.5in wide, 1in margins, so the text measure is 6.5in.
+$sheet-width: 8.5in;
+$sheet-padding: 1in;
+
+// Below the sheet's own width it goes edge to edge inside the page gutter.
+@mixin sheet {
+  box-sizing: border-box;
+  padding: $sheet-padding;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+
+  @media (max-width: $sheet-width) {
+    padding: var(--space-md);
+    border: 0;
+    border-radius: 0;
+  }
+}
+
 .page {
   padding: var(--space-2xl) var(--page-gutter);
   display: flex;
@@ -99,7 +118,7 @@
 .tabs,
 .editor {
   width: 100%;
-  max-width: 40rem;
+  max-width: $sheet-width;
   margin: 0 auto;
 }
 
@@ -115,6 +134,7 @@
 }
 
 .editor {
+  @include sheet;
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -166,7 +186,7 @@
 
 .home {
   width: 100%;
-  max-width: 40rem;
+  max-width: $sheet-width;
   margin: 0 auto;
   padding: 0;
   list-style: none;
@@ -194,8 +214,9 @@
 }
 
 .entry {
+  @include sheet;
   width: 100%;
-  max-width: 40rem;
+  max-width: $sheet-width;
   margin: 0 auto;
 
   &__head {
@@ -246,7 +267,7 @@
 
 .views {
   width: 100%;
-  max-width: 40rem;
+  max-width: $sheet-width;
   margin: 0 auto;
 
   &__heading {

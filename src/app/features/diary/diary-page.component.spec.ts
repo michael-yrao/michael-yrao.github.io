@@ -210,7 +210,7 @@ describe('DiaryPageComponent', () => {
   it('opens a newly saved entry', async () => {
     const saved: DiaryEntry = { id: 'e3', date: '2026-03-01', title: 'New title', body: 'Lorem', updatedAt: '2026-03-01T00:00:00Z' };
     vi.stubGlobal('fetch', routeFetch({ 'POST entries': reply({ entry: saved }) }));
-    const fixture = await setup(COACH_OWNER_LOGIN, 'e1');
+    const fixture = await setup(COACH_OWNER_LOGIN);
 
     await click(fixture, 'button[aria-label="New entry"]');
     await click(fixture, 'button[aria-label="Save"]');
@@ -253,17 +253,19 @@ describe('DiaryPageComponent', () => {
   });
 
   it.each([
-    { name: 'an existing entry', open: 'Edit', hasDelete: true },
-    { name: 'a new entry', open: 'New entry', hasDelete: false },
-  ])('delete is in the editor only for $name, never in the entry header', async ({ open, hasDelete }) => {
+    { name: 'an existing entry', open: 'Edit', param: 'e2', hasDelete: true },
+    { name: 'a new entry', open: 'New entry', param: null, hasDelete: false },
+  ])('delete is in the editor only for $name, never in the entry header', async ({ open, param, hasDelete }) => {
     vi.stubGlobal('fetch', routeFetch());
-    const fixture = await setup(COACH_OWNER_LOGIN, 'e2');
+    const fixture = await setup(COACH_OWNER_LOGIN, param);
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('button[aria-label="Delete"]')).toBeNull();
 
     await click(fixture, `button[aria-label="${open}"]`);
     expect(el.querySelector('.editor button[aria-label="Delete"]') !== null).toBe(hasDelete);
     expect(el.querySelector('.entry button[aria-label="Delete"]')).toBeNull();
+    expect(el.querySelector('form.editor')).not.toBeNull();
+    expect(el.querySelector('article')).toBeNull();
   });
 
   it.each([
@@ -277,11 +279,23 @@ describe('DiaryPageComponent', () => {
     if (!isOwner) await submit(fixture);
 
     const el: HTMLElement = fixture.nativeElement;
-    for (const label of ['New entry', 'Edit']) {
-      expect(el.querySelector(`button[aria-label="${label}"]`) !== null).toBe(isOwner);
-    }
+    expect(el.querySelector('button[aria-label="Edit"]') !== null).toBe(isOwner);
     expect(el.querySelector('.views')).toBeNull();
     if (isOwner) expect(el.querySelector('input[type="password"]')).toBeNull();
+  });
+
+  it.each([
+    { view: 'home', entry: null, tab: null, controls: ['New entry'] },
+    { view: 'an entry', entry: 'e2', tab: null, controls: ['Edit'] },
+    { view: 'audit', entry: null, tab: 'audit', controls: [] },
+  ])('the owner\'s right-side control on $view is $controls', async ({ entry, tab, controls }) => {
+    vi.stubGlobal('fetch', routeFetch());
+    const fixture = await setup(COACH_OWNER_LOGIN, entry, tab);
+
+    const labels = [...fixture.nativeElement.querySelectorAll('.tabs .tabs__new')].map((button) =>
+      (button as HTMLElement).getAttribute('aria-label'),
+    );
+    expect(labels).toEqual(controls);
   });
 
   it('maps read ids to titles and skips a deleted id', async () => {
