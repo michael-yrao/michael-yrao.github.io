@@ -191,6 +191,11 @@ every push.
    checks things unit tests stub out, e.g. that `/practice/1` has an `h1` naming the problem.
 5. Any manual check the plan lists (a browser look at a changed screen) is done, or the push waits
    and the report says it is not done.
+6. A change to a GitHub API read (Contents, Actions, any `api.github.com` call) is checked once
+   against the owner's real repo, `michael-yrao/cse-progress`, which is private: signed in and
+   signed out, before it lands. Specs mock HTTP, so they cannot show a 404 on a private repo.
+   (2026-11-09: the engine poll read Actions anonymously, got a 404 on every poll, and the board
+   never refreshed after a build.)
 
 A cse-progress contract change the current site can't read (a new figure kind, a new field) must
 deploy here first: the content mirror publishes within a minute, and the live site rejects the

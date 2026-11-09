@@ -234,7 +234,8 @@ export class EngineMenuComponent {
 
   /**
    * Polls the weekly-build runs until a run other than `previousRunId` has finished.
-   * A read with no run never ends the wait; on budget exhaustion the last real read stands.
+   * A read with no run never ends the wait; on budget exhaustion the last real read stands and the
+   * board refreshes anyway, so a read that never shows the new run still lands the new week.
    */
   private async awaitNewRun(ref: RepoRef, previousRunId: number | null): Promise<void> {
     let lastRead: EngineStatus = NO_ENGINE_RUN;
@@ -256,6 +257,7 @@ export class EngineMenuComponent {
     }
     this.step.set(null);
     this.status.set(lastRead);
+    this.progress.refresh();
   }
 
   /** Shows the run's current step; the previous step stays when the read finds none. */

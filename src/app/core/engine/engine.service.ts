@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable, InjectionToken, inject } from '@angular/core';
-import { Observable, catchError, firstValueFrom, map, of, tap } from 'rxjs';
+import { Observable, catchError, firstValueFrom, from, map, of, switchMap, tap, throwError } from 'rxjs';
 
 import { AuthService } from '../auth/auth.service';
 import { WORKER_API_URL } from '../data/site-links';
@@ -27,6 +27,11 @@ const UPDATE_ROUTE = 'engine/update';
 const APPROVE_ROUTE = 'engine/approve-week';
 const HTTP_FORBIDDEN = 403;
 const HTTP_CONFLICT = 409;
+const HTTP_UNAUTHORIZED = 401;
+// A stale or revoked user token must not hide a public repo's runs; a private repo still 404s anonymously.
+const TOKEN_REJECTED_STATUSES: readonly number[] = [HTTP_UNAUTHORIZED, HTTP_FORBIDDEN];
+// Defeats the browser's 60 s HTTP cache on the Actions API, so a poll never reads a pre-dispatch run.
+const BUST_PARAM = '_';
 const REFUSED_CODE = 'integration-refused';
 const NO_CONFIG_CODE = 'no-config';
 
@@ -47,7 +52,7 @@ function buildFailure(err: unknown): BuildResult {
   return 'failed';
 }
 
-/** Reads a repo's latest Actions run (public, unauthenticated) and asks the Worker to dispatch the weekly build. */
+/** Reads a repo's latest Actions run (with the user's token when signed in, anonymously otherwise) and asks the Worker to dispatch the weekly build. */
 @Injectable({ providedIn: 'root' })
 export class EngineService {
   private readonly http = inject(HttpClient);
@@ -61,7 +66,8 @@ export class EngineService {
     if (!bust && hit !== undefined && Date.now() - hit.at < ENGINE_STATUS_TTL_MS) {
       return of(hit.status);
     }
-    return this.http.get<unknown>(`${RUNS_URL_BASE}${ref.owner}/${ref.repo}${RUNS_URL_TAIL}`).pipe(
+    const bustParam = bust ? `&${BUST_PARAM}=${Date.now()}` : '';
+    return this.get$(`${RUNS_URL_BASE}${ref.owner}/${ref.repo}${RUNS_URL_TAIL}${bustParam}`).pipe(
       map(engineStatus),
       tap((status) => {
         this.cache = new Map(this.cache).set(slug, { at: Date.now(), status });
@@ -72,12 +78,30 @@ export class EngineService {
 
   /** The name of the run's in-progress step; null when none or on any failure. Never cached. */
   step$(ref: RepoRef, runId: number): Observable<string | null> {
-    return this.http
-      .get<unknown>(`${RUNS_URL_BASE}${ref.owner}/${ref.repo}${JOBS_URL_MIDDLE}${runId}${JOBS_URL_TAIL}`)
-      .pipe(
-        map(engineStep),
-        catchError(() => of(null)),
-      );
+    return this.get$(
+      `${RUNS_URL_BASE}${ref.owner}/${ref.repo}${JOBS_URL_MIDDLE}${runId}${JOBS_URL_TAIL}?${BUST_PARAM}=${Date.now()}`,
+    ).pipe(
+      map(engineStep),
+      catchError(() => of(null)),
+    );
+  }
+
+  /** GETs `url` with the user's token when signed in; signed out, or after a 401/403 token rejection, anonymously.
+   *  The owner's repo is private, so an anonymous Actions read answers 404. */
+  private get$(url: string): Observable<unknown> {
+    const anonymous$ = (): Observable<unknown> => this.http.get<unknown>(url);
+    if (!this.auth.isSignedIn()) return anonymous$();
+    return from(this.auth.getToken()).pipe(
+      switchMap((token) =>
+        token === null
+          ? anonymous$()
+          : this.http.get<unknown>(url, { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) }).pipe(
+              catchError((err) =>
+                TOKEN_REJECTED_STATUSES.includes(err?.status) ? anonymous$() : throwError(() => err),
+              ),
+            ),
+      ),
+    );
   }
 
   /** Dispatches the weekly build; with `rebuildWeek` (a Monday) it discards and rebuilds that draft week. */

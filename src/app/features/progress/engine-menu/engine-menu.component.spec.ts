@@ -33,10 +33,10 @@ describe('EngineMenuComponent build()', () => {
       expectedRefreshes: 1,
     },
     {
-      name: 'no new run gives up after the poll limit without refreshing',
+      name: 'no new run gives up after the poll limit and still refreshes once',
       polls: [OLD_RUN],
       expectedPolls: ENGINE_POLL_MAX,
-      expectedRefreshes: 0,
+      expectedRefreshes: 1,
     },
   ])('$name', async ({ polls, expectedPolls, expectedRefreshes }) => {
     let calls = 0;
@@ -109,7 +109,7 @@ describe('EngineMenuComponent build()', () => {
 
     expect(internals.statusRow()).toBeNull();
     expect(internals.dotState()).not.toBe('running');
-    expect(refresh).not.toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it('names the current step while a new run is in progress, then reads ok once it finishes', async () => {
