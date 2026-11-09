@@ -2,6 +2,11 @@
 $sheet-width: 8.5in;
 $sheet-padding: 1in;
 
+// The body text's type, shared by the reading view and the editor so both wrap the same way.
+$body-font-size: 1.05rem;
+$body-line-height: 1.8;
+$editor-min-lines: 8;
+
 // Below the sheet's own width it goes edge to edge inside the page gutter.
 @mixin sheet {
   box-sizing: border-box;
@@ -149,9 +154,14 @@ $sheet-padding: 1in;
     min-width: 0;
   }
 
+  // Grows with its content (see autosize in the component) and reads like the entry body.
   &__body {
-    resize: vertical;
-    line-height: 1.6;
+    resize: none;
+    overflow: hidden;
+    field-sizing: content;
+    font-size: $body-font-size;
+    line-height: $body-line-height;
+    min-height: calc(#{$body-font-size} * #{$body-line-height} * #{$editor-min-lines});
   }
 
   &__actions {
@@ -252,8 +262,8 @@ $sheet-padding: 1in;
   }
 
   &__text {
-    font-size: 1.05rem;
-    line-height: 1.8;
+    font-size: $body-font-size;
+    line-height: $body-line-height;
     color: var(--color-text-muted);
     margin: 0 0 var(--space-lg);
   }

@@ -161,6 +161,18 @@ export class DiaryPageComponent implements OnInit {
       if (this.view() === 'audit') untracked(() => void this.loadViews());
     });
     effect(() => {
+      if (this.editor() === null) return;
+      untracked(() =>
+        afterNextRender(
+          () => {
+            const body = this.host.nativeElement.querySelector<HTMLTextAreaElement>('textarea.editor__body');
+            if (body !== null) this.autosize(body);
+          },
+          { injector: this.injector },
+        ),
+      );
+    });
+    effect(() => {
       const id = this.selectedEntry()?.id;
       if (this.visitId === '') return;
       untracked(() => {
@@ -217,6 +229,14 @@ export class DiaryPageComponent implements OnInit {
     this.error.set('');
     this.pendingDeleteId.set(null);
     this.editor.set({ id: entry.id, date: entry.date, title: entry.title, body: entry.body });
+  }
+
+  /** Sizes the textarea to its whole content so it never scrolls inside itself. */
+  autosize(textarea: HTMLTextAreaElement): void {
+    textarea.style.height = 'auto';
+    // border-box height: add the borders (offsetHeight - clientHeight) on top of the content height.
+    const borders = textarea.offsetHeight - textarea.clientHeight;
+    textarea.style.height = `${textarea.scrollHeight + borders}px`;
   }
 
   cancelEdit(): void {

@@ -268,6 +268,23 @@ describe('DiaryPageComponent', () => {
     expect(el.querySelector('article')).toBeNull();
   });
 
+  it('sizes the body textarea from its scrollHeight on open and on input', async () => {
+    const scrollHeight = vi.spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get').mockReturnValue(300);
+    try {
+      vi.stubGlobal('fetch', routeFetch());
+      const fixture = await setup(COACH_OWNER_LOGIN, 'e2');
+      await click(fixture, 'button[aria-label="Edit"]');
+      const body = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+      expect(body.style.height).toBe('300px');
+
+      scrollHeight.mockReturnValue(500);
+      body.dispatchEvent(new Event('input'));
+      expect(body.style.height).toBe('500px');
+    } finally {
+      scrollHeight.mockRestore();
+    }
+  });
+
   it.each([
     { name: 'signed out', login: null, isOwner: false },
     { name: 'a non-owner', login: 'someone-else', isOwner: false },

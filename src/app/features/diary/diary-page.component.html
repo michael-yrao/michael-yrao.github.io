@@ -46,7 +46,7 @@
     <form class="editor" (submit)="$event.preventDefault(); save(date.value, title.value, body.value)">
       <input #date class="editor__field" type="date" [value]="draft.date" aria-label="Date" title="Date" />
       <input #title class="editor__field" type="text" [value]="draft.title" placeholder="Title" aria-label="Title" />
-      <textarea #body class="editor__field editor__body" rows="12" [value]="draft.body" placeholder="Write…" aria-label="Write…"></textarea>
+      <textarea #body class="editor__field editor__body" [value]="draft.body" (input)="autosize(body)" placeholder="Write…" aria-label="Write…"></textarea>
       <div class="editor__actions">
         @if (draft.id; as draftId) {
           @if (pendingDeleteId() === draftId) {
