@@ -1,5 +1,7 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
 import { vi } from 'vitest';
 
 import { AuthService } from '../../core/auth/auth.service';
@@ -41,9 +43,20 @@ async function settle(fixture: ComponentFixture<DiaryPageComponent>): Promise<vo
   fixture.detectChanges();
 }
 
-async function setup(login: string | null): Promise<ComponentFixture<DiaryPageComponent>> {
+/** A route whose `entry` query param is `entryParam`; the router mock writes navigations back into it. */
+async function setup(login: string | null, entryParam: string | null = null): Promise<ComponentFixture<DiaryPageComponent>> {
+  const params = new BehaviorSubject(convertToParamMap(entryParam === null ? {} : { entry: entryParam }));
+  const navigate = vi.fn(async (_commands: unknown[], extras: { queryParams: { entry: string | null } }) => {
+    const { entry } = extras.queryParams;
+    params.next(convertToParamMap(entry === null ? {} : { entry }));
+    return true;
+  });
   TestBed.configureTestingModule({
-    providers: [{ provide: AuthService, useValue: { login: signal(login), getToken: async () => 'tok' } }],
+    providers: [
+      { provide: AuthService, useValue: { login: signal(login), getToken: async () => 'tok' } },
+      { provide: ActivatedRoute, useValue: { queryParamMap: params, snapshot: { queryParamMap: params.value } } },
+      { provide: Router, useValue: { navigate } },
+    ],
   });
   const fixture = TestBed.createComponent(DiaryPageComponent);
   fixture.detectChanges();
@@ -75,15 +88,57 @@ describe('DiaryPageComponent', () => {
     expect(fixture.nativeElement.querySelector('article')).toBeNull();
   });
 
-  it('renders the entries on unlock, a "## " paragraph as a heading', async () => {
+  it('renders the open entry on unlock, a "## " paragraph as a heading', async () => {
     vi.stubGlobal('fetch', routeFetch());
     const fixture = await setup(null);
     await submit(fixture);
 
     const el: HTMLElement = fixture.nativeElement;
-    expect([...el.querySelectorAll('h1')].map((h) => h.textContent)).toEqual(['Lorem title', 'Sed title']);
+    expect([...el.querySelectorAll('h1')].map((h) => h.textContent)).toEqual(['Lorem title']);
     expect([...el.querySelectorAll('h2')].map((h) => h.textContent)).toEqual(['Lorem one']);
-    expect(el.querySelectorAll('p').length).toBe(3);
+    expect(el.querySelectorAll('p').length).toBe(2);
+  });
+
+  it.each([
+    { name: 'a known id', param: 'e1', title: 'Sed title' },
+    { name: 'an unknown id', param: 'gone', title: 'Lorem title' },
+    { name: 'no id', param: null, title: 'Lorem title' },
+  ])('opens the right entry for $name in the query param', async ({ param, title }) => {
+    vi.stubGlobal('fetch', routeFetch());
+    const fixture = await setup(null, param);
+    await submit(fixture);
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('h1')?.textContent).toBe(title);
+    expect(el.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe(title);
+    expect(el.querySelectorAll('[role="tab"]').length).toBe(2);
+  });
+
+  it('selects the tab of a newly saved entry', async () => {
+    const saved: DiaryEntry = { id: 'e3', date: '2026-03-01', title: 'New title', body: 'Lorem', updatedAt: '2026-03-01T00:00:00Z' };
+    vi.stubGlobal('fetch', routeFetch({ 'POST entries': reply({ entry: saved }) }));
+    const fixture = await setup(COACH_OWNER_LOGIN, 'e1');
+
+    await click(fixture, 'button[aria-label="New entry"]');
+    await click(fixture, 'button[aria-label="Save"]');
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('New title');
+    expect(el.querySelector('h1')?.textContent).toBe('New title');
+  });
+
+  it.each([
+    { name: 'an existing entry', open: 'Edit', hasDelete: true },
+    { name: 'a new entry', open: 'New entry', hasDelete: false },
+  ])('delete is in the editor only for $name, never in the entry header', async ({ open, hasDelete }) => {
+    vi.stubGlobal('fetch', routeFetch());
+    const fixture = await setup(COACH_OWNER_LOGIN);
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('button[aria-label="Delete"]')).toBeNull();
+
+    await click(fixture, `button[aria-label="${open}"]`);
+    expect(el.querySelector('.editor button[aria-label="Delete"]') !== null).toBe(hasDelete);
+    expect(el.querySelector('.entry button[aria-label="Delete"]')).toBeNull();
   });
 
   it.each([
@@ -97,7 +152,7 @@ describe('DiaryPageComponent', () => {
     if (!isOwner) await submit(fixture);
 
     const el: HTMLElement = fixture.nativeElement;
-    for (const label of ['New entry', 'Edit', 'Delete']) {
+    for (const label of ['New entry', 'Edit']) {
       expect(el.querySelector(`button[aria-label="${label}"]`) !== null).toBe(isOwner);
     }
     expect(el.querySelector('.views') !== null).toBe(isOwner);
@@ -105,7 +160,7 @@ describe('DiaryPageComponent', () => {
       expect(el.querySelector('input[type="password"]')).toBeNull();
       expect(el.querySelector('.views__count')?.textContent).toBe('2');
       expect(el.querySelector('.views__backup')?.textContent).toBe('Not backed up');
-      expect(el.querySelectorAll('article').length).toBe(2);
+      expect(el.querySelectorAll('[role="tab"]').length).toBe(2);
     }
   });
 
@@ -123,13 +178,15 @@ describe('DiaryPageComponent', () => {
     const fixture = await setup(COACH_OWNER_LOGIN);
     const isDelete = (call: unknown[]) => (call[1] as RequestInit | undefined)?.method === 'DELETE';
 
+    await click(fixture, 'button[aria-label="Edit"]');
     await click(fixture, 'button[aria-label="Delete"]');
     expect(fetchMock.mock.calls.some(isDelete)).toBe(false);
     expect(fixture.nativeElement.querySelector('button[aria-label="Confirm delete"]')).not.toBeNull();
 
     await click(fixture, 'button[aria-label="Confirm delete"]');
     expect(fetchMock.mock.calls.filter(isDelete).length).toBe(1);
-    expect(fixture.nativeElement.querySelectorAll('article').length).toBe(1);
+    expect(fixture.nativeElement.querySelectorAll('[role="tab"]').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('form.editor')).toBeNull();
   });
 
   it('shows "Couldn\'t save." when a save fails', async () => {

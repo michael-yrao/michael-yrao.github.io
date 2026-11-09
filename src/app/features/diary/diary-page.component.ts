@@ -12,7 +12,10 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Meta } from '@angular/platform-browser';
+import { ActivatedRoute, Router } from '@angular/router';
+import { map } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { WORKER_API_URL, isCoachOwner } from '../../core/data/site-links';
@@ -99,12 +102,23 @@ export class DiaryPageComponent implements OnInit {
   private seen: ReadonlySet<string> = new Set();
   private sent: ReadonlySet<string> = new Set();
 
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly entryParam = toSignal(this.route.queryParamMap.pipe(map((params) => params.get('entry'))), {
+    initialValue: this.route.snapshot.queryParamMap.get('entry'),
+  });
+
   readonly isOwner = computed(() => isCoachOwner(this.auth.login()));
   readonly entries = signal<readonly DiaryEntry[] | null>(null);
   readonly error = signal('');
   readonly isBusy = signal(false);
   readonly views = signal<readonly DiaryView[] | null>(null);
   readonly backupAt = signal<string | null>(null);
+  /** The open entry: the one named by the `entry` param, else the newest. */
+  readonly selectedEntry = computed(() => {
+    const list = this.entries() ?? [];
+    return list.find((entry) => entry.id === this.entryParam()) ?? list[0] ?? null;
+  });
   readonly backupLabel = computed(() => {
     const at = this.backupAt();
     return at === null ? MESSAGE_NOT_BACKED_UP : `Backed up ${new Date(at).toLocaleString()}`;
@@ -117,6 +131,14 @@ export class DiaryPageComponent implements OnInit {
       if (this.hasLoadedOwner || !this.isOwner()) return;
       this.hasLoadedOwner = true;
       untracked(() => void this.loadOwnerData());
+    });
+    effect(() => {
+      const id = this.selectedEntry()?.id;
+      if (id === undefined || this.visitId === '') return;
+      untracked(() => {
+        this.resetTracking();
+        afterNextRender(() => this.startTracking(), { injector: this.injector });
+      });
     });
     this.destroyRef.onDestroy(() => this.stopTracking());
   }
@@ -145,7 +167,6 @@ export class DiaryPageComponent implements OnInit {
       this.visitId = body.visitId;
       this.entries.set(body.entries);
       input.value = '';
-      afterNextRender(() => this.startTracking(), { injector: this.injector });
     } catch {
       this.error.set(MESSAGE_UNREACHABLE);
     } finally {
@@ -159,16 +180,44 @@ export class DiaryPageComponent implements OnInit {
 
   newEntry(): void {
     this.error.set('');
+    this.pendingDeleteId.set(null);
     this.editor.set({ id: null, date: todayLocal(), title: '', body: '' });
   }
 
   editEntry(entry: DiaryEntry): void {
     this.error.set('');
+    this.pendingDeleteId.set(null);
     this.editor.set({ id: entry.id, date: entry.date, title: entry.title, body: entry.body });
   }
 
   cancelEdit(): void {
+    this.pendingDeleteId.set(null);
     this.editor.set(null);
+  }
+
+  /** Puts the entry id in the `entry` query param (null clears it); a stale id falls back to the newest entry. */
+  selectEntry(id: string | null): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { entry: id },
+      replaceUrl: true,
+    });
+  }
+
+  /** Left/right arrows move the selection and focus between tabs. */
+  onTabKey(event: KeyboardEvent, index: number): void {
+    const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+    const list = this.entries() ?? [];
+    const next = index + step;
+    if (step === 0 || next < 0 || next >= list.length) return;
+    event.preventDefault();
+    this.selectEntry(list[next].id);
+    const tabs = this.host.nativeElement.querySelectorAll<HTMLElement>('[role="tab"]');
+    tabs[next]?.focus();
+  }
+
+  tabLabelOf(entry: DiaryEntry): string {
+    return entry.title === '' ? entry.date : entry.title;
   }
 
   async save(date: string, title: string, body: string): Promise<void> {
@@ -190,6 +239,7 @@ export class DiaryPageComponent implements OnInit {
       const saved = ((await response.json()) as DiarySaveResponse).entry;
       this.entries.update((list) => placeEntry(list ?? [], saved));
       this.editor.set(null);
+      if (isNew) this.selectEntry(saved.id);
     } catch {
       this.error.set(MESSAGE_SAVE_FAILED);
     } finally {
@@ -211,7 +261,10 @@ export class DiaryPageComponent implements OnInit {
         this.error.set(MESSAGE_SAVE_FAILED);
         return;
       }
-      this.entries.update((list) => (list ?? []).filter((entry) => entry.id !== id));
+      const remaining = (this.entries() ?? []).filter((entry) => entry.id !== id);
+      this.entries.set(remaining);
+      this.editor.set(null);
+      this.selectEntry(remaining[0]?.id ?? null);
     } catch {
       this.error.set(MESSAGE_SAVE_FAILED);
     }
@@ -321,11 +374,18 @@ export class DiaryPageComponent implements OnInit {
     this.dwellTimers.delete(id);
   }
 
-  private stopTracking(): void {
+  /** Drops the observers, their per-entry state and pending dwell timers (read ids and the flush timer stay). */
+  private resetTracking(): void {
     this.observers.forEach((observer) => observer.disconnect());
     this.observers = [];
+    this.ratioIds = new Set();
+    this.centerIds = new Set();
     this.dwellTimers.forEach((timer) => clearTimeout(timer));
     this.dwellTimers.clear();
+  }
+
+  private stopTracking(): void {
+    this.resetTracking();
     if (this.flushTimer !== null) clearTimeout(this.flushTimer);
     this.flushTimer = null;
   }

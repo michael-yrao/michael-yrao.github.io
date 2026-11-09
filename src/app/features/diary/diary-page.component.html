@@ -1,11 +1,24 @@
 <div class="page">
-  @if (isOwner()) {
-    <div class="toolbar">
-      <button class="icon-btn" type="button" aria-label="New entry" title="New entry" (click)="newEntry()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-      </button>
+  @if (entries() !== null || isOwner()) {
+    <div class="tabs" role="tablist" aria-label="Entries">
+      @for (entry of entries() ?? []; track entry.id; let i = $index) {
+        <button
+          class="tabs__tab"
+          type="button"
+          role="tab"
+          [attr.aria-selected]="entry.id === selectedEntry()?.id"
+          [attr.tabindex]="entry.id === selectedEntry()?.id ? 0 : -1"
+          (click)="selectEntry(entry.id)"
+          (keydown)="onTabKey($event, i)"
+        >{{ tabLabelOf(entry) }}</button>
+      }
+      @if (isOwner()) {
+        <button class="icon-btn tabs__new" type="button" aria-label="New entry" title="New entry" (click)="newEntry()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+      }
     </div>
   }
 
@@ -15,6 +28,21 @@
       <input #title class="editor__field" type="text" [value]="draft.title" placeholder="Title" aria-label="Title" />
       <textarea #body class="editor__field editor__body" rows="12" [value]="draft.body" placeholder="Write…" aria-label="Write…"></textarea>
       <div class="editor__actions">
+        @if (draft.id; as draftId) {
+          @if (pendingDeleteId() === draftId) {
+            <button class="icon-btn icon-btn--small icon-btn--danger editor__delete" type="button" aria-label="Confirm delete" title="Confirm delete" (click)="deleteEntry(draftId)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M5 12l5 5 9-10" />
+              </svg>
+            </button>
+          } @else {
+            <button class="icon-btn icon-btn--small icon-btn--muted editor__delete" type="button" aria-label="Delete" title="Delete" (click)="deleteEntry(draftId)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13" />
+              </svg>
+            </button>
+          }
+        }
         <button class="icon-btn" type="submit" aria-label="Save" title="Save" [disabled]="isBusy()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <path d="M5 4h11l3 3v13H5z" />
@@ -31,34 +59,19 @@
   }
 
   @if (entries(); as list) {
-    @for (entry of list; track entry.id) {
+    @if (selectedEntry(); as entry) {
       <article class="entry" [attr.data-entry-id]="entry.id">
-        <header class="entry__head">
-          <span class="entry__date">{{ entry.date }}</span>
+        <span class="entry__date">{{ entry.date }}</span>
+        <div class="entry__head">
+          <h1 class="entry__title">{{ entry.title }}</h1>
           @if (isOwner()) {
-            <span class="entry__tools">
-              <button class="icon-btn" type="button" aria-label="Edit" title="Edit" (click)="editEntry(entry)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                  <path d="M4 20l1-4L16 5l3 3L8 19z" />
-                </svg>
-              </button>
-              @if (pendingDeleteId() === entry.id) {
-                <button class="icon-btn icon-btn--danger" type="button" aria-label="Confirm delete" title="Confirm delete" (click)="deleteEntry(entry.id)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                    <path d="M5 12l5 5 9-10" />
-                  </svg>
-                </button>
-              } @else {
-                <button class="icon-btn" type="button" aria-label="Delete" title="Delete" (click)="deleteEntry(entry.id)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                    <path d="M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13" />
-                  </svg>
-                </button>
-              }
-            </span>
+            <button class="icon-btn" type="button" aria-label="Edit" title="Edit" (click)="editEntry(entry)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M4 20l1-4L16 5l3 3L8 19z" />
+              </svg>
+            </button>
           }
-        </header>
-        <h1 class="entry__title">{{ entry.title }}</h1>
+        </div>
         @for (block of blocksOf(entry); track $index) {
           @if (block.isHeading) {
             <h2 class="entry__heading">{{ block.text }}</h2>

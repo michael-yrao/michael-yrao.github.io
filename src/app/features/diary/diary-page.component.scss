@@ -74,22 +74,68 @@
     color: var(--color-hard);
   }
 
+  &--muted {
+    color: var(--color-text-muted);
+    background: transparent;
+    border-color: transparent;
+  }
+
+  &--small {
+    width: 1.75rem;
+    height: 1.75rem;
+
+    svg {
+      width: 0.9rem;
+      height: 0.9rem;
+    }
+  }
+
   &:disabled {
     opacity: 0.5;
     cursor: default;
   }
 }
 
-.toolbar,
+.tabs,
 .editor {
   width: 100%;
   max-width: 40rem;
   margin: 0 auto;
 }
 
-.toolbar {
+.tabs {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-xs);
+  overflow-x: auto;
+  // Room for the global 2px focus outline + 2px offset, which the scroll container would clip.
+  padding: 4px;
+  margin-inline: -4px;
+
+  &__tab {
+    flex: none;
+    max-width: 14rem;
+    padding: var(--space-xs) var(--space-md);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    color: var(--color-text-muted);
+    font: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+
+    &[aria-selected='true'] {
+      background: var(--color-bg-raised);
+      border-color: var(--color-accent);
+      color: var(--color-text);
+    }
+  }
+
+  &__new {
+    flex: none;
+  }
 }
 
 .editor {
@@ -115,7 +161,12 @@
   &__actions {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: var(--space-sm);
+  }
+
+  &__delete {
+    margin-right: auto;
   }
 }
 
@@ -126,20 +177,16 @@
 
   &__head {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: var(--space-sm);
-    margin: 0 0 var(--space-sm);
   }
 
   &__date {
+    display: block;
+    margin: 0 0 var(--space-sm);
     font-size: var(--text-sm);
     color: var(--color-text-muted);
-  }
-
-  &__tools {
-    display: inline-flex;
-    gap: var(--space-xs);
   }
 
   &__title {
@@ -149,6 +196,7 @@
     line-height: 1.1;
     color: var(--color-text);
     margin: 0 0 var(--space-xl);
+    min-width: 0;
     overflow-wrap: anywhere;
   }
 
