@@ -43,6 +43,15 @@ With no model and a main-session caller, the rules below apply unchanged. Then:
   backticked command with no `<...>` placeholder that role_gate.py denies that role gains a second line
   naming it (write-brief step 9). Never a deny.
 
+Tool "SendMessage" (tool_input carries `to` and `message`; the payload's `transcript_path` is a JSONL): a
+message that resumes an engineer with a new brief gets the same paste checks as an Agent prompt. The
+recipient's subagent_type comes from the transcript: the Agent tool_result whose text holds `agentId: <to>`
+(or whose Agent tool_use input has `name` equal to `to`) points at the Agent tool_use that carries it. When
+that type is `engineer`, `engineer-haiku` or `team-lead`, the message gets only these checks: no paste DENY,
+`[behind N]` DENY, a paste with no `## branch...upstream` line warn. Every other Agent-path check is skipped.
+Silent when the recipient is unknown or another type, the transcript is unreadable, or the message is under
+SHORT_MESSAGE_CHARS (a "stop" or "status?" follow-up is not a brief).
+
 A paste is either a `git status --short` line followed within STATUS_WINDOW_LINES lines by a
 status row at column 0 (or a clean marker: `(clean)`, `(empty)`, `(empty — clean)`, `(nothing)`,
 `(no output)`, or `clean` alone on a line), or a fenced block whose first inner line mentions `git status`
@@ -101,6 +110,10 @@ LEAD_SPAWNS_ENGINEERS_DENY_REASON = (
     "(~/.claude/rules/execution-workflow.md \"Agent definitions\"). Spawn an engineer instead."
 )
 STATUS_WINDOW_LINES = 20  # how far below the command line a status line may sit
+SHORT_MESSAGE_CHARS = 400  # a SendMessage under this is a follow-up ("stop", "status?"), not a brief
+SEND_MESSAGE_TOOL = "SendMessage"
+AGENT_TOOL = "Agent"
+AGENT_ID_PATTERN = re.compile(r"agentId:\s*(\S+)")
 
 STATUS_COMMAND_MARKER = "git status --short"
 # A porcelain status row at column 0: a real XY code (at least one letter or `?`), one space, a path.
@@ -437,6 +450,72 @@ def decide(
     return Decision("warn", "".join(_warn_parts(subagent_type, text)))
 
 
+def _transcript_blocks(transcript_path: object) -> list[dict]:
+    """Every content block of every message in the JSONL transcript; empty when it is unreadable."""
+    if not isinstance(transcript_path, str) or not transcript_path:
+        return []
+    try:
+        lines = Path(transcript_path).read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return []
+    blocks: list[dict] = []
+    for line in lines:
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        message = entry.get("message") if isinstance(entry, dict) else None
+        content = message.get("content") if isinstance(message, dict) else None
+        if isinstance(content, list):
+            blocks.extend(block for block in content if isinstance(block, dict))
+    return blocks
+
+
+def _result_text(block: dict) -> str:
+    content = block.get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(part.get("text", "") for part in content if isinstance(part, dict))
+    return ""
+
+
+def recipient_subagent_type(transcript_path: object, recipient: object) -> str | None:
+    """The subagent_type of the Agent spawn that `recipient` (an agentId or a name) names, or None."""
+    if not isinstance(recipient, str) or not recipient:
+        return None
+    blocks = _transcript_blocks(transcript_path)
+    spawns = {
+        block.get("id"): block.get("input")
+        for block in blocks
+        if block.get("type") == "tool_use" and block.get("name") == AGENT_TOOL and isinstance(block.get("input"), dict)
+    }
+    for block in blocks:
+        spawn = spawns.get(block.get("tool_use_id")) if block.get("type") == "tool_result" else None
+        if spawn is None:
+            continue
+        if recipient in AGENT_ID_PATTERN.findall(_result_text(block)) or spawn.get("name") == recipient:
+            subagent_type = spawn.get("subagent_type")
+            return subagent_type if isinstance(subagent_type, str) else None
+    return None
+
+
+def decide_message(recipient: object, message: object, transcript_path: object) -> Decision | None:
+    """Paste checks for a SendMessage brief to an engineer or lead; None (allow) for anything else."""
+    if not isinstance(message, str) or len(message) < SHORT_MESSAGE_CHARS:
+        return None
+    if recipient_subagent_type(transcript_path, recipient) not in GATED_SUBAGENT_TYPES:
+        return None
+    if not has_status_paste(message):
+        return Decision("deny", DENY_REASON)
+    behind_line = behind_branch_line(message)
+    if behind_line is not None:
+        return Decision("deny", STALE_DENY_REASON.format(line=behind_line))
+    if not has_branch_line(message):
+        return Decision("warn", BRANCH_WARN_TEXT.strip())
+    return None
+
+
 def _warn_parts(subagent_type: object, text: str) -> tuple[str, ...]:
     verify_part = (VERIFY_WARN_TEXT,) if has_unmarked_verify_command(text) else ()
     branch_part = () if has_branch_line(text) else (BRANCH_WARN_TEXT,)
@@ -474,12 +553,15 @@ def main() -> None:
     tool_input = payload.get("tool_input")
     if not isinstance(tool_input, dict):
         return
-    decision = decide(
-        tool_input.get("subagent_type"),
-        tool_input.get("prompt"),
-        tool_input.get("model"),
-        payload.get("agent_type"),
-    )
+    if payload.get("tool_name") == SEND_MESSAGE_TOOL:
+        decision = decide_message(tool_input.get("to"), tool_input.get("message"), payload.get("transcript_path"))
+    else:
+        decision = decide(
+            tool_input.get("subagent_type"),
+            tool_input.get("prompt"),
+            tool_input.get("model"),
+            payload.get("agent_type"),
+        )
     if decision is None:
         return
     sys.exit(_emit(decision))

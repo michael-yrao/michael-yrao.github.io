@@ -26,6 +26,11 @@ check that the build's completion time is newer than your last edit. Stop that s
 Never photograph a server you did not start. (2026-10-21: a static `serve` from the day before held port
 4173, and the footer screenshot showed the pre-edit build.)
 
+**On Windows, stopping a background dev server with TaskStop kills only the shell wrapper; its node and
+workerd children keep running.** Stop a server by running `taskkill /PID <pid> /T /F` on each node process
+whose command line matches `wrangler|bootstrap.js s`, then confirm a count of 0 before reporting. A test
+that fails only by timeout in a long session gets this process check before it is reported as a code failure.
+
 Report: the diff (`git diff --stat` plus a short summary), test/build output, anything the brief
 didn't cover, and any wasted work or inefficient code you saw but were not asked to fix. On a failing
 run, report the failing output only, not the whole log.
