@@ -20,6 +20,7 @@ import {
   readAllKeyed,
   sortNewestFirst,
   VIEW_PREFIX,
+  VISIT_PREFIX,
   type BackupRecord,
   type DiaryEnv,
 } from './store';
@@ -35,8 +36,8 @@ export const MAX_TITLE_CHARS = 200;
 export const MAX_BODY_CHARS = 50_000;
 export const SEEN_WINDOW_HOURS = 12;
 
-const MAX_SEEN_IDS = 500;
 const MS_PER_HOUR = 3_600_000;
+const SECONDS_PER_HOUR = 3_600;
 const HTTP_CONFLICT = 409;
 const VISIT_SUFFIX_BYTES = 16;
 const HTTP_OK_NO_CONTENT = 204;
@@ -149,9 +150,11 @@ async function handleUnlock(call: Call): Promise<Response> {
   if (!(await isPasswordMatch(password, env.DIARY_PASSWORD)))
     return failure(HTTP_UNAUTHORIZED, 'wrong-password', cors);
 
-  const view = viewFor(request, call.now());
-  const visitId = `${view.at}_${randomHex(VISIT_SUFFIX_BYTES)}`;
-  await env.INTERVIEWS.put(`${VIEW_PREFIX}${visitId}`, JSON.stringify(view));
+  const at = new Date(call.now()).toISOString();
+  const visitId = `${at}_${randomHex(VISIT_SUFFIX_BYTES)}`;
+  await env.INTERVIEWS.put(`${VISIT_PREFIX}${visitId}`, JSON.stringify({ at }), {
+    expirationTtl: SEEN_WINDOW_HOURS * SECONDS_PER_HOUR,
+  });
   const entries = sortNewestFirst(await readAllEntries(env.INTERVIEWS));
   const response: DiaryUnlockResponse = { visitId, entries };
   return noStoreJson(response, cors);
@@ -159,22 +162,15 @@ async function handleUnlock(call: Call): Promise<Response> {
 
 interface SeenInput {
   visitId: string;
-  entryIds: string[];
+  entryId: string;
 }
 
 function parseSeen(body: unknown): SeenInput | null {
   if (!isRecord(body)) return null;
-  const { visitId, entryIds } = body;
+  const { visitId, entryId } = body;
   if (typeof visitId !== 'string' || !VISIT_ID_PATTERN.test(visitId)) return null;
-  if (!Array.isArray(entryIds) || entryIds.length > MAX_SEEN_IDS) return null;
-  if (!entryIds.every((id): id is string => typeof id === 'string')) return null;
-  return { visitId, entryIds };
-}
-
-async function existingEntryIds(kv: KVNamespace, ids: readonly string[]): Promise<string[]> {
-  const candidates = [...new Set(ids)].filter(isEntryId);
-  const found = await Promise.all(candidates.map((id) => kv.get(`${ENTRY_PREFIX}${id}`)));
-  return candidates.filter((_id, index) => found[index] !== null);
+  if (typeof entryId !== 'string') return null;
+  return { visitId, entryId };
 }
 
 async function handleSeen(call: Call): Promise<Response> {
@@ -185,15 +181,18 @@ async function handleSeen(call: Call): Promise<Response> {
   const input = parseSeen(await parseJson(call.request));
   if (input === null) return failure(HTTP_BAD_REQUEST, 'invalid-request', cors);
 
-  const viewKey = `${VIEW_PREFIX}${input.visitId}`;
-  const view = await env.INTERVIEWS.get<DiaryView>(viewKey, 'json');
-  if (view === null) return failure(HTTP_NOT_FOUND, 'not-found', cors);
-  if (call.now() - Date.parse(view.at) > SEEN_WINDOW_HOURS * MS_PER_HOUR)
+  const visit = await env.INTERVIEWS.get<{ at: string }>(`${VISIT_PREFIX}${input.visitId}`, 'json');
+  if (visit === null) return failure(HTTP_NOT_FOUND, 'not-found', cors);
+  if (call.now() - Date.parse(visit.at) > SEEN_WINDOW_HOURS * MS_PER_HOUR)
     return failure(HTTP_GONE, 'visit-expired', cors);
 
-  const known = await existingEntryIds(env.INTERVIEWS, input.entryIds);
-  const read = [...new Set([...view.read, ...known])];
-  await env.INTERVIEWS.put(viewKey, JSON.stringify({ ...view, read }));
+  if (!isEntryId(input.entryId) || !(await isEntryStored(env.INTERVIEWS, input.entryId)))
+    return failure(HTTP_NOT_FOUND, 'not-found', cors);
+
+  // Each accepted call is its own row: one opening of one entry.
+  const view: DiaryView = { ...viewFor(call.request, call.now()), read: [input.entryId] };
+  const viewKey = `${VIEW_PREFIX}${view.at}_${randomHex(VISIT_SUFFIX_BYTES)}`;
+  await env.INTERVIEWS.put(viewKey, JSON.stringify(view));
   return new Response(null, { status: HTTP_OK_NO_CONTENT, headers: cors });
 }
 
@@ -202,9 +201,9 @@ async function handleViews(call: Call): Promise<Response> {
   if (refusal !== null) return refusal;
 
   const { env, cors } = call;
-  const views = (await readAllByPrefix<DiaryView>(env.INTERVIEWS, VIEW_PREFIX)).sort((a, b) =>
-    b.at.localeCompare(a.at),
-  );
+  const views = (await readAllByPrefix<DiaryView>(env.INTERVIEWS, VIEW_PREFIX))
+    .filter((view) => view.read.length > 0)
+    .sort((a, b) => b.at.localeCompare(a.at));
   const backup = await env.INTERVIEWS.get<BackupRecord>(BACKUP_KEY, 'json');
   const response: DiaryViewsResponse = { views, backupAt: backup?.at ?? null };
   return noStoreJson(response, cors);

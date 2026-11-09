@@ -3,6 +3,7 @@ import type { DiaryEntry } from './contract';
 
 export const ENTRY_PREFIX = 'diary:entry:';
 export const VIEW_PREFIX = 'diary:view:';
+export const VISIT_PREFIX = 'diary:visit:';
 export const BACKUP_KEY = 'diary:backup';
 
 export interface DiaryLimiter {

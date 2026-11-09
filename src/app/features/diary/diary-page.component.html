@@ -1,5 +1,5 @@
 <div class="page">
-  @if (entries() !== null || isOwner()) {
+  @if (entries() !== null) {
     <div class="tabs">
       <app-menu label="Diary" title="Diary" icon="bars" align="start">
         <button type="button" role="menuitem" class="menu__item" [class.active]="view() === 'home'" [attr.aria-current]="view() === 'home' ? 'page' : null" (click)="selectEntry(null)">
@@ -81,7 +81,7 @@
   @if (entries(); as list) {
     @if (selectedEntry(); as entry) {
       @if (editor() === null) {
-        <article class="entry" [attr.data-entry-id]="entry.id">
+        <article class="entry">
           <span class="entry__date">{{ entry.date }}</span>
           <div class="entry__head">
             <h1 class="entry__title">{{ entry.title }}</h1>
@@ -109,7 +109,7 @@
         }
       </ul>
     }
-  } @else if (!isOwner()) {
+  } @else {
     <form class="lock" (submit)="$event.preventDefault(); unlock(password)">
       <input
         #password

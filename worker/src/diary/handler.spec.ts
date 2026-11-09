@@ -7,6 +7,7 @@ import {
   VIEW_PREFIX,
   type DiaryEnv,
 } from './handler';
+import { VISIT_PREFIX } from './store';
 
 const ORIGIN = 'https://progressiveoverflow.com';
 const PASSWORD = 'placeholder-password';
@@ -14,6 +15,7 @@ const IP = '203.0.113.7';
 const NOW = Date.UTC(2026, 10, 7, 12, 0, 0);
 const MS_PER_HOUR = 3_600_000;
 const KV_PAGE_SIZE = 2;
+const SECONDS_PER_HOUR = 3_600;
 const OWNER = 'michael-yrao';
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36';
 const VISIT_ID = `${new Date(NOW).toISOString()}_${'a'.repeat(32)}`;
@@ -26,8 +28,10 @@ class FakeKv {
     const raw = this.store.get(key) ?? null;
     return raw !== null && type === 'json' ? (JSON.parse(raw) as unknown) : raw;
   }
-  async put(key: string, value: string) {
+  readonly ttls = new Map<string, number>();
+  async put(key: string, value: string, options?: { expirationTtl?: number }) {
     this.store.set(key, value);
+    if (options?.expirationTtl !== undefined) this.ttls.set(key, options.expirationTtl);
   }
   async delete(key: string) {
     this.store.delete(key);
@@ -44,6 +48,9 @@ class FakeKv {
   }
   viewKeys(): string[] {
     return [...this.store.keys()].filter((key) => key.startsWith(VIEW_PREFIX));
+  }
+  visitKeys(): string[] {
+    return [...this.store.keys()].filter((key) => key.startsWith(VISIT_PREFIX));
   }
 }
 
@@ -102,8 +109,12 @@ function githubAs(login: string): typeof fetch {
   return (async () => new Response(JSON.stringify({ login }), { status: 200 })) as typeof fetch;
 }
 
-function seedVisit(kv: FakeKv, overrides: { at?: string; read?: string[] } = {}) {
-  const view = { at: new Date(NOW).toISOString(), city: '', country: '', device: 'Other · Other', read: [], ...overrides };
+function seedVisit(kv: FakeKv, at = new Date(NOW).toISOString()) {
+  kv.store.set(`${VISIT_PREFIX}${VISIT_ID}`, JSON.stringify({ at }));
+}
+
+function seedView(kv: FakeKv, read: string[]) {
+  const view = { at: new Date(NOW).toISOString(), city: '', country: '', device: 'Other · Other', read };
   kv.store.set(`${VIEW_PREFIX}${VISIT_ID}`, JSON.stringify(view));
 }
 
@@ -128,25 +139,20 @@ describe('diary handle', () => {
     expect(kv.viewKeys()).toEqual([]);
   });
 
-  it('unlock with the right password returns visitId and entries newest first, and logs one view without the IP', async () => {
+  it('unlock with the right password returns visitId and entries newest first, and logs no view', async () => {
     const { kv, env, ctx } = setup();
     const response = await handle(unlockRequest(PASSWORD), env, githubAs(OWNER), ctx, () => NOW);
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     const body = (await response.json()) as { visitId: string; entries: unknown[] };
     expect(body.entries).toEqual([NEW_ENTRY, OLD_ENTRY]);
-
-    expect(kv.viewKeys()).toEqual([`${VIEW_PREFIX}${body.visitId}`]);
     expect(body.visitId).toMatch(/^2026-11-07T12:00:00\.000Z_[0-9a-f]{32}$/);
-    const stored = kv.store.get(kv.viewKeys()[0] ?? '') ?? '';
-    expect(JSON.parse(stored)).toEqual({
-      at: new Date(NOW).toISOString(),
-      city: 'Lorem City',
-      country: 'LC',
-      device: 'Mac · Chrome',
-      read: [],
-    });
-    expect(stored).not.toContain(IP);
+
+    expect(kv.viewKeys()).toEqual([]);
+    const visitKey = `${VISIT_PREFIX}${body.visitId}`;
+    expect(kv.visitKeys()).toEqual([visitKey]);
+    expect(JSON.parse(kv.store.get(visitKey) ?? '')).toEqual({ at: new Date(NOW).toISOString() });
+    expect(kv.ttls.get(visitKey)).toBe(SEEN_WINDOW_HOURS * SECONDS_PER_HOUR);
   });
 
   it('views refuses a token that is not the owner', async () => {
@@ -159,10 +165,13 @@ describe('diary handle', () => {
     const { kv, env, ctx } = setup();
     const ats = ['2026-11-01T00:00:00.000Z', '2026-11-03T00:00:00.000Z', '2026-11-02T00:00:00.000Z'];
     ats.forEach((at, index) => {
-      const view = { at, city: '', country: '', device: 'Other · Other', read: [] };
+      const view = { at, city: '', country: '', device: 'Other · Other', read: [OLD_ENTRY.id] };
       kv.store.set(`${VIEW_PREFIX}${at}_${String(index).repeat(32)}`, JSON.stringify(view));
     });
     kv.store.set('diary:backup', JSON.stringify({ hash: 'h', at: '2026-11-04T00:00:00.000Z' }));
+    const emptyAt = '2026-11-05T00:00:00.000Z';
+    const empty = { at: emptyAt, city: '', country: '', device: 'Other · Other', read: [] };
+    kv.store.set(`${VIEW_PREFIX}${emptyAt}_${'9'.repeat(32)}`, JSON.stringify(empty));
     const response = await handle(ownerRequest('GET', 'views'), env, githubAs(OWNER), ctx);
     expect(response.status).toBe(200);
     const body = (await response.json()) as { views: Array<{ at: string }>; backupAt: string | null };
@@ -238,7 +247,7 @@ describe('diary handle', () => {
   it('PUT with a new title moves the key, rewrites the views that read it and deletes the old key', async () => {
     const { kv, env, ctx, waited } = setup();
     const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    seedVisit(kv, { read: [OLD_ENTRY.id, NEW_ENTRY.id] });
+    seedView(kv, [OLD_ENTRY.id, NEW_ENTRY.id]);
     const body = { ...validBody, title: 'Dolor' };
     const response = await handle(ownerRequest('PUT', `entries/${OLD_ENTRY.id}`, body), env, githubAs(OWNER), ctx, () => NOW);
     expect(response.status).toBe(200);
@@ -271,33 +280,35 @@ describe('diary handle', () => {
     errorLog.mockRestore();
   });
 
-  const seenRefusals: ReadonlyArray<[string, Parameters<typeof setup>[0], unknown, number, string]> = [
-    ['malformed body', {}, { visitId: 'not-a-visit', entryIds: [] }, 400, 'invalid-request'],
-    ['unknown visit', {}, { visitId: VISIT_ID, entryIds: [] }, 404, 'not-found'],
-    ['limiter refusal', { seen: 'deny' }, { visitId: VISIT_ID, entryIds: [] }, 429, 'too-many-tries'],
+  const validSeen = { visitId: VISIT_ID, entryId: OLD_ENTRY.id };
+  const EXPIRED_AT = new Date(NOW - (SEEN_WINDOW_HOURS + 1) * MS_PER_HOUR).toISOString();
+  const seenRefusals: ReadonlyArray<
+    [string, Parameters<typeof setup>[0], string | null, unknown, number, string]
+  > = [
+    ['malformed body', {}, null, { visitId: 'not-a-visit', entryId: OLD_ENTRY.id }, 400, 'invalid-request'],
+    ['limiter refusal', { seen: 'deny' }, null, validSeen, 429, 'too-many-tries'],
+    ['unknown visit', {}, null, validSeen, 404, 'not-found'],
+    ['unknown entry id', {}, new Date(NOW).toISOString(), { ...validSeen, entryId: 'unknown-entry' }, 404, 'not-found'],
+    ['expired visit', {}, EXPIRED_AT, validSeen, 410, 'visit-expired'],
   ];
 
-  it.each(seenRefusals)('seen refuses: %s', async (_name, options, body, status, error) => {
-    const { env, ctx } = setup(options);
+  it.each(seenRefusals)('seen refuses: %s', async (_name, options, visitAt, body, status, error) => {
+    const { kv, env, ctx } = setup(options);
+    if (visitAt !== null) seedVisit(kv, visitAt);
     const response = await handle(seenRequest(body), env, githubAs(OWNER), ctx, () => NOW);
     expect(response.status).toBe(status);
     expect(await response.json()).toEqual({ error });
+    expect(kv.viewKeys()).toEqual([]);
   });
 
-  it('seen refuses a visit older than the window', async () => {
+  it('two seen calls for the same entry write two rows, each reading that entry', async () => {
     const { kv, env, ctx } = setup();
-    seedVisit(kv, { at: new Date(NOW - (SEEN_WINDOW_HOURS + 1) * MS_PER_HOUR).toISOString() });
-    const response = await handle(seenRequest({ visitId: VISIT_ID, entryIds: [] }), env, githubAs(OWNER), ctx, () => NOW);
-    expect(response.status).toBe(410);
-    expect(await response.json()).toEqual({ error: 'visit-expired' });
-  });
-
-  it('seen drops an unknown entry id and keeps the union with the existing read set, without duplicates', async () => {
-    const { kv, env, ctx } = setup();
-    seedVisit(kv, { read: [OLD_ENTRY.id] });
-    const entryIds = [OLD_ENTRY.id, NEW_ENTRY.id, 'unknown-entry'];
-    const response = await handle(seenRequest({ visitId: VISIT_ID, entryIds }), env, githubAs(OWNER), ctx, () => NOW);
-    expect(response.status).toBe(204);
-    expect(readOf(kv)).toEqual([OLD_ENTRY.id, NEW_ENTRY.id]);
+    seedVisit(kv);
+    const openEntry = () => handle(seenRequest(validSeen), env, githubAs(OWNER), ctx, () => NOW);
+    expect((await openEntry()).status).toBe(204);
+    expect((await openEntry()).status).toBe(204);
+    const rows = kv.viewKeys().map((key) => JSON.parse(kv.store.get(key) ?? '') as { read: string[] });
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.read)).toEqual([[OLD_ENTRY.id], [OLD_ENTRY.id]]);
   });
 });

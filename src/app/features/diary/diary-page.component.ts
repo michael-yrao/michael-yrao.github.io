@@ -22,7 +22,6 @@ import { WORKER_API_URL, isCoachOwner } from '../../core/data/site-links';
 import { MenuComponent } from '../../shared/components/menu/menu.component';
 import { DiaryBlock, blocksOf, placeEntry, todayLocal } from './diary-body';
 import {
-  DiaryEntriesResponse,
   DiaryEntry,
   DiaryEntryInput,
   DiarySaveResponse,
@@ -31,7 +30,6 @@ import {
   DiaryView,
   DiaryViewsResponse,
 } from './diary-contract';
-import { isEngaged, nextSeenBatch } from './diary-seen';
 
 const UNLOCK_URL = `${WORKER_API_URL}diary/unlock`;
 const SEEN_URL = `${WORKER_API_URL}diary/seen`;
@@ -41,10 +39,6 @@ const ROBOTS_META = { name: 'robots', content: 'noindex, nofollow' };
 const STATUS_UNAUTHORIZED = 401;
 const STATUS_TOO_MANY = 429;
 
-const SEEN_VISIBLE_RATIO = 0.5;
-const SEEN_DWELL_MS = 3000;
-const SEEN_FLUSH_MS = 5000;
-const SEEN_CENTER_MARGIN = '-50% 0px -50% 0px';
 const READ_SEPARATOR = ' · ';
 
 const MESSAGE_WRONG_PASSWORD = 'Wrong password';
@@ -109,15 +103,7 @@ export class DiaryPageComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-  private hasLoadedOwner = false;
   private visitId = '';
-  private observers: IntersectionObserver[] = [];
-  private ratioIds: ReadonlySet<string> = new Set();
-  private centerIds: ReadonlySet<string> = new Set();
-  private flushTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly dwellTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  private seen: ReadonlySet<string> = new Set();
-  private sent: ReadonlySet<string> = new Set();
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -142,7 +128,8 @@ export class DiaryPageComponent implements OnInit {
   /** What the page shows: the open entry, the owner's Audit view (`?tab=audit`), or the home list. */
   readonly view = computed<'entry' | 'audit' | 'home'>(() => {
     if (this.selectedEntry() !== null) return 'entry';
-    return this.isOwner() && this.tabParam() === AUDIT_TAB ? 'audit' : 'home';
+    const isUnlocked = this.entries() !== null;
+    return isUnlocked && this.isOwner() && this.tabParam() === AUDIT_TAB ? 'audit' : 'home';
   });
   readonly backupLabel = computed(() => {
     const at = this.backupAt();
@@ -152,11 +139,6 @@ export class DiaryPageComponent implements OnInit {
   readonly pendingDeleteId = signal<string | null>(null);
 
   constructor() {
-    effect(() => {
-      if (this.hasLoadedOwner || !this.isOwner()) return;
-      this.hasLoadedOwner = true;
-      untracked(() => void this.loadEntries());
-    });
     effect(() => {
       if (this.view() === 'audit') untracked(() => void this.loadViews());
     });
@@ -174,14 +156,11 @@ export class DiaryPageComponent implements OnInit {
     });
     effect(() => {
       const id = this.selectedEntry()?.id;
-      if (this.visitId === '') return;
+      if (id === undefined || this.visitId === '') return;
       untracked(() => {
-        this.resetTracking();
-        if (id === undefined) return;
-        afterNextRender(() => this.startTracking(), { injector: this.injector });
+        if (!this.isOwner()) void this.reportOpened(id);
       });
     });
-    this.destroyRef.onDestroy(() => this.stopTracking());
   }
 
   ngOnInit(): void {
@@ -318,16 +297,6 @@ export class DiaryPageComponent implements OnInit {
   }
 
 
-  private async loadEntries(): Promise<void> {
-    try {
-      const response = await this.ownerFetch(ENTRIES_URL, { method: 'GET' });
-      if (response === null || !response.ok) return;
-      this.entries.set(((await response.json()) as DiaryEntriesResponse).entries);
-    } catch {
-      this.error.set(MESSAGE_UNREACHABLE);
-    }
-  }
-
   private async loadViews(): Promise<void> {
     try {
       const response = await this.ownerFetch(VIEWS_URL, { method: 'GET' });
@@ -340,89 +309,19 @@ export class DiaryPageComponent implements OnInit {
     }
   }
 
-  private startTracking(): void {
-    if (this.isOwner() || typeof IntersectionObserver === 'undefined') return;
-    const ratioObserver = new IntersectionObserver(
-      (changes) => changes.forEach((change) => this.onVisibility(change, 'ratio')),
-      { threshold: [SEEN_VISIBLE_RATIO] },
-    );
-    const centerObserver = new IntersectionObserver(
-      (changes) => changes.forEach((change) => this.onVisibility(change, 'center')),
-      { rootMargin: SEEN_CENTER_MARGIN },
-    );
-    this.observers = [ratioObserver, centerObserver];
-    this.host.nativeElement.querySelectorAll<HTMLElement>('[data-entry-id]').forEach((element) => {
-      ratioObserver.observe(element);
-      centerObserver.observe(element);
-    });
-  }
-
-  private onVisibility(change: IntersectionObserverEntry, source: 'ratio' | 'center'): void {
-    const id = (change.target as HTMLElement).dataset['entryId'];
-    if (id === undefined) return;
-    const isOn =
-      source === 'ratio' ? change.isIntersecting && change.intersectionRatio >= SEEN_VISIBLE_RATIO : change.isIntersecting;
-    const withChange = (ids: ReadonlySet<string>): Set<string> => {
-      const next = new Set(ids);
-      if (isOn) next.add(id);
-      else next.delete(id);
-      return next;
-    };
-    if (source === 'ratio') this.ratioIds = withChange(this.ratioIds);
-    else this.centerIds = withChange(this.centerIds);
-    if (!isEngaged(this.ratioIds.has(id), this.centerIds.has(id))) {
-      this.clearDwell(id);
-      return;
-    }
-    if (this.seen.has(id) || this.dwellTimers.has(id)) return;
-    this.dwellTimers.set(id, setTimeout(() => this.markSeen(id), SEEN_DWELL_MS));
-  }
-
-  private markSeen(id: string): void {
-    this.dwellTimers.delete(id);
-    this.seen = new Set([...this.seen, id]);
-    this.flushTimer ??= setTimeout(() => void this.flush(), SEEN_FLUSH_MS);
-  }
-
-  private async flush(): Promise<void> {
-    this.flushTimer = null;
-    const batch = nextSeenBatch(this.sent, this.seen);
-    if (batch === null) return;
-    const request: DiarySeenRequest = { visitId: this.visitId, entryIds: batch };
+  /** Logs one opening of an entry for a visitor; the owner and a locked page send nothing. */
+  private async reportOpened(entryId: string): Promise<void> {
+    const request: DiarySeenRequest = { visitId: this.visitId, entryId };
     try {
-      const response = await fetch(SEEN_URL, {
+      await fetch(SEEN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
         keepalive: true,
       });
-      if (response.ok) this.sent = new Set(batch);
     } catch {
-      // Seen tracking is best effort; the next flush sends the full set again.
+      // Open tracking is best effort; a lost row is not worth interrupting the reader.
     }
-  }
-
-  private clearDwell(id: string): void {
-    const timer = this.dwellTimers.get(id);
-    if (timer === undefined) return;
-    clearTimeout(timer);
-    this.dwellTimers.delete(id);
-  }
-
-  /** Drops the observers, their per-entry state and pending dwell timers (read ids and the flush timer stay). */
-  private resetTracking(): void {
-    this.observers.forEach((observer) => observer.disconnect());
-    this.observers = [];
-    this.ratioIds = new Set();
-    this.centerIds = new Set();
-    this.dwellTimers.forEach((timer) => clearTimeout(timer));
-    this.dwellTimers.clear();
-  }
-
-  private stopTracking(): void {
-    this.resetTracking();
-    if (this.flushTimer !== null) clearTimeout(this.flushTimer);
-    this.flushTimer = null;
   }
 
   readonly whenOf = whenOf;

@@ -131,8 +131,8 @@ Local dev uses Podman, not Docker. One time, run `podman machine init`. Then run
 
 | Route | Who | Does |
 |---|---|---|
-| `POST /diary/unlock` | the password | Returns `{ visitId, entries }`, newest first, and logs one view. Five wrong tries a minute per IP (`DIARY_ATTEMPTS`). |
-| `POST /diary/seen` | a visitId | Adds the entry ids that visit read to its view. Thirty a minute per IP (`DIARY_SEEN`). A visit older than 12 hours is refused. |
+| `POST /diary/unlock` | the password | Returns `{ visitId, entries }`, newest first. Logs no view. Five wrong tries a minute per IP (`DIARY_ATTEMPTS`). |
+| `POST /diary/seen` | a visitId | Logs one view per entry opened: time, place, device and the entry. Thirty a minute per IP (`DIARY_SEEN`). A visit older than 12 hours is refused. |
 | `GET /diary/entries` | `OWNER_LOGIN` | The entries, with no password and no view logged. |
 | `POST /diary/entries`, `PUT` or `DELETE /diary/entries/<id>` | `OWNER_LOGIN` | Create, update or delete one entry, then back up. |
 | `GET /diary/views` | `OWNER_LOGIN` | The logged views, newest first, and the last backup time. |

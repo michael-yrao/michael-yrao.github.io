@@ -30,7 +30,6 @@ function routeFetch(overrides: Record<string, Response> = {}) {
     const key = `${init?.method ?? 'GET'} ${url.split('diary/')[1]}`;
     if (key in overrides) return overrides[key];
     if (key === 'POST unlock') return reply({ visitId: 'v1', entries: ENTRIES });
-    if (key === 'GET entries') return reply({ entries: ENTRIES });
     if (key === 'GET views') return reply(VIEWS);
     return new Response(null, { status: 204 });
   });
@@ -135,7 +134,7 @@ describe('DiaryPageComponent', () => {
   ])('the menu for $name lists $items', async ({ login, items, hasSeparator }) => {
     vi.stubGlobal('fetch', routeFetch());
     const fixture = await setup(login);
-    if (login === null) await submit(fixture);
+    await submit(fixture);
     await openMenu(fixture);
 
     const el: HTMLElement = fixture.nativeElement;
@@ -146,8 +145,9 @@ describe('DiaryPageComponent', () => {
 
   it('shows a titled item\'s date under its title, and an untitled item\'s date once', async () => {
     const untitled: DiaryEntry = { ...ENTRIES[1], id: 'e0', date: '2025-12-01', title: '' };
-    vi.stubGlobal('fetch', routeFetch({ 'GET entries': reply({ entries: [ENTRIES[0], untitled] }) }));
+    vi.stubGlobal('fetch', routeFetch({ 'POST unlock': reply({ visitId: 'v1', entries: [ENTRIES[0], untitled] }) }));
     const fixture = await setup(COACH_OWNER_LOGIN);
+    await submit(fixture);
     await openMenu(fixture);
 
     const [titled, bare] = [...fixture.nativeElement.querySelectorAll('[role="menuitem"]')].slice(1, 3) as HTMLElement[];
@@ -167,6 +167,7 @@ describe('DiaryPageComponent', () => {
   ])('the "$item" menu item navigates to $queryParams', async ({ item, queryParams }) => {
     vi.stubGlobal('fetch', routeFetch());
     const fixture = await setup(COACH_OWNER_LOGIN, 'e2');
+    await submit(fixture);
     await openMenu(fixture);
 
     await chooseItem(fixture, item);
@@ -183,7 +184,7 @@ describe('DiaryPageComponent', () => {
   ])('?tab=audit for $name', async ({ login, hasTable }) => {
     vi.stubGlobal('fetch', routeFetch());
     const fixture = await setup(login, null, 'audit');
-    if (!hasTable) await submit(fixture);
+    await submit(fixture);
 
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.views table') !== null).toBe(hasTable);
@@ -192,6 +193,27 @@ describe('DiaryPageComponent', () => {
       expect(el.querySelector('.views__count')?.textContent).toBe('2');
       expect(el.querySelector('.views__backup')?.textContent).toBe('Not backed up');
     }
+  });
+
+  it.each([
+    { name: 'signed out', login: null, hasTableAfter: false },
+    { name: 'a non-owner', login: 'someone-else', hasTableAfter: false },
+    { name: 'the owner', login: COACH_OWNER_LOGIN, hasTableAfter: true },
+  ])('asks for the password before anything for $name, even with ?tab=audit', async ({ login, hasTableAfter }) => {
+    const fetchMock = routeFetch();
+    vi.stubGlobal('fetch', fetchMock);
+    const fixture = await setup(login, null, 'audit');
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('input[type="password"]')).not.toBeNull();
+    expect(el.querySelector('.tabs')).toBeNull();
+    expect(el.querySelector('.home')).toBeNull();
+    expect(el.querySelector('article')).toBeNull();
+    expect(el.querySelector('.views')).toBeNull();
+    expect(fetchMock.mock.calls.some(([url]) => /diary\/(entries|views)$/.test(url))).toBe(false);
+
+    await submit(fixture);
+    expect(el.querySelector('.views table') !== null).toBe(hasTableAfter);
   });
 
   it('lists a link per entry on home, with no body text', async () => {
@@ -211,6 +233,7 @@ describe('DiaryPageComponent', () => {
     const saved: DiaryEntry = { id: 'e3', date: '2026-03-01', title: 'New title', body: 'Lorem', updatedAt: '2026-03-01T00:00:00Z' };
     vi.stubGlobal('fetch', routeFetch({ 'POST entries': reply({ entry: saved }) }));
     const fixture = await setup(COACH_OWNER_LOGIN);
+    await submit(fixture);
 
     await click(fixture, 'button[aria-label="New entry"]');
     await click(fixture, 'button[aria-label="Save"]');
@@ -222,6 +245,7 @@ describe('DiaryPageComponent', () => {
   it('keeps the editor open and says the title is used on a 409 title-taken', async () => {
     vi.stubGlobal('fetch', routeFetch({ 'PUT entries/e2': reply({ error: 'title-taken' }, 409) }));
     const fixture = await setup(COACH_OWNER_LOGIN, 'e2');
+    await submit(fixture);
 
     await click(fixture, 'button[aria-label="Edit"]');
     await click(fixture, 'button[aria-label="Save"]');
@@ -234,6 +258,7 @@ describe('DiaryPageComponent', () => {
     const renamed: DiaryEntry = { ...ENTRIES[1], id: 'renamed', title: 'Renamed' };
     vi.stubGlobal('fetch', routeFetch({ 'PUT entries/e1': reply({ entry: renamed }) }));
     const fixture = await setup(COACH_OWNER_LOGIN, 'e1');
+    await submit(fixture);
 
     await click(fixture, 'button[aria-label="Edit"]');
     await click(fixture, 'button[aria-label="Save"]');
@@ -258,6 +283,7 @@ describe('DiaryPageComponent', () => {
   ])('delete is in the editor only for $name, never in the entry header', async ({ open, param, hasDelete }) => {
     vi.stubGlobal('fetch', routeFetch());
     const fixture = await setup(COACH_OWNER_LOGIN, param);
+    await submit(fixture);
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('button[aria-label="Delete"]')).toBeNull();
 
@@ -273,6 +299,7 @@ describe('DiaryPageComponent', () => {
     try {
       vi.stubGlobal('fetch', routeFetch());
       const fixture = await setup(COACH_OWNER_LOGIN, 'e2');
+      await submit(fixture);
       await click(fixture, 'button[aria-label="Edit"]');
       const body = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
       expect(body.style.height).toBe('300px');
@@ -293,12 +320,12 @@ describe('DiaryPageComponent', () => {
     const fetchMock = routeFetch();
     vi.stubGlobal('fetch', fetchMock);
     const fixture = await setup(login, 'e2');
-    if (!isOwner) await submit(fixture);
+    await submit(fixture);
 
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('button[aria-label="Edit"]') !== null).toBe(isOwner);
     expect(el.querySelector('.views')).toBeNull();
-    if (isOwner) expect(el.querySelector('input[type="password"]')).toBeNull();
+    expect(el.querySelector('input[type="password"]')).toBeNull();
   });
 
   it.each([
@@ -308,6 +335,7 @@ describe('DiaryPageComponent', () => {
   ])('the owner\'s right-side control on $view is $controls', async ({ entry, tab, controls }) => {
     vi.stubGlobal('fetch', routeFetch());
     const fixture = await setup(COACH_OWNER_LOGIN, entry, tab);
+    await submit(fixture);
 
     const labels = [...fixture.nativeElement.querySelectorAll('.tabs .tabs__new')].map((button) =>
       (button as HTMLElement).getAttribute('aria-label'),
@@ -318,15 +346,38 @@ describe('DiaryPageComponent', () => {
   it('maps read ids to titles and skips a deleted id', async () => {
     vi.stubGlobal('fetch', routeFetch());
     const fixture = await setup(COACH_OWNER_LOGIN, null, 'audit');
+    await submit(fixture);
 
     const cells = fixture.nativeElement.querySelectorAll('tbody tr:first-child td');
     expect(cells[3].textContent).toBe('Sed title · Lorem title');
+  });
+
+  it.each([
+    { name: 'a visitor opening the same entry twice', login: null, bodies: [{ visitId: 'v1', entryId: 'e2' }, { visitId: 'v1', entryId: 'e2' }] },
+    { name: 'the owner', login: COACH_OWNER_LOGIN, bodies: [] },
+  ])('/seen for $name', async ({ login, bodies }) => {
+    const fetchMock = routeFetch();
+    vi.stubGlobal('fetch', fetchMock);
+    const fixture = await setup(login, 'e2');
+    await submit(fixture);
+    if (login === null) {
+      await openMenu(fixture);
+      await chooseItem(fixture, 'Diaries');
+      await openMenu(fixture);
+      await chooseItem(fixture, 'Lorem title');
+    }
+
+    const sent = fetchMock.mock.calls
+      .filter(([url, init]) => url.endsWith('diary/seen') && init?.method === 'POST')
+      .map(([, init]) => JSON.parse(init?.body as string) as unknown);
+    expect(sent).toEqual(bodies);
   });
 
   it('needs two clicks to delete an entry', async () => {
     const fetchMock = routeFetch();
     vi.stubGlobal('fetch', fetchMock);
     const fixture = await setup(COACH_OWNER_LOGIN, 'e2');
+    await submit(fixture);
     const isDelete = (call: unknown[]) => (call[1] as RequestInit | undefined)?.method === 'DELETE';
 
     await click(fixture, 'button[aria-label="Edit"]');
@@ -343,6 +394,7 @@ describe('DiaryPageComponent', () => {
   it('shows "Couldn\'t save." when a save fails', async () => {
     vi.stubGlobal('fetch', routeFetch({ 'POST entries': reply({}, 500) }));
     const fixture = await setup(COACH_OWNER_LOGIN);
+    await submit(fixture);
 
     await click(fixture, 'button[aria-label="New entry"]');
     fixture.nativeElement.querySelector('textarea').value = 'Lorem';
