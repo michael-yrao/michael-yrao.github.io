@@ -108,9 +108,10 @@
   align-items: center;
   gap: var(--space-xs);
   overflow-x: auto;
-  // Room for the global 2px focus outline + 2px offset, which the scroll container would clip.
+  // Room for the global 2px focus outline + 2px offset, which the scroll container would clip;
+  // the extra 8px of width keeps the tabs lined up with the 40rem text column.
   padding: 4px;
-  margin-inline: -4px;
+  max-width: calc(40rem + 8px);
 
   &__tab {
     flex: none;
@@ -130,6 +131,16 @@
       background: var(--color-bg-raised);
       border-color: var(--color-accent);
       color: var(--color-text);
+    }
+  }
+
+  &__home {
+    display: inline-flex;
+    align-items: center;
+
+    svg {
+      width: 1.1rem;
+      height: 1.1rem;
     }
   }
 
@@ -167,6 +178,35 @@
 
   &__delete {
     margin-right: auto;
+  }
+}
+
+.home {
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+
+  &__link {
+    display: flex;
+    gap: var(--space-md);
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  &__date {
+    flex: none;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__title {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 }
 

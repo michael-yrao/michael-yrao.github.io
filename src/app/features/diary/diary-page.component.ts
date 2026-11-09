@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Meta } from '@angular/platform-browser';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
@@ -50,12 +50,26 @@ const MESSAGE_WRONG_PASSWORD = 'Wrong password';
 const MESSAGE_TOO_MANY = 'Too many tries. Wait a minute.';
 const MESSAGE_UNREACHABLE = "Couldn't reach the server.";
 const MESSAGE_SAVE_FAILED = "Couldn't save.";
+const STATUS_CONFLICT = 409;
+const ERROR_TITLE_TAKEN = 'title-taken';
+const MESSAGE_TITLE_TAKEN = 'Title needs to be unique';
 const MESSAGE_NOT_BACKED_UP = 'Not backed up';
 
 function messageForStatus(status: number): string {
   if (status === STATUS_UNAUTHORIZED) return MESSAGE_WRONG_PASSWORD;
   if (status === STATUS_TOO_MANY) return MESSAGE_TOO_MANY;
   return MESSAGE_UNREACHABLE;
+}
+
+/** `Title already used.` for a 409 `title-taken`; every other failed write is `Couldn't save.`. */
+async function saveFailureMessage(response: Response | null): Promise<string> {
+  if (response?.status !== STATUS_CONFLICT) return MESSAGE_SAVE_FAILED;
+  try {
+    const body = (await response.json()) as { error?: string };
+    return body.error === ERROR_TITLE_TAKEN ? MESSAGE_TITLE_TAKEN : MESSAGE_SAVE_FAILED;
+  } catch {
+    return MESSAGE_SAVE_FAILED;
+  }
 }
 
 /** The place of a view: `city, country`, leaving out an empty part. */
@@ -82,6 +96,7 @@ interface EditorDraft { id: string | null; date: string; title: string; body: st
 
 @Component({
   selector: 'app-diary-page',
+  imports: [RouterLink],
   templateUrl: './diary-page.component.html',
   styleUrls: ['./diary-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -114,11 +129,10 @@ export class DiaryPageComponent implements OnInit {
   readonly isBusy = signal(false);
   readonly views = signal<readonly DiaryView[] | null>(null);
   readonly backupAt = signal<string | null>(null);
-  /** The open entry: the one named by the `entry` param, else the newest. */
-  readonly selectedEntry = computed(() => {
-    const list = this.entries() ?? [];
-    return list.find((entry) => entry.id === this.entryParam()) ?? list[0] ?? null;
-  });
+  /** The open entry: the one named by the `entry` param; null (the home list) when missing or unknown. */
+  readonly selectedEntry = computed(
+    () => (this.entries() ?? []).find((entry) => entry.id === this.entryParam()) ?? null,
+  );
   readonly backupLabel = computed(() => {
     const at = this.backupAt();
     return at === null ? MESSAGE_NOT_BACKED_UP : `Backed up ${new Date(at).toLocaleString()}`;
@@ -134,9 +148,10 @@ export class DiaryPageComponent implements OnInit {
     });
     effect(() => {
       const id = this.selectedEntry()?.id;
-      if (id === undefined || this.visitId === '') return;
+      if (this.visitId === '') return;
       untracked(() => {
         this.resetTracking();
+        if (id === undefined) return;
         afterNextRender(() => this.startTracking(), { injector: this.injector });
       });
     });
@@ -195,7 +210,7 @@ export class DiaryPageComponent implements OnInit {
     this.editor.set(null);
   }
 
-  /** Puts the entry id in the `entry` query param (null clears it); a stale id falls back to the newest entry. */
+  /** Puts the entry id in the `entry` query param (null clears it); a stale id shows the home list. */
   selectEntry(id: string | null): void {
     void this.router.navigate([], {
       relativeTo: this.route,
@@ -204,14 +219,14 @@ export class DiaryPageComponent implements OnInit {
     });
   }
 
-  /** Left/right arrows move the selection and focus between tabs. */
+  /** Left/right arrows move the selection and focus across the home tab (index 0) and the entry tabs. */
   onTabKey(event: KeyboardEvent, index: number): void {
     const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-    const list = this.entries() ?? [];
+    const tabIds = [null, ...(this.entries() ?? []).map((entry) => entry.id)];
     const next = index + step;
-    if (step === 0 || next < 0 || next >= list.length) return;
+    if (step === 0 || next < 0 || next >= tabIds.length) return;
     event.preventDefault();
-    this.selectEntry(list[next].id);
+    this.selectEntry(tabIds[next]);
     const tabs = this.host.nativeElement.querySelectorAll<HTMLElement>('[role="tab"]');
     tabs[next]?.focus();
   }
@@ -233,13 +248,13 @@ export class DiaryPageComponent implements OnInit {
         body: JSON.stringify(input),
       });
       if (response === null || !response.ok) {
-        this.error.set(MESSAGE_SAVE_FAILED);
+        this.error.set(await saveFailureMessage(response));
         return;
       }
       const saved = ((await response.json()) as DiarySaveResponse).entry;
-      this.entries.update((list) => placeEntry(list ?? [], saved));
+      this.entries.update((list) => placeEntry(list ?? [], saved, draft.id ?? saved.id));
       this.editor.set(null);
-      if (isNew) this.selectEntry(saved.id);
+      this.selectEntry(saved.id);
     } catch {
       this.error.set(MESSAGE_SAVE_FAILED);
     } finally {
@@ -264,7 +279,7 @@ export class DiaryPageComponent implements OnInit {
       const remaining = (this.entries() ?? []).filter((entry) => entry.id !== id);
       this.entries.set(remaining);
       this.editor.set(null);
-      this.selectEntry(remaining[0]?.id ?? null);
+      this.selectEntry(null);
     } catch {
       this.error.set(MESSAGE_SAVE_FAILED);
     }

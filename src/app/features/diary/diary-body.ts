@@ -19,9 +19,12 @@ export function blocksOf(body: string): DiaryBlock[] {
     );
 }
 
-/** The list with `entry` put in place of its older copy, newest date first (the saved one leads its date). */
-export function placeEntry(list: readonly DiaryEntry[], entry: DiaryEntry): DiaryEntry[] {
-  const others = list.filter((existing) => existing.id !== entry.id);
+/**
+ * The list with `entry` put in place of its older copy, newest date first (the saved one leads its date).
+ * `replacesId` is the id the entry had before the save; a rename gives it a new id.
+ */
+export function placeEntry(list: readonly DiaryEntry[], entry: DiaryEntry, replacesId: string = entry.id): DiaryEntry[] {
+  const others = list.filter((existing) => existing.id !== replacesId && existing.id !== entry.id);
   return [entry, ...others].sort((a, b) => b.date.localeCompare(a.date));
 }
 

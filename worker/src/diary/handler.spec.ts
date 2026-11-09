@@ -17,8 +17,8 @@ const KV_PAGE_SIZE = 2;
 const OWNER = 'michael-yrao';
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36';
 const VISIT_ID = `${new Date(NOW).toISOString()}_${'a'.repeat(32)}`;
-const OLD_ENTRY = { id: '2026-11-01-aaaaaa', date: '2026-11-01', title: 'Lorem', body: 'Dolor.', updatedAt: 'u1' };
-const NEW_ENTRY = { id: '2026-11-05-bbbbbb', date: '2026-11-05', title: 'Ipsum', body: 'Sit amet.', updatedAt: 'u2' };
+const OLD_ENTRY = { id: 'lorem', date: '2026-11-01', title: 'Lorem', body: 'Dolor.', updatedAt: 'u1' };
+const NEW_ENTRY = { id: 'ipsum', date: '2026-11-05', title: 'Ipsum', body: 'Sit amet.', updatedAt: 'u2' };
 
 class FakeKv {
   readonly store = new Map<string, string>();
@@ -186,32 +186,78 @@ describe('diary handle', () => {
     expect(kv.viewKeys()).toEqual([]);
   });
 
-  const validBody = { date: '2026-11-08', title: 'Dolor', body: 'Consectetur.' };
+  // Keeps the slug of OLD_ENTRY's title, so a PUT stays on the same id.
+  const validBody = { date: '2026-11-08', title: 'Lorem', body: 'Consectetur.' };
   const putCases: ReadonlyArray<[string, unknown, string, number]> = [
     ['bad date', { ...validBody, date: '2026-13-40' }, OWNER, 400],
     ['body over max', { ...validBody, body: 'x'.repeat(MAX_BODY_CHARS + 1) }, OWNER, 400],
     ['not the owner', validBody, 'someone-else', 403],
-    ['the owner', validBody, OWNER, 200],
+    ['the owner keeps the id', validBody, OWNER, 200],
   ];
 
   it.each(putCases)('PUT entry: %s', async (_name, body, login, status) => {
     const { kv, env, ctx, waited } = setup();
     const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const id = '2026-11-08-cccccc';
-    const response = await handle(ownerRequest('PUT', `entries/${id}`, body), env, githubAs(login), ctx, () => NOW);
+    const key = `${ENTRY_PREFIX}${OLD_ENTRY.id}`;
+    const response = await handle(ownerRequest('PUT', `entries/${OLD_ENTRY.id}`, body), env, githubAs(login), ctx, () => NOW);
     expect(response.status).toBe(status);
     const isWritten = status === 200;
-    expect(kv.store.has(`${ENTRY_PREFIX}${id}`)).toBe(isWritten);
     expect(waited).toHaveLength(isWritten ? 1 : 0);
-    if (isWritten) {
-      expect(JSON.parse(kv.store.get(`${ENTRY_PREFIX}${id}`) ?? '')).toEqual({
-        id,
-        ...validBody,
-        updatedAt: new Date(NOW).toISOString(),
-      });
-    }
+    const stored: unknown = JSON.parse(kv.store.get(key) ?? '');
+    expect(stored).toEqual(
+      isWritten ? { id: OLD_ENTRY.id, ...validBody, updatedAt: new Date(NOW).toISOString() } : OLD_ENTRY,
+    );
     await Promise.all(waited);
     errorLog.mockRestore();
+  });
+
+  it('PUT of an unknown id is 404 and writes nothing', async () => {
+    const { kv, env, ctx } = setup();
+    const before = kv.store.size;
+    const response = await handle(ownerRequest('PUT', 'entries/no-such-entry', validBody), env, githubAs(OWNER), ctx);
+    expect(response.status).toBe(404);
+    expect(kv.store.size).toBe(before);
+  });
+
+  it('POST creates the entry under the slug of its title, and refuses a taken title with nothing written', async () => {
+    const { kv, env, ctx } = setup();
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const created = await handle(ownerRequest('POST', 'entries', { ...validBody, title: 'Dolor Sit!' }), env, githubAs(OWNER), ctx, () => NOW);
+    expect(created.status).toBe(200);
+    expect(((await created.json()) as { entry: { id: string } }).entry.id).toBe('dolor-sit');
+    expect(kv.store.has(`${ENTRY_PREFIX}dolor-sit`)).toBe(true);
+
+    const before = new Map(kv.store);
+    const taken = await handle(ownerRequest('POST', 'entries', { ...validBody, title: 'LOREM' }), env, githubAs(OWNER), ctx, () => NOW);
+    expect(taken.status).toBe(409);
+    expect(await taken.json()).toEqual({ error: 'title-taken' });
+    expect(kv.store).toEqual(before);
+    errorLog.mockRestore();
+  });
+
+  it('PUT with a new title moves the key, rewrites the views that read it and deletes the old key', async () => {
+    const { kv, env, ctx, waited } = setup();
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    seedVisit(kv, { read: [OLD_ENTRY.id, NEW_ENTRY.id] });
+    const body = { ...validBody, title: 'Dolor' };
+    const response = await handle(ownerRequest('PUT', `entries/${OLD_ENTRY.id}`, body), env, githubAs(OWNER), ctx, () => NOW);
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as { entry: { id: string } }).entry.id).toBe('dolor');
+    expect(kv.store.has(`${ENTRY_PREFIX}dolor`)).toBe(true);
+    expect(kv.store.has(`${ENTRY_PREFIX}${OLD_ENTRY.id}`)).toBe(false);
+    expect(readOf(kv)).toEqual(['dolor', NEW_ENTRY.id]);
+    await Promise.all(waited);
+    errorLog.mockRestore();
+  });
+
+  it('PUT onto a title another entry holds is 409 and changes neither entry', async () => {
+    const { kv, env, ctx } = setup();
+    const before = new Map(kv.store);
+    const body = { ...validBody, title: 'Ipsum' };
+    const response = await handle(ownerRequest('PUT', `entries/${OLD_ENTRY.id}`, body), env, githubAs(OWNER), ctx, () => NOW);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: 'title-taken' });
+    expect(kv.store).toEqual(before);
   });
 
   it('DELETE entry as the owner removes the key', async () => {
@@ -249,7 +295,7 @@ describe('diary handle', () => {
   it('seen drops an unknown entry id and keeps the union with the existing read set, without duplicates', async () => {
     const { kv, env, ctx } = setup();
     seedVisit(kv, { read: [OLD_ENTRY.id] });
-    const entryIds = [OLD_ENTRY.id, NEW_ENTRY.id, '2026-11-09-ffffff'];
+    const entryIds = [OLD_ENTRY.id, NEW_ENTRY.id, 'unknown-entry'];
     const response = await handle(seenRequest({ visitId: VISIT_ID, entryIds }), env, githubAs(OWNER), ctx, () => NOW);
     expect(response.status).toBe(204);
     expect(readOf(kv)).toEqual([OLD_ENTRY.id, NEW_ENTRY.id]);

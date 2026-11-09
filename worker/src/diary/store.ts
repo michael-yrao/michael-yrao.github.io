@@ -29,16 +29,28 @@ export interface BackupRecord {
   at: string;
 }
 
-export async function readAllByPrefix<T>(kv: KVNamespace, prefix: string): Promise<T[]> {
-  const items: T[] = [];
+export interface KeyedValue<T> {
+  readonly key: string;
+  readonly value: T;
+}
+
+export async function readAllKeyed<T>(kv: KVNamespace, prefix: string): Promise<KeyedValue<T>[]> {
+  const items: KeyedValue<T>[] = [];
   let cursor: string | undefined;
   do {
     const page = await kv.list({ prefix, cursor });
     const values = await Promise.all(page.keys.map((entry) => kv.get(entry.name, 'json')));
-    items.push(...values.filter((value) => value !== null).map((value) => value as T));
+    page.keys.forEach((entry, index) => {
+      const value = values[index];
+      if (value !== null && value !== undefined) items.push({ key: entry.name, value: value as T });
+    });
     cursor = page.list_complete ? undefined : page.cursor;
   } while (cursor !== undefined);
   return items;
+}
+
+export async function readAllByPrefix<T>(kv: KVNamespace, prefix: string): Promise<T[]> {
+  return (await readAllKeyed<T>(kv, prefix)).map((item) => item.value);
 }
 
 export function readAllEntries(kv: KVNamespace): Promise<DiaryEntry[]> {

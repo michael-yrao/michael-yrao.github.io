@@ -17,11 +17,14 @@ import {
   ENTRY_PREFIX,
   readAllByPrefix,
   readAllEntries,
+  readAllKeyed,
   sortNewestFirst,
   VIEW_PREFIX,
   type BackupRecord,
   type DiaryEnv,
 } from './store';
+
+import { isEntryId, slugify } from './slug';
 
 export type { DiaryEnv } from './store';
 export { ENTRY_PREFIX, VIEW_PREFIX } from './store';
@@ -34,7 +37,7 @@ export const SEEN_WINDOW_HOURS = 12;
 
 const MAX_SEEN_IDS = 500;
 const MS_PER_HOUR = 3_600_000;
-const ENTRY_SUFFIX_BYTES = 3;
+const HTTP_CONFLICT = 409;
 const VISIT_SUFFIX_BYTES = 16;
 const HTTP_OK_NO_CONTENT = 204;
 const HTTP_BAD_REQUEST = 400;
@@ -50,7 +53,6 @@ const CORS_METHODS = 'GET, POST, PUT, DELETE, OPTIONS';
 const ENTRIES_ROUTE = 'entries';
 const ENTRY_ROUTE_PREFIX = `${ENTRIES_ROUTE}/`;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const ENTRY_ID_PATTERN = /^\d{4}-\d{2}-\d{2}-[0-9a-f]{6}$/;
 const VISIT_ID_PATTERN = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z_[0-9a-f]{32}$/;
 
 type ClockFn = () => number;
@@ -170,7 +172,7 @@ function parseSeen(body: unknown): SeenInput | null {
 }
 
 async function existingEntryIds(kv: KVNamespace, ids: readonly string[]): Promise<string[]> {
-  const candidates = [...new Set(ids)].filter((id) => ENTRY_ID_PATTERN.test(id));
+  const candidates = [...new Set(ids)].filter(isEntryId);
   const found = await Promise.all(candidates.map((id) => kv.get(`${ENTRY_PREFIX}${id}`)));
   return candidates.filter((_id, index) => found[index] !== null);
 }
@@ -232,35 +234,74 @@ function parseEntryInput(body: unknown): DiaryEntryInput | null {
   return { date, title, body: text };
 }
 
-/** Owner check, then validation, then upsert and a backup after the response. */
-async function saveEntry(call: Call, idFor: (input: DiaryEntryInput) => string | null): Promise<Response> {
+type OwnerInput = { input: DiaryEntryInput } | { refusal: Response };
+
+/** Owner check, then validation of the body. */
+async function ownerInput(call: Call): Promise<OwnerInput> {
   const refusal = await requireOwner(call);
-  if (refusal !== null) return refusal;
-
+  if (refusal !== null) return { refusal };
   const input = parseEntryInput(await parseJson(call.request));
-  if (input === null) return failure(HTTP_BAD_REQUEST, 'invalid-entry', call.cors);
-  const id = idFor(input);
-  if (id === null) return failure(HTTP_NOT_FOUND, 'not-found', call.cors);
+  return input === null ? { refusal: failure(HTTP_BAD_REQUEST, 'invalid-entry', call.cors) } : { input };
+}
 
+async function isEntryStored(kv: KVNamespace, id: string): Promise<boolean> {
+  return (await kv.get(`${ENTRY_PREFIX}${id}`)) !== null;
+}
+
+/** Stores the entry and schedules the backup; the response carries it. */
+async function storeEntry(call: Call, id: string, input: DiaryEntryInput): Promise<DiaryEntry> {
   const entry: DiaryEntry = { id, ...input, updatedAt: new Date(call.now()).toISOString() };
   await call.env.INTERVIEWS.put(`${ENTRY_PREFIX}${id}`, JSON.stringify(entry));
+  return entry;
+}
+
+function savedResponse(call: Call, entry: DiaryEntry): Response {
   scheduleBackup(call);
   const response: DiarySaveResponse = { entry };
   return noStoreJson(response, call.cors);
 }
 
-function handleCreateEntry(call: Call): Promise<Response> {
-  return saveEntry(call, (input) => `${input.date}-${randomHex(ENTRY_SUFFIX_BYTES)}`);
+async function handleCreateEntry(call: Call): Promise<Response> {
+  const parsed = await ownerInput(call);
+  if ('refusal' in parsed) return parsed.refusal;
+  const id = slugify(parsed.input.title, parsed.input.date);
+  if (await isEntryStored(call.env.INTERVIEWS, id)) return failure(HTTP_CONFLICT, 'title-taken', call.cors);
+  return savedResponse(call, await storeEntry(call, id, parsed.input));
 }
 
-function handleUpdateEntry(call: Call, id: string): Promise<Response> {
-  return saveEntry(call, () => (ENTRY_ID_PATTERN.test(id) ? id : null));
+/** Points every view that read `oldId` at `newId`. */
+async function renameInViews(kv: KVNamespace, oldId: string, newId: string): Promise<void> {
+  const views = await readAllKeyed<DiaryView>(kv, VIEW_PREFIX);
+  const affected = views.filter(({ value }) => value.read.includes(oldId));
+  await Promise.all(
+    affected.map(({ key, value }) => {
+      const read = [...new Set(value.read.map((id) => (id === oldId ? newId : id)))];
+      return kv.put(key, JSON.stringify({ ...value, read }));
+    }),
+  );
+}
+
+async function handleUpdateEntry(call: Call, id: string): Promise<Response> {
+  const parsed = await ownerInput(call);
+  if ('refusal' in parsed) return parsed.refusal;
+
+  const kv = call.env.INTERVIEWS;
+  if (!isEntryId(id) || !(await isEntryStored(kv, id))) return failure(HTTP_NOT_FOUND, 'not-found', call.cors);
+  const newId = slugify(parsed.input.title, parsed.input.date);
+  if (newId === id) return savedResponse(call, await storeEntry(call, id, parsed.input));
+  if (await isEntryStored(kv, newId)) return failure(HTTP_CONFLICT, 'title-taken', call.cors);
+
+  // Write the new key first and delete the old last, so a crash midway leaves a duplicate, never a loss.
+  const entry = await storeEntry(call, newId, parsed.input);
+  await renameInViews(kv, id, newId);
+  await kv.delete(`${ENTRY_PREFIX}${id}`);
+  return savedResponse(call, entry);
 }
 
 async function handleDeleteEntry(call: Call, id: string): Promise<Response> {
   const refusal = await requireOwner(call);
   if (refusal !== null) return refusal;
-  if (!ENTRY_ID_PATTERN.test(id)) return failure(HTTP_NOT_FOUND, 'not-found', call.cors);
+  if (!isEntryId(id)) return failure(HTTP_NOT_FOUND, 'not-found', call.cors);
 
   await call.env.INTERVIEWS.delete(`${ENTRY_PREFIX}${id}`);
   scheduleBackup(call);
