@@ -53,10 +53,94 @@
   }
 }
 
-.story {
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-accent);
+  cursor: pointer;
+
+  svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  &--danger {
+    color: var(--color-hard);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.toolbar,
+.editor {
   width: 100%;
   max-width: 40rem;
   margin: 0 auto;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+
+  &__field {
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    color: var(--color-text);
+    font: inherit;
+    min-width: 0;
+  }
+
+  &__body {
+    resize: vertical;
+    line-height: 1.6;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+  }
+}
+
+.entry {
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin: 0 0 var(--space-sm);
+  }
+
+  &__date {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+
+  &__tools {
+    display: inline-flex;
+    gap: var(--space-xs);
+  }
 
   &__title {
     font-size: var(--text-3xl);
@@ -64,7 +148,7 @@
     letter-spacing: -0.02em;
     line-height: 1.1;
     color: var(--color-text);
-    margin: 0 0 var(--space-2xl);
+    margin: 0 0 var(--space-xl);
     overflow-wrap: anywhere;
   }
 
@@ -103,6 +187,13 @@
   &__count {
     color: var(--color-accent);
     margin-left: var(--space-xs);
+  }
+
+  &__backup {
+    margin-left: var(--space-md);
+    font-size: var(--text-sm);
+    font-weight: 400;
+    color: var(--color-text-muted);
   }
 
   &__scroll {

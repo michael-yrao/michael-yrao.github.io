@@ -18,6 +18,8 @@ ALLOWED_ORIGINS = "https://progressiveoverflow.com,http://localhost:4200"
 TEMPLATE_OWNER = "michael-yrao"
 TEMPLATE_REPO = "cse-coach"
 OWNER_LOGIN = "michael-yrao"
+# The private repo that holds the encrypted diary backup.
+DIARY_BACKUP_REPO = "michael-yrao/diary-backup"
 
 # The id comes from `npx wrangler kv namespace create INTERVIEWS`.
 [[kv_namespaces]]
@@ -41,8 +43,19 @@ namespace_id = "1002"
   period = 60
 
 [[ratelimits]]
-name = "YAO_ATTEMPTS"
+name = "DIARY_ATTEMPTS"
 namespace_id = "1004"
   [ratelimits.simple]
   limit = 5
   period = 60
+
+[[ratelimits]]
+name = "DIARY_SEEN"
+namespace_id = "1005"
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+
+# The nightly diary backup, a safety net for failed write-time backups and edits made in KV.
+[triggers]
+crons = ["0 9 * * *"]

@@ -162,9 +162,14 @@ export const routes: Routes = [
   },
   {
     path: 'yao',
-    title: 'Yao',
+    redirectTo: 'diary',
+    pathMatch: 'full',
+  },
+  {
+    path: 'diary',
+    title: 'Diary',
     loadComponent: () =>
-      import('./features/yao/yao-page.component').then((m) => m.YaoPageComponent),
+      import('./features/diary/diary-page.component').then((m) => m.DiaryPageComponent),
   },
   {
     path: '**',

@@ -1,5 +1,6 @@
 import { CoachContainer, getCoachStub } from './coach/container';
 import type { CoachVars, CoachWiring } from './coach/handler';
+import { runScheduledBackup } from './diary/backup';
 import { LimiterUnavailableError } from './interviews/handler';
 import { buildFetch, type Env, type RateLimiter } from './worker';
 
@@ -27,4 +28,8 @@ function coachWiringFor(env: CoachWorkerEnv): CoachWiring | null {
   };
 }
 
-export default { fetch: buildFetch(coachWiringFor) };
+export default {
+  fetch: buildFetch(coachWiringFor),
+  scheduled: (_controller: ScheduledController, env: CoachWorkerEnv, ctx: ExecutionContext) =>
+    runScheduledBackup(env, ctx),
+};

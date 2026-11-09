@@ -125,21 +125,35 @@ The container keeps the owner's GitHub token in a 0600 credential file. The agen
 
 Local dev uses Podman, not Docker. One time, run `podman machine init`. Then run `podman machine start`. Before `npx wrangler dev --config wrangler.coach.toml`, set `WRANGLER_DOCKER_BIN` to `<repo>\worker\scripts\podman-for-wrangler.cmd`. The wrapper drops build flags Podman does not support. Also set `DOCKER_HOST` to the machine's socket. Read it from `podman machine inspect`, under `ConnectionInfo.PodmanPipe` or `ConnectionInfo.PodmanSocket`.
 
-## Yao
+## Diary
 
-`src/yao/` serves a password-protected story and a view log:
+`src/diary/` serves a password-protected diary, a view log and an encrypted backup. Entries live in KV under `diary:entry:` and never in this repo.
 
-- `POST /yao/unlock`: takes `{ "password": "..." }`. A right password returns the story and logs one view.
-- `GET /yao/views`: lists the logged views, newest first. Only the `OWNER_LOGIN` GitHub login is served.
+| Route | Who | Does |
+|---|---|---|
+| `POST /diary/unlock` | the password | Returns `{ visitId, entries }`, newest first, and logs one view. Five wrong tries a minute per IP (`DIARY_ATTEMPTS`). |
+| `POST /diary/seen` | a visitId | Adds the entry ids that visit read to its view. Thirty a minute per IP (`DIARY_SEEN`). A visit older than 12 hours is refused. |
+| `GET /diary/entries` | `OWNER_LOGIN` | The entries, with no password and no view logged. |
+| `POST /diary/entries`, `PUT` or `DELETE /diary/entries/<id>` | `OWNER_LOGIN` | Create, update or delete one entry, then back up. |
+| `GET /diary/views` | `OWNER_LOGIN` | The logged views, newest first, and the last backup time. |
 
-The story lives in KV key `yao:story` and never in this repo. Views are stored under `yao:view:`. A view holds the time, city, country and a device label. It never holds the IP or the raw user agent. Five wrong tries a minute per IP are allowed (`YAO_ATTEMPTS`).
+A view holds the time, city, country, a device label and the ids of the entries read. It never holds the IP or the raw user agent.
 
-One-time setup, in `worker/`:
+Secrets, set in `worker/` with `npx wrangler secret put <name>`:
 
-1. Run `npx wrangler secret put YAO_PASSWORD` and enter the password.
-2. Run `npx wrangler kv key put yao:story --path <json> --binding INTERVIEWS --remote`.
+- `DIARY_PASSWORD`: the shared reading password.
+- `DIARY_BACKUP_KEY`: 32 random bytes, base64. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` and keep a copy in a password manager. Without it a backup cannot be read.
+- `DIARY_BACKUP_TOKEN`: a fine-grained GitHub token with Contents read/write on the backup repo only.
 
-For local dev, put `YAO_PASSWORD` in `worker/.dev.vars`, which git ignores.
+**Backup.** After each write, and from a daily cron (`[triggers]`), `backupDiary` hashes the entries. When the hash differs from `diary:backup`, it encrypts them with AES-256-GCM and commits `diary.enc` to the private repo named by `DIARY_BACKUP_REPO`. Only a successful commit updates `diary:backup`, so a failed run retries on the next one.
+
+**Restore.** Download `diary.enc`, then run from `worker/`, with the key in the environment:
+
+- `DIARY_BACKUP_KEY=… node scripts/diary-restore.mjs diary.enc --list` prints each entry's date and title.
+- `… --out entries.json` writes the decrypted entries.
+- `… --put` writes them back to KV through a temp file that is deleted afterwards.
+
+For local dev, put `DIARY_PASSWORD` and a throwaway `DIARY_BACKUP_KEY` in `worker/.dev.vars`, which git ignores. With no token, the backup logs and skips.
 
 ## Source list
 

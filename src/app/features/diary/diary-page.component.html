@@ -1,0 +1,119 @@
+<div class="page">
+  @if (isOwner()) {
+    <div class="toolbar">
+      <button class="icon-btn" type="button" aria-label="New entry" title="New entry" (click)="newEntry()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </button>
+    </div>
+  }
+
+  @if (editor(); as draft) {
+    <form class="editor" (submit)="$event.preventDefault(); save(date.value, title.value, body.value)">
+      <input #date class="editor__field" type="date" [value]="draft.date" aria-label="Date" title="Date" />
+      <input #title class="editor__field" type="text" [value]="draft.title" placeholder="Title" aria-label="Title" />
+      <textarea #body class="editor__field editor__body" rows="12" [value]="draft.body" placeholder="Write…" aria-label="Write…"></textarea>
+      <div class="editor__actions">
+        <button class="icon-btn" type="submit" aria-label="Save" title="Save" [disabled]="isBusy()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M5 4h11l3 3v13H5z" />
+            <path d="M8 4v5h7V4M8 20v-6h8v6" />
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" aria-label="Cancel" title="Cancel" (click)="cancelEdit()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (entries(); as list) {
+    @for (entry of list; track entry.id) {
+      <article class="entry" [attr.data-entry-id]="entry.id">
+        <header class="entry__head">
+          <span class="entry__date">{{ entry.date }}</span>
+          @if (isOwner()) {
+            <span class="entry__tools">
+              <button class="icon-btn" type="button" aria-label="Edit" title="Edit" (click)="editEntry(entry)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                  <path d="M4 20l1-4L16 5l3 3L8 19z" />
+                </svg>
+              </button>
+              @if (pendingDeleteId() === entry.id) {
+                <button class="icon-btn icon-btn--danger" type="button" aria-label="Confirm delete" title="Confirm delete" (click)="deleteEntry(entry.id)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <path d="M5 12l5 5 9-10" />
+                  </svg>
+                </button>
+              } @else {
+                <button class="icon-btn" type="button" aria-label="Delete" title="Delete" (click)="deleteEntry(entry.id)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <path d="M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13" />
+                  </svg>
+                </button>
+              }
+            </span>
+          }
+        </header>
+        <h1 class="entry__title">{{ entry.title }}</h1>
+        @for (block of blocksOf(entry); track $index) {
+          @if (block.isHeading) {
+            <h2 class="entry__heading">{{ block.text }}</h2>
+          } @else {
+            <p class="entry__text">{{ block.text }}</p>
+          }
+        }
+      </article>
+    }
+  } @else if (!isOwner()) {
+    <form class="lock" (submit)="$event.preventDefault(); unlock(password)">
+      <input
+        #password
+        class="lock__input"
+        type="password"
+        placeholder="Password"
+        aria-label="Password"
+        autocomplete="current-password"
+      />
+      <button class="lock__submit" type="submit" aria-label="Unlock" title="Unlock" [disabled]="isBusy()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <rect x="5" y="11" width="14" height="9" rx="2" />
+          <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+        </svg>
+      </button>
+    </form>
+  }
+
+  @if (error()) {
+    <p class="lock__error" role="alert">{{ error() }}</p>
+  }
+
+  @if (views(); as rows) {
+    <section class="views">
+      <h2 class="views__heading">
+        Views <span class="views__count">{{ rows.length }}</span>
+        <span class="views__backup">{{ backupLabel() }}</span>
+      </h2>
+      <div class="views__scroll">
+        <table class="views__table">
+          <thead>
+            <tr><th>When</th><th>Where</th><th>Device</th><th>Read</th></tr>
+          </thead>
+          <tbody>
+            @for (row of rows; track $index) {
+              <tr>
+                <td>{{ whenOf(row) }}</td>
+                <td>{{ whereOf(row) }}</td>
+                <td>{{ row.device }}</td>
+                <td>{{ readOf(row, entries() ?? []) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>

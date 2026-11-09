@@ -24,7 +24,7 @@ import {
   ROUTE_PREFIX as ONBOARD_PREFIX,
   type OnboardEnv,
 } from './onboard/handler';
-import { handle as handleYao, ROUTE_PREFIX as YAO_PREFIX } from './yao/handler';
+import { handle as handleDiary, ROUTE_PREFIX as DIARY_PREFIX } from './diary/handler';
 
 // How long a built feed is served from the in-memory memo before the next request rebuilds it.
 const MEMO_TTL_MS = 5 * 60 * 1000;
@@ -95,8 +95,12 @@ export interface Env extends OnboardEnv {
   INTERVIEWS: KVNamespace;
   INTERVIEW_READS?: RateLimiter;
   INTERVIEW_WRITES?: RateLimiter;
-  YAO_ATTEMPTS?: RateLimiter;
-  YAO_PASSWORD?: string;
+  DIARY_ATTEMPTS?: RateLimiter;
+  DIARY_SEEN?: RateLimiter;
+  DIARY_PASSWORD?: string;
+  DIARY_BACKUP_KEY?: string;
+  DIARY_BACKUP_TOKEN?: string;
+  readonly DIARY_BACKUP_REPO?: string;
   readonly OWNER_LOGIN?: string;
 }
 
@@ -128,7 +132,7 @@ export function interviewHandlerFor(env: Env) {
  * routes answering "disabled"; index.coach.ts is the only entry that supplies one.
  */
 export function buildFetch<E extends Env = Env>(coachWiringFor: CoachWiringFactory<E> | null) {
-  return (request: Request, env: E) => {
+  return (request: Request, env: E, ctx: ExecutionContext) => {
     const { pathname } = new URL(request.url);
     if (pathname.startsWith(AUTH_PREFIX)) {
       return handleAuth(request, env, (input, init) => fetch(input, init));
@@ -146,8 +150,8 @@ export function buildFetch<E extends Env = Env>(coachWiringFor: CoachWiringFacto
     if (pathname.startsWith(ENGINE_PREFIX)) {
       return handleEngine(request, env, (input, init) => fetch(input, init));
     }
-    if (pathname.startsWith(YAO_PREFIX)) {
-      return handleYao(request, env, (input, init) => fetch(input, init));
+    if (pathname.startsWith(DIARY_PREFIX)) {
+      return handleDiary(request, env, (input, init) => fetch(input, init), ctx);
     }
     if (pathname.startsWith(ONBOARD_PREFIX)) {
       return handleOnboard(request, env, (input, init) => fetch(input, init));

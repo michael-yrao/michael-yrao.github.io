@@ -100,6 +100,8 @@ describe('createWorker memo', () => {
   });
 });
 
+const ctx = { waitUntil: () => undefined } as unknown as ExecutionContext;
+
 describe('default export routing', () => {
   const emptyKv = { get: async () => null, put: async () => {}, delete: async () => {} };
   const allowAll = { limit: async () => ({ success: true }) };
@@ -109,7 +111,7 @@ describe('default export routing', () => {
   it('serves the events feed, with its shared-cache header, for a non-interviews path', async () => {
     vi.stubGlobal('fetch', async () => new Response(validIcalBody, { status: 200 }));
     try {
-      const response = await worker.fetch(new Request('https://x.example/'), env);
+      const response = await worker.fetch(new Request('https://x.example/'), env, ctx);
       expect(response.status).toBe(200);
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=300, s-maxage=300');
     } finally {
@@ -118,7 +120,7 @@ describe('default export routing', () => {
   });
 
   it('sends an /interviews/ path to the interview handler', async () => {
-    const response = await worker.fetch(new Request(`https://x.example/interviews/c/${unknownId}`), env);
+    const response = await worker.fetch(new Request(`https://x.example/interviews/c/${unknownId}`), env, ctx);
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: 'not-found' });
     expect(response.headers.get('Cache-Control')).toBe('no-store');
@@ -137,7 +139,7 @@ describe('coach routes without wiring', () => {
     { method: 'POST', path: '/coach/wake', status: 503, body: { error: 'coach-disabled' } },
   ])('$method $path answers $status', async ({ method, path, status, body }) => {
     const request = new Request(`https://x.example${path}`, { method, headers: { Origin: ORIGIN } });
-    const response = await fetchWithoutCoach(request, env);
+    const response = await fetchWithoutCoach(request, env, ctx);
     expect(response.status).toBe(status);
     expect(await response.json()).toMatchObject(body);
   });
@@ -155,7 +157,7 @@ describe('interview rate-limit binding', () => {
     { name: 'is absent', binding: undefined, status: 503, body: { error: 'rate-limiter-unavailable' } },
   ])('limiter that $name answers $status', async ({ binding, status, body }) => {
     const env = { INTERVIEWS: kv, INTERVIEW_READS: binding } as unknown as Env;
-    const response = await worker.fetch(new Request(`https://x.example/interviews/c/${'B'.repeat(32)}`), env);
+    const response = await worker.fetch(new Request(`https://x.example/interviews/c/${'B'.repeat(32)}`), env, ctx);
     expect(response.status).toBe(status);
     if (body) {
       expect(await response.json()).toEqual(body);
