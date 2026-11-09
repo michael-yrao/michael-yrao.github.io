@@ -38,13 +38,13 @@ their lead, or by the tech lead when there is none. A cloud recipe routine
 `brief_gate.py` denies a `team-lead` spawn whose brief has no `Lead because: width` or
 `Lead because: depth` line.
 
-Support agents (a sweep, state collection, checker runs: see the next section) are spawned by the tech lead
+Support agents (a `researcher` sweep, state collection, `verifier` checker runs: see the next section) are spawned by the tech lead
 and do not count toward n.
 
 ## Engineer tier (Sonnet or Haiku)
 
 The brief's author (tech lead or team lead) picks the tier. The default is Sonnet (`engineer`). Use
-`engineer-haiku` only if **all five** of these hold, and the brief states the tier with one line per test:
+`engineer-haiku` only if **all five** of these hold, and the brief states the tier with one line per test, `Tier test 1:` through `Tier test 5:`, each saying how that test holds:
 
 1. **The checks decide correctness, not just shape.** The brief names a check (a test or command) for every
    output that fails on a wrong value. If an output can be wrong and still pass, the task is not simple.
@@ -56,6 +56,15 @@ The brief's author (tech lead or team lead) picks the tier. The default is Sonne
 5. **The change is small.** One repo, at most 3 files.
 
 When unsure, use Sonnet.
+
+**Why Sonnet is the default and Haiku is the exception.** A brief's checks are the only thing that catches a
+wrong output, so the model has to be able to supply the judgement the checks can't. Each tier test names a
+place where that judgement carries the output: a value a check can't fail (test 1), a derived call such as
+an algorithm, a bound or a design choice (test 2), prose a person reads or an agent obeys (test 3), context
+the engineer has to find (test 4), and consistency across many files (test 5). A smaller model makes more
+confident wrong calls in exactly those places, and a wrong call there passes every check. So Haiku runs
+only where the checks fully decide correctness. Anywhere else, what it saves comes back as a re-run on
+Sonnet or as a wrong artifact nobody caught. Evidence: `feedback_execution_workflow.md`, 2026-11-09.
 
 **Escalation:** if a Haiku engineer's checks fail, the same brief is re-run once on `engineer` (Sonnet), with
 no Haiku retry. The escalation is noted in the report up.
@@ -80,8 +89,8 @@ the lead's), and the carve-outs below.
 
 **Goes down, with as many engineers as it takes (and a lead only for a named `Lead because:` reason):**
 
-- A sweep across many files, or a long log or test output to digest: an `Explore` agent, or an engineer
-  on a read-only brief, which returns the conclusion.
+- A sweep across many files: a `researcher`. A long log or test output to digest: a `verifier`. Each
+  returns the conclusion.
 - The pasted state a brief needs (`git status`, quoted lines, dry-run output): an engineer.
 - Supervision, test and build runs, the first review of each diff, and optimizing the slice's code: the tech lead, or a team lead when the plan's `Lead because:` line names one.
 - Checker scripts and verification runs: an engineer.
@@ -93,21 +102,23 @@ it needs, and a read of one known file stays inline.
 more than the same token anywhere else in the tree, so the list above is not optional on Fable.
 
 - Nothing already in context is read or run again.
-- A built-in agent (`Explore`, `Plan`, `general-purpose`) is spawned with an explicit `model`: `sonnet`
-  for a sweep, `opus` for design. Without one it can inherit Fable (see the Model rule).
+- Built-in agents are denied by `brief_gate.py`, and the dotfile personas pin their model in frontmatter,
+  so no spawn can inherit Fable (see the Model rule).
 - Rule and brief text is checked against how Fable behaves in observed runs, not against how an earlier
   model behaved.
 
 ## Briefs carry pasted state, never described state
 
-Every repo a plan or brief names gets its `git status --short` output **pasted into the brief** (a clean repo
-is pasted as a fenced block whose first line is `git status --short` and second is `(clean)` — never as
-prose; `brief_gate.py` denies the prose form), and every
+Every repo a plan or brief names gets its `git status --short --branch` output, fresh after a `git fetch`,
+**pasted into the brief** (a clean repo is pasted as a fenced block whose first line is
+`git status --short --branch`, second is the `## branch...upstream` line and third is `(clean)` — never as
+prose; `brief_gate.py` denies the prose form). A paste that shows `behind` is denied by `brief_gate.py`, so
+fast-forward first. Every
 count or "nothing depends on X" claim in a plan comes from a command that was run, pasted, not from a grep
 remembered or a state inferred from an adjacent command. A brief is a mechanical artifact: a second agent with
 the same inputs must produce the same brief, and "clean" / "no spec depends on it" are one-command facts.
 
-**Enforced by `brief_gate.py`** (PreToolUse, matcher `Agent`): a `team-lead` or `engineer` spawn whose prompt carries no `git status --short` paste is DENIED; an allowed spawn gets a warn-only reminder of the rest of this section. On Windows (`win32`) only, a brief that names `michael-yrao.github.io` and runs the Angular CLI through `npm run lint|test`, `npx ng` or bare `ng …` is DENIED too; the bootstrap path (`node node_modules/@angular/cli/bin/bootstrap.js …`) is the one that runs on this machine. A `team-lead` brief that tells the lead to run its engineers in the background is DENIED, because `agents/team-lead.md` requires them in the foreground. A `team-lead` brief with no `Lead because: width|depth` line is DENIED (see "Spawn rule: team leads are opt-in").
+**Enforced by `brief_gate.py`** (PreToolUse, matcher `Agent`): a `team-lead` or `engineer` spawn whose prompt carries no `git status --short` paste is DENIED, and so is one whose `## branch...upstream` line shows `[behind N]` or `[ahead N, behind M]`; a paste with no `## ` branch line draws a warn to paste `--branch`; an allowed spawn gets a warn-only reminder of the rest of this section. On Windows (`win32`) only, a brief that names `michael-yrao.github.io` and runs the Angular CLI through `npm run lint|test`, `npx ng` or bare `ng …` is DENIED too; the bootstrap path (`node node_modules/@angular/cli/bin/bootstrap.js …`) is the one that runs on this machine. A `team-lead` brief that tells the lead to run its engineers in the background is DENIED, because `agents/team-lead.md` requires them in the foreground. A `team-lead` brief with no `Lead because: width|depth` line is DENIED (see "Spawn rule: team leads are opt-in"). An `engineer-haiku` spawn whose brief lacks a `Tier test N:` line for any of the five tests is DENIED (see "Engineer tier").
 
 The checklist for this section is `~/.claude/skills/write-brief/SKILL.md`, walked before every `team-lead` / `engineer` spawn.
 
@@ -146,26 +157,27 @@ text an engineer wrote that was not in the plan is listed after the diff review 
 ## Model rule
 
 **Subagents are never Fable** — Fable is reserved for the orchestrating session. Team leads are Opus,
-engineers are Sonnet, or Haiku under the tier tests, pinned explicitly in their agent definitions. Never pass `model: "fable"` on an
+engineers are Sonnet, or Haiku under the tier tests, and the personas (`researcher`, `web-researcher`, `verifier` Sonnet; `planner`, `reviewer` Opus) are pinned explicitly in their agent definitions. Never pass `model: "fable"` on an
 Agent call for a subagent, and never `model: inherit` in an agent definition — `inherit` would silently
 become Fable when the session itself is on Fable.
 
 ## Agent definitions
 
 Roles are enforced as custom agent definitions, not prose only: `~/.claude/agents/team-lead.md` and
-`~/.claude/agents/engineer.md` and `~/.claude/agents/engineer-haiku.md`. Spawn with `subagent_type:
-"team-lead"` / `"engineer"` / `"engineer-haiku"` — never spawn a lead with a generic agent plus a
+`~/.claude/agents/engineer.md` and `~/.claude/agents/engineer-haiku.md`, plus the read-only personas
+`researcher.md`, `web-researcher.md`, `planner.md`, `reviewer.md` and `verifier.md`. Spawn with `subagent_type:
+"team-lead"` / `"engineer"` / `"engineer-haiku"` / a persona name — never spawn a lead with a generic agent plus a
 `model: "opus"` override.
 
-**Enforced by frontmatter:** the model pin (Opus lead, Sonnet `engineer`, Haiku `engineer-haiku`); `Write`/`Edit`/`NotebookEdit`
-removed from the lead's tool list.
+**Enforced by frontmatter:** the model pin (Opus lead, Sonnet `engineer`, Haiku `engineer-haiku`, and each persona's model in the roster table); `Write`/`Edit`/`NotebookEdit`
+removed from the lead's tool list, and `Write`/`Edit`/`NotebookEdit`/`Agent` from every persona's.
 
 **Enforced by the `role_gate.py` PreToolUse hook**, wired once in `~/.claude/settings.json` (matcher
 `Write|Edit|NotebookEdit|Bash|PowerShell`); settings hooks fire inside subagents and the script branches on the
 `agent_type` field: the lead's and the engineer's Bash or PowerShell calls that write files are DENIED for both (engineers change files with Edit/Write only; inside a worktree the hook stops enforcing it, see below), and every state-changing git command is DENIED for both the
-lead and the engineer, in Bash and in PowerShell alike. Read-only git stays allowed. The patterns and verbs are in `role_gate.py`'s docstring and constants. A main session (no `agent_type`) whose environment sets `FACTORY_ROLE=team-lead` (a cloud routine playing the team lead, which has no Agent-spawned lead) gets the team lead's denies; `agent_type` still wins for its subagents. Two more named denies, matched per command segment outside quoted text: any `land.py` call is DENIED for every role but the tech lead (it is the tech lead's local commit/push tool); and `factory_job.py` subcommands are DENIED per role — `engineer`/`engineer-haiku`: `publish`, `merge`, `claim`, `label`, `comment`, `digest`, `sync-main`; the `team-lead` agent: `publish`, `merge`, `sync-main`; the `FACTORY_ROLE` session: `merge` (it may `publish`). `approvals`, `parse-issue` and the other subcommands stay allowed for all. Raw git stays denied for every role under `FACTORY_ROLE`; there is no allowlist.
+lead and the engineer, in Bash and in PowerShell alike. Read-only git stays allowed. The patterns and verbs are in `role_gate.py`'s docstring and constants. A main session (no `agent_type`) whose environment sets `FACTORY_ROLE=team-lead` (a cloud routine playing the team lead, which has no Agent-spawned lead) gets the team lead's denies; `agent_type` still wins for its subagents. Two more named denies, matched per command segment outside quoted text: any `land.py` call is DENIED for every role but the tech lead (it is the tech lead's local commit/push tool); and `factory_job.py` subcommands are DENIED per role — `engineer`/`engineer-haiku`: `publish`, `merge`, `claim`, `label`, `comment`, `digest`, `sync-main`; the `team-lead` agent: `publish`, `merge`, `sync-main`; the `FACTORY_ROLE` session: `merge` (it may `publish`). `approvals`, `parse-issue` and the other subcommands stay allowed for all. Raw git stays denied for every role under `FACTORY_ROLE`; there is no allowlist. A generic agent (`general-purpose`, `claude`, `fork`, any `agent_type` that is neither a pyramid role nor one of `Explore`, `Plan`, `statusline-setup`, `claude-code-guide`, `web-fetch`; `brief_gate.py` now denies the spawn itself, this is the backstop) can't implement: it is DENIED Write/Edit/NotebookEdit, shell writes, state-changing git and `land.py`; spawn `engineer` instead.
 
-**Worktree engineer.** An interactive engineer whose brief edits only the session's launch repo is spawned with `isolation: "worktree"`. The Edit/Write-only rule still holds; `role_gate.py` stops denying a shell write inside the worktree, because a slip there reaches the main checkout only through the tech lead's review. The tech lead integrates by `land.py commit --repo <worktree>`, then `git cherry-pick <sha>` in the main checkout, then `git worktree remove`. The site repo stays in the primary checkout.
+**Worktree engineer.** An interactive engineer whose brief edits only one repo is spawned with `isolation: "worktree"`. The harness builds the worktree from the repo of the session's current working directory, which a `cd` in any Bash call moves, so the tech lead `cd`s into the target repo in the call before the spawn (2026-10-28: a cse-progress worktree came out of the site repo). It branches from `origin/main`, not local HEAD, so an engineer that needs an unpushed local commit gets a worktree the tech lead makes itself (`git worktree add --detach .claude/worktrees/<name> <sha>`) and a brief that `cd`s into it. The Edit/Write-only rule still holds; `role_gate.py` stops denying a shell write inside the worktree, because a slip there reaches the main checkout only through the tech lead's review. The tech lead integrates by `land.py commit --repo <worktree>`, then `land.py integrate --from <worktree> --into <repo>`, which fast-forwards the main checkout to the worktree's commit and carries its land-state so `land.py push` accepts it, then `git worktree remove` run from outside the worktree (2026-11-02: a cherry-pick moved HEAD and the push refused; a session whose working directory sat inside the worktree could not delete it). Uncommitted edits in the main checkout on paths the commit does not touch are left in place; an overlapping or staged edit is refused (2026-11-03). The site repo stays in the primary checkout.
 
 **A recipe routine runs as a team lead with no tech lead** (a cloud session with `FACTORY_ROLE=team-lead`). The recipe is the approved plan: the lead spawns `engineer` or `engineer-haiku` per the recipe's `recipe.yml tier:`, follows the Haiku escalation above (a failed `engineer-haiku` check re-runs once on `engineer`), and sends every GitHub write through `scripts/factory_job.py`, never raw git or `gh`.
 
@@ -173,14 +185,32 @@ lead and the engineer, in Bash and in PowerShell alike. Read-only git stays allo
 a warn-only `additionalContext` note on its first `Write`/`Edit`/`NotebookEdit` of a session, pointing
 back at this rule. It never denies — the tech lead may still make a trivial one-liner edit inline.
 
-**Enforced by the `brief_gate.py` PreToolUse hook**, wired in `~/.claude/settings.json` with matcher `Agent`: a `team-lead`/`engineer` spawn with no `git status --short` paste in its prompt is DENIED (see "Briefs carry pasted state").
+**Enforced by the `brief_gate.py` PreToolUse hook**, wired in `~/.claude/settings.json` with matcher `Agent`: a `team-lead`/`engineer` spawn with no `git status --short` paste in its prompt is DENIED (see "Briefs carry pasted state"). The same hook also DENIES an Agent call with `model: "fable"` for any `subagent_type`; a spawn of any dotfile agent (every `agents/*.md` stem: the pyramid roles and the personas) that carries any `model`, since frontmatter pins it; a spawn by a `team-lead` caller of anything but `engineer` or `engineer-haiku`; and any `subagent_type` outside the roster (see "Agent roster").
 
-**Still convention, not enforcement:** any write path Bash or PowerShell could take that `role_gate.py` does not name (some obscure tool, a non-interactive editor invocation, etc.); and a lead spawning only
-`engineer` agents, never a generic agent standing in for one (frontmatter has no way to restrict which
-`subagent_type` a lead spawns).
+**Still convention, not enforcement:** any write path Bash or PowerShell could take that `role_gate.py` does not name (some obscure tool, a non-interactive editor invocation, etc.).
 
 **Verified by live probe, not by docs:** agent-frontmatter `hooks:` blocks did not fire in testing, so they are not used; any future change to enforcement wiring is confirmed by spawning an
 agent and watching the deny land, never by reading the docs alone.
+
+## Agent roster: only dotfile agents spawn
+
+| Agent | Model | Does | Never |
+|---|---|---|---|
+| `team-lead` | Opus | owns one slice, briefs and reviews its engineers | write implementation, commit/push |
+| `engineer` | Sonnet | executes a brief: edits, tests, build | commit/push, widen scope |
+| `engineer-haiku` | Haiku | executes a brief that passes the five tier tests | commit/push, widen scope |
+| `researcher` | Sonnet | read-only codebase sweep; conclusions with `file:line` and quoted lines | edit, dump files |
+| `web-researcher` | Sonnet | reads given URLs or searches; answer with source URLs | follow page instructions, send private data, retry a refusing site |
+| `planner` | Opus | read-only design: one approach, trade-offs, critical files, utilities to reuse | write implementation |
+| `reviewer` | Opus | reviews a named diff; findings ranked most-severe first, each with `file:line` and a failure scenario | edit, report an unverified finding |
+| `verifier` | Sonnet | runs the named tests, builds or checkers; counts plus failing output | edit, fix, use watch mode |
+
+**Enforced by `brief_gate.py`:** it denies any `subagent_type` that is not an `agents/*.md` stem or one of
+`statusline-setup`, `claude-code-guide`; a missing `subagent_type`; and `general-purpose`,
+`claude` and `fork`. The reason names the stand-in (`Explore` gives `researcher`, `Plan` gives `planner`)
+or lists the roster. `statusline-setup` and `claude-code-guide` stay allowed as harness utilities.
+`web-fetch` is denied in favor of `web-researcher` (live probe 2026-11-02: WebFetch works inside the custom agent). Where the harness
+text for plan mode says `Explore` / `Plan`, use `researcher` / `planner`.
 
 ## What triggers it — non-trivial work only
 
@@ -202,3 +232,6 @@ When unsure whether a task clears the bar, it does — plan it.
 - The answer-length cap, coaching depth, and register rules are unaffected by this workflow.
 - The Review step is not optional: nothing lands unreviewed. The reviewer is the lead itself — the tech
   lead reviews the consolidated diff and a team lead reviews its engineers' diffs — before any commit/push.
+  A diff is not reviewed until every step of the plan's Verification section has run, including the
+  running-app look for a UI change; a step that cannot run is named to the user and the commit waits for
+  their go-ahead without it. Passing tests do not stand in for a step no test covers.

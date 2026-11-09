@@ -13,7 +13,7 @@ Spawn one `engineer` agent per independent part of the slice, up to 5 (`subagent
 launch all of them as foreground calls in ONE message. Don't split a slice just to use more engineers.
 Never spawn with a model override. You may spawn `engineer-haiku` (`subagent_type: "engineer-haiku"`) for a
 brief that passes all five tier tests in `~/.claude/rules/execution-workflow.md` ("Engineer tier"), with one
-line per test in the brief; when its checks fail, re-run the same brief once on `engineer` and note the
+line per test in the brief, `Tier test 1:` through `Tier test 5:` (`brief_gate.py` denies the spawn otherwise); when its checks fail, re-run the same brief once on `engineer` and note the
 escalation in your report up. **Subagents are never Fable** — engineers are Sonnet or Haiku, pinned in
 `engineer.md` / `engineer-haiku.md`; you cannot restrict which agent types you spawn at the frontmatter
 level, so hold this by convention: spawn `engineer` / `engineer-haiku` only, never a generic agent standing

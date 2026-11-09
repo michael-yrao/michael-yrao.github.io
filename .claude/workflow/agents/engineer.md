@@ -1,6 +1,6 @@
 ---
 name: engineer
-description: Sonnet engineer for the execution workflow. Executes one brief from an approved plan — edits, tests, build — and reports the diff. Never commits or pushes, never widens scope.
+description: Sonnet engineer for the execution workflow: the default for any brief whose correctness rests on judgement no check covers (see execution-workflow.md, Engineer tier). Executes one brief from an approved plan — edits, tests, build — and reports the diff. Never commits or pushes, never widens scope.
 model: sonnet
 disallowedTools: Agent
 ---

@@ -1,10 +1,10 @@
 {
   ".claude/hooks/brief_gate.py": {
-    "sha256": "09ec26f404acdbc1b446b88ffe17cfc11bb0c6c35503264799e622ce886f5ce6",
+    "sha256": "60be6b083b61db0c941caade50afb36f5969d4f8e1b09ca57d37044111ae6673",
     "source": "~/.claude/hooks/brief_gate.py"
   },
   ".claude/hooks/role_gate.py": {
-    "sha256": "3e0073c8c755a71bcb2f35f170f1e550fc7ab90ec6e2f52d030acdcc15495290",
+    "sha256": "d46dd97f6a9a630d5a7930f575af4ba531ede2ad4692b7dacf4117a1c6031d45",
     "source": "~/.claude/hooks/role_gate.py"
   },
   ".claude/workflow/agents/engineer-haiku.md": {
@@ -12,12 +12,32 @@
     "source": "~/.claude/agents/engineer-haiku.md"
   },
   ".claude/workflow/agents/engineer.md": {
-    "sha256": "6332e9550a035726bae11634c021f6cd900128bba2e2c0953ea5be20be444af6",
+    "sha256": "16e771b823b631942ba96c18b4365c3db0d2fd0d320f254a196eab9a989c988b",
     "source": "~/.claude/agents/engineer.md"
   },
+  ".claude/workflow/agents/planner.md": {
+    "sha256": "3ec30376cb8c7bda3b347d8470a4e9688d14fcf7e27c6fd06afffa57d9f09363",
+    "source": "~/.claude/agents/planner.md"
+  },
+  ".claude/workflow/agents/researcher.md": {
+    "sha256": "d4176e43fc267566c06a997e043c59a467c8ddcecc461020d78be8af5bd40ad6",
+    "source": "~/.claude/agents/researcher.md"
+  },
+  ".claude/workflow/agents/reviewer.md": {
+    "sha256": "0d7ec60d37c781f9a5684bc49d21a69f29d3c4482023dee94d47c427402258bc",
+    "source": "~/.claude/agents/reviewer.md"
+  },
   ".claude/workflow/agents/team-lead.md": {
-    "sha256": "f7c4b483dd54e32589c6f617729528b55def8b46173c7701cabdd3054e167c8f",
+    "sha256": "3a6c99650bc91d74712c26c8239f72639f3dd11c190fda893b748dc9eb746411",
     "source": "~/.claude/agents/team-lead.md"
+  },
+  ".claude/workflow/agents/verifier.md": {
+    "sha256": "1e2d3b77b93d2be714ffd8e1e4a2c80ccc00ea33f2c0ee499bc383e958ad607f",
+    "source": "~/.claude/agents/verifier.md"
+  },
+  ".claude/workflow/agents/web-researcher.md": {
+    "sha256": "f3071926852b364009fd223e7bb24e45d522c9f76aa350a1796bb32caa44ec63",
+    "source": "~/.claude/agents/web-researcher.md"
   },
   ".claude/workflow/install.sh": {
     "sha256": "6c7a474933ab26f758bf8fd1c46bc32dda779357a8eb35ad98b9ef4d472a9023",
@@ -28,7 +48,7 @@
     "source": "~/.claude/rules/coding-style.md"
   },
   ".claude/workflow/rules/execution-workflow.md": {
-    "sha256": "e9ef0db2fc2d6fe4586b02a0534a60a26f3f5360505dd30e37ec8dc597c353a1",
+    "sha256": "9feaeea9d5e10f8063ad7808e1ae4b4d194a244ae82ced10d1519ce5eca4173d",
     "source": "~/.claude/rules/execution-workflow.md"
   },
   ".claude/workflow/rules/git-workflow.md": {

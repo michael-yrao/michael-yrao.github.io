@@ -6,10 +6,28 @@ Why this exists
 requires every brief to carry the `git status --short` output of each repo it names. A rule that
 must fire at spawn time cannot live only in prose, so this hook checks the Agent call's prompt.
 
-Behavior (tool "Agent", tool_input carries `subagent_type` and `prompt`):
-- subagent_type other than "team-lead" / "engineer" / "engineer-haiku", or missing: silent.
+Behavior (tool "Agent", tool_input carries `subagent_type`, `prompt` and optionally `model`; the
+payload's top-level `agent_type` is the caller, absent for the main session). Checked first, for any
+subagent_type:
+- roster: the allowed types are the stems of the `*.md` files in the agents dir (sibling of hooks/) plus
+  BUILTIN_ALLOWED (`statusline-setup`, `claude-code-guide`). A missing or empty
+  subagent_type (the harness defaults it to general-purpose) and any other type: DENY. `Explore` names
+  `researcher`, `Plan` names `planner`, `web-fetch` names `web-researcher`, any other reason lists the roster. A missing, unreadable or
+  empty agents dir denies and points at bootstrap.py.
+- `model` equal to "fable" (case-insensitive): DENY. Subagents are never Fable.
+- a spawn of any dotfile persona (every stem in the agents dir) with any non-empty `model`: DENY. Their
+  model is pinned in frontmatter.
+- caller `agent_type` "team-lead" spawning anything but `engineer` / `engineer-haiku`: DENY. A lead
+  spawns only engineers.
+With no model and a main-session caller, the rules below apply unchanged. Then:
+- an allowed subagent_type other than "team-lead" / "engineer" / "engineer-haiku": silent.
 - prompt with no git-status paste: DENY (exit 2). The reason is written to stdout as JSON and
   to stderr, so it reaches the model whichever channel the harness reads.
+- prompt with a paste whose `## branch...upstream` line (from `git status --short --branch`) shows
+  `[behind N]` or `[ahead N, behind M]`: DENY, naming the line and telling the sender to fast-forward
+  (`git merge --ff-only @{u}`) and re-paste. `[ahead N]` alone, a level branch and `## HEAD (no branch)` pass.
+- prompt with a paste (otherwise allowed) that has no `## branch...upstream` line at all: the warn gains a line
+  telling the sender to paste `git status --short --branch` or run `brief_state.py`. Never a deny.
 - prompt with a paste that names `michael-yrao.github.io` and runs the Angular CLI through a path that
   fails on this machine (`npm run lint|test`, `npx ng`, bare `ng ...`): DENY, naming the bootstrap commands.
   Fires only when sys.platform == "win32"; on Linux those commands are the correct path.
@@ -18,9 +36,12 @@ Behavior (tool "Agent", tool_input carries `subagent_type` and `prompt`):
   citing agents/team-lead.md. Never fires for other subagent types.
 - team-lead prompt with a paste and no line `Lead because: width` or `Lead because: depth` (case-insensitive):
   DENY, citing the rule "Spawn rule: team leads are opt-in". Never fires for other subagent types.
+- `engineer-haiku` prompt with a paste and no `Tier test N:` line (N = 1..5, non-blank after the colon) for any of the five tier tests: DENY, naming the missing numbers.
 - prompt with a paste and none of the above: allowed, with a warn-only reminder of the rest of the brief checklist;
   when its Verify section holds a backticked command with no "unverified" mark and no ```output fence,
-  the reminder gains one line (write-brief step 6). Never a deny.
+  the reminder gains one line (write-brief step 6); an engineer brief whose Verify section holds a
+  backticked command with no `<...>` placeholder that role_gate.py denies that role gains a second line
+  naming it (write-brief step 9). Never a deny.
 
 A paste is either a `git status --short` line followed within STATUS_WINDOW_LINES lines by a
 status row at column 0 (or a clean marker: `(clean)`, `(empty)`, `(empty — clean)`, `(nothing)`,
@@ -35,8 +56,43 @@ import json
 import re
 import sys
 from dataclasses import dataclass
+from pathlib import Path
+
+try:  # sibling hook module: importable when run as a script from hooks/ or with hooks/ on sys.path
+    import role_gate
+except Exception:  # the check then stays silent; it must never break the gate
+    role_gate = None
 
 GATED_SUBAGENT_TYPES = frozenset({"team-lead", "engineer", "engineer-haiku"})
+ENGINEER_SUBAGENT_TYPES = frozenset({"engineer", "engineer-haiku"})
+AGENTS_DIR = Path(__file__).resolve().parent.parent / "agents"  # hooks/ and agents/ are siblings in both clones
+BUILTIN_ALLOWED = frozenset({"statusline-setup", "claude-code-guide"})
+ROSTER_DENY_REASON = (
+    "Brief gate: ~/.claude/rules/execution-workflow.md \"Agent roster\": only dotfile agents spawn, and "
+    "general-purpose agents are denied. Pick one of: {pick_one}."
+)
+ROSTER_MISSING_DENY_REASON = (
+    "Brief gate: the agents directory next to hooks/ is missing, unreadable or empty, so no agent type can be "
+    "checked. Restore it with `python <claude-dotfiles clone>/bootstrap.py`."
+)
+STAND_IN_REASONS = {
+    "Explore": "Brief gate: the built-in `Explore` agent is denied; use `researcher` (read-only codebase sweep).",
+    "Plan": "Brief gate: the built-in `Plan` agent is denied; use `planner` (read-only design).",
+    "web-fetch": "Brief gate: the built-in `web-fetch` agent is denied; use `web-researcher` (reads pages and searches).",
+}
+FABLE_MODEL = "fable"
+FABLE_DENY_REASON = (
+    "Brief gate: ~/.claude/rules/execution-workflow.md \"Model rule\": subagents are never Fable. "
+    "Drop `model: \"fable\"` (a sweep takes `sonnet`, design takes `opus`)."
+)
+PINNED_MODEL_DENY_REASON = (
+    "Brief gate: a spawn of any dotfile agent (`team-lead`, `engineer`, `researcher`, `planner`, ...) carries no `model`: its model is pinned "
+    "in the agent definition (~/.claude/rules/execution-workflow.md \"Agent definitions\"). Remove `model`."
+)
+LEAD_SPAWNS_ENGINEERS_DENY_REASON = (
+    "Brief gate: a team lead spawns only `engineer` or `engineer-haiku` agents "
+    "(~/.claude/rules/execution-workflow.md \"Agent definitions\"). Spawn an engineer instead."
+)
 STATUS_WINDOW_LINES = 20  # how far below the command line a status line may sit
 
 STATUS_COMMAND_MARKER = "git status --short"
@@ -50,6 +106,20 @@ CLEAN_LINE_PATTERN = re.compile(
 )
 FENCE_MARKER = "```"
 FENCE_COMMAND_PATTERN = re.compile(r"git status")
+# git's `--branch` header: `## main...origin/main [ahead 1, behind 2]`, `## HEAD (no branch)`, or an unborn branch.
+BRANCH_LINE_PATTERN = re.compile(
+    r"^## (?:\S+\.\.\.\S+(?: \[[^\]]*\])?|HEAD \(no branch\)|(?:No commits yet|Initial commit) on \S+)\s*$"
+)
+BEHIND_LINE_PATTERN = re.compile(r"^## .*\[(?:ahead \d+, )?behind \d+\]\s*$")
+STALE_DENY_REASON = (
+    "Brief gate: ~/.claude/rules/execution-workflow.md \"Briefs carry pasted state\": the paste shows a repo "
+    "behind its upstream (`{line}`), so the brief would send an engineer onto stale code. Fast-forward it "
+    "(`git merge --ff-only @{{u}}`), re-run `git status --short --branch` and paste the fresh output."
+)
+BRANCH_WARN_TEXT = (
+    " The status paste has no `## branch...upstream` line: paste `git status --short --branch` (or run "
+    "`python ~/.claude/scripts/brief_state.py <repo…>`) so a repo behind its upstream shows."
+)
 
 DENY_REASON = (
     "Brief gate: ~/.claude/rules/execution-workflow.md says \"Every repo a plan or brief names gets its "
@@ -91,6 +161,13 @@ LEAD_REASON_DENY_REASON = (
     "or `Lead because: depth` line. If the plan names neither reason, do not spawn a lead: the tech lead "
     "briefs the engineers itself."
 )
+TIER_TEST_PATTERN = re.compile(r"^\s*Tier test ([1-5]):[ \t]*\S", re.IGNORECASE | re.MULTILINE)
+TIER_TESTS = frozenset("12345")
+TIER_DENY_REASON = (
+    "Brief gate: an `engineer-haiku` brief states all five tier tests from execution-workflow.md "
+    "\"Engineer tier\", one line each, `Tier test 1:` through `Tier test 5:`, each saying how the "
+    "test holds. Missing: {missing}. If any test does not hold, spawn `engineer` (Sonnet) instead."
+)
 # A fix sent/routed/returned/given (back) to "the same engineer" / "that engineer", or the old engineer
 # resumed or SendMessage'd for a fix, all within one sentence.
 SAME_ENGINEER_FIX_PATTERN = re.compile(
@@ -120,6 +197,12 @@ INLINE_CODE_MARKER = "`"
 HEADING_PREFIX = "#"
 VERIFY_WARN_TEXT = (
     " A verify command needs pasted output or an *(expected, unverified)* mark (write-brief step 6)."
+)
+INLINE_CODE_PATTERN = re.compile(r"`([^`\n]+)`")
+PLACEHOLDER_PATTERN = re.compile(r"<[^<>\s]+>")
+ROLE_DENY_WARN_TEXT = (
+    " This brief names {commands}, which role_gate.py denies the {role} role; "
+    "run it yourself or drop it from the brief (write-brief step 9)."
 )
 
 
@@ -155,6 +238,19 @@ def _has_status_fence(lines: list[str]) -> bool:
 def has_status_paste(prompt: str) -> bool:
     lines = prompt.splitlines()
     return _has_command_then_status(lines) or _has_status_fence(lines)
+
+
+def behind_branch_line(prompt: str) -> str | None:
+    """The first `## ...[behind N]` line in the prompt, or None."""
+    return next((line.strip() for line in prompt.splitlines() if BEHIND_LINE_PATTERN.match(line.strip())), None)
+
+
+def has_branch_line(prompt: str) -> bool:
+    return any(BRANCH_LINE_PATTERN.match(line.strip()) for line in prompt.splitlines())
+
+
+def missing_tier_tests(prompt: str) -> list[str]:
+    return sorted(TIER_TESTS - set(TIER_TEST_PATTERN.findall(prompt)))
 
 
 def has_bad_site_cli(prompt: str) -> bool:
@@ -223,12 +319,104 @@ def has_unmarked_verify_command(prompt: str) -> bool:
     return any(_is_unmarked_verify_command(s) for s in _verify_sections(prompt.splitlines()))
 
 
-def decide(subagent_type: object, prompt: object) -> Decision | None:
+def _inline_code_spans(prompt: str) -> list[str]:
+    """Single-line backtick spans with no `<word>` placeholder, outside ``` fences, inside a Verify section, in brief order, each once."""
+    spans: list[str] = []
+    for section in _verify_sections(prompt.splitlines()):
+        spans.extend(_section_code_spans(section))
+    return list(dict.fromkeys(span for span in spans if span and not PLACEHOLDER_PATTERN.search(span)))
+
+
+def _section_code_spans(lines: list[str]) -> list[str]:
+    spans: list[str] = []
+    is_in_fence = False
+    for line in lines:
+        if line.strip().startswith(FENCE_MARKER):
+            is_in_fence = not is_in_fence
+            continue
+        if is_in_fence:
+            continue
+        spans.extend(span.strip() for span in INLINE_CODE_PATTERN.findall(line))
+    return spans
+
+
+def _is_role_denied(subagent_type: str, command: str) -> bool:
+    payload = {"agent_type": subagent_type, "tool_name": "Bash", "tool_input": {"command": command}}
+    try:
+        verdict = role_gate.decide(payload)
+    except Exception:  # a hook must never break the gate it warns for
+        return False
+    return verdict is not None and verdict.kind == "deny"
+
+
+def role_denied_commands(subagent_type: object, prompt: str) -> list[str]:
+    """Inline backticked commands that role_gate.py would deny the engineer role; empty when it can't be imported."""
+    if role_gate is None or subagent_type not in ENGINEER_SUBAGENT_TYPES:
+        return []
+    return [span for span in _inline_code_spans(prompt) if _is_role_denied(str(subagent_type), span)]
+
+
+def _role_deny_parts(subagent_type: object, prompt: str) -> tuple[str, ...]:
+    commands = role_denied_commands(subagent_type, prompt)
+    if not commands:
+        return ()
+    named = ", ".join(f"`{command}`" for command in commands)
+    return (ROLE_DENY_WARN_TEXT.format(commands=named, role=subagent_type),)
+
+
+def _read_roster(agents_dir: Path) -> frozenset[str] | None:
+    """Stems of the `*.md` agent definitions in `agents_dir`; None when the directory is unreadable or empty."""
+    try:
+        stems = frozenset(path.stem for path in agents_dir.glob("*.md"))
+    except OSError:
+        return None
+    return stems or None
+
+
+def _roster_denial(subagent_type: object, roster: frozenset[str] | None) -> Decision | None:
+    if roster is None:
+        return Decision("deny", ROSTER_MISSING_DENY_REASON)
+    if isinstance(subagent_type, str) and (subagent_type in roster or subagent_type in BUILTIN_ALLOWED):
+        return None
+    pick_one = ", ".join(sorted(roster | BUILTIN_ALLOWED))
+    if isinstance(subagent_type, str) and subagent_type in STAND_IN_REASONS:
+        return Decision("deny", STAND_IN_REASONS[subagent_type])
+    return Decision("deny", ROSTER_DENY_REASON.format(pick_one=pick_one))
+
+
+def _model_or_caller_denial(
+    subagent_type: object, model: object, caller: object, roster: frozenset[str]
+) -> Decision | None:
+    if isinstance(model, str) and model.strip().lower() == FABLE_MODEL:
+        return Decision("deny", FABLE_DENY_REASON)
+    if subagent_type in roster and isinstance(model, str) and model.strip():
+        return Decision("deny", PINNED_MODEL_DENY_REASON)
+    if caller == "team-lead" and subagent_type not in ENGINEER_SUBAGENT_TYPES:
+        return Decision("deny", LEAD_SPAWNS_ENGINEERS_DENY_REASON)
+    return None
+
+
+def decide(
+    subagent_type: object,
+    prompt: object,
+    model: object = None,
+    caller: object = None,
+    agents_dir: Path = AGENTS_DIR,
+) -> Decision | None:
+    roster = _read_roster(agents_dir)
+    denial = _roster_denial(subagent_type, roster) or _model_or_caller_denial(
+        subagent_type, model, caller, roster
+    )
+    if denial is not None:
+        return denial
     if subagent_type not in GATED_SUBAGENT_TYPES:
         return None
     text = prompt if isinstance(prompt, str) else ""
     if not has_status_paste(text):
         return Decision("deny", DENY_REASON)
+    behind_line = behind_branch_line(text)
+    if behind_line is not None:
+        return Decision("deny", STALE_DENY_REASON.format(line=behind_line))
     if has_bad_site_cli(text):
         return Decision("deny", SITE_CLI_DENY_REASON)
     if subagent_type == "team-lead" and not LEAD_REASON_PATTERN.search(text):
@@ -237,9 +425,15 @@ def decide(subagent_type: object, prompt: object) -> Decision | None:
         return Decision("deny", BACKGROUND_DENY_REASON)
     if subagent_type == "team-lead" and has_same_engineer_fix_order(text):
         return Decision("deny", SAME_ENGINEER_DENY_REASON)
-    if has_unmarked_verify_command(text):
-        return Decision("warn", WARN_TEXT + VERIFY_WARN_TEXT)
-    return Decision("warn", WARN_TEXT)
+    if subagent_type == "engineer-haiku" and (missing := missing_tier_tests(text)):
+        return Decision("deny", TIER_DENY_REASON.format(missing=", ".join(missing)))
+    return Decision("warn", "".join(_warn_parts(subagent_type, text)))
+
+
+def _warn_parts(subagent_type: object, text: str) -> tuple[str, ...]:
+    verify_part = (VERIFY_WARN_TEXT,) if has_unmarked_verify_command(text) else ()
+    branch_part = () if has_branch_line(text) else (BRANCH_WARN_TEXT,)
+    return (WARN_TEXT, *verify_part, *branch_part, *_role_deny_parts(subagent_type, text))
 
 
 def _emit(decision: Decision) -> int:
@@ -273,7 +467,12 @@ def main() -> None:
     tool_input = payload.get("tool_input")
     if not isinstance(tool_input, dict):
         return
-    decision = decide(tool_input.get("subagent_type"), tool_input.get("prompt"))
+    decision = decide(
+        tool_input.get("subagent_type"),
+        tool_input.get("prompt"),
+        tool_input.get("model"),
+        payload.get("agent_type"),
+    )
     if decision is None:
         return
     sys.exit(_emit(decision))

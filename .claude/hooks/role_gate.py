@@ -56,8 +56,12 @@ Deny patterns, described here and nowhere else (rule files point at this docstri
   label, comment, digest, sync-main; the `team-lead` agent publish, merge, sync-main; the FACTORY_ROLE
   main session merge (it may publish and run sync-main, which its build routine needs: sync-main runs
   `git checkout -B main FETCH_HEAD` and so drops unpushed local main commits). Other subcommands (approvals, parse-issue, ...) stay allowed for everyone.
-- any other agent_type (e.g. a plain "Explore" subagent): silent — this hook only governs
-  the pyramid roles.
+- a generic agent_type (present, not a pyramid role, not in EXEMPT_AGENT_TYPES: `general-purpose`,
+  `claude`, `fork`, anything unknown): generic agents can't implement, so deny Write/Edit/NotebookEdit,
+  a shell command matching a WRITE_PATTERN or a GIT_PATTERN, and any `land.py` call. Reads, read-only git
+  and non-writing shell commands stay allowed. The reason says to spawn `engineer`.
+- an EXEMPT_AGENT_TYPES agent_type ("Explore", "Plan", "statusline-setup", "claude-code-guide",
+  "web-fetch"): silent — these are not implementers (statusline-setup legitimately Edits).
 
 Unreliable measurement (warn-only, every pyramid role and the main session, Bash and PowerShell):
 a command matching a row of UNRELIABLE_MEASUREMENTS (today: `grep` for `$'\r'`, which returned the
@@ -81,6 +85,7 @@ RULE_FILE = "~/.claude/rules/execution-workflow.md"
 FACTORY_ROLE_ENV = "FACTORY_ROLE"
 FACTORY_ROLE_TEAM_LEAD = "team-lead"
 ENGINEER_AGENT_TYPES = frozenset({"engineer", "engineer-haiku"})
+EXEMPT_AGENT_TYPES = frozenset({"Explore", "Plan", "statusline-setup", "claude-code-guide", "web-fetch"})
 WRITE_TOOL_NAMES = frozenset({"Write", "Edit", "NotebookEdit"})
 SHELL_TOOL_NAMES = frozenset({"Bash", "PowerShell"})
 
@@ -439,6 +444,23 @@ def _decide_engineer(
     return _factory_tool_denial(command, "engineer", ENGINEER_BLOCKED_FACTORY_JOB)
 
 
+def _decide_generic(agent_type: str, tool_name: str, tool_input: dict) -> Decision | None:
+    """Deny implementation by a generic agent (general-purpose, claude, fork, unknown): spawn `engineer`."""
+    rule = f"generic agents can't implement; spawn `engineer`; see {RULE_FILE}"
+    if tool_name in WRITE_TOOL_NAMES:
+        return Decision("deny", f"{agent_type} agent may not use {tool_name}: {rule}")
+    if tool_name not in SHELL_TOOL_NAMES:
+        return None
+    command = _shell_command(tool_input)
+    matched = _matched_write_pattern(command)
+    if matched is None:
+        git_match = _matched_git_pattern(command)
+        matched = f"git {git_match}" if git_match else ("land.py" if _is_land_call(command) else None)
+    if matched:
+        return Decision("deny", f"{agent_type} agent may not run this (matched: {matched}): {rule}")
+    return None
+
+
 def _marker_path(payload: dict) -> Path:
     session_id = payload.get("session_id") or "unknown"
     base_dir = payload.get("scratchpad_dir") or tempfile.gettempdir()
@@ -518,7 +540,9 @@ def _decide_by_role(payload: dict) -> Decision | None:
                 tool_name, tool_input, "FACTORY_ROLE team-lead session", FACTORY_SESSION_BLOCKED_FACTORY_JOB
             )
         return _decide_tech_lead(tool_name, payload)
-    return None  # an agent_type outside the pyramid (e.g. "Explore"): not this hook's concern
+    if agent_type in EXEMPT_AGENT_TYPES or not isinstance(agent_type, str):
+        return None  # an exempt non-implementer (e.g. "Explore"): not this hook's concern
+    return _decide_generic(agent_type, tool_name, tool_input)
 
 
 def _emit(decision: Decision) -> int:
