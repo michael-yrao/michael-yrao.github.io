@@ -65,7 +65,14 @@ except Exception:  # the check then stays silent; it must never break the gate
 
 GATED_SUBAGENT_TYPES = frozenset({"team-lead", "engineer", "engineer-haiku"})
 ENGINEER_SUBAGENT_TYPES = frozenset({"engineer", "engineer-haiku"})
-AGENTS_DIR = Path(__file__).resolve().parent.parent / "agents"  # hooks/ and agents/ are siblings in both clones
+def resolve_agents_dir(claude_dir: Path) -> Path:
+    """The dotfiles clone keeps agents/ beside hooks/; a project copy (manifest.json sync) keeps them in
+    workflow/agents/. The first that exists wins (2026-11-09: the project copy read an empty roster)."""
+    candidates = (claude_dir / "agents", claude_dir / "workflow" / "agents")
+    return next((d for d in candidates if d.is_dir()), candidates[0])
+
+
+AGENTS_DIR = resolve_agents_dir(Path(__file__).resolve().parent.parent)
 BUILTIN_ALLOWED = frozenset({"statusline-setup", "claude-code-guide"})
 ROSTER_DENY_REASON = (
     "Brief gate: ~/.claude/rules/execution-workflow.md \"Agent roster\": only dotfile agents spawn, and "
