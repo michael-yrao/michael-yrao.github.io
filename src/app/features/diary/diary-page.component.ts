@@ -19,6 +19,7 @@ import { map } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { WORKER_API_URL, isCoachOwner } from '../../core/data/site-links';
+import { MenuComponent } from '../../shared/components/menu/menu.component';
 import { DiaryBlock, blocksOf, placeEntry, todayLocal } from './diary-body';
 import {
   DiaryEntriesResponse,
@@ -50,6 +51,7 @@ const MESSAGE_WRONG_PASSWORD = 'Wrong password';
 const MESSAGE_TOO_MANY = 'Too many tries. Wait a minute.';
 const MESSAGE_UNREACHABLE = "Couldn't reach the server.";
 const MESSAGE_SAVE_FAILED = "Couldn't save.";
+const AUDIT_TAB = 'audit';
 const STATUS_CONFLICT = 409;
 const ERROR_TITLE_TAKEN = 'title-taken';
 const MESSAGE_TITLE_TAKEN = 'Title needs to be unique';
@@ -96,7 +98,7 @@ interface EditorDraft { id: string | null; date: string; title: string; body: st
 
 @Component({
   selector: 'app-diary-page',
-  imports: [RouterLink],
+  imports: [RouterLink, MenuComponent],
   templateUrl: './diary-page.component.html',
   styleUrls: ['./diary-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -123,6 +125,10 @@ export class DiaryPageComponent implements OnInit {
     initialValue: this.route.snapshot.queryParamMap.get('entry'),
   });
 
+  private readonly tabParam = toSignal(this.route.queryParamMap.pipe(map((params) => params.get('tab'))), {
+    initialValue: this.route.snapshot.queryParamMap.get('tab'),
+  });
+
   readonly isOwner = computed(() => isCoachOwner(this.auth.login()));
   readonly entries = signal<readonly DiaryEntry[] | null>(null);
   readonly error = signal('');
@@ -133,6 +139,11 @@ export class DiaryPageComponent implements OnInit {
   readonly selectedEntry = computed(
     () => (this.entries() ?? []).find((entry) => entry.id === this.entryParam()) ?? null,
   );
+  /** What the page shows: the open entry, the owner's Audit view (`?tab=audit`), or the home list. */
+  readonly view = computed<'entry' | 'audit' | 'home'>(() => {
+    if (this.selectedEntry() !== null) return 'entry';
+    return this.isOwner() && this.tabParam() === AUDIT_TAB ? 'audit' : 'home';
+  });
   readonly backupLabel = computed(() => {
     const at = this.backupAt();
     return at === null ? MESSAGE_NOT_BACKED_UP : `Backed up ${new Date(at).toLocaleString()}`;
@@ -144,7 +155,10 @@ export class DiaryPageComponent implements OnInit {
     effect(() => {
       if (this.hasLoadedOwner || !this.isOwner()) return;
       this.hasLoadedOwner = true;
-      untracked(() => void this.loadOwnerData());
+      untracked(() => void this.loadEntries());
+    });
+    effect(() => {
+      if (this.view() === 'audit') untracked(() => void this.loadViews());
     });
     effect(() => {
       const id = this.selectedEntry()?.id;
@@ -210,29 +224,18 @@ export class DiaryPageComponent implements OnInit {
     this.editor.set(null);
   }
 
-  /** Puts the entry id in the `entry` query param (null clears it); a stale id shows the home list. */
+  /** Puts the entry id in the `entry` query param (null shows home) and clears `tab`; a stale id shows home. */
   selectEntry(id: string | null): void {
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { entry: id },
-      replaceUrl: true,
-    });
+    this.navigateTo({ entry: id, tab: null });
   }
 
-  /** Left/right arrows move the selection and focus across the home tab (index 0) and the entry tabs. */
-  onTabKey(event: KeyboardEvent, index: number): void {
-    const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-    const tabIds = [null, ...(this.entries() ?? []).map((entry) => entry.id)];
-    const next = index + step;
-    if (step === 0 || next < 0 || next >= tabIds.length) return;
-    event.preventDefault();
-    this.selectEntry(tabIds[next]);
-    const tabs = this.host.nativeElement.querySelectorAll<HTMLElement>('[role="tab"]');
-    tabs[next]?.focus();
+  /** Opens the owner's Audit view: `?tab=audit` with the `entry` param removed. */
+  selectAudit(): void {
+    this.navigateTo({ entry: null, tab: AUDIT_TAB });
   }
 
-  tabLabelOf(entry: DiaryEntry): string {
-    return entry.title === '' ? entry.date : entry.title;
+  private navigateTo(queryParams: { entry: string | null; tab: string | null }): void {
+    void this.router.navigate([], { relativeTo: this.route, queryParams, replaceUrl: true });
   }
 
   async save(date: string, title: string, body: string): Promise<void> {
@@ -294,9 +297,6 @@ export class DiaryPageComponent implements OnInit {
     });
   }
 
-  private async loadOwnerData(): Promise<void> {
-    await Promise.all([this.loadEntries(), this.loadViews()]);
-  }
 
   private async loadEntries(): Promise<void> {
     try {

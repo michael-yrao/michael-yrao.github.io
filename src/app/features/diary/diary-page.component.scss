@@ -107,45 +107,10 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  overflow-x: auto;
-  // Room for the global 2px focus outline + 2px offset, which the scroll container would clip;
-  // the extra 8px of width keeps the tabs lined up with the 40rem text column.
-  padding: 4px;
-  max-width: calc(40rem + 8px);
-
-  &__tab {
-    flex: none;
-    max-width: 14rem;
-    padding: var(--space-xs) var(--space-md);
-    background: transparent;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    color: var(--color-text-muted);
-    font: inherit;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    cursor: pointer;
-
-    &[aria-selected='true'] {
-      background: var(--color-bg-raised);
-      border-color: var(--color-accent);
-      color: var(--color-text);
-    }
-  }
-
-  &__home {
-    display: inline-flex;
-    align-items: center;
-
-    svg {
-      width: 1.1rem;
-      height: 1.1rem;
-    }
-  }
 
   &__new {
     flex: none;
+    margin-left: auto;
   }
 }
 
@@ -178,6 +143,24 @@
 
   &__delete {
     margin-right: auto;
+  }
+}
+
+.entry-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+
+  &__title {
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+
+  &__date--dim {
+    // The shared menu item is 13px, so --text-sm (14px) would read larger than the title.
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
   }
 }
 

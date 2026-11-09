@@ -1,32 +1,29 @@
 <div class="page">
   @if (entries() !== null || isOwner()) {
-    <div class="tabs" role="tablist" aria-label="Entries">
-      <button
-        class="tabs__tab tabs__home"
-        type="button"
-        role="tab"
-        aria-label="Diary"
-        title="Diary"
-        [attr.aria-selected]="selectedEntry() === null"
-        [attr.tabindex]="selectedEntry() === null ? 0 : -1"
-        (click)="selectEntry(null)"
-        (keydown)="onTabKey($event, 0)"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-          <path d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
-      @for (entry of entries() ?? []; track entry.id; let i = $index) {
-        <button
-          class="tabs__tab"
-          type="button"
-          role="tab"
-          [attr.aria-selected]="entry.id === selectedEntry()?.id"
-          [attr.tabindex]="entry.id === selectedEntry()?.id ? 0 : -1"
-          (click)="selectEntry(entry.id)"
-          (keydown)="onTabKey($event, i + 1)"
-        >{{ tabLabelOf(entry) }}</button>
-      }
+    <div class="tabs">
+      <app-menu label="Diary" title="Diary" icon="bars" align="start">
+        <button type="button" role="menuitem" class="menu__item" [class.active]="view() === 'home'" [attr.aria-current]="view() === 'home' ? 'page' : null" (click)="selectEntry(null)">
+          Diaries
+        </button>
+        @for (entry of entries() ?? []; track entry.id) {
+          <button type="button" role="menuitem" class="menu__item" [class.active]="selectedEntry()?.id === entry.id" [attr.aria-current]="selectedEntry()?.id === entry.id ? 'page' : null" [attr.aria-label]="entry.title === '' ? null : entry.title" (click)="selectEntry(entry.id)">
+            @if (entry.title === '') {
+              <span class="entry-item__date">{{ entry.date }}</span>
+            } @else {
+              <span class="entry-item">
+                <span class="entry-item__title">{{ entry.title }}</span>
+                <span class="entry-item__date entry-item__date--dim">{{ entry.date }}</span>
+              </span>
+            }
+          </button>
+        }
+        @if (isOwner()) {
+          <div class="menu__separator" role="separator"></div>
+          <button type="button" role="menuitem" class="menu__item" [class.active]="view() === 'audit'" [attr.aria-current]="view() === 'audit' ? 'page' : null" (click)="selectAudit()">
+            Audit
+          </button>
+        }
+      </app-menu>
       @if (isOwner()) {
         <button class="icon-btn tabs__new" type="button" aria-label="New entry" title="New entry" (click)="newEntry()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -95,7 +92,7 @@
           }
         }
       </article>
-    } @else {
+    } @else if (view() === 'home') {
       <ul class="home">
         @for (entry of list; track entry.id) {
           <li>
@@ -132,7 +129,7 @@
     <p class="lock__error" role="alert">{{ error() }}</p>
   }
 
-  @if (views(); as rows) {
+  @if (view() === 'audit' && views(); as rows) {
     <section class="views">
       <h2 class="views__heading">
         Views <span class="views__count">{{ rows.length }}</span>

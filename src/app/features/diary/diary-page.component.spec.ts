@@ -42,8 +42,12 @@ async function settle(fixture: ComponentFixture<DiaryPageComponent>): Promise<vo
   fixture.detectChanges();
 }
 
-/** A page whose real router starts with the `entry` query param set to `entryParam`; `navigate` is spied. */
-async function setup(login: string | null, entryParam: string | null = null): Promise<ComponentFixture<DiaryPageComponent>> {
+/** A page whose real router starts with the `entry` and `tab` query params set; `navigate` is spied. */
+async function setup(
+  login: string | null,
+  entryParam: string | null = null,
+  tabParam: string | null = null,
+): Promise<ComponentFixture<DiaryPageComponent>> {
   TestBed.configureTestingModule({
     providers: [
       { provide: AuthService, useValue: { login: signal(login), getToken: async () => 'tok' } },
@@ -51,7 +55,9 @@ async function setup(login: string | null, entryParam: string | null = null): Pr
     ],
   });
   const router = TestBed.inject(Router);
-  if (entryParam !== null) await router.navigate([], { queryParams: { entry: entryParam } });
+  if (entryParam !== null || tabParam !== null) {
+    await router.navigate([], { queryParams: { entry: entryParam, tab: tabParam } });
+  }
   vi.spyOn(router, 'navigate');
   const fixture = TestBed.createComponent(DiaryPageComponent);
   fixture.detectChanges();
@@ -68,6 +74,21 @@ async function submit(fixture: ComponentFixture<DiaryPageComponent>): Promise<vo
 
 async function click(fixture: ComponentFixture<DiaryPageComponent>, selector: string): Promise<void> {
   (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(selector)!.click();
+  await settle(fixture);
+}
+
+async function openMenu(fixture: ComponentFixture<DiaryPageComponent>): Promise<void> {
+  await click(fixture, '.tabs button[aria-haspopup="menu"]');
+}
+
+/** A menu item's accessible name: its aria-label (a titled entry), else its text. */
+function itemName(item: Element): string | undefined {
+  return item.getAttribute('aria-label') ?? item.textContent?.trim();
+}
+
+async function chooseItem(fixture: ComponentFixture<DiaryPageComponent>, text: string): Promise<void> {
+  const items = [...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('[role="menuitem"]')];
+  items.find((item) => itemName(item) === text)!.click();
   await settle(fixture);
 }
 
@@ -95,18 +116,82 @@ describe('DiaryPageComponent', () => {
   });
 
   it.each([
-    { name: 'a known id', param: 'e1', title: 'Sed title', selectedLabel: 'Sed title' },
-    { name: 'an unknown id', param: 'gone', title: undefined, selectedLabel: '' },
-    { name: 'no id', param: null, title: undefined, selectedLabel: '' },
-  ])('opens the right view for $name in the query param', async ({ param, title, selectedLabel }) => {
+    { name: 'a known id', param: 'e1', title: 'Sed title' },
+    { name: 'an unknown id', param: 'gone', title: undefined },
+    { name: 'no id', param: null, title: undefined },
+  ])('opens the right view for $name in the query param', async ({ param, title }) => {
     vi.stubGlobal('fetch', routeFetch());
     const fixture = await setup(null, param);
     await submit(fixture);
 
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('h1')?.textContent).toBe(title);
-    expect(el.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.trim()).toBe(selectedLabel);
-    expect(el.querySelectorAll('[role="tab"]').length).toBe(3);
+    expect(el.querySelector('.home') !== null).toBe(title === undefined);
+  });
+
+  it.each([
+    { name: 'the owner', login: COACH_OWNER_LOGIN, items: ['Diaries', 'Lorem title', 'Sed title', 'Audit'], hasSeparator: true },
+    { name: 'a reader', login: null, items: ['Diaries', 'Lorem title', 'Sed title'], hasSeparator: false },
+  ])('the menu for $name lists $items', async ({ login, items, hasSeparator }) => {
+    vi.stubGlobal('fetch', routeFetch());
+    const fixture = await setup(login);
+    if (login === null) await submit(fixture);
+    await openMenu(fixture);
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect([...el.querySelectorAll('[role="menuitem"]')].map(itemName)).toEqual(items);
+    expect(el.querySelector('[role="separator"]') !== null).toBe(hasSeparator);
+    expect(el.querySelector('[role="tablist"]')).toBeNull();
+  });
+
+  it('shows a titled item\'s date under its title, and an untitled item\'s date once', async () => {
+    const untitled: DiaryEntry = { ...ENTRIES[1], id: 'e0', date: '2025-12-01', title: '' };
+    vi.stubGlobal('fetch', routeFetch({ 'GET entries': reply({ entries: [ENTRIES[0], untitled] }) }));
+    const fixture = await setup(COACH_OWNER_LOGIN);
+    await openMenu(fixture);
+
+    const [titled, bare] = [...fixture.nativeElement.querySelectorAll('[role="menuitem"]')].slice(1, 3) as HTMLElement[];
+    expect(titled.getAttribute('aria-label')).toBe('Lorem title');
+    expect(titled.querySelector('.entry-item__title')?.textContent).toBe('Lorem title');
+    expect(titled.querySelector('.entry-item__date')?.textContent).toBe('2026-02-01');
+    expect(bare.getAttribute('aria-label')).toBeNull();
+    expect(bare.querySelector('.entry-item__title')).toBeNull();
+    expect(bare.querySelectorAll('.entry-item__date').length).toBe(1);
+    expect(bare.textContent?.trim()).toBe('2025-12-01');
+  });
+
+  it.each([
+    { item: 'Diaries', queryParams: { entry: null, tab: null } },
+    { item: 'Sed title', queryParams: { entry: 'e1', tab: null } },
+    { item: 'Audit', queryParams: { entry: null, tab: 'audit' } },
+  ])('the "$item" menu item navigates to $queryParams', async ({ item, queryParams }) => {
+    vi.stubGlobal('fetch', routeFetch());
+    const fixture = await setup(COACH_OWNER_LOGIN, 'e2');
+    await openMenu(fixture);
+
+    await chooseItem(fixture, item);
+
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({ queryParams, replaceUrl: true }),
+    );
+  });
+
+  it.each([
+    { name: 'the owner', login: COACH_OWNER_LOGIN, hasTable: true },
+    { name: 'a non-owner', login: 'someone-else', hasTable: false },
+  ])('?tab=audit for $name', async ({ login, hasTable }) => {
+    vi.stubGlobal('fetch', routeFetch());
+    const fixture = await setup(login, null, 'audit');
+    if (!hasTable) await submit(fixture);
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.views table') !== null).toBe(hasTable);
+    expect(el.querySelector('.home') !== null).toBe(!hasTable);
+    if (hasTable) {
+      expect(el.querySelector('.views__count')?.textContent).toBe('2');
+      expect(el.querySelector('.views__backup')?.textContent).toBe('Not backed up');
+    }
   });
 
   it('lists a link per entry on home, with no body text', async () => {
@@ -122,21 +207,7 @@ describe('DiaryPageComponent', () => {
     expect(el.textContent).not.toContain('Sed do eiusmod');
   });
 
-  it('navigates with the entry param removed when the home tab is selected', async () => {
-    vi.stubGlobal('fetch', routeFetch());
-    const fixture = await setup(null, 'e1');
-    await submit(fixture);
-
-    await click(fixture, 'button[aria-label="Diary"]');
-
-    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(
-      [],
-      expect.objectContaining({ queryParams: { entry: null }, replaceUrl: true }),
-    );
-    expect(fixture.nativeElement.querySelector('.home')).not.toBeNull();
-  });
-
-  it('selects the tab of a newly saved entry', async () => {
+  it('opens a newly saved entry', async () => {
     const saved: DiaryEntry = { id: 'e3', date: '2026-03-01', title: 'New title', body: 'Lorem', updatedAt: '2026-03-01T00:00:00Z' };
     vi.stubGlobal('fetch', routeFetch({ 'POST entries': reply({ entry: saved }) }));
     const fixture = await setup(COACH_OWNER_LOGIN, 'e1');
@@ -145,7 +216,6 @@ describe('DiaryPageComponent', () => {
     await click(fixture, 'button[aria-label="Save"]');
 
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.trim()).toBe('New title');
     expect(el.querySelector('h1')?.textContent).toBe('New title');
   });
 
@@ -160,7 +230,7 @@ describe('DiaryPageComponent', () => {
     expect(fixture.nativeElement.querySelector('form.editor')).not.toBeNull();
   });
 
-  it('replaces the old tab and selects the new id after a rename', async () => {
+  it('opens the new id after a rename and leaves no old copy', async () => {
     const renamed: DiaryEntry = { ...ENTRIES[1], id: 'renamed', title: 'Renamed' };
     vi.stubGlobal('fetch', routeFetch({ 'PUT entries/e1': reply({ entry: renamed }) }));
     const fixture = await setup(COACH_OWNER_LOGIN, 'e1');
@@ -169,12 +239,17 @@ describe('DiaryPageComponent', () => {
     await click(fixture, 'button[aria-label="Save"]');
 
     const el: HTMLElement = fixture.nativeElement;
-    expect([...el.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent?.trim())).toEqual(['','Lorem title', 'Renamed']);
-    expect(el.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('Renamed');
+    expect(el.querySelector('h1')?.textContent).toBe('Renamed');
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(
       [],
-      expect.objectContaining({ queryParams: { entry: 'renamed' } }),
+      expect.objectContaining({ queryParams: { entry: 'renamed', tab: null } }),
     );
+    await openMenu(fixture);
+    await chooseItem(fixture, 'Diaries');
+    expect([...el.querySelectorAll('.home a')].map((link) => link.textContent?.trim())).toEqual([
+      '2026-02-01Lorem title',
+      '2026-01-01Renamed',
+    ]);
   });
 
   it.each([
@@ -195,7 +270,7 @@ describe('DiaryPageComponent', () => {
     { name: 'signed out', login: null, isOwner: false },
     { name: 'a non-owner', login: 'someone-else', isOwner: false },
     { name: 'the owner', login: COACH_OWNER_LOGIN, isOwner: true },
-  ])('owner controls and views for $name', async ({ login, isOwner }) => {
+  ])('owner controls for $name', async ({ login, isOwner }) => {
     const fetchMock = routeFetch();
     vi.stubGlobal('fetch', fetchMock);
     const fixture = await setup(login, 'e2');
@@ -205,18 +280,13 @@ describe('DiaryPageComponent', () => {
     for (const label of ['New entry', 'Edit']) {
       expect(el.querySelector(`button[aria-label="${label}"]`) !== null).toBe(isOwner);
     }
-    expect(el.querySelector('.views') !== null).toBe(isOwner);
-    if (isOwner) {
-      expect(el.querySelector('input[type="password"]')).toBeNull();
-      expect(el.querySelector('.views__count')?.textContent).toBe('2');
-      expect(el.querySelector('.views__backup')?.textContent).toBe('Not backed up');
-      expect(el.querySelectorAll('[role="tab"]').length).toBe(3);
-    }
+    expect(el.querySelector('.views')).toBeNull();
+    if (isOwner) expect(el.querySelector('input[type="password"]')).toBeNull();
   });
 
   it('maps read ids to titles and skips a deleted id', async () => {
     vi.stubGlobal('fetch', routeFetch());
-    const fixture = await setup(COACH_OWNER_LOGIN);
+    const fixture = await setup(COACH_OWNER_LOGIN, null, 'audit');
 
     const cells = fixture.nativeElement.querySelectorAll('tbody tr:first-child td');
     expect(cells[3].textContent).toBe('Sed title · Lorem title');
@@ -235,7 +305,6 @@ describe('DiaryPageComponent', () => {
 
     await click(fixture, 'button[aria-label="Confirm delete"]');
     expect(fetchMock.mock.calls.filter(isDelete).length).toBe(1);
-    expect(fixture.nativeElement.querySelectorAll('[role="tab"]').length).toBe(2);
     expect(fixture.nativeElement.querySelector('form.editor')).toBeNull();
     expect(fixture.nativeElement.querySelector('.home')).not.toBeNull();
   });
