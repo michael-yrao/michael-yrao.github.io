@@ -114,6 +114,38 @@ describe('DiaryPageComponent', () => {
     expect(el.querySelectorAll('p').length).toBe(2);
   });
 
+  it('renders a list and bold as li and strong, and typed HTML as literal text', async () => {
+    const marked: DiaryEntry = { ...ENTRIES[0], body: '- one\n- two\n\nA **bold** word <b>x</b>' };
+    vi.stubGlobal('fetch', routeFetch({ 'POST unlock': reply({ visitId: 'v1', entries: [marked] }) }));
+    const fixture = await setup(null, 'e2');
+    await submit(fixture);
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelectorAll('li').length).toBe(2);
+    expect(el.querySelector('strong')?.textContent).toBe('bold');
+    expect(el.querySelector('b')).toBeNull();
+    expect(el.querySelector('p')?.textContent).toBe('A bold word <b>x</b>');
+  });
+
+  it('the Formatting button flips aria-expanded and shows or hides the five key rows', async () => {
+    vi.stubGlobal('fetch', routeFetch());
+    const fixture = await setup(COACH_OWNER_LOGIN, 'e2');
+    await submit(fixture);
+    await click(fixture, 'button[aria-label="Edit"]');
+    const el: HTMLElement = fixture.nativeElement;
+    const button = el.querySelector('button[aria-label="Formatting"]')!;
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(el.querySelector('.editor__key')).toBeNull();
+
+    await click(fixture, 'button[aria-label="Formatting"]');
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(el.querySelectorAll('.editor__key dt').length).toBe(5);
+
+    await click(fixture, 'button[aria-label="Formatting"]');
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(el.querySelector('.editor__key')).toBeNull();
+  });
+
   it.each([
     { name: 'a known id', param: 'e1', title: 'Sed title' },
     { name: 'an unknown id', param: 'gone', title: undefined },
@@ -292,6 +324,7 @@ describe('DiaryPageComponent', () => {
     expect(el.querySelector('.entry button[aria-label="Delete"]')).toBeNull();
     expect(el.querySelector('form.editor')).not.toBeNull();
     expect(el.querySelector('article')).toBeNull();
+    expect(el.querySelector('ul.home')).toBeNull();
   });
 
   it('sizes the body textarea from its scrollHeight on open and on input', async () => {

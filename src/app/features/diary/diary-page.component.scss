@@ -5,7 +5,7 @@ $sheet-padding: 1in;
 // The body text's type, shared by the reading view and the editor so both wrap the same way.
 $body-font-size: 1.05rem;
 $body-line-height: 1.8;
-$editor-min-lines: 8;
+$editor-min-height: 70vh;
 
 // Below the sheet's own width it goes edge to edge inside the page gutter.
 @mixin sheet {
@@ -139,7 +139,11 @@ $editor-min-lines: 8;
 }
 
 .editor {
-  @include sheet;
+  box-sizing: border-box;
+  padding: var(--space-md);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -161,7 +165,28 @@ $editor-min-lines: 8;
     field-sizing: content;
     font-size: $body-font-size;
     line-height: $body-line-height;
-    min-height: calc(#{$body-font-size} * #{$body-line-height} * #{$editor-min-lines});
+    min-height: $editor-min-height;
+    border: 0;
+    background: transparent;
+  }
+
+  // Two columns: what is typed, and how it looks in the entry.
+  &__key {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--space-xs) var(--space-lg);
+    margin: 0;
+    color: var(--color-text-muted);
+
+    dt,
+    dd {
+      margin: 0;
+    }
+
+    .entry__heading,
+    .entry__list {
+      margin: 0;
+    }
   }
 
   &__actions {
@@ -266,6 +291,14 @@ $editor-min-lines: 8;
     line-height: $body-line-height;
     color: var(--color-text-muted);
     margin: 0 0 var(--space-lg);
+  }
+
+  &__list {
+    font-size: $body-font-size;
+    line-height: $body-line-height;
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-lg);
+    padding-left: var(--space-xl);
   }
 
   @media (max-width: 560px) {

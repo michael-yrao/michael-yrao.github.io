@@ -1,3 +1,15 @@
+<ng-template #spansTpl let-spans>
+  @for (span of spans; track $index) {
+    @if (span.isBold) {
+      <strong>{{ span.text }}</strong>
+    } @else if (span.isItalic) {
+      <em>{{ span.text }}</em>
+    } @else {
+      <ng-container>{{ span.text }}</ng-container>
+    }
+  }
+</ng-template>
+
 <div class="page">
   @if (entries() !== null) {
     <div class="tabs">
@@ -47,6 +59,20 @@
       <input #date class="editor__field" type="date" [value]="draft.date" aria-label="Date" title="Date" />
       <input #title class="editor__field" type="text" [value]="draft.title" placeholder="Title" aria-label="Title" />
       <textarea #body class="editor__field editor__body" [value]="draft.body" (input)="autosize(body)" placeholder="Write…" aria-label="Write…"></textarea>
+      @if (isKeyOpen()) {
+        <dl class="editor__key">
+          <dt><code>## Heading</code></dt>
+          <dd><span class="entry__heading">Heading</span></dd>
+          <dt><code>**bold**</code></dt>
+          <dd><strong>bold</strong></dd>
+          <dt><code>*italic*</code></dt>
+          <dd><em>italic</em></dd>
+          <dt><code>- item</code></dt>
+          <dd><ul class="entry__list"><li>item</li></ul></dd>
+          <dt>a blank line</dt>
+          <dd>a new paragraph</dd>
+        </dl>
+      }
       <div class="editor__actions">
         @if (draft.id; as draftId) {
           @if (pendingDeleteId() === draftId) {
@@ -63,6 +89,11 @@
             </button>
           }
         }
+        <button class="icon-btn" type="button" aria-label="Formatting" title="Formatting" [attr.aria-expanded]="isKeyOpen()" (click)="toggleKey()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M5 7V5h14v2M12 5v14M9 19h6" />
+          </svg>
+        </button>
         <button class="icon-btn" type="submit" aria-label="Save" title="Save" [disabled]="isBusy()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <path d="M5 4h11l3 3v13H5z" />
@@ -87,15 +118,21 @@
             <h1 class="entry__title">{{ entry.title }}</h1>
           </div>
           @for (block of blocksOf(entry); track $index) {
-            @if (block.isHeading) {
-              <h2 class="entry__heading">{{ block.text }}</h2>
+            @if (block.kind === 'list') {
+              <ul class="entry__list">
+                @for (item of block.items; track $index) {
+                  <li><ng-container *ngTemplateOutlet="spansTpl; context: { $implicit: item }" /></li>
+                }
+              </ul>
+            } @else if (block.kind === 'heading') {
+              <h2 class="entry__heading"><ng-container *ngTemplateOutlet="spansTpl; context: { $implicit: block.spans }" /></h2>
             } @else {
-              <p class="entry__text">{{ block.text }}</p>
+              <p class="entry__text"><ng-container *ngTemplateOutlet="spansTpl; context: { $implicit: block.spans }" /></p>
             }
           }
         </article>
       }
-    } @else if (view() === 'home') {
+    } @else if (view() === 'home' && editor() === null) {
       <ul class="home">
         @for (entry of list; track entry.id) {
           <li>

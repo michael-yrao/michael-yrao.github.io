@@ -12,6 +12,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Meta } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -92,7 +93,7 @@ interface EditorDraft { id: string | null; date: string; title: string; body: st
 
 @Component({
   selector: 'app-diary-page',
-  imports: [RouterLink, MenuComponent],
+  imports: [RouterLink, MenuComponent, NgTemplateOutlet],
   templateUrl: './diary-page.component.html',
   styleUrls: ['./diary-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -137,6 +138,8 @@ export class DiaryPageComponent implements OnInit {
   });
   readonly editor = signal<EditorDraft | null>(null);
   readonly pendingDeleteId = signal<string | null>(null);
+  /** Whether the editor's formatting key is showing; closed whenever an editor opens or cancels. */
+  readonly isKeyOpen = signal(false);
 
   constructor() {
     effect(() => {
@@ -198,15 +201,21 @@ export class DiaryPageComponent implements OnInit {
     return blocksOf(entry.body);
   }
 
+  toggleKey(): void {
+    this.isKeyOpen.update((isOpen) => !isOpen);
+  }
+
   newEntry(): void {
     this.error.set('');
     this.pendingDeleteId.set(null);
+    this.isKeyOpen.set(false);
     this.editor.set({ id: null, date: todayLocal(), title: '', body: '' });
   }
 
   editEntry(entry: DiaryEntry): void {
     this.error.set('');
     this.pendingDeleteId.set(null);
+    this.isKeyOpen.set(false);
     this.editor.set({ id: entry.id, date: entry.date, title: entry.title, body: entry.body });
   }
 
@@ -220,6 +229,7 @@ export class DiaryPageComponent implements OnInit {
 
   cancelEdit(): void {
     this.pendingDeleteId.set(null);
+    this.isKeyOpen.set(false);
     this.editor.set(null);
   }
 
