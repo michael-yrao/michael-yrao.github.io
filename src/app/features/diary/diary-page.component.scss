@@ -6,6 +6,7 @@ $sheet-padding: 1in;
 $body-font-size: 1.05rem;
 $body-line-height: 1.8;
 $editor-min-height: 70vh;
+$turn-target: 2.75rem; // 44px tap target
 
 // Below the sheet's own width it goes edge to edge inside the page gutter.
 @mixin sheet {
@@ -299,6 +300,32 @@ $editor-min-height: 70vh;
     color: var(--color-text-muted);
     margin: 0 0 var(--space-lg);
     padding-left: var(--space-xl);
+  }
+
+  &__turn {
+    display: flex;
+  }
+
+  &__turn-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: $turn-target;
+    height: $turn-target;
+    background: transparent;
+    border: 0;
+    color: var(--color-accent);
+    cursor: pointer;
+
+    svg {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+
+    // Keeps the next button on the right when there is no previous one.
+    &--next {
+      margin-left: auto;
+    }
   }
 
   @media (max-width: 560px) {

@@ -64,6 +64,32 @@ export function placeEntry(list: readonly DiaryEntry[], entry: DiaryEntry, repla
   return [entry, ...others].sort((a, b) => b.date.localeCompare(a.date));
 }
 
+/** The entries either side of the open one; `entries` is newest first, so previous is the older (next index). */
+export function neighborsOf(
+  entries: readonly DiaryEntry[],
+  id: string,
+): { previous: DiaryEntry | null; next: DiaryEntry | null } {
+  const index = entries.findIndex((entry) => entry.id === id);
+  if (index === -1) return { previous: null, next: null };
+  return { previous: entries[index + 1] ?? null, next: entries[index - 1] ?? null };
+}
+
+const SWIPE_MIN_DISTANCE_PX = 60;
+const SWIPE_HORIZONTAL_DOMINANCE = 2;
+// iOS Safari's back gesture starts here, so a swipe from the edge is not a page turn.
+const SWIPE_EDGE_ZONE_PX = 24;
+
+export interface TouchPoint { x: number; y: number }
+
+/** The page a horizontal swipe turns to: left is the next entry, right the previous; null when it is not a page turn. */
+export function swipeDirection(start: TouchPoint, end: TouchPoint, viewportWidth: number): 'previous' | 'next' | null {
+  if (start.x < SWIPE_EDGE_ZONE_PX || start.x > viewportWidth - SWIPE_EDGE_ZONE_PX) return null;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  if (Math.abs(dx) < SWIPE_MIN_DISTANCE_PX || Math.abs(dx) <= SWIPE_HORIZONTAL_DOMINANCE * Math.abs(dy)) return null;
+  return dx < 0 ? 'next' : 'previous';
+}
+
 /** Today's local date as YYYY-MM-DD. */
 export function todayLocal(now: Date = new Date()): string {
   const pad = (value: number): string => String(value).padStart(DATE_PART_WIDTH, '0');

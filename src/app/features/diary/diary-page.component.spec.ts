@@ -92,7 +92,10 @@ async function chooseItem(fixture: ComponentFixture<DiaryPageComponent>, text: s
 }
 
 describe('DiaryPageComponent', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
   it('shows the wrong-password message and no entries on a 401', async () => {
     vi.stubGlobal('fetch', routeFetch({ 'POST unlock': reply({}, 401) }));
@@ -404,6 +407,45 @@ describe('DiaryPageComponent', () => {
       .filter(([url, init]) => url.endsWith('diary/seen') && init?.method === 'POST')
       .map(([, init]) => JSON.parse(init?.body as string) as unknown);
     expect(sent).toEqual(bodies);
+  });
+
+  it('turns to the newer entry with Next entry, and has no Next entry on the newest', async () => {
+    const third: DiaryEntry = { ...ENTRIES[0], id: 'e3', date: '2026-03-01', title: 'Third title' };
+    vi.stubGlobal('fetch', routeFetch({ 'POST unlock': reply({ visitId: 'v1', entries: [third, ...ENTRIES] }) }));
+    vi.stubGlobal('scrollTo', vi.fn());
+    const fixture = await setup(null, 'e2');
+    await submit(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('h1')?.textContent).toBe('Lorem title');
+
+    await click(fixture, 'button[aria-label="Next entry"]');
+    expect(el.querySelector('h1')?.textContent).toBe('Third title');
+    expect(el.querySelector('button[aria-label="Next entry"]')).toBeNull();
+  });
+
+  it.each([
+    { name: 'a two-finger gesture', fingers: 2, selection: '', turns: false },
+    { name: 'a swipe while text is selected', fingers: 1, selection: 'Ipsum', turns: false },
+    { name: 'a plain one-finger swipe', fingers: 1, selection: '', turns: true },
+  ])('a horizontal swipe from $name turns the page: $turns', async ({ fingers, selection, turns }) => {
+    const third: DiaryEntry = { ...ENTRIES[0], id: 'e3', date: '2026-03-01', title: 'Third title' };
+    vi.stubGlobal('fetch', routeFetch({ 'POST unlock': reply({ visitId: 'v1', entries: [third, ...ENTRIES] }) }));
+    vi.stubGlobal('scrollTo', vi.fn());
+    vi.spyOn(window, 'getSelection').mockReturnValue({ toString: () => selection } as Selection);
+    const fixture = await setup(null, 'e2');
+    await submit(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+    const article = el.querySelector('article')!;
+    const touchAt = (x: number) => ({ clientX: x, clientY: 100 });
+    const fire = (type: string, touches: unknown[], changedTouches: unknown[]) =>
+      article.dispatchEvent(Object.assign(new Event(type, { bubbles: true }), { touches, changedTouches }));
+
+    fire('touchstart', Array.from({ length: fingers }, () => touchAt(300)), [touchAt(300)]);
+    fire('touchend', [], [touchAt(150)]);
+    await settle(fixture);
+
+    expect(el.querySelector('h1')?.textContent).toBe(turns ? 'Third title' : 'Lorem title');
+    vi.restoreAllMocks();
   });
 
   it('needs two clicks to delete an entry', async () => {

@@ -112,7 +112,7 @@
   @if (entries(); as list) {
     @if (selectedEntry(); as entry) {
       @if (editor() === null) {
-        <article class="entry">
+        <article class="entry" (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
           <span class="entry__date">{{ entry.date }}</span>
           <div class="entry__head">
             <h1 class="entry__title">{{ entry.title }}</h1>
@@ -130,6 +130,22 @@
               <p class="entry__text"><ng-container *ngTemplateOutlet="spansTpl; context: { $implicit: block.spans }" /></p>
             }
           }
+          <div class="entry__turn">
+            @if (neighbors().previous !== null) {
+              <button class="entry__turn-btn" type="button" aria-label="Previous entry" title="Previous entry" (click)="turnPage('previous')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                  <path d="M15 5l-7 7 7 7" />
+                </svg>
+              </button>
+            }
+            @if (neighbors().next !== null) {
+              <button class="entry__turn-btn entry__turn-btn--next" type="button" aria-label="Next entry" title="Next entry" (click)="turnPage('next')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                  <path d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            }
+          </div>
         </article>
       }
     } @else if (view() === 'home' && editor() === null) {

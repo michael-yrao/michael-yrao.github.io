@@ -21,7 +21,7 @@ import { map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { WORKER_API_URL, isCoachOwner } from '../../core/data/site-links';
 import { MenuComponent } from '../../shared/components/menu/menu.component';
-import { DiaryBlock, blocksOf, placeEntry, todayLocal } from './diary-body';
+import { DiaryBlock, TouchPoint, blocksOf, neighborsOf, placeEntry, swipeDirection, todayLocal } from './diary-body';
 import {
   DiaryEntry,
   DiaryEntryInput,
@@ -41,6 +41,7 @@ const STATUS_UNAUTHORIZED = 401;
 const STATUS_TOO_MANY = 429;
 
 const READ_SEPARATOR = ' · ';
+const TYPING_TAGS: ReadonlySet<string> = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
 
 const MESSAGE_WRONG_PASSWORD = 'Wrong password';
 const MESSAGE_TOO_MANY = 'Too many tries. Wait a minute.';
@@ -97,6 +98,8 @@ interface EditorDraft { id: string | null; date: string; title: string; body: st
   templateUrl: './diary-page.component.html',
   styleUrls: ['./diary-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Host metadata rather than @HostListener: another runtime symbol would land in the initial bundle.
+  host: { '(document:keydown)': 'onShortcut($event)' },
 })
 export class DiaryPageComponent implements OnInit {
   private readonly auth = inject(AuthService);
@@ -140,6 +143,11 @@ export class DiaryPageComponent implements OnInit {
   readonly pendingDeleteId = signal<string | null>(null);
   /** Whether the editor's formatting key is showing; closed whenever an editor opens or cancels. */
   readonly isKeyOpen = signal(false);
+  /** The older and newer entries beside the open one. */
+  readonly neighbors = computed(() => neighborsOf(this.entries() ?? [], this.selectedEntry()?.id ?? ''));
+  private touchStart: TouchPoint | null = null;
+  /** True from a second finger down until every finger lifts; such a gesture is a pinch, not a page turn. */
+  private isMultiTouch = false;
 
   constructor() {
     effect(() => {
@@ -236,6 +244,46 @@ export class DiaryPageComponent implements OnInit {
   /** Puts the entry id in the `entry` query param (null shows home) and clears `tab`; a stale id shows home. */
   selectEntry(id: string | null): void {
     this.navigateTo({ entry: id, tab: null });
+  }
+
+  /** Turns to the older or newer entry, when there is one, and returns to the top of the page. */
+  turnPage(direction: 'previous' | 'next'): void {
+    const target = this.neighbors()[direction];
+    if (target === null) return;
+    this.selectEntry(target.id);
+    window.scrollTo({ top: 0 });
+  }
+
+  onTouchStart(event: TouchEvent): void {
+    if (event.touches.length > 1) this.isMultiTouch = true;
+    if (this.isMultiTouch) {
+      this.touchStart = null;
+      return;
+    }
+    const touch = event.touches[0];
+    this.touchStart = touch === undefined ? null : { x: touch.clientX, y: touch.clientY };
+  }
+
+  onTouchEnd(event: TouchEvent): void {
+    const start = this.touchStart;
+    const touch = event.changedTouches[0];
+    const wasMultiTouch = this.isMultiTouch;
+    this.touchStart = null;
+    if (event.touches.length === 0) this.isMultiTouch = false;
+    if (wasMultiTouch || start === null || touch === undefined) return;
+    if ((window.getSelection()?.toString() ?? '') !== '') return;
+    const direction = swipeDirection(start, { x: touch.clientX, y: touch.clientY }, window.innerWidth);
+    if (direction !== null) this.turnPage(direction);
+  }
+
+  /** ArrowLeft turns to the previous entry and ArrowRight to the next, unless the reader is typing or holding a modifier. */
+  onShortcut(event: KeyboardEvent): void {
+    if (this.selectedEntry() === null || this.editor() !== null) return;
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    const target = event.target;
+    if (target instanceof HTMLElement && (target.isContentEditable || TYPING_TAGS.has(target.tagName))) return;
+    this.turnPage(event.key === 'ArrowLeft' ? 'previous' : 'next');
   }
 
   /** Opens the owner's Audit view: `?tab=audit` with the `entry` param removed. */
