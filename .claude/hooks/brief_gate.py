@@ -103,11 +103,11 @@ FABLE_DENY_REASON = (
 )
 PINNED_MODEL_DENY_REASON = (
     "Brief gate: a spawn of any dotfile agent (`team-lead`, `engineer`, `researcher`, `planner`, ...) carries no `model`: its model is pinned "
-    "in the agent definition (~/.claude/rules/execution-workflow.md \"Agent definitions\"). Remove `model`."
+    "in the agent definition (~/.claude/workflow/enforcement.md \"Agent definitions\"). Remove `model`."
 )
 LEAD_SPAWNS_ENGINEERS_DENY_REASON = (
     "Brief gate: a team lead spawns only `engineer` or `engineer-haiku` agents "
-    "(~/.claude/rules/execution-workflow.md \"Agent definitions\"). Spawn an engineer instead."
+    "(~/.claude/workflow/enforcement.md \"Agent definitions\"). Spawn an engineer instead."
 )
 STATUS_WINDOW_LINES = 20  # how far below the command line a status line may sit
 SHORT_MESSAGE_CHARS = 400  # a SendMessage under this is a follow-up ("stop", "status?"), not a brief

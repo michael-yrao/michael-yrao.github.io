@@ -57,55 +57,10 @@ The brief's author (tech lead or team lead) picks the tier. The default is Sonne
 
 When unsure, use Sonnet.
 
-**Why Sonnet is the default and Haiku is the exception.** A brief's checks are the only thing that catches a
-wrong output, so the model has to be able to supply the judgement the checks can't. Each tier test names a
-place where that judgement carries the output: a value a check can't fail (test 1), a derived call such as
-an algorithm, a bound or a design choice (test 2), prose a person reads or an agent obeys (test 3), context
-the engineer has to find (test 4), and consistency across many files (test 5). A smaller model makes more
-confident wrong calls in exactly those places, and a wrong call there passes every check. So Haiku runs
-only where the checks fully decide correctness. Anywhere else, what it saves comes back as a re-run on
-Sonnet or as a wrong artifact nobody caught. Evidence: `feedback_execution_workflow.md`, 2026-11-09.
-
 **Escalation:** if a Haiku engineer's checks fail, the same brief is re-run once on `engineer` (Sonnet), with
 no Haiku retry. The escalation is noted in the report up.
 
 The factory's recipe tier (`recipe.yml tier:`, `factory.haiku_max_files`) applies the same tests to recipes.
-
-## The tech lead owns optimization, and keeps only what needs it
-
-The tech lead is accountable for four costs, each checked at a named step. It decides; it hands the
-checking and the legwork down.
-
-| Cost | Step | Check |
-|---|---|---|
-| **Token spend** | planning, briefing | Each task sits at the cheapest tier that can do it. A brief carries what the tech lead already knows, so no agent rediscovers it. A report comes back as a conclusion (diff stat, failing output), not a file or log dump. |
-| **Wall-clock** | spawning | Independent slices spawn in one message and run in the background. Independent tool calls go in one message. The session never polls or sleeps on an agent. |
-| **Shipped code** | reviewing a diff | The team lead is responsible for this inside its slice: it decides the optimization and has its engineer make it, without asking up, as long as the slice's behaviour and scope stay the same. With no lead, the tech lead is. Targets: a complexity the input size does not allow, I/O or parsing repeated in a loop, anything slow in a hook (a hook runs on every prompt or tool call). The tech lead checks the consolidated diff. Only waste that is visible or measured; `coding-style.md`'s "no premature optimization" still holds. |
-| **The workflow** | after integrating | A run that wasted spend or time (an empty hand-back, a re-sent brief, a re-spawn, a rule read two ways) gets its cause named by the tech lead and fixed by an engineer in the rule, agent definition or hook, in the same session. The evidence goes in the why file. A cause already in the self-eval log is fixed one rung higher than last time (recurrence floor, CLAUDE.md gate 5). |
-
-**Stays with the tech lead:** the design and the plan, every exchange with the user, the review of the
-consolidated diff, commit and push, the decision on each cost above (shipped code inside a lead's slice is
-the lead's), and the carve-outs below.
-
-**Goes down, with as many engineers as it takes (and a lead only for a named `Lead because:` reason):**
-
-- A sweep across many files: a `researcher`. A long log or test output to digest: a `verifier`. Each
-  returns the conclusion.
-- The pasted state a brief needs (`git status`, quoted lines, dry-run output): an engineer.
-- Supervision, test and build runs, the first review of each diff, and optimizing the slice's code: the tech lead, or a team lead when the plan's `Lead because:` line names one.
-- Checker scripts and verification runs: an engineer.
-
-How many agents that takes is the tech lead's call, made per task. The floor: an agent is spawned for this work when the work is larger than the brief
-it needs, and a read of one known file stays inline.
-
-**On Fable, the session's own context is the first cost.** Every token the session reads or writes costs
-more than the same token anywhere else in the tree, so the list above is not optional on Fable.
-
-- Nothing already in context is read or run again.
-- Built-in agents are denied by `brief_gate.py`, and the dotfile personas pin their model in frontmatter,
-  so no spawn can inherit Fable (see the Model rule).
-- Rule and brief text is checked against how Fable behaves in observed runs, not against how an earlier
-  model behaved.
 
 ## Briefs carry pasted state, never described state
 
@@ -117,8 +72,6 @@ fast-forward first. Every
 count or "nothing depends on X" claim in a plan comes from a command that was run, pasted, not from a grep
 remembered or a state inferred from an adjacent command. A brief is a mechanical artifact: a second agent with
 the same inputs must produce the same brief, and "clean" / "no spec depends on it" are one-command facts.
-
-**Enforced by `brief_gate.py`** (PreToolUse, matcher `Agent`): a `team-lead` or `engineer` spawn whose prompt carries no `git status --short` paste is DENIED, and so is one whose `## branch...upstream` line shows `[behind N]` or `[ahead N, behind M]`; a paste with no `## ` branch line draws a warn to paste `--branch`; an allowed spawn gets a warn-only reminder of the rest of this section. On Windows (`win32`) only, a brief that names `michael-yrao.github.io` and runs the Angular CLI through `npm run lint|test`, `npx ng` or bare `ng …` is DENIED too; the bootstrap path (`node node_modules/@angular/cli/bin/bootstrap.js …`) is the one that runs on this machine. A `team-lead` brief that tells the lead to run its engineers in the background is DENIED, because `agents/team-lead.md` requires them in the foreground. A `team-lead` brief with no `Lead because: width|depth` line is DENIED (see "Spawn rule: team leads are opt-in"). An `engineer-haiku` spawn whose brief lacks a `Tier test N:` line for any of the five tests is DENIED (see "Engineer tier").
 
 The checklist for this section is `~/.claude/skills/write-brief/SKILL.md`, walked before every `team-lead` / `engineer` spawn.
 
@@ -133,13 +86,6 @@ break, table-driven, nothing trivial or already proven — and the engineer adds
 **A plan that replaces a paragraph of user-facing text quotes the old paragraph in full beside the new
 one.** A dropped sentence is then visible at approval. For any other paragraph, the tech lead diffs old
 against new at its own review and confirms no sentence or citation was dropped.
-
-## A running agent's status is read from file times, not from silence
-
-A status answer about a background agent pastes the newest mtime in its slice (`ls -lt`, top line) next to
-the current time. "No notification yet" is not "working", and a file listing is not a file time. A lead or
-engineer quiet for more than twice its previous round is stopped and re-briefed from the tree. The new brief
-carries a stall guard: bounded tasks, no watch-mode command, report up rather than wait.
 
 ## User-facing text gets a second review
 
@@ -169,29 +115,6 @@ Roles are enforced as custom agent definitions, not prose only: `~/.claude/agent
 "team-lead"` / `"engineer"` / `"engineer-haiku"` / a persona name — never spawn a lead with a generic agent plus a
 `model: "opus"` override.
 
-**Enforced by frontmatter:** the model pin (Opus lead, Sonnet `engineer`, Haiku `engineer-haiku`, and each persona's model in the roster table); `Write`/`Edit`/`NotebookEdit`
-removed from the lead's tool list, and `Write`/`Edit`/`NotebookEdit`/`Agent` from every persona's.
-
-**Enforced by the `role_gate.py` PreToolUse hook**, wired once in `~/.claude/settings.json` (matcher
-`Write|Edit|NotebookEdit|Bash|PowerShell`); settings hooks fire inside subagents and the script branches on the
-`agent_type` field: the lead's and the engineer's Bash or PowerShell calls that write files are DENIED for both (engineers change files with Edit/Write only; inside a worktree the hook stops enforcing it, see below), and every state-changing git command is DENIED for both the
-lead and the engineer, in Bash and in PowerShell alike. Read-only git stays allowed. The patterns and verbs are in `role_gate.py`'s docstring and constants. A main session (no `agent_type`) whose environment sets `FACTORY_ROLE=team-lead` (a cloud routine playing the team lead, which has no Agent-spawned lead) gets the team lead's denies; `agent_type` still wins for its subagents. Two more named denies, matched per command segment outside quoted text: any `land.py` call is DENIED for every role but the tech lead (it is the tech lead's local commit/push tool); and `factory_job.py` subcommands are DENIED per role — `engineer`/`engineer-haiku`: `publish`, `merge`, `claim`, `label`, `comment`, `digest`, `sync-main`; the `team-lead` agent: `publish`, `merge`, `sync-main`; the `FACTORY_ROLE` session: `merge` (it may `publish`). `approvals`, `parse-issue` and the other subcommands stay allowed for all. Raw git stays denied for every role under `FACTORY_ROLE`; there is no allowlist. A generic agent (`general-purpose`, `claude`, `fork`, any `agent_type` that is neither a pyramid role nor one of `Explore`, `Plan`, `statusline-setup`, `claude-code-guide`, `web-fetch`; `brief_gate.py` now denies the spawn itself, this is the backstop) can't implement: it is DENIED Write/Edit/NotebookEdit, shell writes, state-changing git and `land.py`; spawn `engineer` instead.
-
-**Worktree engineer.** An interactive engineer whose brief edits only one repo is spawned with `isolation: "worktree"`. The harness builds the worktree from the repo of the session's current working directory, which a `cd` in any Bash call moves, so the tech lead `cd`s into the target repo in the call before the spawn (2026-10-28: a cse-progress worktree came out of the site repo). It branches from `origin/main`, not local HEAD, so an engineer that needs an unpushed local commit gets a worktree the tech lead makes itself (`git worktree add --detach .claude/worktrees/<name> <sha>`) and a brief that `cd`s into it. The Edit/Write-only rule still holds; `role_gate.py` stops denying a shell write inside the worktree, because a slip there reaches the main checkout only through the tech lead's review. The tech lead integrates by `land.py commit --repo <worktree>`, then `land.py integrate --from <worktree> --into <repo>`, which fast-forwards the main checkout to the worktree's commit and carries its land-state so `land.py push` accepts it, then `git worktree remove` run from outside the worktree (2026-11-02: a cherry-pick moved HEAD and the push refused; a session whose working directory sat inside the worktree could not delete it). Uncommitted edits in the main checkout on paths the commit does not touch are left in place; an overlapping or staged edit is refused (2026-11-03). The site repo stays in the primary checkout.
-
-**A recipe routine runs as a team lead with no tech lead** (a cloud session with `FACTORY_ROLE=team-lead`). The recipe is the approved plan: the lead spawns `engineer` or `engineer-haiku` per the recipe's `recipe.yml tier:`, follows the Haiku escalation above (a failed `engineer-haiku` check re-runs once on `engineer`), and sends every GitHub write through `scripts/factory_job.py`, never raw git or `gh`.
-
-**Moment-bound reminder** (the same hook's branch for a payload with no `agent_type`): the tech lead gets
-a warn-only `additionalContext` note on its first `Write`/`Edit`/`NotebookEdit` of a session, pointing
-back at this rule. It never denies — the tech lead may still make a trivial one-liner edit inline.
-
-**Enforced by the `brief_gate.py` PreToolUse hook**, wired in `~/.claude/settings.json` with matcher `Agent`: a `team-lead`/`engineer` spawn with no `git status --short` paste in its prompt is DENIED (see "Briefs carry pasted state"). The same hook also DENIES an Agent call with `model: "fable"` for any `subagent_type`; a spawn of any dotfile agent (every `agents/*.md` stem: the pyramid roles and the personas) that carries any `model`, since frontmatter pins it; a spawn by a `team-lead` caller of anything but `engineer` or `engineer-haiku`; and any `subagent_type` outside the roster (see "Agent roster").
-
-**Still convention, not enforcement:** any write path Bash or PowerShell could take that `role_gate.py` does not name (some obscure tool, a non-interactive editor invocation, etc.).
-
-**Verified by live probe, not by docs:** agent-frontmatter `hooks:` blocks did not fire in testing, so they are not used; any future change to enforcement wiring is confirmed by spawning an
-agent and watching the deny land, never by reading the docs alone.
-
 ## Agent roster: only dotfile agents spawn
 
 | Agent | Model | Does | Never |
@@ -204,13 +127,6 @@ agent and watching the deny land, never by reading the docs alone.
 | `planner` | Opus | read-only design: one approach, trade-offs, critical files, utilities to reuse | write implementation |
 | `reviewer` | Opus | reviews a named diff; findings ranked most-severe first, each with `file:line` and a failure scenario | edit, report an unverified finding |
 | `verifier` | Sonnet | runs the named tests, builds or checkers; counts plus failing output | edit, fix, use watch mode |
-
-**Enforced by `brief_gate.py`:** it denies any `subagent_type` that is not an `agents/*.md` stem or one of
-`statusline-setup`, `claude-code-guide`; a missing `subagent_type`; and `general-purpose`,
-`claude` and `fork`. The reason names the stand-in (`Explore` gives `researcher`, `Plan` gives `planner`)
-or lists the roster. `statusline-setup` and `claude-code-guide` stay allowed as harness utilities.
-`web-fetch` is denied in favor of `web-researcher` (live probe 2026-11-02: WebFetch works inside the custom agent). Where the harness
-text for plan mode says `Explore` / `Plan`, use `researcher` / `planner`.
 
 ## What triggers it — non-trivial work only
 
@@ -235,3 +151,8 @@ When unsure whether a task clears the bar, it does — plan it.
   A diff is not reviewed until every step of the plan's Verification section has run, including the
   running-app look for a UI change; a step that cannot run is named to the user and the commit waits for
   their go-ahead without it. Passing tests do not stand in for a step no test covers.
+
+## Read when the moment comes
+
+- A hook denied a call, or you are changing enforcement → `~/.claude/workflow/enforcement.md`
+- Spawning a worktree engineer, reporting on a running agent, running a recipe routine, or reviewing cost after integrating → `~/.claude/workflow/operations.md`
